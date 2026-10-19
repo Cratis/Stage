@@ -19,7 +19,7 @@ public class when_creating_screen_partitions_from_a_stale_scene : given.a_partit
         var scene = _legacy.Inputs.Single(input => input.Name == "cratis-scaffold:text:scene.json");
         var node = JsonNode.Parse(scene.Bytes.AsSpan())!;
         var screen = node["screens"]![0]!;
-        var element = screen["slotContent"]!.AsObject().First().Value!.AsArray()[0]!;
+        var element = screen["slotContent"]!.AsObject().GetAt(0).Value!.AsArray()[0]!;
         element["properties"]!["stalePayload"] = "Different content, same screen name and hierarchy";
         var staleScene = ArtifactRenderInput.Create(scene.Name, scene.Version, [.. Encoding.UTF8.GetBytes(CanonicalSceneJson.Write(node))]);
         var profile = ArtifactRenderProfile.Create(_legacy.Target, _legacy.TargetVersion, _legacy.Renderer, _legacy.RendererVersion, [.. _legacy.Inputs.Where(input => input != scene), staleScene]);

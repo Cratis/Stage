@@ -38,11 +38,11 @@ public class and_screens_sit_in_modules_and_features : Specification
 
     [Fact] void should_record_the_module_and_feature_a_screen_was_declared_in() => _result.Screens.Single(_ => _.Name == "InvoiceList").Path.ToArray().ShouldEqual(["Invoicing", "Browsing"]);
     [Fact] void should_record_every_level_of_a_nested_feature() => _result.Screens.Single(_ => _.Name == "InvoiceAudit").Path.ToArray().ShouldEqual(["Invoicing", "Browsing", "Auditing"]);
-    [Fact] void should_attach_what_the_module_contributes_to_the_screens_beneath_it() => _result.Screens.All(_ => _.Contributions.Any(contribution => (string?)contribution.Content.Properties!["label"] == "Invoicing home")).ShouldBeTrue();
+    [Fact] void should_attach_what_the_module_contributes_to_the_screens_beneath_it() => _result.Screens.All(_ => _.Contributions.Any(contribution => (string?)contribution.Content.Properties["label"] == "Invoicing home")).ShouldBeTrue();
     [Fact] void should_record_the_module_alone_as_where_a_module_contribution_was_declared() => ((string[])ModuleEntry("InvoiceList").Properties![SceneElementProperties.Hierarchy]!).ShouldEqual(["Invoicing"]);
-    [Fact] void should_carry_the_authored_navigation_metadata_of_a_module_contribution() => string.Join('|', new[] { "id", "icon", "presentation", "group" }.Select(name => ModuleEntry("InvoiceList").Properties![name])).ShouldEqual("nav:invoicing|receipt|primary|Billing");
-    [Fact] void should_record_where_a_screen_contributed_from() => ((string[])_result.Screens.Single(_ => _.Name == "InvoiceAudit").Contributions.Last().Content.Properties![SceneElementProperties.Hierarchy]!).ShouldEqual(["Invoicing", "Browsing", "Auditing"]);
+    [Fact] void should_carry_the_authored_navigation_metadata_of_a_module_contribution() => string.Join('|', new[] { "id", "icon", "presentation", "group" }.Select(name => ModuleEntry("InvoiceList").Properties[name])).ShouldEqual("nav:invoicing|receipt|primary|Billing");
+    [Fact] void should_record_where_a_screen_contributed_from() => ((string[])_result.Screens.Single(_ => _.Name == "InvoiceAudit").Contributions[^1].Content.Properties![SceneElementProperties.Hierarchy]!).ShouldEqual(["Invoicing", "Browsing", "Auditing"]);
 
     Cratis.Scene.Model.Elements.ExternalComponent ModuleEntry(string screen) =>
-        (Cratis.Scene.Model.Elements.ExternalComponent)_result.Screens.Single(_ => _.Name == screen).Contributions.First().Content;
+        (Cratis.Scene.Model.Elements.ExternalComponent)_result.Screens.Single(_ => _.Name == screen).Contributions[0].Content;
 }

@@ -36,7 +36,7 @@ public class when_admitting_v19 : Specification
             var vector = EsmGoldenVectors.Get(version);
             var model = SemanticModelSerializer.Deserialize(vector.Bytes.AsSpan());
             SemanticVersionFeatures.Supports(model).ShouldBeTrue();
-            Assert.Equal(vector.Bytes.ToArray(), SemanticModelSerializer.Serialize(model));
+            Assert.Equal([.. vector.Bytes], SemanticModelSerializer.Serialize(model));
         }
     }
 }

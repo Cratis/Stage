@@ -16,7 +16,7 @@ public class with_a_linked_root : a_source_tree
         Directory.CreateSymbolicLink(_linkedRoot, _root);
     }
     async Task Because() => _result = await SemanticModelLoader.LoadAsync(_linkedRoot, [], null, "Shop");
-    [SourceLinkFact] void should_trust_the_supplied_root() => _result.Success.ShouldBeTrue();
-    [SourceLinkFact] void should_compile_the_plain_sources_under_it() => _result.Loaded!.Plan.Commands.Count.ShouldEqual(1);
+    [Fact] void should_trust_the_supplied_root() => _result.Success.ShouldBeTrue();
+    [Fact] void should_compile_the_plain_sources_under_it() => _result.Loaded!.Plan.Commands.Count.ShouldEqual(1);
 }
 #endif

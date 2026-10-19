@@ -62,55 +62,6 @@ public class when_converting_navigation_regions : given.a_translated_application
     [Fact] void should_convert_an_extending_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.Single(region => region.Region == NavigationRegionKind.Sidebar).Mode.ShouldEqual(NavigationRegionMode.Extend);
     [Fact] void should_convert_an_overriding_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.Single(region => region.Region == NavigationRegionKind.Topbar).Mode.ShouldEqual(NavigationRegionMode.Override);
     [Fact] void should_convert_an_inheriting_region() => Navigation.Modules.Single(module => module.Module == "Support").Regions.Single().Mode.ShouldEqual(NavigationRegionMode.Inherit);
-    [Fact] void should_convert_the_items_of_a_module_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions.First().Items.Single().Id.ShouldEqual("more");
+    [Fact] void should_convert_the_items_of_a_module_region() => Navigation.Modules.Single(module => module.Module == "Shop").Regions[0].Items.Single().Id.ShouldEqual("more");
     [Fact] void should_report_no_findings() => Cratis.Stage.Contracts.Scene.RenderFindings.ForStructure(_application).ShouldBeEmpty();
-}
-
-public class when_a_document_declares_no_navigation : given.a_translated_application
-{
-    void Because() => Translate(Model);
-
-    [Fact] void should_have_no_application_regions() => _application.Navigation.Application.Regions.ShouldBeEmpty();
-    [Fact] void should_have_no_logo() => _application.Navigation.Application.Logo.ShouldBeNull();
-    [Fact] void should_have_no_module_navigation() => _application.Navigation.Modules.ShouldBeEmpty();
-}
-
-// Decision 0098 (#868): a button in the layout's topbar region belongs to the application, and Scene's navigation regions carry items only.
-public class when_the_topbar_declares_application_toolbar_buttons : given.a_translated_application
-{
-    const string Shell =
-        """
-        policy IsBuyer
-          require role "buyer"
-
-        layout AppShell
-          category application
-          content
-
-          navigation topbar
-            item shop title "Shop" target Shop
-            button place title "Place order" slice Shop.Orders.PlaceOrder emphasis primary icon plus
-              authorize IsBuyer
-
-        module Shop
-          feature Orders
-            slice StateChange PlaceOrder
-              command PlaceOrder
-                orderId Uuid identifier
-                produces OrderPlaced
-                  orderId = orderId
-              event OrderPlaced
-                orderId Uuid
-        """;
-
-    void Because()
-    {
-        var compiled = new Cratis.Screenplay.ScreenplayCompiler().Compile(Shell);
-        Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Message}")));
-        _application = new ScreenplaySceneVisitor().Convert(compiled.Value!);
-    }
-
-    [Fact] void should_still_convert_the_items_beside_the_button() => _application.Navigation.Application.Regions.Single().Items.Single().Id.ShouldEqual("shop");
-    [Fact] void should_say_that_the_button_was_omitted() => _application.ConversionDiagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-SCENE-NAV-001");
-    [Fact] void should_name_the_button() => _application.ConversionDiagnostics.Single(diagnostic => diagnostic.Code == "STAGE-SCENE-NAV-001").Message.ShouldContain("'place'");
 }

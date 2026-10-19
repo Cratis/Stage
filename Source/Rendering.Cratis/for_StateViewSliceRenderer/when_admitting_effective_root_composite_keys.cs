@@ -187,8 +187,11 @@ public class when_admitting_effective_root_composite_keys : Specification
             """;
         var source = template.Replace("BLOCKS", blocks.Replace("\n", "\n        ", StringComparison.Ordinal), StringComparison.Ordinal);
         var compilation = new NativeScreenplayCompiler().Compile(source);
-        Assert.True(compilation.Success, $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
-        compilation.Diagnostics.ShouldBeEmpty();
+
+        // Screenplay 4.212.3 reports an event used twice in one projection scope (PLAY0801); these scenarios use it on purpose, to prove
+        // that the renderer still refuses what a hand-built or older tree can carry.
+        var unexpected = compilation.Diagnostics.Where(diagnostic => diagnostic.Code != "PLAY0801").ToArray();
+        Assert.True(unexpected.Length == 0 && compilation.Value is not null, $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
         _context = new([compilation.Value!]);
         _slice = _context.Slices.Single().Slice;
     }

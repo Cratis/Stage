@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.206.0; exact ESM v1–v28 pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.226.0; exact ESM v1–v30 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -127,7 +127,7 @@ internal static class SemanticSurfaceLedger
         // Message includes localized $strings keys only with a validated catalog; missing default keys block as STAGE-ESM-018.
         Add(entries, "SemanticValidationRule", rendered, "Kind Message Property Severity Operand");
         Add(entries, "SemanticValidationRule", rendered, "Name RequirementId");
-        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation");
+        Add(entries, "SemanticValidationRuleKind", rendered, "NotEmpty Maximum Minimum Equal NotEqual GreaterThan GreaterThanOrEqual LessThan LessThanOrEqual Length AllGreaterThan AllGreaterThanOrEqual Matches Checksum Contains NotContains StartsWith EndsWith RulePredicate CodeValidation DecimalPlaces");
         Add(entries, "SemanticValidationRuleKind", rejected("STAGE-ESM-005"), "Unknown");
         Add(entries, "SemanticValidationSeverity", rendered, "Error Information Warning");
 
@@ -240,6 +240,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionKeyPart", rendered, "Property Value");
         Add(entries, "SemanticProjectionLiteral", rendered, "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
+
+        // ESM v29: add/subtract by a product of two event values. Chronicle's projection engine adds one event property, so the renderer refuses it.
+        Add(entries, "SemanticProjectionMapping", rejected(SemanticVersionFeatures.ProjectionProducts), "Factor");
         Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
         Add(entries, "SemanticProjectionOperation", rendered, "Set Add Subtract Increment Decrement Clear");
         Add(entries, "SemanticProjectionOperation", rejected("STAGE-ESM-017"), "Unknown");
@@ -380,6 +383,11 @@ internal static class SemanticSurfaceLedger
         // Admission still refuses non-UUID generation and combinations the target cannot preserve.
         var generated = rendered;
         Add(entries, "SemanticSpecificationCommand", generated, "GeneratedValues");
+
+        // ESM v30: values a specification pins for the commands reactions invoke. The Stage executor takes them; the generated
+        // reaction specification carries them as the generated fixtures of the invoked command's specification.
+        Add(entries, "SemanticSpecification", generated, "GivenGenerated");
+        Add(entries, "SemanticSpecificationGeneratedValue", generated, "Command Property Value");
         var responses = rendered;
         Add(entries, "SemanticCommand", responses, "Response");
         Add(entries, "SemanticCommandResponse", responses, "$type");

@@ -16,7 +16,7 @@ public class when_running_protected_command_reads : Specification
     [InlineData("folder")]
     [InlineData("reordered")]
     [InlineData("relocated")]
-    public async Task should_match_all_thirteen_reference_outcomes(string formName)
+    public async Task should_match_all_nineteen_reference_outcomes(string formName)
     {
         var corpus = ProtectedCommandReadsCorpus.V25;
         var form = corpus.SourceForms.Single(form => form.Name == formName);
@@ -30,7 +30,7 @@ public class when_running_protected_command_reads : Specification
         var factCounts = new Dictionary<SemanticId, int>();
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (id, count) => factCounts.Add(id, count) };
         var report = await executor.Run(plan, new([]), new());
-        report.Results.Count.ShouldEqual(13);
+        report.Results.Count.ShouldEqual(19);
         foreach (var expectation in corpus.SpecificationExpectations)
         {
             var reference = new SemanticSpecificationRunner().Run(plan, expectation.Specification);

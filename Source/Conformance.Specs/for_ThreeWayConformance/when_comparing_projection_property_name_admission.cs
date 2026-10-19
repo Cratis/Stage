@@ -154,7 +154,7 @@ public class when_comparing_projection_property_name_admission
     [InlineData("display_name")]
     [InlineData("projectUpdated")]
     [InlineData("toString")]
-    public async Task should_refuse_an_unreached_projection_event_with_colliding_generated_properties(string propertyName)
+    public async Task should_keep_source_only_collisions_out_of_executor_admission(string propertyName)
     {
         var source = Source.Replace(
                 "      specification RegisteringAProject",
@@ -193,9 +193,8 @@ public class when_comparing_projection_property_name_admission
         Assert.Empty(rendered.Artifacts);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
             diagnostic.Artifact == plan.Projections.Values.Single().Id);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
-        Assert.Equal(StageExecutionCapability.Projection, executed.Unsupported?.Capability);
-        Assert.Contains("generated C#", executed.Unsupported?.Details ?? "", StringComparison.Ordinal);
+        Assert.True(new SemanticSpecificationRunner().Run(plan, specification.Id).Passed);
+        Assert.Equal(SemanticSpecificationOutcome.Passed, executed.Outcome);
     }
 
     // These rows compile the source emitted by the actual slice renderers, including rejected models
@@ -309,12 +308,13 @@ public class when_comparing_projection_property_name_admission
         }
 
         Assert.Equal(!(collision || chronicleOnly), rendered.Success);
-        Assert.Equal(!(collision || chronicleOnly), executed.Outcome == SemanticSpecificationOutcome.Passed);
+        Assert.Equal(!chronicleOnly, executed.Outcome == SemanticSpecificationOutcome.Passed);
+        Assert.True(new SemanticSpecificationRunner().Run(plan, specification.Id).Passed);
         if (collision || chronicleOnly)
         {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == (chronicleOnly ? "STAGE-ESM-017" : "STAGE-ESM-012"));
-            Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
         }
+        if (chronicleOnly) Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
     }
 
     [Theory]
@@ -358,7 +358,8 @@ public class when_comparing_projection_property_name_admission
         var context = new SemanticApplicationContext(request, options);
         Assert.Equal(collision, RenderedOutput.Errors([SemanticCommonArtifactRenderer.Render(changed, context)]).Count > 0);
         Assert.Equal(!collision, rendered.Success);
-        Assert.Equal(!collision, executed.Outcome == SemanticSpecificationOutcome.Passed);
+        Assert.True(new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id).Passed);
+        Assert.Equal(SemanticSpecificationOutcome.Passed, executed.Outcome);
         if (collision)
         {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
@@ -399,7 +400,8 @@ public class when_comparing_projection_property_name_admission
         Assert.NotEmpty(RenderedOutput.Errors([SemanticCommonArtifactRenderer.Render(changed, context)]));
         Assert.False(rendered.Success);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+        Assert.True(new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id).Passed);
+        Assert.Equal(SemanticSpecificationOutcome.Passed, executed.Outcome);
     }
 
     public static TheoryData<string, string> NestedEventMembers
@@ -519,7 +521,6 @@ public class when_comparing_projection_property_name_admission
             Assert.Empty(rendered.Artifacts);
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
                 diagnostic.Artifact == plan.Projections.Values.Single().Id);
-            Assert.Contains("generated C#", executed.Unsupported?.Details ?? string.Empty, StringComparison.Ordinal);
         }
 
         // Child/nested execution is not admitted even when its generated C# compiles.

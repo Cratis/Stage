@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -80,6 +81,8 @@ static class CatalogScaffold
 
     static async Task<string> Run(string directory, params string[] arguments)
     {
+        // Bounded so a local run does not start every generated application's build at once.
+        using var slot = await GeneratedApplicationBuilds.Enter();
         var start = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = directory,

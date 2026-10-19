@@ -6,5 +6,12 @@
   { "model": "hr",             "npm": "scene.blueprint.hr",             "export": "hrBlueprint" },
   { "model": "projects",       "npm": "scene.blueprint.project-tracker", "export": "projectTrackerBlueprint" },
   { "model": "administration", "npm": "scene.blueprint.administration", "export": "administrationBlueprint" },
-  { "model": "orders",         "npm": "scene.blueprint.orders",         "export": "ordersBlueprint" }
+  { "model": "orders",         "npm": "scene.blueprint.orders",         "export": "ordersBlueprint" },
+  { "model": "catalog",        "npm": "scene.blueprint.catalog",      "export": "catalogBlueprint" },
+  { "model": "vendors",        "npm": "scene.blueprint.vendors",      "export": "vendorsBlueprint" },
+  { "model": "invoicing",      "npm": "scene.blueprint.invoicing",    "export": "invoicingBlueprint" },
+  { "model": "customer-portal","npm": "scene.blueprint.customer-portal","export": "customerPortalBlueprint" },
+  { "model": "contracts",      "npm": "scene.blueprint.contracts",    "export": "contractsBlueprint" },
+  { "model": "work-orders",    "npm": "scene.blueprint.work-orders",  "export": "workOrdersBlueprint" },
+  { "model": "bookings",       "npm": "scene.blueprint.bookings",     "export": "bookingsBlueprint" }
 ]

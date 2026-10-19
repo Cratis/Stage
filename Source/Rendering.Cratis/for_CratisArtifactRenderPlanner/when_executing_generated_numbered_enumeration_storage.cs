@@ -34,6 +34,7 @@ public class when_executing_generated_numbered_enumeration_storage : a_generated
             public async Task should_store_the_model_owned_number(Status status, int number)
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), status));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));

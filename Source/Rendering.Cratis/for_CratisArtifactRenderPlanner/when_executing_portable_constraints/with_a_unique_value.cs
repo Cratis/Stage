@@ -63,7 +63,11 @@ public class with_a_unique_value(context fixture) : IClassFixture<context>
                     readonly CommandScenario<IssueInvoice> _scenario = new();
                     Cratis.Arc.Commands.CommandResult _result = null!;
 
-                    async Task Because() => _result = await _scenario.Execute(new IssueInvoice(null!, "invoice-three"));
+                    async Task Because()
+                    {
+                        using var principalScope = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
+                        _result = await _scenario.Execute(new IssueInvoice(null!, "invoice-three"));
+                    }
 
                     [Fact] void should_reject_null_before_append() => _result.ShouldHaveValidationErrors();
                     [Fact] void should_not_append_an_event() => _scenario.AppendedEvents.ShouldBeEmpty();

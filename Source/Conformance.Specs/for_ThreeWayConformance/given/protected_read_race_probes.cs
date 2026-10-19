@@ -79,7 +79,11 @@ internal static class protected_read_race_probes
                     {{string.Join('\n', later)}}
                 }
 
-                async Task Because() => _result = await _scenario.Execute(new {{command}}({{string.Join(", ", arguments)}}));
+                async Task Because()
+                {
+                    using var principalScope = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
+                    _result = await _scenario.Execute(new {{command}}({{string.Join(", ", arguments)}}));
+                }
 
                 [Fact] void should_match_the_reference_outcome() => _result.IsSuccess.ShouldEqual({{(accepted ? "true" : "false")}});
                 [Fact] void should_append_only_the_expected_command_facts() => _scenario.AppendedEvents.Count.ShouldEqual({{facts.Count}});

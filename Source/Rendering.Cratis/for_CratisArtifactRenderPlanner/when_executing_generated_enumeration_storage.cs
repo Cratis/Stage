@@ -38,6 +38,7 @@ public class when_executing_generated_enumeration_storage : a_generated_applicat
             public async Task should_store_the_member_number_with_an_integer_enumeration_schema()
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), Status.Issued));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));

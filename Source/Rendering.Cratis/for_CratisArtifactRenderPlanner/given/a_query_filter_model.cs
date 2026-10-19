@@ -109,6 +109,7 @@ public static class a_query_filter_model
                 var nullCategory = matching with { Id = new InvoiceId("three"), Category = null };
                 var differentFlag = matching with { Id = new InvoiceId("four"), Flag = false };
                 using var scenario = new QueryScenario<InvoiceSummary>();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 scenario.Given.ForEventSource("one").ReadModel(matching);
                 scenario.Given.ForEventSource("two").ReadModel(nullFlag);
                 scenario.Given.ForEventSource("three").ReadModel(nullCategory);
@@ -173,6 +174,7 @@ public static class a_query_filter_model
                 var north = new InvoiceSummary(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North"));
                 var south = new InvoiceSummary(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South"));
                 using var scenario = new QueryScenario<InvoiceSummary>();
+                using var principalScope2 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 scenario.Given.ForEventSource("one").Events(new InvoiceIssued(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North")));
                 scenario.Given.ForEventSource("two").Events(new InvoiceIssued(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North")));
                 scenario.Given.ForEventSource("three").Events(new InvoiceIssued(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South")));

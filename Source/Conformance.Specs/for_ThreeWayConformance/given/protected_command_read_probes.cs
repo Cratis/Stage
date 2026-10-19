@@ -25,7 +25,11 @@ internal static class protected_command_read_probes
 
             void Establish() => _scenario.Given.ForEventSource("reference").Events(new Stored("present"));
 
-            async Task Because() => _result = await _scenario.Execute(new RequireApproval(Approved: true, Id: "target", SourceId: "reference"));
+            async Task Because()
+            {
+                using var principalScope = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
+                _result = await _scenario.Execute(new RequireApproval(Approved: true, Id: "target", SourceId: "reference"));
+            }
 
             [Fact] void should_succeed() => _result.IsSuccess.ShouldBeTrue();
             [Fact] void should_append_nothing() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);
@@ -56,7 +60,11 @@ internal static class protected_command_read_probes
                 _scenario.AppendConcurrently("reference", new Stored("changed"));
             }
 
-            async Task Because() => _result = await _scenario.Execute(new Consume(SourceId: "reference", Id: "target"));
+            async Task Because()
+            {
+                using var principalScope = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
+                _result = await _scenario.Execute(new Consume(SourceId: "reference", Id: "target"));
+            }
 
             [Fact] void should_report_a_concurrency_violation() => _result.ValidationResults.Single().Reason.ShouldEqual(ValidationResultReason.ConcurrencyViolation);
             [Fact] void should_append_no_command_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);
@@ -86,7 +94,11 @@ internal static class protected_command_read_probes
                 _scenario.AppendConcurrently("reference", new Requested("elsewhere", "reference"));
             }
 
-            async Task Because() => _result = await _scenario.Execute(new Consume(SourceId: "reference", Id: "target"));
+            async Task Because()
+            {
+                using var principalScope = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
+                _result = await _scenario.Execute(new Consume(SourceId: "reference", Id: "target"));
+            }
 
             [Fact] void should_succeed() => _result.IsSuccess.ShouldBeTrue();
             [Fact] void should_append_the_consumed_event() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(1);

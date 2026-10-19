@@ -78,6 +78,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
                     {
                         using var scenario = new CommandScenario<global::GeneratedConceptRules.Shop.Customers.Invite.Invite>();
                         scenario.PinGeneratedValue("code", new global::GeneratedConceptRules.Common.InviteCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::GeneratedConceptRules.Shop.Customers.Invite.Invite());
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);

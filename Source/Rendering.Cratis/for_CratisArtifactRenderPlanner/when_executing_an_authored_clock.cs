@@ -30,6 +30,7 @@ public class when_executing_an_authored_clock : a_generated_application
                 using var scenario = new CommandScenario<IssueInvoice>();
                 var instant = new DateTimeOffset(2027, 3, 4, 10, 0, 0, 123, TimeSpan.Zero);
                 scenario.Clock(instant);
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one")));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));

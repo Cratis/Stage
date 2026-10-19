@@ -132,6 +132,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
                                 var commandType = typeof(OptionalComposites.Common.Count).Assembly.GetTypes().Single(type => type.Name == {{JsonSerializer.Serialize(command.Name)}});
                                 {{types.Type(property.Type)}} value = {{types.Value(value, property.Type)}};
                                 using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
+                                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                                 var result = await scenario.Execute(commandType.GetConstructors().Single().Invoke(["one", value]));
                                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                                 var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

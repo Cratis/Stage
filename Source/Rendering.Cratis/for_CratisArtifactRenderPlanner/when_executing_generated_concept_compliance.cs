@@ -37,6 +37,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
             {
                 using var scenario = new CommandScenario<RecordInformation>();
                 var id = new InvoiceId(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new RecordInformation(id, new HealthInformation("well"), new ApiKey("scalar-secret-value-345"), new PersonalSecret("private"), InvoiceStatus.Draft));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
@@ -65,6 +66,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 var date = new DateOnly(2026, 10, 21);
                 var time = new DateTimeOffset(2026, 10, 21, 12, 30, 0, TimeSpan.Zero);
                 var uuid = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+                using var principalScope2 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new RecordSecrets(id, new SecretNumber(37), new SecretFlag(true), new SecretAmount(37.25m), new SecretDate(date), new SecretTime(time), new SecretUuid(uuid)));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
@@ -93,6 +95,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 var healthDetails = new HealthEnvelope(
                     new[] { new HealthInformation("nested-pii-only-value-345") },
                     new HealthInformation("optional-pii-only-value-345"));
+                using var principalScope3 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new RecordCredentials(id, new[] { new ApiKey("collection-secret-value-345") }, credentials, credentials,
                     new[] { new HealthInformation("collection-pii-only-value-345") }, healthDetails, healthDetails, "auditable-value-345"));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));

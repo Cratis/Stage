@@ -77,6 +77,7 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
                     public async System.Threading.Tasks.Task should_validate_before_resolving_any_generated_value()
                     {
                         using var scenario = new CommandScenario<global::GeneratedRequirements.Orders.Registration.Register.RegisterOrder>();
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::GeneratedRequirements.Orders.Registration.Register.RegisterOrder("one", 0));
                         Assert.False(result.IsSuccess);
                         Assert.False(result.HasExceptions);

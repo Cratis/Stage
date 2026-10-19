@@ -18,10 +18,7 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
-        // The shell only: the Stage runtime beside it is the live Stage frontend's own source, compared with that
-        // source byte for byte by when_emitting_the_stage_frontend_runtime, so freezing it here as well would
-        // only make every frontend change update this digest.
-        foreach (var input in _first.Where(input => !IsRuntime(PathOf(input))))
+        foreach (var input in _first)
         {
             hash.AppendData(Encoding.UTF8.GetBytes(input.Name));
             hash.AppendData(Encoding.UTF8.GetBytes(FrozenScaffoldPins.Normalize(PathOf(input), Text(input))));
@@ -30,11 +27,8 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
         _digest = Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    [Fact] void should_freeze_the_complete_frontend_shell_independently_of_package_releases() => _digest.ShouldEqual("f11ae4b0d08eb86bc790ac5af653bad9f5276aa0b65c9c51f96c6e57e3f5f77d");
+    [Fact] void should_freeze_the_complete_frontend_shell_independently_of_package_releases() => _digest.ShouldEqual("0cead81e99ee5713d5a9e6b6deb7487099cfa0e834426f212e28143c3befe540");
 
     [Fact] void should_preserve_the_previous_entry_point_bytes_except_for_the_optional_stage_import() =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(PreviousFrontendEntryPoint.Restore(".frontend/main.tsx", Content(".frontend/main.tsx"))))).ShouldEqual("f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65");
-
-    static bool IsRuntime(string path) =>
-        path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts";
 }

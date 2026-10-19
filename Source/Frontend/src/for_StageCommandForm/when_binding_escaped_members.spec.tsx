@@ -6,12 +6,12 @@ import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FormGenerationMode } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageCommandForm, schemaPropertiesOf } from '../StageCommandForm';
-import { StageDataProvider, useStageData } from '../stageData';
+import { StageCommandForm, schemaPropertiesOf } from '../../Runtime/src/StageCommandForm';
+import { StageDataProvider, useStageData } from '../../Runtime/src/stageData';
 import { registerStageCommands } from '../host/commandRegistration';
-import { sliceFieldsFrom } from '../stageSlices';
-import { element } from '../testElements';
-import { commandResult } from '../testing/commands';
+import { sliceFieldsFrom } from '../../Runtime/src/stageSlices';
+import { element } from '../../Runtime/src/testElements';
+import { commandResult } from '../../Runtime/src/testing/commands';
 
 const schema = JSON.stringify({ required: ['text_'], properties: { text_: { type: 'string' } } });
 const routes = { commands: { Text: '/api/escaped/text' }, queries: {}, commandSchemas: { Text: schema } };

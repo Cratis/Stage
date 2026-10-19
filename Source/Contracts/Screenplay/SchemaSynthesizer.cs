@@ -14,7 +14,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
 /// <param name="types">The composite types (records) declared in the application, keyed by name, whose members a property typed as one carries; none when a type is left an open object.</param>
-public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts, IReadOnlyDictionary<string, IReadOnlyList<PropertySyntax>>? types = null)
+public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts, IReadOnlyDictionary<string, IReadOnlyList<PropertySyntax>>? types)
 {
     /// <summary>
     /// The empty object schema used for a command's state schema (Screenplay has no state schema concept).
@@ -56,6 +56,15 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     public const string IdentityKeyword = "x-identity";
 
     readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SchemaSynthesizer"/> class that leaves composite types as open objects.
+    /// </summary>
+    /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
+    public SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts)
+        : this(concepts, null)
+    {
+    }
 
     /// <summary>
     /// Marks the property a command acts on in its schema with <see cref="IdentityKeyword"/>.

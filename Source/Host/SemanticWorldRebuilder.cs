@@ -57,12 +57,14 @@ internal static class SemanticWorldRebuilder
     /// <param name="exact">
     /// Whether the event must be the exact storage form of a modeled production - what a restart verifies. Events the host has just appended
     /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
+    /// Stored seed events use the same non-exact checks as seed admission, identified by their causation subject.
     /// </param>
     /// <returns>The fact.</returns>
     /// <exception cref="SemanticWorldRebuildRefused">The stored event is not one the model can have produced.</exception>
     internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
     {
         var context = stored.Context;
+        exact = exact && context.CausedBy?.Subject != SemanticChronicleRegistration.SeedSubject;
         if (context.EventType.Generation != 1 || stored.Revisions.Any() ||
             stored.GenerationalContent.Any(entry => entry.Key != 1))
         {

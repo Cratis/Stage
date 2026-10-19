@@ -9,7 +9,8 @@ import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
-import { sessionIdentifierPrefix, useStageData, useStageQuery } from './stageData';
+import { useStageData, useStageQuery } from './stageData';
+import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
 import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
@@ -224,23 +225,24 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        values[property.name] = parameters[property.name] || sessionIdentifier(property.identifier);
+        values[property.name] = suppliedIdentifier(property, parameters) ?? sessionIdentity(property.identifier);
     }
 
     return values;
 }
 
-function sessionIdentifier(concept: string): string {
-    const key = `${sessionIdentifierPrefix}${concept}`;
-    try {
-        const existing = globalThis.localStorage?.getItem(key);
-        if (existing) return existing;
-        const created = globalThis.crypto.randomUUID();
-        globalThis.localStorage?.setItem(key, created);
-        return created;
-    } catch {
-        return globalThis.crypto.randomUUID();
-    }
+/**
+ * The value an identifier property already has without anyone typing it: the screen's parameter of the same name, or the identity the session
+ * already holds for its concept. Nothing is created here, so a reference to another entity - the product an add to basket is for - that
+ * nothing supplies stays a value the person filling the form is asked for.
+ *
+ * @param property The property of the command.
+ * @param parameters The screen's address parameters.
+ * @returns The value, or nothing when the property is not an identifier or nothing supplies it.
+ */
+export function suppliedIdentifier(property: SchemaProperty, parameters: Record<string, string>): string | undefined {
+    if (!property.identifier) return undefined;
+    return parameters[property.name] || heldSessionIdentity(property.identifier);
 }
 
 /** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */
@@ -298,7 +300,7 @@ function populationParameter(parameter: string, path: string, schema: SchemaProp
     if (fromAddress) return fromAddress;
 
     const identity = schema.find(property => property.name === path || property.name === parameter)?.identifier;
-    if (identity) return sessionIdentifier(identity);
+    if (identity) return sessionIdentity(identity);
 
     const bound = data.resolveBinding({ path });
     return typeof bound === 'string' || typeof bound === 'number' ? bound : undefined;

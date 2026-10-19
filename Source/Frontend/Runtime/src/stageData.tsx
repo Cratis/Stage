@@ -9,9 +9,7 @@ import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
-
-/** Where a session keeps the identity it acts as, one per identifier concept. */
-export const sessionIdentifierPrefix = 'stage.session.';
+import { sessionIdentifierPrefix } from './stageSession';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 

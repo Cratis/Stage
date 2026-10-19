@@ -20,14 +20,28 @@ const checkOut = JSON.stringify({
         method: { type: 'string', enum: ['standard', 'express'] },
     },
 });
+const addToBasket = JSON.stringify({
+    type: 'object',
+    required: ['basketId', 'productId', 'packaging'],
+    properties: {
+        basketId: { type: 'string', format: 'uuid', 'x-concept': 'BasketId' },
+        productId: { type: 'string', format: 'uuid', 'x-concept': 'ProductId' },
+        packaging: { type: 'string', enum: ['box', 'bag'] },
+    },
+});
 const rename = JSON.stringify({ type: 'object', required: ['name'], properties: { name: { type: 'string' } } });
-const routes = { commands: { CheckOut: '/api/checkout', Rename: '/api/rename' }, queries: {}, commandSchemas: { CheckOut: checkOut, Rename: rename } };
+const routes = {
+    commands: { CheckOut: '/api/checkout', AddToBasket: '/api/basket/add', Rename: '/api/rename' },
+    queries: {},
+    commandSchemas: { CheckOut: checkOut, AddToBasket: addToBasket, Rename: rename },
+};
+const field = (name: string) => document.querySelector(`.stage-command-form__field[data-field="${name}"]`);
 
-function dialog(command: string) {
+function dialog(command: string, parameters: Record<string, string> = {}) {
     registerStageCommands(routes);
     return render(
         <PrimeReactProvider>
-            <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Basket'>
+            <StageDataProvider routes={routes} parameters={parameters} locale='en' locales={['en']} screen='Basket'>
                 <StageSliceDialog element={element('dialog', 'core:sliceDialog', { slice: `Shop.${command}`, command, title: command })} slots={{}} />
             </StageDataProvider>
         </PrimeReactProvider>,
@@ -40,9 +54,11 @@ describe('the task dialog of a toolbar slice button', () => {
     it('asks for an enumeration, a record and a collection through the command form, and not for the identity the session acts as', async () => {
         const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() });
         vi.stubGlobal('fetch', fetched);
+        globalThis.localStorage.setItem('stage.session.BasketId', 'b1');
         dialog('CheckOut');
 
         expect(screen.queryByLabelText('Basket Id')).toBeNull();
+        expect(field('basketId')).toBeNull();
         const address = screen.getByRole('group', { name: 'Ship to' });
         fireEvent.change(within(address).getByLabelText('Street'), { target: { value: '12 Analytical Way' } });
         expect(screen.getByText('Method')).toBeDefined();
@@ -51,6 +67,35 @@ describe('the task dialog of a toolbar slice button', () => {
         // The method is required and has not been chosen, so nothing is submitted yet.
         expect((await screen.findAllByText(/method is required/i)).length).toBeGreaterThan(0);
         expect(fetched).not.toHaveBeenCalled();
+    });
+
+    it('asks for a required reference to another entity that nothing supplies', () => {
+        dialog('AddToBasket');
+
+        expect(field('productId')).not.toBeNull();
+        expect(field('packaging')).not.toBeNull();
+    });
+
+    it('asks for the identity the session acts as while the session holds none', () => {
+        dialog('AddToBasket');
+
+        expect(field('basketId')).not.toBeNull();
+    });
+
+    it('does not ask for an identifier the session holds, and still asks for the reference it does not', () => {
+        globalThis.localStorage.setItem('stage.session.BasketId', 'b1');
+        dialog('AddToBasket');
+
+        expect(field('basketId')).toBeNull();
+        expect(field('productId')).not.toBeNull();
+    });
+
+    it('does not ask for an identifier the screen carries in its address', () => {
+        dialog('AddToBasket', { basketId: 'b1', productId: 'p1' });
+
+        expect(field('basketId')).toBeNull();
+        expect(field('productId')).toBeNull();
+        expect(field('packaging')).not.toBeNull();
     });
 
     it('leaves a command of plain values to the Scene task dialog', () => {

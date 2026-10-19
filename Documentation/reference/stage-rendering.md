@@ -351,6 +351,11 @@ so a model that forgot to say who may call it is not published to anonymous call
   diagnostic, `STAGE-ESM-051`, naming the artifact. It does not block rendering.
 - Rendered specifications for these artifacts that give no caller run as a labelled authenticated
   test caller with no roles or claims; a specification that names a caller keeps it.
+- A reaction with no `runs as` that invokes such a command renders `[ExecuteCommandsAsSystem]` (the system
+  principal, no roles) so the command is still accepted, and is reported as `STAGE-ESM-052`. A reaction
+  that invokes only commands with an `authorize` clause is unchanged.
+- A specification that gives an explicitly unauthenticated caller for such a command or query is refused
+  (`STAGE-ESM-011`), because the rendered artifact would deny it.
 - Explicit anonymous access has no Screenplay construct yet. It will be modeled by an `anonymous`
   policy condition; until then a model cannot render `[AllowAnonymous]`.
 - Existing applications rendered from models without `authorize` clauses stop accepting anonymous

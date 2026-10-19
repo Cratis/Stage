@@ -47,7 +47,8 @@ export async function executeRegisteredCommand(name: string, values: Record<stri
 
     const command = new commandType();
     command.setMicroservice(arc.microservice);
-    command.setApiBasePath(arc.apiBasePath ?? hostedBasePath());
+    // Arc's default configuration carries an empty base path, so an empty one means "not configured" just like an absent one.
+    command.setApiBasePath(arc.apiBasePath || hostedBasePath());
     command.setOrigin(arc.origin ?? '');
     command.setHttpHeadersCallback(arc.httpHeadersCallback ?? (() => ({})));
     for (const descriptor of command.propertyDescriptors) {

@@ -30,7 +30,7 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
 
     /// <summary>
     /// Gets a value indicating whether the application root is the repository root. When true, the first-run scaffold
-    /// also contains the repository's continuous integration files under <c>.github/</c>; the default adds none.
+    /// also contains the repository's continuous integration files in the .github folder; the default adds none.
     /// The caller decides, because planning never inspects the file system.
     /// </summary>
     public bool RepositoryRoot { get; init; }

@@ -35,7 +35,7 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
 
     /// <summary>
     /// Gets a value indicating whether the application root is the repository root, which adds the repository's
-    /// continuous integration files to the scaffold. It is inferred from the hashed profile's <c>.github/</c> inputs.
+    /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
     /// </summary>
     public bool RepositoryRoot { get; init; }
 }

@@ -29,7 +29,7 @@ internal static class SemanticVersionFeatureAdmission
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
-                .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice, context.ReadModels))
+                .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
                 .Concat(SemanticVersionFeatures.ReactionBatchesInSlice(context.Application, slice))
                 .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
                     .Concat(SemanticVersionFeatures.UnsupportedGenerated(command, context.Application.Concepts))))

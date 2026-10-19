@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -31,12 +32,6 @@ internal static class SemanticProductReducerAdmission
         return SingleIdentity(readModel, context) is { } identifier && ScopeAdmitted(scope, readModel, identifier, context);
     }
 
-    static bool ScopeAdmitted(SemanticProjectionScope scope, SemanticReadModel readModel, SemanticProperty identifier, SemanticApplicationContext context) =>
-        readModel.Properties.All(property => property.IsIdentifier || IsScalar(property.Type, context)) &&
-            HasDistinctContracts(scope) &&
-            scope.Removals.All(IsRootEventSourceRemoval) &&
-            scope.From.All(from => FromAdmitted(from, readModel, identifier, context));
-
     /// <summary>
     /// Whether a type is a whole or decimal number, directly or through a concept.
     /// </summary>
@@ -59,6 +54,21 @@ internal static class SemanticProductReducerAdmission
             !context.IdentifierConcepts.Contains(concept.Id) => concept.Primitive,
         _ => null
     };
+
+    /// <summary>
+    /// Whether the reducer class generated for a projection can declare its `On` methods; C# forbids a member named like its type.
+    /// </summary>
+    /// <param name="projection">The semantic projection.</param>
+    /// <param name="readModel">The target read model.</param>
+    /// <returns>Whether the generated reducer type name differs from `On`.</returns>
+    internal static bool ReducerTypeNameIsSafe(SemanticProjection projection, SemanticReadModel readModel) =>
+        GeneratedPascalCase.From(projection.Name) != "On" || GeneratedPascalCase.From(readModel.Name) == "On";
+
+    static bool ScopeAdmitted(SemanticProjectionScope scope, SemanticReadModel readModel, SemanticProperty identifier, SemanticApplicationContext context) =>
+        readModel.Properties.All(property => property.IsIdentifier || IsScalar(property.Type, context)) &&
+            HasDistinctContracts(scope) &&
+            scope.Removals.All(IsRootEventSourceRemoval) &&
+            scope.From.All(from => FromAdmitted(from, readModel, identifier, context));
 
     static SemanticProjectionScope? FlatProductScope(SemanticProjection projection) =>
         projection.Target == SemanticProjectionTargetKind.ReadModel && projection.Scope is { } scope && HasProduct(scope) && IsFlat(scope) ? scope : null;

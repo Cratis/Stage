@@ -145,12 +145,6 @@ internal static class SemanticStateViewArtifactRenderer
         }
     }
 
-    // A product of two values has no Chronicle projection form, so the admitted subset renders as a reducer instead.
-    static string RenderScope(SemanticProjection projection, SemanticReadModel readModel, SemanticProjectionScope scope, SemanticApplicationContext context) =>
-        SemanticProductReducerAdmission.Admits(projection, context)
-            ? SemanticProductReducerRenderer.Render(projection, readModel, scope, context)
-            : SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context);
-
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
         properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
 
@@ -245,6 +239,12 @@ internal static class SemanticStateViewArtifactRenderer
             $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {(raw ? $"global::Cratis.Chronicle.Events.EventSourceId {argument.Name}" : argument.Parameter)})",
             $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
     }
+
+    // A product of two values has no Chronicle projection form, so the admitted subset renders as a reducer instead.
+    static string RenderScope(SemanticProjection projection, SemanticReadModel readModel, SemanticProjectionScope scope, SemanticApplicationContext context) =>
+        SemanticProductReducerAdmission.Admits(projection, context)
+            ? SemanticProductReducerRenderer.Render(projection, readModel, scope, context)
+            : SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context);
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)
     {

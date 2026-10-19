@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
-public class when_refusing_colliding_generated_property_names
+public class when_running_colliding_generated_property_names
 {
     const string Source = """
         module Projects
@@ -47,7 +47,7 @@ public class when_refusing_colliding_generated_property_names
     [InlineData("event", "getHashCode")]
     [InlineData("event", "deconstruct")]
     [InlineData("event", "printMembers")]
-    public async Task should_refuse_a_colliding_event_or_command_before_running(string kind, string propertyName)
+    public async Task should_execute_names_that_only_collide_in_generated_source(string kind, string propertyName)
     {
         var model = Compile(Source);
         var module = model.Application.Modules.Single();
@@ -74,13 +74,13 @@ public class when_refusing_colliding_generated_property_names
 
         var blocker = SemanticRunAdmission.Check(execution.Plan!, specification);
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([specification.Id]), new())).Results);
-        Assert.Equal(StageExecutionCapability.Command, blocker?.Capability);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
-        Assert.Contains("generated C#", result.Unsupported?.Details ?? "", StringComparison.Ordinal);
+        Assert.Null(blocker);
+        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan!, specification.Id).Passed);
+        Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 
     [Fact]
-    public async Task should_refuse_a_direct_append_with_colliding_event_names()
+    public async Task should_execute_a_direct_append_with_source_only_collisions()
     {
         var model = Compile(Source);
         var module = model.Application.Modules.Single();
@@ -109,9 +109,25 @@ public class when_refusing_colliding_generated_property_names
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([specification.Id]), new())).Results);
 
+        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan!, specification.Id).Passed);
+        Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
+    }
+
+    [Theory]
+    [InlineData("projectID")]
+    [InlineData("projectid")]
+    public async Task should_keep_case_insensitive_runtime_property_duplicates_refused(string propertyName)
+    {
+        var source = Source.Replace("displayName", propertyName, StringComparison.Ordinal);
+
+        // The source compiler accepts distinct authored casing; runtime JSON binding does not.
+        var execution = SemanticExecutionPlan.Compile(Compile(source));
+        Assert.True(execution.Success, string.Join(';', execution.Issues));
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([]), new())).Results);
+
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
         Assert.Equal(StageExecutionCapability.Command, result.Unsupported?.Capability);
-        Assert.Contains("generated C#", result.Unsupported?.Details ?? "", StringComparison.Ordinal);
+        Assert.Contains("case-insensitive runtime JSON binding", result.Unsupported?.Details ?? "", StringComparison.Ordinal);
     }
 
     [Fact]

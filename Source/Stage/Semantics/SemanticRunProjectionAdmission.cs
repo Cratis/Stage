@@ -4,7 +4,6 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
-using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -21,24 +20,6 @@ internal static class SemanticRunProjectionAdmission
         var fixture = new SemanticSpecification(fact.EventContract, "Reaction production", [fact], [], null, [], [], [], []);
 
         return Check(plan, fixture, [fact.EventContract]);
-    }
-
-    internal static string QueryType(SemanticTypeReference type, SemanticExecutionPlan plan) =>
-        type.Kind switch
-        {
-            SemanticTypeReferenceKind.Primitive => type.Primitive.ToString() + (type.IsOptional ? "?" : string.Empty) + (type.IsCollection ? "[]" : string.Empty),
-            SemanticTypeReferenceKind.Concept => GeneratedPascalCase.From(plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Name),
-            SemanticTypeReferenceKind.CompositeType => GeneratedPascalCase.From(plan.Model.Application.Types.Single(composite => composite.Id == type.Target).Name),
-            _ => type.ToString() ?? string.Empty
-        };
-
-    internal static bool QueryMembersAreUnique(SemanticReadModel readModel, IEnumerable<SemanticKeyedQuery> candidates, SemanticExecutionPlan plan)
-    {
-        var queries = candidates.Where(query => query.ReadModel == readModel.Id).ToArray();
-
-        return GeneratedPascalCase.ReadModelMembersAreUnique(readModel.Name, readModel.Properties.Select(property => property.Name), queries.Select(query => query.Name)) &&
-            GeneratedPascalCase.QueriesAreUnique(queries.Select(query => (query.Name, QueryParameterTypes(query, plan), query.Argument?.Name ?? string.Empty))) &&
-            queries.All(QueryParametersAreUnique);
     }
 
     // An empty-world assertion must not turn an unadmitted required lookup into a pass.
@@ -114,19 +95,31 @@ internal static class SemanticRunProjectionAdmission
         return null;
     }
 
-    static string QueryParameterTypes(SemanticKeyedQuery query, SemanticExecutionPlan plan) =>
-        string.Join(',', (query.Argument is null ? Enumerable.Empty<string>() : [QueryType(query.Argument.Type, plan)])
-            .Concat(query.Filters.Select(filter => QueryType(filter.Type, plan))));
+    static string? ShapeRejection(SemanticReadModel readModel)
+    {
+        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
+        if (identifiers.Length > 1)
+        {
+            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
+        }
+        if (identifiers.Length != 1 || identifiers[0].Type.IsOptional)
+        {
+            return "Per-run projections need one required identifier.";
+        }
+        return readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type))
+            ? "Per-run projections need scalar read model properties without collections or composite types."
+            : null;
+    }
 
-    static bool QueryParametersAreUnique(SemanticKeyedQuery query) =>
-        GeneratedPascalCase.QueryParametersAreUnique((query.Argument is null ? Enumerable.Empty<string>() : [query.Argument.Name])
-            .Concat(query.Filters.Select(filter => filter.Name)));
+    static bool IsScalar(SemanticTypeReference type) =>
+        type.Kind is SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept;
 
     static string? Rejection(SemanticExecutionPlan plan, SemanticProjection projection, SemanticReadModel readModel, SemanticSpecification specification, HashSet<SemanticId> reachable)
     {
-        if (!ProjectionReferencedEventNamesAreUnique.Check(projection, plan.Events))
+        if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
+            .Any(id => plan.Events.TryGetValue(id, out var @event) && !SemanticRunAdmission.RuntimePropertyNamesAreUnique(@event.Properties)))
         {
-            return "A projection references an event with property names that collide in generated C#.";
+            return "A projection references an event whose property names are not unique under case-insensitive runtime JSON binding.";
         }
         if (ProjectionReferencedEventNamesAreUnique.Contracts(projection)
             .Any(id => plan.Events.TryGetValue(id, out var @event) &&
@@ -134,14 +127,9 @@ internal static class SemanticRunProjectionAdmission
         {
             return "An event property name collides with Chronicle expression syntax.";
         }
-        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        if (ShapeRejection(readModel) is { } shape)
         {
-            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
-        }
-        if (readModel.Properties.Count(property => property.IsIdentifier) != 1 || readModel.Properties.Any(property =>
-            property.Type.IsCollection || property.Type.IsOptional || property.Type.Kind is not (SemanticTypeReferenceKind.Primitive or SemanticTypeReferenceKind.Concept)))
-        {
-            return "Per-run projections currently require a scalar read model with one identifier and no optional properties.";
+            return shape;
         }
         if (readModel.Properties.Any(ChronicleReadModelPropertyNamesAreSafe.CollidesWithRootDocumentKey))
         {
@@ -151,9 +139,9 @@ internal static class SemanticRunProjectionAdmission
         {
             return "A read-model property name collides with Chronicle's property paths or another generated property.";
         }
-        if (!QueryMembersAreUnique(readModel, plan.Queries.Values, plan))
+        if (!SemanticRunAdmission.RuntimePropertyNamesAreUnique(readModel.Properties))
         {
-            return "A read-model property or query name collides in generated C#.";
+            return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
         }
         if (readModel.Properties.Any(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime))
         {
@@ -169,19 +157,14 @@ internal static class SemanticRunProjectionAdmission
 
         if (projection.Scope is { } scope)
         {
-            if (!GeneratedPascalCase.ProjectionTypeNameIsSafe(projection.Name))
-            {
-                return "A projection type name collides with its generated C# members.";
-            }
-
             var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
             if (rejection is not null)
             {
                 return rejection;
             }
-            if (readModel.Properties.Length == 1 && scope.From.Any(from => from.Mappings.IsEmpty))
+            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
             {
-                return "A mapping-free identifier-only from block does not materialize a Chronicle read model.";
+                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
             if (scope.Every is { SubscribesToAllEvents: true }
                 ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))

@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
         specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
-        specification.ThenAbsentReadModels.IsEmpty && !DependsOnOpaquePolicy(context, specification) &&
+        !DependsOnOpaquePolicy(context, specification) &&
         ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
 
     static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
@@ -51,9 +51,10 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderQueryOnly(SemanticApplicationContext context, SemanticSpecification specification) =>
-        CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
-        (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
-        (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0]));
+        specification.ThenAbsentReadModels.IsEmpty &&
+        (CanEmptyQueryOnly(specification, context) || CanDenyQueryOnly(specification, context) ||
+            (CanSeedQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])) ||
+            (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])));
 
     static bool HasProtectedQueryWithRenderableKey(SemanticSpecificationQueryResult expected, SemanticApplicationContext context) =>
         context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is not null &&

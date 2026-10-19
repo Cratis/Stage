@@ -207,8 +207,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticQueryDelivery", rejected("STAGE-ESM-010"), "Unknown");
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
-        // from and identical key fail STAGE-ESM-017. Composite keys remain rejected because Stage
-        // cannot issue keyed lookups for composite read models (Chronicle#4265). Every literals lower to from
+        // from and identical key fail STAGE-ESM-017. Composite type keys remain rejected; read models with several key parts render through parts keys, but Stage
+        // cannot issue single-instance lookups by key parts (Chronicle#4265). Every literals lower to from
         // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. All literals and
         // text literals outside Chronicle's fluent $value grammar, expression-like event-property
         // names (including derived functions), unsafe read-model property paths and camel-case
@@ -233,10 +233,11 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionKeyKind", rendered, "Value");
         Add(entries, "SemanticProjectionKeyKind", rejected("STAGE-ESM-017"), "Unknown Composite");
 
-        // ESM v27 read models with several key parts and their parts projection keys refuse before rendering.
-        Add(entries, "SemanticProjectionKeyKind", rejected(SemanticVersionFeatures.CompositeReadModelKeys), "Parts");
-        Add(entries, "SemanticProjectionPartsKey", rejected(SemanticVersionFeatures.CompositeReadModelKeys), "Parts");
-        Add(entries, "SemanticProjectionKeyPart", rejected("STAGE-ESM-017"), "Property Value");
+        // ESM v27 read models with several key parts render a key record, an Id property of it, and Chronicle's UsingCompositeKey
+        // projection keys, for scoped from and remove-with blocks; any other composite shape fails STAGE-ESM-048.
+        Add(entries, "SemanticProjectionKeyKind", rendered, "Parts");
+        Add(entries, "SemanticProjectionPartsKey", rendered, "Parts");
+        Add(entries, "SemanticProjectionKeyPart", rendered, "Property Value");
         Add(entries, "SemanticProjectionLiteral", rendered, "Value");
         Add(entries, "SemanticProjectionMapping", rendered, "Operation Source Target");
         Add(entries, "SemanticProjectionNested", rendered, "Property Scope");
@@ -260,10 +261,10 @@ internal static class SemanticSurfaceLedger
         // also fails STAGE-ESM-011 before rendering: Arc supplies an empty guest principal.
         Add(entries, "SemanticSpecification", rendered, "Id Name GivenEvents GivenReadModels GivenCaller ThenEvents ThenEventsInAnyOrder ThenReadModels ThenQueries ThenErrors ThenDenied When");
 
-        // ESM v5 keyed read-model absence fails STAGE-ESM-027: the generated ReadModelScenario exposes only a materialized record.
-        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-027"), "ThenAbsentReadModels");
-
-        Add(entries, "SemanticSpecificationAbsentReadModel", rejected("STAGE-ESM-027"), "Key ReadModel");
+        // Keyed projection absence checks ReadModelScenario.Instances. Non-scalar keys retain STAGE-ESM-027;
+        // fixtures or replay outside the admitted projection scenario retain specification-level STAGE-ESM-011.
+        Add(entries, "SemanticSpecification", rendered, "ThenAbsentReadModels");
+        Add(entries, "SemanticSpecificationAbsentReadModel", rendered, "Key ReadModel");
         Add(entries, "SemanticSpecification", rendered, "WhenAppended ThenNoEvents");
 
         // Redelivery admits one named trigger with portable history; cascades and refusal branches fail STAGE-ESM-011.

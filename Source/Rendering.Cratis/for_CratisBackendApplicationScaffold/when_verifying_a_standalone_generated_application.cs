@@ -8,6 +8,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
@@ -312,6 +313,8 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     async Task<ProcessResult> Run(string fileName, params string[] arguments)
     {
+        // Bounded so a local run does not start every generated application's build at once.
+        using var slot = await GeneratedApplicationBuilds.Enter();
         var startInfo = CreateStartInfo(fileName, arguments);
         using var process = new Process { StartInfo = startInfo };
         try

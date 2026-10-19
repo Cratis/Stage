@@ -288,7 +288,7 @@ internal static partial class SemanticCratisAdmission
         }
 
         // Companion scenarios replay actual command routes, even if a then-event leaves its route unspecified.
-        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
+        if ((!specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty) &&
             SemanticSpecificationRouteRendering.ForProductions(specification, context)
                 .Concat(SemanticSpecificationRouteRendering.ForCommand(specification, context) is { } commandRoute ? [commandRoute] : [])
                 .Any(route => !SemanticSpecificationRouteRendering.CanFormat(route, context)))

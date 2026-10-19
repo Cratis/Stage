@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -21,6 +22,7 @@ internal static class SemanticSpecificationArtifactRenderer
         SemanticSpecification specification,
         SemanticApplicationContext context)
     {
+        specification = specification.WithPinnedActionValues();
         var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
         if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
         {
@@ -32,6 +34,10 @@ internal static class SemanticSpecificationArtifactRenderer
             var reaction = SemanticReactionSpecificationRenderer.Render(cascade.Reaction, context) with { Sources = [.. sources] };
 
             return cascade.Trigger is null ? [reaction] : [reaction, SemanticCommandSpecificationRenderer.Render(cascade.Trigger, context) with { Sources = [.. sources] }];
+        }
+        if (SemanticSpecificationAdmission.AppendRefusedConstraint(context, specification) is { } refusing)
+        {
+            return [SemanticAppendRefusalRenderer.Render(specification, refusing, context) with { Sources = [.. sources] }];
         }
         if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
         {

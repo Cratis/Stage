@@ -26,8 +26,8 @@ rather than placeholders. A name no package declares renders a placeholder that 
 
 A simple `action … execute <Command>` translates to `core:action`. A guarded action with ordered
 `when … execute` alternatives and an `otherwise` also translates to `core:action`, carrying its alternatives,
-their guards and the fallback. The Stage frontend runtime, which a live Stage and a generated React application
-both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
+their guards and the fallback. The Stage frontend runtime (the `@cratis/stage.runtime` package), which a live Stage
+and a generated React application both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
 
 - The first alternative whose guard holds is the command the action executes, with its `with` values read from
   the item. A missing or null field does not match.

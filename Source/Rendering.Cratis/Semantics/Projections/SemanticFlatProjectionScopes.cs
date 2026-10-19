@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 /// <summary>
 /// Expresses a flat projection as a scoped one. Screenplay keeps the flat shape for every projection it can express, but the flat
-/// rendering only takes one transition whose key is the event source; a projection with several <c>from</c> blocks, a key that is a
+/// rendering only takes one transition whose key is the event source; a projection with several <c language="plain">from</c> blocks, a key that is a
 /// payload property of an event sourced by something else, or a constant mapping is rendered through the scope that says the same.
 /// </summary>
 internal static class SemanticFlatProjectionScopes

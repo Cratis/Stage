@@ -72,7 +72,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
@@ -106,7 +106,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
         }
@@ -155,7 +155,7 @@ public static partial class CratisRendering
         }
         try
         {
-            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace));
+            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot });
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));

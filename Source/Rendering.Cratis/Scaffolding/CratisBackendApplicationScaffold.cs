@@ -25,7 +25,7 @@ public sealed partial class CratisBackendApplicationScaffold
         }
 
         var profile = request.Profile;
-        var artifacts = new (string RelativePath, string Content)[]
+        var artifacts = new List<(string RelativePath, string Content)>
         {
             (".editorconfig", EditorConfig()),
             ("Directory.Build.props", DirectoryBuildProps(profile)),
@@ -40,6 +40,11 @@ public sealed partial class CratisBackendApplicationScaffold
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
         };
+        if (request.RepositoryRoot)
+        {
+            artifacts.Add((CratisContinuousIntegration.WorkflowPath, CratisContinuousIntegration.Workflow(request)));
+            artifacts.Add((CratisContinuousIntegration.DependabotPath, CratisContinuousIntegration.Dependabot()));
+        }
 
         return
         [

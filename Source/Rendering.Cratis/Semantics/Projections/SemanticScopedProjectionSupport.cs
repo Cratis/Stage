@@ -599,6 +599,11 @@ internal static class SemanticScopedProjectionSupport
                 return "Mappings cannot overwrite the key or child identity established by the projection.";
             }
 
+            if (!HasBlocks())
+            {
+                return "A scope needs a from or removal block.";
+            }
+
             return HasDistinctContracts() ? null : "A scope must have distinct from, join, and removal event contracts.";
         }
 
@@ -608,8 +613,10 @@ internal static class SemanticScopedProjectionSupport
             scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target.Contains(protectedId) &&
                 !MatchesKey(mapping, from.Key, protectedId)));
 
+        // A root with only removals keeps the instances the read model already holds; nothing establishes them here.
+        bool HasBlocks() => scope.From.Length != 0 || (IsRoot && scope.Removals.Length != 0);
+
         bool HasDistinctContracts() =>
-            scope.From.Length != 0 &&
             scope.From.Select(_ => _.EventContract).Distinct().Count() == scope.From.Length &&
             scope.Joins.Select(_ => _.EventContract).Distinct().Count() == scope.Joins.Length &&
             scope.Removals.Select(_ => _.EventContract).Distinct().Count() == scope.Removals.Length;
@@ -631,6 +638,11 @@ internal static class SemanticScopedProjectionSupport
             if (scope.From.Any(from => !FromSupported(from)))
             {
                 return "A from block has an unsupported key, parent key, event, or mapping.";
+            }
+
+            if (scope.From.Length == 0)
+            {
+                return null;
             }
 
             var everyLiterals = EveryLiterals();

@@ -24,8 +24,7 @@
         { "code": "STAGE-ESM-011", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 500 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 },
         { "code": "STAGE-ESM-032", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
-        { "code": "STAGE-ESM-050", "artifact": "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067", "byDesign": "Chronicle's projection engine adds one event property, so a product of two event values cannot be rendered; the executor and the Host run it (Screenplay decision 0098)." } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 } ] }
     },
     "AcmeSecondAdmissionsCorpus.V30": {
       "loader": { "outcome": "supported" },
@@ -2383,8 +2382,7 @@
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "n/a:no-specifications" },
       "host": { "outcome": "supported" },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-050", "artifact": "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016", "byDesign": "Chronicle's projection engine adds one event property, so a product of two event values cannot be rendered; the executor and the Host run it (Screenplay decision 0098)." } ] }
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V3": {
       "loader": { "outcome": "supported" },

@@ -26,11 +26,7 @@ public static class refusal_dispositions
         ]),
 
         // A generate rule has an implementation body the interpreter never runs: the Host refuses the command by design (Stage#510).
-        (["GenerationFixturesCorpus.V21", "GenerationFixturesCorpus.V21R2"], conformance_surface.Host, [new("STAGE-ESM-028", "command", "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964")]),
-
-        // ESM v29 add/subtract by a product of two event values: Chronicle's projection engine adds one event property.
-        (["AcmeAdmissionsCorpus.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067")]),
-        (["EsmGoldenVectors.V29"], conformance_surface.Renderer, [new("STAGE-ESM-050", null, "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016")])
+        (["GenerationFixturesCorpus.V21", "GenerationFixturesCorpus.V21R2"], conformance_surface.Host, [new("STAGE-ESM-028", "command", "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964")])
     ];
 
     public static IReadOnlyList<string> Problems(string vector, conformance_surface surface, expected_conformance_cell expected, conformance_observation actual)

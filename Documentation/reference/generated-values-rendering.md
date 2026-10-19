@@ -200,9 +200,13 @@ Commands without production conditions retain their existing generated Handle sh
 | `returns` block | A `<Command>Response` record, paired with the event result |
 | Response-only command | The scalar or response record directly, without an event tuple |
 
-A response block names each field independently of its source property. Each field keeps the source type, including optionality. Generated parameters and ordinary command properties can supply response values. Arc uses the tuple's response element as `CommandResult<T>.Response`; it does not expose the event wrapper as the response.
+A response block names each field independently of its source property. Each field keeps the source type, including optionality. Generated parameters and ordinary command properties can supply response values, including composite `type` values; a composite response renders as the app-local record and serializes as the same JSON object. Collection responses are refused with `STAGE-ESM-038`. Arc uses the tuple's response element as `CommandResult<T>.Response`; it does not expose the event wrapper as the response.
 
 The generated TypeScript proxy carries the response type too. A UUID-backed scalar response uses `Command<IRegisterProject, Guid>`; a named response uses `Command<IRegisterReceipt, RegisterReceiptResponse>`. The event wrapper is not the client response type.
+
+When `<Command>Response` would collide with another generated type in the application, such as a command named `IssueInvoiceResponse` beside `IssueInvoice`, or with one of the record's own fields, Stage renders the record as `<Command>Response_` and reports `STAGE-ESM-050`. Field names are never renamed, so the response JSON stays the same. Response fields that collide with each other or with a record member such as `EqualityContract` are refused with `STAGE-ESM-038`.
+
+A generated concept named `New` keeps its name: its factory implements `IGeneratable<New>.New` explicitly instead of declaring a public `New` member, which C# forbids on a type of the same name.
 
 ## Fixtures and testing
 
@@ -256,7 +260,7 @@ Commands with generated properties can validate and require request values. Requ
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Command rules or requirements that read a generated property; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Command rules or requirements that read a generated property; collection responses, responses from a source that is not a command property of the same type, or response fields whose C# members collide; the message names the reason |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 

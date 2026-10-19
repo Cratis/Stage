@@ -23,7 +23,7 @@ internal static class SemanticFlatProjectionScopes
         var froms = ImmutableArray.CreateBuilder<SemanticProjectionFrom>();
         foreach (var transition in projection.Transitions)
         {
-            if (transition.AffectedInstance.Key is not SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property, Root: SemanticExpressionRootKind.Event } key)
+            if (transition.AffectedInstance.Cardinality != AffectedInstanceCardinality.One || transition.AffectedInstance.Key is not SemanticResolvedExpression { Source: SemanticExpressionSourceKind.Property, Root: SemanticExpressionRootKind.Event } key)
             {
                 return null;
             }

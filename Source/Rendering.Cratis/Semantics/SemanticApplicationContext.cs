@@ -55,7 +55,6 @@ internal sealed class SemanticApplicationContext
         MemberNames = new(Commands.Values, ReadModels.Values, Queries.Values);
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
-        ScopeFlatProjections();
         Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
         _generatedTypes = new(() =>
         [
@@ -218,27 +217,8 @@ internal sealed class SemanticApplicationContext
         return environment;
     }
 
-    static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
-    {
-        if (feature.Slices.Any(_ => _.Id == slice))
-        {
-            return [feature];
-        }
-
-        foreach (var nested in feature.Features)
-        {
-            var path = FindFeaturePath(nested, slice);
-            if (path.Count > 0)
-            {
-                return [feature, .. path];
-            }
-        }
-
-        return [];
-    }
-
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
-    void ScopeFlatProjections()
+    internal void ScopeFlatProjections()
     {
         foreach (var (id, located) in _slices.ToArray())
         {
@@ -262,7 +242,27 @@ internal sealed class SemanticApplicationContext
 
         bool NeedsScope(SemanticProjection projection) =>
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
-            ReadModels.TryGetValue(projection.ReadModel, out var readModel) && !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+            ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
+            !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
+    {
+        if (feature.Slices.Any(_ => _.Id == slice))
+        {
+            return [feature];
+        }
+
+        foreach (var nested in feature.Features)
+        {
+            var path = FindFeaturePath(nested, slice);
+            if (path.Count > 0)
+            {
+                return [feature, .. path];
+            }
+        }
+
+        return [];
     }
 
     void IndexFeature(SemanticModule module, SemanticFeature feature, IReadOnlyList<string> parentPath)

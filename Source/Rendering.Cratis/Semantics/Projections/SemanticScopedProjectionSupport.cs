@@ -160,8 +160,30 @@ internal static class SemanticScopedProjectionSupport
         return found;
     }
 
-    static bool SameTotalType(SemanticTypeReference source, SemanticTypeReference target) =>
-        source.Kind == target.Kind && source.Target == target.Target && source.Primitive == target.Primitive && source.IsCollection == target.IsCollection;
+    // The lambda Chronicle reads is built by the C# compiler, which wraps each conversion in an expression node: Chronicle unwraps one.
+    // Same type (apart from the optional marker): none. A concept into the number it holds, or a number into a concept: one. A concept
+    // into an optional number, or into another concept (no conversion exists between concepts): two, or none.
+    static bool SameTotalType(SemanticTypeReference source, SemanticTypeReference target, SemanticApplicationContext context)
+    {
+        if (source.IsCollection || target.IsCollection)
+        {
+            return false;
+        }
+
+        if (source.Kind == target.Kind && source.Target == target.Target && source.Primitive == target.Primitive)
+        {
+            return true;
+        }
+
+        var sourcePrimitive = UnderlyingPrimitive(source, context);
+        if (sourcePrimitive != UnderlyingPrimitive(target, context))
+        {
+            return false;
+        }
+
+        return (source.Kind == SemanticTypeReferenceKind.Concept && target.Kind == SemanticTypeReferenceKind.Primitive && !target.IsOptional) ||
+            (source.Kind == SemanticTypeReferenceKind.Primitive && target.Kind == SemanticTypeReferenceKind.Concept);
+    }
 
     // 'add total by 0' (or subtract) only makes the running total exist: the reference seeds a missing total with 0 and adds nothing, and a
     // required whole or decimal number of the Chronicle read model is 0 until the first real operation, so the renderer emits nothing for it.
@@ -513,7 +535,7 @@ internal static class SemanticScopedProjectionSupport
                 {
                     var source = EventProperty(((SemanticProjectionEventProperty)mapping.Source!).Path, @event.Properties, context);
                     var target = Target(mapping.Target, properties, context);
-                    if (source is not null && target is not null && !SameTotalType(source.Type, target.Type))
+                    if (source is not null && target is not null && !SameTotalType(source.Type, target.Type, context))
                     {
                         return $"A running total '{target.Name}' adds the event value '{source.Name}', which has another type: Chronicle adds an event property only where it has the type the total holds, so give both the same type.";
                     }

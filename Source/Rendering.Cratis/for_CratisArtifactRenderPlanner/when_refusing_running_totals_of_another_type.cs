@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
 /// Chronicle reads the added event value from a direct member access and never runs the lambda, so an event property that needs a
-/// conversion to the type of the total (another concept, a plain number for a concept, a concept for a plain number) cannot render.
+/// double conversion (a concept into an optional number) or a conversion that does not exist (a concept into another concept) cannot render.
 /// </summary>
 public class when_refusing_running_totals_of_another_type
 {
@@ -47,8 +47,9 @@ public class when_refusing_running_totals_of_another_type
     [InlineData("Int", "Int", true)]
     [InlineData("Int", "Int optional", true)]
     [InlineData("Quantity", "StockQuantity", false)]
-    [InlineData("Quantity", "Int", false)]
-    [InlineData("Int", "StockQuantity", false)]
+    [InlineData("Quantity", "Int", true)]
+    [InlineData("Quantity", "Int optional", false)]
+    [InlineData("Int", "StockQuantity", true)]
     [InlineData("Quantity", "StockQuantity optional", false)]
     public async Task should_admit_only_the_type_the_total_holds(string quantity, string total, bool admitted)
     {

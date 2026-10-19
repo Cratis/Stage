@@ -43,12 +43,15 @@ public class a_root_string_key_slice : Specification
             .Replace("BLOCKS", blocks.Replace("\n", "\n        ", StringComparison.Ordinal), StringComparison.Ordinal)
             .Replace("QUERIES", queries.Replace("\n", "\n      ", StringComparison.Ordinal), StringComparison.Ordinal);
         var compilation = new NativeScreenplayCompiler().Compile(source);
-        Assert.True(compilation.Success, $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
+
+        // Screenplay 4.212.3 reports an event used twice in one projection scope (PLAY0801); these scenarios use it on purpose, to prove that the
+        // renderer still refuses what a hand-built or older tree can carry.
+        Assert.True(compilation.Value is not null && compilation.Diagnostics.All(diagnostic => diagnostic.Code == "PLAY0801" || diagnostic.Severity != Cratis.Screenplay.Diagnostics.DiagnosticSeverity.Error), $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
 
         // A deliberately declared projection-level key is exactly what Screenplay warns about (PLAY0381: it
         // does not route events). Stage must still reject it on its own terms, so only that warning is expected.
         compilation.Diagnostics
-            .Where(_ => projectionKey.Length == 0 || _.Code != ProjectionLevelKeyWarning)
+            .Where(_ => _.Code != "PLAY0801" && (projectionKey.Length == 0 || _.Code != ProjectionLevelKeyWarning))
             .ShouldBeEmpty();
         _context = new([compilation.Value!]);
         _slice = _context.Slices.Single().Slice;

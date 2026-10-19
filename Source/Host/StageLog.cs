@@ -19,4 +19,7 @@ internal static partial class StageLog
 
     [LoggerMessage(LogLevel.Warning, "Scene element '{ElementId}' has no route: {Diagnostic}")]
     internal static partial void RouteNotResolved(ILogger logger, string elementId, string diagnostic);
+
+    [LoggerMessage(LogLevel.Warning, "The model's seed blocks were not applied: {Refusal}")]
+    internal static partial void SeedsNotApplied(ILogger logger, string refusal);
 }

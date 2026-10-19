@@ -21,7 +21,7 @@ internal static class SemanticChronicleRegistration
 {
     internal static bool IsEmpty(ulong tail) => tail == ulong.MaxValue;
 
-    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticExecutionPlan plan, IReadOnlyList<SeedGroup>? seeds = null)
+    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticExecutionPlan plan, IReadOnlyList<SeedGroup>? seeds = null, Action<string>? reportSeeding = null)
     {
         var store = await client.GetEventStore(name);
         await store.Connection.Connect();
@@ -64,12 +64,19 @@ internal static class SemanticChronicleRegistration
 
         // A fresh log starts with what the model's seed blocks declare; a log that already has events is somebody's state and is left alone.
         // The seeded facts are not the product of a modeled production, so the world is established from them directly rather than read back from the log.
+        // Seeds that do not describe a valid history are reported and skipped: a played application that starts empty is better than one that does not start.
         if (IsEmpty(tail) && seeds is { Count: > 0 })
         {
-            var seeded = await SemanticSeeding.Append(accessor, store.Name, plan, seeds);
-            if (seeded.Length > 0)
+            var seeded = SemanticSeeding.Establish(plan, seeds, out var refusal);
+            if (seeded is not null)
             {
-                return SemanticWorldRebuilder.Outcome(new SemanticEvaluator().EstablishWorld(plan, seeded));
+                await SemanticSeeding.Append(accessor, store.Name, plan, seeds);
+                return seeded;
+            }
+
+            if (refusal is not null)
+            {
+                reportSeeding?.Invoke(refusal);
             }
         }
 

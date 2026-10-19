@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Contracts;
@@ -10,6 +11,7 @@ using Cratis.Chronicle.Contracts.Commands;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Files;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Semantics;
@@ -64,9 +66,43 @@ internal static class SemanticSeeding
             .Where(group => group.Events.Count > 0)
     ];
 
-    internal static async Task<ImmutableArray<SemanticFact>> Append(IChronicleServicesAccessor accessor, string eventStore, SemanticExecutionPlan plan, IReadOnlyList<SeedGroup> seeds)
+    /// <summary>
+    /// Establishes the semantic world the seeds describe, or says why it cannot.
+    /// </summary>
+    /// <param name="plan">The execution plan.</param>
+    /// <param name="seeds">The seeded events.</param>
+    /// <param name="refusal">Why the world cannot be established, when it cannot.</param>
+    /// <returns>The world, or <see langword="null"/> when the seeds do not describe a valid history.</returns>
+    internal static SemanticWorld? Establish(SemanticExecutionPlan plan, IReadOnlyList<SeedGroup> seeds, out string? refusal)
     {
-        var appended = ImmutableArray.CreateBuilder<SemanticFact>();
+        refusal = null;
+        try
+        {
+            var facts = Facts(plan, seeds);
+            if (facts.Length == 0)
+            {
+                return null;
+            }
+
+            return SemanticWorldRebuilder.Outcome(new SemanticEvaluator().EstablishWorld(plan, facts));
+        }
+        catch (Exception exception) when (exception is SemanticWorldRebuildRefused or InvalidSemanticContract or InvalidOperationException or JsonException or ArgumentException)
+        {
+            refusal = exception.Message;
+            return null;
+        }
+    }
+
+    internal static ImmutableArray<SemanticFact> Facts(SemanticExecutionPlan plan, IReadOnlyList<SeedGroup> seeds) =>
+    [
+        .. seeds.SelectMany(group => group.Events
+            .Select(seeded => (Seeded: seeded, Contract: plan.Events.Values.FirstOrDefault(contract => contract.Name == seeded.Event)))
+            .Where(entry => entry.Contract is not null)
+            .Select(entry => SemanticWorldRebuilder.SeedFact(plan, entry.Contract!, group.EventSourceId, entry.Seeded.Content)))
+    ];
+
+    internal static async Task Append(IChronicleServicesAccessor accessor, string eventStore, SemanticExecutionPlan plan, IReadOnlyList<SeedGroup> seeds)
+    {
         foreach (var group in seeds)
         {
             var events = group.Events
@@ -100,11 +136,7 @@ internal static class SemanticSeeding
             {
                 throw new InvalidOperationException($"Seeding '{group.EventSourceId}' was rejected: {rejection}");
             }
-
-            appended.AddRange(events.Select(entry => SemanticWorldRebuilder.SeedFact(plan, entry.Contract!, group.EventSourceId, entry.Seeded.Content)));
         }
-
-        return appended.ToImmutable();
     }
 
     static string? Rejection(ChronicleSequences.AppendManyResponse response)

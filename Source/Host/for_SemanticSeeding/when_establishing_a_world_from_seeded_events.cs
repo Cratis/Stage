@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticSeeding;
 
-// A seeded event is no modeled command's product (the shop is told about a product by the catalog), so the world must take it as given.
+// A seeded event is put in the log without the command that would normally have produced it: the world is established from the seeded facts as they stand.
 public class when_establishing_a_world_from_seeded_events : Specification
 {
     const string Model = """
@@ -18,6 +18,20 @@ public class when_establishing_a_world_from_seeded_events : Specification
 
         module Shop
           feature Browse
+            slice StateChange ListProduct
+              command ListProduct
+                sku   String identifier
+                title String
+                price Money
+                produces ProductListed
+                  for sku
+                  sku   = sku
+                  title = title
+                  price = price
+              event ProductListed
+                sku   String
+                title String
+                price Money
             slice StateView Products
               readmodel ListedProduct
                 sku   String key
@@ -25,10 +39,6 @@ public class when_establishing_a_world_from_seeded_events : Specification
                 price Money
               query GetListedProduct => ListedProduct optional
                 by sku String
-              event ProductListed
-                sku   String
-                title String
-                price Money
               projection ListedProductProjection => ListedProduct
                 from ProductListed
                   sku   = sku

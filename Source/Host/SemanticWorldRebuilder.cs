@@ -113,7 +113,8 @@ internal static class SemanticWorldRebuilder
 
     /// <summary>
     /// Builds the fact a model's <c language="screenplay">seed</c> block declares. A seeded event is not the product of a modeled production - it is the state
-    /// the application starts with - so its destination is typed from the producers when they agree and is plain text otherwise.
+    /// the application starts with - so its destination is typed from the producers when they agree and is plain text otherwise (an event that comes from
+    /// another context has an opaque text identity).
     /// </summary>
     /// <param name="plan">The execution plan.</param>
     /// <param name="contract">The seeded event's contract.</param>
@@ -122,15 +123,19 @@ internal static class SemanticWorldRebuilder
     /// <returns>The fact.</returns>
     internal static SemanticFact SeedFact(SemanticExecutionPlan plan, SemanticEventContract contract, string eventSourceId, System.Text.Json.Nodes.JsonObject content)
     {
-        var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
-        var destinationType = destinations is [{ IsOptional: false, IsCollection: false }]
+        var captured = plan.Captures.Values
+            .SelectMany(capture => capture.Appends.Concat(capture.Children.SelectMany(children => children.Appends)).Concat(capture.Nested.SelectMany(nested => nested.Appends)))
+            .Where(append => append.EventContract == contract.Id)
+            .Select(append => (SemanticTypeReference?)append.EventSourceType);
+        var destinations = DestinationTypes(plan, contract.Id, []).Concat(captured).Distinct().ToArray();
+        var destinationType = destinations is [{ IsOptional: false, IsCollection: false }] && contract.Origin is null
             ? destinations[0]!
             : SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
         var destination = Text(eventSourceId, destinationType, plan.Model.Application);
         using var document = JsonDocument.Parse(content.ToJsonString());
         return new SemanticFact(contract.Id, destination, Values(document.RootElement, contract.Properties, plan.Model.Application))
         {
-            Context = plan.Model.SemanticVersion != SemanticVersion.V1 ? new(new(destinationType, destination)) : null,
+            Context = new(new(destinationType, destination)),
             Occurred = DateTimeOffset.UtcNow,
         };
     }

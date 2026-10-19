@@ -100,7 +100,7 @@ internal static class SemanticHost
         await app.StartAsync();
         try
         {
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, SemanticSeeding.Load(modelPath));
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, SemanticSeeding.Load(modelPath), refusal => StageLog.SeedsNotApplied(app.Logger, refusal));
         }
         catch (SemanticWorldRebuildRefused exception)
         {

@@ -30,9 +30,9 @@ public class and_the_item_declares_where_it_opens : Specification
         _plain = Convert(Item(null));
     }
 
-    [Fact] void should_open_in_the_named_outlet() => string.Join('|', new object?[] { _outlet.Outlet, _outlet.Kind }).ShouldEqual("detail|Outlet");
+    [Fact] void should_open_in_the_named_outlet() => string.Join('|', [_outlet.Outlet, _outlet.Kind]).ShouldEqual("detail|Outlet");
     [Fact] void should_keep_the_screen_and_parameter_the_item_navigates_to_beside_the_outlet() => string.Join('|', new object?[] { _outlet.Screen, _outlet.RouteParameterBindings!.Keys.Single() }).ShouldEqual("InvoiceDetails|invoiceId");
-    [Fact] void should_open_the_named_dialog() => string.Join('|', new object?[] { _dialog.Dialog, _dialog.Kind }).ShouldEqual("HelpDialog|Dialog");
-    [Fact] void should_leave_the_application_for_an_external_route() => string.Join('|', new object?[] { _external.Route, _external.Kind }).ShouldEqual("https://example.com/help|External");
-    [Fact] void should_only_navigate_to_the_screen_when_it_names_no_destination() => string.Join('|', new object?[] { _plain.Screen, _plain.Outlet, _plain.Dialog, _plain.Kind }).ShouldEqual("InvoiceDetails|||");
+    [Fact] void should_open_the_named_dialog() => string.Join('|', [_dialog.Dialog, _dialog.Kind]).ShouldEqual("HelpDialog|Dialog");
+    [Fact] void should_leave_the_application_for_an_external_route() => string.Join('|', [_external.Route, _external.Kind]).ShouldEqual("https://example.com/help|External");
+    [Fact] void should_only_navigate_to_the_screen_when_it_names_no_destination() => string.Join('|', [_plain.Screen, _plain.Outlet, _plain.Dialog, _plain.Kind]).ShouldEqual("InvoiceDetails|||");
 }

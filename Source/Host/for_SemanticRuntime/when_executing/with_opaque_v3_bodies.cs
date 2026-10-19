@@ -43,10 +43,13 @@ public class with_opaque_v3_bodies : a_semantic_runtime
                 }]
             } : value)]
         });
-        _conceptQuery = await Execute(slice => slice, application => application with
-        {
-            Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? WithQueryBody(value) : value)]
-        }, query: true);
+        _conceptQuery = await Execute(
+            slice => slice,
+            application => application with
+            {
+                Concepts = [.. application.Concepts.Select(value => value.Id == concept.Id ? WithQueryBody(value) : value)]
+            },
+            query: true);
         _unrelatedQuery = await Execute(slice => slice with { Commands = [slice.Commands.Single() with { CodeValidations = [new("unused-command-body")] }] }, query: true);
         var readModel = _runtime.Plan.ReadModels.Values.First();
         SemanticSlice WithReducer(SemanticSlice slice) => slice with

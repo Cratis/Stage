@@ -25,10 +25,7 @@ public class when_rendering_composite_read_model_keys : Specification
         _slice = SemanticVersionFeatures.Slices(_model.Application).Single();
     }
 
-    void Because() => _error = Catch.Exception(() =>
-    {
-        _application = Plan(new(ArtifactRenderScopeKind.Application, _model.Application.Id));
-    });
+    void Because() => _error = Catch.Exception(() => _application = Plan(new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
 
     [Fact] void should_not_throw() => _error.ShouldBeNull();
     [Fact] void should_admit_the_version() => _application.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");

@@ -24,7 +24,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// the Stage runtime evaluates, so they are carried into the runnable plan as authored. A guard it cannot
 /// evaluate is still refused; that refusal is specified in Rendering.Cratis and Contracts.
 /// </remarks>
-public class when_carrying_the_authored_screens_vector : given.the_planned_screen_composition_corpus
+public partial class when_carrying_the_authored_screens_vector : given.the_planned_screen_composition_corpus
 {
     byte[] _bytes = null!;
     Exception? _refusal;
@@ -49,7 +49,7 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
-    [Fact] void should_type_every_status_comparison() => Regex.Matches(Encoding.UTF8.GetString(_bytes), "\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"").Count.ShouldEqual(Regex.Matches(Encoding.UTF8.GetString(_bytes), "\"enumeration\":\\[\"open\",\"closed\"\\]").Count);
+    [Fact] void should_type_every_status_comparison() => OpenStatusComparison.Count(Encoding.UTF8.GetString(_bytes)).ShouldEqual(ClosedEnumeration.Count(Encoding.UTF8.GetString(_bytes)));
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
     [Fact] void should_not_camel_case_an_enumeration_name() => Encoding.UTF8.GetString(_bytes).ShouldNotContain("\"kind\":\"doubleClick\"");
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
@@ -78,5 +78,14 @@ public class when_carrying_the_authored_screens_vector : given.the_planned_scree
     static IEnumerable<string> Fragments(ArtifactRenderPlan plan) => plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal))
         .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {string.Join(',', artifact.Sources)}");
 
-    IEnumerable<string> Guards() => Regex.Matches(Encoding.UTF8.GetString(_bytes), "\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}").Select(_ => _.Value);
+    IEnumerable<string> Guards() => GuardComparison.Matches(Encoding.UTF8.GetString(_bytes)).Select(_ => _.Value);
+
+    [GeneratedRegex("\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"", RegexOptions.None, 1000)]
+    private static partial Regex OpenStatusComparison { get; }
+
+    [GeneratedRegex("\"enumeration\":\\[\"open\",\"closed\"\\]", RegexOptions.None, 1000)]
+    private static partial Regex ClosedEnumeration { get; }
+
+    [GeneratedRegex("\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}", RegexOptions.None, 1000)]
+    private static partial Regex GuardComparison { get; }
 }

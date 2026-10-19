@@ -38,7 +38,7 @@ public class with_a_fault_while_waiting_for_the_runtime : a_browser
         var command = _client.PostAsync(CommandRoute, new StringContent(Payload.Replace("Screenplay", "Another", StringComparison.Ordinal), Encoding.UTF8, "application/json"));
         try
         {
-            await _appendEntered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await _appendEntered.Task.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
 
             // In-process HTTP dispatch runs synchronously up to ReadModels' gate wait. The blocked append
             // holds that gate, so both requests have passed their initial fault check before we fault it.
@@ -47,8 +47,8 @@ public class with_a_fault_while_waiting_for_the_runtime : a_browser
             list.IsCompleted.ShouldBeFalse();
             detail.IsCompleted.ShouldBeFalse();
             _appendOutcome.SetException(new SemanticCommandExecutionFailed("Acknowledgment lost."));
-            var listResponse = await list.WaitAsync(TimeSpan.FromSeconds(10));
-            var detailResponse = await detail.WaitAsync(TimeSpan.FromSeconds(10));
+            var listResponse = await list.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
+            var detailResponse = await detail.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
             _listStatus = listResponse.Status;
             _detailStatus = detailResponse.Status;
             using var listDocument = JsonDocument.Parse(listResponse.Body);
@@ -59,7 +59,7 @@ public class with_a_fault_while_waiting_for_the_runtime : a_browser
         finally
         {
             _appendOutcome.TrySetException(new SemanticCommandExecutionFailed("Acknowledgment lost."));
-            using var response = await command.WaitAsync(TimeSpan.FromSeconds(10));
+            using var response = await command.WaitAsync(TimeSpan.FromSeconds(10), TimeProvider.System);
         }
     }
 

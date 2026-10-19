@@ -71,8 +71,13 @@ internal static class FrozenScaffoldPins
     {
         plan.TargetVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.CratisPackageVersion);
         return ArtifactRenderPlan.ComputeDigest(
-            plan.Target, TargetVersion, plan.Renderer, plan.RendererVersion, plan.ApplicationName,
-            [.. (artifacts ?? plan.Artifacts).Select(Normalize)], plan.Diagnostics);
+            plan.Target,
+            TargetVersion,
+            plan.Renderer,
+            plan.RendererVersion,
+            plan.ApplicationName,
+            [.. (artifacts ?? plan.Artifacts).Select(Normalize)],
+            plan.Diagnostics);
     }
 
     internal static PlannedArtifact Normalize(PlannedArtifact artifact) => artifact.Kind == PlannedArtifactKind.Text

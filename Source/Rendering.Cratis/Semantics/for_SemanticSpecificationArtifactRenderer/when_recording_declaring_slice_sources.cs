@@ -62,7 +62,19 @@ public class when_recording_declaring_slice_sources
         { a_specification_case_table.Source, "8a601707cf7d2d1398524cce07a5eb2c4fa43675cd986afe71a001f836a9a8d0" }
     };
 
-    public static IEnumerable<object[]> Sources => Models.Select(row => new[] { row[0] });
+    public static TheoryData<string> Sources
+    {
+        get
+        {
+            var sources = new TheoryData<string>();
+            foreach (var row in Models)
+            {
+                sources.Add((string)row[0]);
+            }
+
+            return sources;
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Models))]

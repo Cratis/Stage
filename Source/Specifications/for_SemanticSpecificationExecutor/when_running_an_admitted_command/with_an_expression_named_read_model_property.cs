@@ -90,6 +90,6 @@ public class with_an_expression_named_read_model_property
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Unsupported,
             $"Stage: {stage.Outcome}; {string.Join("; ", stage.Failures)}; reference: {string.Join("; ", reference.Failures)}");
         Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);
-        Assert.Contains("read-model property name", stage.Unsupported?.Details ?? "", StringComparison.Ordinal);
+        Assert.Contains(targetName == "Name" ? "case-insensitive runtime JSON binding" : "read-model property name", stage.Unsupported?.Details ?? "", StringComparison.Ordinal);
     }
 }

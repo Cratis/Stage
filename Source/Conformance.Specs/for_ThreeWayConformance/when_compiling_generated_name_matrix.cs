@@ -723,7 +723,7 @@ public class when_compiling_generated_name_matrix
     }
 
     [Fact]
-    public Task an_unreferenced_event_in_the_specification_slice_still_blocks_the_run()
+    public Task an_unreferenced_event_source_collision_blocks_only_rendering()
     {
         var source = Source.Replace(
             "      specification RegisteringAProject",
@@ -932,7 +932,27 @@ public class when_compiling_generated_name_matrix
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(
             plan, new([plan.Specifications.Values.Single().Id]), new())).Results);
         Assert.True(rejected == !rendered.Success, $"{row}: admission={rendered.Success}; compiler={string.Join("; ", errors)}; serialization={serializationFailure}");
-        Assert.Equal(rejected ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed, result.Outcome);
+        var runtimeDuplicate = plan.Events.Values.Select(@event => @event.Properties)
+            .Concat(plan.Commands.Values.Select(command => command.Properties))
+            .Concat(plan.ReadModels.Values.Select(readModel => readModel.Properties))
+            .Concat(model.Application.Types.Select(type => type.Properties))
+            .Any(properties => properties.Select(property => property.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != properties.Length);
+
+        // key/key_ also collide in Chronicle's read-model mapping paths, independently of C# compilation.
+        var chronicleMappingCollision = row == "member/readmodel/key_";
+        Assert.Equal(runtimeDuplicate || chronicleMappingCollision ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed, result.Outcome);
+        if (runtimeDuplicate)
+        {
+            Assert.Contains("case-insensitive runtime JSON binding", result.Unsupported?.Details ?? string.Empty, StringComparison.Ordinal);
+        }
+        else if (chronicleMappingCollision)
+        {
+            Assert.Contains("Chronicle's property paths", result.Unsupported?.Details ?? string.Empty, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.True(new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id).Passed);
+        }
         if (rejected)
         {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" || diagnostic.Code == "STAGE-ESM-017");

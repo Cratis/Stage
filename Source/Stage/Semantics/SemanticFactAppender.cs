@@ -99,6 +99,20 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
             }
         });
 
+    /// <summary>
+    /// Serializes the values of a fact to the content Chronicle stores for its event.
+    /// </summary>
+    /// <param name="plan">The plan declaring the event.</param>
+    /// <param name="fact">The fact.</param>
+    /// <returns>The stored JSON content.</returns>
+    internal static string Content(SemanticExecutionPlan plan, SemanticFact fact) => JsonSerializer.Serialize(fact.Values.ToDictionary(
+        entry => plan.Events[fact.EventContract].Properties.Single(property => property.Id == entry.TargetProperty).Name,
+        entry =>
+        {
+            var property = plan.Events[fact.EventContract].Properties.Single(candidate => candidate.Id == entry.TargetProperty);
+            return SemanticJsonValues.ToObject(entry.Value, property.Type, plan.Model.Application);
+        }));
+
     async Task AppendCore(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope)
     {
         if (facts.Count == 0 && scope is null)
@@ -129,13 +143,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
                 EventStreamType = fact.Route?.StreamKind ?? string.Empty,
                 EventStreamId = fact.Route?.StreamId ?? string.Empty,
                 EventType = new ChronicleSequences.EventType { Id = SemanticStoredEventNames.Of(plan.Events[fact.EventContract]), Generation = 1 },
-                Content = JsonSerializer.Serialize(fact.Values.ToDictionary(
-                    entry => plan.Events[fact.EventContract].Properties.Single(property => property.Id == entry.TargetProperty).Name,
-                    entry =>
-                    {
-                        var property = plan.Events[fact.EventContract].Properties.Single(candidate => candidate.Id == entry.TargetProperty);
-                        return SemanticJsonValues.ToObject(entry.Value, property.Type, plan.Model.Application);
-                    })),
+                Content = Content(plan, fact),
                 Tags = fact.Tags,
                 Occurred = (Cratis.Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurrence.Occurred ?? new(),
             })]

@@ -11,8 +11,13 @@ public class with_a_stored_decimal : a_stored_typed_event
 {
     Exception? _error;
 
-    void Establish() => Prepare("Decimal", "12345678901234567.89");
-    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Fact(_typedPlan, _stored));
+    void Establish()
+    {
+        Prepare("Decimal", "12345678901234567.89");
+        _stored.Context.CausedBy = new() { Subject = "caller", Name = SemanticChronicleRegistration.SeedSubject, UserName = SemanticChronicleRegistration.SeedSubject };
+    }
+
+    void Because() => _error = Catch.Exception(() => SemanticWorldRebuilder.Create(_typedPlan, [_stored], 0));
 
     [Fact] void should_convert_through_chronicles_number_schema() => _converted.ShouldBeOfExactType<double>();
     [Fact] void should_refuse_the_non_exact_event_property() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();

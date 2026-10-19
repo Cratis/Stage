@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
@@ -15,7 +16,7 @@ public class when_selecting_repository_root : a_register_project_render_request
     CratisPlanOptions _options_for_plan = null!;
     CratisPlanResult _default = null!;
     CratisPlanResult _scaffold = null!;
-    CratisPlanResult _application = null!;
+    ArtifactRenderPlan _application = null!;
     CratisPlanResult _scoped = null!;
 
     void Establish() => _options_for_plan = new(_model.Application.Name, "Projects", "Projects");
@@ -26,7 +27,7 @@ public class when_selecting_repository_root : a_register_project_render_request
         var withRoot = _options_for_plan with { RepositoryRoot = true };
         _default = CratisRendering.PlanScaffold(_options_for_plan);
         _scaffold = CratisRendering.PlanScaffold(withRoot);
-        _application = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Module(_module.Name)]), withRoot);
+        _application = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options with { RepositoryRoot = true });
         _scoped = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Slice(_module.Name, _feature.Name, _registerProject.Name)]), withRoot);
     }
 

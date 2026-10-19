@@ -16,7 +16,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
     const string FrozenDigest = "f24b61fe9eb735a1f41a992d172595451d0cc1ce586bf28c01f1acc5f43fb1cc";
 
-    const string FrozenRepositoryRootDigest = "TBD";
+    const string FrozenRepositoryRootDigest = "1fe8c906e8cdf414c2315262e42d4067eeb217591c072174cba0cc2415e8d2d8";
 
     string _digest = null!;
 

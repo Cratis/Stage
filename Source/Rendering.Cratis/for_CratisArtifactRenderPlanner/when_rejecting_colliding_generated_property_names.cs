@@ -30,9 +30,6 @@ public class when_rejecting_colliding_generated_property_names
     [InlineData("event", "project_id")]
     [InlineData("command", "project_id")]
     [InlineData("event", "projectRegistered")]
-    [InlineData("command", "registerProject")]
-    [InlineData("command", "handle")]
-    [InlineData("command", "getEventSourceId")]
     [InlineData("event", "equalityContract")]
     [InlineData("event", "toString")]
     [InlineData("event", "equals")]
@@ -62,6 +59,13 @@ public class when_rejecting_colliding_generated_property_names
             model.Application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] });
 
         AssertRejected(changedModel, kind);
+        if (kind == "command")
+        {
+            var diagnostic = Assert.Single(Plan(changedModel).Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-012"));
+            Assert.Contains("'RegisterProject.projectId'", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("'RegisterProject.project_id'", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("collide with each other", diagnostic.Message, StringComparison.Ordinal);
+        }
     }
 
     [Theory]

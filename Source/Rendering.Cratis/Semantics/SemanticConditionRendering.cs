@@ -214,7 +214,7 @@ internal static class SemanticConditionRendering
 
     static string PropertyOperand(SemanticProperty property, SemanticConditionRenderingContext context)
     {
-        var value = context.Accessor is null ? $"{context.Receiver}.{Identifiers.ToPascalCase(property.Name)}" : context.Accessor(property);
+        var value = context.Accessor is null ? $"{context.Receiver}.{context.Application.MemberNames.Property(property)}" : context.Accessor(property);
 
         return property.Type.Kind == SemanticTypeReferenceKind.Concept && context.Raw?.Contains(property.Id) != true && context.Application.Concepts[property.Type.Target].Values.IsEmpty ? $"{value}.Value" : value;
     }

@@ -436,7 +436,7 @@ Stage builds against Screenplay 4.209.0 and admits exact ESM v1 through v28 lang
 | Reaction execution identity (`runsAs`) | v10 | Rendered as `[ExecuteCommandsAsSystem]` with the declared roles; invoking claim-reading or opaque authorization gates retains `STAGE-ESM-034`; the Host and specification executor use the declared system identity |
 | Reducer observer filters (`from`) | v10 | Rendered as Chronicle source/source-and-stream attributes; Host and executor retain `STAGE-ESM-035` because reducers are not executed |
 | Reaction observer filters (`from`) | v10 | Rendered as Chronicle source/source-and-stream attributes; the semantic Host and specification executor apply the filter; legacy syntax retains `STAGE-ESM-035` |
-| Per-production route overrides | v10 | `STAGE-ESM-036` |
+| Per-production route overrides | v10 | Rendered as wrapper `EventSource`, `EventStream` and `EventStreamId` on that production; an override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, is not admitted yet and fails `STAGE-ESM-036` |
 | Exact Double-mode number literal lowering | v11 | Rendered as `long` whole numbers and `decimal` fractions, preserving the retained ESM values |
 | Explicit enum member numbers | v12 | Rendered as `Member = N`, preserving sparse and negative int32 identities; stored numbers rebuild to the matching member |
 | Concept compliance | v13 | `[PII]` or `[Encrypted]` + `[NotAudited]` on `ConceptAs` records; compliance on identity uses or enums fails `STAGE-ESM-040`; text and non-text secrets retain their primitive types; `pii secret` uses PII only |

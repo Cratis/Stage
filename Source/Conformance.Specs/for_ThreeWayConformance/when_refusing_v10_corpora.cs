@@ -17,7 +17,6 @@ public class when_refusing_v10_corpora : Specification
 {
     [Theory]
     [InlineData("filters", "STAGE-ESM-011")]
-    [InlineData("production", "STAGE-ESM-036")]
     public async Task should_preserve_reference_outcomes_and_renderer_refusals(string form, string code)
     {
         var vector = form switch

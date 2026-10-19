@@ -26,7 +26,7 @@ internal static class SemanticGeneratedFreshness
         const string sourceType = "global::Cratis.Chronicle.Events.EventSourceId";
         var sources = Destinations(command, context).Select((property, index) =>
         {
-            var source = types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(property), property.Type);
+            var source = types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(property, context), property.Type);
 
             if (inclusion is null) return property.IsGenerated ? source : $".. ({MatchesGenerated(property, index, command, context, locals)} ? new {sourceType}[] {{ {source} }} : [])";
             var guard = inclusion(property);
@@ -45,8 +45,8 @@ internal static class SemanticGeneratedFreshness
     static string MatchesGenerated(SemanticProperty destination, int index, SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals) =>
         string.Join(" || ", command.Properties.Where(property => property.IsGenerated).Select((property, generatedIndex) =>
         {
-            var value = Value(destination);
-            var generated = Value(property);
+            var value = Value(destination, context);
+            var generated = Value(property, context);
             if (Primitive(property, context) != SemanticPrimitiveType.Uuid)
             {
                 return $"global::System.String.Equals({value}.ToString(), {generated}, global::System.StringComparison.Ordinal)";
@@ -57,7 +57,7 @@ internal static class SemanticGeneratedFreshness
             return $"(global::System.Guid.TryParse({value}, out var {parsed}) && {parsed} == {generated})";
         }));
 
-    static string Value(SemanticProperty property) => SemanticCommandResultRendering.PropertyValue(property) +
+    static string Value(SemanticProperty property, SemanticApplicationContext context) => SemanticCommandResultRendering.PropertyValue(property, context) +
         (property.Type.Kind == SemanticTypeReferenceKind.Concept ? ".Value" : string.Empty);
 
     static SemanticPrimitiveType Primitive(SemanticProperty property, SemanticApplicationContext context) =>

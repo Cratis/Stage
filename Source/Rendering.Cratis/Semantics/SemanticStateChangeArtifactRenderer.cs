@@ -119,6 +119,7 @@ internal static class SemanticStateChangeArtifactRenderer
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
         var routing = new SemanticCommandRouteRendering(command, context, locals);
+        routing.Collect();
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
@@ -130,7 +131,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 if (mapping.Source is SemanticReadPathExpression readPath) return results.Reads.ReadPath(readPath);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
-                var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
+                var expression = SemanticCommandResultRendering.PropertyValue(commandProperty, context);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
@@ -143,7 +144,11 @@ internal static class SemanticStateChangeArtifactRenderer
             var @event = context.Events[produced.EventContract];
             var tags = @event.Tags.Concat(produced.Tags).ToArray();
             var metadata = new List<string>();
-            if (streamId is not null)
+            if (produced.Route is not null)
+            {
+                metadata.AddRange(routing.Override(produced, command.Produces.Select((candidate, position) => (candidate, position)).First(item => ReferenceEquals(item.candidate, produced)).position));
+            }
+            else if (streamId is not null)
             {
                 metadata.Add($"EventStreamId = {streamId}");
             }
@@ -157,7 +162,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 metadata.Add($"Tags = [{string.Join(", ", tags.Select(tag => System.Text.Json.JsonSerializer.Serialize(tag)))}]");
             }
 
-            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(targetProperty), targetProperty.Type)}, {EventValue(produced)})";
+            var wrapper = $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({types.EventSourceExpression(SemanticCommandResultRendering.PropertyValue(targetProperty, context), targetProperty.Type)}, {EventValue(produced)})";
             return metadata.Count == 0 ? wrapper : $"{wrapper} {{ {string.Join(", ", metadata)} }}";
         }
 
@@ -176,7 +181,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
             }
-            else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null)
+            else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides)
             {
                 var @event = context.Events[command.Produces[0].EventContract];
                 var arguments = @event.Properties.Select(property =>
@@ -185,7 +190,7 @@ internal static class SemanticStateChangeArtifactRenderer
                     if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                     var source = (SemanticResolvedExpression)mapping.Source;
                     var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
-                    var expression = SemanticCommandResultRendering.PropertyValue(commandProperty);
+                    var expression = SemanticCommandResultRendering.PropertyValue(commandProperty, context);
                     return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
                 });
                 builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
@@ -295,7 +300,7 @@ internal static class SemanticStateChangeArtifactRenderer
             }
             else
             {
-                SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context));
+                SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context), generatedMember: context.MemberNames.Property(property));
             }
         }
 
@@ -307,7 +312,7 @@ internal static class SemanticStateChangeArtifactRenderer
         foreach (var id in constrained)
         {
             var property = command.Properties.Single(candidate => candidate.Id == id);
-            builder.Line($"RuleFor(_ => _.{Identifiers.ToPascalCase(property.Name)}).NotNull().WithMessage(\"A constrained value is required.\");");
+            builder.Line($"RuleFor(_ => _.{context.MemberNames.Property(property)}).NotNull().WithMessage(\"A constrained value is required.\");");
         }
 
         foreach (var requirement in requirements)

@@ -330,6 +330,26 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Generated C# member names
+
+Stage appends `_` only when a command input property's generated name collides with its
+command type, a record member, `Handle`, or `GetEventSourceId`. For example, command
+`Text` with input `text` renders property `Text_`, JSON field `text_`, and proxy field
+`text_`. Validation uses the escaped member too. Events and read-model properties retain
+their names. Hand-written implementation bodies must use the emitted command members.
+
+A query colliding with its read-model type, `EqualityContract`, `Clone`, or a read-model
+property also receives `_`. Its proxy export follows the emitted method name; an Arc
+`[Path]` preserves the original HTTP route using the scaffold's route settings.
+`STAGE-ESM-050` reports each escape as information and does not block rendering.
+Non-colliding members retain their existing output.
+
+`STAGE-ESM-012` still refuses duplicate normalized command properties, command types
+named `Handle` or `GetEventSourceId`, unsafe event/composite/response/concept members,
+unsafe read-model properties, identical query overloads, and colliding query parameters
+(including the injected `readModels` argument). Chronicle property-path collisions remain
+`STAGE-ESM-017`. These refusals identify the declaration rather than renaming stored data.
+
 ## Generated C# observable list queries
 
 An `observable ReadModel[]` query renders as `ISubject<IEnumerable<ReadModel>>`, returning

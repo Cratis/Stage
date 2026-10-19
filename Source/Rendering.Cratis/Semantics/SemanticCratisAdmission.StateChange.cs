@@ -37,8 +37,23 @@ internal static partial class SemanticCratisAdmission
     {
         if (!GeneratedPascalCase.CommandMembersAreUnique(command.Name, command.Properties.Select(property => property.Name)))
         {
-            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' has property names that collide in generated C#.", command.Id));
+            var duplicates = command.Properties.GroupBy(property => Identifiers.ToPascalCase(property.Name), StringComparer.OrdinalIgnoreCase)
+                .Where(group => group.Count() > 1).SelectMany(group => group.Select(property => property.Name)).ToArray();
+            var declaration = duplicates.Length == 0
+                ? $"type name '{command.Name}'"
+                : $"properties [{string.Join(", ", duplicates.Select(name => $"'{command.Name}.{name}'"))}]";
+            var collision = duplicates.Length == 0 ? "collides with a generated member" : "collide with each other";
+            diagnostics.Add(Error("STAGE-ESM-012", $"Command '{command.Name}' cannot render in generated C#: {declaration} {collision}.", command.Id));
             return;
+        }
+
+        foreach (var property in command.Properties.Where(property => !property.IsGenerated && context.MemberNames.Property(property) != Identifiers.ToPascalCase(property.Name)))
+        {
+            diagnostics.Add(new(
+                "STAGE-ESM-050",
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"Command '{command.Name}' property '{property.Name}' is emitted as '{context.MemberNames.Property(property)}' (including its wire and proxy field).",
+                command.Id));
         }
 
         if (!ValidateCommandAuthorization(context, command, diagnostics))

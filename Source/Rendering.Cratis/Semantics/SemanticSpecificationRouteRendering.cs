@@ -40,9 +40,19 @@ internal static class SemanticSpecificationRouteRendering
     internal static string Seed(SemanticFixtureRoute? route, SemanticApplicationContext context, SemanticTypeSystem? types = null) =>
         route is null ? string.Empty : $".OnStream({Arguments(route, context, types)})";
 
-    internal static SemanticFixtureRoute? ForCommand(SemanticSpecification specification, SemanticApplicationContext context)
+    internal static bool RoutesCommand(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is { } action && context.Commands[action.Command] is var command &&
+        (command.Route is not null || command.Produces.Any(produced => produced.Route is not null));
+
+    internal static IEnumerable<SemanticFixtureRoute> ForProductions(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is { } action
+            ? context.Commands[action.Command].Produces.Where(produced => produced.Route is not null)
+                .Select(produced => ForCommand(specification, context, produced)!)
+            : [];
+
+    internal static SemanticFixtureRoute? ForCommand(SemanticSpecification specification, SemanticApplicationContext context, SemanticProducedEvent? produced = null)
     {
-        if (specification.When is not { } action || context.Commands[action.Command].Route is not { } route) return null;
+        if (specification.When is not { } action || (produced?.Route ?? context.Commands[action.Command].Route) is not { } route) return null;
         SemanticValue value(SemanticExpression expression) => expression is SemanticValueExpression literal
             ? literal.Value
             : action.Values.Single(property => property.TargetProperty == ((SemanticResolvedExpression)expression).Target).Value;

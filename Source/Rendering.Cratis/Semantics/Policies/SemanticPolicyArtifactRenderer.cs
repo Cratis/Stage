@@ -255,7 +255,7 @@ internal static class SemanticPolicyArtifactRenderer
                 _ => string.Empty
             };
             text = command
-                ? $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})"
+                ? $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(context.MemberNames.PropertyPath(properties, subject))}{targetType})"
                 : $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})";
         }
 
@@ -356,9 +356,9 @@ internal static class SemanticPolicyArtifactRenderer
         var target = claim.TargetKind switch
         {
             SemanticClaimTargetKind.Literal => Literal(claim.Value!),
-            SemanticClaimTargetKind.Artifact when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(claim.Value!))}{targetType})",
+            SemanticClaimTargetKind.Artifact when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(context.MemberNames.PropertyPath(properties, claim.Value!))}{targetType})",
             SemanticClaimTargetKind.Artifact => $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(QueryPath(claim.Value!))}{targetType})",
-            SemanticClaimTargetKind.Subject when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(PascalPath(subject))}{targetType})",
+            SemanticClaimTargetKind.Subject when command => $"{Values(context)}.Path((context.Resource as global::Cratis.Arc.Commands.CommandContext)?.Command, {Literal(context.MemberNames.PropertyPath(properties, subject))}{targetType})",
             SemanticClaimTargetKind.Subject => $"{Values(context)}.Query(context, {Literal(argument)}, {Literal(argument)}{targetType})",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticClaimTargetKind), claim.TargetKind)
         };

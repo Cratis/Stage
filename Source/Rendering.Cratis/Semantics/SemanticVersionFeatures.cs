@@ -78,7 +78,7 @@ internal static class SemanticVersionFeatures
     internal const string ObserverFilters = "STAGE-ESM-035";
 
     /// <summary>
-    /// The code for ESM v10 per-production route overrides.
+    /// The code for ESM v10 per-production route overrides that Stage does not admit yet.
     /// </summary>
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
@@ -136,6 +136,8 @@ internal static class SemanticVersionFeatures
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
+
+    const string ArcDefaultStreamId = "Default";
 
     /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
@@ -496,15 +498,28 @@ internal static class SemanticVersionFeatures
     }
 
     /// <summary>
-    /// Finds per-production route overrides that no Stage execution path supports yet.
+    /// Finds per-production route overrides whose rendered routing Stage has not proven equivalent to the reference.
     /// </summary>
     /// <param name="command">The command.</param>
     /// <returns>The refused command, if any.</returns>
+    /// <remarks>
+    /// Arc 22.112.1 (CommandTransactionAppender.ResolveRouting) takes a wrapper's EventStreamId when it differs from the
+    /// EventStreamId.Default sentinel, and otherwise falls back to commandContext.GetEventStreamId(). Stage puts the command
+    /// route on EventSourceAttribute and emits neither [EventStreamId] nor ICanProvideEventStreamId, so that fallback is
+    /// null and the append uses EventStreamId.Default. Two shapes are refused because Stage has no generated-code
+    /// conformance proof for them: an override on an unkeyed stream under a keyed command route, and a literal override
+    /// stream id of "Default", which Arc cannot tell from an unset wrapper stream id. Both fail closed until proven.
+    /// </remarks>
     public static IEnumerable<SemanticVersionFeature> ProductionRoutesInCommand(SemanticCommand command)
     {
-        if (command.Produces.Any(produced => produced.Route is not null))
+        if (command.Route is { } commandRoute && IsKeyed(commandRoute) &&
+            command.Produces.Any(produced => produced.Route is { } route && !IsKeyed(route)))
         {
-            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' declares an ESM v10 production route override, which Stage does not support yet.");
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, which Stage does not admit yet because its rendered routing is not proven equivalent to the reference execution.");
+        }
+        else if (command.Produces.Any(produced => produced.Route is { StreamId: SemanticValueExpression { Value: SemanticTextValue streamId } } && string.Equals(streamId.Value, ArcDefaultStreamId, StringComparison.Ordinal)))
+        {
+            yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with the literal stream id '{ArcDefaultStreamId}', which is Arc's EventStreamId.Default sentinel, so Arc cannot tell it from an unset stream id and Stage does not admit it yet.");
         }
     }
 
@@ -698,6 +713,8 @@ internal static class SemanticVersionFeatures
             ? new(PublicEvents, StageExecutionCapability.ExternalEffect, @event.Id, "event", $"Event '{@event.Name}' is an ESM v9 public contract, which Stage cannot publish yet.")
             : null;
     }
+
+    static bool IsKeyed(SemanticCommandRoute route) => route.StreamId is not null || !route.StreamIdParts.IsDefaultOrEmpty;
 
     static IEnumerable<SemanticSlice> Slices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(Slices));
 }

@@ -40,12 +40,22 @@ internal static class GeneratedPascalCase
         RecordMembersAreUnique(eventName, properties);
 
     internal static bool CommandMembersAreUnique(string commandName, IEnumerable<string> properties) =>
-        RecordMembersAreUnique(commandName, properties, ["Handle", "GetEventSourceId"]) &&
-        From(commandName) is not ("Handle" or "GetEventSourceId");
+        RecordTypeNameIsSafe(commandName, properties.Any()) &&
+        properties.Select(From).Distinct(StringComparer.OrdinalIgnoreCase).Count() == properties.Count() &&
+        From(commandName) != "Handle" && From(commandName) != "GetEventSourceId";
 
     internal static bool ReadModelMembersAreUnique(string readModelName, IEnumerable<string> properties, IEnumerable<string> queryNames) =>
-        RecordMembersAreUnique(readModelName, properties, queryNames) &&
-        queryNames.All(name => From(name) != From(readModelName) && From(name) is not ("EqualityContract" or "Clone"));
+        RecordMembersAreUnique(readModelName, properties);
+
+    // From removes all authored underscores; no authored-derived member can end in the escape suffix.
+    // Case-insensitive duplicates are refused before emission, so suffixing cannot merge two inputs.
+    internal static string CommandProperty(string command, string property) =>
+        Escape(From(property), From(property) == From(command) || _recordMembers.Contains(From(property), StringComparer.Ordinal) || From(property) == "Handle" || From(property) == "GetEventSourceId");
+
+    internal static string QueryMethod(string readModel, IEnumerable<string> properties, string query) =>
+        Escape(From(query), From(query) == From(readModel) || From(query) == "EqualityContract" || From(query) == "Clone" || properties.Select(From).Contains(From(query), StringComparer.Ordinal));
+
+    internal static string Escape(string name, bool collision) => collision ? name + "_" : name;
 
     // The service argument is always IReadModels; the second argument is the rendered CLR type.
     // Different argument types are genuine C# overloads, even if their authored query names normalize alike.

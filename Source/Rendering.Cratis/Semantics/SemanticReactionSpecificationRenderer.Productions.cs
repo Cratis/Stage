@@ -16,7 +16,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             var fields = context.Events[expected.EventContract].Properties.Select(property =>
                 (property, expected.Values.Single(value => value.TargetProperty == property.Id).Value));
-            RenderExpectedCollections(builder, fields, ProductionValues(types, index));
+            RenderExpectedCollections(builder, fields, ProductionValues(types, context, index));
         }
         builder.Line($"[global::Xunit.FactAttribute] void should_produce_exactly_the_expected_events() => _reactor.ProducedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
         if (specification.ThenNoEvents) return;
@@ -47,12 +47,12 @@ internal static partial class SemanticReactionSpecificationRenderer
             foreach (var property in contract.Properties)
             {
                 var value = expected.Values.Single(value => value.TargetProperty == property.Id).Value;
-                builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => ({entry}.Event is {types.EventType(contract)} @event && {ValuePredicate(property, value, ProductionValues(types, index))}).ShouldBeTrue();");
+                builder.Line($"[global::Xunit.FactAttribute] void should_produce_event_{index + 1}_with_{Identifiers.ToSnakeCase(property.Name)}() => ({entry}.Event is {types.EventType(contract)} @event && {ValuePredicate(property, value, ProductionValues(types, context, index))}).ShouldBeTrue();");
             }
         }
     }
 
-    static ValueScope ProductionValues(SemanticTypeSystem types, int index) => new(types, "@event", $"_expected_reaction_event_{index}");
+    static ValueScope ProductionValues(SemanticTypeSystem types, SemanticApplicationContext context, int index) => new(types, context.MemberNames, "@event", $"_expected_reaction_event_{index}");
 
     static string ProductionPredicate(SemanticSpecificationEvent expected, SemanticApplicationContext context, ValueScope scope, string entry)
     {
@@ -83,7 +83,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Line("var entry = actual[fact];").OpenBlock("return expectation switch");
         foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
         {
-            builder.Line($"{index} => {ProductionPredicate(expected, context, ProductionValues(types, index), "entry")},");
+            builder.Line($"{index} => {ProductionPredicate(expected, context, ProductionValues(types, context, index), "entry")},");
         }
         builder.Line("_ => false").EndBlock().Line(";").EndBlock().EndBlock();
     }

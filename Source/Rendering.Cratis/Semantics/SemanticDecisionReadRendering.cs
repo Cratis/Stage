@@ -47,7 +47,7 @@ internal sealed class SemanticDecisionReadRendering(SemanticCommand command, Sem
         var view = context.ReadModels[read.ReadModel];
         var commandName = Identifiers.ToPascalCase(command.Name);
 
-        return $"[global::Cratis.Arc.Commands.LookUpByAttribute(nameof({commandName}.{Identifiers.ToPascalCase(key.Name)}))] {_types.SliceType(view.Id, view.Name)}? {Scope.Local(read.Name)}";
+        return $"[global::Cratis.Arc.Commands.LookUpByAttribute(nameof({commandName}.{context.MemberNames.Property(key)}))] {_types.SliceType(view.Id, view.Name)}? {Scope.Local(read.Name)}";
     });
 
     /// <summary>
@@ -81,7 +81,7 @@ internal sealed class SemanticDecisionReadRendering(SemanticCommand command, Sem
     string KeyText(SemanticDecisionRead read)
     {
         var key = command.Properties.Single(property => property.Id == read.Key);
-        var value = SemanticCommandResultRendering.PropertyValue(key);
+        var value = SemanticCommandResultRendering.PropertyValue(key, context);
 
         return key.Type.Kind == SemanticTypeReferenceKind.Concept ? $"{value}.Value" : value;
     }

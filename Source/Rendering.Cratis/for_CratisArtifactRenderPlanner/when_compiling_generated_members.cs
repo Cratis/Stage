@@ -45,6 +45,7 @@ public class when_compiling_generated_members
     }
 
     [Theory]
+    [InlineData("Id")]
     [InlineData("ProjectById")]
     [InlineData("ToString")]
     [InlineData("GetType")]
@@ -57,7 +58,7 @@ public class when_compiling_generated_members
     [InlineData("Clone")]
     public void should_track_the_compiler_for_generated_query_names(string query)
     {
-        var generated = GeneratedPascalCase.From(query);
+        var generated = GeneratedPascalCase.QueryMethod("Sample", ["Id"], query);
         var source = $"public record Sample(string Id) {{ public static string {generated}(string id) => id; }}";
         var compilation = CSharpCompilation.Create(
             "Probe",

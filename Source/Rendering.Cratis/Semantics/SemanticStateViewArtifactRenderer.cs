@@ -140,12 +140,16 @@ internal static class SemanticStateViewArtifactRenderer
 
             if (projection?.Scope is { } scope)
             {
-                builder.BlankLine().Raw(SemanticProductReducerAdmission.Admits(projection, context)
-                    ? SemanticProductReducerRenderer.Render(projection, readModel, scope, context)
-                    : SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
+                builder.BlankLine().Raw(RenderScope(projection, readModel, scope, context));
             }
         }
     }
+
+    // A product of two values has no Chronicle projection form, so the admitted subset renders as a reducer instead.
+    static string RenderScope(SemanticProjection projection, SemanticReadModel readModel, SemanticProjectionScope scope, SemanticApplicationContext context) =>
+        SemanticProductReducerAdmission.Admits(projection, context)
+            ? SemanticProductReducerRenderer.Render(projection, readModel, scope, context)
+            : SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context);
 
     internal static IOrderedEnumerable<SemanticProperty> OrderedProperties(IEnumerable<SemanticProperty> properties) =>
         properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);

@@ -23,20 +23,19 @@ internal static class SemanticProductReducerAdmission
     /// <returns>Whether the projection renders as a product reducer.</returns>
     public static bool Admits(SemanticProjection projection, SemanticApplicationContext context)
     {
-        if (projection.Target != SemanticProjectionTargetKind.ReadModel || projection.Scope is not { } scope || !HasProduct(scope) || !IsFlat(scope) ||
-            !context.ReadModels.TryGetValue(projection.ReadModel, out var readModel))
+        if (FlatProductScope(projection) is not { } scope || !context.ReadModels.TryGetValue(projection.ReadModel, out var readModel))
         {
             return false;
         }
 
-        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
-        var contracts = scope.From.Select(from => from.EventContract).Concat(scope.Removals.Select(removal => removal.EventContract)).ToArray();
-        return identifiers.Length == 1 && IsIdentity(identifiers[0].Type, context) &&
-            readModel.Properties.All(property => property.IsIdentifier || IsScalar(property.Type, context)) &&
-            contracts.Distinct().Count() == contracts.Length &&
-            scope.Removals.All(removal => IsEventSourceKey(removal.Key) && removal.ParentKey is null) &&
-            scope.From.All(from => FromAdmitted(from, readModel, identifiers[0], context));
+        return SingleIdentity(readModel, context) is { } identifier && ScopeAdmitted(scope, readModel, identifier, context);
     }
+
+    static bool ScopeAdmitted(SemanticProjectionScope scope, SemanticReadModel readModel, SemanticProperty identifier, SemanticApplicationContext context) =>
+        readModel.Properties.All(property => property.IsIdentifier || IsScalar(property.Type, context)) &&
+            HasDistinctContracts(scope) &&
+            scope.Removals.All(IsRootEventSourceRemoval) &&
+            scope.From.All(from => FromAdmitted(from, readModel, identifier, context));
 
     /// <summary>
     /// Whether a type is a whole or decimal number, directly or through a concept.
@@ -60,6 +59,23 @@ internal static class SemanticProductReducerAdmission
             !context.IdentifierConcepts.Contains(concept.Id) => concept.Primitive,
         _ => null
     };
+
+    static SemanticProjectionScope? FlatProductScope(SemanticProjection projection) =>
+        projection.Target == SemanticProjectionTargetKind.ReadModel && projection.Scope is { } scope && HasProduct(scope) && IsFlat(scope) ? scope : null;
+
+    static SemanticProperty? SingleIdentity(SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
+        return identifiers.Length == 1 && IsIdentity(identifiers[0].Type, context) ? identifiers[0] : null;
+    }
+
+    static bool HasDistinctContracts(SemanticProjectionScope scope)
+    {
+        var contracts = scope.From.Select(from => from.EventContract).Concat(scope.Removals.Select(removal => removal.EventContract)).ToArray();
+        return contracts.Distinct().Count() == contracts.Length;
+    }
+
+    static bool IsRootEventSourceRemoval(SemanticProjectionRemoval removal) => IsEventSourceKey(removal.Key) && removal.ParentKey is null;
 
     static bool HasProduct(SemanticProjectionScope scope) => scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null));
 

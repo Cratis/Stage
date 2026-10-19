@@ -8,6 +8,10 @@ namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.when_loading_
 /// A fact that is skipped when the process may not create symbolic links. It is named like the xUnit attribute so
 /// that the specification analyzers recognize the methods it marks as facts.
 /// </summary>
+/// <remarks>
+/// It shadows <see cref="Xunit.FactAttribute"/> for every specification in this namespace: a fact added here is
+/// skipped wherever symbolic links cannot be created.
+/// </remarks>
 public sealed class FactAttribute : Xunit.FactAttribute
 {
     static readonly Lazy<string?> _skipReason = new(ProbePermission);

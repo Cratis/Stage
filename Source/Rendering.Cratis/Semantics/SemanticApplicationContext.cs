@@ -17,6 +17,7 @@ internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
+    readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
 
     /// <summary>
@@ -62,6 +63,7 @@ internal sealed class SemanticApplicationContext
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
                 new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
+        _responseTypes = new(ResolveResponseTypes);
     }
 
     /// <summary>
@@ -217,6 +219,15 @@ internal sealed class SemanticApplicationContext
         return environment;
     }
 
+    /// <summary>
+    /// Gets the generated record name of a command's named response, escaped when it collides with a sibling
+    /// declaration, a generated namespace or one of its own fields. The decision spans every slice, so it does not
+    /// depend on the selected render scope.
+    /// </summary>
+    /// <param name="command">The command returning a named response.</param>
+    /// <returns>The unqualified C# type name.</returns>
+    internal string ResponseType(SemanticCommand command) => _responseTypes.Value[command.Id];
+
     internal bool SelfReduces(SemanticId readModel) => ReducerConvention.SelfReduces(readModel);
 
     internal string? PinnedObserverId(SemanticId readModel) => ReducerConvention.PinnedObserverId(readModel);
@@ -302,4 +313,23 @@ internal sealed class SemanticApplicationContext
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
             .Select(_ => _.Type.Target)];
+
+    Dictionary<SemanticId, string> ResolveResponseTypes()
+    {
+        var declared = GeneratedTypes.Select(type => $"{type.Namespace}.{type.Name}").ToHashSet(StringComparer.Ordinal);
+        var namespaces = NamespacePaths.ToHashSet(StringComparer.Ordinal);
+        var names = new Dictionary<SemanticId, string>();
+        foreach (var located in _slices.Values)
+        {
+            var ns = SliceNaming.Namespace(RootNamespace, located.Path);
+            foreach (var command in located.Slice.Commands)
+            {
+                if (command.Response is not SemanticRecordCommandResponse response) continue;
+                names[command.Id] = GeneratedPascalCase.ResponseType(command.Name, response.Fields.Select(field => field.Name), name =>
+                    declared.Contains($"{ns}.{name}") || namespaces.Contains($"{ns}.{name}"));
+            }
+        }
+
+        return names;
+    }
 }

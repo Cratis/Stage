@@ -204,6 +204,15 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     public string SliceType(SemanticId id, string name) =>
         Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), Identifiers.ToPascalCase(name));
 
+    /// <summary>
+    /// Gets a fully qualified generated slice declaration whose C# name is already resolved, such as an escaped name.
+    /// </summary>
+    /// <param name="id">The declaration identity.</param>
+    /// <param name="name">The generated C# type name.</param>
+    /// <returns>The C# type name.</returns>
+    public string SliceDeclaration(SemanticId id, string name) =>
+        Named(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path), name);
+
     internal string SpecificationContent(string content) => SpecificationValues?.Render(content) ?? content;
 
     // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.

@@ -30,7 +30,7 @@ internal static class SemanticStateViewArtifactRenderer
         {
             Sources = [located.Slice.Id, .. located.Slice.ReadModels.Select(_ => _.Id),
                 .. located.Slice.Projections.Select(_ => _.Id), .. located.Slice.Queries.Select(_ => _.Id),
-                .. SelfReducerSources(located, context)]
+                .. located.Slice.Events.Select(_ => _.Id), .. SelfReducerSources(located, context)]
         };
     }
 
@@ -123,6 +123,18 @@ internal static class SemanticStateViewArtifactRenderer
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
+        }
+
+        // An event a state-view slice declares (the projection removes or reads it, another slice's command may produce it) is generated
+        // here: nothing else renders it.
+        foreach (var declaredEvent in located.Slice.Events)
+        {
+            if (!firstModel || located.Slice.Events[0] != declaredEvent)
+            {
+                builder.BlankLine();
+            }
+
+            SemanticStateChangeArtifactRenderer.RenderEvent(builder, declaredEvent, types, context);
         }
     }
 

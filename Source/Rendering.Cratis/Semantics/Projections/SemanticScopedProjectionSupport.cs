@@ -143,6 +143,26 @@ internal static class SemanticScopedProjectionSupport
         mapping.Operation == SemanticProjectionOperation.Clear ||
         (mapping.Operation == SemanticProjectionOperation.Set && mapping.Source is not SemanticProjectionLiteral { Value: not SemanticNullValue });
 
+    static SemanticProperty? EventProperty(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        SemanticProperty? found = null;
+        foreach (var id in path)
+        {
+            found = properties.SingleOrDefault(_ => _.Id == id);
+            if (found is null)
+            {
+                return null;
+            }
+
+            properties = ChildProperties(found, context);
+        }
+
+        return found;
+    }
+
+    static bool SameTotalType(SemanticTypeReference source, SemanticTypeReference target) =>
+        source.Kind == target.Kind && source.Target == target.Target && source.Primitive == target.Primitive && source.IsCollection == target.IsCollection;
+
     // 'add total by 0' (or subtract) only makes the running total exist: the reference seeds a missing total with 0 and adds nothing, and a
     // required whole or decimal number of the Chronicle read model is 0 until the first real operation, so the renderer emits nothing for it.
     // Chronicle's Add and Subtract builders take an event property only, so no other constant can be rendered.
@@ -360,7 +380,7 @@ internal static class SemanticScopedProjectionSupport
         string? LimitRejection() => ChronicleLimitRejection() ?? EveryLimitRejection() ?? JoinRemovalRejection();
 
         string? MappingRejection() =>
-            EventNameRejection() ?? EveryRejection() ?? OptionalTotalRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
+            EventNameRejection() ?? EveryRejection() ?? OptionalTotalRejection() ?? TotalTypeRejection() ?? CompositeKeyRejection() ?? ProtectedIdentityRejection() ?? RoleRejection();
 
         string? BlockRejection() =>
             FromRejection() ?? JoinRejection() ?? RemovalRejection() ?? NestedRejection() ?? ChildrenRejection();
@@ -474,6 +494,33 @@ internal static class SemanticScopedProjectionSupport
             return mappings.Any(mapping => totals.Contains(string.Join('/', mapping.Target)) && CanSetNull(mapping))
                 ? "A running total that may be absent cannot also be cleared or set from an event value that may be absent: Chronicle cannot add to a property it has set to null."
                 : null;
+        }
+
+        // Chronicle reads the added event value from a direct member access and never executes the lambda, so a conversion in it fails when
+        // the projection is built: the event property must have the type the total holds (a concept is not a number, another concept is not
+        // the same concept), apart from the optional marker a total may carry.
+        string? TotalTypeRejection()
+        {
+            foreach (var from in scope.From)
+            {
+                if (!context.Events.TryGetValue(from.EventContract, out var @event))
+                {
+                    continue;
+                }
+
+                foreach (var mapping in from.Mappings.Where(mapping => mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract &&
+                    mapping.Source is SemanticProjectionEventProperty))
+                {
+                    var source = EventProperty(((SemanticProjectionEventProperty)mapping.Source!).Path, @event.Properties, context);
+                    var target = Target(mapping.Target, properties, context);
+                    if (source is not null && target is not null && !SameTotalType(source.Type, target.Type))
+                    {
+                        return $"A running total '{target.Name}' adds the event value '{source.Name}', which has another type: Chronicle adds an event property only where it has the type the total holds, so give both the same type.";
+                    }
+                }
+            }
+
+            return null;
         }
 
         string? EveryRejection()

@@ -25,7 +25,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "9d146faf5b07956b7db226bc744d6b247f444a5cf88e5b052838b112f91eefb8";
+    const string Digest = "d00251ba3ca5d893ea794c4cb1aaff4ddcd20789b90bfe4b423611864100a49e";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -69,23 +69,23 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Packages.props 969b29a5bdea717d8f06b5f39a9728ff47a958a8fc8f13a2ab21c169d7e43710 1098
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        README.md 193a2bfbbbfd0d26574ce6bbb2bd59a58d92584720fe119cd68617e8b278423a 1735
+        README.md 29e57ed851e352d644de09dad0002e626150aea9741b6e1465003d9de4f75e1c 2682
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
         Workspaces.csproj b684abdda8f2c797e1725992283941a71cb92e51783c1bce75e0419b97758fff 1226
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
-        Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
-        Workspaces/Tracking/AddComment/when_adding_a_comment.cs d6a95f25c93d76ddee8c6b645dd40a42168cd797b7cd63168e7782c9d7613ac9 2508
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 336c9b53311c6bddde7371b4e2e3018e70aa2b60acf87e614aa9867362d4afd8 1082
-        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 7f1c87b85363001ca03696cb584e04167797de3ced67236dbe012665606b6e2a 2278
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs dcee13484087c939041d761f8a1853d88f9a4100d86b9452cd4eb5d6a65fe4f2 1135
-        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 3f4cbf67bf3fa0eaaaa023ac1e60a81ee2b9e4e9502f96ce943de5e10c1c4f3a 2451
-        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
-        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 979ae38ea8a44bc9553a2100737b17b9ddc3c9e045448c2b30799710b4ead99e 2330
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 65ca5ed242aea42e3c4a06697e4695e414534b1f1e7ae8c6fe544720efb8fa2f 2179
+        Workspaces/Tracking/AddComment/AddComment.cs 5bcfbe0d84bf63d50873a9e9f22a0b4d7031fe188ea4cfd36ef03e081f6de387 1110
+        Workspaces/Tracking/AddComment/when_adding_a_comment.cs d285f7c6e5774aed8440bd4fcb72c60ef1b05614935b652fa5e0f91d943a14b2 3037
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 48e42f096a17c576c657056e1c63364958c549a0c8a745d810f421e755ce5b96 1077
+        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 179bc2f27597660d34842dd04e43ba99fc5b52e1c1c6a464716c4d174c755b0c 2807
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 683b93a7d2e75ab50d2871f33c0a96a440a276afe478afd43677fdff51595e75 1130
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs d92ca00a61a54fc984ba8c8ece368f3477f4794ea3cdf1d4031dcb95ee662707 2980
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 3020b773de8738b4889e9d18833e9ea98b4189e0d6479084cdeedf5174373354 1028
+        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 650d8051a4c908c7933328e8d45f2d21aff8ab25d2f2e4d8a3c59185fd17152f 2859
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 6192a34d0521cdbb8e5b64b1a2bf5517755954235eb3589fdeda4f420f456e95 2174
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs adb3fd415af6b119c3a2c8a2961c3423bf8b50b71c9b934b52b6cb4a79d6be10 2740
-        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs b20d80c6e2c6ecd7f1ca5fe79745386c2608bddb1acb47ea5c7399bb4905268d 2920
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs a710e5bc8efadc457243626c45fa3be0fc2ab83920ff805d87a5e1bff7454981 2915
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 1866dab7e0acfd7cdacf8f834b2800a6ab1756357a9bd4f7c022de0ed923754c 2728
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs 75aca71a66d0cec11f78c95dba6d241af52ea49576a4e51826cb03c40242676e 3209
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs 7ea80b334c19a341b800e564669df17d690bbab731c3e8bc4b039ff0141cdb0e 3199
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
@@ -152,7 +152,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("3429e8a2b4782009b7854e90caf49bd702ef85d6415ca8b0c514903ae0320439");
+            plan.Diagnostics).ShouldEqual("f6c509dd93c0ed779f85d0797ded8bdc16ab16b0fd1f5ffee9ae2b48067e6bb0");
     }
 
     [Theory]

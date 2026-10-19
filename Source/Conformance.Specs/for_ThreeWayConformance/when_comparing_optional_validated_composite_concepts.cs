@@ -11,6 +11,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications;
@@ -54,7 +55,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             new("OptionalComposites", "OptionalComposites"));
         Assert.False(rendered.Success);
         Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
+        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.WithoutAuthenticatedDefaultNotes()).Code);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             new("OptionalComposites", "OptionalComposites"));
         Assert.False(rendered.Success);
         Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
+        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.WithoutAuthenticatedDefaultNotes()).Code);
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal("Passed", stage.Outcome.ToString());
     }

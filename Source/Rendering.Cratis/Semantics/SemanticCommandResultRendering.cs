@@ -98,7 +98,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     void RenderCheckedHandle(CSharpCodeBuilder builder, ResultExpression result, Action? renderEvents = null)
     {
         var routing = new SemanticCommandRouteRendering(command, context, locals);
-        routing.StreamId();
+        routing.Collect();
         var routeResult = $"global::OneOf.OneOf<{result.Type}, global::Cratis.Arc.Validation.ValidationResult>";
         var checkedResult = routing.HasChecks || Reads.HasReads;
         builder.OpenBlock($"public {(checkedResult ? routeResult : result.Type)} Handle({Parameters()})");

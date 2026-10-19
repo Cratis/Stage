@@ -119,6 +119,7 @@ internal static class SemanticStateChangeArtifactRenderer
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }));
         var hasTags = command.Produces.Any(produced => !produced.Tags.IsEmpty || !context.Events[produced.EventContract].Tags.IsEmpty);
         var routing = new SemanticCommandRouteRendering(command, context, locals);
+        routing.Collect();
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
@@ -143,7 +144,11 @@ internal static class SemanticStateChangeArtifactRenderer
             var @event = context.Events[produced.EventContract];
             var tags = @event.Tags.Concat(produced.Tags).ToArray();
             var metadata = new List<string>();
-            if (streamId is not null)
+            if (produced.Route is not null)
+            {
+                metadata.AddRange(routing.Override(produced, command.Produces.Select((candidate, position) => (candidate, position)).First(item => ReferenceEquals(item.candidate, produced)).position));
+            }
+            else if (streamId is not null)
             {
                 metadata.Add($"EventStreamId = {streamId}");
             }
@@ -176,7 +181,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
             }
-            else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null)
+            else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides)
             {
                 var @event = context.Events[command.Produces[0].EventContract];
                 var arguments = @event.Properties.Select(property =>

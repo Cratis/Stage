@@ -113,7 +113,7 @@ internal static class SemanticReadModelSpecificationRenderer
                     expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
             var arguments = @event.Properties.Select(property =>
                 types.Value(expectedEvent.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(SemanticSpecificationRouteRendering.ForCommand(specification, context, produced), context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));");
         }
 
         builder.EndBlock()

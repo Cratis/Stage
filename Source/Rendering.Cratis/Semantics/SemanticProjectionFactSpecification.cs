@@ -30,9 +30,9 @@ internal static class SemanticProjectionFactSpecification
         lowered = null;
         if (specification.When is not null || specification.WhenRedelivered is not null || specification.WhenCapture is not null ||
             specification.WhenTrigger is not null || specification.WhenClock is not null ||
-            specification.ThenReadModels.IsEmpty || !specification.ThenEvents.IsEmpty || specification.ThenNoEvents ||
+            (specification.ThenReadModels.IsEmpty && specification.ThenAbsentReadModels.IsEmpty) || !specification.ThenEvents.IsEmpty || specification.ThenNoEvents ||
             specification.ThenEventsInAnyOrder || !specification.ThenQueries.IsEmpty || !specification.ThenErrors.IsEmpty ||
-            specification.ThenDenied || specification.ThenReturns is not null || !specification.ThenAbsentReadModels.IsEmpty ||
+            specification.ThenDenied || specification.ThenReturns is not null ||
             !specification.GivenReadModels.IsEmpty)
         {
             return false;

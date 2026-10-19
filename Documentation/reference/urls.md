@@ -111,11 +111,12 @@ instances of the read model. `All<ReadModels>` returns that window. `Get<ReadMod
 for an instance whose identity matches `id` (compared case-insensitively) and returns `data: null` when none does,
 including an instance that exists beyond the first 500.
 
-The Host serves one-shot results for both snapshot and `observable` queries; it does not
-stream modeled collection changes. In a generated C# application, observable lists instead
-return Chronicle subjects: a plain GET can answer 202 before the first emission,
+Snapshot queries return one-shot results. A live (`observable`) query declared in the model returns
+a subject that replays the current result and emits again whenever a committed command or
+outside fact changes it: a plain GET can answer 202 before the first emission,
 `?waitForFirstResult=true` waits for a 200 result, and `Accept: text/event-stream` subscribes
-to SSE updates. Generated React routes use the wait flag but do not yet consume SSE push.
+to SSE updates. Conventional `All<ReadModels>` and `Get<ReadModel>ById` queries stay one-shot.
+Generated React routes use the wait flag and subscribe over SSE.
 
 Every query the model declares is also served under its own name, so `query AllWorkItems => WorkItemSummary[]`
 answers at `.../all-work-items`. A query that shares a conventional name takes that name's place. A query the model
@@ -263,8 +264,8 @@ document, but it is there:
 | `/.cratis/queries/sse`, `/.cratis/queries/sse/subscribe`, `/.cratis/queries/sse/unsubscribe` | Server-Sent Events transport for observable queries.                                     |
 | `/.cratis/queries/health`                                                                    | Observable query health. Answers `202` until it has produced its first result.           |
 
-These observable transports apply to generated observable C# queries. A mapped SSE endpoint
-does not turn the Host's one-shot array performer into a stream.
+These observable transports serve the model's live queries; snapshot queries and the
+conventional `All`/`ById` queries remain one-shot.
 
 Two request headers are honored on every call: **`X-Correlation-Id`** to correlate a call with what it caused, and
 **`X-Tenant-Id`** to pick the tenant.

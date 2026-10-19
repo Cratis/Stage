@@ -25,7 +25,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "e07fe76b217d68f440bdb1223b553191b4c9e8c3641c79d205f3c27abdd36a89";
+    const string Digest = "b080a2d10c0860e66a59e87b6a45041b0bc91a6ffe9fe92658717f343cdde7b6";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -43,7 +43,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/stage/commandExecutor.ts db2ea17ffc5dc63288c5d37e4c95f36e3b5dc84e0a53d9cf55813cf2ff2b6d09 3607
         .frontend/stage/navigationTree.ts b07b69a65ad734b534cc865355e210c938aa0832057483e4ccdfbd04545fdfc3 7290
         .frontend/stage/stageComponents.tsx 8b4a617ed1ec108fa15553fa5af6f6d3ac71f045358419da1226f29efd52f11b 13539
-        .frontend/stage/stageData.tsx d47040fee417d01d666e0bafb10a52e8c3bdc44ea06b05af2a7e8dfd9f06578d 18535
+        .frontend/stage/stageData.tsx ff3bb4e09a78ff6796aeff54d896cc403216aef14bce1d32a50e313720a14eb1 22979
         .frontend/stage/stageDataSources.ts ade1a9a757ec28de294254bcb59ee95df1e03d047036e9281915665c0d19d888 4645
         .frontend/stage/stageGuards.ts d3caad28af719787f1007a8824898c86e6a4ac2eba863c36c4afaaae45b4cdf1 9330
         .frontend/stage/stageNavigation.ts 46fc13d64e68d906f47a2c4fb92ade4ed61535b3ec63ca40624d4fe2c9437633 2529
@@ -152,7 +152,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9c6a8dbebae8d7bbff9b5fe69799df48abc1c11781ee1f3150b7fcbe927fcb1d");
+            plan.Diagnostics).ShouldEqual("7d140d111fdb8eeb16a5b065dd6c2ea27715e3c2c19b20a3a97630c7569738a6");
     }
 
     [Theory]

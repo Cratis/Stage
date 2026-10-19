@@ -18,6 +18,7 @@ internal static partial class SemanticSpecificationAdmission
             return false;
         }
         var succeeds = specification.ThenNoEvents || specification.ThenReturns is not null || !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;
+        succeeds |= !rejects && !specification.ThenAbsentReadModels.IsEmpty;
         return rejects != succeeds;
     }
 

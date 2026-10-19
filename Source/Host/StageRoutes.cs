@@ -38,6 +38,7 @@ public record StageRoutes(
 
     internal static StageRoutes For(StageSceneRoutes routes, EventModel model) => Create(
         routes,
+        [],
         StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
             .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema, "object")));
@@ -57,7 +58,11 @@ public record StageRoutes(
                 if (kind is not null) metadata.Add((identity, schema, kind));
             }
         }
-        var result = Create(routes, metadata);
+        var live = SemanticModelWalker.Slices(model)
+            .SelectMany(located => located.Slice.Queries)
+            .Where(query => query.Delivery == SemanticQueryDelivery.Live)
+            .Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
+        var result = Create(routes, live, metadata);
         return result with { Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")] };
     }
 
@@ -72,7 +77,7 @@ public record StageRoutes(
         return kind == "integer" ? "number" : kind;
     }
 
-    static StageRoutes Create(StageSceneRoutes routes, IEnumerable<(string Identity, string Schema, string ResponseKind)> metadata)
+    static StageRoutes Create(StageSceneRoutes routes, HashSet<string> liveQueries, IEnumerable<(string Identity, string Schema, string ResponseKind)> metadata)
     {
         var entries = metadata.ToArray();
         var schemas = entries.ToDictionary(entry => entry.Identity, entry => entry.Schema, StringComparer.Ordinal);
@@ -97,6 +102,11 @@ public record StageRoutes(
             commands.TryAdd(route.Key, route.Value);
         }
 
-        return new(commands, routes.QueryRoutes) { Diagnostics = routes.Diagnostics, CommandSchemas = schemas, CommandResponseKinds = responses };
+        // A live query's route carries the marker the generated apps' routes carry, so the frontend subscribes to it.
+        var queries = routes.QueryRoutes.ToDictionary(
+            route => route.Key,
+            route => liveQueries.Contains(route.Key) ? $"{route.Value}?waitForFirstResult=true" : route.Value,
+            StringComparer.Ordinal);
+        return new(commands, queries) { Diagnostics = routes.Diagnostics, CommandSchemas = schemas, CommandResponseKinds = responses };
     }
 }

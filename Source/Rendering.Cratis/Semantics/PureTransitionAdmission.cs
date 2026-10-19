@@ -205,7 +205,8 @@ internal static partial class PureTransitionAdmission
             definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
-        if (!context.SelfReducing)
+        var self = context.SelfReduces(readModel.Id);
+        if (!self)
         {
             definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
         }
@@ -220,7 +221,7 @@ internal static partial class PureTransitionAdmission
             .Concat(context.Application.Concepts.Select(concept => (Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(concept.Name))))
             .Concat(context.Application.Types.Select(type => (Namespace: context.CommonNamespace, Name: Identifiers.ToPascalCase(type.Name))))
             .Append((modelNs, Identifiers.ToPascalCase(readModel.Name))).ToHashSet();
-        if (!context.SelfReducing) defined.Add((ns, reducerName));
+        if (!self) defined.Add((ns, reducerName));
         foreach (var peer in allDeclarations.Where(declaration => !defined.Contains((declaration.Namespace, declaration.Name)))
             .DistinctBy(declaration => (declaration.Namespace, declaration.Name)))
         {
@@ -228,7 +229,7 @@ internal static partial class PureTransitionAdmission
             // namespace and short-name binding exactly where the real combined file imports them.
             definitions.Add($"namespace {peer.Namespace} {{ public class {peer.Name} {{}} }}");
         }
-        var descriptors = context.SelfReducing
+        var descriptors = self
             ? context.Request.TypedContextDescriptors.Where(candidate => candidate.OperationId == readModel.Id)
             : [descriptor];
         var wrapper = string.Join('\n', descriptors.Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content
@@ -272,7 +273,7 @@ internal static partial class PureTransitionAdmission
             .EndBlock()
             .EndBlock()
             .ToString();
-        if (context.SelfReducing)
+        if (self)
         {
             code = SelfAnalysisCode(context, located, readModel, reducer, descriptor, body);
         }

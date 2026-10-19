@@ -102,6 +102,8 @@ Each phase owns its failures:
 3. The target planner owns profile-admission, target-capability, and target-emission diagnostics in `ArtifactRenderPlan.Diagnostics`.
 4. The publisher owns destination safety, ownership, recovery, and write failures.
 
+Publishers must honor `ArtifactRenderPlan.RequiredRemovals`: delete each listed file atomically with the plan's writes, refuse if its hash differs from `ExpectedSha256`, and treat an absent file as already removed. A publisher that ignores removals is refused by `CheckPublication` with `CratisPublicationCheck.UnsafeRemovals` (`STAGE-REDUCER-005`) rather than leaving a migrated read model with two reducers. See [Required removals](../reference/render-plans.md#required-removals).
+
 Do not copy compiler diagnostics or execution issues into target diagnostic codes. Orchestration can map all three diagnostic types into one presentation model, but each phase's native code or issue kind, details, severity when present, and location or semantic identity remain authoritative.
 
 Use `ArtifactRenderDiagnostic` for an unsupported but valid request. Use stable, target-owned codes and attach the affected `SemanticId`; use the default identity only for a genuinely application-wide diagnostic.

@@ -42,6 +42,7 @@ internal static class SemanticReducerArtifactRenderer
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
         var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
+        var self = context.SelfReduces(reducer.ReadModel);
         var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
         var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
         var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
@@ -80,7 +81,7 @@ internal static class SemanticReducerArtifactRenderer
             var tenant = contextReads?.Contains("Tenant") == true
                 ? $"global::{context.RootNamespace}.TypedContexts.ReducerContextValues.Tenant(eventContext.Namespace)"
                 : $"global::{context.RootNamespace}.TypedContexts.TenantId.NotSet";
-            builder.OpenBlock($"public {(context.SelfReducing ? "static " : string.Empty)}{modelType}? {(context.SelfReducing ? "Reduce" : "On")}({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)");
+            builder.OpenBlock($"public {(self ? "static " : string.Empty)}{modelType}? {(self ? "Reduce" : "On")}({eventType} @event, {modelType}? current, global::Cratis.Chronicle.Events.EventContext eventContext)");
             if (analysisRequirement is null)
             {
                 builder.Line("var originalSourceId = eventContext.EventSourceId.Value;")

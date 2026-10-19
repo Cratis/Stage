@@ -179,6 +179,10 @@ internal static class SemanticRunProjectionAdmission
             {
                 return rejection;
             }
+            if (scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null)))
+            {
+                return "A projection adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so Stage does not run it.";
+            }
             if (readModel.Properties.Length == 1 && scope.From.Any(from => from.Mappings.IsEmpty))
             {
                 return "A mapping-free identifier-only from block does not materialize a Chronicle read model.";

@@ -19,7 +19,21 @@ internal sealed class SemanticRunReactions(
 {
     internal const int MaximumFacts = 1_000;
     readonly int _historyCount = historyCount;
+    readonly Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> _pinned = PinnedValues(context.Specification);
     int _nextFact = historyCount;
+
+    // 'given generated <Command>.<property> = <value>' (ESM v30): each invocation by a reaction takes the next value pinned for its command and property.
+    static Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> PinnedValues(SemanticSpecification specification)
+    {
+        var pinned = new Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>>();
+        foreach (var value in specification.GivenGenerated.IsDefault ? [] : specification.GivenGenerated)
+        {
+            if (!pinned.TryGetValue((value.Command, value.Property), out var queue)) pinned[(value.Command, value.Property)] = queue = new();
+            queue.Enqueue(value.Value);
+        }
+
+        return pinned;
+    }
 
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
@@ -234,7 +248,10 @@ internal sealed class SemanticRunReactions(
             property.Id,
             mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, occurred: cause.Occurred) : SemanticValue.Null));
 
-        return new(context.Specification.Id, context.Specification.Name, [], [], new(command.Id, [.. inputs]), [], [], [], [])
+        var generated = command.Properties.Where(property => property.IsGenerated && _pinned.TryGetValue((command.Id, property.Id), out var queue) && queue.Count > 0)
+            .Select(property => new SemanticPropertyValue(property.Id, _pinned[(command.Id, property.Id)].Dequeue()));
+
+        return new(context.Specification.Id, context.Specification.Name, [], [], new(command.Id, [.. inputs]) { GeneratedValues = [.. generated] }, [], [], [], [])
         {
             GivenClock = cause.Occurred?.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
             GivenCaller = reaction.RunsAs is { Kind: SemanticReactionIdentityKind.System, Roles.IsDefault: false } identity ? new(true, identity.Roles, []) : null

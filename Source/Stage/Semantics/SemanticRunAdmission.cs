@@ -324,7 +324,7 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.GreaterThanOrEqual or SemanticValidationRuleKind.LessThan or
         SemanticValidationRuleKind.LessThanOrEqual or SemanticValidationRuleKind.Length or SemanticValidationRuleKind.Matches or
         SemanticValidationRuleKind.Checksum or SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or
-        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or
+        SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
     static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, string collectionRefusal)

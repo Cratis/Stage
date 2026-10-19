@@ -143,7 +143,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         {
             Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],
-            Navigation = NavigationConverter.Convert(syntax),
+            Navigation = NavigationConverter.Convert(syntax, diagnostics),
             Structure = scope.Structure ?? StructureConverter.Convert(syntax),
             TemplateReferences = TemplateReferenceConverter.Collect(syntax),
             SampleDataPacks = SampleDataConverter.Packs(syntax),

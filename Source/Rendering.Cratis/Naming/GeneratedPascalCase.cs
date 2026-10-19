@@ -21,7 +21,7 @@ internal static class GeneratedPascalCase
 
     internal static IReadOnlyList<string> RecordMembers => _recordMembers;
 
-    internal static bool ConceptMembersAreUnique(string conceptName, IEnumerable<string> values, bool isIdentifier)
+    internal static bool ConceptMembersAreUnique(string conceptName, IEnumerable<string> values, bool hasPublicFactory)
     {
         var names = values.Select(From).ToArray();
         if (names.Length > 0)
@@ -33,7 +33,7 @@ internal static class GeneratedPascalCase
         // ConceptAs<T> already supplies Value; the derived record does not synthesize it anew.
         // ConceptAs<T> supplies ToString, so a derived concept does not synthesize it again.
         return (From(conceptName) == "ToString" || RecordTypeNameIsSafe(conceptName)) &&
-            From(conceptName) != "NotSet" && (!isIdentifier || From(conceptName) != "New");
+            From(conceptName) != "NotSet" && (!hasPublicFactory || From(conceptName) != "New");
     }
 
     internal static bool EventMembersAreUnique(string eventName, IEnumerable<string> properties) =>
@@ -56,6 +56,25 @@ internal static class GeneratedPascalCase
         Escape(From(query), From(query) == From(readModel) || From(query) == "EqualityContract" || From(query) == "Clone" || properties.Select(From).Contains(From(query), StringComparer.Ordinal));
 
     internal static string Escape(string name, bool collision) => collision ? name + "_" : name;
+
+    // Response fields keep their authored spelling on the wire, so a collision is resolved on the type name instead:
+    // a field, a sibling declaration or a namespace with the response record's name escapes the record, never the field.
+    // The escaped name cannot collide again: From removes authored underscores, so no authored name ends in '_'.
+    internal static string ResponseType(string command, IEnumerable<string> fields, Func<string, bool> occupied)
+    {
+        var name = $"{From(command)}Response";
+
+        return Escape(name, occupied(name) || fields.Any(field => From(field) == name));
+    }
+
+    // A field equal to the response type name is resolved by ResponseType; every other collision cannot be renamed.
+    internal static bool ResponseMembersAreUnique(IEnumerable<string> fields)
+    {
+        var generated = fields.Select(From).ToArray();
+
+        return generated.Distinct(StringComparer.OrdinalIgnoreCase).Count() == generated.Length &&
+            !generated.Any(name => _recordMembers.Contains(name, StringComparer.Ordinal));
+    }
 
     // The service argument is always IReadModels; the second argument is the rendered CLR type.
     // Different argument types are genuine C# overloads, even if their authored query names normalize alike.

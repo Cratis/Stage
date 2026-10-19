@@ -88,10 +88,9 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     internal void RenderResponseType(CSharpCodeBuilder builder)
     {
         if (command.Response is not SemanticRecordCommandResponse response) return;
-        var name = Identifiers.ToPascalCase(command.Name);
         var fields = response.Fields.Select(field => $"{_types.Type(field.Type)} {Identifiers.ToPascalCase(field.Name)}");
-        builder.Summary($"The response from {name}.")
-            .Line($"public record {name}Response({string.Join(", ", fields)});")
+        builder.Summary($"The response from {Identifiers.ToPascalCase(command.Name)}.")
+            .Line($"public record {context.ResponseType(command)}({string.Join(", ", fields)});")
             .BlankLine();
     }
 
@@ -163,8 +162,8 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
     {
         SemanticScalarCommandResponse scalar => new(_types.Type(scalar.Type), SourceValue(scalar.Source)),
         SemanticRecordCommandResponse record => new(
-            $"{Identifiers.ToPascalCase(command.Name)}Response",
-            $"new {Identifiers.ToPascalCase(command.Name)}Response({string.Join(", ", record.Fields.Select(field => SourceValue(field.Source)))})"),
+            context.ResponseType(command),
+            $"new {context.ResponseType(command)}({string.Join(", ", record.Fields.Select(field => SourceValue(field.Source)))})"),
         _ => null
     };
 

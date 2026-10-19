@@ -26,8 +26,8 @@ rather than placeholders. A name no package declares renders a placeholder that 
 
 A simple `action … execute <Command>` translates to `core:action`. A guarded action with ordered
 `when … execute` alternatives and an `otherwise` also translates to `core:action`, carrying its alternatives,
-their guards and the fallback. The Stage frontend runtime, which a live Stage and a generated React application
-both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
+their guards and the fallback. The Stage frontend runtime (the `@cratis/stage.runtime` package), which a live Stage
+and a generated React application both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
 
 - The first alternative whose guard holds is the command the action executes, with its `with` values read from
   the item. A missing or null field does not match.
@@ -353,6 +353,13 @@ their names. Hand-written implementation bodies must use the emitted command mem
 A query colliding with its read-model type, `EqualityContract`, `Clone`, or a read-model
 property also receives `_`. Its proxy export follows the emitted method name; an Arc
 `[Path]` preserves the original HTTP route using the scaffold's route settings.
+
+A multi-field command response renders as record `<Command>Response`. When a response
+field, a sibling declaration, or a namespace already uses that name, the record and its
+proxy type are emitted as `<Command>Response_`; the response fields keep their names on
+the wire. For example, command `Move` beside command `MoveResponse` returns
+`MoveResponse_`.
+
 `STAGE-ESM-050` reports each escape as information and does not block rendering.
 Non-colliding members retain their existing output.
 

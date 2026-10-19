@@ -52,6 +52,7 @@ public class when_building_the_scaffold_only_frontend(when_building_the_scaffold
 
         async Task Because()
         {
+            await StageRuntimePackage.Install(_application);
             Install = await ApplicationProcess.Run(_application, _stepTimeout, "npm", "install", "--no-audit", "--no-fund");
             TypeCheck = Install.ExitCode == 0
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "npm", "exec", "--no", "--", "tsc", "--noEmit", "--project", ".frontend/tsconfig.json")

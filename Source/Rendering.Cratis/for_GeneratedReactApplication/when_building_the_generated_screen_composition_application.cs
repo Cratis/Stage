@@ -37,6 +37,7 @@ public class when_building_the_generated_screen_composition_application(when_bui
     [Fact] void should_install_the_pinned_frontend_packages() => Failure(built.Install).ShouldEqual(string.Empty);
     [Fact] void should_build_the_frontend() => Failure(built.FrontendBuild).ShouldEqual(string.Empty);
     [Fact] void should_type_check_the_whole_frontend_without_errors() => built.FrontendBuild.Output.Contains("error TS", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_install_one_copy_of_every_shared_package() => built.SingleInstanceFailure.ShouldEqual(string.Empty);
     [Fact] void should_emit_the_built_application_into_the_web_root() => built.BuiltIndex.ShouldBeTrue();
     [Fact]
     void should_generate_typed_proxies_for_routes_and_command_responses()
@@ -75,6 +76,8 @@ public class when_building_the_generated_screen_composition_application(when_bui
         public ProcessResult FrontendBuild { get; private set; } = null!;
 
         public bool BuiltIndex { get; private set; }
+
+        public string SingleInstanceFailure { get; private set; } = string.Empty;
 
         public bool GeneratedProxy { get; private set; }
 
@@ -124,6 +127,11 @@ public class when_building_the_generated_screen_composition_application(when_bui
             DebugTest = DebugBuild.ExitCode == 0
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "dotnet", "test", "Workspaces.Specs/Workspaces.Specs.csproj", "-c", "Debug", "--no-build", "--nologo")
                 : new(-1, "The generated specifications were not run because the Debug build failed.");
+            if (DebugBuild.ExitCode == 0)
+            {
+                await StageRuntimePackage.Install(_application);
+            }
+
             Install = DebugBuild.ExitCode == 0
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "npm", "install", "--no-audit", "--no-fund")
                 : new(-1, "The frontend was not installed because the Debug build, which generates the proxies it imports, failed.");
@@ -131,6 +139,7 @@ public class when_building_the_generated_screen_composition_application(when_bui
                 ? await ApplicationProcess.Run(_application, _stepTimeout, "npm", "run", "build")
                 : new(-1, "The frontend was not built because its install failed.");
             BuiltIndex = File.Exists(Path.Combine(_application, "wwwroot", "index.html"));
+            SingleInstanceFailure = Install.ExitCode == 0 ? await StageRuntimePackage.SingleInstanceFailure(_application) : "The packages were not installed.";
             GeneratedProxy = File.Exists(Path.Combine(_application, "Workspaces", "Tracking", "AddComment", "AddComment.ts"));
             if (DebugBuild.ExitCode == 0)
             {

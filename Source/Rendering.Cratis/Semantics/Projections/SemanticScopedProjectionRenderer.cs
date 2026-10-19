@@ -99,8 +99,13 @@ internal static class SemanticScopedProjectionRenderer
         {
             var @event = context.Events[join.EventContract];
             var on = properties.Single(_ => _.Id == join.On);
-            code.OpenBlock($"{receiver}.Join<{new SemanticTypeSystem(context).EventType(@event)}>(join =>")
-                .Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
+            code.OpenBlock($"{receiver}.Join<{new SemanticTypeSystem(context).EventType(@event)}>(join =>");
+            if (receiver != "children")
+            {
+                // Chronicle rejects On for a child join: the join always matches the elements' own identity.
+                code.Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
+            }
+
             RenderMappings(code, join.Mappings, properties, @event, context, "join");
             code.EndBlock().Line(");");
         }

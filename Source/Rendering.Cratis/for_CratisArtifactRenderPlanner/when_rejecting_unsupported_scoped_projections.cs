@@ -18,7 +18,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
 {
     [Theory]
     [InlineData("every-including-children")]
-    [InlineData("child-join")]
     [InlineData("nested-join")]
     [InlineData("root-join-removal")]
     [InlineData("nested-only-from")]
@@ -203,13 +202,6 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             {
                 From = [nested.Scope.From[0] with { Key = SemanticProjectionKey.EventSourceIdentity }]
             } })]
-            },
-            "child-join" => scope with
-            {
-                Children = [.. scope.Children.Select(children => children with
-                {
-                    Scope = children.Scope with { Joins = [new(scope.Joins[0].EventContract, children.IdentifiedBy, [])] }
-                })]
             },
             _ => throw new UnknownScopeVariant(variant)
         };

@@ -548,8 +548,8 @@ internal static class SemanticScopedProjectionSupport
                 return conflict;
             }
 
-            return child && (scope.Children.Length > 0 || scope.Joins.Length > 0)
-                ? "Recursive children and child joins need an exact Chronicle lowering before they can render."
+            return child && scope.Children.Length > 0
+                ? "Recursive children need an exact Chronicle lowering before they can render."
                 : null;
         }
 
@@ -564,7 +564,8 @@ internal static class SemanticScopedProjectionSupport
 
             // A composite root key establishes every key part itself, so the parts are not left for the mappings.
             var required = IsCompositeRoot ? [.. properties.Where(property => !property.IsIdentifier)] : properties;
-            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals), required, context, _protectedIdentity))
+            var joined = child ? scope.Joins.SelectMany(join => join.Mappings) : [];
+            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals).Concat(joined), required, context, _protectedIdentity))
                 ? null
                 : "At least one from block must establish the required read-model properties.";
         }
@@ -590,7 +591,7 @@ internal static class SemanticScopedProjectionSupport
 
         bool JoinSupported(SemanticProjectionJoin join) =>
             context.Events.TryGetValue(join.EventContract, out var @event) && join.Key is null &&
-            properties.Any(_ => _.Id == join.On) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
+            properties.Any(_ => _.Id == join.On) && (!child || join.On == identity) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
 
         string? RemovalRejection()
         {

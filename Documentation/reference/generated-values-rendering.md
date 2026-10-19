@@ -251,7 +251,7 @@ Commands with generated properties can validate and require request values. Requ
 | Diagnostic | Refused shape |
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
-| `STAGE-ESM-028` | Host (by design): each command generating a rule value, not unused rule concepts; the rule body is never run by the interpreter. The semantic renderer emits verified C# rule bodies; the executor admits pinned String rule values. Unknown generation strategies, non-concept generated values, optional values and collections remain refused; the legacy syntax engine refuses every explicit strategy, including `rule`, and generated properties whose concepts have rules |
+| `STAGE-ESM-028` | Host (by design): each command generating a rule value, not unused rule concepts; the rule body is never run by the interpreter. The semantic renderer emits verified C# rule bodies; the executor admits pinned String rule values. Unknown generation strategies, non-concept generated values, optional values and collections remain refused, and the diagnostic names the offending shape (optional, collection, primitive or composite type) and the Screenplay contract that a generated property must be a required, non-collection generatable concept (`PLAY0483`); the legacy syntax engine refuses every explicit strategy, including `rule`, and generated properties whose concepts have rules |
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |

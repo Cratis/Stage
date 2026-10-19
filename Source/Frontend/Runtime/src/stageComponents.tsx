@@ -9,7 +9,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, suppliedIdentifier } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -247,9 +247,9 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 /**
  * The task dialog of a toolbar slice button. Scene's own dialog asks for a text, a number, a switch or a date for each property of
  * the command; a command that takes an enumeration, a record or a collection is asked through the command's own form instead - a choice, a
- * group of fields, a list. An identifier is asked for like any other value - a reference to another entity, the product an add to basket is for,
- * is the person's to choose - unless the screen's address or the session already supplies it (the shopper's basket), which the form then submits
- * by the same rule.
+ * group of fields, a list. The identifier the command acts on - the shopper's basket - is not asked for: the session supplies it, or creates it on
+ * submit. A reference to another entity - the product an add to basket is for - is the person's to choose, and is asked for unless the screen's
+ * address or the session already supplies it; the form then submits what was not asked by the same rule.
  */
 export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const element = props.element ?? syntheticElement('slice-dialog', {});
@@ -264,7 +264,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
 
     if (!schema || !properties.some(property => property.options || property.members || property.item)) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
 
-    const asked = properties.filter(property => !(property.required && suppliedIdentifier(property, parameters) !== undefined));
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters));
     const form = syntheticElement(`slice-dialog-${command}`, {
         command,
         label: title,

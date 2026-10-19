@@ -27,7 +27,8 @@ public record StageRoutes(
     public IReadOnlyList<string> Diagnostics { get; init; } = [];
 
     /// <summary>
-    /// Gets every modeled command's presentation schema, used to register native command proxies in the live host.
+    /// Gets every modeled command's presentation schema, used to register native command proxies in the live host and to build a
+    /// toolbar slice's task dialog - so the property each command acts on carries <see cref="Contracts.Screenplay.SchemaSynthesizer.IdentityKeyword"/>.
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandSchemas { get; init; } = new Dictionary<string, string>();
 
@@ -41,7 +42,7 @@ public record StageRoutes(
         [],
         StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
-            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", located.Slice.Command.Schema, "object")));
+            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", Contracts.Screenplay.SchemaSynthesizer.WithIdentity(located.Slice.Command.Schema, located.Slice.Command.Identifier), "object")));
 
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model)
     {
@@ -54,6 +55,7 @@ public record StageRoutes(
                 var identity = $"{located.TypeNamespace}.{command.Name}";
                 var schema = CommandFormSchemas.For(model.Application, command.Properties.Where(property => !property.IsGenerated), diagnostics, identity, SourceLocation.Start);
                 if (schema is null) continue;
+                schema = Contracts.Screenplay.SchemaSynthesizer.WithIdentity(schema, command.Properties.SingleOrDefault(property => property.IsIdentifier)?.Name);
                 var kind = ResponseKind(model.Application, command, diagnostics, identity);
                 if (kind is not null) metadata.Add((identity, schema, kind));
             }

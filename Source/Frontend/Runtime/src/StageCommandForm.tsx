@@ -219,16 +219,36 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * A required uuid property that the form does not list is that kind of identity - the screen's own parameter when it carries one, otherwise one value per
  * identifier concept for as long as this browser keeps the session - the same basket for every add, change and checkout, a different one for
  * another browser - and a command is never submitted for an identity nobody chose.
+ *
+ * A schema that marks the identifier the command acts on (`x-identity`, a task dialog's) says which one that is: only it is created, and a
+ * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
+ * every identifier it does not show to the session, as it always has.
  */
 export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    const marked = schema.some(property => property.identity);
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        values[property.name] = suppliedIdentifier(property, parameters) ?? sessionIdentity(property.identifier);
+        const value = suppliedIdentifier(property, parameters) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
+        if (value !== undefined) values[property.name] = value;
     }
 
     return values;
+}
+
+/**
+ * Whether a task dialog leaves an identifier out of what it asks: the identifier the command acts on (`x-identity`) - the shopper's basket,
+ * which the session supplies or creates - or one the address or the session already supplies. Every other identifier is a reference to
+ * another entity - the product an add to basket is for - and is the person's to choose.
+ *
+ * @param property The property of the command.
+ * @param parameters The screen's address parameters.
+ * @returns Whether the dialog does not ask for it.
+ */
+export function suppliedWithoutAsking(property: SchemaProperty, parameters: Record<string, string>): boolean {
+    if (!property.identifier || !property.required) return false;
+    return property.identity === true || suppliedIdentifier(property, parameters) !== undefined;
 }
 
 /**

@@ -10,6 +10,12 @@ export interface SchemaProperty {
 
     /** The identifier concept of a uuid property (`x-concept`) - `BasketId`; what a session holds one value of. */
     identifier?: string;
+
+    /**
+     * Whether this is the identifier the command acts on (`x-identity`) - the basket an add to basket appends to - rather than a reference to
+     * another entity, such as the product it adds. Only the schema a task dialog is built from says so.
+     */
+    identity?: boolean;
     type?: 'text' | 'number' | 'boolean' | 'date';
     required: boolean;
     unsupportedReason?: string;
@@ -35,6 +41,7 @@ interface JsonSchemaDefinition {
     properties?: unknown;
     required?: unknown;
     'x-concept'?: unknown;
+    'x-identity'?: unknown;
 }
 
 const maximumDepth = 8;
@@ -63,6 +70,7 @@ function describe(name: string, definition: JsonSchemaDefinition | undefined, re
     return {
         name,
         identifier: definition?.format === 'uuid' && typeof definition['x-concept'] === 'string' ? definition['x-concept'] : undefined,
+        ...(definition?.['x-identity'] === true ? { identity: true } : {}),
         required,
         ...propertyType(definition, depth),
     };

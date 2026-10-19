@@ -62,7 +62,7 @@ internal sealed class SemanticApplicationContext
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
                 new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
-        _responseTypes = new(() => ResolveResponseTypes());
+        _responseTypes = new(ResolveResponseTypes);
     }
 
     /// <summary>

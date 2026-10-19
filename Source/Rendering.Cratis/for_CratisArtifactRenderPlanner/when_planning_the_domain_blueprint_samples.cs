@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_planning_the_domain_blueprint_samples
 {
-    public static TheoryData<string> Samples => new() { "crm", "ticketing", "approvals", "inventory", "hr", "projects", "administration", "orders" };
+    public static TheoryData<string> Samples => ["crm", "ticketing", "approvals", "inventory", "hr", "projects", "administration", "orders"];
 
     [Theory]
     [MemberData(nameof(Samples))]

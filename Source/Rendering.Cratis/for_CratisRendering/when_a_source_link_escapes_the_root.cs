@@ -2,7 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
-using Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.given;
+
+using FactAttribute = Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.when_loading_linked_sources.FactAttribute;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering;
 
@@ -16,7 +17,7 @@ public class when_a_source_link_escapes_the_root : given.a_source_plan
         File.CreateSymbolicLink(Path.Combine(_root, "linked.play"), _outside);
     }
     async Task Because() => _result = await From("linked.play");
-    [SourceLinkFact] void should_refuse_the_source_before_compilation() => ShouldRefuse("STAGE-PLAN-001");
-    [SourceLinkFact] void should_not_render_any_artifacts() => _result.Artifacts.ShouldBeEmpty();
+    [Fact] void should_refuse_the_source_before_compilation() => ShouldRefuse("STAGE-PLAN-001");
+    [Fact] void should_not_render_any_artifacts() => _result.Artifacts.ShouldBeEmpty();
     void Destroy() => File.Delete(_outside);
 }

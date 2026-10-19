@@ -18,7 +18,7 @@ public class when_a_toolbar_button_names_a_slice : Specification
     }
 
     static SceneElements.ExternalComponent Item(string? slice) =>
-        SceneElementFactory.Component("new", "core:toolbarItem", slice is null ? new Dictionary<string, object?>() : new Dictionary<string, object?> { ["slice"] = slice });
+        SceneElementFactory.Component("new", "core:toolbarItem", slice is null ? [] : new Dictionary<string, object?> { ["slice"] = slice });
 
     [Fact] void should_report_it_for_a_button_on_a_screen() => ApplicationWith(Item("Sales.Orders.PlaceOrder")).ReferencesSlices.ShouldBeTrue();
     [Fact] void should_report_it_for_a_button_nested_in_a_toolbar() => ApplicationWith(SceneElementFactory.Component("toolbar", "core:toolbar", new Dictionary<string, object?>(), new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = [Item("Sales.Orders.PlaceOrder")] })).ReferencesSlices.ShouldBeTrue();

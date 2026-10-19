@@ -15,13 +15,15 @@ public class when_creating_screen_partitions : given.a_partitioned_screen_plan
     [InlineData("unresolved")]
     public void should_refuse_a_scene_that_disagrees_with_the_compilation(string reason)
     {
-        var screens = reason switch
+        var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), _scene with
         {
-            "missing" => _scene.Screens.Skip(1).ToArray(),
-            "duplicate" => _scene.Screens.Concat(_scene.Screens.Take(1)).ToArray(),
-            _ => _scene.Screens.Select(screen => screen with { Name = "Unrelated" }).ToArray()
-        };
-        var profile = CratisRendering.CreateProfile("Projects", new("Projects", "Projects"), _scene with { Screens = screens });
+            Screens = reason switch
+            {
+                "missing" => [.. _scene.Screens.Skip(1)],
+                "duplicate" => [.. _scene.Screens.Concat(_scene.Screens.Take(1))],
+                _ => [.. _scene.Screens.Select(screen => screen with { Name = "Unrelated" })]
+            }
+        });
         Catch.Exception(() => CratisRendering.WithScreenPartitions(profile, _compilation)).ShouldBeOfExactType<InvalidArtifactRenderContract>();
     }
 }

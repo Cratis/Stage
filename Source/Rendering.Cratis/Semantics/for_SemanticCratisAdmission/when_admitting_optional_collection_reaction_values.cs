@@ -20,7 +20,7 @@ public class when_admitting_optional_collection_reaction_values : for_SemanticAu
         var trigger = reaction.Triggers.Single();
         var invocation = trigger.Invokes.Single();
         var note = _context.Commands[invocation.Command].Properties.Single(property => property.Name == "note");
-        SemanticValue value = form switch
+        var value = form switch
         {
             "null-collection" => SemanticValue.Null,
             "populated" => SemanticValue.Array([SemanticValue.Text("one")]),
@@ -36,6 +36,7 @@ public class when_admitting_optional_collection_reaction_values : for_SemanticAu
                 }]
             }]
         };
+
         // Exercise Stage's defensive admission without rebuilding a model that Screenplay rejects first.
         var diagnostics = SemanticCratisAdmission.Evaluate(_context, [_located with { Slice = slice }]);
         diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-039").ShouldEqual(!admitted);

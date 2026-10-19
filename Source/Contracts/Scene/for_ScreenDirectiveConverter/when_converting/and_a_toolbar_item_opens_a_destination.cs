@@ -38,6 +38,6 @@ public class and_a_toolbar_item_opens_a_destination : Specification
     [Fact] void should_open_nothing_for_an_action() => Destination(0).ShouldBeNull();
     [Fact] void should_open_the_screen_a_navigate_item_targets() => Destination(1)!.Screen.ShouldEqual("InvoiceDetails");
     [Fact] void should_bind_the_parameters_of_a_navigate_item_as_route_parameters() => Destination(1)!.RouteParameterBindings!["invoiceId"].Path.ShouldEqual("invoice.id");
-    [Fact] void should_open_the_dialog_a_dialog_item_targets() => string.Join('|', new object?[] { Destination(2)!.Dialog, Destination(2)!.Kind }).ShouldEqual("HelpDialog|Dialog");
+    [Fact] void should_open_the_dialog_a_dialog_item_targets() => string.Join('|', [Destination(2)!.Dialog, Destination(2)!.Kind]).ShouldEqual("HelpDialog|Dialog");
     [Fact] void should_carry_the_presentation_hints_of_the_item() => ((Dictionary<string, string>)_items[1].Properties["presentation"]!)["mode"].ShouldEqual("icon");
 }

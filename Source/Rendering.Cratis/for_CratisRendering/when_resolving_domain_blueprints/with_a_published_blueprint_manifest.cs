@@ -13,7 +13,7 @@ using SceneScreens = Cratis.Scene.Model.Screens;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRendering.when_resolving_domain_blueprints;
 
 /// <summary>
-/// An application whose ui profile activates a domain blueprint (<c>Cratis.Blueprint.Crm</c>) is renderable when the host approved the
+/// An application whose ui profile activates a domain blueprint (Cratis.Blueprint.Crm) is renderable when the host approved the
 /// blueprint's package, exactly as the npm package publishes its manifest, and is refused when it did not.
 /// </summary>
 public class with_a_published_blueprint_manifest : Specification

@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 
 /// <summary>
 /// A protected query may not fall back to direct invocation when the spec has no fixture principal. Since Screenplay 4.180 the language
-/// itself refuses the missing <c>given caller</c> (PLAY0389) before a model exists to plan, so the rule lives in the compiler and Stage never sees it.
+/// itself refuses the missing 'given caller' (PLAY0389) before a model exists to plan, so the rule lives in the compiler and Stage never sees it.
 /// </summary>
 public class with_a_protected_query_without_caller : Specification
 {

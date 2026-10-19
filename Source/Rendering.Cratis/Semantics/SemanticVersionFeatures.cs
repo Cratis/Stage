@@ -82,8 +82,6 @@ internal static class SemanticVersionFeatures
     /// </summary>
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
-    const string ArcDefaultStreamId = "Default";
-
     /// <summary>
     /// The code for a reaction trigger that both produces events and invokes commands.
     /// </summary>
@@ -138,6 +136,8 @@ internal static class SemanticVersionFeatures
     /// The code for pending command handlers, which no Stage engine implements yet.
     /// </summary>
     internal const string PendingCommandHandler = "STAGE-IMPL-002";
+
+    const string ArcDefaultStreamId = "Default";
 
     /// <summary>
     /// Checks the language and semantic version pair Stage has audited.
@@ -528,7 +528,7 @@ internal static class SemanticVersionFeatures
         {
             yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with an unkeyed stream under a keyed command route, which Stage does not admit yet because its rendered routing is not proven equivalent to the reference execution.");
         }
-        else if (command.Produces.Any(produced => produced.Route is { StreamId: SemanticValueExpression { Value: SemanticTextValue { Value: ArcDefaultStreamId } } }))
+        else if (command.Produces.Any(produced => produced.Route is { StreamId: SemanticValueExpression { Value: SemanticTextValue streamId } } && string.Equals(streamId.Value, ArcDefaultStreamId, StringComparison.Ordinal)))
         {
             yield return new(ProductionRoutes, StageExecutionCapability.IdentityAllocation, command.Id, "command", $"Command '{command.Name}' overrides the route of a production with the literal stream id '{ArcDefaultStreamId}', which is Arc's EventStreamId.Default sentinel, so Arc cannot tell it from an unset stream id and Stage does not admit it yet.");
         }

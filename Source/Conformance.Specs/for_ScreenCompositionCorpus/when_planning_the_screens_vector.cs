@@ -25,7 +25,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "b080a2d10c0860e66a59e87b6a45041b0bc91a6ffe9fe92658717f343cdde7b6";
+    const string Digest = "9d146faf5b07956b7db226bc744d6b247f444a5cf88e5b052838b112f91eefb8";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -152,7 +152,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("7d140d111fdb8eeb16a5b065dd6c2ea27715e3c2c19b20a3a97630c7569738a6");
+            plan.Diagnostics).ShouldEqual("3429e8a2b4782009b7854e90caf49bd702ef85d6415ca8b0c514903ae0320439");
     }
 
     [Theory]

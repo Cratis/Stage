@@ -24,7 +24,7 @@ public class with_an_authorized_query : given.an_invoice_model
 
     void Because() => Plan(Policy + Invoices + Lookup);
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrenderable_projection() => ErrorCodes.ShouldContain("STAGE-ESM-009");
+    [Fact] void should_plan_the_application() => ErrorCodes.ShouldBeEmpty();
+    [Fact] void should_render_the_projection_keyed_by_its_payload_property() => ErrorCodes.ShouldNotContain("STAGE-ESM-009");
     [Fact] void should_not_reject_portable_authorization() => ErrorCodes.ShouldNotContain("STAGE-ESM-015");
 }

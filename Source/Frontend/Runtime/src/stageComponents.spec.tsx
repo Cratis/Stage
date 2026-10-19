@@ -699,7 +699,7 @@ describe('a native command form', () => {
         expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }));
     });
 
-    it('fails visibly for object and array command schema fields', () => {
+    it('fails visibly for object and array command schema fields it cannot describe', () => {
         const form = element('payload-form', 'Stage:commandForm', {
             command: 'SubmitPayload',
             label: 'Submit payload',
@@ -708,7 +708,7 @@ describe('a native command form', () => {
                 required: ['payload'],
                 properties: {
                     payload: { type: 'object' },
-                    tags: { type: 'array', items: { type: 'string' } },
+                    tags: { type: 'array' },
                 },
             }),
         });

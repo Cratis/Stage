@@ -7,19 +7,16 @@ import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormF
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
-import { CheckboxField, InputTextField, NumberField, CalendarField } from '@cratis/components/CommandForm';
+import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
-import { sessionIdentifierPrefix, useStageData } from './stageData';
+import { sessionIdentifierPrefix, useStageData, useStageQuery } from './stageData';
+import type { StageDataState } from './stageData';
+import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import type { SchemaProperty } from './stageFormSchema';
+import { StageValueField } from './StageValueFields';
 
-export interface SchemaProperty {
-    name: string;
-
-    /** The identifier concept of a uuid property (`x-concept`) - `BasketId`; what a session holds one value of. */
-    identifier?: string;
-    type?: 'text' | 'number' | 'boolean' | 'date';
-    required: boolean;
-    unsupportedReason?: string;
-}
+export { schemaPropertiesOf };
+export type { SchemaProperty };
 
 interface NativeFormProperties {
     command: string;
@@ -37,12 +34,6 @@ interface StageCommandContent {
     [key: string]: unknown;
 }
 
-interface JsonSchemaDefinition {
-    type?: unknown;
-    format?: unknown;
-    'x-concept'?: unknown;
-}
-
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
@@ -52,7 +43,12 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
-    const initialValues = useMemo(() => ({ ...sessionIdentifiers(fields, schema, data.parameters), ...initialCommandValues(fields, data.parameters) }), [fields, schema, data.parameters]);
+    const answered = usePopulatedValues(element, schema, data);
+
+    // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
+    const populationKey = JSON.stringify(answered ?? null);
+    const populated = useMemo(() => answered, [populationKey]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -70,6 +66,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     return (
         <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
+                key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
                 currentValues={argumentValues}
@@ -157,6 +154,13 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
     const fieldElement = (() => {
+        if (descriptor?.options) {
+            const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
+            return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
+        }
+
+        if (descriptor?.members || descriptor?.item) return <StageValueField value={accessor} fieldName={property} title={title} required={required} descriptor={descriptor} />;
+
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
@@ -229,6 +233,67 @@ function sessionIdentifier(concept: string): string {
     } catch {
         return globalThis.crypto.randomUUID();
     }
+}
+
+/** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */
+interface PopulateSource {
+    queryName?: string;
+    parameterBindings?: Record<string, { path?: string }>;
+    itemBinding?: { path?: string };
+}
+
+function populateSourceOf(element: ExternalComponent): PopulateSource | undefined {
+    const source = element.properties.populateSource;
+    return isRecord(source) ? source as PopulateSource : undefined;
+}
+
+/**
+ * The values a form starts with from what the application already knows - `populate via query GetCheckoutDraft by basketId`, or `populate from item`.
+ *
+ * The query is read for the screen's own entity (the address's parameter, or the session's identity for a concept the form does not show),
+ * and every member of the command that the answer carries is where the form starts, the members the form does not list included: a review step
+ * submits what the earlier steps gathered. An enumeration the read model stored by position is brought to the name the command takes.
+ */
+function usePopulatedValues(element: ExternalComponent, schema: SchemaProperty[], data: StageDataState): StageCommandContent | undefined {
+    const source = populateSourceOf(element);
+    const queryName = source?.queryName;
+    const bindings = Object.entries(source?.parameterBindings ?? {});
+    const resolved = bindings.map(([parameter, binding]) => [parameter, populationParameter(parameter, binding?.path ?? parameter, schema, data)] as const);
+    const queryArguments = Object.fromEntries(resolved.filter(([, value]) => value !== undefined && value !== ''));
+    const ready = !!queryName && data.routesReady && resolved.every(([, value]) => value !== undefined && value !== '');
+    const query = useStageQuery({
+        scope: `populate:${text(element, 'command')}`,
+        name: queryName,
+        route: queryName ? data.routes?.queries[queryName] : undefined,
+        arguments: queryArguments,
+        ready,
+        publish: false,
+    });
+    const item = source?.itemBinding ? (data.resolveBinding(source.itemBinding as never) ?? data.selected) : undefined;
+    const row = queryName ? query.rows[0] : (isRecord(item) ? item : undefined);
+
+    return useMemo(() => {
+        if (!row) return undefined;
+
+        const values: StageCommandContent = {};
+        for (const property of schema) {
+            const value = row[property.name] ?? row[property.name.charAt(0).toLowerCase() + property.name.slice(1)];
+            if (value !== undefined && value !== null) values[property.name] = asCommandValue(property, value);
+        }
+
+        return Object.keys(values).length > 0 ? values : undefined;
+    }, [row, schema]);
+}
+
+function populationParameter(parameter: string, path: string, schema: SchemaProperty[], data: StageDataState): unknown {
+    const fromAddress = data.parameters[path] ?? data.parameters[parameter];
+    if (fromAddress) return fromAddress;
+
+    const identity = schema.find(property => property.name === path || property.name === parameter)?.identifier;
+    if (identity) return sessionIdentifier(identity);
+
+    const bound = data.resolveBinding({ path });
+    return typeof bound === 'string' || typeof bound === 'number' ? bound : undefined;
 }
 
 interface ArgumentMapping {
@@ -337,7 +402,7 @@ function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldNam
     const property = schema.find(_ => _.name === fieldName);
     if (!(property?.required ?? true)) return undefined;
     if (value === undefined || value === null || value === '') return `${field?.label ?? fieldName} is required`;
-    return undefined;
+    return property ? missingMember(property, value, field?.label ?? fieldName) : undefined;
 }
 
 function unsupportedSchemaMessagesFor(fields: FormField[], schema: SchemaProperty[]): string[] {
@@ -363,47 +428,6 @@ function unsupportedGeometryMessagesFor(layout: CommandFormLayout | undefined, f
 
 function schemaProperties(element: ExternalComponent): SchemaProperty[] {
     return schemaPropertiesOf(text(element, 'schema'));
-}
-
-/**
- * The properties a command's JSON schema declares, with the type the native form gives each and whether it is required. A toolbar
- * slice's task dialog is built from the same reading, so a command is the same fields wherever it is presented.
- */
-export function schemaPropertiesOf(schema: string): SchemaProperty[] {
-    if (!schema) return [];
-    try {
-        const parsed = JSON.parse(schema) as { required?: unknown; properties?: Record<string, JsonSchemaDefinition> };
-        const hasRequired = Object.prototype.hasOwnProperty.call(parsed, 'required');
-        const required = Array.isArray(parsed.required) ? new Set(parsed.required.filter((name): name is string => typeof name === 'string')) : new Set<string>();
-        return Object.entries(parsed.properties ?? {}).map(([name, definition]) => {
-            const resolved = propertyType(definition);
-            return {
-                name,
-                identifier: definition?.format === 'uuid' && typeof definition['x-concept'] === 'string' ? definition['x-concept'] : undefined,
-                type: resolved.type,
-                unsupportedReason: resolved.unsupportedReason,
-                required: hasRequired ? required.has(name) : true,
-            };
-        });
-    } catch {
-        return [];
-    }
-}
-
-function propertyType(definition: JsonSchemaDefinition | undefined): Pick<SchemaProperty, 'type' | 'unsupportedReason'> {
-    const schemaType = definition?.type;
-    if (Array.isArray(schemaType)) {
-        const nonNullTypes = schemaType.filter(type => type !== 'null');
-        if (nonNullTypes.length === 1) return propertyType({ ...definition, type: nonNullTypes[0] });
-        return { unsupportedReason: `union type ${JSON.stringify(schemaType)}` };
-    }
-
-    if (schemaType === 'integer' || schemaType === 'number') return { type: 'number' };
-    if (schemaType === 'boolean') return { type: 'boolean' };
-    if (definition?.format === 'date' || definition?.format === 'date-time') return { type: 'date' };
-    if (schemaType === 'array' || schemaType === 'object') return { unsupportedReason: `${schemaType} fields are not supported by the native Stage command form` };
-    if (schemaType === undefined || schemaType === 'string') return { type: 'text' };
-    return { unsupportedReason: `type ${String(schemaType)}` };
 }
 
 function text(element: ExternalComponent, name: string, fallback = ''): string {

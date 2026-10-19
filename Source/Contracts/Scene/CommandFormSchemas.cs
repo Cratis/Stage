@@ -32,7 +32,7 @@ public static class CommandFormSchemas
     /// <exception cref="UnsupportedCommandFormSchema">Thrown when a property has a type no form schema can describe.</exception>
     public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties)
     {
-        var schemas = new SchemaSynthesizer(application.Concepts.ToDictionary(
+        var concepts = application.Concepts.ToDictionary(
             concept => concept.Name,
             concept => new ConceptSyntax(
                 concept.Name,
@@ -40,7 +40,8 @@ public static class CommandFormSchemas
                 [],
                 concept.Values,
                 SourceLocation.Start),
-            StringComparer.Ordinal));
+            StringComparer.Ordinal);
+        var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
 
         return schemas.ForProperties(properties.Select(property => new PropertySyntax(
             property.Name,
@@ -111,6 +112,30 @@ public static class CommandFormSchemas
         catch (JsonException)
         {
             return [];
+        }
+    }
+
+    // The members of every composite type, so a record property is presented as the fields it holds rather than as an opaque object. A member
+    // whose type no form can describe is left an open object, which the form then reports for that member instead of dropping the record.
+    static Dictionary<string, IReadOnlyList<PropertySyntax>> CompositeTypes(SemanticApplication application) =>
+        application.Types.ToDictionary(
+            type => type.Name,
+            type => (IReadOnlyList<PropertySyntax>)[.. type.Properties.Select(member => new PropertySyntax(
+                member.Name,
+                new TypeRefSyntax(MemberTypeName(application, member.Type), member.Type.IsCollection, member.Type.IsOptional, SourceLocation.Start),
+                SourceLocation.Start,
+                member.IsIdentifier))],
+            StringComparer.Ordinal);
+
+    static string MemberTypeName(SemanticApplication application, SemanticTypeReference reference)
+    {
+        try
+        {
+            return TypeName(application, reference);
+        }
+        catch (UnsupportedCommandFormSchema)
+        {
+            return string.Empty;
         }
     }
 

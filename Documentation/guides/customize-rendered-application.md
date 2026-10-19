@@ -77,9 +77,11 @@ See [the profile API](../reference/plan-from-sources.md#reducer-rendering-conven
 
 Applications without the input stay classic, including newly added reducers. Do not
 switch an existing classic application to self mode by editing the setting or deleting
-its reducer file. Stage does not yet migrate observer identity or coordinate removal
-of the old class. CLI and Studio integration for new-application selection is separate;
-untouched callers remain classic, and Studio migration is not supported.
+its reducer file. To move an existing read model, migrate it instead: Stage keeps the old
+observer identity and plans the removal of the old class. See
+[Migrating a classic read model](../reference/plan-from-sources.md#migrating-a-classic-read-model).
+CLI and Studio integration for new-application selection and migration is separate;
+untouched callers remain classic.
 
 ## Register an adapter and its options
 

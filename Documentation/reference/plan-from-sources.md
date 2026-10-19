@@ -163,19 +163,35 @@ exact bytes. Version `2` entries must be sorted ordinally by `id`, unique, use c
 `self`, and carry a nonblank observer id and a portable `.cs` path. Other read models,
 including others in the same slice, stay classic.
 
-Migration is one way. Removing an entry from the persisted configuration does not
-restore the classic reducer.
+Migration is one way: Stage has no reverse migration. Removing an entry from the persisted
+configuration only stops pinning the read model; the next plan renders it by the
+application-wide convention as if it had never been migrated, without evidence, removals or
+any guarantee that Chronicle keeps the observer state.
+
+A persisted entry goes stale when its read model is renamed, removed, or no longer built by
+exactly one reducer; every later plan then refuses with `STAGE-REDUCER-001`. To recover,
+remove that entry from `readModels` in `.cratis/stage/rendering.json` (keep the remaining
+entries in ordinal `id` order, and use version `1` when none remain) and plan again.
 
 | Code | Refusal |
 | --- | --- |
 | `STAGE-REDUCER-001` | A persisted override or evidence names something that is not a read model built by exactly one reducer. |
-| `STAGE-REDUCER-002` | The evidence does not match the model: the path is not where the classic reducer renders, or the observer identity or read model type differs. |
+| `STAGE-REDUCER-002` | The evidence does not match the model: the path is not where the classic reducer renders, or the observer identity or read model type differs. Also refused when the classic reducer's attribute sets more than its identifier (such as `eventSequence:` or `isActive:`), or the class carries `[EventSequence]` or `[EventStore]`, because the self-reducing read model would observe differently. |
 | `STAGE-REDUCER-003` | The host did not declare that it can remove files. |
 | `STAGE-REDUCER-004` | The plan is not an application-scope plan. Migration persists configuration, so it requires one. |
 | `STAGE-REDUCER-005` | Publication check: a required removal no longer matches its expected hash, or a migrated read model's previous reducer file would remain without a removal. |
 
 A refused plan has no artifacts and no removals. Self-mode member collisions still
 refuse with `STAGE-ESM-019`; Stage never falls back to the classic reducer.
+
+A plan carrying any error diagnostic plans no removals. This includes a plan rendered
+around refused specifications: it still writes the other artifacts, but its
+`RequiredRemovals` is empty, so the publication check reports the leftover classic reducer
+as `UnsafeRemovals` and publication is refused until the refusal is resolved.
+
+`FromExistingFile` throws `InvalidArtifactRenderContract` when the file does not parse, does
+not declare exactly one `IReducerFor<T>` class, declares more than one reducer attribute, or
+uses a non-literal identifier. Evidence can only be created through `FromExistingFile`.
 
 ## Sources and identity
 
@@ -403,6 +419,7 @@ so the check never treats an unreadable destination file as absent.
 | `CratisPublicationCheck.Compatible` | Continue with the publisher's normal safety checks. |
 | `CratisPublicationCheck.RequiresApplicationScope` | Refuse the scoped publication or render the entire application first. `Paths` lists incompatible paths in ordinal order; `Reason` explains the migration requirement. |
 | `CratisPublicationCheck.ChangesEventTypeIds` | Refuse publication at every scope and surface the `STAGE-EVENT-002` error diagnostics. `Changes` lists path, qualified type name, existing id and planned id in ordinal path/type order. Pin the existing id, add a new event, or write an event type migration before replanning. |
+| `CratisPublicationCheck.UnsafeRemovals` | Refuse publication at every scope and surface the `STAGE-REDUCER-005` error diagnostics. `Removals` lists each removal that no longer matches its expected hash or that the plan is missing for a migrated read model's previous reducer file. Restore or re-read the file and replan with fresh evidence. |
 
 Scoped plans check policy layouts first and return `RequiresApplicationScope` when needed,
 preserving the refusal understood by existing publishers. Otherwise event identities are

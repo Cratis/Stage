@@ -80,12 +80,12 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
 
     IEnumerable<string> Guards() => GuardComparison.Matches(Encoding.UTF8.GetString(_bytes)).Select(_ => _.Value);
 
-    [GeneratedRegex("\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"")]
+    [GeneratedRegex("\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"", RegexOptions.None, 1000)]
     private static partial Regex OpenStatusComparison { get; }
 
-    [GeneratedRegex("\"enumeration\":\\[\"open\",\"closed\"\\]")]
+    [GeneratedRegex("\"enumeration\":\\[\"open\",\"closed\"\\]", RegexOptions.None, 1000)]
     private static partial Regex ClosedEnumeration { get; }
 
-    [GeneratedRegex("\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}")]
+    [GeneratedRegex("\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}", RegexOptions.None, 1000)]
     private static partial Regex GuardComparison { get; }
 }

@@ -49,7 +49,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
-    [Fact] void should_type_every_status_comparison() => OpenStatusComparison().Count(Encoding.UTF8.GetString(_bytes)).ShouldEqual(ClosedEnumeration().Count(Encoding.UTF8.GetString(_bytes)));
+    [Fact] void should_type_every_status_comparison() => OpenStatusComparison.Count(Encoding.UTF8.GetString(_bytes)).ShouldEqual(ClosedEnumeration.Count(Encoding.UTF8.GetString(_bytes)));
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
     [Fact] void should_not_camel_case_an_enumeration_name() => Encoding.UTF8.GetString(_bytes).ShouldNotContain("\"kind\":\"doubleClick\"");
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
@@ -78,14 +78,14 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     static IEnumerable<string> Fragments(ArtifactRenderPlan plan) => plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal))
         .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {string.Join(',', artifact.Sources)}");
 
-    IEnumerable<string> Guards() => GuardComparison().Matches(Encoding.UTF8.GetString(_bytes)).Select(_ => _.Value);
+    IEnumerable<string> Guards() => GuardComparison.Matches(Encoding.UTF8.GetString(_bytes)).Select(_ => _.Value);
 
     [GeneratedRegex("\"subject\":\"item\\.status\"\\}[^}]*\"right\":\"open\"", RegexOptions.None, 1000)]
-    static partial Regex OpenStatusComparison();
+    private static partial Regex OpenStatusComparison { get; }
 
     [GeneratedRegex("\"enumeration\":\\[\"open\",\"closed\"\\]", RegexOptions.None, 1000)]
-    static partial Regex ClosedEnumeration();
+    private static partial Regex ClosedEnumeration { get; }
 
     [GeneratedRegex("\\{\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}|\\{\"[^{}]*\"kind\":\"comparison\"[^{}]*\\{[^{}]*\\}[^{}]*\\}", RegexOptions.None, 1000)]
-    static partial Regex GuardComparison();
+    private static partial Regex GuardComparison { get; }
 }

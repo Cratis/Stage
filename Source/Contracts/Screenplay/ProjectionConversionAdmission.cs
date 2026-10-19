@@ -29,6 +29,7 @@ internal sealed class ProjectionConversionAdmission(ConversionDiagnostics diagno
             case ProjectionBlockSyntax block:
                 Block(block);
                 break;
+
             // 'add total by unitPrice * quantity' (ESM v29): Chronicle's Add/Subtract take one event property, so converting the sum of one
             // factor would change the meaning. Name it instead.
             case AddMappingSyntax { Factor: not null } or SubtractMappingSyntax { Factor: not null }:

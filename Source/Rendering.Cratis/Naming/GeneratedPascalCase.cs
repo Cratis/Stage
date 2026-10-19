@@ -59,6 +59,7 @@ internal static class GeneratedPascalCase
 
     // Response fields keep their authored spelling on the wire, so a collision is resolved on the type name instead:
     // a field, a sibling declaration or a namespace with the response record's name escapes the record, never the field.
+    // The escaped name cannot collide again: From removes authored underscores, so no authored name ends in '_'.
     internal static string ResponseType(string command, IEnumerable<string> fields, Func<string, bool> occupied)
     {
         var name = $"{From(command)}Response";

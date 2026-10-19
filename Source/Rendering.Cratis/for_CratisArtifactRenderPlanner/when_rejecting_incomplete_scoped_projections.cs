@@ -18,12 +18,10 @@ public class when_rejecting_incomplete_scoped_projections
     [InlineData("every-overwrites-identity")]
     [InlineData("overwritten-root-identity")]
     [InlineData("overwritten-child-identity")]
-    [InlineData("whole-number-arithmetic")]
     [InlineData("event-source-into-other-concept")]
     public void should_fail_closed_without_artifacts(string variant)
     {
-        var source = when_rendering_scoped_projections.ScopedSource;
-        if (variant == "whole-number-arithmetic") source = source.Replace("visits Decimal?", "visits Int?", StringComparison.Ordinal);
+        const string source = when_rendering_scoped_projections.ScopedSource;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
@@ -49,7 +47,6 @@ public class when_rejecting_incomplete_scoped_projections
             "every-overwrites-identity" => scope with { Every = scope.Every! with { Mappings = [new([rootIdentity], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)] } },
             "overwritten-root-identity" => scope with { From = [scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }, .. scope.From.Skip(1)] },
             "overwritten-child-identity" => scope with { Children = [child with { Scope = child.Scope with { From = [child.Scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } }] },
-            "whole-number-arithmetic" => scope,
             "event-source-into-other-concept" => scope with { From = [.. scope.From.Select(subscription => subscription with
             {
                 Mappings = [.. subscription.Mappings.Select(mapping => mapping.Target.Contains(name) ? mapping with { Source = SemanticProjectionValue.EventSourceIdentity } : mapping)]

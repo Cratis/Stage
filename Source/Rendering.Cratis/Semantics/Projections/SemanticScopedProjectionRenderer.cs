@@ -225,6 +225,11 @@ internal static class SemanticScopedProjectionRenderer
     {
         foreach (var mapping in mappings)
         {
+            if (SemanticScopedProjectionSupport.IsZeroTotalStart(mapping, SemanticScopedProjectionSupport.Target(mapping.Target, targets, context), context))
+            {
+                continue;
+            }
+
             var target = Path(mapping.Target, targets, context);
             var source = mapping.Source is SemanticProjectionEventProperty property
                 ? $"evt => evt.{Path(property.Path, @event.Properties, context)}"

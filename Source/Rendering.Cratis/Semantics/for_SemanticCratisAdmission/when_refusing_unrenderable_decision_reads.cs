@@ -70,6 +70,22 @@ public class when_refusing_unrenderable_decision_reads
     }
 
     [Fact]
+    public void should_refuse_a_read_model_whose_key_property_is_not_named_id()
+    {
+        var model = invoice_model.Compile(Corpus);
+        var read = Slices(model).SelectMany(slice => slice.Commands).Single(candidate => candidate.Name == "Consume").Reads.Single();
+        var renamed = Rebuild(model, slice => slice with
+        {
+            ReadModels = [.. slice.ReadModels.Select(candidate => candidate.Id == read.ReadModel
+                ? candidate with { Properties = [.. candidate.Properties.Select(property => property.IsIdentifier ? property with { Name = "currentId" } : property)] }
+                : candidate)]
+        });
+        var plan = CratisRendering.Plan(renamed, SemanticExecutionPlan.Compile(renamed).Plan!, new(ArtifactRenderScopeKind.Application, renamed.Application.Id), new("InvoiceApp", "Invoices"));
+
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" && diagnostic.Message.Contains("whose key property is 'currentId'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void should_admit_reads_on_a_command_producing_a_constrained_event()
     {
         var plan = invoice_model.Plan(invoice_model.Compile(Variant("constraint")));

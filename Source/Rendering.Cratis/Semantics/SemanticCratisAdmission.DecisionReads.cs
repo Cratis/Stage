@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -34,6 +35,18 @@ internal static partial class SemanticCratisAdmission
             {
                 var label = viewProperty is null ? $"read path '{path.Read}'" : $"read path '{path.Read}.{viewProperty.Name}'";
                 diagnostics.Add(DecisionRead(command, $"maps {label} to an event property with a different, optional, collection or composite type; the reference yields null for a missing value and Arc has no faithful shape for it. Map a required value of the same type."));
+            }
+        }
+
+        if (hasReads)
+        {
+            foreach (var read in command.Reads)
+            {
+                var key = context.ReadModels.TryGetValue(read.ReadModel, out var readModel) ? readModel.Properties.FirstOrDefault(property => property.IsIdentifier) : null;
+                if (key is not null && Identifiers.ToPascalCase(key.Name) != "Id")
+                {
+                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' whose key property is '{key.Name}'; Chronicle's decision-read guard admits only a read model whose key property is named 'id' (a string or Guid, concepts included), so the command could never succeed. Rename the key property, and the query's key argument with it, to 'id'."));
+                }
             }
         }
 

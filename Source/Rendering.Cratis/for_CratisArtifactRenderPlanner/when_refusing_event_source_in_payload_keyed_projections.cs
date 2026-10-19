@@ -73,4 +73,71 @@ public class when_refusing_event_source_in_payload_keyed_projections
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
         Assert.False(plan.Success, name);
     }
+
+    const string WithReaction = """
+        concept Sku : String
+        concept PurchaseOrderId : Uuid
+        module Stock
+          feature Receiving
+            slice StateChange ReceiveStock
+              command ReceiveStock
+                sku Sku identifier
+                purchaseOrderId PurchaseOrderId
+                quantity Int
+                produces StockReceived
+                  for sku
+                  sku = sku
+                  purchaseOrderId = purchaseOrderId
+                  quantity = quantity
+              event StockReceived
+                sku Sku
+                purchaseOrderId PurchaseOrderId
+                quantity Int
+              command Announce
+                id PurchaseOrderId identifier
+                sku Sku
+                produces Announced
+                  for id
+                  id = id
+                  sku = sku
+              event Announced
+                id PurchaseOrderId
+                sku Sku
+            slice Automation Replay
+              reaction ReplayTheReceipt
+                when Announced
+                  produces StockReceived
+                    for DESTINATION
+                    sku = sku
+                    purchaseOrderId = id
+                    quantity = 1
+            slice StateView ReceivingLog
+              readmodel Receipt
+                purchaseOrderId PurchaseOrderId key
+                sku Sku
+                received Int
+              query AllReceipts => observable Receipt[]
+              projection ReceiptProjection => Receipt
+                no automap
+                from StockReceived key purchaseOrderId
+                  purchaseOrderId = purchaseOrderId
+                  sku = $eventSourceId
+                  received = quantity
+        """;
+
+    [Fact]
+    public async Task should_not_admit_the_identity_when_a_reaction_may_produce_the_event_with_another_destination_type()
+    {
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(WithReaction.Replace("DESTINATION", "id", StringComparison.Ordinal)));
+
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task should_admit_the_identity_when_the_reaction_addresses_the_event_by_the_target_type()
+    {
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(WithReaction.Replace("DESTINATION", "sku", StringComparison.Ordinal)));
+
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017");
+    }
 }

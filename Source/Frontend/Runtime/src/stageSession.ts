@@ -38,3 +38,28 @@ export function sessionIdentity(concept: string): string {
 
     return created;
 }
+
+/**
+ * Every identity the session holds, by the name a screen parameter gives it: `stage.session.BasketId` is `basketId`. These are not the
+ * screen's parameters - only what reads the session on purpose (a form's hidden identifiers, a `data` declaration the address does not key)
+ * reads them.
+ *
+ * @returns The identities, by parameter name.
+ */
+export function sessionIdentities(): Record<string, string> {
+    const found: Record<string, string> = {};
+    try {
+        const storage = globalThis.localStorage;
+        for (let index = 0; storage && index < storage.length; index++) {
+            const key = storage.key(index) ?? '';
+            if (!key.startsWith(sessionIdentifierPrefix)) continue;
+            const concept = key.slice(sessionIdentifierPrefix.length);
+            const value = storage.getItem(key);
+            if (concept && value) found[concept.charAt(0).toLowerCase() + concept.slice(1)] = value;
+        }
+    } catch {
+        // storage is refused: the session holds no identities, and the address carries what a screen needs
+    }
+
+    return found;
+}

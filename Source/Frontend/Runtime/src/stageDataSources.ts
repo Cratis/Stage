@@ -14,9 +14,9 @@ const boundComponents = new Set(['core:table']);
  * A screen declares its data once - `data CommentsForWorkItem by workItemId` - and the table that follows it in
  * the same section, or any section nested after it, shows that read model. The table itself only names the read
  * model type, so without this it would read the unfiltered collection: every comment of every work item. This
- * carries the declaration's query and its `by` parameter onto the table, bound to the screen parameter of the
- * same name, so the table reads only what the declaration asked for and reads nothing while that parameter has
- * no value.
+ * carries the declaration's query and its `by` parameter onto the table, bound to the screen's key of the same
+ * name - the address's parameter, or the session's identity of that name - so the table reads only what the
+ * declaration asked for and reads nothing while that key has no value.
  *
  * @param element The composed screen.
  * @returns The screen with every fed table bound to its declaration.
@@ -65,7 +65,7 @@ function feed(component: ExternalComponent, sources: Map<string, ExternalCompone
     if (!stringProperty(component, 'route') && stringProperty(source, 'route')) properties.route = source.properties.route;
     if (by) {
         properties.by = by;
-        properties.queryArguments = { [by]: { path: `parameters.${by}` } };
+        properties.queryArguments = { [by]: { path: `screen.keys.${by}` } };
     }
 
     return { ...component, properties };
@@ -74,7 +74,7 @@ function feed(component: ExternalComponent, sources: Map<string, ExternalCompone
 /**
  * Carries the nearest `data` declaration onto a guarded action as the item its guard is evaluated against: `item` in
  * `when item.status == "open"` is the single record that declaration reads, bound to the screen parameter it is read
- * by - the same declaration Screenplay requires a guarded action to have exactly one of.
+ * by (the address's, or the session's identity of that name) - the same declaration Screenplay requires a guarded action to have exactly one of.
  */
 function feedSubject(component: ExternalComponent, subject: ExternalComponent | undefined): ExternalComponent {
     if (component.componentName !== 'core:action' || !Array.isArray(component.properties?.alternatives)) return component;
@@ -85,7 +85,7 @@ function feedSubject(component: ExternalComponent, subject: ExternalComponent | 
     const by = stringProperty(subject, 'by');
     if (query) properties.itemQuery = query;
     if (stringProperty(subject, 'route')) properties.itemRoute = subject.properties.route;
-    properties.itemArguments = by ? { [by]: { path: `parameters.${by}` } } : {};
+    properties.itemArguments = by ? { [by]: { path: `screen.keys.${by}` } } : {};
     return { ...component, properties };
 }
 

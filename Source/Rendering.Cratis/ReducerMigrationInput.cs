@@ -24,7 +24,8 @@ internal static class ReducerMigrationInput
             relativePath = entry.RelativePath,
             sha256 = entry.Sha256,
             observerId = entry.ObserverId,
-            readModelType = entry.ReadModelType
+            readModelType = entry.ReadModelType,
+            refusal = entry.Refusal
         });
         var json = JsonSerializer.Serialize(new { version = 1, removalCapability = canRemoveFiles, evidence = entries }) + "\n";
         return ArtifactRenderInput.Create(Name, "1", [.. Encoding.UTF8.GetBytes(json)]);
@@ -47,7 +48,8 @@ internal static class ReducerMigrationInput
                 entry.GetProperty("relativePath").GetString()!,
                 entry.GetProperty("sha256").GetString()!,
                 entry.GetProperty("observerId").GetString()!,
-                entry.GetProperty("readModelType").GetString()!)).ToImmutableArray();
+                entry.GetProperty("readModelType").GetString()!,
+                entry.GetProperty("refusal").GetString())).ToImmutableArray();
             var parsed = new Migration(capability.GetBoolean(), evidence);
             if (evidence.IsEmpty || evidence.Select(entry => entry.ReadModel).Distinct().Count() != evidence.Length ||
                 !inputs[0].Bytes.SequenceEqual(Create(evidence, parsed.CanRemoveFiles).Bytes))

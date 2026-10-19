@@ -86,6 +86,7 @@ internal static partial class SemanticCratisAdmission
         var modelType = $"{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         return true switch
         {
+            _ when evidence.Refusal is { } refusal => refusal,
             _ when evidence.RelativePath != classicPath || pinned.PreviousPath != classicPath =>
                 $"the reducer file must be '{classicPath}', where the classic reducer renders.",
             _ when !IsLowercaseSha256(evidence.Sha256) => "the file hash is not a lowercase SHA-256.",

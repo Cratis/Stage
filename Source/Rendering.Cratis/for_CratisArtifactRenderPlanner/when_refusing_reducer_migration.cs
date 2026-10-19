@@ -32,6 +32,17 @@ public class when_refusing_reducer_migration
     }
 
     [Fact]
+    public async Task should_refuse_a_classic_reducer_that_observes_another_event_sequence()
+    {
+        var loaded = await when_rendering_a_pure_reducer.Load(when_migrating_a_classic_reducer.Source);
+        var classic = when_migrating_a_classic_reducer.Text(when_rendering_a_pure_reducer.Plan(loaded).Artifacts.Single(artifact => artifact.RelativePath == when_migrating_a_classic_reducer.FoldPath));
+        var customized = classic.Replace("public class Fold :", "[global::Cratis.Chronicle.EventSequences.EventSequence(\"outbox\")]\npublic class Fold :", StringComparison.Ordinal);
+        Assert.NotEqual(classic, customized);
+        var evidence = ReducerMigrationEvidence.FromExistingFile(when_migrating_a_classic_reducer.ReadModel(loaded, "Total"), when_migrating_a_classic_reducer.FoldPath, customized);
+        AssertRefused(Plan(loaded, Profile([evidence], canRemoveFiles: true)), "STAGE-REDUCER-002");
+    }
+
+    [Fact]
     public async Task should_refuse_a_host_that_cannot_remove_files()
     {
         var loaded = await when_rendering_a_pure_reducer.Load(when_migrating_a_classic_reducer.Source);

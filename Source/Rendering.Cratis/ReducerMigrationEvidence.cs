@@ -12,16 +12,54 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 /// <summary>
 /// Represents validated evidence of an existing classic reducer file that a migration to a self-reducing read model removes.
+/// Evidence is only derived from file content through <see cref="FromExistingFile"/>.
 /// </summary>
-/// <param name="ReadModel">The semantic identity of the read model being migrated.</param>
-/// <param name="RelativePath">The portable application-root-relative path of the existing reducer file.</param>
-/// <param name="Sha256">The lowercase SHA-256 of the file's LF-normalized UTF-8 bytes.</param>
-/// <param name="ObserverId">The Chronicle observer identity of the existing reducer.</param>
-/// <param name="ReadModelType">The read model type the reducer implements the classic reducer interface for, without a global alias qualifier.</param>
-public sealed record ReducerMigrationEvidence(SemanticId ReadModel, string RelativePath, string Sha256, string ObserverId, string ReadModelType)
+public sealed record ReducerMigrationEvidence
 {
-    static readonly string[] _reducerAttributeNames =
-        ["Reducer", "ReducerAttribute", "Cratis.Chronicle.Reducers.Reducer", "Cratis.Chronicle.Reducers.ReducerAttribute"];
+    static readonly string[] _reducerAttributeNames = ["Reducer", "ReducerAttribute"];
+
+    static readonly string[] _sequenceAttributeNames =
+        ["EventSequence", "EventSequenceAttribute", "EventStore", "EventStoreAttribute"];
+
+    internal ReducerMigrationEvidence(SemanticId readModel, string relativePath, string sha256, string observerId, string readModelType, string? refusal = null)
+    {
+        ReadModel = readModel;
+        RelativePath = relativePath;
+        Sha256 = sha256;
+        ObserverId = observerId;
+        ReadModelType = readModelType;
+        Refusal = refusal;
+    }
+
+    /// <summary>
+    /// Gets the semantic identity of the read model being migrated.
+    /// </summary>
+    public SemanticId ReadModel { get; internal init; }
+
+    /// <summary>
+    /// Gets the portable application-root-relative path of the existing reducer file.
+    /// </summary>
+    public string RelativePath { get; internal init; }
+
+    /// <summary>
+    /// Gets the lowercase SHA-256 of the file's LF-normalized UTF-8 bytes.
+    /// </summary>
+    public string Sha256 { get; internal init; }
+
+    /// <summary>
+    /// Gets the Chronicle observer identity of the existing reducer.
+    /// </summary>
+    public string ObserverId { get; internal init; }
+
+    /// <summary>
+    /// Gets the read model type the reducer implements the classic reducer interface for, without a global alias qualifier.
+    /// </summary>
+    public string ReadModelType { get; internal init; }
+
+    /// <summary>
+    /// Gets why the existing reducer cannot be migrated without changing its observation, or null when it can.
+    /// </summary>
+    public string? Refusal { get; internal init; }
 
     /// <summary>
     /// Derives migration evidence from the exact bytes of an existing classic reducer file.
@@ -56,7 +94,8 @@ public sealed record ReducerMigrationEvidence(SemanticId ReadModel, string Relat
             throw new InvalidArtifactRenderContract($"Reducer file '{artifact.RelativePath}' must declare exactly one IReducerFor<T> class.");
         }
 
-        return new(readModel, artifact.RelativePath, artifact.Sha256, ObserverIdOf(declaration, artifact.RelativePath), target!);
+        var (observerId, refusal) = ObserverIdOf(declaration, artifact.RelativePath);
+        return new(readModel, artifact.RelativePath, artifact.Sha256, observerId, target!, refusal);
     }
 
     static string? ReducerTarget(ClassDeclarationSyntax declaration) =>
@@ -71,14 +110,29 @@ public sealed record ReducerMigrationEvidence(SemanticId ReadModel, string Relat
             .Select(generic => Unqualified(generic!.TypeArgumentList.Arguments[0].ToString()))
             .FirstOrDefault();
 
-    static string ObserverIdOf(ClassDeclarationSyntax declaration, string path)
+    static (string ObserverId, string? Refusal) ObserverIdOf(ClassDeclarationSyntax declaration, string path)
     {
-        var attribute = declaration.AttributeLists.SelectMany(list => list.Attributes)
-            .SingleOrDefault(candidate => _reducerAttributeNames.Contains(Unqualified(candidate.Name.ToString()), StringComparer.Ordinal));
-        if (attribute?.ArgumentList?.Arguments.FirstOrDefault() is not { NameEquals: null } argument ||
+        var attributes = declaration.AttributeLists.SelectMany(list => list.Attributes).ToArray();
+        var reducerAttributes = attributes.Where(candidate => IsNamed(candidate, _reducerAttributeNames)).ToArray();
+        if (reducerAttributes.Length > 1)
+        {
+            throw new InvalidArtifactRenderContract($"Reducer file '{path}' declares more than one reducer attribute.");
+        }
+
+        var refusal = attributes.Any(candidate => IsNamed(candidate, _sequenceAttributeNames))
+            ? "the classic reducer observes a non-default event sequence or event store, which the self-reducing read model does not keep."
+            : null;
+        var arguments = reducerAttributes.FirstOrDefault()?.ArgumentList?.Arguments ?? default;
+        if (arguments.Count == 0)
+        {
+            return (FullName(declaration), refusal);
+        }
+
+        var argument = arguments[0];
+        if (arguments.Count > 1 || argument.NameEquals is not null ||
             (argument.NameColon is not null && !string.Equals(argument.NameColon.Name.Identifier.ValueText, "id", StringComparison.Ordinal)))
         {
-            return FullName(declaration);
+            return (FullName(declaration), "the classic reducer attribute sets more than its identifier, which the self-reducing read model does not keep.");
         }
 
         if (argument.Expression is not LiteralExpressionSyntax literal || !literal.IsKind(SyntaxKind.StringLiteralExpression))
@@ -87,7 +141,14 @@ public sealed record ReducerMigrationEvidence(SemanticId ReadModel, string Relat
         }
 
         var id = literal.Token.ValueText;
-        return string.IsNullOrWhiteSpace(id) ? FullName(declaration) : id;
+        return (string.IsNullOrWhiteSpace(id) ? FullName(declaration) : id, refusal);
+    }
+
+    static bool IsNamed(AttributeSyntax attribute, string[] names)
+    {
+        var name = Unqualified(attribute.Name.ToString());
+        var simple = name[(name.LastIndexOf('.') + 1)..];
+        return names.Contains(simple, StringComparer.Ordinal);
     }
 
     static string FullName(ClassDeclarationSyntax declaration)

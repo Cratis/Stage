@@ -38,7 +38,22 @@ public class when_reading_an_existing_reducer_file
     public void should_use_a_literal_reducer_identifier(string attribute, string expected)
     {
         var content = $"namespace Projects.Orders;\n{attribute}\npublic class Fold : IReducerFor<Total> {{ }}\n";
-        Assert.Equal(expected, ReducerMigrationEvidence.FromExistingFile(_readModel, "Orders/Fold.cs", content).ObserverId);
+        var evidence = ReducerMigrationEvidence.FromExistingFile(_readModel, "Orders/Fold.cs", content);
+        Assert.Equal(expected, evidence.ObserverId);
+        Assert.Null(evidence.Refusal);
+    }
+
+    [Theory]
+    [InlineData("[Reducer(\"orders-total\", \"outbox\")]")]
+    [InlineData("[Reducer(\"orders-total\", eventSequence: \"outbox\")]")]
+    [InlineData("[Reducer(eventSequence: \"outbox\")]")]
+    [InlineData("[Reducer(isActive: false)]")]
+    [InlineData("[Reducer(\"orders-total\")]\n[EventSequence(\"outbox\")]")]
+    [InlineData("[global::Cratis.Chronicle.EventStore(\"other\")]")]
+    public void should_refuse_a_reducer_that_sets_more_than_its_identifier(string attributes)
+    {
+        var content = $"namespace Projects.Orders;\n{attributes}\npublic class Fold : IReducerFor<Total> {{ }}\n";
+        Assert.NotNull(ReducerMigrationEvidence.FromExistingFile(_readModel, "Orders/Fold.cs", content).Refusal);
     }
 
     [Theory]
@@ -46,6 +61,8 @@ public class when_reading_an_existing_reducer_file
     [InlineData("namespace Projects.Orders;\npublic class Fold { }")]
     [InlineData("namespace Projects.Orders;\npublic class Fold : IReducerFor<Total> { }\npublic class Other : IReducerFor<Total> { }")]
     [InlineData("namespace Projects.Orders;\n[Reducer(Names.Id)]\npublic class Fold : IReducerFor<Total> { }")]
+    [InlineData("namespace Projects.Orders;\n[Reducer(\"a\")]\n[Reducer(\"b\")]\npublic class Fold : IReducerFor<Total> { }")]
+    [InlineData("namespace Projects.Orders;\n[Reducer(\"a\"), ReducerAttribute(\"b\")]\npublic class Fold : IReducerFor<Total> { }")]
     public void should_refuse_files_without_one_literal_reducer(string content) =>
         Assert.Throws<InvalidArtifactRenderContract>(() => ReducerMigrationEvidence.FromExistingFile(_readModel, "Orders/Fold.cs", content));
 

@@ -156,7 +156,13 @@ internal static class SemanticScopedProjectionSupport
                 ? production.command.Properties.SingleOrDefault(property => property.Id == resolved.Target)?.Type
                 : null)
             .ToArray();
-        return destinations.Length > 0 && destinations.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false });
+        var reactions = SemanticReactionProductions.In(context.Application)
+            .Where(production => production.Produced.EventContract == @event.Id)
+            .Select(production => production.Produced.DestinationType)
+            .ToArray();
+        return destinations.Length + reactions.Length > 0 &&
+            reactions.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false }) &&
+            destinations.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false });
     }
 
     // A collection property is set whole from an event property of exactly the same type; elements are never addressed.

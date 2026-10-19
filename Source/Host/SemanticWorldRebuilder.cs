@@ -59,6 +59,7 @@ internal static class SemanticWorldRebuilder
     /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
     /// </param>
     /// <returns>The fact.</returns>
+    /// <exception cref="SemanticWorldRebuildRefused">The stored event is not one the model can have produced.</exception>
     internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
     {
         var context = stored.Context;
@@ -91,12 +92,19 @@ internal static class SemanticWorldRebuilder
         {
             // Screenplay falls back across all producers, not just those on the stored route.
             var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
-            if (destinations is not [{ IsOptional: false, IsCollection: false }])
+            if (destinations is [{ IsOptional: false, IsCollection: false }])
+            {
+                destinationType = destinations[0]!;
+            }
+            else if (exact)
             {
                 throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
             }
-
-            destinationType = destinations[0]!;
+            else
+            {
+                // An event the host appended itself - seed data - need not be what a command produces; its source id is then plain text.
+                destinationType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
+            }
         }
         var destination = Text(context.EventSourceId, destinationType, plan.Model.Application);
         if ((DateTimeOffset?)context.Occurred is not { } occurred)

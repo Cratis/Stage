@@ -17,12 +17,12 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
             slice StateChange Unsupported
               command RenameOtherProject
                 projectId ProjectId identifier
-                details OtherDetails[]
+                toString String
                 produces event OtherProjectRenamed
                   for projectId
-                returns details
-        type OtherDetails
-          name String
+                returns
+                  projectId = projectId
+                  toString = toString
         """;
 
     readonly List<(ExecutableSemanticModel Model, SemanticExecutionPlan ExecutionPlan, SemanticSlice Sibling, SemanticId Artifact, string Code)> _cases = [];

@@ -45,6 +45,8 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </remarks>
     public const string ConceptAttributesKeyword = "x-conceptAttributes";
 
+    readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
+
     /// <summary>
     /// Synthesizes a JSON Schema object for a set of typed properties (a command or event payload).
     /// </summary>
@@ -90,8 +92,6 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
 
         return new JsonObject { ["type"] = "object", ["properties"] = schemaProperties }.ToJsonString();
     }
-
-    readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
 
     static JsonObject? Primitive(string name) =>
         name switch

@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -17,6 +17,12 @@ import { StageValueField } from './StageValueFields';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
+
+/**
+ * What a command form that sits in a dialog calls once its command succeeded, so the dialog it was opened in closes and the screen behind it
+ * - the next step of a wizard - is reachable again. A form outside a dialog has nothing to close.
+ */
+export const StageDialogContext = createContext<(() => void) | undefined>(undefined);
 
 interface NativeFormProperties {
     command: string;
@@ -37,6 +43,7 @@ interface StageCommandContent {
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
+    const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
@@ -83,6 +90,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                     // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
                     const destination = text(element, 'navigateToScreen');
                     if (destination) navigateToScreen(destination, {});
+                    closeDialog?.();
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}

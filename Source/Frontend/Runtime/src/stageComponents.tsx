@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreToolbarItem, coreComponents } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -9,7 +9,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext } from './StageCommandForm';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -223,11 +223,19 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    const content = <StageCommandForm element={element} />;
+    return <StageCommandDialog element={element} label={label} />;
+}
+
+/** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
+function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
+    const [generation, setGeneration] = useState(0);
+    const close = useCallback(() => setGeneration(current => current + 1), []);
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm element={element} /></StageDialogContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
             <PrimeDialog
+                key={generation}
                 element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
                 slots={{ content: [content] }}
             />

@@ -782,6 +782,19 @@ describe('a synthesized action', () => {
         }));
     });
 
+    it('closes the dialog its form was opened in once the command succeeded, so the next step of a wizard is reachable', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() }));
+
+        render(<StageAction element={action} slots={{}} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
+        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+
+        await waitFor(() => expect(screen.queryByRole('button', { name: /Execute/ })).toBeNull());
+        expect(screen.getByRole('button', { name: 'Register invoice' })).toBeDefined();
+    });
+
     it('shows the validation the command rejected with', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,

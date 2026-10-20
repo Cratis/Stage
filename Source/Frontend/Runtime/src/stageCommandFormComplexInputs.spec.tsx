@@ -10,6 +10,7 @@ import { commandResult } from './testing/commands';
 import { StageDataProvider } from './stageData';
 import { schemaPropertiesOf } from './stageFormSchema';
 import { element } from './testElements';
+import { queryResult, registerTestQueries } from './testing/queries';
 
 const address = {
     type: 'object',
@@ -143,9 +144,10 @@ describe('a command form for a command with enumeration, record and collection m
     it('starts from what the query it populates via answered, the members the form does not list included', async () => {
         const draft = { shipTo: { street: '12 Analytical Way', city: 'Oslo' }, method: 1, lines: [{ sku: 'ACM-1000', quantity: 2 }] };
         const fetched = vi.fn((url: RequestInfo | URL) => Promise.resolve(String(url).includes('draft')
-            ? { ok: true, json: async () => [draft] }
+            ? { ok: true, json: async () => queryResult({ data: [draft] }) }
             : { ok: true, json: async () => commandResult() }));
         vi.stubGlobal('fetch', fetched);
+        registerTestQueries(routes.queries);
         view({
             fields: [{ name: 'shipTo', label: 'Deliver to' }],
             generationMode: FormGenerationMode.Manual,

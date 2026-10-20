@@ -172,10 +172,15 @@ describe('when a modeled interaction is clicked', () => {
         }));
 
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-        const details = await screen.findByRole('button', { name: 'Open details' });
-        await act(async () => { fireEvent.click(details); });
+        await waitFor(() => expect(window.location.hash).toBe('#/InvoiceList'));
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Open details' }));
+            expect(window.location.hash).toBe('#/InvoiceDetails');
+            // The browser queues this event; deliver it explicitly instead of racing JSDOM's task queue.
+            window.dispatchEvent(new HashChangeEvent('hashchange'));
+        });
 
-        expect(await screen.findByRole('heading', { name: 'Details screen' })).toBeDefined();
+        expect(screen.getByRole('heading', { name: 'Details screen' })).toBeDefined();
     });
 
     it('should honor a deep link to a modeled screen', async () => {

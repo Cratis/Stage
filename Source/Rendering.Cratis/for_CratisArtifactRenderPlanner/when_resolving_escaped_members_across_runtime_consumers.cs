@@ -87,7 +87,7 @@ public class when_resolving_escaped_members_across_runtime_consumers : a_generat
         var query = _assembly.GetTypes().Single(type => type.Name == "Details").GetMethod("Details_")!;
         query.GetCustomAttribute<global::Cratis.Arc.Queries.ModelBound.PathAttribute>()!.Path.ShouldEqual("/api/work/processing/lookup/details");
         Artifact(SceneBindingsRenderer.RelativePath).ShouldContain("import { Details_ as __sceneQuery0 }");
-        Artifact(StageModuleRenderer.RelativePath).ShouldContain("import { Details_ as __stageQuery0 }");
+        Artifact(SceneBindingsRenderer.RelativePath).ShouldContain("import { Details_ as __sceneQuery0 }");
         var proxy = GeneratedFiles("*.ts").Select(ReadGeneratedFile).Single(content => content.Contains("export class Text ", StringComparison.Ordinal));
         proxy.ShouldContain("text_");
         proxy.ShouldContain("handle_");

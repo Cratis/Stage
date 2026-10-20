@@ -47,12 +47,14 @@ export function isGuardedAction(element: ExternalComponent): boolean {
 function useGuardSubject(element: ExternalComponent) {
     const data = useStageData();
     const query = text(element, 'itemQuery');
-    const route = (query ? data.routes?.queries[query] : undefined) ?? text(element, 'itemRoute');
+    const route = (query ? data.routes?.queries?.[query] : undefined) ?? text(element, 'itemRoute');
     const argumentBindings = isRecord(element.properties.itemArguments) ? element.properties.itemArguments : {};
     const values: Record<string, unknown> = {};
     let ready = true;
     for (const [name, binding] of Object.entries(argumentBindings)) {
-        const value = isRecord(binding) ? data.resolveBinding(binding as never) : binding;
+        // Scene may already have resolved a binding to an object value, such as a native proxy's Guid.
+        const isBinding = isRecord(binding) && (typeof binding.path === 'string' || typeof binding.kind === 'string');
+        const value = isBinding ? data.resolveBinding(binding as never) : binding;
         values[name] = value;
         if (value === undefined || value === null || value === '') ready = false;
     }

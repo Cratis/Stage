@@ -40,7 +40,7 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_emit_the_runtime_document_and_module() => Paths().ShouldContain("scene.json", "src/bindings.ts", "src/stage-scene.json", "src/stage.ts");
     [Fact] void should_mount_the_runtime_over_the_planned_content() => Text(_first, ".frontend/main.tsx").ShouldContain("<StageSourceProvider source={source}>");
     [Fact] void should_eagerly_load_the_real_stage_export() => Text(_first, ".frontend/main.tsx").ShouldContain("import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' })");
-    [Fact] void should_preserve_the_real_scene_module_bytes() => _first.Artifacts.Single(artifact => artifact.RelativePath == "src/stage.ts").Sha256.ShouldEqual("6182fc89c2fe5c94cffba1f5081524543ab85af664f0dbf955b280fa99f6aea7");
+    [Fact] void should_preserve_the_real_scene_module_bytes() => _first.Artifacts.Single(artifact => artifact.RelativePath == "src/stage.ts").Sha256.ShouldEqual("3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe");
     [Fact] void should_load_the_icon_font() => Text(_first, ".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");
     [Fact] void should_carry_the_application_shell() => Names("layouts").ShouldContainOnly("AppShell");
     [Fact] void should_carry_the_screen_template() => Names("screenTemplates").ShouldContainOnly("MasterDetail");

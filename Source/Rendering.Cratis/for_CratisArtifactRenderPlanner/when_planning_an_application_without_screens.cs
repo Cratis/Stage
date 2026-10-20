@@ -74,7 +74,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
 
     [Fact] void should_declare_no_interactions_on_a_composed_element() =>
         _elements.All(element => element.GetProperty("behaviors").GetArrayLength() == 0).ShouldBeTrue();
-    [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath)!.Sha256.ShouldEqual("4823d01d04ac795068ac52d87afc3e7be57c826dda63b005f1c3e7a057196f2f");
+    [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath)!.Sha256.ShouldEqual("208d4058cc9113460d39299020c249f649ddb811e0897baa42a537e9db0a52ca");
     [Fact] void should_repeat_the_exact_scene_bytes() => _planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.SequenceEqual(Artifact(SceneCompositionInput.RelativePath)!.Bytes).ShouldBeTrue();
     [Fact] void should_not_emit_http_literals_or_unmodeled_queries() => new[] { "http://", "https://", "/api/", "AllProjects" }.Any(value => Text(Artifact(SceneCompositionInput.RelativePath)!).Contains(value, StringComparison.Ordinal)).ShouldBeFalse();
 

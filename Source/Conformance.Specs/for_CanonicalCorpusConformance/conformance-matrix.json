@@ -109,7 +109,7 @@
         { "code": "STAGE-ESM-010", "artifact": "sem1:2cc1d417a855db3c71e90f2261d9d401ef2bcc2cb66315f418ce1db2fde9b4f1", "issue": 501 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:58d85c37cd592048bde2916955aef4dbdb59f35ab9778e2ef26d539581ae4d39", "issue": 58 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:6493a85a719da36461bd80988cb1bb54ec4d2e023a965d46ac246eafbdee6927", "issue": 58 },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 14 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 652 },
         { "code": "STAGE-ESM-051", "artifact": "sem1:af3a6a565ea366d6ac2d4da3cd9c02290138c4747225f1418ef7fce20edf6630", "issue": 652 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:ee4476e9d11426212a7614bc393e19728fad4148f22492f50291f86b7d22c1d6", "issue": 58 },
         { "code": "STAGE-ESM-027", "artifact": "sem1:8a7b8750c96596ae18478b5b455f0a47cd5129cbc714f3bb15331c3e6ab017e9", "issue": 481 },
@@ -2378,7 +2378,7 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-010", "artifact": "sem1:8e17c180ba3641e83a73f32ec38363bbe7a0093d67170d5f4b1d25ae1fd063f8", "issue": 501 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:07ca493e7a48f02deac4a45253be4f26000a276a97c7b4ab45bb51bc52853303", "issue": 58 },
-        { "code": "STAGE-ESM-011", "artifact": "sem1:08495ba965598f99cbd1381b3d12ee9e53dcd32692b4942d335849cbca3e4dbd", "issue": 14 },
+        { "code": "STAGE-ESM-051", "artifact": "sem1:08495ba965598f99cbd1381b3d12ee9e53dcd32692b4942d335849cbca3e4dbd", "issue": 652 },
         { "code": "STAGE-ESM-051", "artifact": "sem1:6307d6a63e56c1c0d2b1106b01084d28760d7d06529c35774432141866cd6325", "issue": 652 },
         { "code": "STAGE-ESM-027", "artifact": "sem1:08495ba965598f99cbd1381b3d12ee9e53dcd32692b4942d335849cbca3e4dbd", "issue": 481 },
         { "code": "STAGE-ESM-047", "artifact": "sem1:8e17c180ba3641e83a73f32ec38363bbe7a0093d67170d5f4b1d25ae1fd063f8", "issue": 481 } ] }

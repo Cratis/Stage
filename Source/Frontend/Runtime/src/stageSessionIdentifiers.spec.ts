@@ -72,3 +72,46 @@ describe('when a row is selected on the screen', () => {
         expect(selectedIdentifier(property, [{ sku: 'A' }])).toBeUndefined();
     });
 });
+
+describe('when a row the person could select carries the identifier the form does not show', () => {
+    afterEach(() => globalThis.localStorage?.clear());
+
+    const fields = [{ name: 'sku', label: 'Product' }, { name: 'quantity', label: 'How many?' }];
+    const selectable = [{ basketId: 'b1' }, { basketId: 'b2' }];
+
+    it('should not invent the identifier while no row is selected', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [], selectable)).toEqual({});
+    });
+
+    it('should take the selected row\'s identifier', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [selectable[1]], selectable)).toEqual({ basketId: 'b2' });
+    });
+
+    it('should still create the identifier of a new entity no row carries', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [], [{ orderId: 'o1' }]).basketId).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it('should take the selected row instead of the identity the session already holds', () => {
+        const held = sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}).basketId;
+        expect(held).toMatch(/^[0-9a-f-]{36}$/);
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [selectable[1]], selectable)).toEqual({ basketId: 'b2' });
+    });
+});
+
+describe('when a task dialog acts on an identity that a row on the screen also carries', () => {
+    afterEach(() => globalThis.localStorage?.clear());
+
+    const identitySchema = JSON.stringify({
+        type: 'object',
+        properties: {
+            basketId: { type: 'string', format: 'uuid', 'x-concept': 'BasketId', 'x-identity': true },
+            sku: { type: 'string', 'x-concept': 'Sku' },
+        },
+        required: ['basketId', 'sku'],
+    });
+    const fields = [{ name: 'sku', label: 'Product' }];
+
+    it('should still create the identity in a fresh session', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {}, [], [{ basketId: 'b1' }]).basketId).toMatch(/^[0-9a-f-]{36}$/);
+    });
+});

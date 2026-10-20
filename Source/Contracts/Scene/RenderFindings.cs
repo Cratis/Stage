@@ -165,6 +165,12 @@ public static class RenderFindings
     {
         if (layoutName is null)
         {
+            // No explicit shell and no authored layouts leave shell selection to the installed blueprint.
+            if (profile.Layout is null && profile.Root is null && application.Layouts.Count == 0)
+            {
+                return [];
+            }
+
             return profile.Layout is null
                 ? [new RenderFinding(
                     RenderFindingKind.LayoutNotFound,

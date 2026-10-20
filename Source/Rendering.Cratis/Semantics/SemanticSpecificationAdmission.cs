@@ -12,6 +12,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    const string SourcelessGivenCode = "STAGE-ESM-051";
+    const string SourcelessGivenReason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+
     /// <summary>
     /// Validates the specifications declared by one slice.
     /// </summary>
@@ -29,11 +32,7 @@ internal static partial class SemanticSpecificationAdmission
             {
                 if (!CanRenderProjectedFacts(context, facts))
                 {
-                    diagnostics.Add(new(
-                        "STAGE-ESM-011",
-                        ArtifactRenderDiagnosticSeverity.Error,
-                        $"Specification '{specification.Name}' cannot render: {ProjectedFactsRejection(context, facts)}",
-                        specification.Id));
+                    diagnostics.Add(RefusalDiagnostic(context, specification, ProjectedFactsRejection(context, facts)));
                 }
 
                 continue;
@@ -57,11 +56,7 @@ internal static partial class SemanticSpecificationAdmission
             if (!valid)
             {
                 var reason = RejectionReason(context, specification);
-                diagnostics.Add(new(
-                    "STAGE-ESM-011",
-                    ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' cannot render: {reason}",
-                    specification.Id));
+                diagnostics.Add(RefusalDiagnostic(context, specification, reason));
             }
         }
     }
@@ -291,7 +286,7 @@ internal static partial class SemanticSpecificationAdmission
 
         if (specification.GivenEvents.Any(_ => _.EventSource is null))
         {
-            return "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+            return SourcelessGivenReason;
         }
 
         if (GivenEventsViolateConstraints(context, specification))
@@ -311,5 +306,22 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         return "The scenario cannot preserve all of its declared fixtures or expectations.";
+    }
+
+    // A sourceless given fact has its own code so it is not lost in the generic STAGE-ESM-011 bucket.
+    static ArtifactRenderDiagnostic RefusalDiagnostic(SemanticApplicationContext context, SemanticSpecification specification, string reason)
+    {
+        if (reason != SourcelessGivenReason)
+        {
+            return new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {reason}", specification.Id);
+        }
+
+        var given = specification.GivenEvents.First(_ => _.EventSource is null);
+        var eventName = context.Events.TryGetValue(given.EventContract, out var @event) ? @event.Name : "an event";
+        return new(
+            SourcelessGivenCode,
+            ArtifactRenderDiagnosticSeverity.Error,
+            $"Specification '{specification.Name}' cannot render: given event '{eventName}' has no event source. {reason}",
+            specification.Id);
     }
 }

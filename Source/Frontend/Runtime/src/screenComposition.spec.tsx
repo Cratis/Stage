@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { registerTestQueries } from './testing/queries';
+import { queryResult } from './testing/queries';
 import { act, fireEvent, render, screen, waitFor, within } from './testing/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -149,6 +151,7 @@ function respond(payload: unknown): Promise<Response> {
 }
 
 function startBackend(): Backend {
+    registerTestQueries(queryRoutes);
     registerTestCommand('CreateWorkItem', commandRoutes.CreateWorkItem, { workItemId: uuid, title: { type: 'string' } });
     registerTestCommand('RenameWorkItem', commandRoutes.RenameWorkItem, { workItemId: uuid, title: { type: 'string' } });
     registerTestCommand('AddComment', commandRoutes.AddComment, { commentId: uuid, workItemId: uuid, text: { type: 'string' } });
@@ -169,10 +172,10 @@ function startBackend(): Backend {
 
         if (url === 'stage/scene') return respond(scene);
         if (url === 'stage/routes') return respond({ commands: commandRoutes, queries: queryRoutes });
-        if (url === 'api/workspaces/tracking/all-work-items') return respond({ data: backend.workItems.map(item => ({ ...item })) });
-        if (url.startsWith('api/workspaces/tracking/comments-for-work-item?')) {
+        if (url === 'http://localhost:3000/api/workspaces/tracking/all-work-items') return respond(queryResult({ data: backend.workItems.map(item => ({ ...item })) }));
+        if (url.startsWith('http://localhost:3000/api/workspaces/tracking/comments-for-work-item?')) {
             const workItemId = new URLSearchParams(url.split('?')[1]).get('workItemId') ?? '';
-            const answer = () => respond({ data: backend.comments.filter(comment => comment.workItemId === workItemId) });
+            const answer = () => respond(queryResult({ data: backend.comments.filter(comment => comment.workItemId === workItemId) }));
             if (delays.has(workItemId)) {
                 delays.delete(workItemId);
                 return new Promise<Response>(resolve => backend.delayed.set(workItemId, () => { void answer().then(resolve); }));
@@ -214,7 +217,7 @@ function commentsTable() {
 }
 
 function apiRequests(backend: Backend) {
-    return backend.requests.filter(request => request.url.includes('api/'));
+    return backend.requests.filter(request => request.url.includes('http://localhost:3000/api/'));
 }
 
 describe('when driving the two-item screen composition corpus', () => {

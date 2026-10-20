@@ -86,6 +86,9 @@ internal static class SceneBindingsRenderer
             // Never collapse by name or duplicate into the legacy registry: exact consumers detect collisions,
             // and legacy table/singleResult consumers resolve a unique identity registration themselves.
             builder.Append("registerQueryIdentity(").Append(JsonSerializer.Serialize(query.Name)).Append(", ")
+                .Append(JsonSerializer.Serialize(query.Identity)).Append(", ").Append(query.Alias).Append(");\n")
+                .Append("registerQueryIdentity(").Append(JsonSerializer.Serialize(query.Name + ":"))
+                .Append(" + new ").Append(query.Alias).Append("().route.replace(/^\\//, ''), ")
                 .Append(JsonSerializer.Serialize(query.Identity)).Append(", ").Append(query.Alias).Append(");\n");
         }
 

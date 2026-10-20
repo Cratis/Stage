@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { registerTestQueries } from './testing/queries';
+import { queryResult } from './testing/queries';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SceneElement } from '@cratis/scene.model';
@@ -44,6 +46,7 @@ function ThroughScene({ tree }: { tree: SceneElement }) {
 }
 
 function renderThroughScene(tree: SceneElement) {
+    registerTestQueries(routes.queries);
     registerTestCommand('CloseWorkItem', routes.commands.CloseWorkItem, { workItemId: { type: 'string' } });
     globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
     return render(
@@ -58,7 +61,7 @@ function renderThroughScene(tree: SceneElement) {
 function respond(status: string) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-        if (String(input).startsWith('/api/get-work-item') || String(input).startsWith('api/get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
+        if (String(input).startsWith('/api/get-work-item') || String(input).startsWith('http://localhost:3000/api/get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
         return Promise.resolve({ ok: false, json: async () => ({}) });
     });
     vi.stubGlobal('fetch', fetched);
@@ -112,7 +115,7 @@ describe('a guarded action over an enumeration rendered through Scene', () => {
     function respondWithOrdinal(status: number) {
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-            if (String(input).includes('get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
+            if (String(input).includes('get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
             return Promise.resolve({ ok: false, json: async () => ({}) });
         });
         vi.stubGlobal('fetch', fetched);

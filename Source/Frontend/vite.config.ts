@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { styledPrimeReact } from '@cratis/stage.runtime/vite';
@@ -19,6 +20,7 @@ export default defineConfig({
     },
     plugins: [styledPrimeReact(), react(), stageSharedModules()],
     test: {
+        alias: [{ find: /^@cratis\/stage\.runtime$/, replacement: fileURLToPath(new URL('./Runtime/src/index.ts', import.meta.url)) }],
         environment: 'jsdom',
         setupFiles: ['./Runtime/src/testSetup.ts'],
         exclude: ['Runtime/**', '**/node_modules/**'],

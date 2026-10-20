@@ -69,7 +69,7 @@ internal static class InlineCommandHandlerAdmission
         }
 
         // The parameter needs an identity, not either framework's context type. No member mapping is assumed.
-        var method = SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName("IEnumerable<object>"), "Handle")
+        var method = SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName(InlineHandlerReturnType.Infer(code.Code)), "Handle")
             .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("context"))
                 .WithType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword))))
             .WithBody(body);

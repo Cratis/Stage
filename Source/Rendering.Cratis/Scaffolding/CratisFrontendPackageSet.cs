@@ -52,6 +52,7 @@ public sealed class CratisFrontendPackageSet
         string scenePackageVersion,
         string primeReactPackageVersion,
         string primeIconsPackageVersion,
+        string lucideReactPackageVersion,
         string primeUixThemesPackageVersion,
         string typesNodePackageVersion)
     {
@@ -74,6 +75,7 @@ public sealed class CratisFrontendPackageSet
         ScenePackageVersion = scenePackageVersion;
         PrimeReactPackageVersion = primeReactPackageVersion;
         PrimeIconsPackageVersion = primeIconsPackageVersion;
+        LucideReactPackageVersion = lucideReactPackageVersion;
         PrimeUixThemesPackageVersion = primeUixThemesPackageVersion;
         TypesNodePackageVersion = typesNodePackageVersion;
     }
@@ -181,6 +183,11 @@ public sealed class CratisFrontendPackageSet
     public string PrimeIconsPackageVersion { get; }
 
     /// <summary>
+    /// Gets the exact <c language="json">lucide-react</c> package version.
+    /// </summary>
+    public string LucideReactPackageVersion { get; }
+
+    /// <summary>
     /// Gets the exact <c language="json">@primeuix/themes</c> package version.
     /// </summary>
     public string PrimeUixThemesPackageVersion { get; }
@@ -220,9 +227,10 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.29.0",
-        "4.78.0",
+        "4.78.3",
         "11.2.0",
         "8.0.2",
+        "1.52.0",
         "3.0.1",
         "26.6.4");
 
@@ -248,6 +256,7 @@ public sealed class CratisFrontendPackageSet
     /// <param name="scenePackageVersion">The exact version shared by every <c language="json">@cratis/scene.*</c> package.</param>
     /// <param name="primeReactPackageVersion">The exact version shared by the PrimeReact packages.</param>
     /// <param name="primeIconsPackageVersion">The exact <c language="json">primeicons</c> package version.</param>
+    /// <param name="lucideReactPackageVersion">The exact <c language="json">lucide-react</c> package version.</param>
     /// <param name="primeUixThemesPackageVersion">The exact <c language="json">@primeuix/themes</c> package version.</param>
     /// <param name="typesNodePackageVersion">The exact <c language="json">@types/node</c> package version.</param>
     /// <returns>The frontend package set, validated only when a profile is created from it.</returns>
@@ -271,6 +280,7 @@ public sealed class CratisFrontendPackageSet
         string scenePackageVersion,
         string primeReactPackageVersion,
         string primeIconsPackageVersion,
+        string lucideReactPackageVersion,
         string primeUixThemesPackageVersion,
         string typesNodePackageVersion) =>
         new(
@@ -293,6 +303,7 @@ public sealed class CratisFrontendPackageSet
             scenePackageVersion,
             primeReactPackageVersion,
             primeIconsPackageVersion,
+            lucideReactPackageVersion,
             primeUixThemesPackageVersion,
             typesNodePackageVersion);
 
@@ -321,6 +332,7 @@ public sealed class CratisFrontendPackageSet
         yield return ScenePackageVersion;
         yield return PrimeReactPackageVersion;
         yield return PrimeIconsPackageVersion;
+        yield return LucideReactPackageVersion;
         yield return PrimeUixThemesPackageVersion;
         yield return TypesNodePackageVersion;
     }

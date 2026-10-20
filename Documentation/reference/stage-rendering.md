@@ -157,6 +157,45 @@ The generated-application build harness packs the runtime after running `npm ci`
 `Source/Frontend`, resetting that checkout's `node_modules`. Do not run frontend checks
 concurrently with that harness in the same checkout.
 
+## Inline command handlers
+
+For legacy syntax rendering, an inline C# command handler keeps its authored body and receives
+`CommandContext context`. Its return type comes from the body, not from declared `produces` clauses:
+
+| Authored body | Generated return type |
+| --- | --- |
+| Any `yield return` or `yield break` | `IEnumerable<object>` |
+| No `return <expression>` (no returns, or only `return;`) | `void` |
+| Every `return <expression>` constructs the same explicit type with `new T(...)`, and its rightmost name is non-generic | `T` |
+| Anything else, including a generic constructed type, returned variable, array, mixed types or target-typed `new(...)` | `IEnumerable<object>` |
+
+Returns and yields inside lambdas, anonymous methods and local functions do not affect the signature.
+Explicit type names are compared after whitespace normalization; qualified names, including
+`global::Cratis.Chronicle.EventSequences.EventForEventSourceId`, are preserved. A constructed type whose
+rightmost name is generic, such as `List<object>` or `System.Collections.Generic.List<object>`, keeps
+`IEnumerable<object>` so collections retain the collection-of-events signature. Returning a list variable
+also keeps `IEnumerable<object>`. This inference does not add async handler support or change file-backed handlers.
+
+For example, assuming the slice declares an `OrderPlaced` event with no properties, this handler body:
+
+```csharp
+return new OrderPlaced();
+```
+
+renders as this method inside the generated command record:
+
+```csharp
+public OrderPlaced Handle(CommandContext context)
+{
+    return new OrderPlaced();
+}
+```
+
+Admission uses the same inferred signature. It still refuses non-C# bodies, directives, malformed bodies
+and bodies that depend on the generated `context` parameter with `STAGE-CRATIS-INLINE-001`.
+Inference falls back to `IEnumerable<object>` for malformed bodies; admission rejects them rather than
+rendering invalid code. Semantic implementation admission is unchanged.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter

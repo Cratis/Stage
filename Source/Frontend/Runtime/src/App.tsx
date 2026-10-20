@@ -9,6 +9,7 @@ import {
 import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import {
+    IconAdapterProvider,
     InteractionScope,
     SceneElementView,
     SliceCommandFieldsProvider,
@@ -50,6 +51,8 @@ import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
 import { withoutSeededSlots } from './withoutSeededSlots';
+import { asDialogScreens } from './stageDialogScreens';
+import { stageIconAdapters } from './stageIcons';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -148,7 +151,12 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
  * its slots, the screen inside the template it names - with the Stage's own decisions.
  */
 export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog, blueprintTemplates?: ScreenTemplate[]): SceneElement {
-    return composeApplicationScreen(scene as ApplicationDocument, screen, stageComposition(scene, locales, locale, packageCatalog, undefined, blueprintTemplates)).element;
+    const [dialog] = asDialogScreens([screen], ownTemplatesOf(scene));
+    return composeApplicationScreen(scene as ApplicationDocument, dialog, stageComposition(scene, locales, locale, packageCatalog, undefined, blueprintTemplates)).element;
+}
+
+function ownTemplatesOf(scene: StageSceneApplication): { name: string }[] {
+    return [...(scene.screenTemplates ?? []), ...(scene.dialogTemplates ?? [])];
 }
 
 /** The browser's local storage, where the shell keeps what a user chose; none where the browser refuses it. */
@@ -242,7 +250,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
         ...scene,
-        screens: withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]),
+        screens: asDialogScreens(withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]), ownTemplatesOf(scene)),
     }) as ApplicationDocument, [scene, screenTemplates]);
 
     if (!initial) {
@@ -335,15 +343,17 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
     }, [navigate, scene]);
 
     return (
-        <LayoutThemeProvider themes={themes}>
-            {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
-            <ColorSchemeMirror />
-            <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
-                    {children}
-                </StageInteractions>
-            </StageDataProvider>
-        </LayoutThemeProvider>
+        <IconAdapterProvider registry={stageIconAdapters}>
+            <LayoutThemeProvider themes={themes}>
+                {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
+                <ColorSchemeMirror />
+                <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
+                    <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                        {children}
+                    </StageInteractions>
+                </StageDataProvider>
+            </LayoutThemeProvider>
+        </IconAdapterProvider>
     );
 }
 

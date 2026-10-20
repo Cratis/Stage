@@ -98,9 +98,13 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         IReadOnlyList<SceneModel.Behavior> inheritedHere =
             [.. inherited, .. scope.Resolve(feature.Behaviors, feature.UsedBehaviors, path)];
 
+        // A screen is written inside the slice that declares it, so the slice is known here and nowhere else: it is recorded as the screen's
+        // owner, the qualified id (`Sales.Orders.PlaceOrder`) the structure knows the slice by, which is what a slice preview is scoped by.
         screens.AddRange(feature.Slices
-            .SelectMany(slice => slice.Screens)
-            .Select(screen => ScreenConverter.Convert(screen, layoutName, forms, contributions, scope, inheritedHere, hierarchy, scope.Diagnostics))
+            .SelectMany(slice => slice.Screens.Select(screen => (Slice: slice, Screen: screen)))
+            .Select(declared => ScreenConverter.Convert(declared.Screen, layoutName, forms, contributions, scope, inheritedHere, hierarchy, scope.Diagnostics) is { } converted
+                ? converted with { Owner = $"{path}.{declared.Slice.Name}" }
+                : null)
             .OfType<SceneScreens.Screen>());
 
         foreach (var subFeature in feature.Features)

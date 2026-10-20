@@ -301,7 +301,54 @@ model without appending facts. Semantic queries require a modeled snapshot looku
 queries read the in-process world, not Chronicle projections. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart rebuilds from the Chronicle log only when its
 history passes the same strict admission checks.
 
-The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the legacy EventModel path omits those identity values entirely.
+### Sandbox identity
+
+The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
+login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
+`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+This changes only the Stage host, never rendered applications or their authentication.
+
+Stage selects the default persona once at startup:
+
+1. Use the persona named by a `Cratis.Blueprint.Default.userMenu` component's literal `role` property.
+2. Otherwise, use the first declared persona. With no personas, leave the caller anonymous.
+
+The same model selects the same persona and claims across fresh or warm sessions. The persona receives
+roles and literal claims synthesized from its declared policies, not every role in the model. Stage skips
+policies it cannot synthesize from roles and claims, including anonymous requirements or conflicts with
+previously accepted policies, and logs a warning. The audit subject is `persona:<name>`; the display name
+comes from the user menu's literal `name` property, or the persona name. Startup logs identify the persona
+and its roles. A persona lacking a required role still receives `403` for that operation.
+
+Arc's forwarded-header trust remains off. In sandbox mode, Stage removes incoming `x-ms-client-principal`,
+`x-ms-client-principal-id` and `x-ms-client-principal-name` headers before Arc executes. It also replaces any
+incoming principal with the server-selected persona, or an anonymous principal when the model has no
+personas. Sending headers or an existing authenticated identity cannot select another persona or add roles.
+To use another persona, change the modeled user menu's `role` and restart the session.
+
+:::danger[Sandbox identity is not production authentication]
+Every sandbox API caller acts as the selected persona. There is no login or per-user identity verification.
+Restrict access at a trusted proxy and keep the session private. This mechanism is only for exploring a
+modeled application, not for protecting a production system.
+:::
+
+To disable the persona middleware, set `Stage__Sandbox__Identity=false` in the host environment (for Docker,
+add `-e Stage__Sandbox__Identity=false` to your container command). You can also override the setting in the
+Stage configuration file:
+
+```json
+{
+  "Stage": {
+    "Sandbox": {
+      "Identity": false
+    }
+  }
+}
+```
+
+With the setting disabled, Stage neither injects a persona nor strips headers or replaces an existing
+principal. Arc's default forwarded-header trust is still off. An anonymous semantic caller has empty audit
+identity fields (`subject`, `name`, `userName`); the legacy EventModel path omits those values entirely.
 
 ### Browse read models in a semantic session
 

@@ -36,12 +36,12 @@ internal sealed class SandboxPersonaSelection : ScreenplaySyntaxWalker
 
     static PersonaSyntax? ModulePersona(ApplicationSyntax application, PersonaSyntax[] personas)
     {
-        var modules = application.Modules
+        var requirements = application.Modules
             .Where(module => module.Authorize is not null)
-            .Select(module => PolicyNames(module.Authorize!.Requirement).ToHashSet(StringComparer.Ordinal))
+            .Select(module => module.Authorize!.Requirement)
             .ToArray();
         return personas
-            .Select((persona, index) => (persona, index, admitted: modules.Count(policies => persona.Policies.Any(policies.Contains))))
+            .Select((persona, index) => (persona, index, admitted: requirements.Count(requirement => Satisfies(requirement, persona.Policies.ToHashSet(StringComparer.Ordinal)))))
             .Where(candidate => candidate.admitted > 0)
             .OrderByDescending(candidate => candidate.admitted)
             .ThenBy(candidate => candidate.index)
@@ -49,11 +49,12 @@ internal sealed class SandboxPersonaSelection : ScreenplaySyntaxWalker
             .FirstOrDefault();
     }
 
-    static IEnumerable<string> PolicyNames(PolicyRequirementSyntax requirement) => requirement switch
+    static bool Satisfies(PolicyRequirementSyntax requirement, HashSet<string> policies) => requirement switch
     {
-        PolicyReferenceSyntax reference => [reference.Name],
-        LogicalPolicyRequirementSyntax logical => PolicyNames(logical.Left).Concat(PolicyNames(logical.Right)),
-        _ => []
+        PolicyReferenceSyntax reference => policies.Contains(reference.Name),
+        LogicalPolicyRequirementSyntax { Operator: LogicalOperator.And } logical => Satisfies(logical.Left, policies) && Satisfies(logical.Right, policies),
+        LogicalPolicyRequirementSyntax { Operator: LogicalOperator.Or } logical => Satisfies(logical.Left, policies) || Satisfies(logical.Right, policies),
+        _ => false
     };
 
     static string? Property(ScreenComponentSyntax component, string name) =>

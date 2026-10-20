@@ -114,7 +114,7 @@ public static class SceneSynthesizer
             return scene;
         }
 
-        var layoutName = scene.Layouts.FirstOrDefault()?.Name ?? string.Empty;
+        var layoutName = scene.Layouts.Count > 0 ? scene.Layouts[0].Name : string.Empty;
         var screens = new List<SceneScreens.Screen>();
         var names = new HashSet<string>(StringComparer.Ordinal);
 

@@ -46,16 +46,14 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     /// <returns>The translated Scene with conversion diagnostics.</returns>
     public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
 
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics)
-    {
-        var layouts = (syntax.Layouts ?? [])
-            .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
-            {
-                Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
-            })
-            .ToList();
-        return layouts;
-    }
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics) =>
+        [
+            .. (syntax.Layouts ?? [])
+                .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
+                {
+                    Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
+                })
+        ];
 
     static void ConvertModuleScreens(
         ScreenplaySyntax.ModuleSyntax module,

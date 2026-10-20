@@ -115,3 +115,28 @@ describe('when a task dialog acts on an identity that a row on the screen also c
         expect(sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {}, [], [{ basketId: 'b1' }]).basketId).toMatch(/^[0-9a-f-]{36}$/);
     });
 });
+
+describe('when an action on a list acts on an identity its rows carry', () => {
+    afterEach(() => globalThis.localStorage?.clear());
+
+    const identitySchema = JSON.stringify({
+        type: 'object',
+        properties: {
+            shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId', 'x-identity': true },
+            carrier: { type: 'string' },
+        },
+        required: ['shipmentId', 'carrier'],
+    });
+    const fields = [{ name: 'carrier', label: 'Carrier' }];
+    const selectable = [{ shipmentId: 's1' }, { shipmentId: 's2' }];
+
+    it('should neither create nor take the held identity while no row is selected', () => {
+        sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {});
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {}, [], selectable, true)).toEqual({});
+    });
+
+    it('should take the selected row\'s identity', () => {
+        sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {});
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(identitySchema), {}, [selectable[1]], selectable, true)).toEqual({ shipmentId: 's2' });
+    });
+});

@@ -2,12 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createContext, useContext, useMemo, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
+import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
-import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
+import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
@@ -177,7 +178,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
-            case 'date': return <CalendarField value={accessor} fieldName={property} title={title} required={required} showIcon />;
+            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
     })();
@@ -195,6 +196,20 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
             {fieldElement}
         </span>
     );
+}
+
+// Arc binds currentValue directly from the command; the accessor only identifies the property.
+const StageCalendarField = withCommandFormFieldBinding((props: ComponentProps<typeof CalendarField>) =>
+    <CalendarField {...props} currentValue={props.showTime ? props.currentValue : calendarDate(props.currentValue)} />);
+
+function calendarDate(value: unknown): unknown {
+    if (value instanceof DateOnly) return value.toDate();
+    if (typeof value !== 'string') return value;
+    try {
+        return DateOnly.parse(value).toDate();
+    } catch {
+        return null;
+    }
 }
 
 /**

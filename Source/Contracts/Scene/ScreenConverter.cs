@@ -57,7 +57,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public static class ScreenConverter
 {
-    static readonly string[] ToolbarSlotNames = ["toolbar", "actions"];
+    static readonly string[] _toolbarSlotNames = ["toolbar", "actions"];
 
     /// <summary>
     /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> that attaches no interactions.
@@ -214,11 +214,9 @@ public static class ScreenConverter
             return;
         }
 
-        string? slot = ToolbarSlotNames[0];
-        if (scope.DeclaredTemplateSlots.TryGetValue(template, out var declared))
-        {
-            slot = ToolbarSlotNames.FirstOrDefault(name => declared.Contains(name, StringComparer.OrdinalIgnoreCase));
-        }
+        var slot = scope.DeclaredTemplateSlots.TryGetValue(template, out var declared)
+            ? _toolbarSlotNames.FirstOrDefault(name => declared.Contains(name, StringComparer.OrdinalIgnoreCase))
+            : _toolbarSlotNames[0];
 
         if (slot is null)
         {

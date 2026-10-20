@@ -73,6 +73,8 @@ internal static class SemanticProjectionFactSpecification
         SemanticId eventContract,
         System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values)
     {
+        // All blocks observe the fact even when they do not name its contract, so an invented source is visible to them.
+        if (context.Projections.Values.Any(projection => ObservesAllEvents(projection.Scope))) return null;
         var projections = context.Projections.Values.Where(projection =>
             Projections.ProjectionReferencedEventNamesAreUnique.Contracts(projection).Contains(eventContract)).ToArray();
         if (projections.Length == 0 || context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == eventContract)) ||
@@ -89,6 +91,10 @@ internal static class SemanticProjectionFactSpecification
         var value = values.SingleOrDefault(value => value.TargetProperty == property.Id)?.Value;
         return value is null || property.Type.IsOptional || !IsTextKey(context, property.Type) ? null : new(property.Type, value);
     }
+
+    static bool ObservesAllEvents(SemanticProjectionScope? scope) =>
+        scope is not null && (scope.Every is { SubscribesToAllEvents: true } ||
+            scope.Children.Any(child => ObservesAllEvents(child.Scope)) || scope.Nested.Any(nested => ObservesAllEvents(nested.Scope)));
 
     static bool IsTextKey(SemanticApplicationContext context, SemanticTypeReference type) =>
         !type.IsCollection && (type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive)

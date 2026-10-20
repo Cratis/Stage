@@ -56,7 +56,7 @@ public class when_running_property_keyed_removal_only_projections : Specificatio
         await ShouldPass(Compile(source));
     }
 
-    static SemanticExecutionPlan Compile(string source)
+    internal static SemanticExecutionPlan Compile(string source)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Billing"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);

@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_rendering_property_keyed_removal_only_projections : Specification
 {
-    const string Source = """
+    internal const string Source = """
         module Billing
           feature Invoices
             slice StateChange RemoveInvoice

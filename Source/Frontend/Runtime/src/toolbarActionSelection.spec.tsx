@@ -53,9 +53,9 @@ describe('a toolbar action on a list whose rows carry the key it acts on', () =>
         renderShipments();
 
         await screen.findByText('Fjordline');
-        const button = await screen.findByRole('button', { name: 'Dispatch' }) as HTMLButtonElement;
-        expect(button.disabled).toBe(true);
-        expect(button.title).toBe('Select a row first');
+        // The table shows its rows before the screen's data has published them, so wait for the action to see them.
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(true));
+        expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).title).toBe('Select a row first');
     });
 
     it('is enabled once a row is selected and submits that row\'s key', async () => {

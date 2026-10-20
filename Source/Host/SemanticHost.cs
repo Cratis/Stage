@@ -73,6 +73,14 @@ internal static class SemanticHost
         app.MapPost("/stage/load", () => Results.Conflict());
         app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
         MapReadModelBrowserPage(app);
+        foreach (var entry in admission?.Entries.Where(entry => entry.Status == "renderedAround") ?? [])
+        {
+            StageLog.RenderedAround(app.Logger, entry.Kind, entry.Artifact, entry.Details!);
+        }
+        if (scene is not null && loaded is not null)
+        {
+            MapSceneEndpoints(app, scene, modelPath, loaded.Model);
+        }
 
         if (surface is null)
         {
@@ -95,7 +103,6 @@ internal static class SemanticHost
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
         app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-        MapSceneEndpoints(app, scene!, modelPath, loaded.Model);
         app.MapFallbackToFile("index.html");
         await app.StartAsync();
         try

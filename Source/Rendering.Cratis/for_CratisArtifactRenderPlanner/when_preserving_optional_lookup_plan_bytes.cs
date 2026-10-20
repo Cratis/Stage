@@ -26,13 +26,15 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan = invoice_model.Plan(_model);
     }
 
+    // All three digests include #494's authenticated endpoint attributes, access-default README and informational diagnostics.
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("6500b12c3559596c1717ca87ed9c1535b52e8284d7b55576a3469a01ef949dc3");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c8c92c178d42aa12d94f185316d19d305ce98991f9dc277c7eaafa864336c351");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("a1f91beca01f125eaceebbb5909eae89969d109093ebd4d63d1329368b7d5db3");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("6de578514a503c7bc18ba318cfcafabc56bc85698a9787e40715795b54873b97");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("ea35e9b56155e77f52ed19598bb6c59b4f2cb1baeae339a3baf0fbf5d7eccb5a");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("e94bb3ce78881e7cd32c29bc917bbb7820278f7ef83ebeeca8bdf0d9f9020c0b");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
+
         // The target version is the scaffold's Cratis package pin, so restore it alongside the project bytes.
         "22.87.0",
         _plan.Renderer,

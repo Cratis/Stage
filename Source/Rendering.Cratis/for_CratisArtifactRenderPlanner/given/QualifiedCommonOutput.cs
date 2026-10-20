@@ -28,10 +28,12 @@ internal static class QualifiedCommonOutput
             .ToDictionary(file => file.RelativePath, StringComparer.Ordinal);
         return [.. plan.Artifacts.Select(artifact => common.TryGetValue(artifact.RelativePath, out var file)
             ? PlannedArtifact.CreateText(artifact.RelativePath, file.Content, artifact.Sources)
-            : artifact.RelativePath == ".editorconfig"
-                ? PlannedArtifact.CreateText(artifact.RelativePath, BeforePlacement(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)
-                : artifact)];
+            : WithoutPlacement(artifact))];
     }
+
+    static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig"
+        ? PlannedArtifact.CreateText(artifact.RelativePath, BeforePlacement(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)
+        : artifact;
 
     internal static string BeforePlacement(string text) => text.Replace(Placement, string.Empty, StringComparison.Ordinal);
 

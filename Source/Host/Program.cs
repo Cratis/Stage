@@ -28,14 +28,20 @@ if (!warmMode && modelPath is null)
     throw new MissingModelArgument();
 }
 
-if (!warmMode && engine == StageRuntimeEngine.Semantic)
+if (warmMode)
+{
+    await WarmHost.Run(args, engine);
+    return;
+}
+
+if (engine == StageRuntimeEngine.Semantic)
 {
     await SemanticHost.Run(args, modelPath!);
     return;
 }
 
 var issues = new List<StageUnsupportedIssue>();
-var stageApplication = warmMode ? null : await EventModelHost.LoadModel(modelPath!, issues);
+var stageApplication = await EventModelHost.LoadModel(modelPath!, issues);
 var model = stageApplication?.EventModel;
 var scene = stageApplication?.Scene;
 if (model is not null)
@@ -87,49 +93,10 @@ if (engine == StageRuntimeEngine.EventModel)
     StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
 }
 app.UseForwardedHeaders();
-if (!warmMode)
-{
-    app.UseDefaultFiles();
-    app.UseStaticFiles(StageStaticFileOptions.Create());
-}
+app.UseDefaultFiles();
+app.UseStaticFiles(StageStaticFileOptions.Create());
 app.UseRouting();
 app.UseCratisChronicle();
-
-if (warmMode)
-{
-    using var handoff = new WarmStageHandoff("/eventmodel", engine);
-
-    app.MapGet("/stage/status", handoff.GetStatus);
-    app.MapPost("/stage/load", async (StageLoadRequest request, IChronicleClient chronicleClient, CancellationToken cancellationToken) =>
-    {
-        var result = await handoff.Load(
-            request,
-            _ => ResetKernel(chronicleClient, eventStore),
-            cancellationToken);
-
-        if (result == StageHandoffResult.Conflict)
-        {
-            return Results.Conflict();
-        }
-
-        if (result == StageHandoffResult.InvalidPath)
-        {
-            return Results.BadRequest();
-        }
-
-        Environment.ExitCode = 42;
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-            app.Lifetime.StopApplication();
-        });
-
-        return Results.Accepted();
-    });
-
-    await app.RunAsync();
-    return;
-}
 
 StagePackageEndpoints.Map(app);
 SemanticReadModelBrowser.MapEventModel(app);
@@ -196,10 +163,3 @@ app.Lifetime.ApplicationStarted.Register(() =>
     _ = StageRuntimeRegistrar.RegisterAsync(app.Services, eventStore, model, app.Logger));
 
 await app.RunAsync();
-
-static async Task ResetKernel(IChronicleClient chronicleClient, string eventStoreName)
-{
-    var eventStore = await chronicleClient.GetEventStore(eventStoreName);
-    var services = ((Cratis.Chronicle.Contracts.IChronicleServicesAccessor)eventStore.Connection).Services;
-    await services.Server.ResetKernelState();
-}

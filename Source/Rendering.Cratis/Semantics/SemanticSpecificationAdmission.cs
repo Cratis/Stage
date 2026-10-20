@@ -99,7 +99,8 @@ internal static partial class SemanticSpecificationAdmission
                         expected.Results.All(result => HasExpectedProjectionEvent(context, specification, result))) &&
                     HasRenderableErrors(context, specification, command) &&
                     HasRenderableEventSources(context, specification, command!) &&
-                    ProtectedQuerySourcesMatch(context, specification, command!)));
+                    ProtectedQuerySourcesMatch(context, specification, command!) &&
+                    HasComparableResponse(context, specification, command!)));
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
@@ -297,6 +298,12 @@ internal static partial class SemanticSpecificationAdmission
         if (specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) == true)
         {
             return "A caller claim using the role claim URI conflates separate Screenplay roles and claims in Arc.";
+        }
+
+        if (specification.When is { } returning && context.Commands.TryGetValue(returning.Command, out var responding) &&
+            !HasComparableResponse(context, specification, responding))
+        {
+            return CompositeResponseRejection;
         }
 
         return "The scenario cannot preserve all of its declared fixtures or expectations.";

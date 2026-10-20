@@ -11,10 +11,10 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 /// Creates the deterministic in-memory inputs for the framework frontend shell of a first-run Cratis application.
 /// </summary>
 /// <remarks>
-/// The shell mounts the Stage frontend runtime - the same modules a live Stage renders with, emitted under
-/// <c language="shell">.frontend/stage</c> - over the Scene, routes and strings the planner emits in
-/// <c language="shell">src/stage.ts</c>. Its packages are pinned by <see cref="CratisFrontendPackageSet"/> to the versions
-/// the Stage frontend itself builds with, so the runtime compiles against what it was written for.
+/// The shell mounts the Stage frontend runtime - the same modules a live Stage renders with, installed as the
+/// <c language="json">@cratis/stage.runtime</c> package pinned to the Stage release that rendered the application - over the
+/// Scene, routes and strings the planner emits in <c language="shell">src/stage.ts</c>. Its other packages are pinned by
+/// <see cref="CratisFrontendPackageSet"/> to the versions the runtime declares as peers.
 /// </remarks>
 public sealed class CratisFrontendApplicationScaffold
 {
@@ -32,7 +32,7 @@ public sealed class CratisFrontendApplicationScaffold
     /// Creates the complete frontend application scaffold without writing to a file system.
     /// </summary>
     /// <param name="request">The validated scaffold request.</param>
-    /// <returns>The normalized UTF-8 text inputs - the shell and the Stage frontend runtime - in ordinal relative-path order.</returns>
+    /// <returns>The normalized UTF-8 text inputs of the shell in ordinal relative-path order.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the request is missing.</exception>
     public ImmutableArray<ArtifactRenderInput> Create(CratisBackendApplicationScaffoldRequest request)
     {
@@ -50,6 +50,7 @@ public sealed class CratisFrontendApplicationScaffold
             (".frontend/main.tsx", MainModule(!approved.IsEmpty)),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
+            (".frontend/vite-env.d.ts", ViteEnvironment()),
             (".frontend/vite.config.ts", ViteConfig()),
             (".gitignore", GitIgnore()),
             ("package.json", PackageJson(request)),
@@ -65,7 +66,6 @@ public sealed class CratisFrontendApplicationScaffold
         return
         [
             .. artifacts
-                .Concat(StageFrontendRuntime.Files)
                 .OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal)
                 .Select(artifact => Input(artifact.RelativePath, profile.Version, artifact.Content))
         ];
@@ -92,6 +92,7 @@ public sealed class CratisFrontendApplicationScaffold
         ("@cratis/scene.model", frontend.ScenePackageVersion),
         ("@cratis/scene.primereact", frontend.ScenePackageVersion),
         ("@cratis/scene.react", frontend.ScenePackageVersion),
+        ("@cratis/stage.runtime", ScaffoldPackageVersions.StageRuntime),
         ("@primereact/core", frontend.PrimeReactPackageVersion),
         ("@primereact/headless", frontend.PrimeReactPackageVersion),
         ("@primereact/hooks", frontend.PrimeReactPackageVersion),
@@ -209,8 +210,8 @@ public sealed class CratisFrontendApplicationScaffold
     // page; a profile is never rendered with a silently missing package.
     static string ApprovedMainModule(string main) => main
         .Replace(
-            "import { stageTheme } from './stage/stageTheme';",
-            "import { stageTheme } from './stage/stageTheme';\nimport { loadApprovedComponents } from './approvedPackages';",
+            "} from '@cratis/stage.runtime';",
+            "} from '@cratis/stage.runtime';\nimport { loadApprovedComponents } from './approvedPackages';",
             StringComparison.Ordinal)
         .Replace(
             "// A lazy CSS import orders",
@@ -235,13 +236,17 @@ public sealed class CratisFrontendApplicationScaffold
         // The runtime entry: the components, their descriptors and the manifest, without the designers, property
         // editors and design-time actions a running application never loads.
         import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
-        import { App } from './stage/App';
-        import { StageSourceProvider, staticStageSource, type StageStaticContent } from './stage/stageSource';
-        import { stageTheme } from './stage/stageTheme';
+        import {
+            App,
+            StageSourceProvider,
+            staticStageSource,
+            stageTheme,
+            type StageStaticContent,
+        } from '@cratis/stage.runtime';
 
         // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
-        // with, the routes its generated proxies registered and its strings, and `./stage` is the same runtime a
-        // live Stage renders that Scene with. Editing this file to add a screen would put it outside the
+        // with, the routes its generated proxies registered and its strings, and `@cratis/stage.runtime` is the same
+        // runtime a live Stage renders that Scene with. Editing this file to add a screen would put it outside the
         // composition the backend was generated from.
         // A first-run scaffold has no Scene module yet. An eager glob keeps that frontend buildable and loads
         // the real module, including its bindings and proxy routes, as soon as an application render emits it.
@@ -325,6 +330,17 @@ public sealed class CratisFrontendApplicationScaffold
         """;
     }
 
+    /// <summary>
+    /// Declares Vite's client types - <c language="typescript">import.meta.glob</c>, <c language="typescript">import.meta.env</c>
+    /// and side-effect stylesheet imports - for the application's own modules.
+    /// </summary>
+    /// <returns>The declaration file content.</returns>
+    static string ViteEnvironment() =>
+        """
+        /// <reference types="vite/client" />
+
+        """;
+
     static string IndexCss() =>
         """
         @import '@cratis/components/tokens';
@@ -359,7 +375,7 @@ public sealed class CratisFrontendApplicationScaffold
         import react from '@vitejs/plugin-react';
         import { fileURLToPath } from 'node:url';
         import { EmitMetadataPlugin } from '@cratis/arc.vite';
-        import { styledPrimeReact } from './styledPrimeReact';
+        import { styledPrimeReact } from '@cratis/stage.runtime/vite';
 
         export default defineConfig({
             root: fileURLToPath(new URL('./', import.meta.url)),

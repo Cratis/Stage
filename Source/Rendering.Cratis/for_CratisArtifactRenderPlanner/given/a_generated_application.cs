@@ -59,6 +59,73 @@ public class a_generated_application : a_register_project_render_request
         File.WriteAllText(Path.Combine(_evidence.FullName, "artifact-hashes.json"), JsonSerializer.Serialize(_artifactHashes));
     }
 
+    /// <summary>
+    /// Publishes a plan over the rendered application like a removal-aware publisher: it verifies every removal's hash,
+    /// backs up each touched file, writes the artifacts, deletes the removals, and restores the backups on any failure.
+    /// </summary>
+    /// <param name="plan">The plan to publish.</param>
+    /// <param name="failAt">An optional path whose write fails, simulating a publisher failure midway.</param>
+    /// <exception cref="InvalidOperationException">A removal's file changed since migration evidence was taken.</exception>
+    /// <exception cref="IOException">The write of <paramref name="failAt"/> fails.</exception>
+    protected void PublishWithRemovals(ArtifactRenderPlan plan, string? failAt = null)
+    {
+        foreach (var removal in plan.RequiredRemovals)
+        {
+            var existing = GeneratedPath(removal.RelativePath);
+            if (File.Exists(existing) && PlannedArtifact.CreateText(removal.RelativePath, File.ReadAllText(existing)).Sha256 != removal.ExpectedSha256)
+            {
+                throw new InvalidOperationException($"'{removal.RelativePath}' changed since migration evidence was taken.");
+            }
+        }
+
+        var touched = plan.Artifacts.Select(artifact => artifact.RelativePath).Concat(plan.RequiredRemovals.Select(removal => removal.RelativePath)).ToArray();
+        var backups = touched.ToDictionary(path => path, path => File.Exists(GeneratedPath(path)) ? File.ReadAllBytes(GeneratedPath(path)) : null, StringComparer.Ordinal);
+        try
+        {
+            foreach (var artifact in plan.Artifacts)
+            {
+                if (artifact.RelativePath == failAt)
+                {
+                    throw new IOException($"Simulated write failure at '{failAt}'.");
+                }
+
+                var path = GeneratedPath(artifact.RelativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllBytes(path, [.. artifact.Bytes]);
+            }
+
+            foreach (var removal in plan.RequiredRemovals)
+            {
+                File.Delete(GeneratedPath(removal.RelativePath));
+            }
+
+            // Later runs verify the published bytes, not the ones rendered first, and no longer expect removed files.
+            foreach (var artifact in plan.Artifacts)
+            {
+                _artifactHashes[artifact.RelativePath] = artifact.Sha256;
+            }
+
+            foreach (var removal in plan.RequiredRemovals)
+            {
+                _artifactHashes.Remove(removal.RelativePath);
+            }
+        }
+        catch
+        {
+            foreach (var (path, bytes) in backups)
+            {
+                if (bytes is null) File.Delete(GeneratedPath(path));
+                else File.WriteAllBytes(GeneratedPath(path), bytes);
+            }
+
+            throw;
+        }
+    }
+
+    protected bool GeneratedFileExists(string relativePath) => File.Exists(GeneratedPath(relativePath));
+
+    string GeneratedPath(string relativePath) => Path.Combine(_application!.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
     protected virtual ArtifactRenderPlan CreatePlan() =>
         CratisRendering.Plan(_model, _executionPlan, _request.Scope, new("BackendHost", "Acme.projectAPI"));
 

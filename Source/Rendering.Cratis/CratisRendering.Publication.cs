@@ -22,10 +22,12 @@ public static partial class CratisRendering
     /// Reads an application-root-relative path. Return null only when the file is confirmed absent; let any read failure
     /// throw, so the check fails closed instead of treating an unreadable destination file as absent.
     /// </param>
-    /// <returns>A compatible result, refused event identity changes, or the paths requiring application scope.</returns>
+    /// <returns>A compatible result, refused event identity changes, the paths requiring application scope, or unsafe removals.</returns>
     /// <remarks>
     /// Identical content is compatible. Otherwise, declaration syntax distinguishes the split layout from aggregate
     /// policy classes, per-site bodies and typed wrappers. Unrecognized content requires application scope.
+    /// Every required removal must match its expected hash or already be absent, and no migrated read model may keep its previous
+    /// classic reducer file without a removal; both checks run at every scope.
     /// This check does not replace the publisher's ownership, concurrency, recovery or write-failure checks.
     /// </remarks>
     public static CratisPublicationCheck CheckPublication(ArtifactRenderPlan plan, Func<string, string?> readExistingFile)
@@ -35,8 +37,13 @@ public static partial class CratisRendering
             return policyLayout;
         }
 
-        return CheckEventTypeIds(plan, readExistingFile) is { } eventChanges
-            ? eventChanges
+        if (CheckEventTypeIds(plan, readExistingFile) is { } eventChanges)
+        {
+            return eventChanges;
+        }
+
+        return CheckRemovals(plan, readExistingFile) is { } unsafeRemovals
+            ? unsafeRemovals
             : new CratisPublicationCheck.Compatible();
     }
 

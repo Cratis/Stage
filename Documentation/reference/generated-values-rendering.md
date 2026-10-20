@@ -70,7 +70,7 @@ Stage admits exact ESM v1–v30 language/semantic pairs. Version admission does 
 | v20 | Rules on generated concepts; unpinned rendered specifications require every rule to be proven |
 | v21 | Pattern and inclusive Int64 random generation; checksum validation; verified C# `generate rule` bodies render through `IGeneratableInContext<T>`; executor runs pinned String rule values without invoking the body; Host refuses commands generating rule values |
 
-The Host samples pattern and random values through the Fundamentals release pinned in Stage's `Directory.Packages.props`. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules. For `generate rule`, the executor accepts any String fixture that satisfies the concept's rules and never invokes the implementation body; missing pins remain `Unsupported(IdentityAllocation)`. An unused rule-generation concept does not block the Host or executor. The Host refuses each command that generates a rule value with `STAGE-ESM-028`, naming the command, property and concept, because its interpreter never runs implementation bodies. The renderer compile-checks and emits verified C# rule bodies; the legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
+The Host samples pattern and random values through the Fundamentals release pinned in Stage's `Directory.Packages.props`. The independent specification executor requires deterministic fixtures, just like Screenplay 4.182.0. Both paths enforce the reference strategy shapes and checksum rules. For `generate rule`, the executor accepts any String fixture that satisfies the concept's rules and never invokes the implementation body; missing pins remain `Unsupported(IdentityAllocation)`. An unused rule-generation concept does not block the Host or executor. The Host refuses each command that generates a rule value with `STAGE-ESM-028`, naming the command, property, concept and rule (or the requirement id when the requirements are unavailable). This is by design: a `generate rule` always has an implementation body that Stage's interpreter never runs or replaces, so render the application to run it. The supported generation subset is the built-in strategies (`uuid`, `uuidv7`, `ulid`, `typeid`, `nanoid`, `bytes`, `pattern` (optionally with a checksum), and `random`): the Host generates them and checks them against the concept's rules, while the executor checks pinned fixtures for them. The renderer compile-checks and emits verified C# rule bodies; the legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042` rather than omitting the check. No artifacts are published for a refused semantic render plan.
 
 ### Rule generation
 
@@ -200,9 +200,13 @@ Commands without production conditions retain their existing generated Handle sh
 | `returns` block | A `<Command>Response` record, paired with the event result |
 | Response-only command | The scalar or response record directly, without an event tuple |
 
-A response block names each field independently of its source property. Each field keeps the source type, including optionality. Generated parameters and ordinary command properties can supply response values. Arc uses the tuple's response element as `CommandResult<T>.Response`; it does not expose the event wrapper as the response.
+A response block names each field independently of its source property. Each field keeps the source type, including optionality. Generated parameters and ordinary command properties can supply response values, including composite `type` values; a composite response renders as the app-local record and serializes as the same JSON object. Collection responses are refused with `STAGE-ESM-038`. Arc uses the tuple's response element as `CommandResult<T>.Response`; it does not expose the event wrapper as the response.
 
 The generated TypeScript proxy carries the response type too. A UUID-backed scalar response uses `Command<IRegisterProject, Guid>`; a named response uses `Command<IRegisterReceipt, RegisterReceiptResponse>`. The event wrapper is not the client response type.
+
+When `<Command>Response` would collide with another generated type in the application, such as a command named `IssueInvoiceResponse` beside `IssueInvoice`, or with one of the record's own fields, Stage renders the record as `<Command>Response_` and reports `STAGE-ESM-050`. Field names are never renamed, so the response JSON stays the same. Response fields that collide with each other or with a record member such as `EqualityContract` are refused with `STAGE-ESM-038`.
+
+A generated concept named `New` keeps its name: its factory implements `IGeneratable<New>.New` explicitly instead of declaring a public `New` member, which C# forbids on a type of the same name.
 
 ## Fixtures and testing
 
@@ -251,12 +255,12 @@ Commands with generated properties can validate and require request values. Requ
 | Diagnostic | Refused shape |
 | --- | --- |
 | `PLAY0268` (Screenplay) | Compliance markers on a generated concept |
-| `STAGE-ESM-028` | Host: each command generating a rule value, not unused rule concepts. The semantic renderer emits verified C# rule bodies; the executor admits pinned String rule values. Unknown generation strategies, non-concept generated values, optional values and collections remain refused; the legacy syntax engine refuses every explicit strategy, including `rule`, and generated properties whose concepts have rules |
+| `STAGE-ESM-028` | Host (by design): each command generating a rule value, not unused rule concepts; the rule body is never run by the interpreter. The semantic renderer emits verified C# rule bodies; the executor admits pinned String rule values. Unknown generation strategies, non-concept generated values, optional values and collections remain refused, and the diagnostic names the offending shape (optional, collection, primitive or composite type) and the Screenplay contract that a generated property must be a required, non-collection generatable concept (`PLAY0483`); the legacy syntax engine refuses every explicit strategy, including `rule`, and generated properties whose concepts have rules |
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
-| `STAGE-ESM-038` | Command rules or requirements that read a generated property; unsupported response sources, composite or collection responses; response/factory name collisions |
+| `STAGE-ESM-038` | Command rules or requirements that read a generated property; collection responses, responses from a source that is not a command property of the same type, or response fields whose C# members collide; the message names the reason |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 

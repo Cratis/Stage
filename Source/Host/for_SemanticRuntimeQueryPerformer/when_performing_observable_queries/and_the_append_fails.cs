@@ -22,6 +22,7 @@ public class and_the_append_fails : live_projects
         await Next(emissions);
         _log.BeforeAppend = () => throw new IOException("The event store went away.");
         _outcome = await TryRegister("project-1", "Screenplay");
+
         // A channel completed with an error surfaces that error as the inner exception of its closed read.
         _error = (await Catch.Exception(() => Next(emissions)))?.InnerException;
     }

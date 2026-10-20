@@ -6,70 +6,44 @@ using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication;
 
 /// <summary>
-/// The Stage runtime a generated application is emitted with, compared with the live Stage frontend's sources.
+/// A generated application depends on the published <c>@cratis/stage.runtime</c> package at the release that rendered it.
 /// </summary>
 /// <remarks>
 /// The parity between a live Stage and a generated application rests on both running the same runtime, compiled
-/// against the same packages. This reads the live frontend from this repository's source tree.
+/// against the same packages. The runtime is installed, not copied, so this checks the pin and that the application's
+/// own packages satisfy exactly what the runtime declares as peers in this repository's source tree.
 /// </remarks>
 public class when_emitting_the_stage_frontend_runtime : a_screen_composition_render
 {
-    static readonly string[] _sharedPackages =
-    [
-        "@cratis/arc", "@cratis/arc.react", "@cratis/components", "@cratis/fundamentals",
-        "@cratis/scene.blueprint.default", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react",
-        "@primereact/core", "@primereact/headless", "@primereact/ui", "@primeuix/themes", "primeicons", "primereact",
-        "react", "react-dom", "reflect-metadata", "tsyringe", "@types/node", "@types/react", "@types/react-dom", "@vitejs/plugin-react"
-    ];
-
-    static readonly string[] _liveOnly = ["index.ts", "testSetup.ts", "testElements.ts"];
-
     ArtifactRenderPlan _plan = null!;
-    string _frontend = null!;
-    JsonElement _generatedPackages;
-    JsonElement _livePackages;
+    Dictionary<string, string> _generatedPackages = null!;
+    Dictionary<string, string> _runtimePeers = null!;
 
     void Because()
     {
         _plan = Plan();
-        _frontend = FrontendDirectory();
-        _generatedPackages = Dependencies(Text(_plan, "package.json"));
-        _livePackages = Dependencies(File.ReadAllText(Path.Combine(_frontend, "package.json")));
+        _generatedPackages = Read(Text(_plan, "package.json"), "dependencies", "devDependencies");
+        _runtimePeers = Read(File.ReadAllText(RuntimePackage()), "peerDependencies");
     }
 
-    [Fact] void should_emit_every_live_runtime_module() => RuntimeArtifacts().Select(_ => _.Name).ShouldContainOnly(LiveRuntimeModules());
-    [Fact] void should_emit_each_module_byte_for_byte() => RuntimeArtifacts().Where(_ => _.Text != Live(_.Name)).Select(_ => _.Name).ShouldBeEmpty();
-    [Fact] void should_emit_the_styled_primereact_plugin_byte_for_byte() => Text(_plan, ".frontend/styledPrimeReact.ts").ShouldEqual(File.ReadAllText(Path.Combine(_frontend, "Runtime", "styledPrimeReact.ts")).Replace("\r\n", "\n", StringComparison.Ordinal));
-    [Fact] void should_pin_every_shared_package_to_the_live_version() => _sharedPackages.Where(name => Version(_generatedPackages, name) != Version(_livePackages, name)).Select(name => $"{name}: {Version(_generatedPackages, name)} != {Version(_livePackages, name)}").ShouldBeEmpty();
+    [Fact] void should_pin_the_runtime_to_the_release_that_rendered_it() => _generatedPackages["@cratis/stage.runtime"].ShouldEqual(ScaffoldPackageVersions.StageRuntime);
+    [Fact] void should_pin_the_runtime_exactly() => _generatedPackages["@cratis/stage.runtime"].ShouldNotContain("file:");
+    [Fact] void should_not_emit_a_copy_of_the_runtime() => _plan.Artifacts.Where(_ => _.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal) || _.RelativePath == ".frontend/styledPrimeReact.ts").Select(_ => _.RelativePath).ShouldBeEmpty();
+    [Fact] void should_pin_every_runtime_peer_to_the_version_the_runtime_declares() => _runtimePeers.Where(peer => !_generatedPackages.TryGetValue(peer.Key, out var version) || version != peer.Value).Select(peer => $"{peer.Key}: {_generatedPackages.GetValueOrDefault(peer.Key)} != {peer.Value}").ShouldBeEmpty();
 
-    (string Name, string Text)[] RuntimeArtifacts() => [.. _plan.Artifacts
-        .Where(_ => _.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal))
-        .Select(_ => (_.RelativePath[".frontend/stage/".Length..], System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan())))];
-
-    string[] LiveRuntimeModules() => [.. Directory.GetFiles(Path.Combine(_frontend, "Runtime", "src"))
-        .Select(Path.GetFileName)
-        .OfType<string>()
-        .Where(name => (name.EndsWith(".ts", StringComparison.Ordinal) || name.EndsWith(".tsx", StringComparison.Ordinal) || name.EndsWith(".css", StringComparison.Ordinal)) &&
-            !name.Contains(".spec.", StringComparison.Ordinal) && !_liveOnly.Contains(name, StringComparer.Ordinal))];
-
-    string Live(string name) => File.ReadAllText(Path.Combine(_frontend, "Runtime", name == "stageSource.ts" ? "embedding" : "src", name)).Replace("\r\n", "\n", StringComparison.Ordinal);
-
-    static JsonElement Dependencies(string packageJson)
+    static Dictionary<string, string> Read(string packageJson, params string[] sections)
     {
         using var document = JsonDocument.Parse(packageJson);
-        var all = document.RootElement.GetProperty("dependencies").EnumerateObject()
-            .Concat(document.RootElement.GetProperty("devDependencies").EnumerateObject())
-            .ToDictionary(_ => _.Name, _ => _.Value.GetString(), StringComparer.Ordinal);
-        return JsonSerializer.SerializeToElement(all);
+        return sections.SelectMany(section => document.RootElement.GetProperty(section).EnumerateObject())
+            .ToDictionary(_ => _.Name, _ => _.Value.GetString()!, StringComparer.Ordinal);
     }
 
-    static string? Version(JsonElement packages, string name) => packages.TryGetProperty(name, out var version) ? version.GetString() : null;
-
-    static string FrontendDirectory([CallerFilePath] string specification = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(specification)!, "..", "..", "Frontend"));
+    static string RuntimePackage([CallerFilePath] string specification = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(specification)!, "..", "..", "Frontend", "Runtime", "package.json"));
 }

@@ -58,6 +58,7 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
 
     [Fact] void should_not_be_publishable() => _plan.Success.ShouldBeFalse();
     [Fact] void should_report_the_unsupported_destination() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-006");
+
     // The projection is keyed by a payload property, which renders through the scope; only the destination is refused.
     [Fact] void should_not_refuse_the_payload_keyed_projection() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-009");
     [Fact] void should_emit_no_candidate_artifacts() => _plan.Artifacts.ShouldBeEmpty();

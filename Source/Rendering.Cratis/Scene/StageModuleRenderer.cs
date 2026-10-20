@@ -50,8 +50,7 @@ internal static class StageModuleRenderer
         var builder = new StringBuilder()
             .Append("// What the Stage runtime renders this application from - the counterpart of a live Stage's\n")
             .Append("// /stage/scene, /stage/routes and /stage/strings endpoints. Generated; do not edit.\n")
-            .Append("import type { StageSceneApplication } from '../.frontend/stage/App';\n")
-            .Append("import type { StageStaticContent } from '../.frontend/stage/stageSource';\n")
+            .Append("import type { StageSceneApplication, StageStaticContent } from '@cratis/stage.runtime';\n")
             .Append("import scene from './stage-scene.json';\n")
             .Append("import './bindings';\n");
         foreach (var (_, export, module, alias) in commands.Concat(queries))

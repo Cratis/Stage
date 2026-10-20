@@ -36,12 +36,11 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_plan_the_same_artifact_paths_twice() => _second.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_bytes_twice() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_hashes_twice() => _second.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
-    [Fact] void should_emit_the_stage_runtime() => Paths().ShouldContain(".frontend/stage/App.tsx", ".frontend/stage/stageSource.ts", ".frontend/stage/StageCommandForm.tsx", ".frontend/stage/stageNavigation.ts", ".frontend/styledPrimeReact.ts");
+    [Fact] void should_depend_on_the_stage_runtime_package_instead_of_a_copy() => Paths().Any(path => path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts").ShouldBeFalse();
     [Fact] void should_emit_the_runtime_document_and_module() => Paths().ShouldContain("scene.json", "src/bindings.ts", "src/stage-scene.json", "src/stage.ts");
-    [Fact] void should_not_emit_the_live_stage_entry_point_or_its_specifications() => Paths().Any(path => path.StartsWith(".frontend/stage/", StringComparison.Ordinal) && (path.Contains(".spec.", StringComparison.Ordinal) || path.EndsWith("/main.tsx", StringComparison.Ordinal) || path.EndsWith("/testSetup.ts", StringComparison.Ordinal))).ShouldBeFalse();
     [Fact] void should_mount_the_runtime_over_the_planned_content() => Text(_first, ".frontend/main.tsx").ShouldContain("<StageSourceProvider source={source}>");
     [Fact] void should_eagerly_load_the_real_stage_export() => Text(_first, ".frontend/main.tsx").ShouldContain("import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' })");
-    [Fact] void should_preserve_the_real_scene_module_bytes() => _first.Artifacts.Single(artifact => artifact.RelativePath == "src/stage.ts").Sha256.ShouldEqual("d26df8127bbb827c594535e28c533e21be7cdf6794c34103da829f628069cb2a");
+    [Fact] void should_preserve_the_real_scene_module_bytes() => _first.Artifacts.Single(artifact => artifact.RelativePath == "src/stage.ts").Sha256.ShouldEqual("6182fc89c2fe5c94cffba1f5081524543ab85af664f0dbf955b280fa99f6aea7");
     [Fact] void should_load_the_icon_font() => Text(_first, ".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");
     [Fact] void should_carry_the_application_shell() => Names("layouts").ShouldContainOnly("AppShell");
     [Fact] void should_carry_the_screen_template() => Names("screenTemplates").ShouldContainOnly("MasterDetail");

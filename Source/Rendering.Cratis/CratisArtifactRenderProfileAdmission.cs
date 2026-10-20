@@ -60,7 +60,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != RefusalModeInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -96,6 +96,12 @@ static class CratisArtifactRenderProfileAdmission
         if (!ReducerConventionInput.TryRead(profile, applicationName, out _))
         {
             mismatch = "The Cratis profile carries malformed, stale, duplicate or unsupported reducer convention configuration.";
+            return false;
+        }
+
+        if (!ReducerMigrationInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries malformed or duplicate reducer migration evidence.";
             return false;
         }
 

@@ -92,10 +92,10 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_not_emit_http_literals_or_unmodeled_queries() => new[] { "http://", "https://", "/api/", "AllProjects" }.Any(value => Text(Artifact(SceneCompositionInput.RelativePath)!).Contains(value, StringComparison.Ordinal)).ShouldBeFalse();
 
     /// <summary>
-    /// The only components are the shell's entry point and the Stage runtime every generated application shares;
+    /// The only component is the shell's entry point, which mounts the shared Stage runtime package;
     /// a screen is composed in the Scene document, never written as its own component.
     /// </summary>
-    [Fact] void should_not_emit_screen_specific_typescript() => _plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal) && !_.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal)).Select(_ => _.RelativePath).ShouldContainOnly(".frontend/main.tsx");
+    [Fact] void should_not_emit_screen_specific_typescript() => _plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".tsx", StringComparison.Ordinal)).Select(_ => _.RelativePath).ShouldContainOnly(".frontend/main.tsx");
 
     bool MatchesPattern(string value) => Regex.IsMatch(value, $"^(?:{_input.GetProperty("pattern").GetString()})$", RegexOptions.None, TimeSpan.FromSeconds(1));
 

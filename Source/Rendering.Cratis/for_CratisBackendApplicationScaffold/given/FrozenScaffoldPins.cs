@@ -56,7 +56,8 @@ internal static class FrozenScaffoldPins
                 ("scene.engine", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
                 ("scene.model", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
                 ("scene.primereact", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
-                ("scene.react", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0")
+                ("scene.react", frontend.ScenePackageVersion, previous ? "4.22.1" : "4.67.0"),
+                ("stage.runtime", ScaffoldPackageVersions.StageRuntime, "1.0.0")
             ];
             foreach (var pin in pins)
             {
@@ -71,8 +72,13 @@ internal static class FrozenScaffoldPins
     {
         plan.TargetVersion.ShouldEqual(CratisBackendApplicationScaffoldProfile.Current.CratisPackageVersion);
         return ArtifactRenderPlan.ComputeDigest(
-            plan.Target, TargetVersion, plan.Renderer, plan.RendererVersion, plan.ApplicationName,
-            [.. (artifacts ?? plan.Artifacts).Select(Normalize)], plan.Diagnostics);
+            plan.Target,
+            TargetVersion,
+            plan.Renderer,
+            plan.RendererVersion,
+            plan.ApplicationName,
+            [.. (artifacts ?? plan.Artifacts).Select(Normalize)],
+            plan.Diagnostics);
     }
 
     internal static PlannedArtifact Normalize(PlannedArtifact artifact) => artifact.Kind == PlannedArtifactKind.Text

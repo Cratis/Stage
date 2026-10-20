@@ -9,6 +9,7 @@ using Cratis.Stage.Conformance.Specs.for_PortableMatches.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
@@ -35,7 +36,7 @@ public class when_refusing_unrepresentable_patterns : Specification
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PortableMatches", "PortableMatches"));
         rendered.Success.ShouldBeFalse();
         rendered.Artifacts.ShouldBeEmpty();
-        var diagnostic = rendered.Diagnostics.Single();
+        var diagnostic = rendered.Diagnostics.WithoutAuthenticatedDefaultNotes().Single();
         diagnostic.Code.ShouldEqual("STAGE-ESM-005");
         diagnostic.Message.ShouldContain("QuantifierOrCaptureGroupOutOfRange");
         diagnostic.Artifact.ShouldEqual(concept ? model.Application.Concepts.Single(value => value.Name == "Match0Concept").Id : plan.Commands.Values.Single(command => command.Validations.Length == 1).Id);

@@ -61,6 +61,10 @@ internal static class SemanticCommonArtifactRenderer
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }
 
+    internal static bool IsGeneratable(SemanticConcept concept, SemanticApplicationContext context) =>
+        NeedsFactory(concept, context) && (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
+            ? SemanticGenerationShapes.Supported(concept) : concept.Primitive == SemanticPrimitiveType.Uuid);
+
     static CSharpCodeBuilder Builder(SemanticApplicationContext context, bool qualified) =>
         (qualified ? new CSharpCodeBuilder() : new(new ImportRequest(context.CommonNamespace, GeneratedProjects.Application, context.GeneratedTypes, [])))
             .Namespace(context.CommonNamespace);
@@ -121,12 +125,11 @@ internal static class SemanticCommonArtifactRenderer
         context.IdentifierConcepts.Contains(concept.Id) || context.Commands.Values.Any(command =>
             command.Properties.Any(property => property.IsGenerated && property.Type.Target == concept.Id));
 
-    static bool IsGeneratable(SemanticConcept concept, SemanticApplicationContext context) =>
-        NeedsFactory(concept, context) && (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
-            ? SemanticGenerationShapes.Supported(concept) : concept.Primitive == SemanticPrimitiveType.Uuid);
-
     static string GenerationInterface(SemanticConcept concept, SemanticApplicationContext context, CSharpCodeBuilder builder) =>
-        IsGeneratable(concept, context) ? $", {builder.Type(new("Cratis.Concepts", UsesGenerationContext(concept, context) ? "IGeneratableInContext" : "IGeneratable", 1, ReferenceContext.Type))}<{Identifiers.ToPascalCase(concept.Name)}>" : string.Empty;
+        IsGeneratable(concept, context) ? $", {GeneratableType(concept, context, builder)}" : string.Empty;
+
+    static string GeneratableType(SemanticConcept concept, SemanticApplicationContext context, CSharpCodeBuilder builder) =>
+        $"{builder.Type(new("Cratis.Concepts", UsesGenerationContext(concept, context) ? "IGeneratableInContext" : "IGeneratable", 1, ReferenceContext.Type))}<{Identifiers.ToPascalCase(concept.Name)}>";
 
     static bool UsesGenerationContext(SemanticConcept concept, SemanticApplicationContext context) =>
         IsGeneratable(concept, context) && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationRendering.UsesContext(concept.Generation);
@@ -137,7 +140,12 @@ internal static class SemanticCommonArtifactRenderer
         var usesContext = UsesGenerationContext(concept, context);
         var value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
-        builder.Line($"public static {Identifiers.ToPascalCase(concept.Name)} New({parameters}) => new({value});").BlankLine();
+        var name = Identifiers.ToPascalCase(concept.Name);
+
+        // A concept named New cannot declare a member named New (CS0542); Arc only reaches the factory through
+        // IGeneratable, so the colliding factory implements the interface explicitly and the type keeps its name.
+        var factory = name == "New" && IsGeneratable(concept, context) ? $"static {name} {GeneratableType(concept, context, builder)}.New" : $"public static {name} New";
+        builder.Line($"{factory}({parameters}) => new({value});").BlankLine();
         SemanticGenerationRendering.RenderBody(builder, concept, context);
     }
 

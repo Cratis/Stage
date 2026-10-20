@@ -30,6 +30,21 @@ describe('when executing a command in a page served under a path prefix', () => 
         new URL(urls[0], 'http://localhost').pathname.should.equal('/api/play/0d0f6d8e-1f5c-4a9f-9b57-6a1f6a5b7c11/api/projects/register');
     });
 
+    it('should post under the prefix when the Arc configuration carries the empty default base path', async () => {
+        registerCommand('RegisterProject', RegisterProject);
+        globalThis.history.replaceState(null, '', '/api/play/0d0f6d8e-1f5c-4a9f-9b57-6a1f6a5b7c11/#/Suppliers');
+        const urls: string[] = [];
+        vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+            urls.push(String(input));
+            return new Response(JSON.stringify(commandResult()));
+        }));
+
+        // The Arc context a Stage runs under is the library default: its base path is the empty string, not undefined.
+        await executeRegisteredCommand('RegisterProject', { name: 'Hermes' }, { microservice: '', apiBasePath: '' });
+
+        new URL(urls[0], 'http://localhost').pathname.should.equal('/api/play/0d0f6d8e-1f5c-4a9f-9b57-6a1f6a5b7c11/api/projects/register');
+    });
+
     it('should leave the root of a host alone', async () => {
         globalThis.history.replaceState(null, '', '/#/Suppliers');
         hostedBasePath().should.equal('');

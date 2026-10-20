@@ -47,7 +47,7 @@ export async function executeRegisteredCommand(name: string, values: Record<stri
 
     const command = new commandType();
     command.setMicroservice(arc.microservice);
-    command.setApiBasePath(arc.apiBasePath ?? hostedBasePath());
+    command.setApiBasePath(arc.apiBasePath || hostedBasePath());
     command.setOrigin(arc.origin ?? '');
     command.setHttpHeadersCallback(arc.httpHeadersCallback ?? (() => ({})));
     for (const descriptor of command.propertyDescriptors) {

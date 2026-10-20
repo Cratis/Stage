@@ -55,7 +55,7 @@ public class when_a_command_generates_its_identifier : Specification
         };
         var screen = new Screen(
             "NewPurchaseOrder",
-            scene.Layouts[0].Name,
+            string.Empty,
             new Dictionary<string, IReadOnlyList<SceneElement>>(StringComparer.Ordinal) { [DefaultLayout.ContentSlotName] = [form] },
             [new Form("CreatePurchaseOrderForm", "CreatePurchaseOrder", null, [], FormGenerationMode.Auto)],
             []);

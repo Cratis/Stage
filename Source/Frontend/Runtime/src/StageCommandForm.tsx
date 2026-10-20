@@ -2,10 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createContext, useContext, useMemo, useState } from 'react';
+import { ArcContext } from '@cratis/arc.react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
-import { registeredCommand, commandOutcome } from './commandExecutor';
+import { registeredCommand, commandOutcome, hostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
@@ -45,6 +46,9 @@ interface StageCommandContent {
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
     const closeDialog = useContext(StageDialogContext);
+    const arc = useContext(ArcContext);
+    // A live Stage mounts no Arc provider, so the form's command would post to the root of the host; under Studio's Play that is not the Stage.
+    const hostedArc = useMemo(() => ({ ...arc, apiBasePath: arc.apiBasePath || hostedBasePath() }), [arc]);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
@@ -73,31 +77,33 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
 
     return (
         <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
-            <NativeCommandForm
-                key={populationKey}
-                command={commandType}
-                initialValues={initialValues}
-                currentValues={argumentValues}
-                validateOn='both'
-                validateAllFieldsOnChange
-                onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
-                onException={exceptionMessages => setMessages(exceptionMessages)}
-                onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
-                onSuccess={() => {
-                    setMessages([]);
-                    data.refreshAfterCommand();
+            <ArcContext.Provider value={hostedArc}>
+                <NativeCommandForm
+                    key={populationKey}
+                    command={commandType}
+                    initialValues={initialValues}
+                    currentValues={argumentValues}
+                    validateOn='both'
+                    validateAllFieldsOnChange
+                    onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
+                    onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
+                    onException={exceptionMessages => setMessages(exceptionMessages)}
+                    onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
+                    onSuccess={() => {
+                        setMessages([]);
+                        data.refreshAfterCommand();
 
-                    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
-                    const destination = text(element, 'navigateToScreen');
-                    if (destination) navigateToScreen(destination, {});
-                    closeDialog?.();
-                }}>
-                {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                {renderedFields}
-                {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>Execute {form.label}</button>
-            </NativeCommandForm>
+                        // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+                        const destination = text(element, 'navigateToScreen');
+                        if (destination) navigateToScreen(destination, {});
+                        closeDialog?.();
+                    }}>
+                    {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
+                    {renderedFields}
+                    {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
+                    <button type='submit'>Execute {form.label}</button>
+                </NativeCommandForm>
+            </ArcContext.Provider>
         </section>
     );
 }

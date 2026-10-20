@@ -54,7 +54,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
                 Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
             })
             .ToList();
-        return layouts.Count > 0 ? layouts : [DefaultLayout.Create()];
+        return layouts;
     }
 
     static void ConvertModuleScreens(
@@ -133,7 +133,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
-            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
+            ConvertModuleScreens(module, layouts.FirstOrDefault()?.Name ?? string.Empty, screens, scope);
         }
 
         var runtime = new SceneRuntimeAdmission();

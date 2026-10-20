@@ -86,7 +86,7 @@ describe('a guarded action', () => {
     it('is bound to the item its nearest data declaration reads', () => {
         const bound = actionIn(details(closeAction())) as { properties: Record<string, unknown> };
         expect(bound.properties.itemQuery).toBe('GetWorkItem');
-        expect(bound.properties.itemArguments).toEqual({ workItemId: { path: 'parameters.workItemId' } });
+        expect(bound.properties.itemArguments).toEqual({ workItemId: { path: 'screen.keys.workItemId' } });
     });
 
     it('executes its command with the item values when the guard holds', async () => {

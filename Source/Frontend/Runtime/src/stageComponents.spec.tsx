@@ -701,7 +701,7 @@ describe('a native command form', () => {
         expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }));
     });
 
-    it('fails visibly for object and array command schema fields', () => {
+    it('fails visibly for object and array command schema fields it cannot describe', () => {
         const form = element('payload-form', 'Stage:commandForm', {
             command: 'SubmitPayload',
             label: 'Submit payload',
@@ -710,7 +710,7 @@ describe('a native command form', () => {
                 required: ['payload'],
                 properties: {
                     payload: { type: 'object' },
-                    tags: { type: 'array', items: { type: 'string' } },
+                    tags: { type: 'array' },
                 },
             }),
         });
@@ -782,6 +782,19 @@ describe('a synthesized action', () => {
             method: 'POST',
             body: JSON.stringify({ invoiceNumber: 'INV-7', amount: 13 }),
         }));
+    });
+
+    it('closes the dialog its form was opened in once the command succeeded, so the next step of a wizard is reachable', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult() }));
+
+        render(<StageAction element={action} slots={{}} />);
+        fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
+        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+
+        await waitFor(() => expect(screen.queryByRole('button', { name: /Execute/ })).toBeNull());
+        expect(screen.getByRole('button', { name: 'Register invoice' })).toBeDefined();
     });
 
     it('shows the validation the command rejected with', async () => {

@@ -1,6 +1,6 @@
 {
-  "corpusVersion": "4.226.0",
-  "minimumVectorCount": 72,
+  "corpusVersion": "4.236.0",
+  "minimumVectorCount": 75,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "ScreenCompositionCorpus": "Scene and screen-composition vectors, not executable semantic models; for_ScreenCompositionCorpus covers them.",
@@ -24,14 +24,24 @@
         { "code": "STAGE-ESM-011", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 500 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 },
         { "code": "STAGE-ESM-032", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
-        { "code": "STAGE-ESM-050", "artifact": "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067", "byDesign": "Chronicle's projection engine adds one event property, so a product of two event values cannot be rendered; the executor and the Host run it (Screenplay decision 0098)." } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 } ] }
     },
     "AcmeSecondAdmissionsCorpus.V30": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "supported" }
+    },
+    "AnonymousPoliciesCorpus.V31": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:1044f5e087ce41e758839dcf6cc4a1b0552cc81e8685f4122f565e6f2db674cc", "issue": 635 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:2fce06421cd504038d1092963f9b4427d802f54e8c337ff82c5c64d9635079db", "issue": 635 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 } ] }
     },
     "AtomicReactionBatchesCorpus.Legacy": {
       "loader": { "outcome": "supported" },
@@ -2384,7 +2394,7 @@
       "executor": { "outcome": "n/a:no-specifications" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-050", "artifact": "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016", "byDesign": "Chronicle's projection engine adds one event property, so a product of two event values cannot be rendered; the executor and the Host run it (Screenplay decision 0098)." } ] }
+        { "code": "STAGE-ESM-050", "artifact": "sem1:569083a6f62ce80edfc569cac4c7b0cfa3985680155539e45d7e1cfc180f5016", "byDesign": "Chronicle's projection engine adds one event property: the renderer carries a product of two event properties on the event, but this vector's factor is not an event property, so it cannot be rendered; the executor and the Host run it (Screenplay decision 0098)." } ] }
     },
     "EsmGoldenVectors.V3": {
       "loader": { "outcome": "supported" },
@@ -2444,6 +2454,16 @@
       "executor": { "outcome": "supported" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "supported" }
+    },
+    "EsmGoldenVectors.V31": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 },
+        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:1db13c0fcc4ff99c791724e53c87ceb0160d682e21a6051dc0cebdf322629a78", "issue": 635 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 } ] }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },
@@ -3192,6 +3212,23 @@
       "executor": { "outcome": "expected-refusal" },
       "host": { "outcome": "supported" },
       "renderer": { "outcome": "supported" }
+    },
+    "SourcelessGivensCorpus.V2": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "refused", "refusals": [
+        { "code": "capability:Projection[a-flat-transition-must-use]", "artifact": "sem1:01e45e8990b7afa50c7861e284e13ce4dbbdf9187619d907e7fdfa910cbc5fcc", "issue": 635 } ] },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "capability:Projection[a-flat-transition-must-use]", "kind": "specification", "artifact": "sem1:720bc552e398dcb0280a9b099f71e602e20f0d85379df0dd5a5587ca6c2884b6", "issue": 635 },
+        { "code": "capability:Projection[a-flat-transition-must-use]", "kind": "specification", "artifact": "sem1:92f778ee890b29cf4df278c18c7e6be6257d67418eb9e8437b05bf242be29ed6", "issue": 635 },
+        { "code": "capability:Projection[a-flat-transition-must-use]", "kind": "specification", "artifact": "sem1:a3d88a4b416e68e941ff3f76c6f86d4986276f247c02f28962525a4fbf13600c", "issue": 635 },
+        { "code": "capability:Projection[a-scoped-event-source-key]", "kind": "specification", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 635 },
+        { "code": "capability:Projection[a-scoped-event-source-key]", "kind": "specification", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 635 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-011", "artifact": "sem1:1b08d1d0a5daf55b4f519cac1d4d0953dae08ecde03c4aee8b73035756482fa3", "issue": 635 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:3c7c890ec6ca1640d84591e6964b246ed36aba952e7d5b5ad49946bce3cc8d53", "issue": 635 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:720bc552e398dcb0280a9b099f71e602e20f0d85379df0dd5a5587ca6c2884b6", "issue": 635 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:92f778ee890b29cf4df278c18c7e6be6257d67418eb9e8437b05bf242be29ed6", "issue": 635 },
+        { "code": "STAGE-ESM-011", "artifact": "sem1:ae9161725b66dba5f44cb7d352714ccb5528860c3e4c4c5c1df81d56e184421b", "issue": 635 } ] }
     },
     "StoredEventNamesCorpus.V16": {
       "loader": { "outcome": "supported" },

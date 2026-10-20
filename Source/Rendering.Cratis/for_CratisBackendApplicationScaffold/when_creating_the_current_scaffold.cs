@@ -31,6 +31,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     ];
 
     [Fact] void should_create_the_exact_backend_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_expectedPaths).ShouldBeTrue();
+    [Fact] void should_not_emit_repository_files() => _first.Select(PathOf).Any(path => path.StartsWith(".github/", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_hashes() => _second.Select(input => input.Sha256).SequenceEqual(_first.Select(input => input.Sha256)).ShouldBeTrue();

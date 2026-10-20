@@ -21,8 +21,8 @@ internal static partial class SemanticCratisAdmission
         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
-            slice.ReadModels.Any(model => slice.Projections.Count(_ => _.ReadModel == model.Id) +
-                slice.Reducers.Count(_ => _.ReadModel == model.Id) != 1))
+            slice.ReadModels.Any(model => !context.PerformedQueryRejections.ContainsKey(model.Id) && slice.Projections.Count(_ => _.ReadModel == model.Id) +
+                slice.Reducers.Count(_ => _.ReadModel == model.Id) != ExpectedBuilders(context, slice, model)))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
@@ -30,6 +30,12 @@ internal static partial class SemanticCratisAdmission
 
         foreach (var readModel in slice.ReadModels)
         {
+            if (context.PerformedQueryRejections.TryGetValue(readModel.Id, out var performedRejection))
+            {
+                diagnostics.Add(Error("STAGE-ESM-007", performedRejection, readModel.Id));
+                continue;
+            }
+
             var projection = slice.Projections.SingleOrDefault(_ => _.ReadModel == readModel.Id);
             var composite = SemanticVersionFeatures.HasCompositeKey(readModel);
             if (readModel.Properties.Any(_ => !TypeExists(context, _.Type)) || (!composite && readModel.Properties.Count(_ => _.IsIdentifier) != 1))
@@ -127,12 +133,22 @@ internal static partial class SemanticCratisAdmission
         foreach (var query in slice.Queries.Where(query => ValidateQueryAuthorization(context, query, diagnostics)))
         {
             var readModel = slice.ReadModels.SingleOrDefault(_ => _.Id == query.ReadModel);
+            if (context.PerformedQueries.Contains(query.Id))
+            {
+                continue;
+            }
+
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
             {
                 diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor a collection query the renderer can preserve.", query.Id));
             }
         }
     }
+
+    // A read model is built by exactly one projection or reducer, or - when a performer answers a query for it - by that performer alone.
+    static int ExpectedBuilders(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel model) =>
+        slice.Queries.Any(query => query.ReadModel == model.Id && context.PerformedQueries.Contains(query.Id)) &&
+        slice.Projections.All(projection => projection.ReadModel != model.Id) && slice.Reducers.All(reducer => reducer.ReadModel != model.Id) ? 0 : 1;
 
     static bool ReadModelQueryNamesAreUnique(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel readModel)
     {

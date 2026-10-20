@@ -3,6 +3,8 @@
 
 using SceneCommon = Cratis.Scene.Model.Common;
 using SceneNavigation = Cratis.Scene.Model.Navigation;
+using SceneStructure = Cratis.Scene.Model.Structure;
+using SceneToolbar = Cratis.Scene.Model.Toolbar;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
@@ -20,7 +22,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </para>
 /// <para>
 /// An item's target is a <see cref="SceneCommon.DestinationReference"/> naming the module and, when written, the dotted feature path. A grouping
-/// item with no target keeps none. Titles stay as written, a <c language="csharp">$strings.&lt;key&gt;</c> token included, as every other label does.
+/// item with no target keeps none. An application toolbar button of a topbar region (decision 0098) is carried as Scene's <see cref="SceneNavigation.NavigationButton"/>, its slice
+/// written as the qualified id the structure knows and its <c language="csharp">authorize</c> requirement as the policy expression it was written as. Titles stay as written, a <c language="csharp">$strings.&lt;key&gt;</c> token included, as every other label does.
 /// </para>
 /// </remarks>
 public static class NavigationConverter
@@ -38,50 +41,54 @@ public static class NavigationConverter
     /// <param name="application">The compiled <see cref="ScreenplaySyntax.ApplicationSyntax"/>.</param>
     /// <param name="diagnostics">The collector for omissions, or null to omit them silently as the throwing converter always did.</param>
     /// <returns>The <see cref="SceneNavigation.NavigationModel"/>, empty when the document declares no region.</returns>
-    public static SceneNavigation.NavigationModel Convert(ScreenplaySyntax.ApplicationSyntax application, ConversionDiagnostics? diagnostics)
+    public static SceneNavigation.NavigationModel Convert(ScreenplaySyntax.ApplicationSyntax application, ConversionDiagnostics? diagnostics) =>
+        Convert(application, diagnostics, null);
+
+    /// <summary>
+    /// Converts the navigation of a compiled application, writing each application toolbar button's slice as the qualified id the structure knows.
+    /// </summary>
+    /// <param name="application">The compiled <see cref="ScreenplaySyntax.ApplicationSyntax"/>.</param>
+    /// <param name="diagnostics">The collector for omissions, or null to omit them silently as the throwing converter always did.</param>
+    /// <param name="structure">The structure a button's slice reference is resolved against, or null to keep it as written.</param>
+    /// <returns>The <see cref="SceneNavigation.NavigationModel"/>, empty when the document declares no region.</returns>
+    public static SceneNavigation.NavigationModel Convert(ScreenplaySyntax.ApplicationSyntax application, ConversionDiagnostics? diagnostics, SceneStructure.ApplicationStructure? structure)
     {
-        ReportButtons(application, diagnostics);
         var layout = application.Layouts?.FirstOrDefault();
         var regions = layout?.Navigation.ToList() ?? [];
         var logo = regions.Select(region => region.Logo).FirstOrDefault(candidate => candidate is not null);
 
         return new SceneNavigation.NavigationModel(
             new SceneNavigation.ApplicationNavigation(
-                [.. regions.Select(region => Convert(region, applicationLevel: true))],
+                [.. regions.Select(region => Convert(region, applicationLevel: true, structure))],
                 logo is null ? null : new SceneNavigation.ApplicationLogo(logo.Image, logo.Title)),
             [.. application.Modules
                 .Where(module => module.Navigation.Any())
-                .Select(module => new SceneNavigation.ModuleNavigation(module.Name, [.. module.Navigation.Select(region => Convert(region, applicationLevel: false))]))]);
+                .Select(module => new SceneNavigation.ModuleNavigation(module.Name, [.. module.Navigation.Select(region => Convert(region, applicationLevel: false, structure))]))]);
     }
 
-    // Application-level toolbar buttons (Screenplay ESM-free source construct, decision 0098): Scene's NavigationRegion carries items only, so
-    // a button in a navigation topbar cannot reach a running Stage today. Say so instead of dropping it unseen.
-    static void ReportButtons(ScreenplaySyntax.ApplicationSyntax application, ConversionDiagnostics? diagnostics)
-    {
-        if (diagnostics is null)
-        {
-            return;
-        }
-
-        var regions = (application.Layouts ?? []).SelectMany(layout => layout.Navigation)
-            .Concat(application.Modules.SelectMany(module => module.Navigation));
-        foreach (var button in regions.SelectMany(region => region.Buttons))
-        {
-            diagnostics.Report(new(
-                "STAGE-SCENE-NAV-001",
-                Cratis.Screenplay.Diagnostics.DiagnosticSeverity.Error,
-                "application toolbar button",
-                button.Slice ?? button.Id,
-                button.Location,
-                $"Application toolbar button '{button.Id}' was omitted: Scene's navigation regions carry items only, so a button in 'navigation topbar' cannot be rendered yet."));
-        }
-    }
-
-    static SceneNavigation.NavigationRegion Convert(ScreenplaySyntax.NavigationRegionSyntax region, bool applicationLevel) =>
+    static SceneNavigation.NavigationRegion Convert(ScreenplaySyntax.NavigationRegionSyntax region, bool applicationLevel, SceneStructure.ApplicationStructure? structure) =>
         new(
             region.Region == ScreenplaySyntax.NavigationRegionKind.Sidebar ? SceneNavigation.NavigationRegionKind.Sidebar : SceneNavigation.NavigationRegionKind.Topbar,
             [.. region.Items.Select(Convert)],
-            applicationLevel ? null : ModeOf(region.Mode));
+            applicationLevel ? null : ModeOf(region.Mode),
+            region.Buttons.Any() ? [.. region.Buttons.Select(button => Convert(button, structure))] : null);
+
+    static SceneNavigation.NavigationButton Convert(ScreenplaySyntax.ToolbarButtonSyntax button, SceneStructure.ApplicationStructure? structure) =>
+        new(
+            button.Id,
+            button.Title,
+            button.Slice is null ? null : StructureConverter.QualifiedSlice(structure, button.Slice),
+            button.Emphasis is { } emphasis ? Enum.Parse<SceneToolbar.ToolbarEmphasis>(emphasis.ToString(), ignoreCase: true) : null,
+            button.Icon,
+            button.Authorize is { } authorize ? Describe(authorize.Requirement) : null);
+
+    // The policy a button needs, as the requirement was written: a policy name, or names combined with 'and' and 'or'.
+    static string Describe(ScreenplaySyntax.PolicyRequirementSyntax requirement) => requirement switch
+    {
+        ScreenplaySyntax.PolicyReferenceSyntax reference => reference.Name,
+        ScreenplaySyntax.LogicalPolicyRequirementSyntax logical => $"({Describe(logical.Left)} {logical.Operator.ToString().ToLowerInvariant()} {Describe(logical.Right)})",
+        _ => string.Empty
+    };
 
     static SceneNavigation.NavigationRegionMode? ModeOf(ScreenplaySyntax.NavigationRegionMode mode) => mode switch
     {

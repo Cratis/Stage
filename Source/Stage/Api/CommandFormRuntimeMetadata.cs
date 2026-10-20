@@ -151,6 +151,11 @@ static class CommandFormRuntimeMetadata
             ["fields"] = form.Fields
         };
 
+        if (form.PopulateSource is not null)
+        {
+            properties["populateSource"] = form.PopulateSource;
+        }
+
         ApplyCommandMetadata(properties, form.ForCommand, command, form.Fields);
 
         return new SceneElements.ExternalComponent

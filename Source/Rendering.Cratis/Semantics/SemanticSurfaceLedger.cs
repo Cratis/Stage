@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.226.0; exact ESM v1–v30 pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.236.0; exact ESM v1–v30 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -150,6 +150,7 @@ internal static class SemanticSurfaceLedger
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
         // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
+        Add(entries, "SemanticImplementationRequirement", rendered, "QueryShape");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
         Add(entries, "SemanticAttachmentResolution", ignored("Resolved and unresolved attachments retain whole-envelope verification (STAGE-ESM-020)."), "Resolved UnresolvedFile");
         Add(entries, "SemanticAttachmentResolution", rejected(SemanticVersionFeatures.PendingCommandHandler), "Pending");
@@ -307,6 +308,9 @@ internal static class SemanticSurfaceLedger
         // Role claim URIs cannot preserve the separate Screenplay roles/claims boundary (011/015).
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
+
+        // ESM v31 anonymous access: Stage admits ESM v1-v30 pairs only, so a model that uses it is refused whole (STAGE-ESM-016) before any condition renders.
+        Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");

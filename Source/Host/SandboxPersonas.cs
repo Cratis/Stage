@@ -62,8 +62,8 @@ internal sealed class SandboxPersonas
     static IEnumerable<(string Artifact, SemanticAuthorization Requirement)> Requirements(ExecutableSemanticModel model)
     {
         var slices = SemanticHostModelWalker.Slices(model).ToArray();
-        var readModels = slices.SelectMany(located => located.Slice.ReadModels.Select(readModel =>
-            (readModel.Id, TypeName: $"{located.TypeNamespace}.{ModelNaming.ToIdentifier(readModel.Name)}"))).ToDictionary(entry => entry.Id, entry => entry.TypeName);
+        var readModels = slices.SelectMany(located => located.Slice.ReadModels)
+            .ToDictionary(readModel => readModel.Id, readModel => ModelNaming.ToIdentifier(readModel.Name));
         foreach (var located in slices)
         {
             foreach (var command in located.Slice.Commands.Where(command => command.Authorization is not null))
@@ -73,7 +73,8 @@ internal sealed class SandboxPersonas
 
             foreach (var query in located.Slice.Queries.Where(query => query.Authorization is not null))
             {
-                yield return ($"{readModels[query.ReadModel]}.{ModelNaming.ToIdentifier(query.Name)}", query.Authorization!);
+                // The HTTP surface places a query under the slice that declares it, even when its read model lives elsewhere.
+                yield return ($"{located.TypeNamespace}.{readModels[query.ReadModel]}.{ModelNaming.ToIdentifier(query.Name)}", query.Authorization!);
             }
         }
     }

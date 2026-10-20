@@ -50,6 +50,9 @@ internal static class multimodule_source
                 itemId ItemId
                 name String
               query CatalogItems => CatalogItem[]
+            slice StateView CatalogReport
+              query SpecialCatalogItems => CatalogItem[]
+                authorize Special
             slice StateChange Rename
               command RenameItem
                 itemId ItemId identifier

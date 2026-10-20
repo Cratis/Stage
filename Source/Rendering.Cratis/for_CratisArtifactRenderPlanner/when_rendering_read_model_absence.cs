@@ -113,15 +113,15 @@ public class when_rendering_read_model_absence : Specification
         }));
         """;
 
-    static Assembly LoadWithArtifacts(IEnumerable<RenderedFile> files) => RenderedOutput.Load(files.Select(file => file with
+    internal static Assembly LoadWithArtifacts(IEnumerable<RenderedFile> files, string explicitArtifacts = ExplicitArtifacts) => RenderedOutput.Load(files.Select(file => file with
     {
         // The dynamically loaded assembly is outside the process-wide discovery snapshot.
         Content = file.RelativePath.Contains("_is_projected", StringComparison.Ordinal)
-            ? file.Content.Replace(" _scenario = new();", ExplicitArtifacts, StringComparison.Ordinal)
+            ? file.Content.Replace(" _scenario = new();", explicitArtifacts, StringComparison.Ordinal)
             : file.Content
     }));
 
-    static async Task RunProjected(Assembly assembly)
+    internal static async Task RunProjected(Assembly assembly)
     {
         var types = assembly.GetTypes().Where(type => type.Name.Contains("_is_projected", StringComparison.Ordinal)).ToArray();
         types.ShouldNotBeEmpty();

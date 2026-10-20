@@ -49,6 +49,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected)
     {
+        if (CanSeedProjectedAbsence(context, specification) && SemanticProjectionSpecificationSeeds.Contains(specification, expected)) return true;
         var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == expected.ReadModel);
         if (reducer is not null)
         {

@@ -55,10 +55,10 @@ internal static class SemanticReadModelSpecificationRenderer
         IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> replay = [];
         if (command is not null)
         {
-            replay = absentIndex is not null ? ReplayForAbsence(context, specification, command)
+            replay = absentIndex is not null || !specification.GivenReadModels.IsEmpty ? ReplayForAbsence(context, specification, command)
                 : ReplayOf(context.Application, specification, expected, projection, reducer, command);
         }
-        var givenEvents = reducer is null ? specification.GivenEvents : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
+        var givenEvents = reducer is null ? SemanticProjectionSpecificationSeeds.Given(specification, projection!) : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
@@ -71,7 +71,9 @@ internal static class SemanticReadModelSpecificationRenderer
             behavior += $"_without_{Identifiers.ToSnakeCase(readModel.Name)}_{index + 1}";
         }
         var builder = Builder(behavior, located, readModel, context);
-        var needsCommon = false;
+        var seeds = SemanticProjectionSpecificationSeeds.For(specification, readModel.Id).ToArray();
+        var needsCommon = seeds.Any(seed => readModel.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+            seed.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type)));
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
 
         context.Docs(specification.Id).Render(builder)
@@ -79,7 +81,8 @@ internal static class SemanticReadModelSpecificationRenderer
             .Line($"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .BlankLine()
-            .OpenBlock(givenEvents.Count == 0 && replay.Count == 0 ? "void Establish()" : "async global::System.Threading.Tasks.Task Establish()");
+            .OpenBlock(givenEvents.Count == 0 && replay.Count == 0 && seeds.Length == 0 ? "void Establish()" : "async global::System.Threading.Tasks.Task Establish()");
+        if (seeds.Length > 0) SemanticProjectionSpecificationSeeds.Render(builder, specification, readModel, types);
         foreach (var given in givenEvents)
         {
             var givenEvent = context.Events[given.EventContract];

@@ -85,7 +85,9 @@ internal static class SemanticRunProjections
                 }
                 foreach (var removal in scope.Removals)
                 {
-                    DefineRemoval(builder, types.For(removal.EventContract));
+                    var keyProperty = removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } }
+                        ? plan.Events[removal.EventContract].Properties.Single(property => property.Id == id).Name : null;
+                    DefineRemoval(builder, types.For(removal.EventContract), keyProperty);
                 }
             }
             else
@@ -135,15 +137,20 @@ internal static class SemanticRunProjections
             if (!Observes(projection, fact.EventContract)) continue;
             var destination = context.Destinations[index];
 
-            // Admitted projections are independent event-source-keyed folds. A fixture replaces that
-            // key's projected history; only action and reaction facts may subsequently change it.
+            // A fixture replaces that key's history, including property-keyed removals.
+            // Only action and reaction facts may subsequently change it.
+            var projectedKey = projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
+            var fixtureKey = projectedKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
+                ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
             if (index < context.WorldFixture.GivenEvents.Length && Seeds(context, projection.ReadModel)
-                .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, destination)))
+                .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, fixtureKey)))
             {
                 continue;
             }
             var key = destination switch
             {
+                // Match the private log key used for an unsourced semantic append.
+                SemanticNullValue => "stage:semantic-null",
                 SemanticTextValue text => text.Value,
                 SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
                 SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
@@ -222,15 +229,24 @@ internal static class SemanticRunProjections
 #pragma warning restore CHR0002
     }
 
-    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType) =>
+    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>
         typeof(SemanticRunProjections).GetMethod(nameof(RemoveEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder], null);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, keyProperty], null);
 
-    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder)
+    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, string? keyProperty)
     {
         // The generic parameter is a runtime-emitted event contract, as in DefineEvent.
 #pragma warning disable CHR0002
-        builder.RemovedWith<TEvent>();
+        if (keyProperty is null)
+        {
+            builder.RemovedWith<TEvent>();
+        }
+        else
+        {
+            var parameter = Expression.Parameter(typeof(TEvent), "@event");
+            var key = Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter);
+            builder.RemovedWith<TEvent>(removed => removed.UsingKey(key));
+        }
 #pragma warning restore CHR0002
     }
 

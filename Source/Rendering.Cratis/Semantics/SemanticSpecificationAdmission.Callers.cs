@@ -40,7 +40,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (specification.When is not null || specification.WhenAppended is not null ||
             specification.GivenCaller is not null || !specification.GivenEvents.IsEmpty ||
-            specification.GivenReadModels.Length != 1 || specification.ThenQueries.Length != 1 ||
+            specification.GivenReadModels.Length != 1 || specification.ThenQueries.Length != 1 || !specification.ThenAbsentReadModels.IsEmpty ||
             !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty ||
             !specification.ThenErrors.IsEmpty || specification.ThenDenied)
         {

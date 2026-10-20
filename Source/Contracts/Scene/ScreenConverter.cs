@@ -57,6 +57,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public static class ScreenConverter
 {
+    static readonly string[] ToolbarSlotNames = ["toolbar", "actions"];
+
     /// <summary>
     /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> that attaches no interactions.
     /// </summary>
@@ -191,10 +193,40 @@ public static class ScreenConverter
                 slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}", scope, attached),
                 StringComparer.Ordinal);
 
+            ContributeFeatureToolbars(screen.Name, templateReference.Name, slotContent, scope, attached);
             return (templateReference.Name, slotContent);
         }
 
         return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name, scope, attached)));
+    }
+
+    // The toolbars the feature and the module above the screen declare are the buttons of the toolbar slot of the template the screen fills, after
+    // what the screen puts there itself. A template the document declares tells which slot that is; a template of a package is taken to have the usual one.
+    static void ContributeFeatureToolbars(
+        string screenName,
+        string template,
+        Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> slotContent,
+        BehaviorScope scope,
+        ICollection<SceneInteractions.Behavior> attached)
+    {
+        if (scope.FeatureToolbars.Count == 0)
+        {
+            return;
+        }
+
+        string? slot = ToolbarSlotNames[0];
+        if (scope.DeclaredTemplateSlots.TryGetValue(template, out var declared))
+        {
+            slot = ToolbarSlotNames.FirstOrDefault(name => declared.Contains(name, StringComparer.OrdinalIgnoreCase));
+        }
+
+        if (slot is null)
+        {
+            return;
+        }
+
+        var contributed = ScreenDirectiveConverter.Convert(scope.FeatureToolbars, $"{screenName}.{slot}.feature", scope, attached);
+        slotContent[slot] = [.. slotContent.GetValueOrDefault(slot) ?? [], .. contributed];
     }
 
     static Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> ContentSlot(IReadOnlyList<SceneElements.SceneElement> content) =>

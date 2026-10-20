@@ -28,13 +28,18 @@ internal static class SandboxIdentity
             return;
         }
 
+        app.Use((context, next) =>
+        {
+            context.Request.Headers.Remove("x-ms-client-principal");
+            context.Request.Headers.Remove("x-ms-client-principal-id");
+            context.Request.Headers.Remove("x-ms-client-principal-name");
+            return next(context);
+        });
+
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), api =>
         {
             api.Use((context, next) =>
             {
-                context.Request.Headers.Remove("x-ms-client-principal");
-                context.Request.Headers.Remove("x-ms-client-principal-id");
-                context.Request.Headers.Remove("x-ms-client-principal-name");
                 context.User = principal is null ? new ClaimsPrincipal(new ClaimsIdentity())
                     : new ClaimsPrincipal(principal.Identities.Select(identity => new ClaimsIdentity(identity)));
 

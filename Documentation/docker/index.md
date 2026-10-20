@@ -319,7 +319,9 @@ This changes only the Stage host, never rendered applications or their authentic
 Stage selects the default persona once at startup:
 
 1. Use the persona named by a `Cratis.Blueprint.Default.userMenu` component's literal `role` property.
-2. Otherwise, use the first declared persona. With no personas, leave the caller anonymous.
+2. Otherwise, use the persona whose policies satisfy the most module-level `authorize` requirements, in
+   declaration order when tied.
+3. Otherwise, use the first declared persona. With no personas, leave the caller anonymous.
 
 The same model selects the same persona and claims across fresh or warm sessions. The persona receives
 roles and literal claims synthesized from its declared policies, not every role in the model. Stage skips
@@ -329,7 +331,7 @@ comes from the user menu's literal `name` property, or the persona name. Startup
 and its roles. A persona lacking a required role still receives `403` for that operation.
 
 Arc's forwarded-header trust remains off. In sandbox mode, Stage removes incoming `x-ms-client-principal`,
-`x-ms-client-principal-id` and `x-ms-client-principal-name` headers before Arc executes. It also replaces any
+`x-ms-client-principal-id` and `x-ms-client-principal-name` headers from every request before Arc executes. It also replaces any
 incoming principal with the server-selected persona, or an anonymous principal when the model has no
 personas. Sending headers or an existing authenticated identity cannot select another persona or add roles.
 To use another persona, change the modeled user menu's `role` and restart the session.

@@ -30,9 +30,31 @@ internal sealed class SandboxPersonaSelection : ScreenplaySyntaxWalker
             }
         }
 
-        var first = personas.FirstOrDefault();
-        return first is null ? null : (first, menu is null ? first.Name : Property(menu, "name") ?? first.Name);
+        var chosen = ModulePersona(application, personas) ?? personas.FirstOrDefault();
+        return chosen is null ? null : (chosen, menu is null ? chosen.Name : Property(menu, "name") ?? chosen.Name);
     }
+
+    static PersonaSyntax? ModulePersona(ApplicationSyntax application, PersonaSyntax[] personas)
+    {
+        var modules = application.Modules
+            .Where(module => module.Authorize is not null)
+            .Select(module => PolicyNames(module.Authorize!.Requirement).ToHashSet(StringComparer.Ordinal))
+            .ToArray();
+        return personas
+            .Select((persona, index) => (persona, index, admitted: modules.Count(policies => persona.Policies.Any(policies.Contains))))
+            .Where(candidate => candidate.admitted > 0)
+            .OrderByDescending(candidate => candidate.admitted)
+            .ThenBy(candidate => candidate.index)
+            .Select(candidate => candidate.persona)
+            .FirstOrDefault();
+    }
+
+    static IEnumerable<string> PolicyNames(PolicyRequirementSyntax requirement) => requirement switch
+    {
+        PolicyReferenceSyntax reference => [reference.Name],
+        LogicalPolicyRequirementSyntax logical => PolicyNames(logical.Left).Concat(PolicyNames(logical.Right)),
+        _ => []
+    };
 
     static string? Property(ScreenComponentSyntax component, string name) =>
         (component.Properties.FirstOrDefault(property => property.Property == name)?.Value as LiteralExpressionSyntax)?.Value as string;

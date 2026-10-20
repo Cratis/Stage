@@ -25,7 +25,9 @@ public class with_a_sourceless_given_event : Specification
         _artifacts = plan.Artifacts.Length;
     }
 
-    [Fact] void should_reject_the_unrepresentable_null_destination() => _errors.ShouldContain("STAGE-ESM-011");
+    [Fact] void should_reject_the_unrepresentable_null_destination() => _errors.ShouldContain("STAGE-ESM-051");
+    [Fact] void should_not_use_the_generic_refusal() => _errors.ShouldNotContain("STAGE-ESM-011");
+    [Fact] void should_name_the_specification_and_event() => _reasons.Any(_ => _.Contains("'IssuingFirstInvoice'", StringComparison.Ordinal) && _.Contains("'InvoiceIssued'", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_explain_the_null_destination() => _reasons.Any(_ => _.Contains("null destination", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_emit_no_partial_artifacts() => _artifacts.ShouldEqual(0);
 }

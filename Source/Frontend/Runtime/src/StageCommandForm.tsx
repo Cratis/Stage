@@ -229,8 +229,10 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
  * every identifier it does not show to the session, as it always has.
  *
- * An identifier that a row the person could select carries (`selectableRows`) names an entity that already exists: with no row selected the session
- * does not invent it, so the value stays missing until a row is chosen.
+ * The address wins, then the selected row, then the identity the session already holds: a row the person selected is the entity the action is
+ * about, even when the session holds another one. An identifier that a row the person could select carries (`selectableRows`) names an entity
+ * that already exists: with no row selected the session does not invent it, so the value stays missing until a row is chosen. The identifier
+ * a task dialog acts on (`x-identity`) is still created - the basket a shopper starts - even when a row on the screen shows the same name.
  */
 export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = [], selectableRows: Record<string, unknown>[] = []): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
@@ -238,7 +240,8 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        const value = suppliedIdentifier(property, parameters) ?? selectedIdentifier(property, selectedRows) ?? (!carriedBy(property, selectableRows) && (property.identity || !marked) ? sessionIdentity(property.identifier) : undefined);
+        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || heldSessionIdentity(property.identifier)
+            || (property.identity || (!marked && !carriedBy(property, selectableRows)) ? sessionIdentity(property.identifier) : undefined);
         if (value !== undefined) values[property.name] = value;
     }
 

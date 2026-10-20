@@ -38,6 +38,9 @@ public class and_screens_sit_in_modules_and_features : Specification
 
     [Fact] void should_record_the_module_and_feature_a_screen_was_declared_in() => _result.Screens.Single(_ => _.Name == "InvoiceList").Path.ToArray().ShouldEqual(["Invoicing", "Browsing"]);
     [Fact] void should_record_every_level_of_a_nested_feature() => _result.Screens.Single(_ => _.Name == "InvoiceAudit").Path.ToArray().ShouldEqual(["Invoicing", "Browsing", "Auditing"]);
+    [Fact] void should_record_the_slice_that_declared_a_screen_as_its_owner() => _result.Screens.Single(_ => _.Name == "InvoiceList").Owner.ShouldEqual("Invoicing.Browsing.Listing");
+    [Fact] void should_qualify_the_owner_of_a_screen_in_a_nested_feature_by_every_level() => _result.Screens.Single(_ => _.Name == "InvoiceAudit").Owner.ShouldEqual("Invoicing.Browsing.Auditing.Auditing");
+    [Fact] void should_record_an_owner_for_every_screen_a_slice_declared() => _result.Screens.Select(_ => _.Owner).Order().ToArray().ShouldEqual(["Invoicing.Browsing.Auditing.Auditing", "Invoicing.Browsing.Listing"]);
     [Fact] void should_attach_what_the_module_contributes_to_the_screens_beneath_it() => _result.Screens.All(_ => _.Contributions.Any(contribution => (string?)contribution.Content.Properties["label"] == "Invoicing home")).ShouldBeTrue();
     [Fact] void should_record_the_module_alone_as_where_a_module_contribution_was_declared() => ((string[])ModuleEntry("InvoiceList").Properties![SceneElementProperties.Hierarchy]!).ShouldEqual(["Invoicing"]);
     [Fact] void should_carry_the_authored_navigation_metadata_of_a_module_contribution() => string.Join('|', new[] { "id", "icon", "presentation", "group" }.Select(name => ModuleEntry("InvoiceList").Properties[name])).ShouldEqual("nav:invoicing|receipt|primary|Billing");

@@ -81,7 +81,7 @@ public static class SceneSynthesizer
         var commands = slices
             .SelectMany(located => located.Slice.Commands)
             .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(model.Application, group.First().Properties, diagnostics, group.Key, SourceLocation.Start)))
+            .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(model.Application, group.First().Properties.Where(property => !property.IsGenerated), diagnostics, group.Key, SourceLocation.Start)))
             .Where(entry => entry.Schema is not null)
             .ToDictionary(entry => entry.Name, entry => CommandFormRuntimeMetadata.FromSchema(entry.Name, entry.Schema!), StringComparer.Ordinal);
         var enriched = CommandFormRuntimeMetadata.Apply(scene, commands) with

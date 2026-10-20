@@ -3,6 +3,7 @@
 
 import { afterEach } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
+import { registerQueryRouteResolver } from './queryExecutor';
 import { clearBindings } from '@cratis/scene.components';
 
 // The specs run in parallel and each draws a whole application shell; a loaded runner needs more than the one second a query waits by default.
@@ -11,4 +12,5 @@ configure({ asyncUtilTimeout: 5000 });
 afterEach(() => {
     cleanup();
     clearBindings();
+    registerQueryRouteResolver(undefined);
 });

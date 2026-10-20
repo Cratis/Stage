@@ -102,8 +102,11 @@ React stay application dependencies, pinned to the versions the runtime declares
 
 To migrate an application rendered before this change, render it again. The CLI removes the managed
 `.frontend/stage/*` copies that are unchanged from what Stage emitted. A copy you edited is refused, and the render
-stops until you delete or restore each edited copy; `--force` does not cover it. Build the application against an unreleased Stage by installing a packed
-runtime in your own working copy; the render itself never writes a local path.
+stops until you delete or restore each edited copy; `--force` does not cover it. A user-owned
+`.frontend/vite-env.d.ts` also stops the render.
+
+To build against an unreleased Stage, install a packed runtime in your own working copy.
+The render itself never writes a local path.
 
 The emitted frontend takes exact Cratis package pins from Stage's `Source/Frontend/package.json`, including
 Scene, Components, Fundamentals and Arc React's form custom-validation gate. The generated backend takes its

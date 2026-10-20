@@ -27,9 +27,9 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     }
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("75b478192ca199a7c69dd80dcc72d2bef198cb0a606e3284e2285c8393d563a6");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("f95594ac02650dba02a116bd27251b8b287e761f1826e91687d1315abd94a194");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("6245f073a868b07c76917953b5c3e4e16f3dbb0e5a38f3895eb81d4eb491624e");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("2326288b6b8ce70d0a44a23c6f4564cb48512e019d5f68f851abe7eb13333816");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("20384623a69daed922e9f8fea22379d642e041fa5030c7f86c575877d8201ff6");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("27f3484ab16f7418feb9b3aef8fd01cfdb428dba5bf290689d90e6957fc391a4");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

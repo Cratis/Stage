@@ -7,6 +7,7 @@ import { PrimeReactProvider } from '@primereact/core/config';
 import 'primeicons/primeicons.css';
 import '@cratis/scene.primereact/primeReactTheme.css';
 import { CratisComponentsProvider } from '@cratis/components';
+import { Arc } from '@cratis/arc.react';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
 import { App, StageSourceProvider, stageTheme, type StageRoutes } from '@cratis/stage.runtime';
 import { StagePackagesFailed, loadStagePackages } from './stagePackages';
@@ -15,6 +16,7 @@ import { Browser } from './read-models/Browser';
 import { isBrowserPath } from './read-models/path';
 import { httpStageSource } from './httpStageSource';
 import { registerStageCommands } from './host/commandRegistration';
+import { registerStageQueries } from './host/queryRegistration';
 
 // PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
 // License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
@@ -48,6 +50,7 @@ async function start() {
             routes = await httpStageSource.routes(abort.signal);
             if (!routes) throw new Error('Stage routes could not be loaded.');
             registerStageCommands(routes);
+            registerStageQueries(routes);
         }
     } catch (reason) {
         console.warn('Stage command routes could not be loaded; rendering without registered commands.', reason);
@@ -67,9 +70,11 @@ async function start() {
                           Cratis.Components renders with, live exactly as in a generated application. Approved custom
                           packages add theirs beside it; the Stage's own never lose a name to them.
                         */}
-                        <StageSourceProvider source={source}>
-                            <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
-                        </StageSourceProvider>
+                        <Arc queryDirectMode>
+                            <StageSourceProvider source={source}>
+                                <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
+                            </StageSourceProvider>
+                        </Arc>
                     </CratisComponentsProvider>
                 )}
             </PrimeReactProvider>

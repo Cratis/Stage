@@ -134,6 +134,29 @@ Existing applications migrate one read model at a time: the self-reducing model 
 the classic reducer's observer identity and the plan requires removing the old file.
 See [migrating a classic read model](plan-from-sources.md#migrating-a-classic-read-model).
 
+## Frontend query execution
+
+Stage tables and guarded actions resolve the modeled query name to a registered Arc query proxy.
+A route only disambiguates proxies sharing that name; an unregistered query is not fetched directly.
+Generated applications register their generated proxies. The live Stage host registers native Arc
+query proxies from its discovered routes before rendering.
+
+Snapshot queries use Arc's `perform` with the configured origin, API base path, microservice and
+HTTP identity headers. Route parameters are substituted by Arc; remaining arguments go in the
+query string for GET queries. Queries wait until their required argument bindings are ready.
+Observable queries use Arc's configured subscription transport (including the native hub for
+generated proxies with their fully qualified query names). Only the live Stage host configures its
+Arc provider with `queryDirectMode`, preserving its direct per-route transport because its proxies
+have routes rather than fully qualified backend query identities. Queries unsubscribe when their
+view or arguments change. The SSE EventSource relies on the browser's cookie policy, not the HTTP headers callback.
+If no first ready subscription result arrives within 15 seconds, Stage unsubscribes and performs
+one read through Arc to surface a rejection rather than leave the view loading indefinitely.
+After the first ready result, Arc owns reconnection.
+
+The generated-application build harness packs the runtime after running `npm ci` in
+`Source/Frontend`, resetting that checkout's `node_modules`. Do not run frontend checks
+concurrently with that harness in the same checkout.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter
@@ -218,6 +241,14 @@ A release step explicitly admits the baseline; rendering never does. Run
 `screenplay baseline check <root>` in CI to gate edits. Its resolved-schema equality
 is not Chronicle's schema compatibility relation. The destination check remains
 separate: baseline warnings do not bypass `CheckPublication` or `STAGE-EVENT-002`.
+
+The live semantic sandbox treats translation integrations differently from generated applications:
+`STAGE-ESM-032` public events and event projections, `STAGE-ESM-033` foreign events and event-source
+captures, and `STAGE-ESM-024` Translate slices and captures appear as `renderedAround` admission entries.
+Public events are published locally only; inbound translation requires seeded foreign facts and never polls
+external sources. These entries do not block unrelated local execution. Non-event reactions and other
+unsupported behavior still refuse admission. This does not relax renderer or legacy-engine admission;
+see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution).
 
 ## Generated C# whole numbers
 

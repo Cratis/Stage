@@ -297,7 +297,7 @@ function usePopulatedValues(element: ExternalComponent, schema: SchemaProperty[]
     const query = useStageQuery({
         scope: `populate:${text(element, 'command')}`,
         name: queryName,
-        route: queryName ? data.routes?.queries[queryName] : undefined,
+        route: queryName ? data.routes?.queries?.[queryName] : undefined,
         arguments: queryArguments,
         ready,
         publish: false,

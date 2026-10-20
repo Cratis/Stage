@@ -133,7 +133,7 @@
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"
-               Text="Required scaffold PackageVersion '%(_ScaffoldPackage.Identity)' is missing from Directory.Packages.props." />
+               Text="Required scaffold pin '%(_ScaffoldPackage.Identity)' is missing. Check Directory.Packages.props, or the Stage Version property for @cratis/stage.runtime." />
         <WriteLinesToFile File="$(IntermediateOutputPath)ScaffoldPackageVersions.g.cs" Overwrite="true" WriteOnlyWhenDifferent="true"
                           Lines="// &lt;auto-generated /&gt;;namespace Cratis.Stage.Rendering.Cratis.Scaffolding%3B;internal static class ScaffoldPackageVersions {;@(_ScaffoldPackage->'internal const string %(Constant) = &quot;%(PinVersion)&quot;%3B');}" />
         <ItemGroup>

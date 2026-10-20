@@ -45,6 +45,16 @@ describe('when serializing live-host date fields', () => {
         serialized('birthDate', value).should.equal(JSON.stringify({ birthDate: value }));
     });
 
+    it('should treat a normalized initial calendar date as unchanged and restore it after an edit', () => {
+        command.setInitialValues({ birthDate: '2020-01-01' });
+        command.hasChanges.should.be.false;
+        serialized('birthDate', new Date(2020, 0, 2));
+        command.hasChanges.should.be.true;
+        command.revertChanges();
+        command.hasChanges.should.be.false;
+        JsonSerializer.serialize({ birthDate: Reflect.get(command, 'birthDate') }).should.equal('{"birthDate":"2020-01-01"}');
+    });
+
     it('should preserve an existing DateOnly value', () => {
         serialized('birthDate', DateOnly.parse('2020-01-01')).should.equal('{"birthDate":"2020-01-01"}');
     });

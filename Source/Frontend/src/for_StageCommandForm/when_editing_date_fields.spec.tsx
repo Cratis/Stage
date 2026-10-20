@@ -5,6 +5,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, chai, describe, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
 import { FormGenerationMode } from '@cratis/scene.model';
+import { Command } from '@cratis/arc/commands';
+import { PropertyDescriptor } from '@cratis/arc/reflection';
+import { DateOnly } from '@cratis/fundamentals';
+import { registerCommand } from '@cratis/scene.components';
 import { StageCommandForm } from '../../Runtime/src/StageCommandForm';
 import { StageDataProvider } from '../../Runtime/src/stageData';
 import { element } from '../../Runtime/src/testElements';
@@ -16,8 +20,24 @@ chai.should();
 const schema = JSON.stringify({ properties: { birthDate: { type: 'string', format: 'date' } }, required: ['birthDate'] });
 const routes = { commands: { SaveBirthDate: '/api/birth-date' }, queries: { GetBirthDate: '/api/birth-date/draft' }, commandSchemas: { SaveBirthDate: schema } };
 
-function view(parameters: Record<string, string> = {}, properties: Record<string, unknown> = {}) {
-    registerStageCommands(routes);
+function registerPlainSetterCommand(type: typeof DateOnly | typeof Date) {
+    class SaveBirthDate extends Command {
+        readonly route = 'api/birth-date';
+        readonly propertyDescriptors = [new PropertyDescriptor('birthDate', type, true)];
+        get requestParameters(): string[] { return []; }
+        private _birthDate: unknown;
+        get birthDate() { return this._birthDate; }
+        set birthDate(value: unknown) {
+            this._birthDate = value;
+            this.propertyChanged('birthDate');
+        }
+        constructor() { super(Object, false); }
+    }
+    registerCommand('SaveBirthDate', SaveBirthDate);
+}
+
+function view(parameters: Record<string, string> = {}, properties: Record<string, unknown> = {}, register = () => registerStageCommands(routes)) {
+    register();
     return render(<PrimeReactProvider><StageDataProvider routes={routes} parameters={parameters} locale='en' locales={['en']} screen='Dates'>
         <StageCommandForm element={element('date-form', 'Stage:commandForm', {
             command: 'SaveBirthDate', label: 'Birth date', schema, generationMode: FormGenerationMode.Auto,
@@ -62,6 +82,34 @@ describe('when editing date-only command fields', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
 
         await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: '2020-01-01' }));
+    });
+
+    it.each([{ type: DateOnly, name: 'DateOnly' }, { type: Date, name: 'Date' }])('should submit the picked calendar day through a plain-setter $name proxy', async ({ type }) => {
+        const fetched = vi.fn().mockResolvedValue(new Response(JSON.stringify(commandResult())));
+        vi.stubGlobal('fetch', fetched);
+        view({ birthDate: '2020-01-02' }, {}, () => registerPlainSetterCommand(type));
+
+        const day = screen.getByRole('spinbutton', { name: /day/i });
+        fireEvent.keyDown(day, { key: 'ArrowDown' });
+        day.textContent!.should.equal('1');
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+
+        await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: '2020-01-01' }));
+    });
+
+    it('should keep a cleared date null through a plain-setter proxy', async () => {
+        const fetched = vi.fn().mockResolvedValue(new Response(JSON.stringify(commandResult())));
+        vi.stubGlobal('fetch', fetched);
+        const optionalSchema = JSON.stringify({ properties: { birthDate: { type: 'string', format: 'date' } }, required: [] });
+        view({ birthDate: '2020-01-01' }, { schema: optionalSchema }, () => registerPlainSetterCommand(DateOnly));
+
+        for (const segment of screen.getAllByRole('spinbutton')) {
+            const digits = segment.textContent!.length;
+            for (let digit = 0; digit < digits; digit++) fireEvent.keyDown(segment, { key: 'Backspace' });
+        }
+        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+
+        await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: null }));
     });
 
     it('should include time selection for a date-time field', () => {

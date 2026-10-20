@@ -34,6 +34,16 @@ function commandTypeFor(route: string, schema: string, responseKind?: string): n
         readonly propertyDescriptors = descriptors;
         get requestParameters(): string[] { return []; }
 
+        override setInitialValues(values: object): void {
+            const initialValues: Record<string, unknown> = { ...values };
+            for (const descriptor of descriptors) {
+                if (descriptor.type === DateOnly && Object.hasOwn(initialValues, descriptor.name)) {
+                    initialValues[descriptor.name] = dateOnlyValue(initialValues[descriptor.name]);
+                }
+            }
+            super.setInitialValues(initialValues);
+        }
+
         constructor() {
             super(responseType, false);
             const values: Record<string, unknown> = {};

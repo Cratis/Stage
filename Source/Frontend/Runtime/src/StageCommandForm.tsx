@@ -200,7 +200,9 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
 
 // Arc binds currentValue directly from the command; the accessor only identifies the property.
 const StageCalendarField = withCommandFormFieldBinding((props: ComponentProps<typeof CalendarField>) =>
-    <CalendarField {...props} currentValue={props.showTime ? props.currentValue : calendarDate(props.currentValue)} />);
+    <CalendarField {...props}
+        currentValue={props.showTime ? props.currentValue : calendarDate(props.currentValue)}
+        onValueChange={value => props.onValueChange?.(!props.showTime && value instanceof Date && !Number.isNaN(value.getTime()) ? DateOnly.fromDate(value) : value)} />);
 
 function calendarDate(value: unknown): unknown {
     if (value instanceof DateOnly) return value.toDate();

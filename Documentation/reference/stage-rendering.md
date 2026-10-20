@@ -219,6 +219,14 @@ A release step explicitly admits the baseline; rendering never does. Run
 is not Chronicle's schema compatibility relation. The destination check remains
 separate: baseline warnings do not bypass `CheckPublication` or `STAGE-EVENT-002`.
 
+The live semantic sandbox treats translation integrations differently from generated applications:
+`STAGE-ESM-032` public events and event projections, `STAGE-ESM-033` foreign events and event-source
+captures, and `STAGE-ESM-024` Translate slices and captures appear as `renderedAround` admission entries.
+Public events are published locally only; inbound translation requires seeded foreign facts and never polls
+external sources. These entries do not block unrelated local execution. Non-event reactions and other
+unsupported behavior still refuse admission. This does not relax renderer or legacy-engine admission;
+see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution).
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,

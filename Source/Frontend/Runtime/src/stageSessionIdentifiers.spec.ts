@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { schemaPropertiesOf, sessionIdentifiers } from './StageCommandForm';
+import { schemaPropertiesOf, selectedIdentifier, sessionIdentifiers } from './StageCommandForm';
 
 const schema = JSON.stringify({
     type: 'object',
@@ -44,5 +44,31 @@ describe('when a form does not show the identifier its command is about', () => 
 
     it('should not supply a value for a property that is not an identifier', () => {
         expect(Object.keys(sessionIdentifiers([] as never, schemaPropertiesOf(schema), {}))).toEqual(['basketId']);
+    });
+});
+
+describe('when a row is selected on the screen', () => {
+    afterEach(() => globalThis.localStorage?.clear());
+
+    const fields = [{ name: 'sku', label: 'Product' }, { name: 'quantity', label: 'How many?' }];
+
+    it('should act on the selected row instead of an invented identity', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [{ basketId: 'row-1', sku: 'A' }])).toEqual({ basketId: 'row-1' });
+    });
+
+    it('should prefer the address parameter to the selected row', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), { basketId: 'b1' }, [{ basketId: 'row-1' }])).toEqual({ basketId: 'b1' });
+    });
+
+    it('should not choose between selected rows that disagree', () => {
+        const property = schemaPropertiesOf(schema).find(item => item.name === 'basketId')!;
+
+        expect(selectedIdentifier(property, [{ basketId: 'row-1' }, { basketId: 'row-2' }])).toBeUndefined();
+    });
+
+    it('should ignore a selected row that has no value for the identifier', () => {
+        const property = schemaPropertiesOf(schema).find(item => item.name === 'basketId')!;
+
+        expect(selectedIdentifier(property, [{ sku: 'A' }])).toBeUndefined();
     });
 });

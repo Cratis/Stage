@@ -49,6 +49,7 @@ import { navigateToScreen, screenArguments } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
+import { withoutSeededSlots } from './withoutSeededSlots';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -238,7 +239,11 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
-    const document = scene as ApplicationDocument;
+    // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
+    const document = useMemo(() => ({
+        ...scene,
+        screens: withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]),
+    }) as ApplicationDocument, [scene, screenTemplates]);
 
     if (!initial) {
         return (

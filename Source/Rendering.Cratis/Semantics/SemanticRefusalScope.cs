@@ -16,7 +16,7 @@ static class SemanticRefusalScope
 
         // Only specification execution gaps are safe to omit: neither code permits dropping application contracts.
         if (errors.Length == 0 || errors.Any(error =>
-            error.Code is not ("STAGE-ESM-011" or "STAGE-ESM-024") || !context.Specifications.ContainsKey(error.Artifact)))
+            error.Code is not ("STAGE-ESM-011" or "STAGE-ESM-024" or SemanticSpecificationAdmission.SourcelessGivenCode) || !context.Specifications.ContainsKey(error.Artifact)))
         {
             return [];
         }

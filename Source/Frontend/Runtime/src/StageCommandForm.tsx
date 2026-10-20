@@ -5,7 +5,8 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
-import { registeredCommand, commandOutcome } from './commandExecutor';
+import { ArcContext } from '@cratis/arc.react';
+import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
@@ -44,6 +45,7 @@ interface StageCommandContent {
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
+    const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
@@ -80,6 +82,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 currentValues={argumentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
+                onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
                 onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}

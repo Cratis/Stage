@@ -174,7 +174,7 @@ application while omitting supported specification gaps, set `CratisPlanOptions.
 profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
 `Refuse` is the other valid value; absence means `Refuse`. The input is hashed with the profile.
 
-This opt-in applies only when **every** Error is `STAGE-ESM-011` or `STAGE-ESM-024` and names
+This opt-in applies only when **every** Error is `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` and names
 a specification in the model. Stage omits only those specification files, never commands,
 events, policies, or other application contracts. Any other error still refuses the entire
 plan, including evolved events (`STAGE-ESM-026`), implementation-envelope errors, and

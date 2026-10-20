@@ -12,7 +12,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
-    const string SourcelessGivenCode = "STAGE-ESM-051";
+    /// <summary>
+    /// The code that refuses a specification whose given or appended event has no event source.
+    /// </summary>
+    internal const string SourcelessGivenCode = "STAGE-ESM-051";
     const string SourcelessGivenReason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
 
     /// <summary>
@@ -316,12 +319,15 @@ internal static partial class SemanticSpecificationAdmission
             return new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {reason}", specification.Id);
         }
 
-        var given = specification.GivenEvents.First(_ => _.EventSource is null);
-        var eventName = context.Events.TryGetValue(given.EventContract, out var @event) ? @event.Name : "an event";
+        // Projected facts lower a sourceless 'when append' into the givens, so the event may be the appended one.
+        var (role, contract) = specification.GivenEvents.FirstOrDefault(_ => _.EventSource is null) is { } given
+            ? ("given", given.EventContract)
+            : ("appended", specification.WhenAppended?.EventContract);
+        var eventName = contract is { } id && context.Events.TryGetValue(id, out var @event) ? $"'{@event.Name}'" : "an event";
         return new(
             SourcelessGivenCode,
             ArtifactRenderDiagnosticSeverity.Error,
-            $"Specification '{specification.Name}' cannot render: given event '{eventName}' has no event source. {reason}",
+            $"Specification '{specification.Name}' cannot render: {role} event {eventName} has no event source. {reason}",
             specification.Id);
     }
 }

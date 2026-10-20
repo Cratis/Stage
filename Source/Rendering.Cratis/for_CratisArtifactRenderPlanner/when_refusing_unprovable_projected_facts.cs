@@ -51,6 +51,17 @@ public class when_refusing_unprovable_projected_facts
                   name = "Ola"
         """;
 
+    const string SourcelessAppend = """
+                given LeadRegistered
+                  for "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0001"
+                  name = "Kari"
+                when append LeadRegistered
+                  name = "Ola"
+                then readmodel Leads
+                  leadId = "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0001"
+                  name = "Kari"
+        """;
+
     const string Unreached = """
                 given LeadRegistered
                   for "6f1f4a3e-0c0d-4c6a-9a41-3b6a1a0e0001"
@@ -88,6 +99,14 @@ public class when_refusing_unprovable_projected_facts
         var plan = Plan(Appended, reacts: true);
         plan.Success.ShouldBeFalse();
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Reaction append scenarios", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    void should_refuse_a_sourceless_append_with_its_own_code()
+    {
+        var plan = Plan(SourcelessAppend);
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'LeadRegistered'", StringComparison.Ordinal));
     }
 
     [Fact]

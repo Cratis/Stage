@@ -25,7 +25,8 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    const string Digest = "96ee0f3969414abc0fa0e6de7d1114f987b753052c17d0cc533d31cde8839f81";
+    // Re-frozen for #656: only scene.json and src/stage-scene.json lose the synthetic layout and defer to the blueprint.
+    const string Digest = "278eaa72d3a4dc27e57d2d9f4057f05598905b22bb7910403ea9e0e672ce8203";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -66,9 +67,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
         package.json b1e03f04b82f520dc8e726bd42eb72bc30a072790c860ebb67d70c0200393ef8 1469
-        scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
+        scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
-        src/stage-scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
+        src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/stage.ts 6182fc89c2fe5c94cffba1f5081524543ab85af664f0dbf955b280fa99f6aea7 1748
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
@@ -133,7 +134,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("04795bc5198da2ad63a90f75ceda279635ecb5862724f4db2ab209c82789ef67");
+            plan.Diagnostics).ShouldEqual("92e385171e95535c264acd74bbc11acd233ad0afdd94ddcc3d6cdc1f832cd6e8");
     }
 
     [Theory]

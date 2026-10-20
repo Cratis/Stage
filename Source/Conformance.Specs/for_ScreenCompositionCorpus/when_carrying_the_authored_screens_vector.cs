@@ -44,8 +44,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("8e742f7aa74afa0b556a4d2f03b0bcf3f6f60870611466ddf045698c7b69e76a");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23780);
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ba09e56187e6ac5b2f05d145461b650242496a3381d68f8d40758fc69924cd73");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23916);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -55,12 +55,12 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
     [Fact] void should_plan_without_warnings_or_errors() => _plan!.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("b6ef32960a238bb408cbcf7ca8040ffccebe9fe18e4fc6e8c2b1788208bfda11");
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("e1a8334e52888d118c71d5975cb5b5592cd925dea335002fd1671f55585c8970");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("d13aa9786310ecbd1fea772529c85fa41686d6f67af42d0af92712b8f237f863");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("99e9b9f343d717cca39c318eea67f980609df760a8e6674cd4fc6e6fe4c91af0");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
-        Workspaces/Tracking/WorkItemComments/Screens.scene.json 24fb27aa838c752d1032fbe31fc49502ff2b444cc2453741bb8efb08506858be 2223
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 6748a60904bb7a192d0adcd630c4788ac299907c24400bf7e4a86a2e3b68f84d 9719
-        Workspaces/Tracking/WorkItemList/Screens.scene.json 618e035f9aae088ac28293f6fce549987716e509f01cd8ef5108231bf7e89adc 6590
+        Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 10054bae285b11e3bc411abf7f1231f8745fd5eeff694db5c80b8f830a6e5e5d 9765
+        Workspaces/Tracking/WorkItemList/Screens.scene.json 997c6c77c83d9108a4a541d5e0be6e6189fc18ea3899184d0b1d5ef983b0ffb4 6633
         """);
 
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];

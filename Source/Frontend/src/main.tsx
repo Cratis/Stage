@@ -9,7 +9,7 @@ import '@cratis/scene.primereact/primeReactTheme.css';
 import { CratisComponentsProvider } from '@cratis/components';
 import { Arc } from '@cratis/arc.react';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
-import { App, StageSourceProvider, stageTheme, type StageRoutes } from '@cratis/stage.runtime';
+import { App, StageSourceProvider, hostedBasePath, stageTheme, type StageRoutes } from '@cratis/stage.runtime';
 import { StagePackagesFailed, loadStagePackages } from './stagePackages';
 import { registerSharedModules } from './sharedModules';
 import { Browser } from './read-models/Browser';
@@ -70,7 +70,11 @@ async function start() {
                           Cratis.Components renders with, live exactly as in a generated application. Approved custom
                           packages add theirs beside it; the Stage's own never lose a name to them.
                         */}
-                        <Arc queryDirectMode>
+                        {/*
+                          Arc's own requests - its identity at /.cratis/me among them - use its API base path. Under a
+                          reverse proxy prefix (Studio's Play at /api/play/{id}/) an empty one would reach the proxy's root.
+                        */}
+                        <Arc queryDirectMode apiBasePath={hostedBasePath()}>
                             <StageSourceProvider source={source}>
                                 <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
                             </StageSourceProvider>

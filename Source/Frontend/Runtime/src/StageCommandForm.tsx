@@ -9,7 +9,8 @@ import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
-import { sessionIdentifierPrefix, useStageData, useStageQuery } from './stageData';
+import { useStageData, useStageQuery } from './stageData';
+import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
 import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
@@ -218,29 +219,50 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * A required uuid property that the form does not list is that kind of identity - the screen's own parameter when it carries one, otherwise one value per
  * identifier concept for as long as this browser keeps the session - the same basket for every add, change and checkout, a different one for
  * another browser - and a command is never submitted for an identity nobody chose.
+ *
+ * A schema that marks the identifier the command acts on (`x-identity`, a task dialog's) says which one that is: only it is created, and a
+ * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
+ * every identifier it does not show to the session, as it always has.
  */
 export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    const marked = schema.some(property => property.identity);
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        values[property.name] = parameters[property.name] || sessionIdentifier(property.identifier);
+        const value = suppliedIdentifier(property, parameters) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
+        if (value !== undefined) values[property.name] = value;
     }
 
     return values;
 }
 
-function sessionIdentifier(concept: string): string {
-    const key = `${sessionIdentifierPrefix}${concept}`;
-    try {
-        const existing = globalThis.localStorage?.getItem(key);
-        if (existing) return existing;
-        const created = globalThis.crypto.randomUUID();
-        globalThis.localStorage?.setItem(key, created);
-        return created;
-    } catch {
-        return globalThis.crypto.randomUUID();
-    }
+/**
+ * Whether a task dialog leaves an identifier out of what it asks: the identifier the command acts on (`x-identity`) - the shopper's basket,
+ * which the session supplies or creates - or one the address or the session already supplies. Every other identifier is a reference to
+ * another entity - the product an add to basket is for - and is the person's to choose.
+ *
+ * @param property The property of the command.
+ * @param parameters The screen's address parameters.
+ * @returns Whether the dialog does not ask for it.
+ */
+export function suppliedWithoutAsking(property: SchemaProperty, parameters: Record<string, string>): boolean {
+    if (!property.identifier || !property.required) return false;
+    return property.identity === true || suppliedIdentifier(property, parameters) !== undefined;
+}
+
+/**
+ * The value an identifier property already has without anyone typing it: the screen's parameter of the same name, or the identity the session
+ * already holds for its concept. Nothing is created here, so a reference to another entity - the product an add to basket is for - that
+ * nothing supplies stays a value the person filling the form is asked for.
+ *
+ * @param property The property of the command.
+ * @param parameters The screen's address parameters.
+ * @returns The value, or nothing when the property is not an identifier or nothing supplies it.
+ */
+export function suppliedIdentifier(property: SchemaProperty, parameters: Record<string, string>): string | undefined {
+    if (!property.identifier) return undefined;
+    return parameters[property.name] || heldSessionIdentity(property.identifier);
 }
 
 /** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */
@@ -298,7 +320,7 @@ function populationParameter(parameter: string, path: string, schema: SchemaProp
     if (fromAddress) return fromAddress;
 
     const identity = schema.find(property => property.name === path || property.name === parameter)?.identifier;
-    if (identity) return sessionIdentifier(identity);
+    if (identity) return sessionIdentity(identity);
 
     const bound = data.resolveBinding({ path });
     return typeof bound === 'string' || typeof bound === 'number' ? bound : undefined;

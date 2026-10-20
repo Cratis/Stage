@@ -45,6 +45,16 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </remarks>
     public const string ConceptAttributesKeyword = "x-conceptAttributes";
 
+    /// <summary>
+    /// The schema keyword marking the property a command acts on: its <c language="csharp">identifier</c>, the event source it appends to.
+    /// </summary>
+    /// <remarks>
+    /// A command's own identity and a reference to another entity are both identifier concepts, so the concept alone does not tell them
+    /// apart: the basket an add to basket acts on is the session's, the product it adds is the shopper's to choose. Only a schema a task
+    /// dialog is built from carries the mark (see <see cref="WithIdentity"/>); every other schema stays as it was.
+    /// </remarks>
+    public const string IdentityKeyword = "x-identity";
+
     readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -54,6 +64,23 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     public SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts)
         : this(concepts, null)
     {
+    }
+
+    /// <summary>
+    /// Marks the property a command acts on in its schema with <see cref="IdentityKeyword"/>.
+    /// </summary>
+    /// <param name="schema">The command's JSON Schema text, as <see cref="ForProperties"/> synthesizes it.</param>
+    /// <param name="identifier">The name of the command's identifier property, or <see langword="null"/> when it declares none.</param>
+    /// <returns>The schema with the identifier marked; unchanged when there is no identifier or the schema does not describe it.</returns>
+    public static string WithIdentity(string schema, string? identifier)
+    {
+        if (identifier is null || JsonNode.Parse(schema) is not JsonObject parsed || parsed["properties"]?[identifier] is not JsonObject property)
+        {
+            return schema;
+        }
+
+        property[IdentityKeyword] = true;
+        return parsed.ToJsonString();
     }
 
     /// <summary>

@@ -19,12 +19,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </remarks>
 internal static class SemanticPerformedQueries
 {
-    /// <summary>The application the renderer sees, with every liftable performed query added to the slice of its read model.</summary>
-    /// <param name="Application">The application.</param>
-    /// <param name="Performed">The identities of the lifted queries.</param>
-    /// <param name="Rejections">Why a performed query cannot render, by the identity of the read model it returns.</param>
-    internal sealed record Lifted(SemanticApplication Application, IReadOnlySet<SemanticId> Performed, IReadOnlyDictionary<SemanticId, string> Rejections);
-
     internal static Lifted Lift(ArtifactRenderRequest request)
     {
         var application = request.Model.Application;
@@ -128,4 +122,10 @@ internal static class SemanticPerformedQueries
 
         return null;
     }
+
+    /// <summary>The application the renderer sees, with every liftable performed query added to the slice of its read model.</summary>
+    /// <param name="Application">The application.</param>
+    /// <param name="Performed">The identities of the lifted queries.</param>
+    /// <param name="Rejections">Why a performed query cannot render, by the identity of the read model it returns.</param>
+    internal sealed record Lifted(SemanticApplication Application, IReadOnlySet<SemanticId> Performed, IReadOnlyDictionary<SemanticId, string> Rejections);
 }

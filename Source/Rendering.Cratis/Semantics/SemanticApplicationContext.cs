@@ -75,16 +75,6 @@ internal sealed class SemanticApplicationContext
     public ArtifactRenderRequest Request { get; }
 
     /// <summary>
-    /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.
-    /// </summary>
-    internal IReadOnlySet<SemanticId> PerformedQueries { get; }
-
-    /// <summary>
-    /// Gets why a performed query cannot render, by the identity of the read model it returns.
-    /// </summary>
-    internal IReadOnlyDictionary<SemanticId, string> PerformedQueryRejections { get; }
-
-    /// <summary>
     /// Gets the semantic application.
     /// </summary>
     public SemanticApplication Application { get; }
@@ -156,6 +146,16 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    /// <summary>
+    /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.
+    /// </summary>
+    internal IReadOnlySet<SemanticId> PerformedQueries { get; }
+
+    /// <summary>
+    /// Gets why a performed query cannot render, by the identity of the read model it returns.
+    /// </summary>
+    internal IReadOnlyDictionary<SemanticId, string> PerformedQueryRejections { get; }
 
     internal GeneratedMemberNames MemberNames { get; }
 

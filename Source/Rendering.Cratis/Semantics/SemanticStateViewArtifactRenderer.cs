@@ -209,6 +209,12 @@ internal static class SemanticStateViewArtifactRenderer
             var path = GeneratedApiRoutes.QueryPath(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path), Identifiers.ToPascalCase(query.Name));
             documentation.Attribute($"global::Cratis.Arc.Queries.ModelBound.PathAttribute({CSharpCodeBuilder.StringLiteral(path)})");
         }
+        if (context.PerformedQueries.Contains(query.Id))
+        {
+            RenderPerformedQuery(documentation, query, readModelName, methodName, types, context);
+            return;
+        }
+
         if (query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } || !query.Filters.IsDefaultOrEmpty)
         {
             RenderCollectionQuery(documentation, query, readModel, types, context);
@@ -238,6 +244,30 @@ internal static class SemanticStateViewArtifactRenderer
         documentation.ExpressionMember(
             $"public static async global::System.Threading.Tasks.Task<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {(raw ? $"global::Cratis.Chronicle.Events.EventSourceId {argument.Name}" : argument.Parameter)})",
             $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
+    }
+
+    // A performer answers this query, and what it returns is the performer's to say: the method is the query's route, parameters and authorization, and
+    // names the performer it waits for.
+    static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)
+    {
+        var parameters = new List<string> { "global::Cratis.Chronicle.ReadModels.IReadModels readModels" };
+        if (query.Argument is not null)
+        {
+            parameters.Add(QueryArgument.For(query.Argument, types).Parameter);
+        }
+
+        parameters.AddRange(query.Filters.Select(filter => QueryArgument.For(new(filter.Id, filter.Name, filter.Type), types).Parameter + (filter.Type.IsOptional ? " = null" : string.Empty)));
+        var returnType = query switch
+        {
+            { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } => $"global::System.Reactive.Subjects.ISubject<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
+            { Cardinality: SemanticQueryCardinality.Many } => $"global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
+            _ => $"global::System.Threading.Tasks.Task<{readModelName}?>"
+        };
+        var file = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id)?.File;
+        var waiting = file is null ? $"Query '{query.Name}' is answered by a performer" : $"Query '{query.Name}' is answered by a performer ('{file}')";
+        builder.ExpressionMember(
+            $"public static {returnType} {methodName}({string.Join(", ", parameters)})",
+            $"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral($"{waiting}; Stage renders its route and shape, not its code.")})");
     }
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)

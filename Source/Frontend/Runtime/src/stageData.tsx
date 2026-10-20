@@ -9,9 +9,7 @@ import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
-
-/** Where a session keeps the identity it acts as, one per identifier concept. */
-export const sessionIdentifierPrefix = 'stage.session.';
+import { sessionIdentities } from './stageSession';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 
@@ -64,7 +62,16 @@ export interface StageDataState {
     screen: string;
     routes: StageRoutes | undefined;
     routesReady: boolean;
+
+    /** The parameters the screen's address carries - and nothing else. */
     parameters: Record<string, string>;
+
+    /**
+     * The identities the session acts as, by the name a screen parameter gives them (`basketId`). They are not the screen's parameters: only
+     * what reads the session on purpose does - a form populating the identity it does not show, the key a `data` declaration is read by
+     * when the address does not carry it (`screen.keys.<name>` in a binding), and the query bindings the session narrows.
+     */
+    session: Record<string, string>;
     queries: Record<string, QueryState>;
     selected: Record<string, unknown> | undefined;
     selections: Record<string, Record<string, unknown> | undefined>;
@@ -73,8 +80,15 @@ export interface StageDataState {
     setState: (key: string, value: unknown) => void;
     setComponentOutput: (componentId: string, path: string, value: unknown) => void;
 
-    /** Takes what the components of the rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere on the page read it. */
-    publishComponentOutputs: (outputs: Record<string, Record<string, unknown>>) => void;
+    /**
+     * Takes what the components of one rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere
+     * on the page read it. The screen and a dialog above it are each a tree of their own, so each publishes under its own scope and replaces only
+     * what it published before; see `useComponentOutputsPublisher`.
+     */
+    publishComponentOutputs: (scope: string, outputs: Record<string, Record<string, unknown>>) => void;
+
+    /** Forgets what a rendered tree published, once it is gone - a closed dialog - leaving what every other tree published. */
+    withdrawComponentOutputs: (scope: string) => void;
 
     /** The rows of every query the page has read, by scope and by query name - what a `queryResult` binding resolves against. */
     queryResults: Record<string, unknown>;
@@ -99,6 +113,7 @@ const emptyState: StageDataState = {
     routes: undefined,
     routesReady: true,
     parameters: {},
+    session: {},
     queries: {},
     selected: undefined,
     selections: {},
@@ -107,6 +122,7 @@ const emptyState: StageDataState = {
     setState: () => undefined,
     setComponentOutput: () => undefined,
     publishComponentOutputs: () => undefined,
+    withdrawComponentOutputs: () => undefined,
     queryResults: {},
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
@@ -140,8 +156,11 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
     const [componentOutputState, setComponentOutputState] = useState<Record<string, Record<string, unknown>>>({});
-    const [publishedOutputs, setPublishedOutputs] = useState<Record<string, Record<string, unknown>>>({});
+    const [outputContributions, setOutputContributions] = useState<Record<string, Record<string, Record<string, unknown>>>>({});
     const [refreshRequests, setRefreshRequests] = useState<{ query?: string; version: number }>({ version: 0 });
+
+    // What every rendered tree published, as one: the screen's selected row and a dialog's search box resolve side by side.
+    const publishedOutputs = useMemo(() => mergedOutputs(outputContributions), [outputContributions]);
 
     const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
         setQueries(current => {
@@ -154,8 +173,15 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         });
     }, []);
 
-    // What the address does not carry, the session does: the shopper's own basket is the one a command created, so a screen about "the basket" needs no id in its address.
-    const parameters = useMemo(() => ({ ...sessionParameters(), ...addressParameters }), [addressParameters, sessionVersion]);
+    // The address's parameters stay the address's: a session identity reaches only what reads the session on purpose (see `session`).
+    const parameters = addressParameters;
+
+    // A command can create the identity it acts as - the shopper's basket - so the session is read again after every command.
+    const session = useMemo(() => sessionIdentities(), [sessionVersion]);
+
+    // What the address does not carry, the session does: the shopper's own basket is the one a command created, so a screen about "the basket" - a
+    // `data` declaration read by `basketId` - needs no id in its address.
+    const screenScope = useMemo(() => ({ name: screen, keys: { ...session, ...addressParameters } }), [addressParameters, screen, session]);
 
     const selectRow = useCallback((scope: string, row: Record<string, unknown> | undefined) => {
         setSelections(current => ({ ...current, [scope]: row }));
@@ -212,13 +238,13 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         // A guard is evaluated against the item its interaction is about - a table supplies the row it happened
         // on. Resolved without one, it is nothing: the interaction engine reports it and runs neither branch.
         if (typeof binding !== 'string' && binding.path === guardPath) return undefined;
-        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screen, locale, locales);
+        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screenScope, locale, locales);
 
         const scope = bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections);
 
         // `component.<id>.<output>` reads what another element of the page publishes - the row a list has selected, the text a search box holds.
         if (!binding.kind && binding.path.startsWith('component.')) return resolveArgumentSource(binding.path, scope);
-        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screen, locale, locales);
+        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screenScope, locale, locales);
 
         const diagnostics = validateBindingExpression(binding, scope);
         if (diagnostics.length > 0) {
@@ -226,13 +252,20 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         }
 
         return createBindingResolver(scope)(binding);
-    }, [componentOutputState, locale, locales, localState, parameters, publishedOutputs, queries, screen, selected, selections]);
+    }, [componentOutputState, locale, locales, localState, parameters, publishedOutputs, queries, screenScope, selected, selections]);
 
     const resolveArgument = useCallback(
         (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections)) : undefined,
         [componentOutputState, localState, publishedOutputs, queries, selected, selections]);
 
-    const publishComponentOutputs = useCallback((outputs: Record<string, Record<string, unknown>>) => setPublishedOutputs(outputs), []);
+    const publishComponentOutputs = useCallback((scope: string, outputs: Record<string, Record<string, unknown>>) =>
+        setOutputContributions(current => ({ ...current, [scope]: outputs })), []);
+    const withdrawComponentOutputs = useCallback((scope: string) => setOutputContributions(current => {
+        if (!Object.prototype.hasOwnProperty.call(current, scope)) return current;
+        const remaining = { ...current };
+        delete remaining[scope];
+        return remaining;
+    }), []);
     const queryResults = useMemo(() => bindingScope(undefined, queries, {}, {}, {}).queryResults, [queries]);
 
     const state = useMemo<StageDataState>(() => ({
@@ -242,6 +275,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         routes,
         routesReady,
         parameters,
+        session,
         queries,
         selected,
         selections,
@@ -250,6 +284,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
         setComponentOutput,
         publishComponentOutputs,
+        withdrawComponentOutputs,
         queryResults,
         refreshQuery,
         refreshAfterCommand,
@@ -258,7 +293,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -466,6 +501,21 @@ function writePath(current: Record<string, unknown>, path: string[], value: unkn
     return { ...current, [head]: writePath(isRecord(current[head]) ? current[head] : {}, tail, value) };
 }
 
+function mergedOutputs(contributions: Record<string, Record<string, Record<string, unknown>>>): Record<string, Record<string, unknown>> {
+    const merged: Record<string, Record<string, unknown>> = {};
+    for (const outputs of Object.values(contributions)) {
+        for (const [componentId, values] of Object.entries(outputs)) merged[componentId] = { ...merged[componentId], ...values };
+    }
+
+    return merged;
+}
+
+/** What a `screen.` path reads: the screen's name, and the keys its `data` declarations are read by - the address's parameter, or the session's identity of that name. */
+interface ScreenScope {
+    name: string;
+    keys: Record<string, string>;
+}
+
 function resolvePath(
     path: string | undefined,
     selected: Record<string, unknown> | undefined,
@@ -473,7 +523,7 @@ function resolvePath(
     queries: Record<string, QueryState>,
     localState: Record<string, unknown>,
     parameters: Record<string, string>,
-    screen: string,
+    screen: ScreenScope,
     locale: string,
     locales: string[],
 ): unknown {
@@ -482,7 +532,14 @@ function resolvePath(
     const parts = path.replace(/^\$\.?/, '').split('.').filter(Boolean);
     if (parts.length === 0) return undefined;
 
-    if (parts[0] === 'screen') return parts.length === 1 ? { name: screen } : valueAt({ name: screen }, parts.slice(1));
+    if (parts[0] === 'screen') {
+        if (parts.length === 1) return { name: screen.name };
+
+        // A key neither the address nor the session carries is the one the user picked: the master list of a master-detail screen
+        // is read by what it selects, so its details wait for a row instead of asking a query that needs one without it.
+        const key = valueAt(screen, parts.slice(1));
+        return key === undefined && parts[1] === 'keys' && parts.length === 3 ? valueAt(selected, [parts[2]]) : key;
+    }
     if (parts[0] === 'locale') return locale;
     if (parts[0] === 'locales') return locales;
     if (parts[0] === 'query') return resolveQueryResult(queries, parts[1], parts.slice(2).join('.'));
@@ -510,25 +567,6 @@ function resolveQueryResult(queries: Record<string, QueryState>, query: string |
     if (parts.length === 0) return rows;
     if (rows.length === 1) return valueAt(rows[0], parts);
     return rows.map(row => valueAt(row, parts));
-}
-
-/** The identities the session holds (see `sessionIdentifier`), by the name a screen parameter gives them: `stage.session.BasketId` is `basketId`. */
-function sessionParameters(): Record<string, string> {
-    const found: Record<string, string> = {};
-    try {
-        const storage = globalThis.localStorage;
-        for (let index = 0; storage && index < storage.length; index++) {
-            const key = storage.key(index) ?? '';
-            if (!key.startsWith(sessionIdentifierPrefix)) continue;
-            const concept = key.slice(sessionIdentifierPrefix.length);
-            const value = storage.getItem(key);
-            if (concept && value) found[concept.charAt(0).toLowerCase() + concept.slice(1)] = value;
-        }
-    } catch {
-        // storage is refused: the session holds no identities, and the address carries what a screen needs
-    }
-
-    return found;
 }
 
 function routeWithArguments(route: string, queryArguments: Record<string, unknown>): string {

@@ -37,7 +37,7 @@ public class when_refusing_unsourced_property_removals_observed_by_all : Specifi
     }
 
     [Fact] void should_refuse_the_observable_invented_source() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_a_typed_specification_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("explicit, losslessly representable event source", StringComparison.Ordinal));
+    [Fact] void should_report_a_typed_specification_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'InvoiceRemoved' has no event source", StringComparison.Ordinal));
     [Fact] void should_admit_the_same_observers_with_an_explicit_source() => Assert.True(_sourcedPlan.Success, string.Join(Environment.NewLine, _sourcedPlan.Diagnostics));
     [Fact] void should_not_emit_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

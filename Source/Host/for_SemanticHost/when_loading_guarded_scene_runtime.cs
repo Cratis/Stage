@@ -65,7 +65,7 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         routesResponse.Body.ShouldContain("queries");
         using var routesDocument = System.Text.Json.JsonDocument.Parse(routesResponse.Body);
         routesDocument.RootElement.GetProperty("commandSchemas").GetProperty("RegisterProject").GetString()!
-            .ShouldEqual(CommandFormSchemas.For(model.Model.Application, SemanticModelWalker.Slices(model.Model).SelectMany(slice => slice.Slice.Commands).Single(command => command.Name == "RegisterProject").Properties));
+            .ShouldEqual(Contracts.Screenplay.SchemaSynthesizer.WithIdentity(CommandFormSchemas.For(model.Model.Application, SemanticModelWalker.Slices(model.Model).SelectMany(slice => slice.Slice.Commands).Single(command => command.Name == "RegisterProject").Properties), "projectId"));
         localesResponse.Status.ShouldEqual(StatusCodes.Status200OK);
     }
 

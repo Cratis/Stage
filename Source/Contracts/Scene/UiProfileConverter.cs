@@ -53,7 +53,8 @@ public static class UiProfileConverter
                 SampleData: SampleDataConverter.Selection(uiProfile.SampleData),
                 Root: ConvertRoot(uiProfile.Root),
                 Appearance: ConvertAppearance(uiProfile.Appearance),
-                Defaults: ConvertDefaults(uiProfile.NewScreenTemplate)));
+                Defaults: ConvertDefaults(uiProfile.NewScreenTemplate),
+                Identity: ConvertIdentity(uiProfile.Identity)));
     }
 
     /// <summary>
@@ -117,7 +118,28 @@ public static class UiProfileConverter
             ? null
             : new SceneModel.ProfileAppearance(
                 appearance.ColorScheme is null ? null : ParseColorScheme(appearance.ColorScheme),
-                appearance.Accent);
+                appearance.Accent,
+                appearance.Corners is null ? null : ParseCorners(appearance.Corners),
+                appearance.Font);
+
+    // The identity is what the application calls itself and the mark it wears; the compiler has already refused values outside Scene's rules (PLAY0797).
+    static SceneModel.ProfileIdentity? ConvertIdentity(ScreenplaySyntax.ProfileIdentitySyntax? identity) =>
+        identity is null
+            ? null
+            : new SceneModel.ProfileIdentity(identity.Name, ConvertLogo(identity), identity.ShowName);
+
+    static SceneModel.ProfileLogo? ConvertLogo(ScreenplaySyntax.ProfileIdentitySyntax identity) => identity.LogoKind switch
+    {
+        "initials" => new SceneModel.ProfileLogo(SceneModel.LogoKind.Initials, Initials: identity.LogoValue),
+        "icon" => new SceneModel.ProfileLogo(SceneModel.LogoKind.Icon, Icon: identity.LogoValue),
+        "image" => new SceneModel.ProfileLogo(SceneModel.LogoKind.Image, Image: identity.LogoValue),
+        _ => null
+    };
+
+    static SceneModel.CornerStyle ParseCorners(string name) =>
+        Enum.TryParse<SceneModel.CornerStyle>(name, ignoreCase: true, out var value) && Enum.IsDefined(value)
+            ? value
+            : throw new UnknownCornerStyleName(name);
 
     static SceneModel.ProfileDefaults? ConvertDefaults(ScreenplaySyntax.NewScreenTemplateSyntax? newScreenTemplate) =>
         newScreenTemplate is null

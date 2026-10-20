@@ -254,8 +254,12 @@ jobs:
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
-    needs: [preflight, routing]
-    if: needs.routing.outputs.reducer-mongo == 'true'
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -359,8 +363,12 @@ jobs:
   # names whose generated C# does not compile or serialize. It takes about as long as the rest of the
   # suite, so it runs next to the build job instead of inside it.
   generated-name-matrix:
-    needs: [preflight, routing]
-    if: needs.routing.outputs.generated-name-matrix == 'true'
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.routing.outputs.generated-name-matrix == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -394,7 +402,11 @@ jobs:
   # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
   # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
   standalone-generated-application:
-    needs: preflight
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -451,8 +463,12 @@ jobs:
   # handing it the approved package set and the package's browser build as `cratis run --package-set` does. A browser asserts
   # the live Stage loaded the package at runtime and rendered its component, and refused to render when the package is missing.
   live-custom-packages:
-    needs: [preflight, routing]
-    if: needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true'
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && (needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:
@@ -533,7 +549,11 @@ jobs:
   # would (Debug backend with its proxies and generated specifications, npm install, frontend build), then serves it
   # on its own backend against the pinned Chronicle kernel and runs the browser scenarios used against a live Stage.
   generated-react:
-    needs: preflight
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -605,8 +625,12 @@ jobs:
   # Renders the default blueprint's MasterDetail, Dashboard and ProfileSettings templates (Verification/blueprint-templates) into a generated React
   # application, builds it the way its author would and runs the template vector - slots filled, no overflow, layout, accessibility - against it.
   generated-react-blueprint-templates:
-    needs: [preflight, routing]
-    if: needs.routing.outputs.generated-react-blueprint-templates == 'true'
+    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.routing.outputs.generated-react-blueprint-templates == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

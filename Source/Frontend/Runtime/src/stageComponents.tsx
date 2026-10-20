@@ -16,6 +16,8 @@ import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
 import { useRowInteractions } from './stageRowInteractions';
+import { StageConfirmDialog } from './StageConfirmDialog';
+import { stageConfirmDialogComponent } from './stageDialogScreens';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -314,6 +316,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:toolbarItem': StageToolbarItem,
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
+    [stageConfirmDialogComponent]: StageConfirmDialog,
 };
 
 /** Whether an element tree contains anything the Stage can act on. */

@@ -100,7 +100,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>Execute {form.label}</button>
+                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
             </NativeCommandForm>
         </section>
     );

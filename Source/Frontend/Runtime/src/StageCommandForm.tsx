@@ -60,7 +60,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows]);
+    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    const rowAction = element.properties.rowAction === true;
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -244,14 +246,29 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * A schema that marks the identifier the command acts on (`x-identity`, a task dialog's) says which one that is: only it is created, and a
  * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
  * every identifier it does not show to the session, as it always has.
+ *
+ * The address wins, then the selected row, then the identity the session already holds: a row the person selected is the entity the action is
+ * about, even when the session holds another one. An identifier that a row the person could select carries (`selectableRows`) names an entity
+ * that already exists: with no row selected the session does not invent it, so the value stays missing until a row is chosen. The identifier
+ * a task dialog acts on (`x-identity`) is still created - the basket a shopper starts - even when a row on the screen shows the same name.
+ *
+ * An action on a list (`rowAction`) acts on the row the person selected, whatever the schema marks: an identifier a row carries comes from the
+ * address or the selected row only - never from the session, and is never created.
  */
-export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = []): StageCommandContent {
+export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = [], selectableRows: Record<string, unknown>[] = [], rowAction = false): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
     const marked = schema.some(property => property.identity);
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        const value = suppliedIdentifier(property, parameters) ?? selectedIdentifier(property, selectedRows) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
+        if (rowAction && carriedBy(property, selectableRows)) {
+            const rowValue = parameters[property.name] || selectedIdentifier(property, selectedRows);
+            if (rowValue) values[property.name] = rowValue;
+            continue;
+        }
+
+        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || heldSessionIdentity(property.identifier)
+            || (property.identity || (!marked && !carriedBy(property, selectableRows)) ? sessionIdentity(property.identifier) : undefined);
         if (value !== undefined) values[property.name] = value;
     }
 
@@ -298,6 +315,34 @@ export function selectedIdentifier(property: SchemaProperty, selectedRows: Recor
     if (!property.identifier) return undefined;
     const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
     return values.size === 1 ? [...values][0] : undefined;
+}
+
+/** Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. */
+export function carriedBy(property: SchemaProperty, rows: Record<string, unknown>[]): boolean {
+    return rows.some(row => Object.hasOwn(row, property.name));
+}
+
+/** The rows of every query the screen has read: the rows a table shows and the person could select. */
+export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
+    return Object.values(queries).flatMap(query => query.rows);
+}
+
+/**
+ * The required identifiers a command acts on that the form does not show and that a selectable row supplies, and for which no row has been
+ * selected yet and nothing else (the screen's address) supplies them. A toolbar action with any of these waits for a selected row - also when
+ * the schema marks it as the identifier the command acts on (`x-identity`), which the host does for every modeled command.
+ *
+ * @param schema The command's properties.
+ * @param parameters The screen's address parameters.
+ * @param selectedRows The rows currently selected on the screen.
+ * @param selectableRows The rows the person could select.
+ * @returns The names of the identifiers still waiting for a selection.
+ */
+export function identifiersAwaitingSelection(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[], selectableRows: Record<string, unknown>[]): string[] {
+    return schema
+        .filter(property => property.identifier && property.required && carriedBy(property, selectableRows))
+        .filter(property => !parameters[property.name] && selectedIdentifier(property, selectedRows) === undefined)
+        .map(property => property.name);
 }
 
 /** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */

@@ -4,6 +4,7 @@
 import type { ArcConfiguration } from '@cratis/arc.react';
 import { ObservableQueryFor, Paging, QueryFor, type QueryResult } from '@cratis/arc/queries';
 import { resolveExactQuery } from '@cratis/scene.components';
+import { apiBasePathFor } from './hostedBasePath';
 
 type StageQuery = QueryFor<unknown> | ObservableQueryFor<unknown>;
 type StageQueryType = new () => StageQuery;
@@ -29,7 +30,8 @@ function isQuery(candidate: unknown): candidate is StageQueryType {
 /** Applies the same host configuration as Arc's query hooks. */
 function configureQuery(query: StageQuery, arc: ArcConfiguration): void {
     query.setMicroservice(arc.microservice);
-    query.setApiBasePath(arc.apiBasePath ?? '');
+    // Without the hosted fallback a Stage served under a prefix (Studio's Play) would query the root of the proxy's host.
+    query.setApiBasePath(apiBasePathFor(arc.apiBasePath));
     query.setOrigin(arc.origin ?? '');
     query.setHttpHeadersCallback(arc.httpHeadersCallback ?? (() => ({})));
     query.paging = Paging.noPaging;

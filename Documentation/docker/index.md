@@ -330,8 +330,9 @@ previously accepted policies, and logs a warning. The audit subject is `persona:
 comes from the user menu's literal `name` property, or the persona name. Startup logs identify the persona
 and its roles. A persona lacking a required role still receives `403` for that operation.
 
-Arc's forwarded-header trust remains off. In sandbox mode, Stage removes incoming `x-ms-client-principal`,
-`x-ms-client-principal-id` and `x-ms-client-principal-name` headers from every request before Arc executes. It also replaces any
+Arc's forwarded-header trust remains off. In sandbox mode, Stage removes every incoming header whose name
+starts with `x-ms-client-principal` (any letter case) from every request, before authentication, static files
+and routing run. It also replaces any
 incoming principal with the server-selected persona, or an anonymous principal when the model has no
 personas. Sending headers or an existing authenticated identity cannot select another persona or add roles.
 To use another persona, change the modeled user menu's `role` and restart the session.

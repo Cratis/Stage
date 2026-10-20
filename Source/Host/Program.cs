@@ -88,6 +88,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+app.UseSandboxIdentityHeaders();
 if (engine == StageRuntimeEngine.EventModel)
 {
     StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));

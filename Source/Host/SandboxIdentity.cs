@@ -3,6 +3,7 @@
 
 using System.Security.Claims;
 using Cratis.Screenplay.Files;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Cratis.Stage.Host;
 
@@ -21,6 +22,35 @@ internal static class SandboxIdentity
         Use(app, principal);
     }
 
+    /// <summary>
+    /// Removes forwarded identity headers before anything else in the pipeline sees them, then authenticates.
+    /// Call first after building the application, ahead of static files and routing, so neither the
+    /// authentication handler nor a proxied endpoint receives a client-supplied identity.
+    /// </summary>
+    /// <param name="app">The application to configure.</param>
+    internal static void UseSandboxIdentityHeaders(this IApplicationBuilder app)
+    {
+        if (app.ApplicationServices.GetRequiredService<SandboxIdentityOptions>().Enabled)
+        {
+            app.Use(StripIdentityHeaders);
+        }
+
+        if (app.ApplicationServices.GetService<IAuthenticationSchemeProvider>() is not null)
+        {
+            app.UseAuthentication();
+        }
+    }
+
+    internal static Task StripIdentityHeaders(HttpContext context, Func<Task> next)
+    {
+        foreach (var name in context.Request.Headers.Keys.Where(IsIdentityHeader).ToArray())
+        {
+            context.Request.Headers.Remove(name);
+        }
+
+        return next();
+    }
+
     internal static void Use(IApplicationBuilder app, ClaimsPrincipal? principal)
     {
         if (!app.ApplicationServices.GetRequiredService<SandboxIdentityOptions>().Enabled)
@@ -28,13 +58,7 @@ internal static class SandboxIdentity
             return;
         }
 
-        app.Use((context, next) =>
-        {
-            context.Request.Headers.Remove("x-ms-client-principal");
-            context.Request.Headers.Remove("x-ms-client-principal-id");
-            context.Request.Headers.Remove("x-ms-client-principal-name");
-            return next(context);
-        });
+        app.Use(StripIdentityHeaders);
 
         app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), api =>
         {
@@ -47,4 +71,6 @@ internal static class SandboxIdentity
             });
         });
     }
+
+    static bool IsIdentityHeader(string name) => name.StartsWith("x-ms-client-principal", StringComparison.OrdinalIgnoreCase);
 }

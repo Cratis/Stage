@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_refusing_the_canonical_v5_corpus : Specification
+public class when_rendering_the_canonical_v5_corpus : Specification
 {
     ArtifactRenderRequest _request = null!;
     ArtifactRenderPlan _plan = null!;
@@ -30,16 +30,16 @@ public class when_refusing_the_canonical_v5_corpus : Specification
     void Because() => _plan = new CratisArtifactRenderPlanner().Plan(_request);
 
     [Fact] void should_load_v5() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
-    [Fact] void should_refuse_only_unsupported_fixtures() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
-    [Fact] void should_admit_the_removal_only_projection() => _plan.Diagnostics.Any(diagnostic => diagnostic.Artifact == _request.Model.Application.Modules.Single().Features.Single().Slices.Single().Projections.Single().Id).ShouldBeFalse();
-    [Fact] void should_not_refuse_scalar_absence_itself() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
-    [Fact] void should_also_collect_specification_admission() => _plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-011").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. AbsenceSpecifications()]);
-    [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_refuse_through_semantic_admission_as_well()
+    [Fact] void should_admit_seeded_absence() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_render_the_removal_only_projection() => _plan.Artifacts.ShouldContain(artifact => artifact.Sources.Contains(_request.Model.Application.Modules.Single().Features.Single().Slices.Single().Projections.Single().Id));
+    [Fact] void should_cover_absence_specifications() => AbsenceSpecifications().ShouldNotBeEmpty();
+    [Fact] void should_render_every_absence_specification() => AbsenceSpecifications().All(id => _plan.Artifacts.Any(artifact => artifact.Sources.Contains(id))).ShouldBeTrue();
+    [Fact]
+    void should_admit_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Absence", "Absence"));
-        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).ShouldBeEmpty();
     }
 
     IEnumerable<SemanticId> AbsenceSpecifications() => _request.Model.Application.Modules.SelectMany(module => module.Features)

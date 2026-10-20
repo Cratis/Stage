@@ -10,15 +10,21 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
-    internal static bool CanRenderProjectedFacts(SemanticApplicationContext context, SemanticSpecification specification) =>
-        (!specification.GivenEvents.IsEmpty || specification.ThenReadModels.IsEmpty) && HasRenderableGivenEvents(context, specification) &&
-        GivenKeysMatchProjectedProperties(context, specification) && !GivenEventsViolateConstraints(context, specification) &&
-        specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) && IsProjectedFromFacts(context, specification, expected)) &&
-        specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected));
+    internal static bool CanRenderProjectedFacts(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        var facts = SemanticProjectionFactSpecification.WithAppendedFact(specification);
+        return CanSeedProjectedAbsence(context, specification) &&
+            (!facts.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty || specification.ThenReadModels.IsEmpty) &&
+            HasRenderableGivenEvents(context, facts) && GivenKeysMatchProjectedProperties(context, facts) && !GivenEventsViolateConstraints(context, facts) &&
+            specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
+                (SemanticProjectionSpecificationSeeds.Contains(specification, expected) || IsProjectedFromFacts(context, facts, expected))) &&
+            specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected));
+    }
 
     static string ProjectedFactsRejection(SemanticApplicationContext context, SemanticSpecification specification)
     {
-        if (specification.GivenEvents.IsEmpty && !specification.ThenReadModels.IsEmpty)
+        specification = SemanticProjectionFactSpecification.WithAppendedFact(specification);
+        if (specification.GivenEvents.IsEmpty && specification.GivenReadModels.IsEmpty && !specification.ThenReadModels.IsEmpty)
         {
             return "A read model asserted without an action needs the events that project it.";
         }
@@ -33,7 +39,7 @@ internal static partial class SemanticSpecificationAdmission
             return "The events cannot be represented faithfully: each needs an explicit, losslessly representable event source and complete values.";
         }
 
-        if (specification.ThenAbsentReadModels.Any(expected => !CanAssertAbsence(context, specification, expected)))
+        if (!CanSeedProjectedAbsence(context, specification) || specification.ThenAbsentReadModels.Any(expected => !CanAssertAbsence(context, specification, expected)))
         {
             return AbsenceRejection;
         }
@@ -64,12 +70,6 @@ internal static partial class SemanticSpecificationAdmission
             KeyIdentifies(from.Key, given, expected.Key)));
     }
 
-    static bool KeyIdentifies(SemanticProjectionKey key, SemanticSpecificationEvent given, SemanticValue expected) => key switch
-    {
-        SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => Equals(given.EventSource?.Value, expected),
-        SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } =>
-            Equals(given.Values.SingleOrDefault(value => value.TargetProperty == property)?.Value, expected),
-        SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => Equals(literal.Value, expected),
-        _ => false
-    };
+    static bool KeyIdentifies(SemanticProjectionKey key, SemanticSpecificationEvent given, SemanticValue expected) =>
+        SemanticProjectionSpecificationSeeds.KeyIdentifies(key, given, expected);
 }

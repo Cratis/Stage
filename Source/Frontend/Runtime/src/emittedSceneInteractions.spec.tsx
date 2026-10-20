@@ -4,6 +4,10 @@
 import { queryResult, registerTestQueries } from './testing/queries';
 import { fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ObservableQuerySubscription } from '@cratis/arc/queries';
+import { Guid } from '@cratis/fundamentals';
+import { registerQueryIdentity } from '@cratis/scene.components';
+import { AllWorkItems } from './for_stageNavigation/given/AllWorkItems';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { stageTheme } from './stageTheme';
 import { App } from './App';
@@ -35,13 +39,18 @@ describe('the emitted screens scene in a generated application', () => {
     });
 
     beforeEach(() => {
-        registerTestQueries({ AllWorkItems: '/api/all-work-items', GetWorkItem: '/api/get-work-item' });
+        registerTestQueries({ GetWorkItem: '/api/get-work-item' });
+        registerQueryIdentity('AllWorkItems', 'Workspaces.Tracking.WorkItemList.AllWorkItems', AllWorkItems);
+        vi.spyOn(AllWorkItems.prototype, 'subscribe').mockImplementation(function (this: AllWorkItems, callback) {
+            void this.perform().then(callback);
+            return new ObservableQuerySubscription({ connect: vi.fn(), disconnect: vi.fn(), lastPingLatency: 0, averageLatency: 0 });
+        });
         globalThis.history.replaceState(null, '', '#/WorkItemList');
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
             if (url === 'stage/scene') return respond(scene);
-            if (url === 'stage/routes') return respond({ commands: { CloseWorkItem: '/api/close' }, queries: { AllWorkItems: '/api/all-work-items', GetWorkItem: '/api/get-work-item' } });
-            if (url.includes('http://localhost:3000/api/all-work-items')) return respond(queryResult({ data: items }));
+            if (url === 'stage/routes') return respond({ commands: { CloseWorkItem: '/api/close' }, queries: { GetWorkItem: '/api/get-work-item' } });
+            if (url.includes('/api/all-work-items')) return respond(queryResult({ data: items }));
             return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
         }));
     });
@@ -49,6 +58,7 @@ describe('the emitted screens scene in a generated application', () => {
     afterEach(() => {
         globalThis.history.replaceState(null, '', '#');
         vi.unstubAllGlobals();
+        vi.restoreAllMocks();
     });
 
     function doubleClick(row: HTMLElement) {
@@ -57,9 +67,13 @@ describe('the emitted screens scene in a generated application', () => {
         fireEvent.doubleClick(row);
     }
 
-    it('opens the details of an open work item on a double click', async () => {
+    it('should carry the native proxy UUID into the details address on a double click', async () => {
+        const perform = vi.spyOn(AllWorkItems.prototype, 'perform');
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
-        doubleClick((await screen.findByText('Bravo open')).closest('tr')!);
+        const row = (await screen.findByText('Bravo open')).closest('tr')!;
+        const result = await perform.mock.results[0].value;
+        expect(result.data[1].workItemId).toBeInstanceOf(Guid);
+        doubleClick(row);
 
         await waitFor(() => expect(globalThis.location.hash).toBe('#/WorkItemDetails?workItemId=bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'));
     });

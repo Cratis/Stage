@@ -64,6 +64,7 @@ internal static class SemanticHost
             options.KnownProxies.Clear();
         });
         var app = builder.Build();
+        app.UseSandboxIdentityHeaders();
         app.UseForwardedHeaders();
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
@@ -98,6 +99,7 @@ internal static class SemanticHost
         app.UseWebSockets();
         app.MapControllers();
         StageEndpointMapper.Map(app, surface);
+        app.UseSandboxIdentity(modelPath);
         app.UseCratisArc();
         app.MapOpenApi();
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());

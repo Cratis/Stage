@@ -26,6 +26,7 @@ public class when_creating_invalid_frontend_package_sets : Specification
     Exception _vitePluginReactPadded = null!;
     Exception _typesReactRange = null!;
     Exception _typesReactDomEmpty = null!;
+    Exception _lucideReactRange = null!;
 
     void Because()
     {
@@ -46,6 +47,7 @@ public class when_creating_invalid_frontend_package_sets : Specification
         _vitePluginReactPadded = Catch.Exception(() => Profile(Set(vitePluginReactPackageVersion: " 6.1.0")));
         _typesReactRange = Catch.Exception(() => Profile(Set(typesReactPackageVersion: "~19.2.18")));
         _typesReactDomEmpty = Catch.Exception(() => Profile(Set(typesReactDomPackageVersion: string.Empty)));
+        _lucideReactRange = Catch.Exception(() => Profile(Set(lucideReactPackageVersion: "^1.52.0")));
     }
 
     [Fact] void should_reject_a_wildcard_frontend_version() => _wildcardVersion.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
@@ -65,6 +67,8 @@ public class when_creating_invalid_frontend_package_sets : Specification
     [Fact] void should_reject_a_padded_vite_plugin_react_version() => _vitePluginReactPadded.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_reject_a_react_types_range() => _typesReactRange.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
     [Fact] void should_reject_an_empty_react_dom_types_version() => _typesReactDomEmpty.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
+
+    [Fact] void should_reject_a_lucide_react_range() => _lucideReactRange.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
 
     static CratisFrontendPackageSet Set(
         string arcPackageVersion = "22.23.0",
@@ -86,6 +90,7 @@ public class when_creating_invalid_frontend_package_sets : Specification
         string scenePackageVersion = "4.2.0",
         string primeReactPackageVersion = "11.1.0",
         string primeIconsPackageVersion = "8.0.1",
+        string lucideReactPackageVersion = "1.52.0",
         string primeUixThemesPackageVersion = "3.0.1",
         string typesNodePackageVersion = "26.6.2") =>
         CratisFrontendPackageSet.Create(
@@ -108,6 +113,7 @@ public class when_creating_invalid_frontend_package_sets : Specification
             scenePackageVersion,
             primeReactPackageVersion,
             primeIconsPackageVersion,
+            lucideReactPackageVersion,
             primeUixThemesPackageVersion,
             typesNodePackageVersion);
 

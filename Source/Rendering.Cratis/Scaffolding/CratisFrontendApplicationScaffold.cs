@@ -101,6 +101,7 @@ public sealed class CratisFrontendApplicationScaffold
         ("@primereact/ui", frontend.PrimeReactPackageVersion),
         ("@primeuix/themes", frontend.PrimeUixThemesPackageVersion),
         ("primeicons", frontend.PrimeIconsPackageVersion),
+        ("lucide-react", frontend.LucideReactPackageVersion),
         ("primereact", frontend.PrimeReactPackageVersion),
         ("react", frontend.ReactPackageVersion),
         ("react-dom", frontend.ReactDomPackageVersion),

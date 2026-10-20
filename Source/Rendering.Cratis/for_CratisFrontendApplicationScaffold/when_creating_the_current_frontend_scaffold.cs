@@ -133,6 +133,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "@types/react-dom=19.3.0",
             "@vitejs/plugin-react=6.1.1",
             "primeicons=8.0.2",
+            "lucide-react=1.52.0",
             "primereact=11.2.0",
             "react=19.3.0",
             "react-dom=19.3.0",

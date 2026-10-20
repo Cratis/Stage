@@ -88,6 +88,12 @@ internal static class SemanticWorldRebuilder
         }
 
         var producers = Productions(plan, contract.Id).ToArray();
+        if (exact && producers.Length == 0 && plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id))
+        {
+            // The reference evaluator cannot yet re-establish a history that holds published public events; refuse explicitly rather than guess.
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} is a local publication of public event '{contract.Name}'; the semantic sandbox cannot yet rebuild a history with published events after a restart. Start a fresh session.");
+        }
+
         var destinationType = route is null ? null : plan.Model.Application.EventSources
             .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
         if (destinationType is null)

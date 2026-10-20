@@ -35,4 +35,27 @@ public class with_local_publication : Specification
         published.Destination.ShouldEqual(accepted.Facts[0].Destination);
         published.Values.Single(value => plan.Events[published.EventContract].Properties.Single(property => property.Id == value.TargetProperty).Name == "carrier").Value.ShouldEqual(SemanticValue.Text("DHL"));
     }
+
+    [Fact]
+    public async Task should_refuse_a_restart_from_a_history_with_published_events()
+    {
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan!;
+        var log = new a_semantic_fact_log();
+        using var runtime = log.Runtime(plan, SemanticWorld.Empty);
+        var arguments = new Dictionary<string, JsonElement>
+        {
+            ["orderId"] = JsonSerializer.SerializeToElement("3fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            ["carrier"] = JsonSerializer.SerializeToElement("DHL")
+        };
+        await runtime.Execute(plan.Commands.Values.Single(), arguments, new ClaimsPrincipal(), new(DateTimeOffset.UtcNow, "subject", "name", "user"), false);
+        var stored = SemanticSeeds.Stored(plan, log.Facts.Where(fact => plan.Events[fact.EventContract].Visibility == SemanticEventVisibility.Public), 0, DateTimeOffset.UtcNow).ToArray();
+        foreach (var @event in stored)
+        {
+            @event.Context.CausedBy = new() { Subject = "subject", Name = "name", UserName = "user" };
+        }
+
+        var error = Catch.Exception(() => SemanticWorldRebuilder.Create(plan, stored, (ulong)stored.Length - 1));
+        error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
+        error.Message.ShouldContain("local publication");
+    }
 }

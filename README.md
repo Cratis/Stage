@@ -357,6 +357,6 @@ Everything Cratis publishes today is MIT licensed and free to use.
 
 <div align="center">
 
-_Part of the [Cratis](https://cratis.io) platform · Licensed under the [MIT license](LICENSE)_
+_Part of the [Cratis](https://www.cratis.io) platform · Licensed under the [MIT license](LICENSE)_
 
 </div>

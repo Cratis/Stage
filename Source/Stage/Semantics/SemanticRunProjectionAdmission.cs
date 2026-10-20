@@ -170,15 +170,22 @@ internal static class SemanticRunProjectionAdmission
             {
                 return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
+            if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier.Type)))
+            {
+                return "A per-run removal key must be the event source or one required scalar event property with the identifier's value type.";
+            }
+            var sourceKeyedRemovals = scope.Removals.Where(removal => removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity });
             if (scope.Every is { SubscribesToAllEvents: true }
-                ? reachable.Any(eventContract => !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
-                : scope.From.Select(from => from.EventContract).Concat(scope.Removals.Select(removal => removal.EventContract))
+                ? reachable.Any(eventContract => !scope.Removals.Any(removal => removal.EventContract == eventContract &&
+                    removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty }) &&
+                    !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
+                : scope.From.Select(from => from.EventContract).Concat(sourceKeyedRemovals.Select(removal => removal.EventContract))
                     .Any(eventContract => reachable.Contains(eventContract) && !ScopedKeysMatch(plan, specification, eventContract, identifier.Type)))
             {
                 return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
             }
             if (projection.Transitions.Length > 0 || scope.Joins.Length > 0 ||
-                scope.Removals.Any(removal => removal.ParentKey is not null || removal.Key is not SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) ||
+                scope.Removals.Any(removal => removal.ParentKey is not null) ||
                 scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                     mapping.Target.Length != 1 || mapping.Source is not SemanticProjectionEventSourceIdentity)) ||
@@ -197,6 +204,18 @@ internal static class SemanticRunProjectionAdmission
         }
         return null;
     }
+
+    static bool RemovalKeySupported(SemanticExecutionPlan plan, SemanticProjectionRemoval removal, SemanticTypeReference identifier)
+    {
+        if (removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) return true;
+        return removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } } &&
+            plan.Events.TryGetValue(removal.EventContract, out var @event) &&
+            @event.Properties.SingleOrDefault(candidate => candidate.Id == id) is { Type: { IsOptional: false, IsCollection: false } } property &&
+            IsScalar(property.Type) && SourceTypeMatches(plan, property.Type, identifier);
+    }
+
+    static bool SourceTypeMatches(SemanticExecutionPlan plan, SemanticTypeReference source, SemanticTypeReference identifier) =>
+        Primitive(plan, source) == Primitive(plan, identifier);
 
     static bool FlatMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionTransition transition, SemanticReadModel readModel)
     {

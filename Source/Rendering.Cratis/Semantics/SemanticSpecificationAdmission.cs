@@ -89,7 +89,7 @@ internal static partial class SemanticSpecificationAdmission
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
-                    !GivenEventsViolateConstraints(context, specification) && specification.GivenReadModels.IsEmpty &&
+                    !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
                     CommandValuesMatch(context, specification, command!) &&
                     HasOneOutcome(specification) && HasSupportedCounts(specification) &&
                     (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(context.Application, command!, specification).Length) &&

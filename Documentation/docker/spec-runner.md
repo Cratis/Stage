@@ -74,7 +74,10 @@ render date comparisons, and the legacy engines refuse them with `STAGE-ESM-046`
 covers the canonical corpus in all source forms.
 The semantic executor and Host run protected command reads, including reaction-invoked commands. After authorization and
 property/concept rules, both require each declared view at its key in the projected prior facts.
-Event-source-keyed removal and recreation are preserved. Empty, whitespace-only,
+Removal and recreation are preserved. Root removals may use the event-source identity or one required
+scalar event property whose value type matches the read-model identifier. Property-keyed removals use that
+property, not the event source, and preserve instances at other keys. Optional, missing, composite and
+parent removal keys remain refused. Empty, whitespace-only,
 exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject before projection lookup, even if an
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
@@ -370,7 +373,7 @@ make it fail. Specifications can inspect projected Given events without a comman
 Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument
 and query key as the subject. An allowed query compares its result; a denied query matches only `then denied`,
 not an empty result or `then error`. A reached opaque policy returns `Unsupported(Authorization)`. Flat scalar projections and scoped projections using
-event-source keys (text or UUID) with scalar `from`/`set` mappings run with per-specification artifacts. The
+event-source keys (text or UUID) with scalar `from`/`set` mappings and property-keyed root removals run with per-specification artifacts. The
 semantic trace includes keyed read-model and query results; a mismatched result fails the specification.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
@@ -380,13 +383,16 @@ history; subsequent command, append and reaction facts fold on top through Chron
 seeding. Other keys retain their projected history, and invoked commands read the same seeded world. Seed-only
 models can be asserted and queried without a projection. Projected seeds must contain every scalar property
 and an identifier equal to their key; partial or null projected seeds remain `Unsupported(GivenReadModel)`
-because concrete scenario records cannot preserve missing-property presence. The renderer's broader
-`STAGE-ESM-011` given-state refusal is unchanged.
+because concrete scenario records cannot preserve missing-property presence. Generated absence specifications
+also seed complete scalar records for independent projections, preserving the same history replacement and
+later command or append replay. They can assert absence beside presence at another seeded key or inspect
+seeds without an action. Partial or null seeds, seeded decision reads, reducers, dependent projection scopes
+and seeded query combinations retain `STAGE-ESM-011`.
 
 Per-run projections reject optional or composite
 read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
 properties whose generated name matches `Id` case-insensitively (including authored `id_`, `_id`, `id-`, `ID`, `iD`, and `i_d`, which collide with
-Chronicle's document key); a child `id` remains allowed. Events and commands whose property names collide after PascalCase generation with another property, their record type, synthesized or inherited members, or generated command methods block every run, even when the event is not produced by the specification. The block is `Unsupported(Projection)` if a projection references that event; otherwise it is `Unsupported(Command)`. Concept and composite-type member or generated type-name collisions also block every run as `Unsupported(Command)`, even without a projection. Per-run projections also reject joins, child or nested projections, removals, every/all mappings, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events (including in child or nested scopes) with colliding generated members, and read-model properties whose names can be interpreted as paths or collide with another generated property, the record's type, or generated query methods return `Unsupported(Projection)`. Query method overloads that compile remain allowed; duplicate generated signatures and arguments named `readModels` do not.
+Chronicle's document key); a child `id` remains allowed. Events and commands whose property names collide after PascalCase generation with another property, their record type, synthesized or inherited members, or generated command methods block every run, even when the event is not produced by the specification. The block is `Unsupported(Projection)` if a projection references that event; otherwise it is `Unsupported(Command)`. Concept and composite-type member or generated type-name collisions also block every run as `Unsupported(Command)`, even without a projection. Per-run projections also reject joins, child or nested projections, join removals, literal mappings, and unsupported key shapes before execution. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events (including in child or nested scopes) with colliding generated members, and read-model properties whose names can be interpreted as paths or collide with another generated property, the record's type, or generated query methods return `Unsupported(Projection)`. Query method overloads that compile remain allowed; duplicate generated signatures and arguments named `readModels` do not.
 An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also

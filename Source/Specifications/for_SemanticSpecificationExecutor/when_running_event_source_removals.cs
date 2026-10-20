@@ -11,9 +11,10 @@ public class when_running_event_source_removals : Specification
 {
     [Theory]
     [InlineData("", false, true)]
-    [InlineData(" key sourceId", false, false)]
+    [InlineData(" key sourceId", false, true)]
+    [InlineData(" key sourceId", true, true)]
     [InlineData("", true, false)]
-    public async Task should_admit_only_event_source_removal_keys_with_matching_identity_types(string removalKey, bool numericSource, bool admitted)
+    public async Task should_check_the_authored_removal_key_instead_of_always_using_the_event_source(string removalKey, bool numericSource, bool admitted)
     {
         var source = $$"""
             module Storage

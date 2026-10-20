@@ -20,6 +20,9 @@ internal static partial class StageLog
     [LoggerMessage(LogLevel.Warning, "Scene element '{ElementId}' has no route: {Diagnostic}")]
     internal static partial void RouteNotResolved(ILogger logger, string elementId, string diagnostic);
 
+    [LoggerMessage(LogLevel.Warning, "Rendered around {Kind} '{Artifact}': {Details}")]
+    internal static partial void RenderedAround(ILogger logger, string kind, string artifact, string details);
+
     [LoggerMessage(LogLevel.Warning, "{Code}: {Message} {Source}")]
     internal static partial void SeedLeftOut(ILogger logger, string code, string message, string? source);
 }

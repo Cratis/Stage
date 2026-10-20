@@ -158,9 +158,15 @@ The SpecRunner retains `structural` as its default; this Host default does not c
 The legacy engine refuses named event sources, streams
 and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
-Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign events and `source events`
-captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
-and reducer observer filters (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
+The semantic sandbox reports public events and public-event projections (`STAGE-ESM-032`), foreign events
+and `source events` captures (`STAGE-ESM-033`), directed Translate slices and captures (`STAGE-ESM-024`)
+as `renderedAround` admission entries on `/stage/status`, with a startup warning for each artifact. They do
+not block unrelated local commands or queries. Public events are **published locally only**, into the sandbox's
+own event log, including supported outbound event projections; there is no external publication. Inbound
+translation is not executed: foreign events arrive only through seeds, and captures do not poll external
+sources. Unsupported public-projection shapes still refuse the affected command without appending facts.
+The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters
+(`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
 (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Semantic rendering supports reaction filters; neither that support nor the renderer's narrowed `034` refusal for claim-reading or opaque gates changes these legacy-engine refusals.
 The semantic engine runs per-production route overrides; it does not admit an override on an unkeyed stream under a keyed command route, or a literal override stream id of `Default`, yet; both fail with `STAGE-ESM-036` until their generated routing is proven equivalent. The legacy engine refuses the stream syntax with `STAGE-ESM-030`.
 The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
@@ -289,7 +295,7 @@ are available through Stage's in-process queries, not as projection views in the
 For admitted, unrouted models, the legacy EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
-put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
+put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). When scene loading succeeded, `/stage/scene`, `/stage/routes` and `/stage/locales` remain available even in refused mode. The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
 never registered as the semantic execution model. A screen can therefore omit a semantic command even though
 its API route exists. The in-process world holds the session's fact history without a size cap; use this
 engine for short-lived play sessions, not durable workloads.

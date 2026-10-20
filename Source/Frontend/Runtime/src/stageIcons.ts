@@ -18,6 +18,7 @@ const aliases = new Map<string, keyof typeof dynamicIconImports>([
 const normalizeKey = (key: string) => key.trim()
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([a-zA-Z])([0-9]+)/g, '$1-$2')
     .replace(/[\s_]+/g, '-')
     .toLowerCase();
 

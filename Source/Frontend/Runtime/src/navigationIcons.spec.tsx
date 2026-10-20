@@ -111,6 +111,18 @@ describe('the Stage Lucide adapter', () => {
     });
 
     it.each([
+        ['BarChart3', 'bar-chart-3'],
+        ['barChart3', 'bar-chart-3'],
+        ['bar-chart-3', 'bar-chart-3'],
+        ['ArrowDown10', 'arrow-down-10'],
+        ['arrow-down-10', 'arrow-down-10'],
+    ])('should hyphenate digit runs in %s without changing existing separators', async (key, target) => {
+        const glyph = await stageLucideAdapter.loadGlyph(componentIcon(key));
+        expect(glyph).toBeDefined();
+        expect(glyph).toBe(await stageLucideAdapter.loadGlyph(componentIcon(target)));
+    });
+
+    it.each([
         ['chart', 'chart-column'],
         ['add', 'plus'],
         ['dollar', 'dollar-sign'],

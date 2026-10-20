@@ -21,6 +21,12 @@ describe('a screen that fills every slot of its template', () => {
     it('is the same screen', () => expect(withoutSeededSlots([original], [{ name: 'Small', slots: [{ name: 'a' }] }])[0]).toBe(original));
 });
 
+describe('a screen that fills none of the slots of its template', () => {
+    const original = screen('Gallery', 'ListScreen', {});
+
+    it('shows the template as the blueprint ships it', () => expect(withoutSeededSlots([original], [listScreen])[0]).toBe(original));
+});
+
 describe('a screen that names no template', () => {
     const original = screen('Plain', undefined, { content: [{ id: 'c' }] });
 
@@ -34,7 +40,7 @@ describe('a screen that names a template nobody knows', () => {
 });
 
 describe('two templates of the same name', () => {
-    const [placed] = withoutSeededSlots([screen('S', 'T', {})], [{ name: 'T', slots: [{ name: 'own' }] }, { name: 'T', slots: [{ name: 'blueprint' }] }]);
+    const [placed] = withoutSeededSlots([screen('S', 'T', { extra: [{ id: 'e' }] })], [{ name: 'T', slots: [{ name: 'own' }, { name: 'extra' }] }, { name: 'T', slots: [{ name: 'blueprint' }] }]);
 
-    it('uses the first, which is the application\'s own', () => expect(Object.keys(placed.slotContent)).toEqual(['own']));
+    it('uses the first, which is the application\'s own', () => expect(Object.keys(placed.slotContent).sort()).toEqual(['extra', 'own']));
 });

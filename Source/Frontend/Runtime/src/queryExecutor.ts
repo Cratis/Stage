@@ -8,11 +8,18 @@ import { resolveExactQuery } from '@cratis/scene.components';
 type StageQuery = QueryFor<unknown> | ObservableQueryFor<unknown>;
 type StageQueryType = new () => StageQuery;
 
-/** Resolves a modeled name first; a route only disambiguates that name's generated bindings. */
+let routeResolver: ((route: string) => StageQueryType) | undefined;
+
+/** Installs the live host's proxy factory; generated applications leave name resolution strict. */
+export function registerQueryRouteResolver(resolver: typeof routeResolver): void {
+    routeResolver = resolver;
+}
+
+/** Resolves modeled bindings first, then an attached route through the live host's factory. */
 export function registeredQuery(name: string, route?: string): StageQueryType | undefined {
     let candidate = resolveExactQuery(name);
     if (candidate === 'ambiguous' && route) candidate = resolveExactQuery(`${name}:${route.replace(/^\//, '').split('?')[0]}`);
-    return isQuery(candidate) ? candidate : undefined;
+    return isQuery(candidate) ? candidate : route ? routeResolver?.(route) : undefined;
 }
 
 function isQuery(candidate: unknown): candidate is StageQueryType {

@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { RegisteredTable as StageTable } from './testing/queries';
+import { StageTable } from './stageComponents';
 import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm } from './testing/commands';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
@@ -19,10 +19,12 @@ import { element } from './testElements';
 // one they throw rather than render unstyled, so every spec needs one even though none of them assert
 // anything about theming.
 function render(ui: ReactElement) {
+    registerTestQueries({ AllInvoices: '/api/sales/invoices/all-invoices' });
     return renderWithoutProvider(<PrimeReactProvider>{ui}</PrimeReactProvider>);
 }
 
 function renderWithData(ui: ReactElement) {
+    registerTestQueries({ AllInvoices: '/api/sales/invoices/all-invoices' });
     return renderWithoutProvider(
         <PrimeReactProvider>
             <StageDataProvider routes={undefined} locale='en' locales={['en']} screen='Invoices'>{ui}</StageDataProvider>
@@ -78,6 +80,22 @@ describe('a synthesized table', () => {
         expect(await screen.findByText('INV-1')).toBeDefined();
         expect(screen.getByText('42')).toBeDefined();
         expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/sales/invoices/all-invoices'), expect.anything());
+    });
+
+    it('resolves same-named queries omitted from the host name map by their distinct attached routes', async () => {
+        vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve({
+            ok: true,
+            json: async () => queryResult({ data: [{ name: String(input).endsWith('/sales/all') ? 'Sales row' : 'Purchasing row' }] }),
+        })));
+        const sales = element('sales', 'core:table', { query: 'All', route: '/api/sales/all' });
+        const purchasing = element('purchasing', 'core:table', { query: 'All', route: '/api/purchasing/all' });
+
+        render(<><StageTable element={sales} slots={{}} /><StageTable element={purchasing} slots={{}} /></>);
+
+        expect(await screen.findByText('Sales row')).toBeDefined();
+        expect(await screen.findByText('Purchasing row')).toBeDefined();
+        expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/sales/all'), expect.anything());
+        expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/purchasing/all'), expect.anything());
     });
 
     it('shows the columns the rows carry when the model declares none', async () => {
@@ -508,6 +526,7 @@ describe('a native command form', () => {
     });
 
     it('keeps dirty field values when a query refresh updates Stage data', async () => {
+        registerTestQueries({});
         let reads = 0;
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
@@ -574,6 +593,7 @@ describe('a native command form', () => {
     });
 
     it('posts valid native command values and refreshes scoped queries', async () => {
+        registerTestQueries({});
         let reads = 0;
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
@@ -615,6 +635,7 @@ describe('a native command form', () => {
     });
 
     it('posts command arguments resolved from input value outputs and selected items', async () => {
+        registerTestQueries({});
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
             return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'W2', workItemId: 'W2', title: 'Work two' }] })) });

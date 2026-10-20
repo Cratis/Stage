@@ -6,10 +6,10 @@ import { Globals } from '@cratis/arc';
 import { QueryFor, ObservableQueryFor, QueryHttpMethod } from '@cratis/arc/queries';
 import { clearBindings } from '@cratis/scene.components';
 import { queryResult } from '../../../Runtime/src/testing/queries';
-import { performQuery, registeredQuery } from '../../../Runtime/src/queryExecutor';
+import { performQuery, registeredQuery, registerQueryRouteResolver } from '../../../Runtime/src/queryExecutor';
 import { registerStageQueries } from '../queryRegistration';
 
-afterEach(() => { clearBindings(); vi.unstubAllGlobals(); });
+afterEach(() => { clearBindings(); registerQueryRouteResolver(undefined); vi.unstubAllGlobals(); });
 
 describe('when registering live host queries', () => {
     it('registers snapshot and observable proxies by modeled name', () => {
@@ -18,6 +18,15 @@ describe('when registering live host queries', () => {
         expect(registeredQuery('LiveProjects')?.prototype).toBeInstanceOf(ObservableQueryFor);
         const live = registeredQuery('LiveProjects')!;
         expect(new live().queryName).toBeUndefined();
+    });
+    it('caches native proxies for attached routes missing from the named query map', () => {
+        registerStageQueries({ commands: {}, queries: { AllInvoices: '/sales/invoices/all' } });
+        const query = registeredQuery('Invoice', '/sales/invoices/all');
+        expect(query?.prototype).toBeInstanceOf(QueryFor);
+        expect(query).toBe(registeredQuery('Invoice', '/sales/invoices/all'));
+        expect(query).toBe(registeredQuery('AllInvoices'));
+        expect(registeredQuery('UnkeyedCollection', '/sales/invoices/live?waitForFirstResult=true')?.prototype).toBeInstanceOf(ObservableQueryFor);
+        expect(registeredQuery('Missing')).toBeUndefined();
     });
     it('accepts routes without queries', () => {
         expect(() => registerStageQueries({ commands: {} })).not.toThrow();

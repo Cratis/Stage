@@ -110,6 +110,40 @@ describe('composing a screen in the default blueprint', () => {
     });
 });
 
+describe('composing the no-UI PetClinic scene', () => {
+    const names = ['RegisterOwner', 'UpdateOwner', 'FindOwners', 'AddPet', 'EditPet', 'PetsOfOwner', 'RecordVisit', 'PetVisitHistory', 'RegisterVet', 'VetList'];
+    // The no-UI host payload has no profiles, packages or layouts. Its synthesized screens fill content
+    // without selecting a layout; the non-null C# Scene model also represents that absence as an empty name.
+    const scene = {
+        uiProfiles: [], themes: [], layouts: [], screenTemplates: [], moduleTemplates: [], packages: [],
+        screens: names.map(name => ({
+            name, path: [], forms: [], contributions: [],
+            slotContent: { content: [element(`${name}.title`, 'core:title', { text: name })] },
+        })),
+    };
+
+    it('composes every screen inside the installed default shell rather than Application', () => {
+        for (const active of screens(scene)) {
+            const composed = compose(scene, active);
+            expect(composed.componentName).toBe('Cratis.Blueprint.Default:appShell');
+            expect(slot(composed, 'content').map(element => element.id)).toContain(`${active.name}.title`);
+        }
+        expect(stageShellOf(scene as never).diagnostics).toEqual([]);
+    });
+
+    it('keeps navigation to every synthesized PetClinic screen', () => {
+        const composed = compose(scene, screens(scene)[0]);
+        const items = slot(slot(composed, 'menu')[0], 'items').map(element => element.properties.targetScreen);
+        expect(items).toEqual(names);
+    });
+
+    it('also accepts the empty layout name emitted by the C# Scene model', () => {
+        const fromDotNet = { ...scene, screens: scene.screens.map(screen => ({ ...screen, layout: '' })) };
+        expect(compose(fromDotNet, screens(fromDotNet)[0]).componentName).toBe('Cratis.Blueprint.Default:appShell');
+        expect(stageShellOf(fromDotNet as never).diagnostics).toEqual([]);
+    });
+});
+
 describe('composing a screen that fills a domain blueprint template', () => {
     const templated = screen('Leads', 'CrmLeadList');
     const scene = { layouts: [], screenTemplates: [], screens: [templated] } as never;

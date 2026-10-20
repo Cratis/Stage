@@ -27,6 +27,7 @@
     "@primereact/headless": "11.2.0",
     "@primereact/ui": "11.2.0",
     "@primeuix/themes": "3.0.1",
+    "lucide-react": "1.52.0",
     "primeicons": "8.0.2",
     "primereact": "11.2.0",
     "react": "19.3.0",

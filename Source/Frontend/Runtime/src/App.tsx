@@ -9,6 +9,7 @@ import {
 import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import {
+    IconAdapterProvider,
     InteractionScope,
     SceneElementView,
     SliceCommandFieldsProvider,
@@ -51,6 +52,7 @@ import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
+import { stageIconAdapters } from './stageIcons';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -341,15 +343,17 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
     }, [navigate, scene]);
 
     return (
-        <LayoutThemeProvider themes={themes}>
-            {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
-            <ColorSchemeMirror />
-            <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
-                    {children}
-                </StageInteractions>
-            </StageDataProvider>
-        </LayoutThemeProvider>
+        <IconAdapterProvider registry={stageIconAdapters}>
+            <LayoutThemeProvider themes={themes}>
+                {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
+                <ColorSchemeMirror />
+                <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
+                    <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                        {children}
+                    </StageInteractions>
+                </StageDataProvider>
+            </LayoutThemeProvider>
+        </IconAdapterProvider>
     );
 }
 

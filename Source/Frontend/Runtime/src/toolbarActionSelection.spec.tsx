@@ -10,13 +10,15 @@ import { StageDataProvider } from './stageData';
 import { element } from './testElements';
 import { RegisteredTable, registerTestQueries, queryResult } from './testing/queries';
 import { commandResult } from './testing/commands';
+import { sessionIdentity } from './stageSession';
 
 const StageToolbarItem = stageComponents['core:toolbarItem'];
 const dispatch = JSON.stringify({
     type: 'object',
     required: ['shipmentId', 'carrier'],
     properties: {
-        shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId' },
+        // The host marks every modeled command's own identifier as the one it acts on (StageRoutes, SchemaSynthesizer.WithIdentity).
+        shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId', 'x-identity': true },
         carrier: { type: 'string' },
     },
 });
@@ -51,23 +53,36 @@ describe('a toolbar action on a list whose rows carry the key it acts on', () =>
         renderShipments();
 
         await screen.findByText('Fjordline');
-        const button = await screen.findByRole('button', { name: 'Dispatch' }) as HTMLButtonElement;
-        expect(button.disabled).toBe(true);
-        expect(button.title).toBe('Select a row first');
+        // The table shows its rows before the screen's data has published them, so wait for the action to see them.
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(true));
+        expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).title).toBe('Select a row first');
     });
 
     it('is enabled once a row is selected and submits that row\'s key', async () => {
-        const fetched = renderShipments();
-
-        fireEvent.click(await screen.findByText('Norsk Fisk'));
-        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(false));
-        fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
-        const dialog = await screen.findByRole('dialog');
-        fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
-
-        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const fetched = await selectAndSubmit();
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
         expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId, carrier: 'Posten' });
     });
+
+    it('submits the selected row\'s key, not the identity the session already holds', async () => {
+        const held = sessionIdentity('ShipmentId');
+        const fetched = await selectAndSubmit();
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(held).not.toBe(rows[1].shipmentId);
+        expect(JSON.parse(String(init?.body)).shipmentId).toBe(rows[1].shipmentId);
+    });
 });
+
+async function selectAndSubmit() {
+    const fetched = renderShipments();
+
+    fireEvent.click(await screen.findByText('Norsk Fisk'));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+
+    await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+    return fetched;
+}

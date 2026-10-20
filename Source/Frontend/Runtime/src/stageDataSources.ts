@@ -75,12 +75,20 @@ function feed(component: ExternalComponent, sources: Map<string, ExternalCompone
  * Carries the nearest `data` declaration onto a guarded action as the item its guard is evaluated against: `item` in
  * `when item.status == "open"` is the single record that declaration reads, bound to the screen parameter it is read
  * by (the address's, or the session's identity of that name) - the same declaration Screenplay requires a guarded action to have exactly one of.
+ * When that declaration reads a collection, `item` is the selected row of the collection instead, as Screenplay documents.
  */
 function feedSubject(component: ExternalComponent, subject: ExternalComponent | undefined): ExternalComponent {
     if (component.componentName !== 'core:action' || !Array.isArray(component.properties?.alternatives)) return component;
-    if (!subject || subject.properties?.isCollection === true || component.properties.itemQuery !== undefined) return component;
+    if (!subject || component.properties.itemQuery !== undefined) return component;
 
     const properties: Record<string, unknown> = { ...component.properties };
+    if (subject.properties?.isCollection === true) {
+        // A collection has no single record to decide about: `item` is the row the person selected in it, which the table
+        // beside the action publishes, so the action is read against that row and appears once one is selected.
+        properties.itemSelection = true;
+        return { ...component, properties };
+    }
+
     const query = stringProperty(subject, 'query');
     const by = stringProperty(subject, 'by');
     if (query) properties.itemQuery = query;

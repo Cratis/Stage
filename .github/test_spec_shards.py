@@ -67,14 +67,38 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
+    def test_small_projects_shard_runs_exactly_the_six_merged_projects_with_unchanged_filters(self):
+        expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
+                    "Source/Contracts/Contracts.csproj", "Source/Stage/Stage.csproj",
+                    "Source/SpecRunner/SpecRunner.csproj",
+                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
+        for lane in (False, True):
+            with self.subTest(blueprint_templates_lane=lane):
+                shards = {shard["name"]: shard for shard in SHARDS["matrix"](blueprint_templates_lane=lane)["include"]}
+                self.assertNotIn("host", shards)
+                self.assertEqual(expected, shards["small-projects"]["projects"])
+                filter_ = SHARDS["EXCLUSIONS"] + ("&FullyQualifiedName!~" + SHARDS["BLUEPRINT_TEMPLATES_FIXTURE"] if lane else "")
+                self.assertEqual(filter_, shards["small-projects"]["filter"])
+
+    def test_guard_rejects_a_missing_or_duplicated_merged_project(self):
+        full = SHARDS["matrix"]()
+        merged = next(shard for shard in full["include"] if shard["name"] == "small-projects")
+        for label, projects in (("missing", merged["projects"][1:]), ("duplicated", merged["projects"] + merged["projects"][:1])):
+            with self.subTest(label):
+                shards = {"include": [dict(merged, projects=projects) if shard is merged else shard
+                                      for shard in full["include"]]}
+                with patch("subprocess.run") as run, self.assertRaises(SystemExit):
+                    run.return_value.stdout = "true\n"
+                    SHARDS["guard_solution"](shards)
+
     def test_specifications_is_one_shard_and_conformance_three_disjoint_shards(self):
         shards = SHARDS["matrix"]()["include"]
         by_name = {shard["name"]: shard for shard in shards}
         self.assertEqual(len(shards), len(by_name), "shard names must be unique")
         self.assertNotIn("conformance", by_name)
-        self.assertEqual(["Source/Specifications/Specifications.csproj"], by_name["specifications"]["projects"])
+        self.assertNotIn("specifications", by_name)
         # Whole-project shards carry no positive prefix, so nothing in them can be skipped by a filter.
-        self.assertEqual(SHARDS["EXCLUSIONS"], by_name["specifications"]["filter"])
+        self.assertEqual(SHARDS["EXCLUSIONS"], by_name["small-projects"]["filter"])
         conformance = [shard["name"] for shard in shards if SHARDS["CONFORMANCE"] in shard["projects"]]
         self.assertEqual(["conformance-1", "conformance-2", "conformance-remainder"], conformance)
         self.assertTrue(all(by_name[name]["projects"] == [SHARDS["CONFORMANCE"]] for name in conformance))

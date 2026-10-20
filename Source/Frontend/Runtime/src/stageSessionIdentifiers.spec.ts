@@ -72,3 +72,22 @@ describe('when a row is selected on the screen', () => {
         expect(selectedIdentifier(property, [{ sku: 'A' }])).toBeUndefined();
     });
 });
+
+describe('when a row the person could select carries the identifier the form does not show', () => {
+    afterEach(() => globalThis.localStorage?.clear());
+
+    const fields = [{ name: 'sku', label: 'Product' }, { name: 'quantity', label: 'How many?' }];
+    const selectable = [{ basketId: 'b1' }, { basketId: 'b2' }];
+
+    it('should not invent the identifier while no row is selected', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [], selectable)).toEqual({});
+    });
+
+    it('should take the selected row\'s identifier', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [selectable[1]], selectable)).toEqual({ basketId: 'b2' });
+    });
+
+    it('should still create the identifier of a new entity no row carries', () => {
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [], [{ orderId: 'o1' }]).basketId).toMatch(/^[0-9a-f-]{36}$/);
+    });
+});

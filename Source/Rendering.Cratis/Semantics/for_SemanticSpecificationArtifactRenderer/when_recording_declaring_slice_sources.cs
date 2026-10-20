@@ -54,12 +54,15 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        { when_rendering_scoped_projections.ScopedSource, "e5f1bb30f72bca24c534f617464c455709377733626682767915fe590c99333f" },
+        // The caller-less command scenario retains #494's labeled authenticated principal and accessor scope.
+        { when_rendering_scoped_projections.ScopedSource, "40c605e2742e33bf12a8e9556a51ad29a49173d64eeecb56ab40a94a29590e70" },
         { QuerySource, "cc622d2c2b7a6030342c3c823adba47c96f08f2504a545e1f035cbd0c15b7ce8" },
         { DeniedQuerySource(), "422877b8623baaed91b83953a94ecaf9974349a9cf75be9a23a1552ad2729b42" },
         { a_reaction_specification.ProductionSource, "c99cb46e0b410e2648760d34d223d49acd9019b16bcca4001bfa7c3cbb9338bd" },
         { a_redelivery_specification.RedeliverySource, "7f140178f427dd6ee77eafa6d36878ea0d5915eade1951810c94604b2f7e4e72" },
-        { a_specification_case_table.Source, "8a601707cf7d2d1398524cce07a5eb2c4fa43675cd986afe71a001f836a9a8d0" }
+
+        // Each expanded caller-less command case retains the same authenticated-default principal and accessor scope.
+        { a_specification_case_table.Source, "7741bb10aa1a11115de3b6c82307991d5c193624c3c28ed3a1d7176eace79b65" }
     };
 
     public static TheoryData<string> Sources

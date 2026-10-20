@@ -10,5 +10,5 @@ public class without_identity : for_SemanticAutomationArtifactRenderer.given.an_
 {
     string _source = string.Empty;
     void Because() => _source = SemanticReactorArtifactRenderer.Render(_located, _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive"), _context).Content;
-    [Fact] void should_leave_the_invocation_without_a_principal() => _source.ShouldNotContain("ExecuteCommandsAsSystemAttribute");
+    [Fact] void should_infer_a_system_principal_for_the_authenticated_default_command() => _source.ShouldContain("[global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute]");
 }

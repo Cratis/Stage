@@ -113,6 +113,7 @@ public class a_routed_model : Specification
 
         ConfigureCommandPipeline(builder.Services, correlation, semanticRuntime);
         ConfigureQueryPipeline(builder.Services, correlation);
+        ConfigureHostServices(builder.Services);
         _app = builder.Build();
         _introspection = new IntrospectionService(
             _commandProviders,
@@ -127,11 +128,16 @@ public class a_routed_model : Specification
     protected RouteEndpoint[] Endpoints() => [.. ((IEndpointRouteBuilder)_app).DataSources
         .SelectMany(source => source.Endpoints).OfType<RouteEndpoint>()];
 
+    protected virtual void ConfigureHostServices(IServiceCollection services) { }
+
+    protected virtual void ConfigureHttpPipeline(IApplicationBuilder pipeline) { }
+
     protected void BuildRouting()
     {
         // Native selection is essential: invoking RequestDelegate on a chosen endpoint misses ambiguity in routing.
         var pipeline = new ApplicationBuilder(_app.Services);
         pipeline.UseRouting();
+        ConfigureHttpPipeline(pipeline);
         if (_semantic)
         {
             pipeline.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));

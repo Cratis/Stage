@@ -88,6 +88,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+app.UseSandboxIdentityHeaders();
 if (engine == StageRuntimeEngine.EventModel)
 {
     StageRuntimeEngineLogging.Deprecated(app.Logger, StageRuntimeEngineSelection.Name(engine));
@@ -114,6 +115,7 @@ StageLog.Running(app.Logger, model!.Name, eventStore);
 app.UseWebSockets();
 app.MapControllers();
 StageEndpointMapper.Map(app, httpSurface!);
+app.UseSandboxIdentity(modelPath!);
 app.UseCratisArc();
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());

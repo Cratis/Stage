@@ -58,7 +58,8 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters]);
+    const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -227,13 +228,13 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
  * every identifier it does not show to the session, as it always has.
  */
-export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>): StageCommandContent {
+export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = []): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
     const marked = schema.some(property => property.identity);
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        const value = suppliedIdentifier(property, parameters) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
+        const value = suppliedIdentifier(property, parameters) ?? selectedIdentifier(property, selectedRows) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
         if (value !== undefined) values[property.name] = value;
     }
 
@@ -266,6 +267,20 @@ export function suppliedWithoutAsking(property: SchemaProperty, parameters: Reco
 export function suppliedIdentifier(property: SchemaProperty, parameters: Record<string, string>): string | undefined {
     if (!property.identifier) return undefined;
     return parameters[property.name] || heldSessionIdentity(property.identifier);
+}
+
+/**
+ * The identifier of the row the person selected on the screen: an action on a list acts on the selected item, so the identifier property of the same
+ * name takes that row's value and the session never invents the key of an entity that already exists. Rows that disagree about it supply nothing.
+ *
+ * @param property The property of the command.
+ * @param selectedRows The rows currently selected on the screen.
+ * @returns The selected row's value, or nothing when no selected row (or more than one, differently) carries one.
+ */
+export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | undefined {
+    if (!property.identifier) return undefined;
+    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
+    return values.size === 1 ? [...values][0] : undefined;
 }
 
 /** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */

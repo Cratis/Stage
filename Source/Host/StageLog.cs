@@ -25,4 +25,10 @@ internal static partial class StageLog
 
     [LoggerMessage(LogLevel.Warning, "{Code}: {Message} {Source}")]
     internal static partial void SeedLeftOut(ILogger logger, string code, string message, string? source);
+
+    [LoggerMessage(LogLevel.Information, "Sandbox API callers act as persona '{Persona}' (roles: {Roles})")]
+    internal static partial void SandboxPersonaSelected(ILogger logger, string persona, string roles);
+
+    [LoggerMessage(LogLevel.Warning, "Sandbox persona '{Persona}' skips policy '{Policy}': {Reason}")]
+    internal static partial void SandboxPersonaPolicySkipped(ILogger logger, string persona, string policy, string reason);
 }

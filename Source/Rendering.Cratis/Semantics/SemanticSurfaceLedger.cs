@@ -310,6 +310,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
+
         // ESM v31 (anonymous policies, query shape on implementation requirements): the planner has not audited v31, so a model that carries them is refused whole (STAGE-ESM-016).
         Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");

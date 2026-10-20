@@ -124,6 +124,8 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalled());
+        // Wait until the rejection has been handled - its message shown - before asserting that nothing navigated.
+        expect((await screen.findAllByText('No')).length).toBeGreaterThan(0);
         expect(window.location.hash).not.toContain('ApprovalInbox');
     });
 

@@ -6,6 +6,7 @@ import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
 import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
+import { applyQueryChangeSet } from './applyQueryChangeSet';
 import { registeredQuery, performQuery, subscribeQuery } from './queryExecutor';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
@@ -343,12 +344,16 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
             setError(reason instanceof Error ? reason.message : String(reason));
             setLoading(false);
         };
+        let previousData: unknown = [];
         const receive = (result: QueryResult<unknown>) => {
             if (latest.current !== sequence || abort.signal.aborted) return;
             const failure = queryFailure(result);
             if (failure) { failed(new Error(failure)); return; }
             if (result.isReady === false) return;
-            setRows(normalizeRows(result.data));
+            previousData = result.changeSet && Array.isArray(result.data) && result.data.length === 0 && Array.isArray(previousData)
+                ? applyQueryChangeSet(previousData, result.changeSet)
+                : result.data;
+            setRows(normalizeRows(previousData));
             setError('');
             setLoading(false);
         };

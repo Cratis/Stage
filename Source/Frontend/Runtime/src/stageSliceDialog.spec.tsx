@@ -60,7 +60,7 @@ describe('the task dialog of a toolbar slice button', () => {
         vi.stubGlobal('fetch', fetched);
         dialog('CheckOut');
 
-        expect(screen.queryByLabelText('Basket Id')).toBeNull();
+        expect(screen.queryByLabelText('Basket id')).toBeNull();
         expect(field('basketId')).toBeNull();
         const address = screen.getByRole('group', { name: 'Ship to' });
         fireEvent.change(within(address).getByLabelText('Street'), { target: { value: '12 Analytical Way' } });
@@ -91,7 +91,7 @@ describe('the task dialog of a toolbar slice button', () => {
         vi.stubGlobal('fetch', fetched);
         dialog('AddToBasket');
 
-        fireEvent.change(screen.getByLabelText('Product Id'), { target: { value: 'p1' } });
+        fireEvent.change(screen.getByLabelText('Product id'), { target: { value: 'p1' } });
         const packaging = document.querySelector('.stage-command-form__field[data-field="packaging"] select') as HTMLSelectElement;
         fireEvent.change(packaging, { target: { value: [...packaging.options].find(option => option.text === 'Box')?.value } });
         fireEvent.click(screen.getByRole('button', { name: 'Execute AddToBasket' }));

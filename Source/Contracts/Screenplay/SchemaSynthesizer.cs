@@ -13,7 +13,8 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// convention Stage's engine already consumes.
 /// </summary>
 /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
-public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts)
+/// <param name="types">The composite types (records) declared in the application, keyed by name, whose members a property typed as one carries; none when a type is left an open object.</param>
+public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts, IReadOnlyDictionary<string, IReadOnlyList<PropertySyntax>>? types)
 {
     /// <summary>
     /// The empty object schema used for a command's state schema (Screenplay has no state schema concept).
@@ -43,6 +44,44 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </para>
     /// </remarks>
     public const string ConceptAttributesKeyword = "x-conceptAttributes";
+
+    /// <summary>
+    /// The schema keyword marking the property a command acts on: its <c language="csharp">identifier</c>, the event source it appends to.
+    /// </summary>
+    /// <remarks>
+    /// A command's own identity and a reference to another entity are both identifier concepts, so the concept alone does not tell them
+    /// apart: the basket an add to basket acts on is the session's, the product it adds is the shopper's to choose. Only a schema a task
+    /// dialog is built from carries the mark (see <see cref="WithIdentity"/>); every other schema stays as it was.
+    /// </remarks>
+    public const string IdentityKeyword = "x-identity";
+
+    readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SchemaSynthesizer"/> class that leaves composite types as open objects.
+    /// </summary>
+    /// <param name="concepts">The concepts declared in the application, keyed by name, used to resolve concept-typed properties.</param>
+    public SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax> concepts)
+        : this(concepts, null)
+    {
+    }
+
+    /// <summary>
+    /// Marks the property a command acts on in its schema with <see cref="IdentityKeyword"/>.
+    /// </summary>
+    /// <param name="schema">The command's JSON Schema text, as <see cref="ForProperties"/> synthesizes it.</param>
+    /// <param name="identifier">The name of the command's identifier property, or <see langword="null"/> when it declares none.</param>
+    /// <returns>The schema with the identifier marked; unchanged when there is no identifier or the schema does not describe it.</returns>
+    public static string WithIdentity(string schema, string? identifier)
+    {
+        if (identifier is null || JsonNode.Parse(schema) is not JsonObject parsed || parsed["properties"]?[identifier] is not JsonObject property)
+        {
+            return schema;
+        }
+
+        property[IdentityKeyword] = true;
+        return parsed.ToJsonString();
+    }
 
     /// <summary>
     /// Synthesizes a JSON Schema object for a set of typed properties (a command or event payload).
@@ -160,6 +199,41 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
             return Annotate(node, concept);
         }
 
+        if (types is not null && types.TryGetValue(name, out var members) && _expanding.Add(name))
+        {
+            try
+            {
+                return Members(members);
+            }
+            finally
+            {
+                _expanding.Remove(name);
+            }
+        }
+
         return new JsonObject { ["type"] = "object" };
+    }
+
+    // A record as an object that names its members and which of them a value must carry, so a form can present each one.
+    JsonObject Members(IReadOnlyList<PropertySyntax> members)
+    {
+        var properties = new JsonObject();
+        var required = new JsonArray();
+        foreach (var member in members)
+        {
+            properties[member.Name] = ForType(member.Type);
+            if (!member.Type.IsOptional)
+            {
+                required.Add(member.Name);
+            }
+        }
+
+        var schema = new JsonObject { ["type"] = "object", ["properties"] = properties };
+        if (required.Count > 0)
+        {
+            schema["required"] = required;
+        }
+
+        return schema;
     }
 }

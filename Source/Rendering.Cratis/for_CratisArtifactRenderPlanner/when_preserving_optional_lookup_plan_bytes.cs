@@ -26,11 +26,12 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan = invoice_model.Plan(_model);
     }
 
-    // All three digests include #494's authenticated endpoint attributes, access-default README and informational diagnostics.
+    // All three digests include #494's authenticated endpoint attributes, access-default README and informational diagnostics,
+    // plus main's route-qualified query registrations, native query proxies and cleaned frontend tsconfigs.
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("6de578514a503c7bc18ba318cfcafabc56bc85698a9787e40715795b54873b97");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("ea35e9b56155e77f52ed19598bb6c59b4f2cb1baeae339a3baf0fbf5d7eccb5a");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("e94bb3ce78881e7cd32c29bc917bbb7820278f7ef83ebeeca8bdf0d9f9020c0b");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("7c9aba3945dc17dc10e7d77bee03b2f67c7ca4f3bea23bb968e7192b9ef48708");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("dacf338f9465178334552aaba6d693c60717527cab6e6e563348cf01322ed044");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("a181979a5baf1d4b05a67ff7a9190fbe975247e861553cafcf49fca2158e6411");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

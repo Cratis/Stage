@@ -64,6 +64,7 @@ internal static class SemanticHost
             options.KnownProxies.Clear();
         });
         var app = builder.Build();
+        app.UseSandboxIdentityHeaders();
         app.UseForwardedHeaders();
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
@@ -73,6 +74,14 @@ internal static class SemanticHost
         app.MapPost("/stage/load", () => Results.Conflict());
         app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
         MapReadModelBrowserPage(app);
+        foreach (var entry in admission?.Entries.Where(entry => entry.Status == "renderedAround") ?? [])
+        {
+            StageLog.RenderedAround(app.Logger, entry.Kind, entry.Artifact, entry.Details!);
+        }
+        if (scene is not null && loaded is not null)
+        {
+            MapSceneEndpoints(app, scene, modelPath, loaded.Model);
+        }
 
         if (surface is null)
         {
@@ -90,17 +99,24 @@ internal static class SemanticHost
         app.UseWebSockets();
         app.MapControllers();
         StageEndpointMapper.Map(app, surface);
+        app.UseSandboxIdentity(modelPath);
         app.UseCratisArc();
         app.MapOpenApi();
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
         app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
 
-        MapSceneEndpoints(app, scene!, modelPath, loaded.Model);
         app.MapFallbackToFile("index.html");
         await app.StartAsync();
         try
         {
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan);
+            var seeds = SemanticSeeds.Read(modelPath, loaded.Plan);
+            foreach (var diagnostic in seeds.Diagnostics)
+            {
+                StageLog.SeedLeftOut(app.Logger, diagnostic.Code, diagnostic.Message, diagnostic.Source);
+            }
+
+            notes.AddRange(seeds.Diagnostics);
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, seeds);
         }
         catch (SemanticWorldRebuildRefused exception)
         {

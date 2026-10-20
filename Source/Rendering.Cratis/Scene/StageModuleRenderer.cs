@@ -37,23 +37,13 @@ internal static class StageModuleRenderer
             .OrderBy(command => command.Name, StringComparer.Ordinal)
             .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__stageCommand{index}"))
             .ToArray();
-        var queries = context.Queries.Values
-            .OrderBy(query => query.Name, StringComparer.Ordinal)
-            .ThenBy(query => query.Id.ToString(), StringComparer.Ordinal)
-            .DistinctBy(query => query.Name, StringComparer.Ordinal)
-            .Select((query, index) => (query.Name, Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__stageQuery{index}"))
-            .ToArray();
-
-        var liveQueries = context.Queries.Values
-            .Where(query => query.Delivery == Screenplay.Semantics.SemanticQueryDelivery.Live)
-            .Select(query => query.Name).ToHashSet(StringComparer.Ordinal);
         var builder = new StringBuilder()
             .Append("// What the Stage runtime renders this application from - the counterpart of a live Stage's\n")
             .Append("// /stage/scene, /stage/routes and /stage/strings endpoints. Generated; do not edit.\n")
             .Append("import type { StageSceneApplication, StageStaticContent } from '@cratis/stage.runtime';\n")
             .Append("import scene from './stage-scene.json';\n")
             .Append("import './bindings';\n");
-        foreach (var (_, export, module, alias) in commands.Concat(queries))
+        foreach (var (_, export, module, alias) in commands)
         {
             builder.Append("import { ").Append(export).Append(" as ").Append(alias).Append(" } from '").Append(module).Append("';\n");
         }
@@ -66,14 +56,6 @@ internal static class StageModuleRenderer
         foreach (var (name, _, _, alias) in commands)
         {
             builder.Append("            ").Append(JsonSerializer.Serialize(name)).Append(": new ").Append(alias).Append("().route,\n");
-        }
-
-        builder.Append("        },\n")
-            .Append("        queries: {\n");
-        foreach (var (name, _, _, alias) in queries)
-        {
-            var route = liveQueries.Contains(name) ? $"`${{new {alias}().route}}?waitForFirstResult=true`" : $"new {alias}().route";
-            builder.Append("            ").Append(JsonSerializer.Serialize(name)).Append(": ").Append(route).Append(",\n");
         }
 
         builder.Append("        },\n")

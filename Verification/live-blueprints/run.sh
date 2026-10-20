@@ -27,7 +27,19 @@ trap cleanup EXIT
 [ -d "$here/../generated-react-browser/node_modules/playwright" ] || { echo "could not run: run 'npm ci' in generated-react-browser first"; exit 2; }
 
 cp "$here/package.json" "$work/"
-(cd "$work" && npm install --no-audit --no-fund --silent) || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
+# The registry fails transiently now and then, and a dependency published minutes ago can be listed before every registry
+# node serves it (npm ETARGET). Retry with growing waits and fresh metadata, and keep npm's own error in the log each time.
+# Waits are overridable for testing; an install that never succeeds still means the scenarios could not run.
+install_packages() { (cd "$work" && npm install --no-audit --no-fund --loglevel=error "$@"); }
+installed=false
+install_packages && installed=true
+for wait in ${STAGE_LIVE_INSTALL_RETRY_WAITS:-15 30 60 120}; do
+    $installed && break
+    echo "the blueprint package install failed; retrying in ${wait}s with fresh registry metadata"
+    sleep "$wait"
+    install_packages --prefer-online && installed=true
+done
+$installed || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
 
 count=$(node -e "console.log(require('$here/blueprints.json').length)")
 status=0

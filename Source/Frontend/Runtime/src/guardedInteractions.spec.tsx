@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { registerTestQueries } from './testing/queries';
+import { queryResult } from './testing/queries';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +10,8 @@ import type { ActionDispatcher } from '@cratis/scene.engine';
 import { InteractionTriggerKind, type Behavior, type SceneElement } from '@cratis/scene.model';
 import { InteractionScope } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageAction, StageTable } from './stageComponents';
+import { StageAction } from './stageComponents';
+import { RegisteredTable as StageTable } from './testing/queries';
 import { StageDataProvider } from './stageData';
 import { bindDataSources } from './stageDataSources';
 import { guardPath } from './stageGuards';
@@ -44,6 +47,7 @@ function details(action: SceneElement): SceneElement {
 }
 
 function withData(ui: ReactElement) {
+    registerTestQueries(routes.queries);
     for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { workItemId: { type: 'string' } });
     globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
     return render(
@@ -56,7 +60,7 @@ function withData(ui: ReactElement) {
 function respond(status: string) {
     const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-        if (String(input).startsWith('api/get-work-item')) return Promise.resolve({ ok: true, json: async () => ({ data: { workItemId, status } }) });
+        if (String(input).startsWith('http://localhost:3000/api/get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
         return Promise.resolve({ ok: false, json: async () => ({}) });
     });
     vi.stubGlobal('fetch', fetched);
@@ -82,7 +86,7 @@ describe('a guarded action', () => {
     it('is bound to the item its nearest data declaration reads', () => {
         const bound = actionIn(details(closeAction())) as { properties: Record<string, unknown> };
         expect(bound.properties.itemQuery).toBe('GetWorkItem');
-        expect(bound.properties.itemArguments).toEqual({ workItemId: { path: 'parameters.workItemId' } });
+        expect(bound.properties.itemArguments).toEqual({ workItemId: { path: 'screen.keys.workItemId' } });
     });
 
     it('executes its command with the item values when the guard holds', async () => {
@@ -154,7 +158,7 @@ describe('a table with a guarded double click', () => {
     function renderTable(dispatcher: Partial<ActionDispatcher>) {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ data: [{ workItemId: 'a', title: 'Open item', status: 'open' }, { workItemId: 'b', title: 'Closed item', status: 'closed' }] }),
+            json: async () => (queryResult({ data: [{ workItemId: 'a', title: 'Open item', status: 'open' }, { workItemId: 'b', title: 'Closed item', status: 'closed' }] })),
         }));
         globalThis.location.hash = '#/WorkItemList';
         return render(

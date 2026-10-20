@@ -19,7 +19,7 @@ public class and_a_target_roots_on_a_blueprint_shell : an_application_targeting_
     void Establish() => _catalog =
     [
         .. _catalog,
-        new ScenePackage("Cratis.Blueprint.Default", "4.70.1", PackageKind.Blueprint, [], [], ["AppShell", "FullPage"], [], [], []),
+        new ScenePackage("Cratis.Blueprint.Default", "4.75.0", PackageKind.Blueprint, [], [], ["AppShell", "FullPage"], [], [], []),
     ];
 
     void Because()
@@ -48,6 +48,6 @@ public class and_a_target_roots_on_a_blueprint_shell : an_application_targeting_
     [Fact] void should_have_no_findings_when_the_pin_is_satisfied() => _satisfied.Targets[0].Findings.ShouldBeEmpty();
     [Fact] void should_name_the_shell_without_inventing_its_structure() => _satisfied.Targets[0].Layout.ShouldBeNull();
     [Fact] void should_fail_the_build_when_the_pin_is_not_satisfied() => _unsatisfied.Targets[0].Findings.Any(finding => finding.Kind == RenderFindingKind.RootTemplateInvalid).ShouldBeTrue();
-    [Fact] void should_say_which_version_is_installed() => _unsatisfied.Targets[0].Findings.Single(finding => finding.Kind == RenderFindingKind.RootTemplateInvalid).Message.ShouldContain("4.70.1");
+    [Fact] void should_say_which_version_is_installed() => _unsatisfied.Targets[0].Findings.Single(finding => finding.Kind == RenderFindingKind.RootTemplateInvalid).Message.ShouldContain("4.75.0");
     [Fact] void should_fail_the_build_when_the_blueprint_is_not_among_the_profile_s_packages() => _notInstalled.Targets[0].Findings.Any(finding => finding.Kind == RenderFindingKind.RootTemplateInvalid).ShouldBeTrue();
 }

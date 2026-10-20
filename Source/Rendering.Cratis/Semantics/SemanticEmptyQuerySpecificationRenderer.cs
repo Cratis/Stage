@@ -27,6 +27,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{modelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;");
+
         // A query without modeled authorization renders [Authorize], so a specification without a caller runs as the default authenticated caller.
         var carriesCaller = specification.GivenCaller is not null || query.Authorization is null;
         if (carriesCaller)
@@ -48,9 +49,9 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             {
                 builder.Line(SemanticDefaultCaller.Comment);
             }
-            IEnumerable<string> claims = caller is null ? [] : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            var claims = caller is null ? Enumerable.Empty<string>() : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
                 .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
-            builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller is null || caller.Authenticated ? "\"Screenplay\"" : "null")}));")
+            builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller?.Authenticated != false ? "\"Screenplay\"" : "null")}));")
                 .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         }
         if (query.Authorization is not null)

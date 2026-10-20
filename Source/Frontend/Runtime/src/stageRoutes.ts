@@ -9,7 +9,7 @@ import { stageEndpoints, useStageSource } from './stageSource';
  */
 export interface StageRoutes {
     commands: Record<string, string>;
-    queries: Record<string, string>;
+    queries?: Record<string, string>;
     /** Live-host metadata for route-synthesized proxies. Generated apps register their real proxies instead. */
     commandSchemas?: Record<string, string>;
 }

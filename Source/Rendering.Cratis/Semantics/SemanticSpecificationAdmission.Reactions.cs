@@ -107,15 +107,29 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         var commands = trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
-        if (commands.Any(command => command.Properties.Any(property => property.IsGenerated || !IsRefusalScalarType(property.Type))))
+        if (commands.Any(command => command.Properties.Any(property => !IsRefusalScalarType(property.Type))))
         {
-            return "Refusal scenarios require scalar commands without generated fixtures.";
+            return "Refusal scenarios require scalar commands.";
         }
 
-        var products = SemanticReactionProductions.For(trigger).Concat(commands.SelectMany(command => command.Produces)).ToArray();
-        if (products.Any(produced => IsReactionConstraintTarget(context, produced.EventContract)))
+        if (commands.Length > 1 && commands.Any(command => !command.Reads.IsDefaultOrEmpty || command.Properties.Any(property => property.IsGenerated)))
         {
-            return "Refusal scenarios do not yet reproduce constraint-target command or branch outputs.";
+            return "Refusal scenarios run exactly one invoked command when it is protected or has generated properties.";
+        }
+
+        // A generated property is a fixture the specification pins ('given generated <Command>.<property> = <value>'); a draw would make every id the scenario names unknowable.
+        if (commands.SelectMany(command => command.Properties.Where(property => property.IsGenerated).Select(property => (command, property)))
+            .Any(generated => !specification.GivenGenerated.Any(pinned => pinned.Command == generated.command.Id && pinned.Property == generated.property.Id)))
+        {
+            return "Refusal scenarios require every generated property of the invoked command to be pinned with 'given generated <Command>.<property>'.";
+        }
+
+        // The commands the reaction invokes run through the real command pipeline, which enforces the constraints their events are targets of.
+        // What a refusal branch appends does not: the reactor executor appends it straight to the log.
+        var products = SemanticReactionProductions.For(trigger).Concat(commands.SelectMany(command => command.Produces)).ToArray();
+        if (SemanticReactionProductions.For(trigger).Any(produced => IsReactionConstraintTarget(context, produced.EventContract)))
+        {
+            return "Refusal scenarios do not yet reproduce constraint-target branch outputs.";
         }
 
         if (EventReactionTriggers(context).Any(next => products.Any(produced => produced.EventContract == next.Source)))

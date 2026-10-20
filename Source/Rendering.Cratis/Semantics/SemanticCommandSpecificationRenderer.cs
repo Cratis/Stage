@@ -231,9 +231,9 @@ internal static partial class SemanticCommandSpecificationRenderer
         }
 
         // A command without modeled authorization renders [Authorize], so a specification without a caller runs as the default authenticated caller.
-        IEnumerable<string> claims = caller is null ? [] : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+        var claims = caller is null ? Enumerable.Empty<string>() : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
             .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
-        var authentication = caller is null || caller.Authenticated ? "\"Screenplay\"" : "null";
+        var authentication = caller?.Authenticated != false ? "\"Screenplay\"" : "null";
         builder.OpenBlock("async global::System.Threading.Tasks.Task Because()");
         if (caller is null)
         {

@@ -11,7 +11,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticVersionFeatures;
 
-// ESM v29 'add total by unitPrice * quantity': Chronicle adds one event property, so the renderer refuses it instead of rendering a sum of one factor.
+// ESM v29 'add total by unitPrice * quantity': the renderer lowers the product to a member of the event (see for_SemanticProjectionProducts),
+// so no product is refused (the corpus vector stays refused for its Translate slice and public events, which are not products).
 public class when_refusing_projection_products : Specification
 {
     ExecutableSemanticModel _model = null!;
@@ -22,13 +23,16 @@ public class when_refusing_projection_products : Specification
 
     void Because()
     {
-        _features = [.. SemanticVersionFeatures.Slices(_model.Application).SelectMany(SemanticVersionFeatures.ProjectionProductsInSlice)];
+        var request = new ArtifactRenderRequest(
+            _model,
+            SemanticExecutionPlan.Compile(_model, []).Plan!,
+            CratisRendering.CreateProfile("Acme", new("Acme", "Acme")),
+            new(ArtifactRenderScopeKind.Application, _model.Application.Id));
+        var context = new SemanticApplicationContext(request, new("Acme", "Acme"));
+        _features = [.. SemanticVersionFeatures.Slices(_model.Application).SelectMany(slice => SemanticVersionFeatures.ProjectionProductsInSlice(slice, context))];
         _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Acme", "Acme"));
     }
 
-    [Fact] void should_find_the_one_projection_that_multiplies() => _features.Length.ShouldEqual(1);
-    [Fact] void should_refuse_it_with_its_own_code() => _features.Single().Code.ShouldEqual("STAGE-ESM-050");
-    [Fact] void should_name_the_projection() => _features.Single().Message.ShouldContain("BasketProjection");
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_refusal_in_the_plan() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-050");
+    [Fact] void should_refuse_no_product_the_renderer_can_lower() => _features.ShouldBeEmpty();
+    [Fact] void should_not_report_a_product_refusal_in_the_plan() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-050");
 }

@@ -4,16 +4,25 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
-import { Globals } from '@cratis/arc';
-import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
+import { ArcContext } from '@cratis/arc.react';
+import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
+import { applyQueryChangeSet } from './applyQueryChangeSet';
+import { registeredQuery, performQuery, subscribeQuery } from './queryExecutor';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
+import { sessionIdentities } from './stageSession';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 
 interface QueryState {
     name?: string;
+
+    /** The read model's name, under which the rows are published to the binding scope as well - where a summary looks them up. */
+    alias?: string;
+
+    /** The rows are always a list in the binding scope, even when there is one: a path reads `0.count`, never `count`. */
+    list?: boolean;
     route: string;
     rows: Record<string, unknown>[];
     loading: boolean;
@@ -27,6 +36,12 @@ export interface StageQueryRequest {
     route?: string;
     arguments?: Record<string, unknown>;
     ready?: boolean;
+
+    /** Publishes the rows under this name too: the read model a `data` declaration shows, so a summary finds them by it. */
+    alias?: string;
+
+    /** Whether the rows are published to bindings as a list always, so a path such as `0.lineCount` reads the same for one row as for many. */
+    list?: boolean;
 
     /**
      * Whether the result is published to the screen's bindings. A query read only to decide something - the item a
@@ -49,7 +64,16 @@ export interface StageDataState {
     screen: string;
     routes: StageRoutes | undefined;
     routesReady: boolean;
+
+    /** The parameters the screen's address carries - and nothing else. */
     parameters: Record<string, string>;
+
+    /**
+     * The identities the session acts as, by the name a screen parameter gives them (`basketId`). They are not the screen's parameters: only
+     * what reads the session on purpose does - a form populating the identity it does not show, the key a `data` declaration is read by
+     * when the address does not carry it (`screen.keys.<name>` in a binding), and the query bindings the session narrows.
+     */
+    session: Record<string, string>;
     queries: Record<string, QueryState>;
     selected: Record<string, unknown> | undefined;
     selections: Record<string, Record<string, unknown> | undefined>;
@@ -57,6 +81,19 @@ export interface StageDataState {
     clearSelection: (scope: string) => void;
     setState: (key: string, value: unknown) => void;
     setComponentOutput: (componentId: string, path: string, value: unknown) => void;
+
+    /**
+     * Takes what the components of one rendered tree publish (a list's selected row, a search box's text) so bindings and interactions elsewhere
+     * on the page read it. The screen and a dialog above it are each a tree of their own, so each publishes under its own scope and replaces only
+     * what it published before; see `useComponentOutputsPublisher`.
+     */
+    publishComponentOutputs: (scope: string, outputs: Record<string, Record<string, unknown>>) => void;
+
+    /** Forgets what a rendered tree published, once it is gone - a closed dialog - leaving what every other tree published. */
+    withdrawComponentOutputs: (scope: string) => void;
+
+    /** The rows of every query the page has read, by scope and by query name - what a `queryResult` binding resolves against. */
+    queryResults: Record<string, unknown>;
     refreshQuery: (query?: string) => void;
     refreshAfterCommand: () => void;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
@@ -78,6 +115,7 @@ const emptyState: StageDataState = {
     routes: undefined,
     routesReady: true,
     parameters: {},
+    session: {},
     queries: {},
     selected: undefined,
     selections: {},
@@ -85,6 +123,9 @@ const emptyState: StageDataState = {
     clearSelection: () => undefined,
     setState: () => undefined,
     setComponentOutput: () => undefined,
+    publishComponentOutputs: () => undefined,
+    withdrawComponentOutputs: () => undefined,
+    queryResults: {},
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
     resolveBinding: () => undefined,
@@ -110,13 +151,18 @@ export interface StageDataProviderProps {
 
 const noParameters: Record<string, string> = {};
 
-export function StageDataProvider({ routes, routesReady = true, parameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
+export function StageDataProvider({ routes, routesReady = true, parameters: addressParameters = noParameters, locale, locales, screen, children }: StageDataProviderProps) {
     const [queries, setQueries] = useState<Record<string, QueryState>>({});
+    const [sessionVersion, setSessionVersion] = useState(0);
     const [selections, setSelections] = useState<Record<string, Record<string, unknown> | undefined>>({});
     const [activeSelection, setActiveSelection] = useState<string>();
     const [localState, setLocalState] = useState<Record<string, unknown>>({});
     const [componentOutputState, setComponentOutputState] = useState<Record<string, Record<string, unknown>>>({});
+    const [outputContributions, setOutputContributions] = useState<Record<string, Record<string, Record<string, unknown>>>>({});
     const [refreshRequests, setRefreshRequests] = useState<{ query?: string; version: number }>({ version: 0 });
+
+    // What every rendered tree published, as one: the screen's selected row and a dialog's search box resolve side by side.
+    const publishedOutputs = useMemo(() => mergedOutputs(outputContributions), [outputContributions]);
 
     const registerQueryResult = useCallback((scope: string, state: QueryState | undefined) => {
         setQueries(current => {
@@ -128,6 +174,16 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
             return { ...current, [scope]: state };
         });
     }, []);
+
+    // The address's parameters stay the address's: a session identity reaches only what reads the session on purpose (see `session`).
+    const parameters = addressParameters;
+
+    // A command can create the identity it acts as - the shopper's basket - so the session is read again after every command.
+    const session = useMemo(() => sessionIdentities(), [sessionVersion]);
+
+    // What the address does not carry, the session does: the shopper's own basket is the one a command created, so a screen about "the basket" - a
+    // `data` declaration read by `basketId` - needs no id in its address.
+    const screenScope = useMemo(() => ({ name: screen, keys: { ...session, ...addressParameters } }), [addressParameters, screen, session]);
 
     const selectRow = useCallback((scope: string, row: Record<string, unknown> | undefined) => {
         setSelections(current => ({ ...current, [scope]: row }));
@@ -159,6 +215,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
     // the screen show what the command did; a stale response is still discarded by the query's own sequencing.
     const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
     const refreshAfterCommand = useCallback(() => {
+        setSessionVersion(current => current + 1);
         refreshQuery();
         for (const delay of commandSettleDelays) settleTimers.current.push(setTimeout(() => refreshQuery(), delay));
     }, [refreshQuery]);
@@ -183,22 +240,35 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         // A guard is evaluated against the item its interaction is about - a table supplies the row it happened
         // on. Resolved without one, it is nothing: the interaction engine reports it and runs neither branch.
         if (typeof binding !== 'string' && binding.path === guardPath) return undefined;
-        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screen, locale, locales);
+        if (typeof binding === 'string') return resolvePath(binding, selected, selections, queries, localState, parameters, screenScope, locale, locales);
 
-        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screen, locale, locales);
+        const scope = bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections);
 
-        const scope = bindingScope(selected, queries, localState, componentOutputState, selections);
+        // `component.<id>.<output>` reads what another element of the page publishes - the row a list has selected, the text a search box holds.
+        if (!binding.kind && binding.path.startsWith('component.')) return resolveArgumentSource(binding.path, scope);
+        if (!binding.kind) return resolvePath(binding.path, selected, selections, queries, localState, parameters, screenScope, locale, locales);
+
         const diagnostics = validateBindingExpression(binding, scope);
         if (diagnostics.length > 0) {
             console.warn(`Scene binding could not be resolved: ${diagnostics.map(_ => `${_.code}:${_.message}`).join('; ')}`);
         }
 
         return createBindingResolver(scope)(binding);
-    }, [componentOutputState, locale, locales, localState, parameters, queries, screen, selected, selections]);
+    }, [componentOutputState, locale, locales, localState, parameters, publishedOutputs, queries, screenScope, selected, selections]);
 
     const resolveArgument = useCallback(
-        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, componentOutputState, selections)) : undefined,
-        [componentOutputState, localState, queries, selected, selections]);
+        (source: string | undefined): unknown => source ? resolveArgumentSource(source, bindingScope(selected, queries, localState, { ...publishedOutputs, ...componentOutputState }, selections)) : undefined,
+        [componentOutputState, localState, publishedOutputs, queries, selected, selections]);
+
+    const publishComponentOutputs = useCallback((scope: string, outputs: Record<string, Record<string, unknown>>) =>
+        setOutputContributions(current => ({ ...current, [scope]: outputs })), []);
+    const withdrawComponentOutputs = useCallback((scope: string) => setOutputContributions(current => {
+        if (!Object.prototype.hasOwnProperty.call(current, scope)) return current;
+        const remaining = { ...current };
+        delete remaining[scope];
+        return remaining;
+    }), []);
+    const queryResults = useMemo(() => bindingScope(undefined, queries, {}, {}, {}).queryResults, [queries]);
 
     const state = useMemo<StageDataState>(() => ({
         locale,
@@ -207,6 +277,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         routes,
         routesReady,
         parameters,
+        session,
         queries,
         selected,
         selections,
@@ -214,6 +285,9 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         clearSelection,
         setState: (key, value) => setLocalState(current => writePath(current, key.split('.').filter(Boolean), value)),
         setComponentOutput,
+        publishComponentOutputs,
+        withdrawComponentOutputs,
+        queryResults,
         refreshQuery,
         refreshAfterCommand,
         resolveBinding,
@@ -221,7 +295,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters = noP
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, resolveArgument, resolveBinding, routes, routesReady, parameters, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -230,6 +304,7 @@ export const useStageData = (): StageDataState => useContext(StageDataContext);
 
 export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const { refreshQueryName, refreshVersion, registerQueryResult } = useStageData();
+    const arc = useContext(ArcContext);
     const publish = request.publish !== false;
     const publishResult = useCallback((scope: string, state: QueryState | undefined) => {
         if (publish) registerQueryResult(scope, state);
@@ -241,11 +316,11 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const latest = useRef(0);
     const liveOpen = useRef(false);
     const ready = request.ready ?? true;
-    const active = !!request.route && ready;
+    const active = !!request.name && ready;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {
-        if (!active || !request.route) {
+        if (!active) {
             latest.current += 1;
             setRows([]);
             setError('');
@@ -258,96 +333,71 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         latest.current = sequence;
         const abort = new AbortController();
         const queryArguments = JSON.parse(argumentsKey) as Record<string, unknown>;
-        const url = routeWithArguments(request.route, queryArguments);
-
+        const queryType = registeredQuery(request.name ?? '', request.route);
         setLoading(true);
         setError('');
 
-        const read = () => {
-            fetch(url, { headers: { Accept: 'application/json' }, signal: abort.signal })
-                .then(async response => {
-                    if (!response.ok) throw new Error(`The query answered ${response.status}.`);
-                    return response.json() as Promise<unknown>;
-                })
-                .then(payload => {
-                    if (latest.current !== sequence || abort.signal.aborted) return;
-                    setRows(normalizeRows(payload));
-                    setError('');
-                })
-                .catch(reason => {
-                    if (latest.current !== sequence || abort.signal.aborted) return;
-                    setRows([]);
-                    setError(reason instanceof Error ? reason.message : String(reason));
-                })
-                .finally(() => {
-                    if (latest.current === sequence && !abort.signal.aborted) setLoading(false);
-                });
+        const failed = (reason: unknown) => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            liveOpen.current = false;
+            setRows([]);
+            setError(reason instanceof Error ? reason.message : String(reason));
+            setLoading(false);
         };
-
-        // A live query is subscribed to rather than read: the server pushes a new result whenever its read model
-        // changes, so a list shows what a command - issued from this client or any other - did without a refresh.
-        if (isLiveRoute(request.route)) {
-            liveOpen.current = true;
-            const connection = new ServerSentEventQueryConnection<unknown>(new URL(withoutLiveMarker(url), globalThis.location.href));
-
-            // A subscription the server refuses or drops never reaches the result callback: the connection only logs
-            // it. Reading the route once asks the server why, and shows the answer the way a snapshot query does.
-            let fellBack = false;
-            const fallBack = () => {
-                if (fellBack || latest.current !== sequence || abort.signal.aborted) return;
-                fellBack = true;
-                liveOpen.current = false;
-                connection.disconnect();
-                read();
-            };
-
-            const previous = Globals.eventSourceFactory;
-            if (!previous && typeof EventSource === 'undefined') {
-                fallBack();
-            } else {
-                let source: EventSource | undefined;
-                Globals.eventSourceFactory = address => (source = previous ? previous(address) : new EventSource(address));
-                try {
-                    connection.connect(result => {
-                        if (latest.current !== sequence || abort.signal.aborted) return;
-                        const failure = queryFailure(result);
-                        if (failure) {
-                            setRows([]);
-                            setError(failure);
-                        } else {
-                            setRows(normalizeRows(result));
-                            setError('');
-                        }
-
-                        setLoading(false);
-                    });
-                } finally {
-                    Globals.eventSourceFactory = previous;
-                }
-
-                const opened = source as EventSource | undefined;
-                if (opened) {
-                    const logged = opened.onerror;
-                    opened.onerror = function (this: EventSource, event: Event) {
-                        logged?.call(this, event);
-                        if (opened.readyState === eventSourceClosed) fallBack();
-                    };
-                } else {
-                    fallBack();
-                }
-            }
-
-            return () => {
-                abort.abort();
-                liveOpen.current = false;
-                connection.disconnect();
-            };
+        let previousData: unknown = [];
+        const receive = (result: QueryResult<unknown>) => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            const failure = queryFailure(result);
+            if (failure) { failed(new Error(failure)); return; }
+            if (result.isReady === false) return;
+            previousData = result.changeSet && Array.isArray(result.data) && result.data.length === 0 && Array.isArray(previousData)
+                ? applyQueryChangeSet(previousData, result.changeSet)
+                : result.data;
+            setRows(normalizeRows(previousData));
+            setError('');
+            setLoading(false);
+        };
+        if (!queryType) {
+            failed(new Error(`The modeled query “${request.name}” is not registered by this Stage.`));
+            return () => abort.abort();
+        }
+        const observable = queryType.prototype instanceof ObservableQueryFor;
+        const read = () => Promise.resolve()
+            .then(() => performQuery(queryType, observable ? { ...queryArguments, waitForFirstResult: true } : queryArguments, arc))
+            .then(receive).catch(failed);
+        if (!observable) {
+            void read();
+            return () => abort.abort();
         }
 
-        read();
-
-        return () => abort.abort();
-    }, [active, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
+        // Arc owns reconnection after delivery. Read once through Arc after its connection deadline if
+        // no first ready result arrives, surfacing rejection instead of leaving the screen loading forever.
+        liveOpen.current = true;
+        let subscription: ReturnType<typeof subscribeQuery>;
+        const deadline = globalThis.setTimeout(() => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            liveOpen.current = false;
+            subscription?.unsubscribe();
+            subscription = undefined;
+            void read();
+        }, 15000);
+        try {
+            subscription = subscribeQuery(queryType, queryArguments, arc, result => {
+                if (result.isReady !== false) globalThis.clearTimeout(deadline);
+                receive(result);
+            });
+        } catch {
+            globalThis.clearTimeout(deadline);
+            liveOpen.current = false;
+            void read();
+        }
+        return () => {
+            abort.abort();
+            globalThis.clearTimeout(deadline);
+            liveOpen.current = false;
+            subscription?.unsubscribe();
+        };
+    }, [active, arc, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
 
     useEffect(() => {
         if (refreshVersion === 0) return;
@@ -359,20 +409,22 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     }, [refreshQueryName, refreshVersion, request.name, request.scope]);
 
     useEffect(() => {
-        if (!active || !request.route) {
+        if (!active) {
             publishResult(request.scope, undefined);
             return;
         }
 
         publishResult(request.scope, {
             name: request.name,
-            route: request.route,
+            list: request.list,
+            alias: request.alias,
+            route: request.route ?? '',
             rows,
             loading,
             error,
             arguments: JSON.parse(argumentsKey) as Record<string, unknown>,
         });
-    }, [active, argumentsKey, error, loading, publishResult, request.name, request.route, request.scope, rows]);
+    }, [active, argumentsKey, error, loading, publishResult, request.alias, request.list, request.name, request.route, request.scope, rows]);
 
     return { rows, loading, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
 }
@@ -388,10 +440,12 @@ function bindingScope(
     componentOutputState: Record<string, Record<string, unknown>>,
     selections: Record<string, Record<string, unknown> | undefined>,
 ) {
-    const queryResults = Object.fromEntries(Object.entries(queries).flatMap(([scope, state]) => [
-        [scope, queryValue(state.rows)],
-        ...(state.name ? [[state.name, queryValue(state.rows)] as const] : []),
-    ]));
+    // A query bound as a list is registered last, so a path that indexes into it wins the name over a table that reads the same query.
+    const ordered = Object.entries(queries).sort(([, left], [, right]) => Number(left.list === true) - Number(right.list === true));
+    const queryResults = Object.fromEntries(ordered.flatMap(([scope, state]) => {
+        const value = state.list ? state.rows : queryValue(state.rows);
+        return [[scope, value], ...(state.name ? [[state.name, value] as const] : []), ...(state.alias ? [[state.alias, value] as const] : [])];
+    }));
 
     return {
         dataContext: selected,
@@ -425,6 +479,21 @@ function writePath(current: Record<string, unknown>, path: string[], value: unkn
     return { ...current, [head]: writePath(isRecord(current[head]) ? current[head] : {}, tail, value) };
 }
 
+function mergedOutputs(contributions: Record<string, Record<string, Record<string, unknown>>>): Record<string, Record<string, unknown>> {
+    const merged: Record<string, Record<string, unknown>> = {};
+    for (const outputs of Object.values(contributions)) {
+        for (const [componentId, values] of Object.entries(outputs)) merged[componentId] = { ...merged[componentId], ...values };
+    }
+
+    return merged;
+}
+
+/** What a `screen.` path reads: the screen's name, and the keys its `data` declarations are read by - the address's parameter, or the session's identity of that name. */
+interface ScreenScope {
+    name: string;
+    keys: Record<string, string>;
+}
+
 function resolvePath(
     path: string | undefined,
     selected: Record<string, unknown> | undefined,
@@ -432,7 +501,7 @@ function resolvePath(
     queries: Record<string, QueryState>,
     localState: Record<string, unknown>,
     parameters: Record<string, string>,
-    screen: string,
+    screen: ScreenScope,
     locale: string,
     locales: string[],
 ): unknown {
@@ -441,7 +510,14 @@ function resolvePath(
     const parts = path.replace(/^\$\.?/, '').split('.').filter(Boolean);
     if (parts.length === 0) return undefined;
 
-    if (parts[0] === 'screen') return parts.length === 1 ? { name: screen } : valueAt({ name: screen }, parts.slice(1));
+    if (parts[0] === 'screen') {
+        if (parts.length === 1) return { name: screen.name };
+
+        // A key neither the address nor the session carries is the one the user picked: the master list of a master-detail screen
+        // is read by what it selects, so its details wait for a row instead of asking a query that needs one without it.
+        const key = valueAt(screen, parts.slice(1));
+        return key === undefined && parts[1] === 'keys' && parts.length === 3 ? valueAt(selected, [parts[2]]) : key;
+    }
     if (parts[0] === 'locale') return locale;
     if (parts[0] === 'locales') return locales;
     if (parts[0] === 'query') return resolveQueryResult(queries, parts[1], parts.slice(2).join('.'));
@@ -460,7 +536,8 @@ function resolveDataPath(path: string | undefined, selected: Record<string, unkn
 
 function resolveQueryResult(queries: Record<string, QueryState>, query: string | undefined, path: string | undefined): unknown {
     const matching = Object.entries(queries)
-        .filter(([scope, state]) => !query || state.name === query || scope === query)
+        // A page-level read (a basket count, a `data` declaration's summary) is published for the bindings that name it; it is not one of the rows an unnamed path searches.
+        .filter(([scope, state]) => query ? state.name === query || scope === query : !state.list)
         .map(([, state]) => state.rows);
     if (matching.length === 0) return undefined;
     const rows = matching.flat();
@@ -470,41 +547,11 @@ function resolveQueryResult(queries: Record<string, QueryState>, query: string |
     return rows.map(row => valueAt(row, parts));
 }
 
-function routeWithArguments(route: string, queryArguments: Record<string, unknown>): string {
-    const [path, query = ''] = route.replace(/^\//, '').split('?');
-    const parameters = new URLSearchParams(query);
-    for (const [name, value] of Object.entries(queryArguments)) {
-        if (value === undefined || value === null || value === '') continue;
-        parameters.set(name, String(value));
-    }
-
-    const serialized = parameters.toString();
-    return serialized ? `${path}?${serialized}` : path;
-}
-
-/** The marker a generated application puts on the route of a query the model declares `observable`. */
-const liveMarker = 'waitForFirstResult';
-
-/** The `readyState` of an `EventSource` the browser gave up on: a refused or failed subscription, not a retry. */
-const eventSourceClosed = 2;
-
-function isLiveRoute(route: string): boolean {
-    return new URLSearchParams(route.split('?')[1] ?? '').get(liveMarker) === 'true';
-}
-
-function withoutLiveMarker(url: string): string {
-    const [path, query = ''] = url.split('?');
-    const parameters = new URLSearchParams(query);
-    parameters.delete(liveMarker);
-    const serialized = parameters.toString();
-    return serialized ? `${path}?${serialized}` : path;
-}
-
 // What a result that carries no rows says about why: a denied or invalid subscription ends rather than retrying.
 function queryFailure(result: unknown): string {
     if (!isRecord(result)) return '';
     if (result.isAuthorized === false) return 'The query answered 403.';
-    if (result.isValid === false || result.hasExceptions === true) {
+    if (result.isValid === false || result.hasExceptions === true || result.isSuccess === false) {
         const messages = Array.isArray(result.exceptionMessages) ? result.exceptionMessages.filter(message => typeof message === 'string') : [];
         return messages.length > 0 ? messages.join(' ') : 'The query could not be answered.';
     }
@@ -512,8 +559,7 @@ function queryFailure(result: unknown): string {
     return '';
 }
 
-function normalizeRows(payload: unknown): Record<string, unknown>[] {
-    const data = isRecord(payload) && 'data' in payload ? payload.data : payload;
+function normalizeRows(data: unknown): Record<string, unknown>[] {
     if (Array.isArray(data)) return data.filter(isRecord);
     return isRecord(data) ? [data] : [];
 }

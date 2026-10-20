@@ -18,7 +18,8 @@ internal static class SemanticWorldRebuilder
     internal static SemanticWorld Create(
         SemanticExecutionPlan plan,
         IEnumerable<AppendedEventResponse> events,
-        ulong tail)
+        ulong tail,
+        bool exact = true)
     {
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
         if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
@@ -28,7 +29,7 @@ internal static class SemanticWorldRebuilder
             throw new SemanticWorldRebuildRefused($"The event log cannot be read completely through tail {tail}.");
         }
 
-        var facts = history.Select(@event => Fact(plan, @event)).ToImmutableArray();
+        var facts = history.Select(@event => Fact(plan, @event, exact)).ToImmutableArray();
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
@@ -48,9 +49,22 @@ internal static class SemanticWorldRebuilder
         _ => throw new SemanticWorldRebuildRefused("The semantic world reconstruction returned an unknown outcome.")
     };
 
-    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored)
+    /// <summary>
+    /// Reads a stored event as a semantic fact.
+    /// </summary>
+    /// <param name="plan">The execution plan.</param>
+    /// <param name="stored">The stored event.</param>
+    /// <param name="exact">
+    /// Whether the event must be the exact storage form of a modeled production - what a restart verifies. Events the host has just appended
+    /// itself, from memory, are not read back through storage, so they need not round-trip it (a decimal or a date time) nor name a producer.
+    /// Stored seed events use the same non-exact checks as seed admission, identified by their causation subject.
+    /// </param>
+    /// <returns>The fact.</returns>
+    /// <exception cref="SemanticWorldRebuildRefused">The stored event is not one the model can have produced.</exception>
+    internal static SemanticFact Fact(SemanticExecutionPlan plan, AppendedEventResponse stored, bool exact = true)
     {
         var context = stored.Context;
+        exact = exact && context.CausedBy?.Subject != SemanticChronicleRegistration.SeedSubject;
         if (context.EventType.Generation != 1 || stored.Revisions.Any() ||
             stored.GenerationalContent.Any(entry => entry.Key != 1))
         {
@@ -65,24 +79,40 @@ internal static class SemanticWorldRebuilder
 
         var contract = contracts[0];
         var route = Route(plan, context);
-        foreach (var property in contract.Properties)
+        if (exact)
         {
-            EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
+            foreach (var property in contract.Properties)
+            {
+                EnsureExactStorageType(property.Name, property.Type, plan.Model.Application);
+            }
         }
 
         var producers = Productions(plan, contract.Id).ToArray();
+        if (exact && producers.Length == 0 && plan.Projections.Values.Any(projection => projection.Target == SemanticProjectionTargetKind.Event && projection.ReadModel == contract.Id))
+        {
+            // The reference evaluator cannot yet re-establish a history that holds published public events; refuse explicitly rather than guess.
+            throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} is a local publication of public event '{contract.Name}'; the semantic sandbox cannot yet rebuild a history with published events after a restart. Start a fresh session.");
+        }
+
         var destinationType = route is null ? null : plan.Model.Application.EventSources
             .Single(source => source.SourceKind == route.SourceKind).IdentifierType;
         if (destinationType is null)
         {
             // Screenplay falls back across all producers, not just those on the stored route.
             var destinations = DestinationTypes(plan, contract.Id, []).Distinct().ToArray();
-            if (destinations is not [{ IsOptional: false, IsCollection: false }])
+            if (destinations is [{ IsOptional: false, IsCollection: false }])
+            {
+                destinationType = destinations[0]!;
+            }
+            else if (exact)
             {
                 throw new SemanticWorldRebuildRefused($"Event '{contract.Name}' has no unambiguous typed destination.");
             }
-
-            destinationType = destinations[0]!;
+            else
+            {
+                // An event the host appended itself - seed data - need not be what a command produces; its source id is then plain text.
+                destinationType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
+            }
         }
         var destination = Text(context.EventSourceId, destinationType, plan.Model.Application);
         if ((DateTimeOffset?)context.Occurred is not { } occurred)
@@ -92,12 +122,12 @@ internal static class SemanticWorldRebuilder
 
         using var content = JsonDocument.Parse(stored.Content);
         var values = Values(content.RootElement, contract.Properties, plan.Model.Application);
-        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route)))
+        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has a route inconsistent with every modeled production of '{contract.Name}'.");
         }
 
-        if (!producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
+        if (exact && !producers.Any(producer => RouteMatches(plan, producer.Route, route) && ProductionMatches(producer.Produced, contract, values, context, occurred)))
         {
             throw new SemanticWorldRebuildRefused($"Event {context.SequenceNumber} has tags or occurrence values inconsistent with every modeled production of '{contract.Name}'.");
         }

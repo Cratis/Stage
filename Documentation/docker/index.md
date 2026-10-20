@@ -158,9 +158,17 @@ The SpecRunner retains `structural` as its default; this Host default does not c
 The legacy engine refuses named event sources, streams
 and event-source routes with `STAGE-ESM-030`, before registering anything with Chronicle. The host stays
 in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` returns HTTP 501.
-Both engines also refuse public-event publication (`STAGE-ESM-032`), foreign events and `source events`
-captures (`STAGE-ESM-033`), directed Translate slices (`STAGE-ESM-024`, naming the direction),
-and reducer observer filters (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
+The semantic sandbox reports public events and public-event projections (`STAGE-ESM-032`), foreign events
+and `source events` captures (`STAGE-ESM-033`), directed Translate slices and captures (`STAGE-ESM-024`)
+as `renderedAround` entries on `/stage/semantic/admission`, with a startup warning for each artifact. They do
+not block unrelated local commands or queries. Public events are **published locally only**, into the sandbox's
+own event log, including supported outbound event projections; there is no external publication. Inbound
+translation is not executed: foreign events arrive only through seeds, and captures do not poll external
+sources. Unsupported public-projection shapes still refuse the affected command without appending facts.
+Published events are not yet rebuilt after a restart: a host that restarts over a Chronicle log holding a local
+publication reports `World rebuild refused` on `/stage/status`; start a fresh session instead (see [Cratis/Screenplay#1008](https://github.com/Cratis/Screenplay/issues/1008)).
+The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters
+(`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
 (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Semantic rendering supports reaction filters; neither that support nor the renderer's narrowed `034` refusal for claim-reading or opaque gates changes these legacy-engine refusals.
 The semantic engine runs per-production route overrides; it does not admit an override on an unkeyed stream under a keyed command route, or a literal override stream id of `Default`, yet; both fail with `STAGE-ESM-036` until their generated routing is proven equivalent. The legacy engine refuses the stream syntax with `STAGE-ESM-030`.
 The semantic engine runs event-triggered reactions, including `where`, `runs as`, `from`, productions,
@@ -176,7 +184,7 @@ Clock, application, startup and shutdown triggers and opaque reaction bodies sti
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
 The independent specification executor also settles event reactions, including identity, filters and mixed effects;
 see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.226.0 and admits exact ESM v1–v30 version pairs; unaudited
+The semantic engine uses Screenplay 4.236.0 and admits exact ESM v1–v30 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
 A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
@@ -289,7 +297,7 @@ are available through Stage's in-process queries, not as projection views in the
 For admitted, unrouted models, the legacy EventModel engine continues to register its own Chronicle projections. Commands that require
 allocation of a new event-source identity return `Unsupported(IdentityAllocation)`; explicitly name a
 `produces … for` destination to make them executable. Unsupported event revisions or duplicate event names
-put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
+put the running host in refused mode (`state: "unsupported"` and HTTP 501 for `/api/**`). When scene loading succeeded, `/stage/scene`, `/stage/routes` and `/stage/locales` remain available even in refused mode. The semantic engine runs modeled specifications through the shared executor on request, with fresh isolated state rather than the live world or Chronicle log (see below). Scene synthesis still uses the legacy presentation converter, but that converter is
 never registered as the semantic execution model. A screen can therefore omit a semantic command even though
 its API route exists. The in-process world holds the session's fact history without a size cap; use this
 engine for short-lived play sessions, not durable workloads.
@@ -301,7 +309,57 @@ model without appending facts. Semantic queries require a modeled snapshot looku
 queries read the in-process world, not Chronicle projections. If an append's outcome cannot be established, Stage faults the session and returns `Unsupported(World)` for subsequent commands and queries; `/stage/status` then reports `unsupported`. Restart rebuilds from the Chronicle log only when its
 history passes the same strict admission checks.
 
-The sandbox constructs caller identities from Arc's unsigned `x-ms-client-principal` request headers. Clients that can reach the host can forge those headers; modeled authorization is not a security boundary here. Restrict access at a trusted proxy and keep the session private. An anonymous semantic caller has empty audit identity fields (`subject`, `name`, `userName`), not an invented `unknown` identity; the legacy EventModel path omits those identity values entirely.
+### Sandbox identity
+
+The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
+login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
+`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+This changes only the Stage host, never rendered applications or their authentication.
+
+Stage selects the default persona once at startup:
+
+1. Use the persona named by a `Cratis.Blueprint.Default.userMenu` component's literal `role` property.
+2. Otherwise, use the persona whose policies satisfy the most module-level `authorize` requirements, in
+   declaration order when tied.
+3. Otherwise, use the first declared persona. With no personas, leave the caller anonymous.
+
+The same model selects the same persona and claims across fresh or warm sessions. The persona receives
+roles and literal claims synthesized from its declared policies, not every role in the model. Stage skips
+policies it cannot synthesize from roles and claims, including anonymous requirements or conflicts with
+previously accepted policies, and logs a warning. The audit subject is `persona:<name>`; the display name
+comes from the user menu's literal `name` property, or the persona name. Startup logs identify the persona
+and its roles. A persona lacking a required role still receives `403` for that operation.
+
+Arc's forwarded-header trust remains off. In sandbox mode, Stage removes every incoming header whose name
+starts with `x-ms-client-principal` (any letter case) from every request, before authentication, static files
+and routing run. It also replaces any
+incoming principal with the server-selected persona, or an anonymous principal when the model has no
+personas. Sending headers or an existing authenticated identity cannot select another persona or add roles.
+To use another persona, change the modeled user menu's `role` and restart the session.
+
+:::danger[Sandbox identity is not production authentication]
+Every sandbox API caller acts as the selected persona. There is no login or per-user identity verification.
+Restrict access at a trusted proxy and keep the session private. This mechanism is only for exploring a
+modeled application, not for protecting a production system.
+:::
+
+To disable the persona middleware, set `Stage__Sandbox__Identity=false` in the host environment (for Docker,
+add `-e Stage__Sandbox__Identity=false` to your container command). You can also override the setting in the
+Stage configuration file:
+
+```json
+{
+  "Stage": {
+    "Sandbox": {
+      "Identity": false
+    }
+  }
+}
+```
+
+With the setting disabled, Stage neither injects a persona nor strips headers or replaces an existing
+principal. Arc's default forwarded-header trust is still off. An anonymous semantic caller has empty audit
+identity fields (`subject`, `name`, `userName`); the legacy EventModel path omits those values entirely.
 
 ### Browse read models in a semantic session
 

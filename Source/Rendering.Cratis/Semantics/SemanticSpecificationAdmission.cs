@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -11,6 +12,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    /// <summary>
+    /// The code that refuses a specification whose given or appended event has no event source.
+    /// </summary>
+    internal const string SourcelessGivenCode = "STAGE-ESM-051";
+    const string SourcelessGivenReason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+
     /// <summary>
     /// Validates the specifications declared by one slice.
     /// </summary>
@@ -28,11 +35,16 @@ internal static partial class SemanticSpecificationAdmission
             {
                 if (!CanRenderProjectedFacts(context, facts))
                 {
-                    diagnostics.Add(new(
-                        "STAGE-ESM-011",
-                        ArtifactRenderDiagnosticSeverity.Error,
-                        $"Specification '{specification.Name}' cannot render: {ProjectedFactsRejection(context, facts)}",
-                        specification.Id));
+                    diagnostics.Add(RefusalDiagnostic(context, specification, ProjectedFactsRejection(context, facts)));
+                }
+
+                continue;
+            }
+            if (AppendRefusedConstraint(context, specification) is { } refusing)
+            {
+                if (AppendRefusalRejection(context, specification, refusing) is { } refusal)
+                {
+                    diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {refusal}", specification.Id));
                 }
 
                 continue;
@@ -47,11 +59,7 @@ internal static partial class SemanticSpecificationAdmission
             if (!valid)
             {
                 var reason = RejectionReason(context, specification);
-                diagnostics.Add(new(
-                    "STAGE-ESM-011",
-                    ArtifactRenderDiagnosticSeverity.Error,
-                    $"Specification '{specification.Name}' cannot render: {reason}",
-                    specification.Id));
+                diagnostics.Add(RefusalDiagnostic(context, specification, reason));
             }
         }
     }
@@ -104,7 +112,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static IEnumerable<SemanticSpecification> WithoutReactionCascades(SemanticApplicationContext context, SemanticSlice slice, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications, diagnostics))
+        foreach (var specification in WithRenderableGeneratedValues(context, slice.Specifications.Select(specification => specification.WithPinnedActionValues()), diagnostics))
         {
             if (CommandTriggersReaction(context, specification))
             {
@@ -287,7 +295,7 @@ internal static partial class SemanticSpecificationAdmission
 
         if (specification.GivenEvents.Any(_ => _.EventSource is null))
         {
-            return "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
+            return SourcelessGivenReason;
         }
 
         if (GivenEventsViolateConstraints(context, specification))
@@ -314,4 +322,24 @@ internal static partial class SemanticSpecificationAdmission
         specification.GivenCaller is { Authenticated: false } &&
         ((specification.When is not null && context.Commands.TryGetValue(specification.When.Command, out var command) && command.Authorization is null) ||
             specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null));
+
+    // A sourceless given fact has its own code so it is not lost in the generic STAGE-ESM-011 bucket.
+    static ArtifactRenderDiagnostic RefusalDiagnostic(SemanticApplicationContext context, SemanticSpecification specification, string reason)
+    {
+        if (reason != SourcelessGivenReason)
+        {
+            return new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {reason}", specification.Id);
+        }
+
+        // Projected facts lower a sourceless 'when append' into the givens, so the event may be the appended one.
+        var (role, contract) = specification.GivenEvents.FirstOrDefault(_ => _.EventSource is null) is { } given
+            ? ("given", given.EventContract)
+            : ("appended", specification.WhenAppended?.EventContract);
+        var eventName = contract is { } id && context.Events.TryGetValue(id, out var @event) ? $"'{@event.Name}'" : "an event";
+        return new(
+            SourcelessGivenCode,
+            ArtifactRenderDiagnosticSeverity.Error,
+            $"Specification '{specification.Name}' cannot render: {role} event {eventName} has no event source. {reason}",
+            specification.Id);
+    }
 }

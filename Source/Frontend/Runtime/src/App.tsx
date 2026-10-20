@@ -35,8 +35,10 @@ import {
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
-import { stageCommandFormComponent, stageComponents } from './stageComponents';
+import { useComponentOutputsPublisher } from './stageComponentOutputs';
+import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
+import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
@@ -47,6 +49,7 @@ import { navigateToScreen, screenArguments } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
+import { withoutSeededSlots } from './withoutSeededSlots';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -236,7 +239,11 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
-    const document = scene as ApplicationDocument;
+    // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
+    const document = useMemo(() => ({
+        ...scene,
+        screens: withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]),
+    }) as ApplicationDocument, [scene, screenTemplates]);
 
     if (!initial) {
         return (
@@ -269,6 +276,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
             layoutConfigStorage={browserStorage()}
             scope={(navigation, children) => <StageScope scene={scene} routeState={routeState} strings={strings} navigation={navigation} themes={themes} shellSettings={shellSettings} onSystemSchemeChange={onSystemSchemeChange}>{children}</StageScope>}
             renderScreen={(element, configuration) => <StageScreen element={element} configuration={configuration} registry={registry} />}
+            renderDialog={() => <StageSliceDialog />}
             renderDialogTemplate={(template, content, navigation) => <StageDialog template={template} content={content} registry={registry} strings={strings} close={() => navigation.closeDialog()} />}
         />
     );
@@ -424,7 +432,13 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
 /** The composed screen, drawn against the Stage's own data: the rows, selections and routes its bindings resolve through. */
 function StageScreen({ element, configuration, registry }: { element: SceneElement; configuration: EffectiveConfiguration | undefined; registry: ComponentRegistry }) {
     const data = useStageData();
-    return <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} configuration={configuration} />;
+    const publishOutputs = useComponentOutputsPublisher();
+    return (
+        <>
+            <StageQueryBindings element={element} />
+            <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
+        </>
+    );
 }
 
 interface StageDialogProps {
@@ -437,6 +451,7 @@ interface StageDialogProps {
 
 function StageDialog({ template, content, registry, strings, close }: StageDialogProps) {
     const data = useStageData();
+    const publishOutputs = useComponentOutputsPublisher();
     const resolved = resolveStringsInElement(content, strings.dictionary);
 
     // A dialog is modal: it sits above the shell, it is reachable with the pointer wherever the page is scrolled to, and
@@ -453,7 +468,7 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
-                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} />
+                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
             </section>
         </div>
     );

@@ -15,6 +15,7 @@ using Cratis.Chronicle.Testing.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Commands;
@@ -440,7 +441,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 {
                     if (selected || scopes.Contains(slice.Id) || scopes.Contains(specification.Id))
                     {
-                        yield return (slice, specification);
+                        yield return (slice, specification.WithPinnedActionValues());
                     }
                 }
             }

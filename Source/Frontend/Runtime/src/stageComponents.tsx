@@ -1,15 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useEffect, useMemo } from 'react';
+import { registeredQuery } from './queryExecutor';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
-import { CoreToolbarItem, coreComponents } from '@cratis/scene.react';
+import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, suppliedWithoutAsking } from './StageCommandForm';
+import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -96,7 +98,7 @@ function rowIdentity(row: Record<string, unknown>, dataKey: string): unknown {
 export function StageTable({ element, slots }: RegisteredProps) {
     const data = useStageData();
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
-    const route = (text(element, 'query') ? data.routes?.queries[text(element, 'query')] : undefined) ?? text(element, 'route');
+    const route = (text(element, 'query') ? data.routes?.queries?.[text(element, 'query')] : undefined) ?? text(element, 'route');
     const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
     const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
@@ -151,7 +153,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
         navigateToScreen(data.screen, remaining);
     };
 
-    if (!route) {
+    if (!text(element, 'query') && !route && !registeredQuery(queryName)) {
         return (
             <section className='stage-table' data-scene-id={element.id}>
                 <p className='stage-note'>No query is exposed for {text(element, 'typeName', 'this read model')} yet.</p>
@@ -223,15 +225,61 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    const content = <StageCommandForm element={element} />;
+    return <StageCommandDialog element={element} label={label} />;
+}
+
+/** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
+function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
+    const [generation, setGeneration] = useState(0);
+    const close = useCallback(() => setGeneration(current => current + 1), []);
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm element={element} /></StageDialogContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
             <PrimeDialog
+                key={generation}
                 element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
                 slots={{ content: [content] }}
             />
         </div>
+    );
+}
+
+/**
+ * The task dialog of a toolbar slice button. Scene's own dialog asks for a text, a number, a switch or a date for each property of
+ * the command; a command that takes an enumeration, a record or a collection is asked through the command's own form instead - a choice, a
+ * group of fields, a list. The identifier the command acts on - the shopper's basket - is not asked for: the session supplies it, or creates it on
+ * submit. A reference to another entity - the product an add to basket is for - is the person's to choose, and is asked for unless the screen's
+ * address or the session already supplies it; the form then submits what was not asked by the same rule.
+ */
+export function StageSliceDialog(props: Partial<RegisteredProps>) {
+    const element = props.element ?? syntheticElement('slice-dialog', {});
+    const navigation = useOptionalSceneNavigation();
+    const { routes, parameters } = useStageData();
+    const opened = sliceDialogParameters(navigation?.currentDialogParameters);
+    const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
+    const title = text(element, 'title') || opened?.title || command;
+    const schema = routes?.commandSchemas?.[command];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const close = useCallback(() => navigation?.closeDialog(), [navigation]);
+
+    if (!schema || !properties.some(property => property.options || property.members || property.item)) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
+
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters));
+    const form = syntheticElement(`slice-dialog-${command}`, {
+        command,
+        label: title,
+        schema,
+        fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })),
+        generationMode: 'manual',
+    });
+
+    return (
+        <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command}>
+            <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{title}</h2></header>
+            <StageDialogContext.Provider value={close}><StageCommandForm element={form} /></StageDialogContext.Provider>
+            <footer className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
+        </section>
     );
 }
 
@@ -264,6 +312,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:table': StageTable,
     'core:action': StageAction,
     'core:toolbarItem': StageToolbarItem,
+    'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
 };
 

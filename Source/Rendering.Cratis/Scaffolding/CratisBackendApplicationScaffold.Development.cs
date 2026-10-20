@@ -32,6 +32,13 @@ public sealed partial class CratisBackendApplicationScaffold
         dotnet_diagnostic.CA1707.severity = none
         """;
 
+    // A repository-root application builds its frontend with npm in CI, so its README names the same tool.
+    static string FrontendTool(CratisBackendApplicationScaffoldRequest request) => request.RepositoryRoot ? "npm" : "Yarn";
+
+    static string FrontendInstall(CratisBackendApplicationScaffoldRequest request) => request.RepositoryRoot ? "npm install" : "yarn";
+
+    static string FrontendScript(CratisBackendApplicationScaffoldRequest request, string script) => request.RepositoryRoot ? $"npm run {script}" : $"yarn {script}";
+
     static string Readme(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
         # {{request.ApplicationName}}
@@ -42,7 +49,7 @@ public sealed partial class CratisBackendApplicationScaffold
         ## Prerequisites
 
         - A .NET SDK supporting `{{request.Profile.TargetFramework}}`.
-        - Node.js and Yarn for the Vite frontend.
+        - Node.js and {{FrontendTool(request)}} for the Vite frontend.
         - Docker with Docker Compose for the development Chronicle and MongoDB services.
 
         ## Run locally
@@ -57,12 +64,12 @@ public sealed partial class CratisBackendApplicationScaffold
         In another terminal, install frontend dependencies and start Vite:
 
         ```bash
-        yarn
-        yarn dev
+        {{FrontendInstall(request)}}
+        {{FrontendScript(request, "dev")}}
         ```
 
         Open the URL Vite prints. It proxies API requests to the backend.
-        Use `yarn build` to build the frontend into `wwwroot` for the backend to serve.
+        Use `{{FrontendScript(request, "build")}}` to build the frontend into `wwwroot` for the backend to serve.
 
         ## Run specifications
 

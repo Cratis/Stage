@@ -197,7 +197,10 @@ static class CratisArtifactRenderProfileAdmission
                 return false;
             }
 
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0]);
+            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
+            {
+                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+            };
             return true;
         }
         catch (Exception exception) when (exception is DecoderFallbackException or XmlException)

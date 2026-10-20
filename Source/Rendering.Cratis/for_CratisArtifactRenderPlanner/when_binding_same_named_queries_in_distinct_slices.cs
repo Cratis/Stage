@@ -64,5 +64,7 @@ public class when_binding_same_named_queries_in_distinct_slices : a_register_pro
     [Fact] void should_import_both_actual_source_folders() => new[] { "from '../Projects/Registration/ProjectLookup'", "from '../Projects/Registration/OtherLookup'" }.All(_bindings.Contains).ShouldBeTrue();
     [Fact] void should_not_add_a_legacy_registration() => _bindings.ShouldNotContain("registerQueries");
     [Fact] void should_not_compose_a_permanently_ambiguous_lookup() => Text(_plan.Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath)).ShouldNotContain("queryInputForm");
+    [Fact] void should_register_route_aliases_for_both_queries() => new[] { "\"ProjectById:\" + new __sceneQuery0().route.replace(/^\\//, '')", "\"ProjectById:\" + new __sceneQuery1().route.replace(/^\\//, '')" }.All(_bindings.Contains).ShouldBeTrue();
+    [Fact] void should_not_emit_a_name_only_query_route_map() => Text(_plan.Artifacts.Single(_ => _.RelativePath == StageModuleRenderer.RelativePath)).ShouldNotContain("queries:");
     [Fact] void should_keep_deterministic_registration_bytes() => Text(_planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneBindingsRenderer.RelativePath)).ShouldEqual(_bindings);
 }

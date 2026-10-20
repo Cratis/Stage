@@ -222,12 +222,12 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("pull-requests: read", JOBS["routing"])
         self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
-        for job in ("routing", "preflight", "dotnet-build", "specs", "generated-react"):
+        for job in ("routing", "preflight", "dotnet-build", "specs"):
             self.assertNotRegex(JOBS[job], r"^    if:", job)
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
-            self.assertIn(f"if: needs.routing.outputs.{lane} == 'true'", JOBS[lane])
+            self.assertIn(f"\n      && needs.routing.outputs.{lane} == 'true'\n", JOBS[lane])
         live = JOBS["live-custom-packages"]
-        self.assertIn("if: needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true'", live)
+        self.assertIn("\n      && (needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true')\n", live)
         self.assertEqual(1, live.count("run: docker build"))
         for step, lane in (("custom", "live-custom-packages"), ("navigation", "live-custom-packages"),
                            ("blueprints", "live-blueprints"), ("templates", "live-blueprints")):
@@ -243,6 +243,21 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("needs.build.result != 'success' || needs.routed-checks.result != 'success'", JOBS["nightly-red"])
         self.assertEqual(1, WORKFLOW.count("issues: write"))
         self.assertIn("issues: write", JOBS["nightly-red"])
+
+    def test_pull_requests_start_heavy_lanes_only_after_build_and_specs(self):
+        gate = """    needs: [preflight, routing, dotnet-build, specs]
+    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    if: >-
+      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
+        heavy = (ALL - {"live-blueprints"}) | {"standalone-generated-application", "generated-react"}
+        self.assertEqual(6, len(heavy))
+        for job in heavy:
+            self.assertTrue(JOBS[job].startswith(gate), job)
+        for job in ("generated-react", "standalone-generated-application"):
+            self.assertTrue(JOBS[job].startswith(gate + "\n    runs-on:"), job)
+        self.assertIn("standalone-generated-application", JOBS["build"].splitlines()[0])
+        self.assertIn("STANDALONE_RESULT\" = success", JOBS["build"])
 
     def test_dry_run_table_covers_requested_scenarios(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:

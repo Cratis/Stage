@@ -27,15 +27,16 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
     // Includes #494's authenticated endpoints, default spec callers, access README and inference diagnostics.
-    const string Digest = "0ffe2267fcf60a629cef35e019b1aeaff49f156fd49fa4f60503f47a47be32ca";
+    // Main adds route-qualified query registrations, native query proxies and cleaned frontend tsconfigs.
+    const string Digest = "143ba2405c9e50d4fe98e253716533830c356517e60c77c54744de3c77ed5ccf";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
         .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
         .frontend/main.tsx f44650b0ac67159ae951e1ee00f76268e10c0311a5d128d602591ecee727d1fc 2693
-        .frontend/tsconfig.json efa4d0a8fdc813c520c240d2df0cd9211132fcde952f3d21f244c1a74ab124bf 1013
-        .frontend/tsconfig.node.json 8d6d5e5ed11a91fdfa530d705f55c9676f62f12e72aa21b45502ecbadc27607b 313
+        .frontend/tsconfig.json b9167d1994863900fb2d66de275f33c37580839d752e802765b429d0bfb95469 982
+        .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 2563e2d7099206e3e6109995b94c2f532b6fee1b2b87041f74a8ac3b0b5654b1 1362
         .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
@@ -69,9 +70,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
         package.json b1e03f04b82f520dc8e726bd42eb72bc30a072790c860ebb67d70c0200393ef8 1469
         scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
-        src/bindings.ts acd1c3406a5f7a8cdd640e3682001634290a1e3359c63dfe86494badec891833 1467
+        src/bindings.ts 26c5414114643e1a95d6cae0ac550193813053efead2fc81624791a290a001f7 2173
         src/stage-scene.json 036c725d120d35592e7077d6d3bb2953413ba9c3bddb645d103e0dd962e0c97c 3971
-        src/stage.ts 6182fc89c2fe5c94cffba1f5081524543ab85af664f0dbf955b280fa99f6aea7 1748
+        src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
 
@@ -117,7 +118,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         // Rebaselined for the @cratis/stage.runtime package (#499): beyond the original invariant, the previous plan's vendored
         // .frontend/stage/* runtime and styledPrimeReact.ts are no longer emitted and the entry point, vite config and package.json import/depend on the package. The
         // shell also declares Vite's client types in .frontend/vite-env.d.ts, which the vendored runtime used to carry.
-        // The restored plan retains #494's authenticated endpoints, spec callers, access README and inference diagnostics.
+        // The restored plan retains #494's authenticated endpoints, spec callers, access README and inference diagnostics,
+        // plus main's route-qualified query registrations, native query proxies and cleaned frontend tsconfigs.
         var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var plan = planned.Plan;
@@ -135,7 +137,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("f7063c2206da2a0c09a968e821ab1417e4f9bbfec784215fc1bba0ee3e896a7b");
+            plan.Diagnostics).ShouldEqual("fbe0746d398b8204fcf50ded12b71e0c1c05781e95df5645ee483085fd87cc5e");
     }
 
     [Theory]

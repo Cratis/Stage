@@ -207,6 +207,8 @@ public static class ProjectionConverter
                 SetMappingSyntax { Source: LiteralExpressionSyntax { Value: null } } => "$null",
                 SetMappingSyntax set => ProjectionExpression.Value(set.Source),
                 ClearMappingSyntax => "$null",
+                AddMappingSyntax { Factor: not null } add => throw new UnsupportedProjectionConversion($"projection add mapping on '{add.Property}' with factor '{ProjectionExpression.Value(add.Factor)}'"),
+                SubtractMappingSyntax { Factor: not null } subtract => throw new UnsupportedProjectionConversion($"projection subtract mapping on '{subtract.Property}' with factor '{ProjectionExpression.Value(subtract.Factor)}'"),
                 AddMappingSyntax add => $"$add({ProjectionExpression.Value(add.Value)})",
                 SubtractMappingSyntax subtract => $"$subtract({ProjectionExpression.Value(subtract.Value)})",
                 IncrementMappingSyntax => "$increment",

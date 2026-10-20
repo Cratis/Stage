@@ -19,4 +19,16 @@ internal static partial class StageLog
 
     [LoggerMessage(LogLevel.Warning, "Scene element '{ElementId}' has no route: {Diagnostic}")]
     internal static partial void RouteNotResolved(ILogger logger, string elementId, string diagnostic);
+
+    [LoggerMessage(LogLevel.Warning, "Rendered around {Kind} '{Artifact}': {Details}")]
+    internal static partial void RenderedAround(ILogger logger, string kind, string artifact, string details);
+
+    [LoggerMessage(LogLevel.Warning, "{Code}: {Message} {Source}")]
+    internal static partial void SeedLeftOut(ILogger logger, string code, string message, string? source);
+
+    [LoggerMessage(LogLevel.Information, "Sandbox API callers act as persona '{Persona}' (roles: {Roles})")]
+    internal static partial void SandboxPersonaSelected(ILogger logger, string persona, string roles);
+
+    [LoggerMessage(LogLevel.Warning, "Sandbox persona '{Persona}' skips policy '{Policy}': {Reason}")]
+    internal static partial void SandboxPersonaPolicySkipped(ILogger logger, string persona, string policy, string reason);
 }

@@ -25,7 +25,7 @@ public class when_an_authored_action_has_no_command_metadata : given.a_scene_mod
         };
         var screen = new Screen(
             "ProjectArchive",
-            _scene.Layouts[0].Name,
+            string.Empty,
             new Dictionary<string, IReadOnlyList<SceneElement>>(StringComparer.Ordinal) { [DefaultLayout.ContentSlotName] = [action] },
             [],
             []);

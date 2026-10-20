@@ -6,15 +6,11 @@ using SceneLayouts = Cratis.Scene.Model.Layouts;
 namespace Cratis.Stage.Contracts.Scene;
 
 /// <summary>
-/// The single-slot application shell used when a Screenplay document declares no <c language="csharp">layout</c> of its own -
-/// part of Cratis/Stage#37.
+/// The legacy single-slot layout factory and the conventional content slot name.
 /// </summary>
 /// <remarks>
-/// <see cref="Cratis.Scene.Model.Screens.Screen.Layout"/> is a required, non-null name, but <c language="csharp">layout</c> is
-/// optional in Screenplay - a document can declare screens and never state a shell, and the shell is selected
-/// by a <c language="csharp">ui profile</c> rather than by a screen. One shell is synthesized for the whole application in that
-/// case, never one per screen: an application has exactly one layout in force, so a shell per screen would
-/// contradict the taxonomy the language and <c language="csharp">Cratis.Scene.Model</c> both implement.
+/// Retained for callers that explicitly construct this layout. Translation and synthesis leave layouts empty
+/// when the model declares none, so Scene can select the blueprint's renderable default shell instead.
 /// </remarks>
 public static class DefaultLayout
 {

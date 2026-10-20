@@ -27,10 +27,8 @@ public class and_the_application_declares_no_layout : Specification
 
     void Because() => _result = new ScreenplaySceneVisitor().Visit(_syntax);
 
-    [Fact] void should_synthesize_a_single_shell_for_the_whole_application() => _result.Layouts.Count.ShouldEqual(1);
-    [Fact] void should_name_the_synthesized_shell_after_the_application() => _result.Layouts[0].Name.ShouldEqual(DefaultLayout.Name);
-    [Fact] void should_give_the_synthesized_shell_a_single_content_slot() => _result.Layouts[0].Slots.Single().Name.ShouldEqual(DefaultLayout.ContentSlotName);
-    [Fact] void should_resolve_every_screen_against_the_same_synthesized_shell() => _result.Screens.All(screen => screen.Layout == DefaultLayout.Name).ShouldBeTrue();
+    [Fact] void should_not_invent_an_application_layout() => _result.Layouts.ShouldBeEmpty();
+    [Fact] void should_leave_every_screens_shell_for_the_blueprint_to_resolve() => _result.Screens.All(screen => string.IsNullOrEmpty(screen.Layout)).ShouldBeTrue();
     [Fact] void should_leave_every_screens_template_unset() => _result.Screens.All(screen => screen.ScreenTemplate is null).ShouldBeTrue();
     [Fact] void should_convert_both_screens() => _result.Screens.Count.ShouldEqual(2);
 }

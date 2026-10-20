@@ -29,7 +29,7 @@ public class when_enriching_authored_command_actions : given.a_scene_model
         };
         var screen = new Screen(
             "ProjectRegistration",
-            _scene.Layouts[0].Name,
+            string.Empty,
             new Dictionary<string, IReadOnlyList<SceneElement>>(StringComparer.Ordinal) { [DefaultLayout.ContentSlotName] = [action] },
             [new Form("RegisterProjectForm", "RegisterProject", null, [], null, null)],
             []);

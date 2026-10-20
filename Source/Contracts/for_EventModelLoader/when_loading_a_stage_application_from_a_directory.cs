@@ -38,7 +38,7 @@ public class when_loading_a_stage_application_from_a_directory : Specification
     }
 
     [Fact] void should_translate_the_event_model() => _application.EventModel.Collections.Single().Modules.Single().Name.ShouldEqual("Sales");
-    [Fact] void should_translate_the_scene_from_the_same_application() => _application.Scene.Layouts.Single().Name.ShouldEqual(Scene.DefaultLayout.Name);
+    [Fact] void should_leave_layouts_empty_for_the_default_blueprint() => _application.Scene.Layouts.ShouldBeEmpty();
     [Fact] void should_translate_the_screen_from_the_same_application() => _application.Scene.Screens.Single().Name.ShouldEqual("Invoices");
     [Fact] void should_preserve_the_model_through_the_file_or_folder_entry_point() => EventModelFile.Write(_fromPath.EventModel).ShouldEqual(EventModelFile.Write(_application.EventModel));
     [Fact] void should_preserve_the_screen_through_the_file_or_folder_entry_point() => _fromPath.Scene.Screens.Single().Name.ShouldEqual(_application.Scene.Screens.Single().Name);

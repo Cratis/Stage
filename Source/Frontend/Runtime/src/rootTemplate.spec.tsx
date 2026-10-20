@@ -46,6 +46,19 @@ describe('when the profile roots the application on a template', () => {
         vi.unstubAllGlobals();
     });
 
+    it('should render the default shell when the model declares no UI or screen layout', async () => {
+        const scene = baseScene(undefined);
+        scene.screens = [{
+            name: 'RegisterOwner', path: [], forms: [], contributions: [],
+            slotContent: { content: [element('owner-title', 'core:title', { text: 'Register owner' })] },
+        }] as unknown as typeof scene.screens;
+        show(scene);
+
+        expect(await screen.findByRole('heading', { name: 'Register owner' })).toBeDefined();
+        expect(document.querySelector('.layout-wrapper')).not.toBeNull();
+        expect(document.body.textContent).not.toContain('Unresolved component: Application');
+    });
+
     it('should draw the blueprint shell the root names', async () => {
         show(baseScene(blueprintRoot()));
 

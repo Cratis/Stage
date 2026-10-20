@@ -27,8 +27,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <para>
 /// A screen <em>never</em> names the application's <c language="csharp">layout</c> - the shell is selected once per build by a
 /// <c language="csharp">ui profile</c>, which is what keeps a screen portable across web, mobile and desktop. Scene's
-/// <see cref="SceneScreens.Screen.Layout"/> is nevertheless a required, resolved name, so the caller resolves
-/// it from the application's declared shell and passes it in.
+/// <see cref="SceneScreens.Screen.Layout"/> is a non-null name, so the caller resolves it from the application's
+/// declared shell, or passes an empty name when the blueprint supplies the shell.
 /// </para>
 /// <para>
 /// A Level-1 "intent" screen (per <c language="csharp">screens.md</c>) names no template at all - <c language="csharp">data</c>/<c language="csharp">action</c> sit

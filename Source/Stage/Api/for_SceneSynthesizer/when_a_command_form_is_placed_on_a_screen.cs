@@ -23,7 +23,7 @@ public class when_a_command_form_is_placed_on_a_screen : given.a_scene_model
         var cancel = Element("cancel", "core:action", new Dictionary<string, object?> { ["command"] = "RegisterProject", ["label"] = "Register" });
         var screen = new Screen(
             "ProjectRegistration",
-            _scene.Layouts[0].Name,
+            string.Empty,
             new Dictionary<string, IReadOnlyList<SceneElement>>(StringComparer.Ordinal) { [DefaultLayout.ContentSlotName] = [title, form, cancel] },
             [new Form("RegisterProjectForm", "RegisterProject", null, [], FormGenerationMode.Auto)],
             []);

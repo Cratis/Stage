@@ -38,7 +38,7 @@ public class when_loading_a_stage_application_from_a_selected_file : Specificati
 
     [Fact] void should_compile_only_the_selected_file_despite_an_invalid_sibling() => EventModelFile.Write(_application.EventModel).ShouldEqual(EventModelFile.Write(_model));
     [Fact] void should_translate_the_scene_from_that_same_file() => _application.Scene.Screens.Single().Name.ShouldEqual("Invoices");
-    [Fact] void should_preserve_the_default_layout() => _application.Scene.Layouts.Single().Name.ShouldEqual(Scene.DefaultLayout.Name);
+    [Fact] void should_leave_layouts_empty_for_the_default_blueprint() => _application.Scene.Layouts.ShouldBeEmpty();
 
     void Destroy() => Directory.Delete(_directory, recursive: true);
 }

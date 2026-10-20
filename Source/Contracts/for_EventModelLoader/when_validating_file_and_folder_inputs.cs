@@ -247,8 +247,7 @@ public class when_validating_file_and_folder_inputs : given.a_compiled_invoicing
 
         var application = await EventModelLoader.LoadSceneApplicationFromDirectoryAsync(_directory);
 
-        application.Layouts.Single().Name.ShouldEqual(DefaultLayout.Name);
-        application.Layouts.Single().Slots.Single().Name.ShouldEqual(DefaultLayout.ContentSlotName);
+        application.Layouts.ShouldBeEmpty();
     }
     [Fact]
     public async Task should_return_render_findings_rather_than_input_errors_for_valid_source_without_targets()

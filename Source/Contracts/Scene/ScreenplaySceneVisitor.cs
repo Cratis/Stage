@@ -46,16 +46,14 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     /// <returns>The translated Scene with conversion diagnostics.</returns>
     public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
 
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics)
-    {
-        var layouts = (syntax.Layouts ?? [])
-            .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
-            {
-                Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
-            })
-            .ToList();
-        return layouts.Count > 0 ? layouts : [DefaultLayout.Create()];
-    }
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics) =>
+        [
+            .. (syntax.Layouts ?? [])
+                .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
+                {
+                    Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
+                })
+        ];
 
     static void ConvertModuleScreens(
         ScreenplaySyntax.ModuleSyntax module,
@@ -137,7 +135,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
-            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
+            ConvertModuleScreens(module, layouts.FirstOrDefault()?.Name ?? string.Empty, screens, scope);
         }
 
         var runtime = new SceneRuntimeAdmission();

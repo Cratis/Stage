@@ -18,6 +18,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
     JsonElement[] _elements = null!;
     JsonElement _properties;
     JsonElement _input;
+    JsonElement _scene;
     string[] _profileHashes = null!;
 
     void Because()
@@ -25,6 +26,7 @@ public class when_planning_an_application_without_screens : a_register_project_r
         _profileHashes = [.. _request.Profile.Inputs.Select(_ => _.Sha256)];
         _plan = _planner.Plan(_request);
         using var document = JsonDocument.Parse(Text(Artifact(SceneCompositionInput.RelativePath)!));
+        _scene = document.RootElement.Clone();
         _elements = [.. document.RootElement.GetProperty("screens")[0].GetProperty("slotContent")
             .GetProperty(DefaultLayout.ContentSlotName).EnumerateArray().Select(_ => _.Clone())];
         _properties = _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:queryInputForm").GetProperty("properties");
@@ -62,23 +64,8 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_reject_malformed_nonempty_keys_before_execution() => new[] { "not-a-guid", "112233445566778899aabbccddeeff00", "{11223344-5566-7788-99aa-bbccddeeff00}", "11223344-5566-7788-99aa-bbccddeeff00\n", " 11223344-5566-7788-99aa-bbccddeeff00" }.Any(MatchesPattern).ShouldBeFalse();
     [Fact] void should_not_mutate_the_profile() => _request.Profile.Inputs.Select(_ => _.Sha256).SequenceEqual(_profileHashes).ShouldBeTrue();
 
-    /// <summary>
-    /// The frozen bytes changed because every element now carries its interactions, which serialize as an
-    /// empty collection when a document attached none - the same way its slots already serialized as an empty
-    /// object. The assertion below names that difference, so the new hash is explained by something readable
-    /// rather than by a number somebody updated until the build went green.
-    /// </summary>
-    /// <remarks>
-    /// The hash moved again because enumerations are now spelled as the TypeScript Scene model spells them:
-    /// alignments and visibility are <c language="shell">Stretch</c> and <c language="shell">Visible</c>, not <c language="shell">stretch</c>
-    /// and <c language="shell">visible</c>, which the Scene engine's strict comparisons never matched. The assertions
-    /// below name that difference.
-    /// </remarks>
-    /// <remarks>
-    /// The hash moved once more because every screen now records where it sits in the application hierarchy as <c language="shell">path</c>
-    /// - empty for the screens synthesized here, which sit in no module.
-    /// </remarks>
-    [Fact] void should_freeze_the_complete_default_scene_bytes() => Artifact(SceneCompositionInput.RelativePath)!.Sha256.ShouldEqual("ee82daa8444621ebc017c1811db37d4a71460c4f2cd9120485e71f67c3fdd996");
+    [Fact] void should_leave_layouts_empty_for_the_default_blueprint() => _scene.GetProperty("layouts").GetArrayLength().ShouldEqual(0);
+    [Fact] void should_not_pin_the_generated_screen_to_an_unrenderable_application_shell() => _scene.GetProperty("screens")[0].GetProperty("layout").GetString().ShouldEqual(string.Empty);
 
     [Fact] void should_spell_alignment_as_the_scene_model_does() =>
         _elements.All(element => element.GetProperty("horizontalAlignment").GetString() == "Stretch" && element.GetProperty("verticalAlignment").GetString() == "Stretch").ShouldBeTrue();

@@ -49,7 +49,9 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     /// </remarks>
     [Fact] void should_reference_the_component_stack() => _first.Any(input => Text(input).Contains("@cratis/components", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_reference_the_scene_packages() => _first.Any(input => Text(input).Contains("@cratis/scene.components", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_not_reference_the_retired_styled_adapter_file() => new[] { ".frontend/tsconfig.json", ".frontend/tsconfig.node.json" }.Select(Content).All(text => !text.Contains("styledPrimeReact.ts", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_mount_the_arc_provider() => Content(".frontend/main.tsx").ShouldContain("<Arc>");
+    [Fact] void should_keep_the_native_query_hub_transport() => Content(".frontend/main.tsx").ShouldNotContain("queryDirectMode");
     [Fact] void should_import_published_tokens_before_styles_and_local_overrides() => Content(".frontend/index.css").StartsWith("@import '@cratis/components/tokens';\n@import '@cratis/components/styles';\n", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_not_apply_a_product_theme_implicitly() => Content(".frontend/index.css").ShouldNotContain("@cratis/components/theme");
     [Fact] void should_discover_optional_unmanaged_styles_before_rendering() => Content(".frontend/main.tsx").ShouldContain("import.meta.glob('../Customizations/styles.css');");

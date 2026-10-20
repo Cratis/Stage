@@ -458,7 +458,6 @@ public sealed class CratisFrontendApplicationScaffold
             ],
             "exclude": [
                 "vite.config.ts",
-                "styledPrimeReact.ts",
                 "../node_modules/**",
                 "../wwwroot/**"
             ]
@@ -477,7 +476,7 @@ public sealed class CratisFrontendApplicationScaffold
                 "strict": true,
                 "types": ["node"]
             },
-            "include": ["vite.config.ts", "styledPrimeReact.ts"]
+            "include": ["vite.config.ts"]
         }
         """;
 

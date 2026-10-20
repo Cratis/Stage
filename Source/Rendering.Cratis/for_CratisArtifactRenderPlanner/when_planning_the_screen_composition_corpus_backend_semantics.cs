@@ -68,7 +68,7 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
 
     string Bindings => Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.RelativePath.EndsWith("src/bindings.ts", StringComparison.Ordinal)).Bytes.AsSpan());
     IReadOnlyList<string> Registrations => [.. Bindings.Split('\n')
-        .Where(line => line.StartsWith("registerQueryIdentity(\"", StringComparison.Ordinal))
+        .Where(line => line.StartsWith("registerQueryIdentity(\"", StringComparison.Ordinal) && !line.Contains(" + new ", StringComparison.Ordinal))
         .Select(line => line["registerQueryIdentity(\"".Length..line.IndexOf('"', "registerQueryIdentity(\"".Length)])];
 
     string ArtifactText => string.Join('\n', _plan.Artifacts.Select(_ => Encoding.UTF8.GetString(_.Bytes.AsSpan())));

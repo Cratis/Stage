@@ -29,6 +29,13 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
 
     /// <summary>
+    /// Gets a value indicating whether the application root is the repository root. When true, the first-run scaffold
+    /// also contains the repository's continuous integration files in the .github folder; the default adds none.
+    /// The caller decides, because planning never inspects the file system.
+    /// </summary>
+    public bool RepositoryRoot { get; init; }
+
+    /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.

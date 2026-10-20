@@ -32,6 +32,12 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// Gets the refusal mode admitted from the hashed profile input.
     /// </summary>
     public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
+
+    /// <summary>
+    /// Gets a value indicating whether the application root is the repository root, which adds the repository's
+    /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
+    /// </summary>
+    public bool RepositoryRoot { get; init; }
 }
 
 /// <summary>
@@ -194,6 +200,11 @@ public static partial class CratisRendering
         if (approvedPackages is { IsEmpty: false })
         {
             request = request.WithApprovedPackages(approvedPackages);
+        }
+
+        if (options.RepositoryRoot)
+        {
+            request = request.WithRepositoryRoot();
         }
 
         var backend = new CratisBackendApplicationScaffold().Create(request);

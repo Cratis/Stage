@@ -1,21 +1,28 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { registeredCommand, commandOutcome } from './commandExecutor';
 import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
-import { CheckboxField, InputTextField, NumberField, CalendarField } from '@cratis/components/CommandForm';
-import { useStageData } from './stageData';
+import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
+import { navigateToScreen } from './stageNavigation';
+import { sessionIdentifierPrefix, useStageData, useStageQuery } from './stageData';
+import type { StageDataState } from './stageData';
+import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import type { SchemaProperty } from './stageFormSchema';
+import { StageValueField } from './StageValueFields';
 
-export interface SchemaProperty {
-    name: string;
-    type?: 'text' | 'number' | 'boolean' | 'date';
-    required: boolean;
-    unsupportedReason?: string;
-}
+export { schemaPropertiesOf };
+export type { SchemaProperty };
+
+/**
+ * What a command form that sits in a dialog calls once its command succeeded, so the dialog it was opened in closes and the screen behind it
+ * - the next step of a wizard - is reachable again. A form outside a dialog has nothing to close.
+ */
+export const StageDialogContext = createContext<(() => void) | undefined>(undefined);
 
 interface NativeFormProperties {
     command: string;
@@ -33,21 +40,22 @@ interface StageCommandContent {
     [key: string]: unknown;
 }
 
-interface JsonSchemaDefinition {
-    type?: unknown;
-    format?: unknown;
-}
-
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
+    const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
-    const initialValues = useMemo(() => initialCommandValues(fields, data.parameters), [fields, data.parameters]);
+    const answered = usePopulatedValues(element, schema, data);
+
+    // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
+    const populationKey = JSON.stringify(answered ?? null);
+    const populated = useMemo(() => answered, [populationKey]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -65,6 +73,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     return (
         <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
+                key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
                 currentValues={argumentValues}
@@ -77,6 +86,11 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onSuccess={() => {
                     setMessages([]);
                     data.refreshAfterCommand();
+
+                    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+                    const destination = text(element, 'navigateToScreen');
+                    if (destination) navigateToScreen(destination, {});
+                    closeDialog?.();
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
@@ -148,6 +162,13 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
     const fieldElement = (() => {
+        if (descriptor?.options) {
+            const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
+            return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
+        }
+
+        if (descriptor?.members || descriptor?.item) return <StageValueField value={accessor} fieldName={property} title={title} required={required} descriptor={descriptor} />;
+
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
@@ -188,6 +209,99 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
     }
 
     return values;
+}
+
+/**
+ * The identity a session acts as - the shopper's basket - for the identifier properties a form does not show.
+ *
+ * A command like AddToBasket is about the shopper's own basket, which the shopper never types: the form lists the product and the quantity.
+ * A required uuid property that the form does not list is that kind of identity - the screen's own parameter when it carries one, otherwise one value per
+ * identifier concept for as long as this browser keeps the session - the same basket for every add, change and checkout, a different one for
+ * another browser - and a command is never submitted for an identity nobody chose.
+ */
+export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>): StageCommandContent {
+    const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    const values: StageCommandContent = {};
+    for (const property of schema) {
+        if (!property.identifier || !property.required || shown.has(property.name)) continue;
+        values[property.name] = parameters[property.name] || sessionIdentifier(property.identifier);
+    }
+
+    return values;
+}
+
+function sessionIdentifier(concept: string): string {
+    const key = `${sessionIdentifierPrefix}${concept}`;
+    try {
+        const existing = globalThis.localStorage?.getItem(key);
+        if (existing) return existing;
+        const created = globalThis.crypto.randomUUID();
+        globalThis.localStorage?.setItem(key, created);
+        return created;
+    } catch {
+        return globalThis.crypto.randomUUID();
+    }
+}
+
+/** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */
+interface PopulateSource {
+    queryName?: string;
+    parameterBindings?: Record<string, { path?: string }>;
+    itemBinding?: { path?: string };
+}
+
+function populateSourceOf(element: ExternalComponent): PopulateSource | undefined {
+    const source = element.properties.populateSource;
+    return isRecord(source) ? source as PopulateSource : undefined;
+}
+
+/**
+ * The values a form starts with from what the application already knows - `populate via query GetCheckoutDraft by basketId`, or `populate from item`.
+ *
+ * The query is read for the screen's own entity (the address's parameter, or the session's identity for a concept the form does not show),
+ * and every member of the command that the answer carries is where the form starts, the members the form does not list included: a review step
+ * submits what the earlier steps gathered. An enumeration the read model stored by position is brought to the name the command takes.
+ */
+function usePopulatedValues(element: ExternalComponent, schema: SchemaProperty[], data: StageDataState): StageCommandContent | undefined {
+    const source = populateSourceOf(element);
+    const queryName = source?.queryName;
+    const bindings = Object.entries(source?.parameterBindings ?? {});
+    const resolved = bindings.map(([parameter, binding]) => [parameter, populationParameter(parameter, binding?.path ?? parameter, schema, data)] as const);
+    const queryArguments = Object.fromEntries(resolved.filter(([, value]) => value !== undefined && value !== ''));
+    const ready = !!queryName && data.routesReady && resolved.every(([, value]) => value !== undefined && value !== '');
+    const query = useStageQuery({
+        scope: `populate:${text(element, 'command')}`,
+        name: queryName,
+        route: queryName ? data.routes?.queries[queryName] : undefined,
+        arguments: queryArguments,
+        ready,
+        publish: false,
+    });
+    const item = source?.itemBinding ? (data.resolveBinding(source.itemBinding as never) ?? data.selected) : undefined;
+    const row = queryName ? query.rows[0] : (isRecord(item) ? item : undefined);
+
+    return useMemo(() => {
+        if (!row) return undefined;
+
+        const values: StageCommandContent = {};
+        for (const property of schema) {
+            const value = row[property.name] ?? row[property.name.charAt(0).toLowerCase() + property.name.slice(1)];
+            if (value !== undefined && value !== null) values[property.name] = asCommandValue(property, value);
+        }
+
+        return Object.keys(values).length > 0 ? values : undefined;
+    }, [row, schema]);
+}
+
+function populationParameter(parameter: string, path: string, schema: SchemaProperty[], data: StageDataState): unknown {
+    const fromAddress = data.parameters[path] ?? data.parameters[parameter];
+    if (fromAddress) return fromAddress;
+
+    const identity = schema.find(property => property.name === path || property.name === parameter)?.identifier;
+    if (identity) return sessionIdentifier(identity);
+
+    const bound = data.resolveBinding({ path });
+    return typeof bound === 'string' || typeof bound === 'number' ? bound : undefined;
 }
 
 interface ArgumentMapping {
@@ -296,7 +410,7 @@ function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldNam
     const property = schema.find(_ => _.name === fieldName);
     if (!(property?.required ?? true)) return undefined;
     if (value === undefined || value === null || value === '') return `${field?.label ?? fieldName} is required`;
-    return undefined;
+    return property ? missingMember(property, value, field?.label ?? fieldName) : undefined;
 }
 
 function unsupportedSchemaMessagesFor(fields: FormField[], schema: SchemaProperty[]): string[] {
@@ -322,46 +436,6 @@ function unsupportedGeometryMessagesFor(layout: CommandFormLayout | undefined, f
 
 function schemaProperties(element: ExternalComponent): SchemaProperty[] {
     return schemaPropertiesOf(text(element, 'schema'));
-}
-
-/**
- * The properties a command's JSON schema declares, with the type the native form gives each and whether it is required. A toolbar
- * slice's task dialog is built from the same reading, so a command is the same fields wherever it is presented.
- */
-export function schemaPropertiesOf(schema: string): SchemaProperty[] {
-    if (!schema) return [];
-    try {
-        const parsed = JSON.parse(schema) as { required?: unknown; properties?: Record<string, JsonSchemaDefinition> };
-        const hasRequired = Object.prototype.hasOwnProperty.call(parsed, 'required');
-        const required = Array.isArray(parsed.required) ? new Set(parsed.required.filter((name): name is string => typeof name === 'string')) : new Set<string>();
-        return Object.entries(parsed.properties ?? {}).map(([name, definition]) => {
-            const resolved = propertyType(definition);
-            return {
-                name,
-                type: resolved.type,
-                unsupportedReason: resolved.unsupportedReason,
-                required: hasRequired ? required.has(name) : true,
-            };
-        });
-    } catch {
-        return [];
-    }
-}
-
-function propertyType(definition: JsonSchemaDefinition | undefined): Pick<SchemaProperty, 'type' | 'unsupportedReason'> {
-    const schemaType = definition?.type;
-    if (Array.isArray(schemaType)) {
-        const nonNullTypes = schemaType.filter(type => type !== 'null');
-        if (nonNullTypes.length === 1) return propertyType({ ...definition, type: nonNullTypes[0] });
-        return { unsupportedReason: `union type ${JSON.stringify(schemaType)}` };
-    }
-
-    if (schemaType === 'integer' || schemaType === 'number') return { type: 'number' };
-    if (schemaType === 'boolean') return { type: 'boolean' };
-    if (definition?.format === 'date' || definition?.format === 'date-time') return { type: 'date' };
-    if (schemaType === 'array' || schemaType === 'object') return { unsupportedReason: `${schemaType} fields are not supported by the native Stage command form` };
-    if (schemaType === undefined || schemaType === 'string') return { type: 'text' };
-    return { unsupportedReason: `type ${String(schemaType)}` };
 }
 
 function text(element: ExternalComponent, name: string, fallback = ''): string {

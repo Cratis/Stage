@@ -27,7 +27,10 @@ trap cleanup EXIT
 [ -d "$here/../generated-react-browser/node_modules/playwright" ] || { echo "could not run: run 'npm ci' in generated-react-browser first"; exit 2; }
 
 cp "$here/package.json" "$work/"
-(cd "$work" && npm install --no-audit --no-fund --silent) || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
+# The registry fails transiently now and then; retry once, and keep npm's own error in the log when it gives up.
+install_packages() { (cd "$work" && npm install --no-audit --no-fund --loglevel=error); }
+install_packages || { echo "the blueprint package install failed; retrying once"; sleep 15; install_packages; } \
+    || { echo "could not run: the blueprint packages could not be installed"; exit 2; }
 
 count=$(node -e "console.log(require('$here/blueprints.json').length)")
 status=0

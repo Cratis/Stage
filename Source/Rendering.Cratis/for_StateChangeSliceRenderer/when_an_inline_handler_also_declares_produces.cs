@@ -24,7 +24,7 @@ public class when_an_inline_handler_also_declares_produces : state_change_slices
 
     [Theory]
     [InlineData("Console.WriteLine(42);", "void")]
-    [InlineData("return new List<object>();", "List<object>")]
+    [InlineData("return new List<object>();", "IEnumerable<object>")]
     public void should_infer_an_independent_body_without_consulting_produces(string body, string returnType)
     {
         var command = _registerInvoice.Slice.Commands.Single();

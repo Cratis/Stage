@@ -166,14 +166,15 @@ For legacy syntax rendering, an inline C# command handler keeps its authored bod
 | --- | --- |
 | Any `yield return` or `yield break` | `IEnumerable<object>` |
 | No `return <expression>` (no returns, or only `return;`) | `void` |
-| Every `return <expression>` constructs the same explicit type with `new T(...)` | `T` |
-| Anything else, including a returned variable, array, mixed types or target-typed `new(...)` | `IEnumerable<object>` |
+| Every `return <expression>` constructs the same explicit type with `new T(...)`, and its rightmost name is non-generic | `T` |
+| Anything else, including a generic constructed type, returned variable, array, mixed types or target-typed `new(...)` | `IEnumerable<object>` |
 
 Returns and yields inside lambdas, anonymous methods and local functions do not affect the signature.
 Explicit type names are compared after whitespace normalization; qualified names, including
-`global::Cratis.Chronicle.EventSequences.EventForEventSourceId`, are preserved. An explicitly constructed
-`new List<object>()` therefore gives `List<object>`, while returning a list variable keeps
-`IEnumerable<object>`. This inference does not add async handler support or change file-backed handlers.
+`global::Cratis.Chronicle.EventSequences.EventForEventSourceId`, are preserved. A constructed type whose
+rightmost name is generic, such as `List<object>` or `System.Collections.Generic.List<object>`, keeps
+`IEnumerable<object>` so collections retain the collection-of-events signature. Returning a list variable
+also keeps `IEnumerable<object>`. This inference does not add async handler support or change file-backed handlers.
 
 For example, assuming the slice declares an `OrderPlaced` event with no properties, this handler body:
 

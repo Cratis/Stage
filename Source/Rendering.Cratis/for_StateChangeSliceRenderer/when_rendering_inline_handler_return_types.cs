@@ -22,7 +22,9 @@ public class when_rendering_inline_handler_return_types : state_change_slices
     [InlineData("yield return new OrderPlaced();", "IEnumerable<object>")]
     [InlineData("yield break;", "IEnumerable<object>")]
     [InlineData("var events = new List<object> { new OrderPlaced() }; return events;", "IEnumerable<object>")]
-    [InlineData("return new List<object> { new OrderPlaced() };", "List<object>")]
+    [InlineData("return new List<object> { new OrderPlaced() };", "IEnumerable<object>")]
+    [InlineData("return new System.Collections.Generic.List<object> { new OrderPlaced() };", "IEnumerable<object>")]
+    [InlineData("return new HashSet<object> { new OrderPlaced() };", "IEnumerable<object>")]
     [InlineData("return new object[] { new OrderPlaced() };", "IEnumerable<object>")]
     public void should_emit_a_compiling_signature_and_preserve_the_body(string body, string returnType)
     {

@@ -41,7 +41,18 @@ internal static class InlineHandlerReturnType
             return "void";
         }
 
-        var types = returns.Select(@return => (@return.Expression as ObjectCreationExpressionSyntax)?.Type.NormalizeWhitespace().ToFullString().Trim()).Distinct(StringComparer.Ordinal).ToArray();
+        var types = returns.Select(@return => ConstructedType(@return.Expression)).Distinct(StringComparer.Ordinal).ToArray();
         return types.Length == 1 && types[0] is { } type ? type : Enumerable;
+    }
+
+    static string? ConstructedType(ExpressionSyntax? expression)
+    {
+        if (expression is not ObjectCreationExpressionSyntax creation ||
+            creation.Type is GenericNameSyntax or QualifiedNameSyntax { Right: GenericNameSyntax } or AliasQualifiedNameSyntax { Name: GenericNameSyntax })
+        {
+            return null;
+        }
+
+        return creation.Type.NormalizeWhitespace().ToFullString().Trim();
     }
 }

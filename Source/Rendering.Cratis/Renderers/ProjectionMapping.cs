@@ -68,6 +68,8 @@ public static class ProjectionMapping
             IncrementMappingSyntax => new MappedProperty(name, _counter, $"[Increment<{eventTypeName}>]", null),
             DecrementMappingSyntax => new MappedProperty(name, _counter, $"[Decrement<{eventTypeName}>]", null),
             CountMappingSyntax => new MappedProperty(name, _counter, $"[Count<{eventTypeName}>]", null),
+            AddMappingSyntax { Factor: not null } add => UnsupportedProduct(name, add.Factor, diagnostics),
+            SubtractMappingSyntax { Factor: not null } subtract => UnsupportedProduct(name, subtract.Factor, diagnostics),
             AddMappingSyntax add => FromSource(name, "AddFrom", eventTypeName, eventName, add.Value, events, applicationSet, diagnostics),
             SubtractMappingSyntax subtract => FromSource(name, "SubtractFrom", eventTypeName, eventName, subtract.Value, events, applicationSet, diagnostics),
             SetMappingSyntax set => FromSource(name, "SetFrom", eventTypeName, eventName, set.Source, events, applicationSet, diagnostics),
@@ -277,6 +279,12 @@ public static class ProjectionMapping
     {
         var type = _contextPropertyTypes.GetValueOrDefault(contextProperty, _unresolved with { SourceName = $"$eventContext.{contextProperty}" });
         return new MappedProperty(name, type, $"[SetFromContext<{eventTypeName}>({CSharpCodeBuilder.StringLiteral(contextProperty)})]", null);
+    }
+
+    static MappedProperty UnsupportedProduct(string name, ExpressionSyntax factor, ICollection<string> diagnostics)
+    {
+        diagnostics.Add($"Product mapping for '{name}' with factor '{ExpressionRenderer.Render(factor)}' has no model-bound equivalent — rendered without a projection attribute.");
+        return new MappedProperty(name, _unresolved, null, null);
     }
 
     static MappedProperty Unsupported(string name, MappingSyntax mapping, ICollection<string> diagnostics)

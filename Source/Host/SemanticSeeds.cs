@@ -211,7 +211,7 @@ internal static class SemanticSeeds
 
             try
             {
-                values.Add(new(property.Id, SemanticJsonValues.Bind(json, property.Type, plan.Model)));
+                values.Add(new(property.Id, SemanticJsonValues.Bind(CanonicalDateTimes(json, property.Type, plan.Model.Application), property.Type, plan.Model)));
             }
             catch (UnsupportedSemanticValue exception)
             {
@@ -221,6 +221,36 @@ internal static class SemanticSeeds
         }
 
         return new(contract.Id, SemanticValue.Text(eventSourceId), [.. values]) { Tags = contract.Tags };
+    }
+
+    // The event log keeps a date and time in the round-trip form ("2026-10-10T08:00:00.0000000Z") and the runtime refuses to rebuild
+    // from any other, so a seed written the way a person writes it ("2026-10-10T08:00:00Z") is stored in that form.
+    static JsonElement CanonicalDateTimes(JsonElement json, SemanticTypeReference type, SemanticApplication application)
+    {
+        if (json.ValueKind == JsonValueKind.Array && type.IsCollection)
+        {
+            var items = json.EnumerateArray().Select(item => CanonicalDateTimes(item, type with { IsCollection = false, IsOptional = false }, application)).ToArray();
+            return JsonSerializer.SerializeToElement(items);
+        }
+
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType && json.ValueKind == JsonValueKind.Object)
+        {
+            var composite = application.Types.SingleOrDefault(candidate => candidate.Id == type.Target);
+            if (composite is null) return json;
+            var members = json.EnumerateObject().ToDictionary(
+                member => member.Name,
+                member => composite.Properties.FirstOrDefault(property => property.Name == member.Name) is { } property ? CanonicalDateTimes(member.Value, property.Type, application) : member.Value);
+            return JsonSerializer.SerializeToElement(members);
+        }
+
+        var primitive = type.Kind == SemanticTypeReferenceKind.Concept
+            ? application.Concepts.SingleOrDefault(candidate => candidate.Id == type.Target)?.Primitive
+            : type.Primitive;
+        return primitive == SemanticPrimitiveType.DateTime
+            && json.ValueKind == JsonValueKind.String
+            && DateTimeOffset.TryParse(json.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+                ? JsonSerializer.SerializeToElement(parsed.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
+                : json;
     }
 
     static bool TryJson(ExpressionSyntax expression, out JsonElement json)

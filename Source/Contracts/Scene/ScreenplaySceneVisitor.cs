@@ -55,6 +55,20 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
                 })
         ];
 
+    // A screen that fills a dialog template opens over a page; it is never where an application starts or where a feature lands. Hosts take
+    // the first screen of the application, or of a feature, as that landing page, and the board orders a command's slice - and so its
+    // dialog - before the list that shows what the command changed. Pages therefore come first and dialogs after, each group in the order
+    // it was declared.
+    static List<SceneScreens.Screen> PagesBeforeDialogs(List<SceneScreens.Screen> screens) =>
+        [.. screens.OrderBy(screen => FillsDialogTemplate(screen.ScreenTemplate))];
+
+    static bool FillsDialogTemplate(string? template)
+    {
+        if (string.IsNullOrWhiteSpace(template)) return false;
+        var name = template.Split(['.', ' '], StringSplitOptions.RemoveEmptyEntries)[^1];
+        return name.EndsWith("Dialog", StringComparison.Ordinal) || name == "SideSheet";
+    }
+
     static void ConvertModuleScreens(
         ScreenplaySyntax.ModuleSyntax module,
         string layoutName,
@@ -143,7 +157,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         var structure = scope.Structure ?? StructureConverter.Convert(syntax);
 
-        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
+        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, PagesBeforeDialogs(screens))
         {
             Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],

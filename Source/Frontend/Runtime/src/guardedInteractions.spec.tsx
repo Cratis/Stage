@@ -212,3 +212,68 @@ describe('a table with a guarded double click', () => {
         await waitFor(() => expect(globalThis.location.hash).toBe('#/WorkItemDetails?workItemId=a'), { timeout: doubleClickWindow + 500 });
     });
 });
+
+describe('a guarded action beside a collection', () => {
+    const rows = [{ workItemId: 'a', title: 'Open item', status: 'open' }, { workItemId: 'b', title: 'Closed item', status: 'closed' }];
+    const closeSelected = closeAction({ navigateToScreen: undefined, alternatives: [{ command: 'CloseWorkItem', condition: isOpen, arguments: { workItemId: { path: 'item.workItemId' } } }] });
+
+    function renderListWithAction() {
+        registerTestCommand('CloseWorkItem', routes.commands.CloseWorkItem, { workItemId: { type: 'string' } });
+        const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
+            ? Promise.resolve({ ok: true, json: async () => commandResult() })
+            : Promise.resolve({ ok: true, json: async () => queryResult({ data: rows }) }));
+        vi.stubGlobal('fetch', fetched);
+        globalThis.location.hash = '#/WorkItemList';
+        const page = bindDataSources(element('page', 'core:section', {}, {
+            content: [
+                element('list-data', 'core:data', { typeName: 'WorkItemSummary', query: 'AllWorkItems', isCollection: true }),
+                closeSelected,
+                element('list', 'core:table', { typeName: 'WorkItemSummary' }, { columns: [element('title', 'core:column', { property: 'title', label: 'Title' })] }),
+            ],
+        })) as unknown as { slots: { content: SceneElement[] } };
+        const [, action, table] = page.slots.content;
+        render(
+            <PrimeReactProvider>
+                <StageDataProvider routes={routes} locale='en' locales={['en']} screen='WorkItemList'>
+                    <StageAction element={action as never} slots={{}} />
+                    <StageTable element={table as never} slots={{}} />
+                </StageDataProvider>
+            </PrimeReactProvider>,
+        );
+        return fetched;
+    }
+
+    it('is bound to the selected row of the collection', () => {
+        const page = bindDataSources(element('page', 'core:section', {}, { content: [element('list-data', 'core:data', { typeName: 'WorkItemSummary', query: 'AllWorkItems', isCollection: true }), closeSelected] })) as unknown as { slots: { content: SceneElement[] } };
+        expect((page.slots.content[1] as { properties: Record<string, unknown> }).properties.itemSelection).toBe(true);
+    });
+
+    it('offers nothing until a row is selected', async () => {
+        renderListWithAction();
+
+        await screen.findByText('Open item');
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+        expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('offers the command for a selected row the guard holds for and runs it with that row', async () => {
+        const fetched = renderListWithAction();
+
+        fireEvent.click(await screen.findByText('Open item'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [route, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(String(route)).toBe('http://localhost:3000/api/close-work-item');
+        expect(init?.body).toBe(JSON.stringify({ workItemId: 'a' }));
+    });
+
+    it('offers nothing for a selected row the guard does not hold for', async () => {
+        renderListWithAction();
+
+        fireEvent.click(await screen.findByText('Closed item'));
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    });
+});

@@ -4,8 +4,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import type { BindingExpression } from '@cratis/scene.model';
-import { Globals } from '@cratis/arc';
-import { ServerSentEventQueryConnection } from '@cratis/arc/queries';
+import { ArcContext } from '@cratis/arc.react';
+import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
+import { registeredQuery, performQuery, subscribeQuery } from './queryExecutor';
 import { createBindingResolver, resolveArgumentSource, validateBindingExpression } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import { guardPath } from './stageGuards';
@@ -230,6 +231,7 @@ export const useStageData = (): StageDataState => useContext(StageDataContext);
 
 export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const { refreshQueryName, refreshVersion, registerQueryResult } = useStageData();
+    const arc = useContext(ArcContext);
     const publish = request.publish !== false;
     const publishResult = useCallback((scope: string, state: QueryState | undefined) => {
         if (publish) registerQueryResult(scope, state);
@@ -241,11 +243,11 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const latest = useRef(0);
     const liveOpen = useRef(false);
     const ready = request.ready ?? true;
-    const active = !!request.route && ready;
+    const active = !!request.name && ready;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {
-        if (!active || !request.route) {
+        if (!active) {
             latest.current += 1;
             setRows([]);
             setError('');
@@ -258,96 +260,67 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         latest.current = sequence;
         const abort = new AbortController();
         const queryArguments = JSON.parse(argumentsKey) as Record<string, unknown>;
-        const url = routeWithArguments(request.route, queryArguments);
-
+        const queryType = registeredQuery(request.name ?? '', request.route);
         setLoading(true);
         setError('');
 
-        const read = () => {
-            fetch(url, { headers: { Accept: 'application/json' }, signal: abort.signal })
-                .then(async response => {
-                    if (!response.ok) throw new Error(`The query answered ${response.status}.`);
-                    return response.json() as Promise<unknown>;
-                })
-                .then(payload => {
-                    if (latest.current !== sequence || abort.signal.aborted) return;
-                    setRows(normalizeRows(payload));
-                    setError('');
-                })
-                .catch(reason => {
-                    if (latest.current !== sequence || abort.signal.aborted) return;
-                    setRows([]);
-                    setError(reason instanceof Error ? reason.message : String(reason));
-                })
-                .finally(() => {
-                    if (latest.current === sequence && !abort.signal.aborted) setLoading(false);
-                });
+        const failed = (reason: unknown) => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            liveOpen.current = false;
+            setRows([]);
+            setError(reason instanceof Error ? reason.message : String(reason));
+            setLoading(false);
         };
-
-        // A live query is subscribed to rather than read: the server pushes a new result whenever its read model
-        // changes, so a list shows what a command - issued from this client or any other - did without a refresh.
-        if (isLiveRoute(request.route)) {
-            liveOpen.current = true;
-            const connection = new ServerSentEventQueryConnection<unknown>(new URL(withoutLiveMarker(url), globalThis.location.href));
-
-            // A subscription the server refuses or drops never reaches the result callback: the connection only logs
-            // it. Reading the route once asks the server why, and shows the answer the way a snapshot query does.
-            let fellBack = false;
-            const fallBack = () => {
-                if (fellBack || latest.current !== sequence || abort.signal.aborted) return;
-                fellBack = true;
-                liveOpen.current = false;
-                connection.disconnect();
-                read();
-            };
-
-            const previous = Globals.eventSourceFactory;
-            if (!previous && typeof EventSource === 'undefined') {
-                fallBack();
-            } else {
-                let source: EventSource | undefined;
-                Globals.eventSourceFactory = address => (source = previous ? previous(address) : new EventSource(address));
-                try {
-                    connection.connect(result => {
-                        if (latest.current !== sequence || abort.signal.aborted) return;
-                        const failure = queryFailure(result);
-                        if (failure) {
-                            setRows([]);
-                            setError(failure);
-                        } else {
-                            setRows(normalizeRows(result));
-                            setError('');
-                        }
-
-                        setLoading(false);
-                    });
-                } finally {
-                    Globals.eventSourceFactory = previous;
-                }
-
-                const opened = source as EventSource | undefined;
-                if (opened) {
-                    const logged = opened.onerror;
-                    opened.onerror = function (this: EventSource, event: Event) {
-                        logged?.call(this, event);
-                        if (opened.readyState === eventSourceClosed) fallBack();
-                    };
-                } else {
-                    fallBack();
-                }
-            }
-
-            return () => {
-                abort.abort();
-                liveOpen.current = false;
-                connection.disconnect();
-            };
+        const receive = (result: QueryResult<unknown>) => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            const failure = queryFailure(result);
+            if (failure) { failed(new Error(failure)); return; }
+            if (result.isReady === false) return;
+            setRows(normalizeRows(result.data));
+            setError('');
+            setLoading(false);
+        };
+        if (!queryType) {
+            failed(new Error(`The modeled query “${request.name}” is not registered by this Stage.`));
+            return () => abort.abort();
+        }
+        const observable = queryType.prototype instanceof ObservableQueryFor;
+        const read = () => Promise.resolve()
+            .then(() => performQuery(queryType, observable ? { ...queryArguments, waitForFirstResult: true } : queryArguments, arc))
+            .then(receive).catch(failed);
+        if (!observable) {
+            void read();
+            return () => abort.abort();
         }
 
-        read();
-
-        return () => abort.abort();
-    }, [active, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
+        // Arc owns reconnection after delivery. Read once through Arc after its connection deadline if
+        // no first ready result arrives, surfacing rejection instead of leaving the screen loading forever.
+        liveOpen.current = true;
+        let subscription: ReturnType<typeof subscribeQuery>;
+        const deadline = globalThis.setTimeout(() => {
+            if (latest.current !== sequence || abort.signal.aborted) return;
+            liveOpen.current = false;
+            subscription?.unsubscribe();
+            subscription = undefined;
+            void read();
+        }, 15000);
+        try {
+            subscription = subscribeQuery(queryType, queryArguments, arc, result => {
+                if (result.isReady !== false) globalThis.clearTimeout(deadline);
+                receive(result);
+            });
+        } catch {
+            globalThis.clearTimeout(deadline);
+            liveOpen.current = false;
+            void read();
+        }
+        return () => {
+            abort.abort();
+            globalThis.clearTimeout(deadline);
+            liveOpen.current = false;
+            subscription?.unsubscribe();
+        };
+    }, [active, arc, argumentsKey, localRefresh, publishResult, request.name, request.route, request.scope]);
 
     useEffect(() => {
         if (refreshVersion === 0) return;
@@ -359,14 +332,14 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     }, [refreshQueryName, refreshVersion, request.name, request.scope]);
 
     useEffect(() => {
-        if (!active || !request.route) {
+        if (!active) {
             publishResult(request.scope, undefined);
             return;
         }
 
         publishResult(request.scope, {
             name: request.name,
-            route: request.route,
+            route: request.route ?? '',
             rows,
             loading,
             error,
@@ -470,41 +443,11 @@ function resolveQueryResult(queries: Record<string, QueryState>, query: string |
     return rows.map(row => valueAt(row, parts));
 }
 
-function routeWithArguments(route: string, queryArguments: Record<string, unknown>): string {
-    const [path, query = ''] = route.replace(/^\//, '').split('?');
-    const parameters = new URLSearchParams(query);
-    for (const [name, value] of Object.entries(queryArguments)) {
-        if (value === undefined || value === null || value === '') continue;
-        parameters.set(name, String(value));
-    }
-
-    const serialized = parameters.toString();
-    return serialized ? `${path}?${serialized}` : path;
-}
-
-/** The marker a generated application puts on the route of a query the model declares `observable`. */
-const liveMarker = 'waitForFirstResult';
-
-/** The `readyState` of an `EventSource` the browser gave up on: a refused or failed subscription, not a retry. */
-const eventSourceClosed = 2;
-
-function isLiveRoute(route: string): boolean {
-    return new URLSearchParams(route.split('?')[1] ?? '').get(liveMarker) === 'true';
-}
-
-function withoutLiveMarker(url: string): string {
-    const [path, query = ''] = url.split('?');
-    const parameters = new URLSearchParams(query);
-    parameters.delete(liveMarker);
-    const serialized = parameters.toString();
-    return serialized ? `${path}?${serialized}` : path;
-}
-
 // What a result that carries no rows says about why: a denied or invalid subscription ends rather than retrying.
 function queryFailure(result: unknown): string {
     if (!isRecord(result)) return '';
     if (result.isAuthorized === false) return 'The query answered 403.';
-    if (result.isValid === false || result.hasExceptions === true) {
+    if (result.isValid === false || result.hasExceptions === true || result.isSuccess === false) {
         const messages = Array.isArray(result.exceptionMessages) ? result.exceptionMessages.filter(message => typeof message === 'string') : [];
         return messages.length > 0 ? messages.join(' ') : 'The query could not be answered.';
     }
@@ -512,8 +455,7 @@ function queryFailure(result: unknown): string {
     return '';
 }
 
-function normalizeRows(payload: unknown): Record<string, unknown>[] {
-    const data = isRecord(payload) && 'data' in payload ? payload.data : payload;
+function normalizeRows(data: unknown): Record<string, unknown>[] {
     if (Array.isArray(data)) return data.filter(isRecord);
     return isRecord(data) ? [data] : [];
 }

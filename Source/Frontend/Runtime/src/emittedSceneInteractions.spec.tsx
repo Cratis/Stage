@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { queryResult, registerTestQueries } from './testing/queries';
 import { fireEvent, render, screen, waitFor } from './testing/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core/config';
@@ -34,12 +35,13 @@ describe('the emitted screens scene in a generated application', () => {
     });
 
     beforeEach(() => {
+        registerTestQueries({ AllWorkItems: '/api/all-work-items', GetWorkItem: '/api/get-work-item' });
         globalThis.history.replaceState(null, '', '#/WorkItemList');
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
             if (url === 'stage/scene') return respond(scene);
             if (url === 'stage/routes') return respond({ commands: { CloseWorkItem: '/api/close' }, queries: { AllWorkItems: '/api/all-work-items', GetWorkItem: '/api/get-work-item' } });
-            if (url.includes('api/all-work-items')) return respond({ data: items });
+            if (url.includes('http://localhost:3000/api/all-work-items')) return respond(queryResult({ data: items }));
             return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) } as Response);
         }));
     });

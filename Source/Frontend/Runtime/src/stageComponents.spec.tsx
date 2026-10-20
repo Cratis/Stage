@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { registerTestQueries } from './testing/queries';
+import { queryResult } from './testing/queries';
 import { fireEvent, render as renderWithoutProvider, screen, waitFor } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
@@ -8,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageTable } from './stageComponents';
+import { RegisteredTable as StageTable } from './testing/queries';
 import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm } from './testing/commands';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
@@ -59,7 +61,7 @@ describe('a synthesized table', () => {
     beforeEach(() => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ data: [{ invoiceNumber: 'INV-1', amount: 42 }] }),
+            json: async () => (queryResult({ data: [{ invoiceNumber: 'INV-1', amount: 42 }] })),
         }));
     });
 
@@ -75,7 +77,7 @@ describe('a synthesized table', () => {
 
         expect(await screen.findByText('INV-1')).toBeDefined();
         expect(screen.getByText('42')).toBeDefined();
-        expect(fetch).toHaveBeenCalledWith('api/sales/invoices/all-invoices', expect.anything());
+        expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/sales/invoices/all-invoices'), expect.anything());
     });
 
     it('shows the columns the rows carry when the model declares none', async () => {
@@ -95,7 +97,7 @@ describe('a synthesized table', () => {
     it('binds details to the selected row and clears the scoped selection', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ data: [{ id: '1', invoiceNumber: 'INV-1' }, { id: '2', invoiceNumber: 'INV-2' }] }),
+            json: async () => (queryResult({ data: [{ id: '1', invoiceNumber: 'INV-1' }, { id: '2', invoiceNumber: 'INV-2' }] })),
         }));
         const table = element('invoices', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice', dataKey: 'id' }, {
             columns: [element('c1', 'core:column', { property: 'invoiceNumber', label: 'Invoice #' })],
@@ -115,8 +117,8 @@ describe('a synthesized table', () => {
     it('keeps selection scoped to independent table instances', async () => {
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'api/customers') return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'C1', name: 'Customer one' }, { id: 'C2', name: 'Customer two' }] }) });
-            return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'P1', name: 'Product one' }, { id: 'P2', name: 'Product two' }] }) });
+            if (url === 'http://localhost:3000/api/customers') return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'C1', name: 'Customer one' }, { id: 'C2', name: 'Customer two' }] })) });
+            return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'P1', name: 'Product one' }, { id: 'P2', name: 'Product two' }] })) });
         }));
         const customers = element('customers', 'core:table', { route: '/api/customers', typeName: 'Customers', dataKey: 'id' }, {
             columns: [element('customer-name', 'core:column', { property: 'name', label: 'Customer' })],
@@ -139,7 +141,7 @@ describe('a synthesized table', () => {
     it('resolves typed data context and query result bindings', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ data: [{ id: '1', invoiceNumber: 'INV-1' }] }),
+            json: async () => (queryResult({ data: [{ id: '1', invoiceNumber: 'INV-1' }] })),
         }));
         const table = element('invoices', 'core:table', { route: '/api/sales/invoices/all-invoices', query: 'AllInvoices', typeName: 'Invoice', dataKey: 'id' }, {
             columns: [element('invoice-number', 'core:column', { property: 'invoiceNumber', label: 'Invoice' })],
@@ -176,8 +178,8 @@ describe('a synthesized table', () => {
     it('rebinds query arguments from selection without leaking stale arguments', async () => {
         const fetched = vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'api/customers') return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'C1', name: 'Customer one' }, { id: 'C2', name: 'Customer two' }] }) });
-            return Promise.resolve({ ok: true, json: async () => ({ data: [] }) });
+            if (url === 'http://localhost:3000/api/customers') return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'C1', name: 'Customer one' }, { id: 'C2', name: 'Customer two' }] })) });
+            return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [] })) });
         });
         vi.stubGlobal('fetch', fetched);
         const customers = element('customers', 'core:table', { route: '/api/customers', typeName: 'Customers', dataKey: 'id' }, {
@@ -190,13 +192,13 @@ describe('a synthesized table', () => {
         renderWithData(<><StageTable element={customers} slots={{}} /><StageTable element={invoices} slots={{}} /></>);
         fireEvent.click((await screen.findByText('Customer two')).closest('tr')!);
 
-        await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/invoices?customerId=C2', expect.anything()));
+        await waitFor(() => expect(fetched).toHaveBeenCalledWith(new URL('http://localhost:3000/api/invoices?customerId=C2'), expect.anything()));
     });
 
     it('publishes selected rows as exact component outputs, including dotted ids', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: true,
-            json: async () => ({ data: [{ id: 'W1', title: 'Work one' }, { id: 'W2', title: 'Work two' }] }),
+            json: async () => (queryResult({ data: [{ id: 'W1', title: 'Work one' }, { id: 'W2', title: 'Work two' }] })),
         }));
         const table = element('work.items.table', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
             columns: [element('title', 'core:column', { property: 'title', label: 'Title' })],
@@ -217,19 +219,19 @@ describe('a synthesized table', () => {
         let resolveFirstComments: ((response: Response) => void) | undefined;
         const fetched = vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'api/work-items') {
-                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'A', title: 'Item A' }, { id: 'B', title: 'Item B' }] }) } as Response);
+            if (url === 'http://localhost:3000/api/work-items') {
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'A', title: 'Item A' }, { id: 'B', title: 'Item B' }] })) } as Response);
             }
 
-            if (url === 'api/comments?workItemId=A') {
+            if (url === 'http://localhost:3000/api/comments?workItemId=A') {
                 return new Promise<Response>(resolve => { resolveFirstComments = resolve; });
             }
 
-            if (url === 'api/comments?workItemId=B') {
-                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'B-comment', text: 'B comment' }] }) } as Response);
+            if (url === 'http://localhost:3000/api/comments?workItemId=B') {
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'B-comment', text: 'B comment' }] })) } as Response);
             }
 
-            return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'unfiltered', text: 'Unfiltered comment' }] }) } as Response);
+            return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'unfiltered', text: 'Unfiltered comment' }] })) } as Response);
         });
         vi.stubGlobal('fetch', fetched);
         const workItems = element('workItems', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
@@ -247,17 +249,17 @@ describe('a synthesized table', () => {
 
         renderWithData(<><StageTable element={workItems} slots={{}} /><StageTable element={comments} slots={{}} /></>);
         fireEvent.click((await screen.findByText('Item A')).closest('tr')!);
-        await waitFor(() => expect(fetched).toHaveBeenCalledWith('api/comments?workItemId=A', expect.anything()));
+        await waitFor(() => expect(fetched).toHaveBeenCalledWith(new URL('http://localhost:3000/api/comments?workItemId=A'), expect.anything()));
         fireEvent.click(screen.getByText('Item B').closest('tr')!);
         expect(await screen.findByText('B comment')).toBeDefined();
 
-        resolveFirstComments?.({ ok: true, json: async () => ({ data: [{ id: 'A-comment', text: 'A comment' }] }) } as Response);
+        resolveFirstComments?.({ ok: true, json: async () => (queryResult({ data: [{ id: 'A-comment', text: 'A comment' }] })) } as Response);
         await new Promise(resolve => setTimeout(resolve, 0));
         expect(screen.queryByText('A comment')).toBeNull();
 
         fireEvent.click(screen.getAllByRole('button', { name: 'Clear selection' })[0]);
         await waitFor(() => expect(screen.queryByText('B comment')).toBeNull());
-        expect(fetched.mock.calls.map(call => String(call[0]))).not.toContain('api/comments');
+        expect(fetched.mock.calls.map(call => String(call[0]))).not.toContain('http://localhost:3000/api/comments');
         expect(screen.queryByText('Unfiltered comment')).toBeNull();
     });
 });
@@ -509,9 +511,9 @@ describe('a native command form', () => {
         let reads = 0;
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'api/orders') {
+            if (url === 'http://localhost:3000/api/orders') {
                 reads += 1;
-                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] }) });
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] })) });
             }
 
             return Promise.resolve({ ok: true, json: async () => commandResult() });
@@ -575,9 +577,9 @@ describe('a native command form', () => {
         let reads = 0;
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
-            if (url === 'api/orders') {
+            if (url === 'http://localhost:3000/api/orders') {
                 reads += 1;
-                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] }) });
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: String(reads), orderNumber: `O-${reads}` }] })) });
             }
 
             if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
@@ -615,7 +617,7 @@ describe('a native command form', () => {
     it('posts command arguments resolved from input value outputs and selected items', async () => {
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-            return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: 'W2', workItemId: 'W2', title: 'Work two' }] }) });
+            return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: 'W2', workItemId: 'W2', title: 'Work two' }] })) });
         });
         vi.stubGlobal('fetch', fetched);
         const table = element('work.items', 'core:table', { route: '/api/work-items', typeName: 'WorkItems', dataKey: 'id' }, {
@@ -801,10 +803,10 @@ describe('a synthesized action', () => {
         let queryReads = 0;
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
-            if (url === 'api/sales/invoices/all-invoices') {
+            if (url === 'http://localhost:3000/api/sales/invoices/all-invoices') {
                 queryReads += 1;
                 const invoiceNumber = queryReads === 1 ? 'INV-1' : 'INV-2';
-                return Promise.resolve({ ok: true, json: async () => ({ data: [{ id: invoiceNumber, invoiceNumber }] }) });
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ id: invoiceNumber, invoiceNumber }] })) });
             }
 
             if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
@@ -831,13 +833,13 @@ describe('a synthesized action', () => {
         let readsWhenAnswered = 0;
         const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
             const url = String(input);
-            if (url === 'api/sales/invoices/all-invoices') {
+            if (url === 'http://localhost:3000/api/sales/invoices/all-invoices') {
                 queryReads += 1;
 
                 // The projection catches up only after the command's own refresh has already read the old state.
                 const projected = commandAnswered && queryReads > readsWhenAnswered + 1;
                 const rows = projected ? [{ id: 'INV-1', invoiceNumber: 'INV-1' }, { id: 'INV-8', invoiceNumber: 'INV-8' }] : [{ id: 'INV-1', invoiceNumber: 'INV-1' }];
-                return Promise.resolve({ ok: true, json: async () => ({ data: rows }) });
+                return Promise.resolve({ ok: true, json: async () => (queryResult({ data: rows })) });
             }
 
             if (init?.method === 'POST') {
@@ -866,6 +868,7 @@ describe('a synthesized action', () => {
 
 describe('a scoped query lifecycle', () => {
     function QueryProbe({ customerId }: { customerId: string }) {
+        registerTestQueries({ Details: '/api/details' });
         const query = useStageQuery({ scope: 'details', name: 'Details', route: '/api/details', arguments: { customerId } });
         return <output aria-label='query-result'>{String(query.rows[0]?.invoiceNumber ?? '')}</output>;
     }
@@ -880,25 +883,22 @@ describe('a scoped query lifecycle', () => {
         );
     }
 
-    it('aborts stale requests and keeps the newest result', async () => {
+    it('ignores stale requests and keeps the newest result', async () => {
         let resolveFirst: ((value: Response) => void) | undefined;
-        const signals: AbortSignal[] = [];
-        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-            signals.push(init?.signal as AbortSignal);
+        const fetched = vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'api/details?customerId=C1') {
+            if (url === 'http://localhost:3000/api/details?customerId=C1') {
                 return new Promise<Response>(resolve => { resolveFirst = resolve; });
             }
 
-            return Promise.resolve({ ok: true, json: async () => ({ data: [{ invoiceNumber: 'INV-C2' }] }) } as Response);
+            return Promise.resolve({ ok: true, json: async () => (queryResult({ data: [{ invoiceNumber: 'INV-C2' }] })) } as Response);
         });
         vi.stubGlobal('fetch', fetched);
 
         renderWithData(<RebindingQuery />);
         fireEvent.click(screen.getByRole('button', { name: 'Select C2' }));
         expect(await screen.findByText('INV-C2')).toBeDefined();
-        expect(signals[0].aborted).toBe(true);
-        resolveFirst?.({ ok: true, json: async () => ({ data: [{ invoiceNumber: 'INV-C1' }] }) } as Response);
+        resolveFirst?.({ ok: true, json: async () => (queryResult({ data: [{ invoiceNumber: 'INV-C1' }] })) } as Response);
         await waitFor(() => expect(screen.getByLabelText('query-result').textContent).toEqual('INV-C2'));
     });
 });

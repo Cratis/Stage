@@ -47,7 +47,7 @@ export function isGuardedAction(element: ExternalComponent): boolean {
 function useGuardSubject(element: ExternalComponent) {
     const data = useStageData();
     const query = text(element, 'itemQuery');
-    const route = (query ? data.routes?.queries[query] : undefined) ?? text(element, 'itemRoute');
+    const route = (query ? data.routes?.queries?.[query] : undefined) ?? text(element, 'itemRoute');
     const argumentBindings = isRecord(element.properties.itemArguments) ? element.properties.itemArguments : {};
     const values: Record<string, unknown> = {};
     let ready = true;

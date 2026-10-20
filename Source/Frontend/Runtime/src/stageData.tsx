@@ -532,7 +532,14 @@ function resolvePath(
     const parts = path.replace(/^\$\.?/, '').split('.').filter(Boolean);
     if (parts.length === 0) return undefined;
 
-    if (parts[0] === 'screen') return parts.length === 1 ? { name: screen.name } : valueAt(screen, parts.slice(1));
+    if (parts[0] === 'screen') {
+        if (parts.length === 1) return { name: screen.name };
+
+        // A key neither the address nor the session carries is the one the user picked: the master list of a master-detail screen
+        // is read by what it selects, so its details wait for a row instead of asking a query that needs one without it.
+        const key = valueAt(screen, parts.slice(1));
+        return key === undefined && parts[1] === 'keys' && parts.length === 3 ? valueAt(selected, [parts[2]]) : key;
+    }
     if (parts[0] === 'locale') return locale;
     if (parts[0] === 'locales') return locales;
     if (parts[0] === 'query') return resolveQueryResult(queries, parts[1], parts.slice(2).join('.'));

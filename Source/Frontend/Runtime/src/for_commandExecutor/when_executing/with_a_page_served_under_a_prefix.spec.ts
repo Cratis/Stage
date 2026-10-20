@@ -23,7 +23,7 @@ describe('when executing a command in a page served under a path prefix', () => 
             return new Response(JSON.stringify(commandResult()));
         }));
 
-        await executeRegisteredCommand('RegisterProject', { name: 'Hermes' }, { microservice: '' });
+        await executeRegisteredCommand('RegisterProject', { name: 'Hermes' }, { microservice: '', apiBasePath: '' });
 
         hostedBasePath().should.equal('/api/play/0d0f6d8e-1f5c-4a9f-9b57-6a1f6a5b7c11');
         urls.should.have.lengthOf(1);

@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { Guid } from '@cratis/fundamentals';
+
 /**
  * The parameters a screen was navigated to with, read from the hash (`#/WorkItemDetails?workItemId=...`).
  *
@@ -51,6 +53,6 @@ export function navigateToScreen(screen: string, parameters: Record<string, stri
  */
 export function screenArguments(args: Record<string, unknown> | undefined): Record<string, string> {
     return Object.fromEntries(Object.entries(args ?? {})
-        .filter(([, value]) => value !== undefined && value !== null && value !== '' && typeof value !== 'object')
+        .filter(([, value]) => value !== undefined && value !== null && value !== '' && (typeof value !== 'object' || value instanceof Guid))
         .map(([name, value]) => [name, String(value)]));
 }

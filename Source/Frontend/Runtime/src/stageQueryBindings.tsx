@@ -87,7 +87,7 @@ function BoundData({ source }: { source: StageDataSource }) {
         scope: `data:${source.typeName}`,
         name: source.query,
         alias: source.typeName,
-        route: routes?.queries[source.query] ?? source.route,
+        route: routes?.queries?.[source.query] ?? source.route,
         arguments: queryArguments,
         ready: routesReady && (!source.by || !!argument),
         list: true,
@@ -101,7 +101,7 @@ function BoundQuery({ name }: { name: string }) {
 
     // What the session and the address carry narrows the query - the shopper's own basket - when the query filters by it; a query that does not ignores it.
     const queryArguments = useMemo(() => ({ ...session, ...parameters }), [parameters, session]);
-    useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries[name], arguments: queryArguments, ready: routesReady, list: true });
+    useStageQuery({ scope: `binding:${name}`, name, route: routes?.queries?.[name], arguments: queryArguments, ready: routesReady, list: true });
     return null;
 }
 

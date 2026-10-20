@@ -43,7 +43,7 @@ public static class StageRuntimePackage
     /// <returns>An empty string when each is installed exactly once; otherwise a description of the duplicates.</returns>
     public static async Task<string> SingleInstanceFailure(string application)
     {
-        string[] shared = ["@cratis/arc", "@cratis/arc.react", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.react", "react"];
+        string[] shared = ["@cratis/arc", "@cratis/arc.react", "@cratis/components", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.react", "@cratis/scene.primereact", "primereact", "react"];
         var result = await ApplicationProcess.Run(application, _stepTimeout, "npm", ["ls", "--all", "--parseable", .. shared]);
         var duplicates = result.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(line => line.Contains("node_modules", StringComparison.Ordinal))

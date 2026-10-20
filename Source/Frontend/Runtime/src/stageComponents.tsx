@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { registeredQuery } from './queryExecutor';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
@@ -97,7 +98,7 @@ function rowIdentity(row: Record<string, unknown>, dataKey: string): unknown {
 export function StageTable({ element, slots }: RegisteredProps) {
     const data = useStageData();
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
-    const route = (text(element, 'query') ? data.routes?.queries[text(element, 'query')] : undefined) ?? text(element, 'route');
+    const route = (text(element, 'query') ? data.routes?.queries?.[text(element, 'query')] : undefined) ?? text(element, 'route');
     const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
     const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
@@ -152,7 +153,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
         navigateToScreen(data.screen, remaining);
     };
 
-    if (!route) {
+    if (!text(element, 'query') && !route && !registeredQuery(queryName)) {
         return (
             <section className='stage-table' data-scene-id={element.id}>
                 <p className='stage-note'>No query is exposed for {text(element, 'typeName', 'this read model')} yet.</p>

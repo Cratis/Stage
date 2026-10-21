@@ -68,6 +68,13 @@ internal static class InlineCommandHandlerAdmission
             return InlineCommandHandlerRejectionReason.MalformedBody;
         }
 
+        var returns = body.DescendantNodes(node => node is not AnonymousFunctionExpressionSyntax and not LocalFunctionStatementSyntax)
+            .OfType<ReturnStatementSyntax>().ToArray();
+        if (returns.Any(@return => @return.Expression is null) && returns.Any(@return => @return.Expression is not null))
+        {
+            return InlineCommandHandlerRejectionReason.MixedReturns;
+        }
+
         // The parameter needs an identity, not either framework's context type. No member mapping is assumed.
         var method = SyntaxFactory.MethodDeclaration(SyntaxFactory.ParseTypeName(InlineHandlerReturnType.Infer(code.Code)), "Handle")
             .AddParameterListParameters(SyntaxFactory.Parameter(SyntaxFactory.Identifier("context"))

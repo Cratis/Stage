@@ -18,7 +18,6 @@ public class when_inferring_a_return_type
     [InlineData("if (done) return; Console.WriteLine(42);", "void")]
     [InlineData("return new OrderPlaced();", "OrderPlaced")]
     [InlineData("if (done) return new OrderPlaced(1); return new OrderPlaced(2);", "OrderPlaced")]
-    [InlineData("if (done) return; return new OrderPlaced();", "OrderPlaced")]
     [InlineData("return new global::Cratis.Chronicle.EventSequences.EventForEventSourceId();", "global::Cratis.Chronicle.EventSequences.EventForEventSourceId")]
     [InlineData("if (done) return new Events . OrderPlaced(); return new Events.OrderPlaced();", "Events.OrderPlaced")]
     [InlineData("if (done) return new Batch< OrderPlaced >(); return new Batch<OrderPlaced>();", "IEnumerable<object>")]

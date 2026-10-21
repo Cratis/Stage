@@ -59,7 +59,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
     const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
     const rowAction = element.properties.rowAction === true;
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
@@ -322,9 +322,32 @@ export function carriedBy(property: SchemaProperty, rows: Record<string, unknown
     return rows.some(row => Object.hasOwn(row, property.name));
 }
 
-/** The rows of every query the screen has read: the rows a table shows and the person could select. */
+/**
+ * A read model's rows are keyed `id`, while a command acts on that entity by `<entity>Id` - `productId` for the rows of `ProductReadiness`. The
+ * row carries that key too, under the name of every word of the read model's name (`product`, `readiness`), so a command's identifier finds
+ * the row that is its entity. A row that already carries a property of that name keeps it.
+ */
+function withEntityKeys(row: Record<string, unknown>, query: StageDataState['queries'][string]): Record<string, unknown> {
+    const key = row.id;
+    if (typeof key !== 'string' || key === '') return row;
+    const words = `${query.alias ?? ''} ${query.name ?? ''}`.match(/[A-Z][a-z0-9]+/g) ?? [];
+    const aliases = Object.fromEntries(words.map(word => `${word.charAt(0).toLowerCase()}${word.slice(1)}Id`).filter(name => !Object.hasOwn(row, name)).map(name => [name, key]));
+    return Object.keys(aliases).length === 0 ? row : { ...aliases, ...row };
+}
+
+function entityRowsOf(queries: StageDataState['queries']): [Record<string, unknown>, Record<string, unknown>][] {
+    return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
+}
+
+/** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */
 export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
-    return Object.values(queries).flatMap(query => query.rows);
+    return entityRowsOf(queries).map(([, row]) => row);
+}
+
+/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+    const keyed = new Map(entityRowsOf(queries));
+    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
 }
 
 /**

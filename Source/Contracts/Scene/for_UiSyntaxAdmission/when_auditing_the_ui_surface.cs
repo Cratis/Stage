@@ -13,8 +13,9 @@ public class when_auditing_the_ui_surface : Specification
     // Freeze the consumed owners as well as every new UI node. A dependency bump that adds a
     // member must make an explicit render/refuse decision rather than silently extending this list.
     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
+    // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     [Theory]
-    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions Systems Templates Themes Triggers Types UiProfiles")]
+    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StickyNotes Systems Templates Themes Triggers Types UiProfiles")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]
     [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Purposes Slices Templates Toolbars UsedBehaviors")]
     [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File Name Operations Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]

@@ -53,7 +53,7 @@ internal static class StageSceneDocument
             .GroupBy(command => command.Name, StringComparer.Ordinal)
             .Select(group =>
             {
-                var properties = group.First().Properties;
+                var properties = group.First().Properties.Where(property => !property.IsGenerated).ToArray();
 
                 // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
                 var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);

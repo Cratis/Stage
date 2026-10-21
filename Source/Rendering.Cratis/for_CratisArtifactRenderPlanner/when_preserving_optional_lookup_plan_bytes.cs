@@ -28,9 +28,11 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
     // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("2c839a669c1c37f96944ba657499db7d8afcfcc45576a411d22fcde00c2aba4f");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c97fb173e008ca23f3b7f5f7256ed03744fa19492bf04095af5b755867a46ca2");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("b51e7dba0e95dfeaf845f6a390520ec4241e124cebc59d8ef99f3bac6243c342");
+    // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
+    // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.0 and Components 4.34.0.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("57b9325a30f5fb4b468a29f36442c1615cfab03a81c9f4572273d875aa639577");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("a4a1d6ebe75c2fe3f22781f740a16290c2b06476dfad6ccc82158a23571c5dbb");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("50ee1b50bce7629d5ab94ec4f0753e95b0dca0a9355482111d2bd2b10d92b173");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

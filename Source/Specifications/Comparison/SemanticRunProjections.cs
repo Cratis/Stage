@@ -32,8 +32,8 @@ internal static class SemanticRunProjections
             .Concat(specification.ThenReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
             .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
-            .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact => Observes(projection, fact.EventContract)))
-                .Select(projection => projection.ReadModel)).Distinct();
+            .Concat(plan.Projections.Values.Where(projection => projection.Target != SemanticProjectionTargetKind.Event && context.Facts.Any(fact => Observes(projection, fact.EventContract)))
+                .Select(projection => projection.ReadModel)).Where(plan.ReadModels.ContainsKey).Distinct();
         var output = new List<Projected>();
         foreach (var id in requested)
         {
@@ -46,7 +46,7 @@ internal static class SemanticRunProjections
     {
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
-        var projection = plan.Projections.Values.SingleOrDefault(value => value.ReadModel == id);
+        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
         if (projection is null)
         {
             return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];

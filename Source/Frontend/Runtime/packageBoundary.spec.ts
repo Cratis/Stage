@@ -50,6 +50,30 @@ describe('the runtime package boundary', () => {
         expect(readFileSync(runtime.exports['.'].import, 'utf8')).toMatch(/import ['"]\.\/app\.css['"]/);
     });
 
+    it('does not auto-install PrimeReact peers for a default application', () => {
+        for (const name of Object.keys(runtime.peerDependencies).filter(name => /prime/i.test(name))) {
+            expect(runtime.peerDependenciesMeta[name]?.optional, name).toBe(true);
+        }
+    });
+
+    it('has no static PrimeReact or theme import reachable from the root entry', () => {
+        const visited = new Set<string>();
+        function inspect(filename: string) {
+            if (visited.has(filename) || !filename.endsWith('.js')) return;
+            visited.add(filename);
+            const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+            for (const node of source.statements) {
+                if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) continue;
+                const specifier = node.moduleSpecifier;
+                if (!specifier || !ts.isStringLiteral(specifier)) continue;
+                const reference = specifier.text;
+                expect(reference, filename).not.toMatch(/prime|stageTheme/i);
+                if (reference.startsWith('.')) inspect(resolve(dirname(filename), reference));
+            }
+        }
+        inspect(resolve(runtime.exports['.'].import));
+    });
+
     it('has one installed instance of React, Arc and each Scene registry peer throughout the workspace tree', () => {
         const names = Object.keys(runtime.peerDependencies).filter(name => name.startsWith('@cratis/') || name === 'react' || name === 'react-dom');
         const paths = execFileSync('npm', ['ls', ...names, '--all', '--parseable'], { cwd: '..', encoding: 'utf8' }).trim().split('\n');

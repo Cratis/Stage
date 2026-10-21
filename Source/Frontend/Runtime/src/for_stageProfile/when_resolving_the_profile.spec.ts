@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
+import { resolveComponentName } from '@cratis/scene.engine';
 import type { UiProfile } from '@cratis/scene.model';
 import { stageCatalog, stageProfile } from '../blueprint';
 
@@ -21,7 +22,7 @@ describe('when nothing is listed', () => {
     });
 
     it('resolves the shared bare names to Cratis.Components', () => {
-        expect(stageCatalog['Cratis.Components']).toContain('dataTable');
+        expect(resolveComponentName('dataTable', stageProfile([profile([])]), stageCatalog)?.package).toBe('Cratis.Components');
     });
 });
 
@@ -36,5 +37,17 @@ describe('when PrimeReact is listed', () => {
     it('never lets core outrank a listed library even when the profile lists core last', () => {
         const listed = stageProfile([profile(['PrimeReact', 'core'])]).packages;
         expect(listed.indexOf('core')).toBeLessThan(listed.indexOf('PrimeReact'));
+    });
+
+    it('resolves a shared bare name to the explicitly listed PrimeReact library', () => {
+        const catalog = { ...stageCatalog, PrimeReact: ['dataTable'] };
+        expect(resolveComponentName('dataTable', stageProfile([profile(['PrimeReact'])]), catalog)?.package).toBe('PrimeReact');
+    });
+
+    it('keeps blueprint names above a listed library and removes duplicate declarations', () => {
+        const blueprint = packages[packages.length - 1];
+        const declared = stageProfile([profile([blueprint, 'PrimeReact', 'Cratis.Components', 'PrimeReact', 'core'])]);
+        expect(declared.packages).toEqual(['core', 'Cratis.Components', 'PrimeReact', blueprint]);
+        expect(resolveComponentName('shared', declared, { 'Cratis.Components': ['shared'], PrimeReact: ['shared'], [blueprint]: ['shared'] })?.package).toBe(blueprint);
     });
 });

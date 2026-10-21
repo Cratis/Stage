@@ -1,8 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import type { SceneElement, Screen, UiProfile } from '@cratis/scene.model';
-import type { PackageCatalog } from '@cratis/scene.engine';
+import { PackageKind, type SceneElement, type Screen, type UiProfile } from '@cratis/scene.model';
+import { hostProfilePackages, type PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
 import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
 import { cratisComponents, cratisComponentsPackageManifest } from '@cratis/scene.components/runtime';
@@ -27,20 +27,6 @@ export const stageBaselinePackage = 'Cratis.Components';
 
 /** The component library the profile opts in to by listing it; the Stage's own PrimeReact support loads only then. */
 export const primeReactPackage = 'PrimeReact';
-
-/**
- * The order a host resolves bare component names in, lowest priority first: Scene's core, the host baseline, the component libraries
- * the profile lists in the order listed, and last the blueprint, so the shell keeps its own names.
- *
- * TODO(Cratis/Scene#250): replace with Scene's `hostProfilePackages` once the Scene release that exports it is consumed. The rule is the same.
- *
- * @param declared The packages the profile (and the packages every host has) declares.
- * @returns The packages in ascending priority.
- */
-function hostProfilePackages(declared: string[]): string[] {
-    const libraries = declared.filter(name => name !== 'core' && name !== stageBaselinePackage && name !== defaultBlueprintName);
-    return ['core', stageBaselinePackage, ...new Set(libraries), defaultBlueprintName];
-}
 
 /**
  * A component library a profile opted in to, loaded on demand: the components it registers and what it declares.
@@ -82,7 +68,14 @@ export async function loadStageLibraries(profiles: UiProfile[] | undefined): Pro
  */
 export function stageProfile(profiles: UiProfile[] | undefined): UiProfile {
     const profile = previewProfile(profiles);
-    return { ...profile, name: profiles?.length ? profile.name : 'Stage', packages: hostProfilePackages(profile.packages) };
+    return {
+        ...profile,
+        name: profiles?.length ? profile.name : 'Stage',
+        packages: hostProfilePackages(profile.packages, {
+            baseline: stageBaselinePackage,
+            catalog: { [defaultBlueprintName]: PackageKind.Blueprint },
+        }),
+    };
 }
 
 /** What each package every Stage declares, so a bare name resolves to the package that provides it. */

@@ -54,12 +54,7 @@
     "name": "Cratis.Components",
     "version": "3.0.0",
     "kind": "ComponentLibrary",
-    "dependencies": [
-      {
-        "name": "PrimeReact",
-        "versionRange": ">=11.0.0"
-      }
-    ],
+    "dependencies": [],
     "components": [
       "page",
       "dataPage",
@@ -237,9 +232,6 @@
     "version": "1.0.0",
     "kind": "Blueprint",
     "dependencies": [
-      {
-        "name": "PrimeReact"
-      },
       {
         "name": "Cratis.Components"
       }

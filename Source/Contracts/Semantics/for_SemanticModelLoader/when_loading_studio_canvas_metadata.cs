@@ -8,7 +8,7 @@ using Xunit;
 namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader;
 
 /// <summary>
-/// Studio exports where its canvases place event sources and the names of its seed data collections. Both are authoring
+/// Studio exports where its canvases place event sources, the notes on those canvases and the names of its seed data collections. All are authoring
 /// metadata, and Play must still load the model - a parser without them refused it and Play answered 404.
 /// </summary>
 public class when_loading_studio_canvas_metadata : Specification
@@ -27,6 +27,10 @@ public class when_loading_studio_canvas_metadata : Specification
               description "One project"
               identifier ProjectId
               position 110 150
+            sticky note on eventsources
+              description "Open question: one stream per portfolio?"
+              colour pink
+              position 480 150
             module Projects
               feature Registration
                 slice StateChange RegisterProject

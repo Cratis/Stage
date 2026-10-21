@@ -29,7 +29,7 @@ internal static partial class SemanticSpecificationAdmission
             return "A read model asserted without an action needs the events that project it.";
         }
 
-        if (specification.GivenEvents.Any(_ => _.EventSource is null))
+        if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
         {
             return SourcelessGivenReason;
         }

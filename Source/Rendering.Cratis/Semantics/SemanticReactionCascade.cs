@@ -117,24 +117,33 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             message == $"{context.ReadModels[read.ReadModel].Name} '{key.Value}' does not exist." &&
             !CascadeEvents(context, command).Any(@event => CanRemove(context, read.ReadModel, @event)));
 
+    // Every event the triggering command can set off: its own productions, and to a fixpoint every reaction any of those events
+    // triggers, through reaction productions, refusal-branch productions and invoked commands' productions.
     static HashSet<SemanticId> CascadeEvents(SemanticApplicationContext context, SemanticCommand command)
     {
-        var events = new HashSet<SemanticId>();
+        var triggers = SemanticSpecificationAdmission.EventReactionTriggers(context).ToArray();
+        var events = command.Produces.Select(produced => produced.EventContract).ToHashSet();
         var commands = new HashSet<SemanticId> { command.Id };
-        var pending = new Queue<SemanticCommand>([command]);
-        while (pending.TryDequeue(out var current))
+        var reacted = new HashSet<int>();
+        bool changed;
+        do
         {
-            foreach (var produced in current.Produces) events.Add(produced.EventContract);
-            foreach (var trigger in SemanticSpecificationAdmission.EventReactionTriggers(context).Where(trigger => events.Contains(trigger.Source)).ToArray())
+            changed = false;
+            for (var index = 0; index < triggers.Length; index++)
             {
+                var trigger = triggers[index];
+                if (!events.Contains(trigger.Source) || !reacted.Add(index)) continue;
+                changed = true;
                 foreach (var produced in trigger.Produces) events.Add(produced.EventContract);
                 foreach (var invocation in trigger.Invokes)
                 {
                     foreach (var produced in invocation.OnRefused.SelectMany(refusal => refusal.Produces)) events.Add(produced.EventContract);
-                    if (commands.Add(invocation.Command)) pending.Enqueue(context.Commands[invocation.Command]);
+                    if (!commands.Add(invocation.Command)) continue;
+                    foreach (var produced in context.Commands[invocation.Command].Produces) events.Add(produced.EventContract);
                 }
             }
         }
+        while (changed);
 
         return events;
     }

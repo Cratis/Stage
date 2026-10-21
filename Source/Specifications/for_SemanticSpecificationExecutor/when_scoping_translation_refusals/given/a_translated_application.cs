@@ -39,7 +39,7 @@ public class a_translated_application : Specification
                     then Saved
                       for "one"
             """;
-        if (Scenario == "reaction") source += "\n      reaction Follow\n        when Saved\n          produces Followed\n            for \"one\"";
+        if (Scenario == "reaction" || Scenario == "translated-reaction") source += "\n      reaction Follow\n        when Saved\n          produces Followed\n            for \"one\"";
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Unrelated", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
@@ -55,7 +55,8 @@ public class a_translated_application : Specification
                 { EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), SemanticValue.Text("one")) }]
             };
         }
-        slice = slice with { Specifications = Scenario == "translate" ? [] : [specification] };
+        var translatedReactions = Scenario == "translated-reaction" ? slice.Reactions : [];
+        slice = slice with { Specifications = Scenario == "translate" ? [] : [specification], Reactions = Scenario == "translated-reaction" ? [] : slice.Reactions };
         work = work with { Features = [work.Features.Single() with { Slices = [slice] }] };
         var original = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
         var module = original.Application.Modules.Single();
@@ -66,7 +67,8 @@ public class a_translated_application : Specification
         publisher = publisher with
         {
             Specifications = Scenario == "translate" ? [specification] : [],
-            Projections = Scenario == "unrelated" || Scenario == "translate" ? publisher.Projections :
+            Reactions = translatedReactions,
+            Projections = Scenario == "unrelated" || Scenario == "translate" || Scenario == "translated-reaction" ? publisher.Projections :
                 [.. publisher.Projections.Select(projection => projection with
                 { Scope = projection.Scope! with { From = [projection.Scope!.From[0] with { EventContract = eventId, Mappings = [], Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } })]
         };

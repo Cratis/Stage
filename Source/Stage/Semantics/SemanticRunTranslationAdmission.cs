@@ -28,8 +28,7 @@ internal static class SemanticRunTranslationAdmission
         foreach (var slice in slices)
         {
             var projections = slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event &&
-                ((projection.Scope?.Every?.SubscribesToAllEvents == true && reachable.Count > 0) ||
-                    ProjectionReferencedEventNamesAreUnique.Contracts(projection).Any(reachable.Contains))).Select(projection => projection.Id);
+                Observes(projection, reachable)).Select(projection => projection.Id);
             var reducers = slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event &&
                 reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract))).Select(reducer => reducer.ReadModel);
             var captures = (slice.Captures.IsDefault ? [] : slice.Captures).Where(capture =>
@@ -37,8 +36,21 @@ internal static class SemanticRunTranslationAdmission
             var artifacts = projections.Concat(reducers).Concat(captures).ToHashSet();
             feature = features.FirstOrDefault(candidate => candidate.Kind != "event" && (candidate.Kind != "capture" || candidate.Code == SemanticVersionFeatures.ForeignEvents) && artifacts.Contains(candidate.Artifact));
             if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+            if (slice.Kind == SemanticSliceKind.Translate &&
+                (slice.Reactions.Any(reaction => reaction.Triggers.Any(trigger => trigger.Kind == SemanticReactionTriggerKind.Event &&
+                    (reachable.Contains(trigger.Source) || (!trigger.Source.IsSet && reachable.Count > 0)))) ||
+                    slice.Projections.Any(projection => Observes(projection, reachable)) ||
+                    slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)))))
+            {
+                feature = features.First(candidate => candidate.Artifact == slice.Id && candidate.Kind == "slice");
+                return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+            }
         }
         feature = features.FirstOrDefault(candidate => candidate.Kind == "event" && reachable.Contains(candidate.Artifact));
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
+
+    static bool Observes(SemanticProjection projection, HashSet<SemanticId> reachable) =>
+        (projection.Scope?.Every?.SubscribesToAllEvents == true && reachable.Count > 0) ||
+        ProjectionReferencedEventNamesAreUnique.Contracts(projection).Any(reachable.Contains);
 }

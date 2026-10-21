@@ -10,7 +10,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -278,7 +278,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
@@ -330,7 +330,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
 
@@ -355,7 +355,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};

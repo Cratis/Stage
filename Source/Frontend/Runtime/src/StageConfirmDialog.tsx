@@ -8,6 +8,7 @@ import { StageCommandForm, selectedIdentifier } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { useStageData } from './stageData';
+import { navigateToScreen } from './stageNavigation';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import type { StageDecision } from './stageDialogScreens';
 
@@ -18,7 +19,8 @@ interface StageConfirmDialogProps {
 /**
  * A screen that confirms a decision: its title, a button for each decision and, once one is chosen, only that decision's form. The entity the
  * decision is about is the screen's, so the identifier the command acts on is not asked for - the address, the selected row or the identity the action creates supplies it - and a
- * successful decision takes the person to the screen the action names.
+ * successful decision takes the person to the screen the action names. The buttons wear the theme's dialog styling with the first decision
+ * emphasized, and Cancel leaves the dialog without executing anything.
  */
 export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
     const { routes, parameters, selections } = useStageData();
@@ -26,6 +28,7 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
     const first = useRef<HTMLButtonElement>(null);
     const title = typeof element.properties.title === 'string' ? element.properties.title : '';
     const decisions = Array.isArray(element.properties.decisions) ? element.properties.decisions as StageDecision[] : [];
+    const home = typeof element.properties.home === 'string' ? element.properties.home : undefined;
     const decision = decisions.find(candidate => candidate.command === chosen);
     const selectedRows = Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined);
 
@@ -36,14 +39,35 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
             <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{humanize(title)}</h2></header>
             <div className='stage-confirm-dialog__decisions'>
                 {decisions.map((candidate, index) => (
-                    <button key={candidate.command} ref={index === 0 ? first : undefined} type='button' aria-pressed={candidate.command === chosen} onClick={() => setChosen(candidate.command)}>
+                    <button
+                        key={candidate.command}
+                        ref={index === 0 ? first : undefined}
+                        type='button'
+                        className={index === 0 ? 'scene-slice-dialog-submit stage-confirm-dialog__decision' : 'scene-slice-dialog-cancel stage-confirm-dialog__decision'}
+                        data-emphasis={index === 0 ? 'primary' : 'secondary'}
+                        aria-pressed={candidate.command === chosen}
+                        onClick={() => setChosen(candidate.command)}>
                         {labelOf(candidate)}
                     </button>
                 ))}
             </div>
             {decision && <StageCommandForm key={decision.command} element={formOf(decision, routes?.commandSchemas?.[decision.command] ?? '', parameters, selectedRows)} />}
+            <footer className='scene-slice-dialog-footer'>
+                <button type='button' className='scene-slice-dialog-cancel stage-confirm-dialog__cancel' onClick={() => leave(decisions, home)}>Cancel</button>
+            </footer>
         </section>
     );
+}
+
+/**
+ * Leaves the dialog without executing a decision: to the screen the decisions lead to when they agree on one - where the person returns
+ * either way - and otherwise to the application's first screen. It never goes back through the history: inside Studio's frame that history
+ * is shared with the Play page around the Stage, so going back can leave the Stage. Without a screen to go to, the dialog stays.
+ */
+function leave(decisions: StageDecision[], home: string | undefined) {
+    const destinations = new Set(decisions.map(decision => decision.navigateToScreen).filter((screen): screen is string => !!screen));
+    const destination = destinations.size === 1 ? [...destinations][0] : home;
+    if (destination) navigateToScreen(destination, {});
 }
 
 function labelOf(decision: StageDecision): string {

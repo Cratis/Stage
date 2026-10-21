@@ -28,11 +28,16 @@ button { font: inherit; }
     padding: 0.35rem 0.5rem;
 }
 
-.stage-table { background: var(--layout-card, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); padding: 0.5rem; }
+.stage-table { background: var(--layout-card, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); min-width: 0; overflow-x: auto; padding: 0.5rem; }
 .stage-table table { border-collapse: collapse; width: 100%; }
 .stage-table th,
 .stage-table td { border-bottom: 1px solid var(--layout-border, #e2e5e9); padding: 0.5rem 0.75rem; text-align: left; }
-.stage-table th { color: var(--layout-text-muted, #6b7280); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+.stage-table th { color: var(--layout-text-muted, #6b7280); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+.stage-table tbody tr[tabindex] { cursor: pointer; }
+.stage-table tbody tr[tabindex]:hover td { background: var(--layout-background, #f8fafc); }
+.stage-table tbody tr[aria-selected='true'] td,
+.stage-table tbody tr[aria-selected='true']:hover td { background: var(--layout-highlight, #eef2ff); color: var(--layout-highlight-text, #3730a3); }
+.stage-table tbody tr[aria-selected='true'] td:first-child { box-shadow: inset 3px 0 0 var(--layout-highlight-text, #3730a3); }
 .stage-empty { color: var(--layout-text-muted, #6b7280); font-style: italic; }
 .stage-note { color: var(--layout-text-muted, #6b7280); margin: 0 0 0.5rem; }
 .stage-note--error { color: #dc2626; }
@@ -61,3 +66,18 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
 .stage-dialog-backdrop { align-items: center; background: rgb(0 0 0 / 0.45); display: flex; inset: 0; justify-content: center; position: fixed; z-index: 1000; }
 .stage-dialog { background: var(--layout-card, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.3); color: var(--layout-text, inherit); display: grid; gap: 0.75rem; max-height: 90vh; max-width: min(90vw, 48rem); min-width: min(90vw, 24rem); overflow: auto; padding: 1rem; }
 .stage-dialog > button { justify-self: end; }
+
+/* The decision dialog of a ConfirmDialog screen: its decisions and Cancel wear the theme's dialog buttons; the chosen decision is marked and its form's submit is the primary action. */
+.stage-confirm-dialog__decisions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.stage-confirm-dialog__decision[aria-pressed='true'] { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); }
+.stage-confirm-dialog button[type='submit'] {
+    background: var(--scene-primary-color, #4f46e5);
+    border: 1px solid var(--scene-primary-color, #4f46e5);
+    border-radius: var(--scene-content-border-radius, 0.5rem);
+    color: var(--scene-primary-contrast-color, #ffffff);
+    cursor: pointer;
+    font: inherit;
+    justify-self: end;
+    padding: 0.55rem 1.1rem;
+}
+.stage-confirm-dialog button[type='submit']:focus-visible { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); outline: none; }

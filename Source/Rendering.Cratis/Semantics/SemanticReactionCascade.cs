@@ -105,8 +105,54 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         return specification.ThenErrors.All(error =>
             (own.Contains(error.Message!) && !triggered.Contains(error.Message!)) ||
             absences.Any(read => IsAbsence(error.Message!, read) && !triggeredAbsences.Contains(read)) ||
+            IsOwnKeyedAbsence(context, command, specification, error.Message!) ||
             ViolatesOwnConcept(context, command, specification, error.Message!));
     }
+
+    // A reaction's command reading the same view under the same key reads after the triggering command did. If the triggering
+    // read found the instance and nothing the cascade appends removes it, the later read finds it too, so the absence is the trigger's.
+    static bool IsOwnKeyedAbsence(SemanticApplicationContext context, SemanticCommand command, SemanticSpecification specification, string message) =>
+        !command.Reads.IsDefaultOrEmpty && command.Reads.Any(read =>
+            specification.When!.Values.FirstOrDefault(input => input.TargetProperty == read.Key)?.Value is SemanticTextValue key &&
+            message == $"{context.ReadModels[read.ReadModel].Name} '{key.Value}' does not exist." &&
+            !CascadeEvents(context, command).Any(@event => CanRemove(context, read.ReadModel, @event)));
+
+    // Every event the triggering command can set off: its own productions, and to a fixpoint every reaction any of those events
+    // triggers, through reaction productions, refusal-branch productions and invoked commands' productions.
+    static HashSet<SemanticId> CascadeEvents(SemanticApplicationContext context, SemanticCommand command)
+    {
+        var triggers = SemanticSpecificationAdmission.EventReactionTriggers(context).ToArray();
+        var events = command.Produces.Select(produced => produced.EventContract).ToHashSet();
+        var commands = new HashSet<SemanticId> { command.Id };
+        var reacted = new HashSet<int>();
+        bool changed;
+        do
+        {
+            changed = false;
+            for (var index = 0; index < triggers.Length; index++)
+            {
+                var trigger = triggers[index];
+                if (!events.Contains(trigger.Source) || !reacted.Add(index)) continue;
+                changed = true;
+                foreach (var produced in trigger.Produces) events.Add(produced.EventContract);
+                foreach (var invocation in trigger.Invokes)
+                {
+                    foreach (var produced in invocation.OnRefused.SelectMany(refusal => refusal.Produces)) events.Add(produced.EventContract);
+                    if (!commands.Add(invocation.Command)) continue;
+                    foreach (var produced in context.Commands[invocation.Command].Produces) events.Add(produced.EventContract);
+                }
+            }
+        }
+        while (changed);
+
+        return events;
+    }
+
+    // Only a removal can make an instance disappear; flat transitions create or update it. A command read is admitted only
+    // over a view built by projections with flat removals (no reducer, join or child scope), so the scope's removals are all.
+    static bool CanRemove(SemanticApplicationContext context, SemanticId readModel, SemanticId @event) =>
+        context.Projections.Values.Any(projection => projection.ReadModel == readModel && projection.Scope is { } scope &&
+            scope.Removals.Any(removal => removal.EventContract == @event));
 
     // A message a reaction's command also carries is still the triggering command's own when the specification's
     // literal input breaks a concept rule of that very command: binding fails before any event, so no reaction runs.

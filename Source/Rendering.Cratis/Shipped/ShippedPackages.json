@@ -182,9 +182,6 @@
     "kind": "Blueprint",
     "dependencies": [
       {
-        "name": "PrimeReact"
-      },
-      {
         "name": "Cratis.Components"
       }
     ],

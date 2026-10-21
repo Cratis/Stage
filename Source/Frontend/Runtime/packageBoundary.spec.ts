@@ -42,7 +42,7 @@ describe('the runtime package boundary', () => {
             }
             inspect(source);
         }
-        for (const entry of [runtime.exports['.'], runtime.exports['./vite']]) {
+        for (const entry of [runtime.exports['.'], runtime.exports['./primereact'], runtime.exports['./vite']]) {
             expect(existsSync(entry.import)).toBe(true);
             expect(existsSync(entry.types)).toBe(true);
         }

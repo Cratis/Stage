@@ -41,7 +41,7 @@ import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { applicationChrome, loadStageLibraries, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
@@ -87,7 +87,7 @@ interface SceneNavigateDetail {
 }
 
 /**
- * The registry a Stage renders with: Scene's core vocabulary, PrimeReact and the default blueprint, then any
+ * The registry a Stage renders with: Scene's core vocabulary, the libraries the profile lists (PrimeReact only then) and the default blueprint, then any
  * components the host adds, then the Stage's own table, action, form and chrome - which always win, because they
  * are what reach the running application.
  * @param components Components the host adds, such as a package an application composes with.
@@ -192,9 +192,9 @@ export interface AppProps {
 
 export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
     const source = useStageSource();
-    const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
     const [error, setError] = useState('');
+    const registry = useMemo(() => stageApplicationRegistry(components), [components, scene]);
     // Routes and strings are read alongside the scene, not after it, so a command is registered by the time it is first used.
     const routeState = useStageRouteState();
     const strings = useStrings();
@@ -202,6 +202,11 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
     useEffect(() => {
         const abort = new AbortController();
         source.scene(abort.signal)
+            // A component library the profile lists is loaded before the first render that needs its components; one it does not list is never loaded.
+            .then(async loaded => {
+                await loadStageLibraries(loaded.uiProfiles);
+                return loaded;
+            })
             // The application's own dialog templates win a name a blueprint also declares.
             .then(loaded => setScene(dialogTemplates?.length
                 ? { ...loaded, dialogTemplates: [...(loaded.dialogTemplates ?? []), ...dialogTemplates.filter(template => !loaded.dialogTemplates?.some(own => own.name === template.name))] }

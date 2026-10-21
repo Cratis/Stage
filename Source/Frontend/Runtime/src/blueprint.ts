@@ -5,7 +5,7 @@ import type { SceneElement, Screen, UiProfile } from '@cratis/scene.model';
 import type { PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
 import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
-import { primeReactComponents, primeReactPackageManifest } from '@cratis/scene.primereact';
+import { cratisComponents, cratisComponentsPackageManifest } from '@cratis/scene.components/runtime';
 import {
     ComponentName,
     SlotName,
@@ -22,30 +22,79 @@ import {
 /** The qualified name Stage registers its locale picker under. */
 export const stageLocaleComponent = 'Stage:locale';
 
+/** The package a host renders with when the profile lists no component library: the Cratis component library, built on React Aria. */
+export const stageBaselinePackage = 'Cratis.Components';
+
+/** The component library the profile opts in to by listing it; the Stage's own PrimeReact support loads only then. */
+export const primeReactPackage = 'PrimeReact';
+
+/**
+ * The order a host resolves bare component names in, lowest priority first: Scene's core, the host baseline, the component libraries
+ * the profile lists in the order listed, and last the blueprint, so the shell keeps its own names.
+ *
+ * TODO(Cratis/Scene#250): replace with Scene's `hostProfilePackages` once the Scene release that exports it is consumed. The rule is the same.
+ *
+ * @param declared The packages the profile (and the packages every host has) declares.
+ * @returns The packages in ascending priority.
+ */
+function hostProfilePackages(declared: string[]): string[] {
+    const libraries = declared.filter(name => name !== 'core' && name !== stageBaselinePackage && name !== defaultBlueprintName);
+    return ['core', stageBaselinePackage, ...new Set(libraries), defaultBlueprintName];
+}
+
+/**
+ * A component library a profile opted in to, loaded on demand: the components it registers and what it declares.
+ */
+export interface StageLibrary {
+    /** The components the library adds to the registry. */
+    components: ComponentRegistry;
+
+    /** What the library declares, so a bare name resolves to it. */
+    declared: string[];
+}
+
+const loadedLibraries = new Map<string, StageLibrary>();
+
+/** Whether the profiles the scene declares list PrimeReact. */
+export function listsPrimeReact(profiles: UiProfile[] | undefined): boolean {
+    return previewProfile(profiles).packages.includes(primeReactPackage);
+}
+
+/**
+ * Loads the component libraries the profiles list that the Stage ships behind a dynamic entry. A profile that lists none loads
+ * nothing, so no PrimeReact module is fetched or evaluated for it.
+ *
+ * @param profiles The profiles the scene declares.
+ */
+export async function loadStageLibraries(profiles: UiProfile[] | undefined): Promise<void> {
+    if (!listsPrimeReact(profiles) || loadedLibraries.has(primeReactPackage)) return;
+    const { primeReactLibrary } = await import('./primereact');
+    loadedLibraries.set(primeReactPackage, primeReactLibrary);
+}
+
 /**
  * The profile a scene renders against: the shared one - the model's own `ui profile` with the packages every host renders with
- * admitted - with the PrimeReact widgets the default blueprint is built from between Scene's core and the blueprint, so the
- * blueprint's component still wins a name both declare.
+ * admitted - ordered core, then Cratis.Components, then the libraries the profile lists (PrimeReact only when it lists it), then
+ * the blueprint, so the blueprint's component still wins a name another package also declares.
  *
  * @param profiles The profiles the scene declares.
  * @returns The profile to resolve component names with.
  */
 export function stageProfile(profiles: UiProfile[] | undefined): UiProfile {
     const profile = previewProfile(profiles);
-    const packages = profile.packages.filter(name => name !== 'PrimeReact');
-    packages.splice(Math.max(packages.indexOf(defaultBlueprintName), 0), 0, 'PrimeReact');
-    return { ...profile, name: profiles?.length ? profile.name : 'Stage', packages };
+    return { ...profile, name: profiles?.length ? profile.name : 'Stage', packages: hostProfilePackages(profile.packages) };
 }
 
-/** What each package declares, so a bare name resolves to the package that provides it. */
+/** What each package every Stage declares, so a bare name resolves to the package that provides it. */
 export const stageCatalog: PackageCatalog = {
     ...blueprintPackageCatalog,
-    PrimeReact: primeReactPackageManifest.components,
+    [stageBaselinePackage]: cratisComponentsPackageManifest.components,
 };
 
-/** Every component the Stage can render: Scene's core, PrimeReact, the default blueprint's shell, and the template wrapper the shared composition places screens in. */
+/** Every component the Stage can render: Scene's core, the Cratis component library, the libraries a profile opted in to, the default blueprint's shell, and the template wrapper the shared composition places screens in. */
 export function stageRegistry(overrides: ComponentRegistry): ComponentRegistry {
-    return { ...coreComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, ...overrides };
+    const libraries = [...loadedLibraries.values()].reduce<ComponentRegistry>((all, library) => ({ ...all, ...library.components }), {});
+    return { ...coreComponents, ...cratisComponents, ...libraries, ...defaultBlueprintComponents, ...previewComponents, ...overrides };
 }
 
 /**
@@ -58,7 +107,8 @@ export function stageRegistry(overrides: ComponentRegistry): ComponentRegistry {
  * @returns The catalog component names are resolved against.
  */
 export function stageCatalogWith(approved: PackageCatalog | undefined): PackageCatalog {
-    return approved ? { ...approved, ...stageCatalog } : stageCatalog;
+    const libraries = Object.fromEntries([...loadedLibraries].map(([name, library]) => [name, library.declared]));
+    return { ...approved, ...stageCatalog, ...libraries };
 }
 
 /** The qualified name Stage registers its navigation tree under. */

@@ -7,8 +7,9 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
-import { Button } from 'primereact/button';
-import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { Button } from '@cratis/components/Common';
+import { Dialog } from '@cratis/components/Dialogs';
+import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
@@ -166,8 +167,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {loading && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
-            {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
+            {loading && <Message severity='info' text='Loading…' />}
+            {error && <Message severity='error' text={error} />}
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
                 <thead>
@@ -233,16 +234,17 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
-    const close = useCallback(() => setGeneration(current => current + 1), []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm element={element} /></StageDialogContext.Provider>;
+    const [visible, setVisible] = useState(false);
+    const close = useCallback(() => {
+        setVisible(false);
+        setGeneration(current => current + 1);
+    }, []);
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <PrimeDialog
-                key={generation}
-                element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
-                slots={{ content: [content] }}
-            />
+            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
         </div>
     );
 }

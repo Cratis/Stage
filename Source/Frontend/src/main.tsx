@@ -26,6 +26,9 @@ import { registerStageQueries } from './host/queryRegistration';
 // unlicensed presentation rather than failing to render.
 const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 
+// TODO(Cratis/Stage#707, phase 2): the PrimeReact provider, licence and theme stay unconditional while the pinned Scene 4.78.3 default
+// blueprint's shell renders PrimeReact components and is unstyled without them. Once Stage consumes the Scene release with
+// Cratis/Scene#250, load them through a dynamic import of '@cratis/stage.runtime/primereact' only when the scene's ui profile lists PrimeReact.
 const root = document.getElementById('root')!;
 
 async function start() {

@@ -17,6 +17,7 @@
   "types": "./dist/src/index.d.ts",
   "exports": {
     ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" },
+    "./primereact": { "types": "./dist/src/primereact.d.ts", "import": "./dist/src/primereact.js" },
     "./vite": { "types": "./dist/styledPrimeReact.d.ts", "import": "./dist/styledPrimeReact.js" },
     "./styles.css": "./dist/src/app.css"
   },

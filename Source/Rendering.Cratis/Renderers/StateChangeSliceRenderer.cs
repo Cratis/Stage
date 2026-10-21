@@ -71,7 +71,10 @@ public class StateChangeSliceRenderer : ISliceRenderer
     static bool IsVerifiedInlineReturnType(string returnType, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
         var typeName = returnType.StartsWith("global::", StringComparison.Ordinal) ? returnType[8..] : returnType;
-        if (typeName is "void" or "IEnumerable<object>" || typeName.Split('.').Last() == "EventForEventSourceId")
+        var segments = typeName.Split('.');
+        if (string.Equals(typeName, "void", StringComparison.Ordinal) ||
+            string.Equals(typeName, "IEnumerable<object>", StringComparison.Ordinal) ||
+            string.Equals(segments[^1], "EventForEventSourceId", StringComparison.Ordinal))
         {
             return true;
         }

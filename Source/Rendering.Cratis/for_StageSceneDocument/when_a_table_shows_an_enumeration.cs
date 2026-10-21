@@ -55,6 +55,7 @@ public class when_a_table_shows_an_enumeration : Specification
     }
 
     [Fact] void should_carry_the_members_in_declared_order() => _columns[0]!["properties"]!["options"]!.AsArray().Select(option => option!.GetValue<string>()).ShouldContainOnly("newLead", "inProgress", "won");
+    [Fact] void should_not_carry_numbers_for_an_implicitly_numbered_enumeration() => _columns[0]!["properties"]!.AsObject().ContainsKey("optionValues").ShouldBeFalse();
     [Fact] void should_preserve_enumeration_options_for_the_toolbar_dialog() => _dialogOptions.Select(option => option!.GetValue<string>()).ShouldContainOnly("newLead", "inProgress", "won");
     [Fact] void should_not_turn_plain_values_into_enumerations() => _columns[1]!["properties"]!.AsObject().ContainsKey("options").ShouldBeFalse();
 }

@@ -49,10 +49,16 @@ interface TableColumn {
     property: string;
     label: string;
     options?: readonly string[];
+
+    // The number each option carries, parallel to options. Absent for an implicitly numbered enumeration,
+    // whose members are numbered by position.
+    optionValues?: readonly number[];
 }
 
-function tableValue(value: unknown, options?: readonly string[]): string {
-    const member = typeof value === 'number' && Number.isInteger(value) ? options?.[value] : value;
+function tableValue(value: unknown, options?: readonly string[], optionValues?: readonly number[]): string {
+    const member = typeof value === 'number' && Number.isInteger(value)
+        ? (optionValues && optionValues.length === options?.length ? options?.[optionValues.indexOf(value)] : options?.[value])
+        : value;
     return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
 }
 
@@ -83,6 +89,7 @@ function columnsFor(element: ExternalComponent, rows: Record<string, unknown>[])
             property: typeof properties.property === 'string' ? properties.property : '',
             label: typeof properties.label === 'string' ? properties.label : '',
             options: Array.isArray(properties.options) && properties.options.every(option => typeof option === 'string') ? properties.options : undefined,
+            optionValues: Array.isArray(properties.optionValues) && properties.optionValues.every(option => typeof option === 'number') ? properties.optionValues : undefined,
         };
     }).filter(column => column.property.length > 0);
 
@@ -195,7 +202,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                     event.preventDefault();
                                     select(row);
                                 }}>
-                                {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options)}</td>)}
+                                {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options, column.optionValues)}</td>)}
                             </tr>
                         );
                     })}

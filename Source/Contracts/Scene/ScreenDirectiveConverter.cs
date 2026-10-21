@@ -307,6 +307,10 @@ public static class ScreenDirectiveConverter
                 if (scope.Enumerations is { } enumerations && enumerations.TryGetValue(table.Target, out var fields) && fields.TryGetValue(column.Property, out var members))
                 {
                     columnProperties["options"] = members;
+                    if (scope.EnumerationNumbers is { } numbers && numbers.TryGetValue(table.Target, out var numberedFields) && numberedFields.TryGetValue(column.Property, out var memberNumbers))
+                    {
+                        columnProperties["optionValues"] = memberNumbers;
+                    }
                 }
 
                 return (SceneElements.SceneElement)SceneElementFactory.Component($"{id}.{index}-column", "core:column", columnProperties);

@@ -127,6 +127,12 @@ internal static class StageSceneDocument
                         if (property?.Type is { IsCollection: false, Kind: SemanticTypeReferenceKind.Concept } type && context.Concepts.TryGetValue(type.Target, out var concept) && !concept.Values.IsEmpty)
                         {
                             columnProperties["options"] = new JsonArray([.. concept.Values.Select(value => JsonValue.Create(value))]);
+
+                            // Explicit numbers are the identity of a member; without them the options' positions are.
+                            if (concept.Numbers is { } numbers)
+                            {
+                                columnProperties["optionValues"] = new JsonArray([.. numbers.Select(number => JsonValue.Create(number))]);
+                            }
                         }
                     }
                 }

@@ -10,7 +10,6 @@ import { registerStageCommands } from '../../src/host/commandRegistration';
 import { StageDataProvider, useStageData } from './stageData';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { asDialogScreens } from './stageDialogScreens';
-import { forgetSessionNavigation } from './stageNavigation';
 import { element } from './testElements';
 import { commandResult } from './testing/commands';
 import { queryResult, registerTestQueries } from './testing/queries';
@@ -51,10 +50,10 @@ function Selecting({ row }: { row: Record<string, unknown> }) {
     return null;
 }
 
-function show(options: { screen?: Screen; routes?: typeof routes; parameters?: Record<string, string>; selected?: Record<string, unknown> } = {}) {
+function show(options: { screen?: Screen; routes?: typeof routes; parameters?: Record<string, string>; selected?: Record<string, unknown>; alone?: boolean } = {}) {
     const given = options.routes ?? routes;
     registerStageCommands(given);
-    const [dialog] = asDialogScreens([options.screen ?? decision, inbox], []);
+    const [dialog] = asDialogScreens(options.alone ? [options.screen ?? decision] : [options.screen ?? decision, inbox], []);
     const content = (dialog.slotContent.content as ExternalComponent[])[0];
     return render(
         <PrimeReactProvider>
@@ -140,22 +139,9 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         expect(fetched).not.toHaveBeenCalled();
     });
 
-    it('goes back on Cancel when the decisions lead to different screens and the Stage navigated here', async () => {
+    it('goes to the first other screen on Cancel when the decisions lead to different screens, without going back, after a navigation', async () => {
+        window.location.hash = '#/Orders';
         await settled();
-        forgetSessionNavigation();
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
-        const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
-        show({ screen: diverging });
-
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-
-        expect(back).toHaveBeenCalledOnce();
-        back.mockRestore();
-    });
-
-    it('goes to the first other screen on Cancel when the dialog is where the Stage was opened, so it never leaves the Stage', async () => {
-        await settled();
-        forgetSessionNavigation();
         const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
         show({ screen: diverging });
 
@@ -163,6 +149,28 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
 
         expect(back).not.toHaveBeenCalled();
         expect(window.location.hash).toBe('#/ApprovalInbox');
+        back.mockRestore();
+    });
+
+    it('goes to the first other screen on Cancel when the dialog is where the Stage was opened, so it never leaves the Stage', () => {
+        const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
+        show({ screen: diverging });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(back).not.toHaveBeenCalled();
+        expect(window.location.hash).toBe('#/ApprovalInbox');
+        back.mockRestore();
+    });
+
+    it('stays on Cancel when the decisions lead to different screens and there is no other screen, without going back', () => {
+        const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
+        show({ screen: diverging, alone: true });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(back).not.toHaveBeenCalled();
+        expect(window.location.hash).toBe('');
         back.mockRestore();
     });
 

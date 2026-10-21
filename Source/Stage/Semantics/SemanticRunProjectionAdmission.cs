@@ -35,13 +35,13 @@ internal static class SemanticRunProjectionAdmission
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
 
         var reachable = reachableEvents.ToHashSet();
-        var requested = plan.Projections.Values.Where(value =>
+        var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
             specification.GivenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
-            (value.Scope is not null ? reachable.Count > 0 : value.Transitions.Any(transition => reachable.Contains(transition.EventContract)))).ToArray();
-        var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.ReadModel == id) > 1);
+            (value.Scope is not null ? reachable.Count > 0 : value.Transitions.Any(transition => reachable.Contains(transition.EventContract))))).ToArray();
+        var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.Target != SemanticProjectionTargetKind.Event && projection.ReadModel == id) > 1);
         if (duplicate.IsSet)
         {
             return new(StageExecutionCapability.Projection, duplicate.ToString(), "A per-run read model needs exactly one projection.");

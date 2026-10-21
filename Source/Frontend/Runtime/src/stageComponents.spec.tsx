@@ -82,6 +82,27 @@ describe('a synthesized table', () => {
         expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/sales/invoices/all-invoices'), expect.anything());
     });
 
+    it('shows humanized enumeration members for numeric indices and names, while preserving unknown values', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => queryResult({ data: [{ invoiceNumber: 'INV-1', stage: 1 }, { invoiceNumber: 'INV-2', stage: 'newLead' }, { invoiceNumber: 'INV-3', stage: 'unknown' }, { invoiceNumber: 'INV-4', stage: 42 }, { invoiceNumber: 'INV-5', stage: null }] }),
+        }));
+        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice' }, {
+            columns: [
+                element('number', 'core:column', { property: 'invoiceNumber', label: 'Invoice #' }),
+                element('stage', 'core:column', { property: 'stage', label: 'Stage', options: ['newLead', 'inProgress', 'won'] }),
+            ],
+        });
+
+        render(<StageTable element={table} slots={{}} />);
+
+        expect(await screen.findByText('In progress')).toBeDefined();
+        expect(screen.getByText('New lead')).toBeDefined();
+        expect(screen.getByText('unknown')).toBeDefined();
+        expect(screen.getByText('42')).toBeDefined();
+        expect(screen.getByText('INV-5')).toBeDefined();
+    });
+
     it('resolves same-named queries omitted from the host name map by their distinct attached routes', async () => {
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve({
             ok: true,

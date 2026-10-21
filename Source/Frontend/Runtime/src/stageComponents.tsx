@@ -48,6 +48,12 @@ function text(element: ExternalComponent, name: string, fallback = ''): string {
 interface TableColumn {
     property: string;
     label: string;
+    options?: readonly string[];
+}
+
+function tableValue(value: unknown, options?: readonly string[]): string {
+    const member = typeof value === 'number' && Number.isInteger(value) ? options?.[value] : value;
+    return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
 }
 
 interface QueryArguments {
@@ -76,6 +82,7 @@ function columnsFor(element: ExternalComponent, rows: Record<string, unknown>[])
         return {
             property: typeof properties.property === 'string' ? properties.property : '',
             label: typeof properties.label === 'string' ? properties.label : '',
+            options: Array.isArray(properties.options) && properties.options.every(option => typeof option === 'string') ? properties.options : undefined,
         };
     }).filter(column => column.property.length > 0);
 
@@ -188,7 +195,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                     event.preventDefault();
                                     select(row);
                                 }}>
-                                {columns.map(column => <td key={column.property}>{String(row[column.property] ?? '')}</td>)}
+                                {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options)}</td>)}
                             </tr>
                         );
                     })}

@@ -301,10 +301,16 @@ public static class ScreenDirectiveConverter
         };
 
         var columns = table.Columns
-            .Select((column, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-                $"{id}.{index}-column",
-                "core:column",
-                new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label }))
+            .Select((column, index) =>
+            {
+                var columnProperties = new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label };
+                if (scope.Enumerations is { } enumerations && enumerations.TryGetValue(table.Target, out var fields) && fields.TryGetValue(column.Property, out var members))
+                {
+                    columnProperties["options"] = members;
+                }
+
+                return (SceneElements.SceneElement)SceneElementFactory.Component($"{id}.{index}-column", "core:column", columnProperties);
+            })
             .ToList();
 
         return SceneElementFactory.Component(id, "core:table", properties, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["columns"] = columns }) with

@@ -65,6 +65,9 @@ describe('the task dialog of a toolbar slice button', () => {
         const address = screen.getByRole('group', { name: 'Ship to' });
         fireEvent.change(within(address).getByLabelText('Street'), { target: { value: '12 Analytical Way' } });
         expect(screen.getByText('Method')).toBeDefined();
+        const method = field('method')?.querySelector('select');
+        expect(method).not.toBeNull();
+        expect(Array.from(method!.options).map(option => option.text.trim()).filter(text => text.length > 0)).toEqual(['Standard', 'Express']);
         fireEvent.click(screen.getByRole('button', { name: 'Execute CheckOut' }));
 
         // The method is required and has not been chosen, so nothing is submitted yet.

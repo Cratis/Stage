@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Cratis.Screenplay.Diagnostics;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
@@ -78,6 +79,7 @@ internal static class StageSceneDocument
 
         var document = JsonNode.Parse(sceneJson)!.AsObject();
         StripSampleData(document);
+        EnrichColumns(document, context);
 
         // A toolbar slice button opens a task dialog built from its command's schema, so the runtime document carries the schemas -
         // and, from the canonical document, the structure - only where one is used. An application with no such button is
@@ -99,6 +101,42 @@ internal static class StageSceneDocument
 
         GeneratedSceneMemberNames.Arguments(document, commands.ToDictionary(pair => pair.Key, pair => pair.Value.Names, StringComparer.Ordinal));
         return CanonicalSceneJson.Write(document);
+    }
+
+    static void EnrichColumns(JsonNode? node, SemanticApplicationContext context)
+    {
+        if (node is JsonArray array)
+        {
+            foreach (var child in array)
+            {
+                EnrichColumns(child, context);
+            }
+        }
+        else if (node is JsonObject element)
+        {
+            if (Text(element, "componentName") == "core:table" && element["properties"] is JsonObject properties)
+            {
+                var target = Text(properties, "typeName") ?? Text(properties, "target");
+                var readModel = context.ReadModels.Values.FirstOrDefault(model => target == model.Name || target?.EndsWith($".{model.Name}", StringComparison.Ordinal) == true);
+                if (readModel is not null && element["slots"]?["columns"] is JsonArray columns)
+                {
+                    foreach (var column in columns.OfType<JsonObject>())
+                    {
+                        if (column["properties"] is not JsonObject columnProperties) continue;
+                        var property = readModel.Properties.FirstOrDefault(property => Text(columnProperties, "property") == property.Name || Text(columnProperties, "property") == context.MemberNames.WireProperty(property));
+                        if (property?.Type is { IsCollection: false, Kind: SemanticTypeReferenceKind.Concept } type && context.Concepts.TryGetValue(type.Target, out var concept) && !concept.Values.IsEmpty)
+                        {
+                            columnProperties["options"] = new JsonArray([.. concept.Values.Select(value => JsonValue.Create(value))]);
+                        }
+                    }
+                }
+            }
+
+            foreach (var (_, child) in element)
+            {
+                EnrichColumns(child, context);
+            }
+        }
     }
 
     // Sample data exists to preview with at design time; the runtime document a production application ships carries none (spec SD6).

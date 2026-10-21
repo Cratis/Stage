@@ -53,6 +53,19 @@ internal sealed class SemanticRuntimeAdmission
             if (blocksModel) blocking.Add(entry);
         }
 
+        foreach (var reaction in plan.Reactions)
+        {
+            var refusal = SemanticPlanAdmission.Check(plan, reaction.Id);
+            if (refusal is not null)
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "unsupported", refusal.Capability.ToString(), refusal.Details));
+            }
+            else if (!entries.Any(entry => entry.Artifact == reaction.Id.ToString() && entry.Kind == "reaction"))
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "supported", null, null));
+            }
+        }
+
         foreach (var readModel in plan.ReadModels.Values)
         {
             var refusal = SemanticPlanAdmission.Check(plan, readModel.Id);

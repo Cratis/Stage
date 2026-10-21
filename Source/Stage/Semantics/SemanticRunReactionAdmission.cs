@@ -102,6 +102,26 @@ internal static class SemanticRunReactionAdmission
             .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == given.EventContract));
     }
 
+    internal static IEnumerable<SemanticId> Productions(SemanticExecutionPlan plan, SemanticReaction reaction) =>
+        reaction.Triggers.SelectMany(trigger => Effects(plan, trigger));
+
+    // Production admission is conservative: a guard or refusal branch cannot hide an
+    // unsupported effect. The finite event-contract set also bounds cyclic reactions.
+    internal static HashSet<SemanticId> ProductionClosure(SemanticExecutionPlan plan, IEnumerable<SemanticId> initial)
+    {
+        var events = new HashSet<SemanticId>();
+        var pending = new Queue<SemanticId>(initial);
+        while (pending.TryDequeue(out var cause))
+        {
+            if (!events.Add(cause)) continue;
+            foreach (var effect in Triggers(plan, cause).SelectMany(trigger => Effects(plan, trigger)))
+            {
+                pending.Enqueue(effect);
+            }
+        }
+        return events;
+    }
+
     static IEnumerable<SemanticReactionTrigger> Triggers(SemanticExecutionPlan plan, SemanticId cause) =>
         plan.Reactions.SelectMany(reaction => reaction.Triggers)
             .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == cause);

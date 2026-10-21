@@ -3,26 +3,6 @@
 
 import { Guid } from '@cratis/fundamentals';
 
-// Whether the Stage has moved between screens since it loaded: only then is there an entry of its own to go back to. Play runs inside Studio's
-// frame, where an entry from before the Stage loaded belongs to the page around it.
-let navigatedInSession = false;
-globalThis.addEventListener?.('hashchange', () => { navigatedInSession = true; });
-
-/**
- * Whether the Stage has navigated between its own screens since it loaded, so going back stays inside the Stage. A screen the Stage was
- * opened on - a deep link, a reload, Play started on it - has nothing of the Stage's own before it.
- *
- * @returns True when the Stage navigated in this session.
- */
-export function hasNavigatedInSession(): boolean {
-    return navigatedInSession;
-}
-
-/** Forgets that the Stage navigated, as when it has just loaded. */
-export function forgetSessionNavigation() {
-    navigatedInSession = false;
-}
-
 /**
  * The parameters a screen was navigated to with, read from the hash (`#/WorkItemDetails?workItemId=...`).
  *
@@ -62,7 +42,6 @@ export function navigateToScreen(screen: string, parameters: Record<string, stri
     if (!globalThis.location) return;
     const hash = screenHashWith(screen, parameters);
     if (globalThis.location.hash === hash) return;
-    navigatedInSession = true;
     globalThis.location.hash = hash;
 }
 

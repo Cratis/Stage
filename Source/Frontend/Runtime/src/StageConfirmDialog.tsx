@@ -8,7 +8,7 @@ import { StageCommandForm, selectedIdentifier } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { useStageData } from './stageData';
-import { hasNavigatedInSession, navigateToScreen } from './stageNavigation';
+import { navigateToScreen } from './stageNavigation';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import type { StageDecision } from './stageDialogScreens';
 
@@ -61,20 +61,13 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
 
 /**
  * Leaves the dialog without executing a decision: to the screen the decisions lead to when they agree on one - where the person returns
- * either way - otherwise back to where the person came from when the Stage navigated here itself, and otherwise to the application's first
- * screen. Going back from a screen the Stage was opened on would leave the Stage - inside Studio, the Play page around it.
+ * either way - and otherwise to the application's first screen. It never goes back through the history: inside Studio's frame that history
+ * is shared with the Play page around the Stage, so going back can leave the Stage. Without a screen to go to, the dialog stays.
  */
 function leave(decisions: StageDecision[], home: string | undefined) {
     const destinations = new Set(decisions.map(decision => decision.navigateToScreen).filter((screen): screen is string => !!screen));
-    if (destinations.size === 1) {
-        navigateToScreen([...destinations][0], {});
-        return;
-    }
-    if (hasNavigatedInSession()) {
-        globalThis.history?.back();
-        return;
-    }
-    if (home) navigateToScreen(home, {});
+    const destination = destinations.size === 1 ? [...destinations][0] : home;
+    if (destination) navigateToScreen(destination, {});
 }
 
 function labelOf(decision: StageDecision): string {

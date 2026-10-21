@@ -103,9 +103,16 @@ public static class SceneSynthesizer
                 readModel?.Name,
                 readModel is null ? null : SemanticSchemas.Schema(readModel.Properties, model.Application),
                 command?.Name,
-                command is null ? null : commands.GetValueOrDefault(command.Name)));
+                command is null ? null : commands.GetValueOrDefault(command.Name),
+                ColumnOptions(model.Application, readModel?.Properties ?? [])));
         }));
     }
+
+    static Dictionary<string, IReadOnlyList<string>> ColumnOptions(SemanticApplication application, IEnumerable<SemanticProperty> properties) => properties
+        .Where(property => !property.Type.IsCollection)
+        .Select(property => (property.Name, Concept: application.Concepts.FirstOrDefault(concept => property.Type.Target == concept.Id && !concept.Values.IsEmpty)))
+        .Where(entry => entry.Concept is not null)
+        .ToDictionary(entry => entry.Name, entry => (IReadOnlyList<string>)entry.Concept!.Values, StringComparer.Ordinal);
 
     static SceneApplication Synthesize(SceneApplication scene, IEnumerable<SynthesizedSlice> slices)
     {

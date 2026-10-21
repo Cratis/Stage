@@ -127,7 +127,7 @@ internal sealed partial class SemanticRuntime
                 return false;
             }
 
-            var extended = _evaluator.ExtendWorld(Plan, _world, facts);
+            var extended = _evaluator.ExtendWorld(SemanticProjectionAdmission.ForReplay(Plan), _world, facts);
             if (extended is not SemanticAccepted accepted)
             {
                 Fault($"The outside event-log suffix cannot extend the semantic world: {extended}");

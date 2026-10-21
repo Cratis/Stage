@@ -30,7 +30,12 @@ public class when_admitting_unadmitted_projection_feeders : a_locally_unadmitted
         };
         var occurrence = new SemanticCommandOccurrence(DateTimeOffset.UnixEpoch, "owner", "Owner", "owner");
         _result = await runtime.Execute(Command("RegisterProject"), properties, new ClaimsPrincipal(), occurrence, false);
-        _transitiveResult = await runtime.Execute(Command("StartProject"), properties, new ClaimsPrincipal(), occurrence, false);
+        var startProperties = new Dictionary<string, JsonElement>
+        {
+            ["projectId"] = JsonSerializer.SerializeToElement("4fa85f64-5717-4562-b3fc-2c963f66afa6"),
+            ["parentId"] = JsonSerializer.SerializeToElement("3fa85f64-5717-4562-b3fc-2c963f66afa6")
+        };
+        _transitiveResult = await runtime.Execute(Command("StartProject"), startProperties, new ClaimsPrincipal(), occurrence, false);
     }
 
     [Fact] void should_refuse_the_direct_command() => AssertRefused(_command.Id.ToString(), "command");
@@ -44,7 +49,7 @@ public class when_admitting_unadmitted_projection_feeders : a_locally_unadmitted
 
     void AssertRefused(string id, string kind)
     {
-        var entry = Assert.Single(_admission.Entries.Where(entry => entry.Artifact == id && entry.Kind == kind));
+        var entry = Assert.Single(_admission.Entries, entry => entry.Artifact == id && entry.Kind == kind);
         Assert.Equal("unsupported", entry.Status);
         Assert.Contains("RefusedProjection", entry.Details);
     }

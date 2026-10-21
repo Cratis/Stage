@@ -8,6 +8,7 @@ export type { StageSource, StageStaticContent } from './stageSource';
 export type { StageRoutes } from './stageRoutes';
 export { stageTheme, stageDarkSelector } from './stageTheme';
 export { executeRegisteredCommand, registeredCommand, useStageCommandExecutor } from './commandExecutor';
+export { hostedBasePath } from './hostedBasePath';
 export { registeredQuery, performQuery, subscribeQuery, registerQueryRouteResolver } from './queryExecutor';
 export { StageCommandForm } from './StageCommandForm';
 export { StageGuardedAction } from './StageGuardedAction';

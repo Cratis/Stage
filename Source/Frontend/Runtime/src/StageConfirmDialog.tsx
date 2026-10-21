@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ExternalComponent, FormField } from '@cratis/scene.model';
 import { FormGenerationMode } from '@cratis/scene.model';
-import { StageCommandForm, selectedIdentifier } from './StageCommandForm';
+import { StageCommandForm, selectedIdentifier, selectedRowsOf } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { useStageData } from './stageData';
@@ -23,14 +23,14 @@ interface StageConfirmDialogProps {
  * emphasized, and Cancel leaves the dialog without executing anything.
  */
 export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
-    const { routes, parameters, selections } = useStageData();
+    const { routes, parameters, queries, selections } = useStageData();
     const [chosen, setChosen] = useState<string>();
     const first = useRef<HTMLButtonElement>(null);
     const title = typeof element.properties.title === 'string' ? element.properties.title : '';
     const decisions = Array.isArray(element.properties.decisions) ? element.properties.decisions as StageDecision[] : [];
     const home = typeof element.properties.home === 'string' ? element.properties.home : undefined;
     const decision = decisions.find(candidate => candidate.command === chosen);
-    const selectedRows = Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined);
+    const selectedRows = selectedRowsOf(selections, queries);
 
     useEffect(() => first.current?.focus(), []);
 

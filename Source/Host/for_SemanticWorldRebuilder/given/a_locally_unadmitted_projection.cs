@@ -13,7 +13,9 @@ public class a_locally_unadmitted_projection : a_rebuildable_world
 
     void Establish()
     {
-        _storedFact = ((SemanticAccepted)new SemanticEvaluator().Execute(_plan, SemanticWorld.Empty,
+        _storedFact = ((SemanticAccepted)new SemanticEvaluator().Execute(
+            _plan,
+            SemanticWorld.Empty,
             SemanticExecutionRequest.Create(_command.Id, _commandValues, []) with
             {
                 Occurrence = new(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero), "owner", "Owner", "owner")

@@ -60,7 +60,7 @@ internal sealed class SemanticRuntimeAdmission
             {
                 entries.Add(new(reaction.Id.ToString(), "reaction", "unsupported", refusal.Capability.ToString(), refusal.Details));
             }
-            else if (!entries.Any(entry => entry.Artifact == reaction.Id.ToString() && entry.Kind == "reaction"))
+            else if (!entries.Exists(entry => entry.Artifact == reaction.Id.ToString() && entry.Kind == "reaction"))
             {
                 entries.Add(new(reaction.Id.ToString(), "reaction", "supported", null, null));
             }

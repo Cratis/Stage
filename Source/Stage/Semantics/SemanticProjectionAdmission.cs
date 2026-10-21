@@ -38,7 +38,9 @@ internal static class SemanticProjectionAdmission
 
         var events = SemanticRunReactionAdmission.ProductionClosure(plan, initial);
         var projection = projections.FirstOrDefault(candidate => events.Any(@event => Observes(candidate, @event)));
-        return projection is null ? null : new(StageExecutionCapability.Projection, artifact.ToString(),
+        return projection is null ? null : new(
+            StageExecutionCapability.Projection,
+            artifact.ToString(),
             $"STAGE-PLAN-004: Projection '{projection.Name}' was not admitted by scoped execution-plan compilation; this artifact's productions reach it.");
     }
 

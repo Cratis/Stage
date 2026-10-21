@@ -26,8 +26,12 @@ public class when_replaying_a_locally_unadmitted_projection_suffix : a_locally_u
         {
             ["projectId"] = JsonSerializer.SerializeToElement("3fa85f64-5717-4562-b3fc-2c963f66afa6")
         };
-        _failure = await Record.ExceptionAsync(async () => _result = await _runtime.Execute(Command("TouchProject"),
-            properties, new ClaimsPrincipal(), new(DateTimeOffset.UnixEpoch, "owner", "Owner", "owner"), false));
+        _failure = await Record.ExceptionAsync(async () => _result = await _runtime.Execute(
+            Command("TouchProject"),
+            properties,
+            new ClaimsPrincipal(),
+            new(DateTimeOffset.UnixEpoch, "owner", "Owner", "owner"),
+            false));
     }
 
     void Destroy() => _runtime.Dispose();

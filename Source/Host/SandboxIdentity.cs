@@ -70,7 +70,9 @@ internal static class SandboxIdentity
 
         app.Use(StripIdentityHeaders);
 
-        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), api =>
+        // The identity of the page itself (`/.cratis/me`, which Arc asks as soon as the page loads) is the persona being played, as it is for the
+        // `/api` requests: without one it answers 401 on every start of a Play session.
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/.cratis/me"), api =>
         {
             api.Use((context, next) =>
             {

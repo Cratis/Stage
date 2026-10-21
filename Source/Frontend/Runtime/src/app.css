@@ -28,11 +28,15 @@ button { font: inherit; }
     padding: 0.35rem 0.5rem;
 }
 
-.stage-table { background: var(--layout-card, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); padding: 0.5rem; }
+.stage-table { background: var(--layout-card, #fff); border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); min-width: 0; overflow-x: auto; padding: 0.5rem; }
 .stage-table table { border-collapse: collapse; width: 100%; }
 .stage-table th,
 .stage-table td { border-bottom: 1px solid var(--layout-border, #e2e5e9); padding: 0.5rem 0.75rem; text-align: left; }
-.stage-table th { color: var(--layout-text-muted, #6b7280); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+.stage-table th { color: var(--layout-text-muted, #6b7280); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+.stage-table tbody tr[tabindex] { cursor: pointer; }
+.stage-table tbody tr[tabindex]:hover td { background: var(--layout-background, #f8fafc); }
+.stage-table tbody tr[aria-selected='true'] td { background: var(--layout-highlight, #eef2ff); color: var(--layout-highlight-text, #3730a3); }
+.stage-table tbody tr[aria-selected='true'] td:first-child { box-shadow: inset 3px 0 0 var(--layout-highlight-text, #3730a3); }
 .stage-empty { color: var(--layout-text-muted, #6b7280); font-style: italic; }
 .stage-note { color: var(--layout-text-muted, #6b7280); margin: 0 0 0.5rem; }
 .stage-note--error { color: #dc2626; }

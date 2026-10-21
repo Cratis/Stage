@@ -54,7 +54,14 @@ internal static class SemanticRunProjections
         var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(types.ForReadModel(model));
 
-        return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
+        try
+        {
+            return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
+        }
+        catch (Exception exception)
+        {
+            throw new SemanticProjectionLoweringRefused(exception);
+        }
     }
 
     static List<Projected> Define<TReadModel>(
@@ -74,10 +81,9 @@ internal static class SemanticRunProjections
                 foreach (var from in scope.From)
                 {
                     var @event = plan.Events[from.EventContract];
-                    var mappings = from.Mappings.Select(mapping => (
-                        Target: model.Properties.Single(property => property.Id == mapping.Target[0]).Name,
-                        Source: mapping.Source is SemanticProjectionEventProperty source ? @event.Properties.Single(property => property.Id == source.Path[0]).Name : null)).ToArray();
-                    DefineFrom(builder, types.For(from.EventContract), mappings);
+                    var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+                    var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event);
                 }
                 if (scope.Every is { } every)
                 {
@@ -179,7 +185,7 @@ internal static class SemanticRunProjections
             {
                 set(identifier.Name);
             }
-            foreach (var mapping in every.Mappings)
+            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
                 set(target.Name);

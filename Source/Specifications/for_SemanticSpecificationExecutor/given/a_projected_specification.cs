@@ -13,7 +13,7 @@ public class a_projected_specification : Specification
     protected SemanticSpecificationRun _reference = null!;
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected static SemanticExecutionPlan Compile(string scenario, string policy = "require role \"Staff\"", bool commandScenario = false)
+    protected static SemanticExecutionPlan Compile(string scenario, string policy = "require role \"Staff\"", bool commandScenario = false, bool validateDescription = false)
     {
         var source = $$"""
             policy Access
@@ -24,6 +24,7 @@ public class a_projected_specification : Specification
                   command RegisterInvoice
                     invoiceId String identifier
                     description String
+            {{(validateDescription ? "        validate\n          description not empty message \"Description is required\"" : string.Empty)}}
                     produces InvoiceRegistered
                       for invoiceId
                       description = description

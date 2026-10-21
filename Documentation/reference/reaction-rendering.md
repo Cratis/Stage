@@ -67,7 +67,10 @@ whole-command rollback boundary.
 
 Multiple direct-production triggers on the same event in one reaction fail `STAGE-ESM-043`, even if their
 conditions appear mutually exclusive: combining them into one returned collection would combine their
-modeled batch boundaries. Screenplay rejects routes on direct and refusal-branch productions before
+modeled batch boundaries. A Chronicle reactor appends what it returns as one batch, and appending several
+batches from one handler would duplicate the earlier ones when a later batch is rejected and the event is
+redelivered. Stage renders these triggers once Chronicle can return ordered per-trigger batches
+([Chronicle#5248](https://github.com/Cratis/Chronicle/issues/5248)). Screenplay rejects routes on direct and refusal-branch productions before
 Stage admission; Stage also retains a defensive `STAGE-ESM-043` guard for routed direct productions.
 Screenplay does not yet represent atomic stream closing (Screenplay#770), so no closing operation is
 emitted. Existing mixed-effect and specification restrictions still apply. The legacy syntax renderer

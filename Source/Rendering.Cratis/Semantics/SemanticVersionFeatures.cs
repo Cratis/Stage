@@ -198,7 +198,7 @@ internal static class SemanticVersionFeatures
             foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source)
                 .Where(group => group.Count(trigger => !trigger.Produces.IsDefaultOrEmpty) > 1))
             {
-                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches.");
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches. A Chronicle reactor appends its returned events as one batch and cannot yet return ordered per-trigger batches that survive redelivery (Cratis/Chronicle#5248).");
             }
             if (reaction.Triggers.SelectMany(trigger => trigger.Produces)
                 .Any(produced => produced.Route is not null))

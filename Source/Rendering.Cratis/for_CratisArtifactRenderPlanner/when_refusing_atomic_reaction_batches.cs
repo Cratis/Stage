@@ -22,7 +22,7 @@ public class when_refusing_atomic_reaction_batches : given.an_atomic_reaction
         ReplaceAutomation(_located.Slice with { Reactions = [reaction with { Triggers = [trigger, trigger] }] });
         var id = kind == ArtifactRenderScopeKind.Application ? _model.Application.Id : _located.Slice.Id;
         var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(kind, id), new("Reactions", "Reactions"));
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-043" && diagnostic.Artifact == reaction.Id && diagnostic.Message.Contains("multiple same-event production triggers", StringComparison.Ordinal));
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-043" && diagnostic.Artifact == reaction.Id && diagnostic.Message.Contains("multiple same-event production triggers", StringComparison.Ordinal) && diagnostic.Message.Contains("Cratis/Chronicle#5248", StringComparison.Ordinal));
         plan.Artifacts.ShouldBeEmpty();
     }
 

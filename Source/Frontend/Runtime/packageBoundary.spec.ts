@@ -52,7 +52,8 @@ describe('the runtime package boundary', () => {
 
     it('does not auto-install PrimeReact peers for a default application', () => {
         for (const name of Object.keys(runtime.peerDependencies).filter(name => /prime/i.test(name))) {
-            expect(runtime.peerDependenciesMeta[name]?.optional, name).toBe(true);
+            const meta = runtime.peerDependenciesMeta as Record<string, { optional?: boolean } | undefined>;
+            expect(meta[name]?.optional, name).toBe(true);
         }
     });
 

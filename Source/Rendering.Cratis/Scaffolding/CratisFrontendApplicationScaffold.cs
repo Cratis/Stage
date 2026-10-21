@@ -82,7 +82,7 @@ public sealed class CratisFrontendApplicationScaffold
     }
 
     static (string Name, string Version)[] Dependencies(CratisFrontendPackageSet frontend, bool usesPrimeReact) =>
-        new (string Name, string Version)[]
+        [.. new (string Name, string Version)[]
     {
         ("@cratis/arc", frontend.ArcPackageVersion),
         ("@cratis/arc.react", frontend.ArcReactPackageVersion),
@@ -111,12 +111,14 @@ public sealed class CratisFrontendApplicationScaffold
         ("reflect-metadata", frontend.ReflectMetadataPackageVersion),
         ("rxjs", frontend.RxjsPackageVersion),
         ("tsyringe", frontend.TsyringePackageVersion)
-    }.Where(package => usesPrimeReact || !IsPrimeReactPackage(package.Name)).ToArray();
+    }.Where(package => usesPrimeReact || !IsPrimeReactPackage(package.Name))];
 
     static bool IsPrimeReactPackage(string name) =>
         name.StartsWith("@primereact/", StringComparison.Ordinal) ||
         name.StartsWith("@primeuix/", StringComparison.Ordinal) ||
-        name is "@cratis/scene.primereact" or "primereact" or "primeicons";
+        string.Equals(name, "@cratis/scene.primereact", StringComparison.Ordinal) ||
+        string.Equals(name, "primereact", StringComparison.Ordinal) ||
+        string.Equals(name, "primeicons", StringComparison.Ordinal);
 
     static (string Name, string Version)[] DevDependencies(CratisFrontendPackageSet frontend) =>
     [

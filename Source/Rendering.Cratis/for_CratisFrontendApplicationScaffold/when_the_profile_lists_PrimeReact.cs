@@ -19,7 +19,7 @@ public class when_the_profile_lists_PrimeReact : a_current_frontend_scaffold
     [Fact] void should_keep_the_prime_theme_css() => Content(".frontend/main.tsx").ShouldContain("import '@cratis/scene.primereact/primeReactTheme.css';");
     [Fact] void should_keep_the_icons() => Content(".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");
     [Fact] void should_keep_the_styling_plugin() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
-    [Fact] void should_keep_the_license_define() => Content(".frontend/vite.config.ts").ShouldContain("'import.meta.env.STAGE_PRIMEUI_LICENSE': JSON.stringify(process.env.STAGE_PRIMEUI_LICENSE ?? '')");
+    [Fact] void should_keep_the_license_define() => Content(".frontend/vite.config.ts").ShouldContain("'import.meta.env.STAGE_PRIMEUI_LICENSE': JSON.stringify(process.env.STAGE_PRIMEUI_LICENSE || process.env.PRIMEUI_LICENSE || '')");
     [Fact] void should_install_the_scene_prime_adapter() => Content("package.json").ShouldContain("\"@cratis/scene.primereact\"");
     [Fact] void should_install_prime_icons() => Content("package.json").ShouldContain("\"primeicons\"");
     [Fact] void should_keep_the_cratis_baseline() => Content("package.json").ShouldContain("\"@cratis/scene.components\"");

@@ -6,7 +6,8 @@ import { coreComponents } from '@cratis/scene.react';
 import { cratisComponents } from '@cratis/scene.components/runtime';
 import { primeReactComponents } from '@cratis/scene.primereact';
 import { defaultBlueprintComponents, previewComponents } from '@cratis/scene.blueprint.default';
-import { loadStageLibraries, stageRegistry } from '../blueprint';
+import { primeReactLibrary } from '../primereact';
+import { registerStageLibrary, stageRegistry } from '../blueprint';
 
 const override = () => null;
 const key = Object.keys(coreComponents)[0];
@@ -20,8 +21,8 @@ it('combines core, Cratis.Components, default and preview components before host
     expect(Object.keys(combined).some(name => name.startsWith('PrimeReact:'))).toBe(false);
 });
 
-it('adds the PrimeReact components once a profile that lists PrimeReact has loaded them', async () => {
-    await loadStageLibraries([{ name: 'App', packages: ['PrimeReact'] } as never]);
+it('adds the PrimeReact components once the host has registered the library', () => {
+    registerStageLibrary('PrimeReact', primeReactLibrary);
     const combined = stageRegistry({ [key]: override });
     expect(combined).toEqual({ ...coreComponents, ...cratisComponents, ...primeReactComponents, ...defaultBlueprintComponents, ...previewComponents, [key]: override });
     expect(combined[key]).toBe(override);

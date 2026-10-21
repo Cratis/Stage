@@ -14,7 +14,8 @@ public class when_the_profile_lists_PrimeReact : a_current_frontend_scaffold
 
     [Fact] void should_mount_the_licensed_themed_provider() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
     [Fact] void should_keep_the_build_time_license() => Content(".frontend/main.tsx").ShouldContain("const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';");
-    [Fact] void should_import_the_theme_from_the_opt_in_entry() => Content(".frontend/main.tsx").ShouldContain("import { stageTheme } from '@cratis/stage.runtime/primereact';");
+    [Fact] void should_import_the_theme_from_the_opt_in_entry() => Content(".frontend/main.tsx").ShouldContain("import { primeReactLibrary, stageTheme } from '@cratis/stage.runtime/primereact';");
+    [Fact] void should_register_the_library_with_the_runtime() => Content(".frontend/main.tsx").ShouldContain("registerStageLibrary('PrimeReact', primeReactLibrary);");
     [Fact] void should_not_import_the_theme_from_the_root() => Content(".frontend/main.tsx").ShouldNotContain("    stageTheme,\n");
     [Fact] void should_keep_the_prime_theme_css() => Content(".frontend/main.tsx").ShouldContain("import '@cratis/scene.primereact/primeReactTheme.css';");
     [Fact] void should_keep_the_icons() => Content(".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");

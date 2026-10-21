@@ -301,10 +301,11 @@ public sealed class CratisFrontendApplicationScaffold
         import {
             App,
             StageSourceProvider,
+            registerStageLibrary,
             staticStageSource,
             type StageStaticContent,
         } from '@cratis/stage.runtime';
-        import { stageTheme } from '@cratis/stage.runtime/primereact';
+        import { primeReactLibrary, stageTheme } from '@cratis/stage.runtime/primereact';
 
         // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
         // with, the routes its generated proxies registered and its strings, and `@cratis/stage.runtime` is the same
@@ -327,6 +328,8 @@ public sealed class CratisFrontendApplicationScaffold
         // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
         const customStyles = import.meta.glob('../Customizations/styles.css');
         await Object.values(customStyles)[0]?.();
+
+        registerStageLibrary('PrimeReact', primeReactLibrary);
 
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>

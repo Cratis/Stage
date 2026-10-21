@@ -25,11 +25,11 @@ export const stageLocaleComponent = 'Stage:locale';
 /** The package a host renders with when the profile lists no component library: the Cratis component library, built on React Aria. */
 export const stageBaselinePackage = 'Cratis.Components';
 
-/** The component library the profile opts in to by listing it; the Stage's own PrimeReact support loads only then. */
+/** The component library the profile opts in to by listing it; the application registers its support only then. */
 export const primeReactPackage = 'PrimeReact';
 
 /**
- * A component library a profile opted in to, loaded on demand: the components it registers and what it declares.
+ * A component library a profile opted in to, registered by the host: the components it registers and what it declares.
  */
 export interface StageLibrary {
     /** The components the library adds to the registry. */
@@ -47,15 +47,14 @@ export function listsPrimeReact(profiles: UiProfile[] | undefined): boolean {
 }
 
 /**
- * Loads the component libraries the profiles list that the Stage ships behind a dynamic entry. A profile that lists none loads
- * nothing, so no PrimeReact module is fetched or evaluated for it.
+ * Registers a component library a profile opts in to. The application or live Stage that installs the library registers it
+ * before rendering; the runtime itself never imports one, so it stays fully usable with none registered.
  *
- * @param profiles The profiles the scene declares.
+ * @param name The package name the library is listed under in a profile.
+ * @param library The components the library adds and what it declares.
  */
-export async function loadStageLibraries(profiles: UiProfile[] | undefined): Promise<void> {
-    if (!listsPrimeReact(profiles) || loadedLibraries.has(primeReactPackage)) return;
-    const { primeReactLibrary } = await import('./primereact');
-    loadedLibraries.set(primeReactPackage, primeReactLibrary);
+export function registerStageLibrary(name: string, library: StageLibrary): void {
+    loadedLibraries.set(name, library);
 }
 
 /**

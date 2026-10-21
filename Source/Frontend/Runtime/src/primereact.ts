@@ -6,7 +6,7 @@ import type { StageLibrary } from './blueprint';
 
 /**
  * The entry a profile that lists `PrimeReact` opts in to (`@cratis/stage.runtime/primereact`): the PrimeReact widgets and what
- * the package declares. It is imported dynamically, so an application that does not list PrimeReact never loads it.
+ * the package declares. The host imports it and registers it with `registerStageLibrary`; the runtime never does.
  */
 export const primeReactLibrary: StageLibrary = {
     components: primeReactComponents,

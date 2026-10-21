@@ -57,20 +57,23 @@ describe('the runtime package boundary', () => {
         }
     });
 
-    it('has no static PrimeReact or theme import reachable from the root entry', () => {
+    it('has no static or dynamic PrimeReact or theme import reachable from the root entry', () => {
         const visited = new Set<string>();
         function inspect(filename: string) {
             if (visited.has(filename) || !filename.endsWith('.js')) return;
             visited.add(filename);
             const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-            for (const node of source.statements) {
-                if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) continue;
-                const specifier = node.moduleSpecifier;
-                if (!specifier || !ts.isStringLiteral(specifier)) continue;
-                const reference = specifier.text;
-                expect(reference, filename).not.toMatch(/prime|stageTheme/i);
-                if (reference.startsWith('.')) inspect(resolve(dirname(filename), reference));
+            function visit(node: ts.Node) {
+                const specifier = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier :
+                    ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : undefined;
+                if (specifier && ts.isStringLiteral(specifier)) {
+                    const reference = specifier.text;
+                    expect(reference, filename).not.toMatch(/prime|stageTheme/i);
+                    if (reference.startsWith('.')) inspect(resolve(dirname(filename), reference));
+                }
+                ts.forEachChild(node, visit);
             }
+            visit(source);
         }
         inspect(resolve(runtime.exports['.'].import));
     });

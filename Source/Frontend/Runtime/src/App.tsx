@@ -41,7 +41,7 @@ import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, loadStageLibraries, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
@@ -202,11 +202,6 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
     useEffect(() => {
         const abort = new AbortController();
         source.scene(abort.signal)
-            // A component library the profile lists is loaded before the first render that needs its components; one it does not list is never loaded.
-            .then(async loaded => {
-                await loadStageLibraries(loaded.uiProfiles);
-                return loaded;
-            })
             // The application's own dialog templates win a name a blueprint also declares.
             .then(loaded => setScene(dialogTemplates?.length
                 ? { ...loaded, dialogTemplates: [...(loaded.dialogTemplates ?? []), ...dialogTemplates.filter(template => !loaded.dialogTemplates?.some(own => own.name === template.name))] }

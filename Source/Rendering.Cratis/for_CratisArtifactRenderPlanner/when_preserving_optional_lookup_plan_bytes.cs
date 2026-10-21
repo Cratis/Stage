@@ -28,9 +28,9 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
 
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
     // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("2a3570d5c4f7eefcc9cc281edd4dc9b05d6169930cfe2e150241aa8f6482d689");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("01f4949de2b403ff554b0b9a1d949c38460915bd1463fcbb0e5d2e87138ffe83");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("79624adc8a03f08ba9224b8e95cd4a470bd0515285b992f4ff9d0563c21eef0e");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("2c839a669c1c37f96944ba657499db7d8afcfcc45576a411d22fcde00c2aba4f");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c97fb173e008ca23f3b7f5f7256ed03744fa19492bf04095af5b755867a46ca2");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("b51e7dba0e95dfeaf845f6a390520ec4241e124cebc59d8ef99f3bac6243c342");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

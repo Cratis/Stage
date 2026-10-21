@@ -15,7 +15,8 @@ internal static class SynthesizedSceneContent
         string? readModelName,
         string? readModelSchema,
         string? commandName,
-        CommandFormRuntimeCommand? commandMetadata)
+        CommandFormRuntimeCommand? commandMetadata,
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? columnOptions = null)
     {
         var content = new List<SceneElements.SceneElement>
         {
@@ -48,7 +49,7 @@ internal static class SynthesizedSceneContent
                 },
                 new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
                 {
-                    ["columns"] = Columns(typeNamespace, readModelSchema!)
+                    ["columns"] = Columns(typeNamespace, readModelSchema!, columnOptions)
                 }));
         }
 
@@ -72,19 +73,26 @@ internal static class SynthesizedSceneContent
         return content.Count > 1 ? content : [];
     }
 
-    static IReadOnlyList<SceneElements.SceneElement> Columns(string typeNamespace, string schema) =>
+    static IReadOnlyList<SceneElements.SceneElement> Columns(string typeNamespace, string schema, IReadOnlyDictionary<string, IReadOnlyList<string>>? options) =>
     [
         .. SchemaProperties(schema).Select(property => (SceneElements.SceneElement)SceneElementFactory.Component(
-            $"{typeNamespace}.column.{property}",
+            $"{typeNamespace}.column.{property.Name}",
             "core:column",
-            new Dictionary<string, object?>
-            {
-                ["property"] = property,
-                ["label"] = Humanize(property)
-            }))
+            ColumnProperties(property.Name, options?.GetValueOrDefault(property.Name) ?? property.Options)))
     ];
 
-    static IReadOnlyList<string> SchemaProperties(string schema)
+    static Dictionary<string, object?> ColumnProperties(string name, IReadOnlyList<string> options)
+    {
+        var properties = new Dictionary<string, object?> { ["property"] = name, ["label"] = Humanize(name) };
+        if (options.Count > 0)
+        {
+            properties["options"] = options;
+        }
+
+        return properties;
+    }
+
+    static IReadOnlyList<(string Name, IReadOnlyList<string> Options)> SchemaProperties(string schema)
     {
         if (string.IsNullOrWhiteSpace(schema))
         {
@@ -100,7 +108,9 @@ internal static class SynthesizedSceneContent
                 return [];
             }
 
-            return [.. properties.EnumerateObject().Select(property => property.Name)];
+            return [.. properties.EnumerateObject().Select(property => (property.Name, (IReadOnlyList<string>)(property.Value.TryGetProperty("enum", out var options) && options.ValueKind == JsonValueKind.Array
+                ? options.EnumerateArray().Where(option => option.ValueKind == JsonValueKind.String).Select(option => option.GetString()!).ToArray()
+                : [])))];
         }
         catch (JsonException)
         {

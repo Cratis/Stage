@@ -53,6 +53,7 @@ public sealed class CratisFrontendApplicationScaffold
             (".frontend/vite-env.d.ts", ViteEnvironment()),
             (".frontend/vite.config.ts", ViteConfig(request.UsesPrimeReact)),
             (".gitignore", GitIgnore()),
+            (".yarnrc.yml", "nodeLinker: node-modules"),
             ("package.json", PackageJson(request)),
             ("tsconfig.json", RootTsConfig())
         };
@@ -140,6 +141,7 @@ public sealed class CratisFrontendApplicationScaffold
           "private": true,
           "version": "0.0.0",
           "type": "module",
+          "packageManager": "yarn@4.18.1",
           "scripts": {
             "dev": "vite --config .frontend/vite.config.ts",
             "build": "tsc -b .frontend/tsconfig.json && vite build --config .frontend/vite.config.ts",

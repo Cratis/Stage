@@ -10,8 +10,8 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, suppliedWithoutAsking } from './StageCommandForm';
-import { humanize, schemaPropertiesOf } from './stageFormSchema';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
+import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -257,17 +257,21 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const element = props.element ?? syntheticElement('slice-dialog', {});
     const navigation = useOptionalSceneNavigation();
-    const { routes, parameters } = useStageData();
+    const { routes, parameters, queries, selections } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
     const title = text(element, 'title') || opened?.title || command;
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
 
-    if (!schema || !properties.some(property => property.options || property.members || property.item)) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
+    // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
+    const fromSelectedRow = (property: SchemaProperty) => property.identifier && property.required && carriedBy(property, selectableRows) && selectedIdentifier(property, selectedRows) !== undefined;
+    if (!schema || !(properties.some(property => property.options || property.members || property.item) || properties.some(fromSelectedRow))) return props.element ? <CoreSliceDialog element={props.element} slots={props.slots ?? {}} /> : <SliceDialogView />;
 
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters));
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !fromSelectedRow(property));
     const form = syntheticElement(`slice-dialog-${command}`, {
         command,
         label: title,
@@ -293,8 +297,35 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
  */
 function StageToolbarItem(props: RegisteredProps) {
     const { element } = props;
-    if (text(element, 'kind').toLowerCase() !== 'action' || text(element, 'slice') !== '') return <CoreToolbarItem {...props} />;
+    if (text(element, 'slice') !== '') return <StageToolbarSliceButton {...props} />;
+    if (text(element, 'kind').toLowerCase() !== 'action') return <CoreToolbarItem {...props} />;
     return <StageToolbarCommand {...props} />;
+}
+
+/**
+ * A toolbar button that opens the task dialog of a slice. On a screen whose rows carry the key the slice's command acts on - a button a feature
+ * adds to the toolbar of its list screen, such as Approve product - the button waits, visible and disabled, until a row is selected, and the
+ * dialog then acts on that row instead of asking for a key nobody can know. A command whose key no row of the screen carries is not held back.
+ * The command is the one the button names, or the last segment of its slice when it does not name one.
+ */
+function StageToolbarSliceButton(props: RegisteredProps) {
+    const { element } = props;
+    const { routes, parameters, queries, selections } = useStageData();
+    const slice = text(element, 'slice');
+    const command = text(element, 'command') || slice.split('.').at(-1) || '';
+    const schema = routes?.commandSchemas?.[command];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
+    if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
+
+    const label = text(element, 'label', text(element, 'name', element.id));
+    return (
+        <span className='stage-toolbar-action' data-scene-toolbar-item={text(element, 'name', element.id)}>
+            <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...props.interactions}>{label}</Button>
+        </span>
+    );
 }
 
 /**

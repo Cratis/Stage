@@ -49,7 +49,7 @@ public class a_universal_projection : a_projected_specification
                       description = "North"
                     then readmodel InvoiceView
                       invoiceId = "invoice-1"
-                      lastSeen = "invoice-1"
+                      lastSeen = "{{(mapping == "\"fixed\"" ? "fixed" : "invoice-1")}}"
             {{unrelated}}
                 slice StateView Lookup
                   readmodel InvoiceView

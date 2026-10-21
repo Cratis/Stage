@@ -61,6 +61,7 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
         });
         _app.MapGet("/api/unmodeled", () => Results.Ok());
         _app.MapGet("/outside", () => Results.Ok());
+        _app.MapGet("/.cratis/me", () => Results.Ok());
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
         var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;

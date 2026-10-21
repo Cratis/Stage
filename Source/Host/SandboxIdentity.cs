@@ -70,7 +70,9 @@ internal static class SandboxIdentity
 
         app.Use(StripIdentityHeaders);
 
-        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), api =>
+        // The persona answers for the page too: Arc's request for its own identity is not under /api, and without a
+        // persona it is a 401 in the console of every started Stage (Cratis/Stage#711).
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api") || IsIdentityRequest(context.Request.Path), api =>
         {
             api.Use((context, next) =>
             {
@@ -82,6 +84,9 @@ internal static class SandboxIdentity
             });
         });
     }
+
+    // The route Arc's frontend asks for the identity of the caller.
+    static bool IsIdentityRequest(PathString path) => path.Equals("/.cratis/me", StringComparison.OrdinalIgnoreCase);
 
     static bool IsIdentityHeader(string name) => name.StartsWith("x-ms-client-principal", StringComparison.OrdinalIgnoreCase);
 }

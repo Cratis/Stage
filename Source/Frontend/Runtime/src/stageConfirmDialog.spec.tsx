@@ -76,7 +76,7 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
 
         const dialog = screen.getByRole('dialog');
         expect(within(dialog).getByRole('heading', { name: 'Decision' })).toBeDefined();
-        expect(within(dialog).getAllByRole('button').map(_ => _.textContent)).toEqual(['Approve order', 'Reject order']);
+        expect(within(dialog).getAllByRole('button').map(_ => _.textContent)).toEqual(['Approve order', 'Reject order', 'Cancel']);
         expect(screen.queryByText(/Execute/)).toBeNull();
         expect(screen.queryByText('ApproveOrder')).toBeNull();
         expect(field('Order')).toBeNull();
@@ -107,6 +107,40 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         const call = fetched.mock.calls.find(([url]) => String(url).includes('/api/reject'))!;
         expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual(expect.objectContaining({ orderId: 'o1', reason: 'too large' }));
         await waitFor(() => expect(window.location.hash).toContain('ApprovalInbox'));
+    });
+
+    it('styles the decisions as the theme\'s dialog buttons with the first one emphasized', () => {
+        show();
+
+        const approve = screen.getByRole('button', { name: 'Approve order' });
+        const reject = screen.getByRole('button', { name: 'Reject order' });
+        expect(approve.classList.contains('scene-slice-dialog-submit')).toBe(true);
+        expect(approve.dataset.emphasis).toBe('primary');
+        expect(reject.classList.contains('scene-slice-dialog-cancel')).toBe(true);
+        expect(reject.dataset.emphasis).toBe('secondary');
+    });
+
+    it('leaves for the screen the decisions lead to on Cancel, without executing a command', () => {
+        const fetched = vi.fn();
+        vi.stubGlobal('fetch', fetched);
+        show();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Reject order' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(window.location.hash).toContain('ApprovalInbox');
+        expect(fetched).not.toHaveBeenCalled();
+    });
+
+    it('goes back on Cancel when the decisions lead to different screens', () => {
+        const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
+        const diverging = { ...decision, slotContent: { actions: [action('ApproveOrder'), element('action-RejectOrder', 'core:action', { command: 'RejectOrder', navigateToScreen: 'Orders' })] } } as unknown as Screen;
+        show({ screen: diverging });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(back).toHaveBeenCalledOnce();
+        back.mockRestore();
     });
 
     it('focuses the first decision when it opens', () => {

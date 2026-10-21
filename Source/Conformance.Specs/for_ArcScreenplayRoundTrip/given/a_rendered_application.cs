@@ -4,8 +4,10 @@
 #if DEBUG
 using System.Text;
 using Cratis.Arc.Screenplay;
+using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -37,6 +39,7 @@ public abstract class a_rendered_application : Specification
     protected Compilation _compilation = null!;
     protected ScreenplayGenerationResult _result = null!;
     protected ExecutableSemanticModel _recovered = null!;
+    protected ApplicationSyntax _recoveredAuthoring = null!;
     protected abstract string Source { get; }
 
     void Establish()
@@ -52,8 +55,16 @@ public abstract class a_rendered_application : Specification
 
     protected void Generate()
     {
-        _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = true });
+        GenerateSource();
         _recovered = Compile(_result.Source);
+    }
+
+    protected void GenerateAuthoring()
+    {
+        GenerateSource();
+        var compilation = new ScreenplayCompiler().Compile(_result.Source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        _recoveredAuthoring = compilation.Value!;
     }
 
     protected void AssertSourceDiagnosticsAbsent()
@@ -85,6 +96,8 @@ public abstract class a_rendered_application : Specification
     protected static string StoredNames(string sourceId, string streamId) => RoutedSource
         .Replace("eventsource Account\n", $"eventsource Account\n  id \"{sourceId}\"\n", StringComparison.Ordinal)
         .Replace("  stream Transactions\n", $"  stream Transactions\n    id \"{streamId}\"\n", StringComparison.Ordinal);
+
+    void GenerateSource() => _result = new ScreenplayGenerator().Generate(_compilation, new() { Domain = "Banking", Module = "Banking", AuthoringOnlyConstructs = true });
 
     static ExecutableSemanticModel Compile(string source)
     {

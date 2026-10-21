@@ -43,14 +43,16 @@ export interface StageDecision {
  *
  * @param screens The screens of the scene.
  * @param ownTemplates The templates the application declares itself, which win over the blueprint's of the same name.
- * @returns The screens, those that are a decision dialog holding one confirm-dialog element and no flat forms.
+ * @returns The screens, those that are a decision dialog holding one confirm-dialog element - with the application's first other screen as the
+ * place to leave to - and no flat forms.
  */
 export function asDialogScreens(screens: readonly Screen[], ownTemplates: readonly { name: string }[]): Screen[] {
     const own = new Set(ownTemplates.map(template => template.name));
     return screens.map(screen => {
         if (screen.screenTemplate !== confirmDialogTemplate || own.has(confirmDialogTemplate)) return screen;
         const decisions = decisionsOf(screen);
-        const dialog = externalComponent(`confirm-dialog-${screen.name}`, stageConfirmDialogComponent, { title: screen.name, decisions });
+        const home = screens.find(candidate => candidate.name !== screen.name)?.name;
+        const dialog = externalComponent(`confirm-dialog-${screen.name}`, stageConfirmDialogComponent, { title: screen.name, decisions, home });
         return { ...screen, screenTemplate: undefined, slotContent: { content: [dialog] }, forms: [] };
     });
 }

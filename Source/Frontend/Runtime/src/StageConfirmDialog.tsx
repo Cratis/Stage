@@ -8,7 +8,7 @@ import { StageCommandForm, selectedIdentifier } from './StageCommandForm';
 import { humanize, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { useStageData } from './stageData';
-import { navigateToScreen } from './stageNavigation';
+import { hasNavigatedInSession, navigateToScreen } from './stageNavigation';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import type { StageDecision } from './stageDialogScreens';
 
@@ -28,6 +28,7 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
     const first = useRef<HTMLButtonElement>(null);
     const title = typeof element.properties.title === 'string' ? element.properties.title : '';
     const decisions = Array.isArray(element.properties.decisions) ? element.properties.decisions as StageDecision[] : [];
+    const home = typeof element.properties.home === 'string' ? element.properties.home : undefined;
     const decision = decisions.find(candidate => candidate.command === chosen);
     const selectedRows = Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined);
 
@@ -52,7 +53,7 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
             </div>
             {decision && <StageCommandForm key={decision.command} element={formOf(decision, routes?.commandSchemas?.[decision.command] ?? '', parameters, selectedRows)} />}
             <footer className='scene-slice-dialog-footer'>
-                <button type='button' className='scene-slice-dialog-cancel stage-confirm-dialog__cancel' onClick={() => leave(decisions)}>Cancel</button>
+                <button type='button' className='scene-slice-dialog-cancel stage-confirm-dialog__cancel' onClick={() => leave(decisions, home)}>Cancel</button>
             </footer>
         </section>
     );
@@ -60,15 +61,20 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
 
 /**
  * Leaves the dialog without executing a decision: to the screen the decisions lead to when they agree on one - where the person returns
- * either way - and otherwise back to where the person came from.
+ * either way - otherwise back to where the person came from when the Stage navigated here itself, and otherwise to the application's first
+ * screen. Going back from a screen the Stage was opened on would leave the Stage - inside Studio, the Play page around it.
  */
-function leave(decisions: StageDecision[]) {
+function leave(decisions: StageDecision[], home: string | undefined) {
     const destinations = new Set(decisions.map(decision => decision.navigateToScreen).filter((screen): screen is string => !!screen));
     if (destinations.size === 1) {
         navigateToScreen([...destinations][0], {});
         return;
     }
-    globalThis.history?.back();
+    if (hasNavigatedInSession()) {
+        globalThis.history?.back();
+        return;
+    }
+    if (home) navigateToScreen(home, {});
 }
 
 function labelOf(decision: StageDecision): string {

@@ -10,6 +10,7 @@ import { registerStageCommands } from '../../src/host/commandRegistration';
 import { StageDataProvider, useStageData } from './stageData';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { asDialogScreens } from './stageDialogScreens';
+import { forgetSessionNavigation } from './stageNavigation';
 import { element } from './testElements';
 import { commandResult } from './testing/commands';
 import { queryResult, registerTestQueries } from './testing/queries';
@@ -37,6 +38,13 @@ const decision = {
     ],
 } as unknown as Screen;
 
+const inbox = { name: 'ApprovalInbox', layout: 'AppShell', contributions: [], slotContent: {}, forms: [] } as unknown as Screen;
+const diverging = {
+    ...decision,
+    slotContent: { actions: [action('ApproveOrder'), element('action-RejectOrder', 'core:action', { command: 'RejectOrder', navigateToScreen: 'Orders' })] },
+} as unknown as Screen;
+const settled = () => new Promise(resolve => setTimeout(resolve));
+
 function Selecting({ row }: { row: Record<string, unknown> }) {
     const { selectRow } = useStageData();
     useEffect(() => selectRow('orders', row), [row, selectRow]);
@@ -46,7 +54,7 @@ function Selecting({ row }: { row: Record<string, unknown> }) {
 function show(options: { screen?: Screen; routes?: typeof routes; parameters?: Record<string, string>; selected?: Record<string, unknown> } = {}) {
     const given = options.routes ?? routes;
     registerStageCommands(given);
-    const [dialog] = asDialogScreens([options.screen ?? decision], []);
+    const [dialog] = asDialogScreens([options.screen ?? decision, inbox], []);
     const content = (dialog.slotContent.content as ExternalComponent[])[0];
     return render(
         <PrimeReactProvider>
@@ -132,14 +140,29 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         expect(fetched).not.toHaveBeenCalled();
     });
 
-    it('goes back on Cancel when the decisions lead to different screens', () => {
+    it('goes back on Cancel when the decisions lead to different screens and the Stage navigated here', async () => {
+        await settled();
+        forgetSessionNavigation();
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
         const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
-        const diverging = { ...decision, slotContent: { actions: [action('ApproveOrder'), element('action-RejectOrder', 'core:action', { command: 'RejectOrder', navigateToScreen: 'Orders' })] } } as unknown as Screen;
         show({ screen: diverging });
 
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
         expect(back).toHaveBeenCalledOnce();
+        back.mockRestore();
+    });
+
+    it('goes to the first other screen on Cancel when the dialog is where the Stage was opened, so it never leaves the Stage', async () => {
+        await settled();
+        forgetSessionNavigation();
+        const back = vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
+        show({ screen: diverging });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+        expect(back).not.toHaveBeenCalled();
+        expect(window.location.hash).toBe('#/ApprovalInbox');
         back.mockRestore();
     });
 

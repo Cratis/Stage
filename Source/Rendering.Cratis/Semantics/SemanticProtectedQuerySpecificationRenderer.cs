@@ -130,8 +130,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             var @event = context.Events[given.EventContract];
             var arguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-            var source = given.EventSource!;
-            yield return $"{seed}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";
+            yield return $"{seed}.Given.ForEventSource({SemanticSpecificationEventSources.Expression(context, types, given)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";
         }
 
         if (specification.When is { } action)

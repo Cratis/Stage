@@ -23,6 +23,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Admission/ProjectionReferencedEventNamesAreUnique.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticDestinations.cs" Link="Admission/SemanticDestinations.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticReactionProductions.cs" Link="Admission/SemanticReactionProductions.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Admission/SemanticTranslationSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Admission/SemanticGenerationShapes.cs" />

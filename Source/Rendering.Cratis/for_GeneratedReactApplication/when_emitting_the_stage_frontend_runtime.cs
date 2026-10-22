@@ -24,18 +24,36 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
     ArtifactRenderPlan _plan = null!;
     Dictionary<string, string> _generatedPackages = null!;
     Dictionary<string, string> _runtimePeers = null!;
+    HashSet<string> _optionalPeers = null!;
+    Dictionary<string, string> _primeReactPackages = null!;
 
     void Because()
     {
         _plan = Plan();
         _generatedPackages = Read(Text(_plan, "package.json"), "dependencies", "devDependencies");
         _runtimePeers = Read(File.ReadAllText(RuntimePackage()), "peerDependencies");
+        _optionalPeers = OptionalPeers(File.ReadAllText(RuntimePackage()));
+        _primeReactPackages = Read(Text(PlanWithPrimeReact(), "package.json"), "dependencies", "devDependencies");
     }
 
     [Fact] void should_pin_the_runtime_to_the_release_that_rendered_it() => _generatedPackages["@cratis/stage.runtime"].ShouldEqual(ScaffoldPackageVersions.StageRuntime);
     [Fact] void should_pin_the_runtime_exactly() => _generatedPackages["@cratis/stage.runtime"].ShouldNotContain("file:");
     [Fact] void should_not_emit_a_copy_of_the_runtime() => _plan.Artifacts.Where(_ => _.RelativePath.StartsWith(".frontend/stage/", StringComparison.Ordinal) || _.RelativePath == ".frontend/styledPrimeReact.ts").Select(_ => _.RelativePath).ShouldBeEmpty();
-    [Fact] void should_pin_every_runtime_peer_to_the_version_the_runtime_declares() => _runtimePeers.Where(peer => !_generatedPackages.TryGetValue(peer.Key, out var version) || version != peer.Value).Select(peer => $"{peer.Key}: {_generatedPackages.GetValueOrDefault(peer.Key)} != {peer.Value}").ShouldBeEmpty();
+    // The runtime declares the PrimeReact peers optional (Cratis/Stage#707): the default application, which is React Aria, does not install them.
+    [Fact] void should_pin_every_required_runtime_peer_to_the_version_the_runtime_declares() => Unpinned(_runtimePeers.Where(peer => !_optionalPeers.Contains(peer.Key)), _generatedPackages).ShouldBeEmpty();
+    [Fact] void should_not_install_the_optional_runtime_peers_by_default() => _optionalPeers.Where(_generatedPackages.ContainsKey).ShouldBeEmpty();
+    [Fact] void should_pin_every_runtime_peer_to_the_version_the_runtime_declares_when_the_application_lists_PrimeReact() => Unpinned(_runtimePeers, _primeReactPackages).ShouldBeEmpty();
+
+    static IEnumerable<string> Unpinned(IEnumerable<KeyValuePair<string, string>> peers, Dictionary<string, string> packages) =>
+        peers.Where(peer => !packages.TryGetValue(peer.Key, out var version) || version != peer.Value).Select(peer => $"{peer.Key}: {packages.GetValueOrDefault(peer.Key)} != {peer.Value}");
+
+    static HashSet<string> OptionalPeers(string packageJson)
+    {
+        using var document = JsonDocument.Parse(packageJson);
+        return [.. document.RootElement.GetProperty("peerDependenciesMeta").EnumerateObject()
+            .Where(peer => peer.Value.TryGetProperty("optional", out var optional) && optional.GetBoolean())
+            .Select(peer => peer.Name)];
+    }
 
     static Dictionary<string, string> Read(string packageJson, params string[] sections)
     {

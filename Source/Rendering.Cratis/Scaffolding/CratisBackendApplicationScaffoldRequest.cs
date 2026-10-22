@@ -27,7 +27,8 @@ public sealed class CratisBackendApplicationScaffoldRequest
         string rootNamespace,
         CratisBackendApplicationScaffoldProfile profile,
         ApprovedPackageSet approvedPackages,
-        bool repositoryRoot = false)
+        bool repositoryRoot = false,
+        bool usesPrimeReact = false)
     {
         ApplicationName = applicationName;
         ProjectName = projectName;
@@ -35,6 +36,7 @@ public sealed class CratisBackendApplicationScaffoldRequest
         Profile = profile;
         ApprovedPackages = approvedPackages;
         RepositoryRoot = repositoryRoot;
+        UsesPrimeReact = usesPrimeReact;
     }
 
     /// <summary>
@@ -68,6 +70,16 @@ public sealed class CratisBackendApplicationScaffoldRequest
     /// continuous integration files to the scaffold.
     /// </summary>
     public bool RepositoryRoot { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the application's ui profile lists <c language="text">PrimeReact</c>. React Aria, through the Cratis component
+    /// library, is what an application renders with otherwise.
+    /// </summary>
+    /// <remarks>
+    /// TODO(Cratis/Stage#707, phase 2): the frontend scaffold does not read this yet. The pinned Scene default blueprint's shell still renders
+    /// PrimeReact, so its packages, provider, licence, theme and plugin stay unconditional until Stage consumes the Scene release with Cratis/Scene#250.
+    /// </remarks>
+    public bool UsesPrimeReact { get; }
 
     /// <summary>
     /// Creates a request using one name for the application, project, and root namespace.
@@ -126,7 +138,7 @@ public sealed class CratisBackendApplicationScaffoldRequest
             }
         }
 
-        return new(ApplicationName, ProjectName, RootNamespace, Profile, approvedPackages, RepositoryRoot);
+        return new(ApplicationName, ProjectName, RootNamespace, Profile, approvedPackages, RepositoryRoot, UsesPrimeReact);
     }
 
     /// <summary>
@@ -134,7 +146,14 @@ public sealed class CratisBackendApplicationScaffoldRequest
     /// </summary>
     /// <returns>The request that also scaffolds the repository's continuous integration files.</returns>
     public CratisBackendApplicationScaffoldRequest WithRepositoryRoot() =>
-        new(ApplicationName, ProjectName, RootNamespace, Profile, ApprovedPackages, true);
+        new(ApplicationName, ProjectName, RootNamespace, Profile, ApprovedPackages, true, UsesPrimeReact);
+
+    /// <summary>
+    /// Creates the same request for an application whose ui profile lists <c language="text">PrimeReact</c>.
+    /// </summary>
+    /// <returns>The request that opts in to PrimeReact.</returns>
+    public CratisBackendApplicationScaffoldRequest WithPrimeReact() =>
+        new(ApplicationName, ProjectName, RootNamespace, Profile, ApprovedPackages, RepositoryRoot, true);
 
     static void ValidateName(string value, string role)
     {

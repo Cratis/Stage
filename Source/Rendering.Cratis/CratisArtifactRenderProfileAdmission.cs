@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Cratis.Scene.Engine.Packages;
@@ -49,7 +50,7 @@ static class CratisArtifactRenderProfileAdmission
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages);
+            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile));
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
@@ -161,6 +162,33 @@ static class CratisArtifactRenderProfileAdmission
         catch (DecoderFallbackException)
         {
             mismatch = "The Cratis profile carries an approved package set that is not valid UTF-8.";
+            return false;
+        }
+    }
+
+    // The composed Scene is application content, so whether the application opted in to PrimeReact is read from the ui profiles it declares.
+    static bool ListsPrimeReact(ArtifactRenderProfile profile)
+    {
+        var scene = profile.Inputs.FirstOrDefault(IsComposedScene);
+        if (scene is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(scene.Bytes.AsMemory());
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("uiProfiles", out var profiles) &&
+                profiles.ValueKind == JsonValueKind.Array &&
+                CratisRendering.ListsPrimeReact(profiles.EnumerateArray()
+                    .Where(uiProfile => uiProfile.ValueKind == JsonValueKind.Object && uiProfile.TryGetProperty("packages", out var packages) && packages.ValueKind == JsonValueKind.Array)
+                    .SelectMany(uiProfile => uiProfile.GetProperty("packages").EnumerateArray())
+                    .Where(package => package.ValueKind == JsonValueKind.String)
+                    .Select(package => package.GetString()!));
+        }
+        catch (JsonException)
+        {
             return false;
         }
     }

@@ -40,7 +40,7 @@ internal static class SemanticRunProjectionAdmission
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
-            (value.Scope is not null ? reachable.Count > 0 : value.Transitions.Any(transition => reachable.Contains(transition.EventContract))))).ToArray();
+            reachable.Any(eventContract => SemanticProjectionObservation.Observes(value, eventContract)))).ToArray();
         var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.Target != SemanticProjectionTargetKind.Event && projection.ReadModel == id) > 1);
         if (duplicate.IsSet)
         {

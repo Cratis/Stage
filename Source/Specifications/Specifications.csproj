@@ -21,6 +21,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleEventPropertyNameIsSafe.cs" Link="Admission/ChronicleEventPropertyNameIsSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ChronicleReadModelPropertyNamesAreSafe.cs" Link="Admission/ChronicleReadModelPropertyNamesAreSafe.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/ProjectionReferencedEventNamesAreUnique.cs" Link="Admission/ProjectionReferencedEventNamesAreUnique.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionObservation.cs" Link="Admission/SemanticProjectionObservation.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticDestinations.cs" Link="Admission/SemanticDestinations.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticReactionProductions.cs" Link="Admission/SemanticReactionProductions.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Admission/SemanticTranslationSupport.cs" />

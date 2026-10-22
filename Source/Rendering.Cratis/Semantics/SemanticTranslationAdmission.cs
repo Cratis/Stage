@@ -27,7 +27,7 @@ internal static class SemanticTranslationAdmission
     }
 
     internal static bool AdmitsEvent(SemanticId id, SemanticSlice slice, SemanticApplicationContext context) =>
-        (SemanticTranslationSupport.Slice(slice, context.Events) || DeclarationOnly(slice, id, context)) &&
+        (SemanticTranslationSupport.Slice(slice, context.Events) || DeclarationOnly(slice, id, context) || ExpectationOnly(slice, id, context)) &&
         !LocallyProduces(slice, id) && context.Events.TryGetValue(id, out var contract) &&
         SemanticTranslationSupport.Event(contract, context.AllSlices.Select(located => located.Slice), context.Events);
 
@@ -73,6 +73,13 @@ internal static class SemanticTranslationAdmission
     static bool DeclarationOnly(SemanticSlice slice, SemanticId id, SemanticApplicationContext context) =>
         slice.Events.Any(candidate => candidate.Id == id) &&
         !SemanticVersionFeatures.EventReferences(slice with { Events = [] }, context.Events).Any(feature => feature.Artifact == id);
+
+    static bool ExpectationOnly(SemanticSlice slice, SemanticId id, SemanticApplicationContext context) =>
+        context.Events.TryGetValue(id, out var contract) && contract.Visibility == SemanticEventVisibility.Public &&
+        slice.Specifications.Any(specification => specification.ThenEvents.Any(expected => expected.EventContract == id)) &&
+        !SemanticVersionFeatures.EventReferences(slice with { Specifications = [] }, context.Events).Any(feature => feature.Artifact == id) &&
+        slice.Specifications.All(specification => specification.GivenEvents.All(given => given.EventContract != id) &&
+            specification.WhenAppended?.EventContract != id);
 
     static bool LocallyProduces(SemanticSlice slice, SemanticId id) =>
         slice.Commands.SelectMany(command => command.Produces).Any(produced => produced.EventContract == id) ||

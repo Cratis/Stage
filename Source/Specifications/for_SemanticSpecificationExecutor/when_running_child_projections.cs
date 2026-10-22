@@ -18,6 +18,7 @@ public class when_running_child_projections : Specification
     [InlineData("root-join", true)]
     [InlineData("parent-property", true)]
     [InlineData("missing-optional", true)]
+    [InlineData("child-id", true)]
     [InlineData("wrong", false)]
     [InlineData("reordered", false)]
     public async Task should_match_ordered_reference_children(string action, bool passes)
@@ -198,6 +199,7 @@ public class when_running_child_projections : Specification
             // Only Placed carries parentId; the removal retains its event-source parent.
             source = source.Replace("          remove with Removed key code\n            parent parentId", "          remove with Removed key code\n            parent $eventSourceId", StringComparison.Ordinal);
         }
+        if (action == "child-id") source = source.Replace("code", "id", StringComparison.Ordinal);
         if (action == "optional-source") source = source.Replace("      event Labeled\n        label String", "      event Labeled\n        label String optional", StringComparison.Ordinal);
         if (action == "missing-optional")
         {

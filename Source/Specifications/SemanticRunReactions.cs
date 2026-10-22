@@ -164,7 +164,11 @@ internal sealed class SemanticRunReactions(
         foreach (var invocation in trigger.Invokes)
         {
             var outcome = await invoke(Invocation(reaction, invocation, cause), !invocation.OnRefused.IsEmpty);
-            if (outcome.Failure is null) continue;
+            if (outcome.Failure is null)
+            {
+                if (await _publication.PublishPending(cancellationToken) is { } publicationFailure) return publicationFailure;
+                continue;
+            }
             var branch = outcome.Refusal is { } refusal ? invocation.OnRefused.FirstOrDefault(refusal.Matches) : null;
             if (branch is null) return SemanticRunReactionFailure.Complete(outcome.Failure);
             if (await ProduceAll(reaction, branch.Produces, cause, cancellationToken, outcome.Refusal) is { } branchFailure) return branchFailure;
@@ -216,7 +220,7 @@ internal sealed class SemanticRunReactions(
             await context.Append(fact, cancellationToken);
         }
 
-        return null;
+        return await _publication.PublishPending(cancellationToken);
     }
 
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
@@ -252,7 +256,7 @@ internal sealed class SemanticRunReactions(
         }
         await context.Append(fact, destination, occurred, cancellationToken);
 
-        return null;
+        return await _publication.PublishPending(cancellationToken);
     }
 
     SemanticSpecification Invocation(SemanticReaction reaction, SemanticInvocation invocation, SemanticReactionCause cause)

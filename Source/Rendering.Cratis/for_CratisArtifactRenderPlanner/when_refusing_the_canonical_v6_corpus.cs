@@ -52,8 +52,8 @@ public class when_refusing_the_canonical_v6_corpus : Specification
     {
         var entries = SemanticSurfaceLedger.Entries.Values.Where(entry => entry.Detail == "STAGE-ESM-024").ToArray();
 
-        // Event reactions and bounded translations render; the remaining automation surface stays rejected.
-        entries.Length.ShouldEqual(70);
+        // Event reactions, bounded translations and state-decided capture guards render; the remaining automation surface stays rejected.
+        entries.Length.ShouldEqual(63);
         entries.All(entry => entry.Kind == SemanticSurfaceDispositionKind.Rejected).ShouldBeTrue();
     }
 

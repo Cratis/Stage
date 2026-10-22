@@ -31,8 +31,8 @@ describe('when registering same-named commands in different modules', () => {
         render(<PrimeReactProvider><StageCommandForm element={billingForm} /><StageCommandForm element={inventoryForm} /></PrimeReactProvider>);
         fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-1' } });
         fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '4' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Invoice' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Stock' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Invoice' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Stock' }));
         await waitFor(() => requests.should.have.lengthOf(2));
         requests.should.deep.equal([
             { url: 'http://localhost:3000/api/billing/register', body: { invoiceNumber: 'INV-1' } },

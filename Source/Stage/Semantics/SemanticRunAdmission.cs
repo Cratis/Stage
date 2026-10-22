@@ -74,6 +74,7 @@ public static class SemanticRunAdmission
         if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
+        if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;
 
         // Runtime contracts keep authored property names, not the renderer's PascalCase members.
         // Case-insensitive duplicates still make JSON binding and Chronicle payloads ambiguous.
@@ -144,9 +145,9 @@ public static class SemanticRunAdmission
             return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
 
-        // The reference projects given events while establishing the world, and produced facts only when the command
-        // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
-        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
+        // Projections never run for expected rejection/denial, whether the command rejects or reports an acceptance mismatch.
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied
+            ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
@@ -187,7 +188,8 @@ public static class SemanticRunAdmission
     /// <param name="fact">The fact about to be appended.</param>
     /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
-        SemanticRunProjectionAdmission.CheckFact(plan, fact);
+        SemanticRunTranslationAdmission.Check(plan, new SemanticSpecification(fact.EventContract, "Reaction production", [], [], null, [], [], [], [])
+        { WhenAppended = new(fact.EventContract, fact.Values) { EventSource = fact.EventSource, Route = fact.Route } }) ?? SemanticRunProjectionAdmission.CheckFact(plan, fact);
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
     internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
@@ -258,7 +260,8 @@ public static class SemanticRunAdmission
             .Except(SemanticVersionFeatures.TriggersInApplication(plan.Model.Application))
             .Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
-            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
+            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Except(SemanticVersionFeatures.TranslationFeaturesInSlice(slice))
+                .Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events).Where(feature => feature.Code is not (SemanticVersionFeatures.PublicEvents or SemanticVersionFeatures.ForeignEvents)))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command)
                 .Except(SemanticVersionFeatures.RoutesInCommand(command))

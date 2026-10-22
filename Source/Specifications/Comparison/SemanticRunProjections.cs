@@ -12,6 +12,8 @@ using Cratis.Chronicle.Testing;
 using Cratis.Chronicle.Testing.ReadModels;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Types;
 
@@ -28,12 +30,7 @@ internal static class SemanticRunProjections
     {
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
 
-        var requested = context.WorldFixture.GivenReadModels.Select(state => state.ReadModel)
-            .Concat(specification.ThenReadModels.Select(state => state.ReadModel))
-            .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
-            .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
-            .Concat(plan.Projections.Values.Where(projection => context.Facts.Any(fact => Observes(projection, fact.EventContract)))
-                .Select(projection => projection.ReadModel)).Distinct();
+        var requested = RequestedReadModels(plan, specification, context.WorldFixture, context.Facts);
         var output = new List<Projected>();
         foreach (var id in requested)
         {
@@ -42,11 +39,20 @@ internal static class SemanticRunProjections
         return output;
     }
 
+    internal static IEnumerable<SemanticId> RequestedReadModels(
+        SemanticExecutionPlan plan, SemanticSpecification specification, SemanticSpecification fixture, IEnumerable<SemanticSpecificationEvent> facts) =>
+        fixture.GivenReadModels.Select(state => state.ReadModel)
+            .Concat(specification.ThenReadModels.Select(state => state.ReadModel))
+            .Concat(specification.ThenAbsentReadModels.Select(state => state.ReadModel))
+            .Concat(specification.ThenQueries.Select(query => plan.Queries[query.Query].ReadModel))
+            .Concat(plan.Projections.Values.Where(projection => projection.Target != SemanticProjectionTargetKind.Event && facts.Any(fact => SemanticProjectionObservation.Observes(projection, fact.EventContract)))
+                .Select(projection => projection.ReadModel)).Where(plan.ReadModels.ContainsKey).Distinct();
+
     internal static IReadOnlyList<Projected> ForReadModel(SemanticExecutionPlan plan, SemanticId id, SemanticRunContext context, SemanticRuntimeTypes types, Defaults defaults)
     {
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
-        var projection = plan.Projections.Values.SingleOrDefault(value => value.ReadModel == id);
+        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
         if (projection is null)
         {
             return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];
@@ -54,7 +60,17 @@ internal static class SemanticRunProjections
         var method = typeof(SemanticRunProjections).GetMethod(nameof(Define), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(types.ForReadModel(model));
 
-        return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
+        try
+        {
+            return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
+        }
+        catch (SemanticProjectionLoweringRefused exception)
+        {
+            throw new SemanticProjectionLoweringRefused(new InvalidOperationException($"Projection '{projection.Name}' ({projection.Id}): {exception.Message}", exception))
+            {
+                Projection = projection.Id
+            };
+        }
     }
 
     static List<Projected> Define<TReadModel>(
@@ -74,10 +90,9 @@ internal static class SemanticRunProjections
                 foreach (var from in scope.From)
                 {
                     var @event = plan.Events[from.EventContract];
-                    var mappings = from.Mappings.Select(mapping => (
-                        Target: model.Properties.Single(property => property.Id == mapping.Target[0]).Name,
-                        Source: mapping.Source is SemanticProjectionEventProperty source ? @event.Properties.Single(property => property.Id == source.Path[0]).Name : null)).ToArray();
-                    DefineFrom(builder, types.For(from.EventContract), mappings);
+                    var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+                    var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event);
                 }
                 if (scope.Every is { } every)
                 {
@@ -134,7 +149,7 @@ internal static class SemanticRunProjections
         for (var index = 0; index < context.Facts.Count; index++)
         {
             var fact = context.Facts[index];
-            if (!Observes(projection, fact.EventContract)) continue;
+            if (!SemanticProjectionObservation.Observes(projection, fact.EventContract)) continue;
             var destination = context.Destinations[index];
 
             // A fixture replaces that key's history, including property-keyed removals.
@@ -164,12 +179,6 @@ internal static class SemanticRunProjections
         context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model)
             .GroupBy(seed => SemanticRunContext.Canonical(seed.Key), StringComparer.Ordinal).Select(group => group.Last());
 
-    static bool Observes(SemanticProjection projection, SemanticId eventContract) =>
-        projection.Scope?.Every is { SubscribesToAllEvents: true } ||
-        projection.Scope?.From.Any(from => from.EventContract == eventContract) == true ||
-        projection.Scope?.Removals.Any(removal => removal.EventContract == eventContract) == true ||
-        projection.Transitions.Any(transition => transition.EventContract == eventContract);
-
     static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionEvery every, SemanticReadModel model)
     {
         void Define(Action<string> set)
@@ -179,7 +188,7 @@ internal static class SemanticRunProjections
             {
                 set(identifier.Name);
             }
-            foreach (var mapping in every.Mappings)
+            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
                 set(target.Name);

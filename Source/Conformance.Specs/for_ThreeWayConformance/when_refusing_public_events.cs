@@ -34,8 +34,26 @@ public class when_refusing_public_events : Specification
     [Fact] void should_keep_the_frozen_reference_outcome() => _reference.Execution.Kind.ShouldEqual(PublicEventsCorpus.V9.SpecificationExpectations.Single().Outcome);
     [Fact] void should_execute_stage_translation() => _stage.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference_execution_kind() => _stage.Results.Single().ExecutionKind.ShouldEqual(_reference.Execution.Kind.ToString());
-    [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-001", "STAGE-ESM-011", "STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
-    [Fact] void should_also_refuse_the_translate_slice_shapes() => _rendered.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-001").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. _plan.Model.Application.Modules.Single().Features.Single().Slices.Where(slice => slice.Kind == SemanticSliceKind.Translate).Select(slice => slice.Id)]);
-    [Fact] void should_also_refuse_the_public_event_projection_specification() => _rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _plan.Specifications.Keys.Single());
-    [Fact] void should_emit_no_generated_specifications_or_other_artifacts() => _rendered.Artifacts.ShouldBeEmpty();
+    [Fact] void should_render_the_complete_public_event_translation() => _rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+    [Fact] void should_emit_no_renderer_refusals() => _rendered.Refusals.ShouldBeEmpty();
+    [Fact] void should_render_the_public_event_projection_specification() => _rendered.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.Sources.Contains(_plan.Specifications.Keys.Single()));
+
+    [Fact]
+    void should_emit_the_inbox_and_outbox_reactors()
+    {
+        _rendered.Success.ShouldBeTrue();
+        _rendered.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("ShipmentTracking.cs", StringComparison.Ordinal));
+        _rendered.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("OrderShippedPublisher.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    void should_keep_capture_overlays_across_public_source_events_refused()
+    {
+        var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.AsSpan());
+        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Contracts", "Contracts"));
+        rendered.Success.ShouldBeFalse();
+        rendered.Artifacts.ShouldBeEmpty();
+        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("record overlay across source events", StringComparison.Ordinal));
+    }
 }

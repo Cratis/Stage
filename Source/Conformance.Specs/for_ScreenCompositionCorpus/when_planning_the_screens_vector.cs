@@ -29,7 +29,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
     // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
     // Re-frozen for Cratis/Stage#734 and #741: .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/ (manifest below updated; this digest must be re-pinned from a run).
-    const string Digest = "44ed6f6ccb9218c3c3632d5b15933f0a5733833279e3dccba5630de5886dd2ed";
+    const string Digest = "ee932a951390240fb384dc68c6a85555406fec80d13ad50bf21177a194230c3d";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689

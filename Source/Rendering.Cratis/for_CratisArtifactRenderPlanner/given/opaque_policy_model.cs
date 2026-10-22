@@ -123,7 +123,7 @@ public static class opaque_policy_model
         var type = assembly.GetTypes().Single(candidate => candidate.Name == "IssueInvoice");
         var id = Activator.CreateInstance(assembly.GetTypes().Single(candidate => candidate.Name == "InvoiceId"), invoice)!;
         var instance = Activator.CreateInstance(type, id, "North")!;
-        return Allows(assembly, command.Id, type, new CommandContext(CorrelationId.New(), type, instance, [], CommandContextValues.Empty), principal, receivedAt);
+        return Allows(assembly, model, command.Id, type, new CommandContext(CorrelationId.New(), type, instance, [], CommandContextValues.Empty), principal, receivedAt);
     }
 
     public static bool AllowsQuery(Assembly assembly, ExecutableSemanticModel model, ClaimsPrincipal principal, DateTimeOffset receivedAt, object? invoice)
@@ -136,20 +136,20 @@ public static class opaque_policy_model
             arguments["invoiceId"] = invoice;
         }
 
-        return Allows(assembly, query.Id, target, new QueryContext("InvoiceById", CorrelationId.New(), Paging.NotPaged, Sorting.None, arguments), principal, receivedAt);
+        return Allows(assembly, model, query.Id, target, new QueryContext("InvoiceById", CorrelationId.New(), Paging.NotPaged, Sorting.None, arguments), principal, receivedAt);
     }
 
-    public static bool EvaluatesAnonymous(Assembly assembly, SemanticId operation)
+    public static bool EvaluatesAnonymous(Assembly assembly, ExecutableSemanticModel model, SemanticId operation)
     {
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
         assembly.GetTypes().Single(type => type.FullName == "Invoices.GeneratedPolicies.Registration").GetMethod("Register")!.Invoke(null, [services]);
         return services.Select(service => service.ImplementationInstance).OfType<AuthorizationPolicyRegistration>()
-            .Single(registration => registration.Name == SemanticPolicyArtifactRenderer.Name(operation)).EvaluatesAnonymous;
+            .Single(registration => registration.Name == policy_names.NameOf(model, operation)).EvaluatesAnonymous;
     }
 
-    static bool Allows(Assembly assembly, SemanticId operation, MemberInfo target, object resource, ClaimsPrincipal principal, DateTimeOffset receivedAt)
+    static bool Allows(Assembly assembly, ExecutableSemanticModel model, SemanticId operation, MemberInfo target, object resource, ClaimsPrincipal principal, DateTimeOffset receivedAt)
     {
-        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(operation)))!;
+        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, operation)))!;
         return policy.IsAuthorized(new(principal, target, resource) { ReceivedAt = receivedAt }, CancellationToken.None).AsTask().GetAwaiter().GetResult();
     }
 }

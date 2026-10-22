@@ -136,7 +136,8 @@ internal static partial class SemanticCratisAdmission
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
-            selfReduces: context.SelfReduces);
+            selfReduces: context.SelfReduces,
+            policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName);
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {

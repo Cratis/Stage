@@ -56,7 +56,13 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticCaptureEventsSource.Events")]
     [InlineData("SemanticCaptureCondition.Kind")]
     [InlineData("SemanticCaptureConditionKind.Added")]
+    [InlineData("SemanticCaptureConditionKind.AnyChanged")]
+    [InlineData("SemanticCaptureConditionKind.AllChanged")]
+    [InlineData("SemanticCaptureConditionKind.Transition")]
+    [InlineData("SemanticCaptureConditionKind.Removed")]
     public void should_classify_translation_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
     [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
 

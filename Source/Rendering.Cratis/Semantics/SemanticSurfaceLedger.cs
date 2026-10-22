@@ -373,10 +373,10 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureRecord", v6, "Fields");
         Add(entries, "SemanticCaptureField", v6, "Kind Name Record Records Value");
         Add(entries, "SemanticCaptureFieldKind", v6, "Unknown Record Records Value");
-        Add(entries, "SemanticCaptureCondition", rendered, "Kind");
-        Add(entries, "SemanticCaptureCondition", v6, "Expression Fields From To");
-        Add(entries, "SemanticCaptureConditionKind", rendered, "Added");
-        Add(entries, "SemanticCaptureConditionKind", v6, "Unknown AllChanged AnyChanged Expression Removed Transition");
+        Add(entries, "SemanticCaptureCondition", rendered, "Kind Fields From To");
+        Add(entries, "SemanticCaptureCondition", v6, "Expression");
+        Add(entries, "SemanticCaptureConditionKind", rendered, "Added AllChanged AnyChanged Removed Transition");
+        Add(entries, "SemanticCaptureConditionKind", v6, "Unknown Expression");
         Add(entries, "SemanticCaptureMap", v6, "Kind Separator Source Targets Template Translations");
         Add(entries, "SemanticCaptureMapKind", v6, "Unknown Split Template Value");
         Add(entries, "SemanticCaptureMapping", rendered, "Field TargetProperty Value");

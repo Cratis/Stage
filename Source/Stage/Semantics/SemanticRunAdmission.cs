@@ -302,9 +302,17 @@ public static class SemanticRunAdmission
         {
             if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
         }
-        if (values?.Any(value => !EventValueMatches(context, eventContract.Properties.Single(property => property.Id == value.TargetProperty).Type, value.Value)) == true)
+        var properties = eventContract.Properties.ToLookup(property => property.Id);
+        foreach (var value in values ?? [])
         {
-            return "An event payload value does not match its declared structure.";
+            if (properties[value.TargetProperty].ToArray() is not [var property])
+            {
+                return $"Event '{eventContract.Name}' payload property '{value.TargetProperty}' must identify exactly one declared property.";
+            }
+            if (!EventValueMatches(context, property.Type, value.Value))
+            {
+                return "An event payload value does not match its declared structure.";
+            }
         }
         return null;
     }

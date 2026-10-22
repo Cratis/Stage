@@ -16,7 +16,11 @@ public class with_a_wrong_nested_expectation : given.a_structured_event
         var entries = contract.Properties.Single(property => property.Name == "entries").Id;
         var wrong = new SemanticSpecificationEvent(contract.Id, []);
         var values = specification.When!.Values.ToDictionary(member => _plan.Commands.Values.Single().Properties.Single(property => property.Id == member.TargetProperty).Name, member => member.Value);
-        wrong = wrong with { Values = [.. contract.Properties.Select(property => new SemanticPropertyValue(property.Id, property.Id == entries ? new SemanticArrayValue([]) : values[property.Name]))] };
+        var originalEntries = (SemanticArrayValue)values["entries"];
+        var firstEntry = (SemanticCompositeValue)originalEntries.Values[0];
+        var wrongEntry = firstEntry with { Properties = [firstEntry.Properties.Single() with { Value = SemanticValue.Text("wrong") }] };
+        var wrongEntries = originalEntries with { Values = [wrongEntry, .. originalEntries.Values.Skip(1)] };
+        wrong = wrong with { Values = [.. contract.Properties.Select(property => new SemanticPropertyValue(property.Id, property.Id == entries ? wrongEntries : values[property.Name]))] };
         typeof(Cratis.Screenplay.Semantics.Execution.SemanticExecutionPlan)
             .GetField("<Specifications>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .SetValue(_plan, _plan.Specifications.SetItem(specification.Id, specification with { ThenEvents = [wrong] }));

@@ -8,7 +8,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.given;
 
 public class a_universal_projection : a_projected_specification
 {
-    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId")
+    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId", bool expectRejection = false)
     {
         var unrelated = all ? $$"""
                     then readmodel InvoiceView
@@ -16,6 +16,28 @@ public class a_universal_projection : a_projected_specification
                       lastSeen = "{{expected}}"
             """ : """
                     then no readmodel InvoiceView for "audit-2"
+            """;
+        var scenario = expectRejection ? """
+                  specification ExpectingRejection
+                    when RegisterInvoice
+                      invoiceId = "invoice-1"
+                      description = "North"
+                    then error "A rejection was expected"
+            """ : $$"""
+                  specification RegisteringAnInvoice
+                    given AuditRecorded
+                      for "audit-2"
+                      message = "unrelated"
+                    when RegisterInvoice
+                      invoiceId = "invoice-1"
+                      description = "North"
+                    then InvoiceRegistered
+                      for "invoice-1"
+                      description = "North"
+                    then readmodel InvoiceView
+                      invoiceId = "invoice-1"
+                      lastSeen = "{{(mapping == "\"fixed\"" ? "fixed" : "invoice-1")}}"
+            {{unrelated}}
             """;
         var source = $$"""
             module Billing
@@ -37,20 +59,7 @@ public class a_universal_projection : a_projected_specification
                       message = message
                   event AuditRecorded
                     message String
-                  specification RegisteringAnInvoice
-                    given AuditRecorded
-                      for "audit-2"
-                      message = "unrelated"
-                    when RegisterInvoice
-                      invoiceId = "invoice-1"
-                      description = "North"
-                    then InvoiceRegistered
-                      for "invoice-1"
-                      description = "North"
-                    then readmodel InvoiceView
-                      invoiceId = "invoice-1"
-                      lastSeen = "{{(mapping == "\"fixed\"" ? "fixed" : "invoice-1")}}"
-            {{unrelated}}
+            {{scenario}}
                 slice StateView Lookup
                   readmodel InvoiceView
                     invoiceId String

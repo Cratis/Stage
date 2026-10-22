@@ -54,6 +54,29 @@ public class a_projected_specification : Specification
         return admitted.Plan!;
     }
 
+    protected static SemanticExecutionPlan ExpectRejection(SemanticExecutionPlan plan)
+    {
+        var model = plan.Model;
+        var application = model.Application with
+        {
+            Modules = [.. model.Application.Modules.Select(module => module with
+            {
+                Features = [.. module.Features.Select(feature => feature with
+                {
+                    Slices = [.. feature.Slices.Select(slice => slice with
+                    {
+                        Specifications = [.. slice.Specifications.Select(specification => specification with
+                        {
+                            GivenEvents = [], ThenEvents = [], ThenReadModels = [], ThenAbsentReadModels = [], ThenQueries = [],
+                            ThenErrors = [new("LoweringRefused", "Object reference not set to an instance of an object.")]
+                        })]
+                    })]
+                })]
+            })]
+        };
+        return SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+    }
+
     protected async Task Run()
     {
         var specification = _plan.Specifications.Values.Single();

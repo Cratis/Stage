@@ -58,9 +58,12 @@ internal static class SemanticRunProjections
         {
             return (IReadOnlyList<Projected>)method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [plan, projection, model, context, types, defaults], null)!;
         }
-        catch (Exception exception)
+        catch (SemanticProjectionLoweringRefused exception)
         {
-            throw new SemanticProjectionLoweringRefused(exception);
+            throw new SemanticProjectionLoweringRefused(new InvalidOperationException($"Projection '{projection.Name}' ({projection.Id}): {exception.Message}", exception))
+            {
+                Projection = projection.Id
+            };
         }
     }
 

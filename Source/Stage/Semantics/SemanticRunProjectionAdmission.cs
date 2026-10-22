@@ -117,10 +117,6 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Per-run projections need one required identifier.";
         }
-        if (readModel.Properties.Any(property => IsStructured(property.Type) && scope?.Children.Any(child => child.Property == property.Id) != true && ContainsDecimal(plan, property.Type, [])))
-        {
-            return InexactStructuredValue;
-        }
         return !IsScalar(identifiers[0].Type) || identifiers[0].Type.IsCollection ||
             readModel.Properties.Any(property => (property.Type.IsCollection || !IsScalar(property.Type)) && scope?.Children.Any(child => child.Property == property.Id) != true && !WholeValueCopy(plan, property, scope))
             ? "Per-run projections need scalar read model properties without collections or composite types."
@@ -142,6 +138,10 @@ internal static partial class SemanticRunProjectionAdmission
                 @event.Properties.Any(property => !ChronicleEventPropertyNameIsSafe.Check(property.Name))))
         {
             return "An event property name collides with Chronicle expression syntax.";
+        }
+        if (projection.Scope is { } exactnessScope && ExactnessRefusal(plan, exactnessScope, specification) is { } inexact)
+        {
+            return inexact;
         }
         if (ShapeRejection(plan, readModel, projection.Scope) is { } shape)
         {
@@ -215,7 +215,7 @@ internal static partial class SemanticRunProjectionAdmission
                 scope.From.Any(from => !UnobservedProduct(from, reachable) && (from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier.Type) ||
                     from.Mappings.Any(mapping => !MappingSupported(plan, from.EventContract, mapping)))))
             {
-                return InexactNestedRead(plan, scope) ? InexactStructuredValue : "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
+                return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
             }
             return StructuredValueRefusal(plan, scope, specification);
         }

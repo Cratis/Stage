@@ -34,23 +34,55 @@ internal static partial class SemanticRunProjectionAdmission
         return found;
     }
 
-    // A Set from a nested event path whose leaf is a Decimal.
-    static bool InexactNestedRead(SemanticExecutionPlan plan, SemanticProjectionScope scope) =>
-        scope.From.Select(from => (from.EventContract, from.Mappings)).Concat(scope.Joins.Select(join => (join.EventContract, join.Mappings)))
-            .Any(block => block.Mappings.Any(mapping => mapping.Source is SemanticProjectionEventProperty { Path.Length: > 1 } source && NestedLeafIsDecimal(plan, plan.Events[block.EventContract], source)));
+    // The one numeric-exactness step. Every mapping that reads a composite, a collection or a nested path goes through
+    // Chronicle's schema-less JSON conversion, which turns each number into a double: Decimal types and whole numbers
+    // of 2^53 or more cannot round-trip. Scalar event properties are typed and unaffected; Add/Subtract refuse nested
+    // paths and child scopes admit only single-segment scalar mappings, so they never reach this conversion.
+    static string? ExactnessRefusal(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticSpecification specification)
+    {
+        var reads = ScopeBlocks(scope)
+            .SelectMany(block => block.Mappings.Select(mapping => (block.EventContract, Mapping: mapping)))
+            .Where(entry => entry.Mapping.Source is SemanticProjectionEventProperty && plan.Events.ContainsKey(entry.EventContract))
+            .Select(entry => (entry.EventContract, Path: ((SemanticProjectionEventProperty)entry.Mapping.Source!).Path))
+            .Select(entry => (entry.EventContract, entry.Path, Type: PathType(plan, plan.Events[entry.EventContract], entry.Path)))
+            .Where(entry => entry.Type is not null && (entry.Path.Length > 1 || IsStructured(entry.Type)))
+            .ToArray();
+        if (reads.Any(read => ContainsDecimal(plan, read.Type!, [])))
+        {
+            return InexactStructuredValue;
+        }
 
-    static bool NestedLeafIsDecimal(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionEventProperty source)
+        return FactValueSources(plan, specification).Any(fact => reads.Any(read => read.EventContract == fact.Event && HasInexactNumber(PathValue(read.Path, fact.ValueOf(read.Path[0])))))
+            ? InexactStructuredValue : null;
+    }
+
+    static IEnumerable<(SemanticId EventContract, System.Collections.Immutable.ImmutableArray<SemanticProjectionMapping> Mappings)> ScopeBlocks(SemanticProjectionScope scope) =>
+        scope.From.Select(from => (from.EventContract, from.Mappings))
+            .Concat(scope.Joins.Select(join => (join.EventContract, join.Mappings)))
+            .Concat(scope.Children.SelectMany(child => ScopeBlocks(child.Scope)));
+
+    static SemanticTypeReference? PathType(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticId> path)
     {
         var properties = @event.Properties;
         SemanticTypeReference? type = null;
-        foreach (var id in source.Path)
+        foreach (var id in path)
         {
-            if (properties.SingleOrDefault(candidate => candidate.Id == id) is not { } member) return false;
+            if (properties.SingleOrDefault(candidate => candidate.Id == id) is not { } member) return null;
             type = member.Type;
             if (type.Kind == SemanticTypeReferenceKind.CompositeType)
                 properties = plan.Model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties;
         }
-        return type is { } leaf && IsScalar(leaf) && Primitive(plan, leaf) == SemanticPrimitiveType.DecimalNumber;
+        return type;
+    }
+
+    // The value at a nested path, or the whole value for a one-segment path.
+    static SemanticValue? PathValue(ImmutableArray<SemanticId> path, SemanticValue? value)
+    {
+        for (var index = 1; index < path.Length; index++)
+        {
+            value = (value as SemanticCompositeValue)?.Properties.SingleOrDefault(candidate => candidate.TargetProperty == path[index])?.Value;
+        }
+        return value;
     }
 
     // A whole-value copy keeps one closed type end to end: no optional members, no DateTime, recursively.
@@ -142,12 +174,8 @@ internal static partial class SemanticRunProjectionAdmission
         bool Incomplete(SemanticId eventContract, Func<SemanticId, SemanticValue?> valueOf) =>
             sources.Any(entry => entry.EventContract == eventContract && !ValueComplete(plan, entry.Source.Path, valueOf(entry.Source.Path[0]), plan.Events[eventContract].Properties));
 
-        var incomplete = specification.GivenEvents.Any(given => Incomplete(given.EventContract, id => given.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value)) ||
-            (specification.WhenAppended is { } appended && Incomplete(appended.EventContract, id => appended.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value)) ||
-            ProducedIncomplete(plan, specification, Incomplete);
-        if (!incomplete) return null;
-        var observed = specification.GivenEvents.SelectMany(given => given.Values).Concat(specification.WhenAppended?.Values ?? []);
-        return observed.Any(value => HasInexactNumber(value.Value)) ? InexactStructuredValue : IncompleteStructuredValue;
+        var incomplete = FactValueSources(plan, specification).Any(fact => Incomplete(fact.Event, fact.ValueOf));
+        return incomplete ? IncompleteStructuredValue : null;
     }
 
     static bool HasInexactNumber(SemanticValue? value) => value switch
@@ -158,20 +186,31 @@ internal static partial class SemanticRunProjectionAdmission
         _ => false
     };
 
-    static bool ProducedIncomplete(SemanticExecutionPlan plan, SemanticSpecification specification, Func<SemanticId, Func<SemanticId, SemanticValue?>, bool> incomplete)
+    // Every observed fact a per-run projection can read: given, appended and command-produced events.
+    static IEnumerable<(SemanticId Event, Func<SemanticId, SemanticValue?> ValueOf)> FactValueSources(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
+        foreach (var given in specification.GivenEvents)
+        {
+            yield return (given.EventContract, id => given.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value);
+        }
+        if (specification.WhenAppended is { } appended)
+        {
+            yield return (appended.EventContract, id => appended.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value);
+        }
         if (specification.When is not { } when || !plan.Commands.TryGetValue(when.Command, out var command) || !specification.ThenErrors.IsEmpty || specification.ThenDenied)
         {
-            return false;
+            yield break;
         }
-
-        return command.Produces.Any(produced => incomplete(produced.EventContract, id => produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == id)?.Source switch
+        foreach (var produced in command.Produces)
         {
-            SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
-                when.Values.Concat(when.GeneratedValues).SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
-            SemanticValueExpression literal => literal.Value,
-            _ => null
-        }));
+            yield return (produced.EventContract, id => produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == id)?.Source switch
+            {
+                SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
+                    when.Values.Concat(when.GeneratedValues).SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
+                SemanticValueExpression literal => literal.Value,
+                _ => null
+            });
+        }
     }
 
     static bool IsStructured(SemanticTypeReference type) => type.IsCollection || type.Kind == SemanticTypeReferenceKind.CompositeType;
@@ -209,7 +248,7 @@ internal static partial class SemanticRunProjectionAdmission
         }
         if (type.Kind != SemanticTypeReferenceKind.CompositeType)
         {
-            return value is not SemanticNumberValue { Value: var number } || Math.Abs(number) < MaxExactDouble;
+            return true;
         }
 
         return value is SemanticCompositeValue composite && plan.Model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties

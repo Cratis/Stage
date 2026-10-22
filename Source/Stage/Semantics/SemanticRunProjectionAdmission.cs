@@ -35,12 +35,15 @@ internal static class SemanticRunProjectionAdmission
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
 
         var reachable = reachableEvents.ToHashSet();
+
+        // Match the reference projector's identity order, not the plan dictionary's hash order.
         var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
             specification.GivenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
-            reachable.Any(eventContract => SemanticProjectionObservation.Observes(value, eventContract)))).ToArray();
+            reachable.Any(eventContract => SemanticProjectionObservation.Observes(value, eventContract))))
+            .OrderBy(value => value.Id.ToString(), StringComparer.Ordinal).ToArray();
         var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.Target != SemanticProjectionTargetKind.Event && projection.ReadModel == id) > 1);
         if (duplicate.IsSet)
         {

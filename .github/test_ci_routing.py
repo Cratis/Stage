@@ -259,12 +259,20 @@ class RoutingTests(unittest.TestCase):
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
-        heavy = (ALL - {"live-blueprints"}) | {"standalone-generated-application", "generated-react"}
-        self.assertEqual(6, len(heavy))
+        standalone_gate = f"""    needs: [preflight, routing, dotnet-build]
+    # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
+    # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
+    if: >-
+      !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
+        heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
+        self.assertEqual(5, len(heavy))
         for job in heavy:
             self.assertTrue(JOBS[job].startswith(gate), job)
-        for job in ("generated-react", "standalone-generated-application"):
-            self.assertTrue(JOBS[job].startswith(gate + "\n    runs-on:"), job)
+        self.assertTrue(JOBS["generated-react"].startswith(gate + "\n    runs-on:"), "generated-react")
+        self.assertTrue(
+            JOBS["standalone-generated-application"].startswith(standalone_gate + "\n    runs-on:"),
+            "standalone-generated-application")
         self.assertIn("standalone-generated-application", JOBS["build"].splitlines()[0])
         self.assertIn("STANDALONE_RESULT\" = success", JOBS["build"])
 

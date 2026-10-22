@@ -14,8 +14,9 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 internal static partial class SemanticRunProjectionAdmission
 {
-    const string IncompleteStructuredValue = "A structured value copied or read by a projection must be complete (every member present, none null) and whole numbers must be exact under double: Chronicle keeps the event's JSON as is, so a missing member cannot be distinguished from a default.";
+    const string IncompleteStructuredValue = "A structured value copied or read by a projection must be complete (every member present, none null): Chronicle keeps the event's JSON as is, so a missing member cannot be distinguished from a default.";
 
+    // 2^53 is itself the first value a double cannot tell apart from its neighbor once parsed, so it is the exclusive bound.
     const decimal MaxExactDouble = 9007199254740992m;
 
     const string InexactStructuredValue = "A structured value copied or read by a projection cannot round-trip exactly: Chronicle reads its JSON without a schema and turns every number into a double, so a Decimal member or a whole number beyond 2^53 loses precision.";
@@ -144,8 +145,18 @@ internal static partial class SemanticRunProjectionAdmission
         var incomplete = specification.GivenEvents.Any(given => Incomplete(given.EventContract, id => given.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value)) ||
             (specification.WhenAppended is { } appended && Incomplete(appended.EventContract, id => appended.Values.SingleOrDefault(value => value.TargetProperty == id)?.Value)) ||
             ProducedIncomplete(plan, specification, Incomplete);
-        return incomplete ? IncompleteStructuredValue : null;
+        if (!incomplete) return null;
+        var observed = specification.GivenEvents.SelectMany(given => given.Values).Concat(specification.WhenAppended?.Values ?? []);
+        return observed.Any(value => HasInexactNumber(value.Value)) ? InexactStructuredValue : IncompleteStructuredValue;
     }
+
+    static bool HasInexactNumber(SemanticValue? value) => value switch
+    {
+        SemanticNumberValue number => Math.Abs(number.Value) >= MaxExactDouble,
+        SemanticArrayValue array => array.Values.Any(HasInexactNumber),
+        SemanticCompositeValue composite => composite.Properties.Any(item => HasInexactNumber(item.Value)),
+        _ => false
+    };
 
     static bool ProducedIncomplete(SemanticExecutionPlan plan, SemanticSpecification specification, Func<SemanticId, Func<SemanticId, SemanticValue?>, bool> incomplete)
     {
@@ -198,7 +209,7 @@ internal static partial class SemanticRunProjectionAdmission
         }
         if (type.Kind != SemanticTypeReferenceKind.CompositeType)
         {
-            return value is not SemanticNumberValue { Value: var number } || Math.Abs(number) <= MaxExactDouble;
+            return value is not SemanticNumberValue { Value: var number } || Math.Abs(number) < MaxExactDouble;
         }
 
         return value is SemanticCompositeValue composite && plan.Model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties

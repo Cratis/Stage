@@ -43,7 +43,7 @@ internal static class SemanticQueryContextRuntime
         if (live)
         {
             builder.Line($"var source = readModelStore.Observe<{model}>();")
-                .Line($"return global::System.Reactive.Subjects.Subject.Create(source, global::System.Reactive.Linq.Observable.Select(source, readModels => {invocation}));");
+                .Line($"return global::System.Reactive.Subjects.Subject.Create<global::System.Collections.Generic.IEnumerable<{model}>>(source, global::System.Reactive.Linq.Observable.Select(source, readModels => {invocation}));");
         }
         else
         {

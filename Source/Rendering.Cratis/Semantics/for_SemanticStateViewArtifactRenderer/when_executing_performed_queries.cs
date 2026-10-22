@@ -232,8 +232,9 @@ public class when_executing_performed_queries
     {
         var clock = Substitute.For<TimeProvider>();
         clock.GetUtcNow().Returns(new DateTimeOffset(2026, 10, 20, 23, 59, 0, TimeSpan.Zero));
+        var receivedAt = clock.GetUtcNow();
         var manager = Substitute.For<IQueryContextManager>();
-        manager.Current.Returns(QueryContext.NotSet with { ReceivedAt = clock.GetUtcNow() });
+        manager.Current.Returns(QueryContext.NotSet with { ReceivedAt = receivedAt });
         clock.GetUtcNow().Returns(new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero));
         var tenant = Substitute.For<ITenantIdAccessor>();
         tenant.Current.Returns(new TenantId("tenant-a"));

@@ -43,7 +43,7 @@ internal static partial class SemanticRunProjectionAdmission
         var reads = ScopeBlocks(scope)
             .SelectMany(block => block.Mappings.Select(mapping => (block.EventContract, Mapping: mapping)))
             .Where(entry => entry.Mapping.Source is SemanticProjectionEventProperty && plan.Events.ContainsKey(entry.EventContract))
-            .Select(entry => (entry.EventContract, Path: ((SemanticProjectionEventProperty)entry.Mapping.Source!).Path))
+            .Select(entry => (entry.EventContract, ((SemanticProjectionEventProperty)entry.Mapping.Source!).Path))
             .Select(entry => (entry.EventContract, entry.Path, Type: PathType(plan, plan.Events[entry.EventContract], entry.Path)))
             .Where(entry => entry.Type is not null && (entry.Path.Length > 1 || IsStructured(entry.Type)))
             .ToArray();

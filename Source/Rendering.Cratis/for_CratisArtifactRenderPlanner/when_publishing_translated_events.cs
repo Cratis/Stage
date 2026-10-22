@@ -56,7 +56,9 @@ public class when_publishing_translated_events : given.a_translation_application
     public async Task should_propagate_an_outbox_refusal()
     {
         _refuse = true;
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Publish(First, "Other"));
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => Publish(First, "Other"));
+        exception.GetType().Name.ShouldEqual("PublicationAppendFailed");
+        exception.Message.ShouldEqual("The public event could not be appended to the outbox.");
     }
 
     [Fact]

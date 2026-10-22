@@ -47,12 +47,15 @@ internal static class SemanticTranslationAdmission
         foreach (var projection in slice.Projections)
         {
             ValidateName(projection.Id, projection.Name, projection.Scope?.From.Select(from => from.EventContract) ?? [], context, diagnostics);
-            if (Identifiers.ToPascalCase(projection.Name) == "SamePublicValue")
+            var name = Identifiers.ToPascalCase(projection.Name);
+            if (name == "SamePublicValue" || name == "PublicationAppendFailed")
             {
                 diagnostics.Add(new(
                     "STAGE-ESM-012",
                     ArtifactRenderDiagnosticSeverity.Error,
-                    $"Publication '{projection.Name}' collides with its generated record comparison member.",
+                    name == "SamePublicValue"
+                        ? $"Publication '{projection.Name}' collides with its generated record comparison member."
+                        : $"Publication '{projection.Name}' collides with its generated append failure member.",
                     projection.Id));
             }
         }

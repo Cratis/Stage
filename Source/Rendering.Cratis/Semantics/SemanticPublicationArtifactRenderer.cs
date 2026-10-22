@@ -36,9 +36,10 @@ internal static class SemanticPublicationArtifactRenderer
             var tags = target.Tags.Select(CSharpCodeBuilder.StringLiteral).ToArray();
             builder.Line($"var result = await outbox.Append(context.EventSourceId, published{(tags.Length == 0 ? string.Empty : $", tags: [{string.Join(", ", tags)}]")});")
                 .OpenBlock("if (!result.IsSuccess)")
-                .Line("throw new global::System.InvalidOperationException(\"The public event could not be appended to the outbox.\");")
+                .Line("throw new PublicationAppendFailed();")
                 .EndBlock().EndBlock().EndBlock().BlankLine();
         }
+        builder.Line("sealed class PublicationAppendFailed() : global::System.Exception(\"The public event could not be appended to the outbox.\");").BlankLine();
         RenderComparison(builder);
         builder.EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [projection.Id] };

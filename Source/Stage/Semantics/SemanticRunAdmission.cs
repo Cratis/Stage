@@ -145,8 +145,9 @@ public static class SemanticRunAdmission
             return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
 
-        // Expectations do not decide whether a command will accept or which projections its productions reach.
-        var produced = SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract);
+        // Projections never run for expected rejection/denial, whether the command rejects or reports an acceptance mismatch.
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied
+            ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 

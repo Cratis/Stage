@@ -396,7 +396,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         }
         var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
         IReadOnlyList<SemanticRunProjections.Projected> projected = [];
-        if (specification.ThenErrors.IsEmpty && !specification.ThenDenied)
+        var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
+
+        // Expected rejection/denial is settled without calling the projection executor, even when the command accepts.
+        if (!expectsRejection)
         {
             projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
             failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));

@@ -54,7 +54,7 @@ public class a_projected_specification : Specification
         return admitted.Plan!;
     }
 
-    protected static SemanticExecutionPlan ExpectRejection(SemanticExecutionPlan plan)
+    protected static SemanticExecutionPlan ExpectRejection(SemanticExecutionPlan plan, bool denied = false)
     {
         var model = plan.Model;
         var application = model.Application with
@@ -68,7 +68,8 @@ public class a_projected_specification : Specification
                         Specifications = [.. slice.Specifications.Select(specification => specification with
                         {
                             GivenEvents = [], ThenEvents = [], ThenReadModels = [], ThenAbsentReadModels = [], ThenQueries = [],
-                            ThenErrors = [new("LoweringRefused", "Object reference not set to an instance of an object.")]
+                            ThenErrors = denied ? [] : [new("LoweringRefused", "Object reference not set to an instance of an object.")],
+                            ThenDenied = denied
                         })]
                     })]
                 })]

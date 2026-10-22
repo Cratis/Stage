@@ -28,6 +28,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #704/#705/#706 (enum column options, yarn pin); earlier: #656: only scene.json and src/stage-scene.json lose the synthetic layout and defer to the blueprint.
     // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
     // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
+    // Re-frozen for Cratis/Stage#734 and #741: .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/ (manifest below updated; this digest must be re-pinned from a run).
     const string Digest = "44ed6f6ccb9218c3c3632d5b15933f0a5733833279e3dccba5630de5886dd2ed";
 
     const string QualifiedManifest = """
@@ -39,8 +40,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
-        .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
-        .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
+        .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
+        .yarnrc.yml 90be03827dbdc6c1875cdf7c57ea44b1eb5bc71e6692f46dab07dcec2a288b37 65
         Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
         Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307

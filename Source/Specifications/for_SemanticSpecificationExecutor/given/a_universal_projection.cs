@@ -8,7 +8,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.given;
 
 public class a_universal_projection : a_projected_specification
 {
-    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId")
+    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId", bool expectRejection = false, bool rejectCommand = false)
     {
         var unrelated = all ? $$"""
                     then readmodel InvoiceView
@@ -17,26 +17,13 @@ public class a_universal_projection : a_projected_specification
             """ : """
                     then no readmodel InvoiceView for "audit-2"
             """;
-        var source = $$"""
-            module Billing
-              feature Invoices
-                slice StateChange Registration
-                  command RegisterInvoice
-                    invoiceId String identifier
-                    description String
-                    produces InvoiceRegistered
-                      for invoiceId
-                      description = description
-                  event InvoiceRegistered
-                    description String
-                  command RecordAudit
-                    auditId String identifier
-                    message String
-                    produces AuditRecorded
-                      for auditId
-                      message = message
-                  event AuditRecorded
-                    message String
+        var scenario = expectRejection ? $$"""
+                  specification ExpectingRejection
+                    when RegisterInvoice
+                      invoiceId = "invoice-1"
+                      description = "{{(rejectCommand ? string.Empty : "North")}}"
+                    then error "{{(rejectCommand ? "Description is required" : "A rejection was expected")}}"
+            """ : $$"""
                   specification RegisteringAnInvoice
                     given AuditRecorded
                       for "audit-2"
@@ -51,6 +38,29 @@ public class a_universal_projection : a_projected_specification
                       invoiceId = "invoice-1"
                       lastSeen = "{{(mapping == "\"fixed\"" ? "fixed" : "invoice-1")}}"
             {{unrelated}}
+            """;
+        var source = $$"""
+            module Billing
+              feature Invoices
+                slice StateChange Registration
+                  command RegisterInvoice
+                    invoiceId String identifier
+                    description String
+            {{(rejectCommand ? "        validate\n          description not empty message \"Description is required\"" : string.Empty)}}
+                    produces InvoiceRegistered
+                      for invoiceId
+                      description = description
+                  event InvoiceRegistered
+                    description String
+                  command RecordAudit
+                    auditId String identifier
+                    message String
+                    produces AuditRecorded
+                      for auditId
+                      message = message
+                  event AuditRecorded
+                    message String
+            {{scenario}}
                 slice StateView Lookup
                   readmodel InvoiceView
                     invoiceId String

@@ -89,7 +89,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             }
             catch (SemanticProjectionLoweringRefused exception)
             {
-                results.Add(Rejected(slice, specification, new SemanticRejection(exception.Message, "LoweringRefused")));
+                results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Projection, exception.Projection.ToString(), exception.Message)));
             }
             catch (UnsupportedSemanticMapping exception)
             {
@@ -394,10 +394,17 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 return Rejected(slice, specification, new SemanticRejection(validation.Message) { Category = SemanticRejectionCategory.Validation });
             }
         }
-        var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
         var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
-        failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
-        failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        IReadOnlyList<SemanticRunProjections.Projected> projected = [];
+        var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
+
+        // Expected rejection/denial is settled without calling the projection executor, even when the command accepts.
+        if (!expectsRejection)
+        {
+            projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+            failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
+            failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        }
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),

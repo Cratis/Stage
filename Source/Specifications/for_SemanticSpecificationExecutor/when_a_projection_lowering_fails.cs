@@ -15,13 +15,15 @@ public class when_a_projection_lowering_fails : a_projected_specification
 {
     [Theory]
     [InlineData("accepted")]
+    [InlineData("matching-lowering-error")]
+    [InlineData("accepted-denial")]
     [InlineData("rejected")]
     [InlineData("denied")]
     public async Task should_classify_the_failure_without_overriding_an_earlier_rejection(string scenario)
     {
         var specification = scenario switch
         {
-            "accepted" => """
+            "accepted" or "matching-lowering-error" or "accepted-denial" => """
                 specification ProjectionFailure
                   when RegisterInvoice
                     invoiceId = "first"
@@ -53,8 +55,9 @@ public class when_a_projection_lowering_fails : a_projected_specification
                 """
         };
         _plan = Compile(specification, commandScenario: scenario != "denied", validateDescription: true);
+        if (scenario == "matching-lowering-error" || scenario == "accepted-denial") _plan = ExpectRejection(_plan, denied: scenario == "accepted-denial");
         var reference = new SemanticSpecificationRunner().Run(_plan, _plan.Specifications.Keys.Single());
-        reference.Passed.ShouldBeTrue();
+        reference.Passed.ShouldEqual(scenario != "matching-lowering-error" && scenario != "accepted-denial");
         var cache = (ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes>)typeof(SemanticSpecificationExecutor)
             .GetField("_types", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
         var types = new SemanticRuntimeTypes(_plan);
@@ -70,9 +73,17 @@ public class when_a_projection_lowering_fails : a_projected_specification
             if (scenario == "accepted")
             {
                 _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
-                _result.ExecutionKind.ShouldEqual("Rejected");
-                _result.Trace!.RejectionCode.ShouldEqual("LoweringRefused");
-                Assert.StartsWith("Expected Accepted, got Rejected.", Assert.Single(_result.Failures));
+                _result.ExecutionKind.ShouldBeNull();
+                _result.Trace.ShouldBeNull();
+                Assert.Contains("Object reference", Assert.Single(_result.Failures), StringComparison.Ordinal);
+            }
+            else if (scenario == "matching-lowering-error" || scenario == "accepted-denial")
+            {
+                _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
+                _result.Failures.ShouldContainOnly(reference.Failures);
+                _result.ExecutionKind.ShouldEqual("Accepted");
+                _result.Trace!.ReadModels.ShouldBeEmpty();
+                _result.Trace.Rejection.ShouldBeNull();
             }
             else
             {

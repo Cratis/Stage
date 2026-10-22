@@ -6,6 +6,7 @@ using System.Reflection;
 using Cratis.Chronicle.Projections;
 using Cratis.Chronicle.Properties;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Comparison;
@@ -37,43 +38,53 @@ internal static class SemanticRunScopedMappings
     static void Apply<TReadModel, TEvent, TValue>(IFromBuilder<TReadModel, TEvent> from, SemanticProjectionMapping mapping, string target, string? source)
     {
         var property = Property<TReadModel, TValue>(target);
-        switch (mapping.Operation)
+        try
         {
-            case SemanticProjectionOperation.Set:
-                if (mapping.Source is SemanticProjectionLiteral literal)
-                {
-                    from.Set(property).ToValue((TValue)SemanticRuntimeTypes.ConvertValue(literal.Value, typeof(TValue))!);
-                }
-                else if (source is not null)
-                {
-                    from.Set(new PropertyPath(target)).To(new PropertyPath(source));
-                }
-                else if (mapping.Source is SemanticProjectionEventSourceIdentity)
-                {
-                    from.Set(new PropertyPath(target)).ToEventSourceId();
-                }
-                else
-                {
-                    throw new InvalidOperationException("The scoped set source was not admitted.");
-                }
-                break;
-            case SemanticProjectionOperation.Add:
-            case SemanticProjectionOperation.Subtract:
-                if (mapping.Source is SemanticProjectionLiteral { Value: SemanticNumberValue { Value: 0m } }) break;
-                if (source is null) throw new InvalidOperationException("The scoped arithmetic source was not admitted.");
-                if (mapping.Operation == SemanticProjectionOperation.Add) from.Add(property).With(Property<TEvent, TValue>(source));
-                else from.Subtract(property).With(Property<TEvent, TValue>(source));
-                break;
-            case SemanticProjectionOperation.Increment:
-                from.Increment(property);
-                break;
-            case SemanticProjectionOperation.Decrement:
-                from.Decrement(property);
-                break;
-            default:
-                throw new InvalidOperationException("The scoped projection operation was not admitted.");
+            switch (mapping.Operation)
+            {
+                case SemanticProjectionOperation.Set:
+                    if (mapping.Source is SemanticProjectionLiteral literal)
+                    {
+                        from.Set(property).ToValue((TValue)SemanticRuntimeTypes.ConvertValue(literal.Value, typeof(TValue))!);
+                    }
+                    else if (source is not null)
+                    {
+                        from.Set(new PropertyPath(target)).To(new PropertyPath(source));
+                    }
+                    else if (mapping.Source is SemanticProjectionEventSourceIdentity)
+                    {
+                        from.Set(new PropertyPath(target)).ToEventSourceId();
+                    }
+                    else
+                    {
+                        throw Refused(mapping);
+                    }
+                    break;
+                case SemanticProjectionOperation.Add:
+                case SemanticProjectionOperation.Subtract:
+                    if (mapping.Source is SemanticProjectionLiteral { Value: SemanticNumberValue { Value: 0m } }) break;
+                    if (source is null) throw Refused(mapping);
+                    if (mapping.Operation == SemanticProjectionOperation.Add) from.Add(property).With(Property<TEvent, TValue>(source));
+                    else from.Subtract(property).With(Property<TEvent, TValue>(source));
+                    break;
+                case SemanticProjectionOperation.Increment:
+                    from.Increment(property);
+                    break;
+                case SemanticProjectionOperation.Decrement:
+                    from.Decrement(property);
+                    break;
+                default:
+                    throw Refused(mapping);
+            }
+        }
+        catch (UnsupportedSemanticMapping exception)
+        {
+            throw Refused(mapping, exception);
         }
     }
+
+    static SemanticProjectionLoweringRefused Refused(SemanticProjectionMapping mapping, Exception? cause = null) =>
+        new(new NotSupportedException($"Scoped {mapping.Operation} mapping with source kind '{mapping.Source?.GetType().Name ?? "none"}' is not admitted.", cause));
 
     static Expression<Func<T, TValue>> Property<T, TValue>(string name)
     {

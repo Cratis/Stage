@@ -99,7 +99,10 @@ internal static class SemanticPerformedQueries
             return "its composite 'by' key is not one argument.";
         }
 
-        if (shape.Delivery == SemanticQueryDelivery.Live && shape.Cardinality != SemanticQueryCardinality.Many)
+        var optionalLookup = shape.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
+            shape.Arguments.Count(argument => argument.Kind == SemanticPerformedQueryArgumentKind.Key) == 1 &&
+            !shape.Arguments.Any(argument => argument.Kind == SemanticPerformedQueryArgumentKind.Filter);
+        if (shape.Delivery == SemanticQueryDelivery.Live && shape.Cardinality != SemanticQueryCardinality.Many && !optionalLookup)
         {
             return "only a collection can be observed.";
         }

@@ -31,6 +31,10 @@ public class a_performed_query_application : Specification
                 by invoiceId String
                 performer
                   file Queries/CurrentFigures.cs
+              query LiveCurrentFigures => observable InvoiceFigures?
+                by invoiceId String
+                performer
+                  file Queries/LiveCurrentFigures.cs
               query FiguresInRegion => InvoiceFigures[]
                 filter region String
                 filter status String optional

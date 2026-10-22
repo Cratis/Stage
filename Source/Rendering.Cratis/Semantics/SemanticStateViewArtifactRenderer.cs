@@ -215,6 +215,12 @@ internal static class SemanticStateViewArtifactRenderer
             return;
         }
 
+        if (query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Live })
+        {
+            RenderObservableLookup(documentation, query, readModel, types, context);
+            return;
+        }
+
         if (query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } || !query.Filters.IsDefaultOrEmpty)
         {
             RenderCollectionQuery(documentation, query, readModel, types, context);
@@ -259,6 +265,7 @@ internal static class SemanticStateViewArtifactRenderer
         parameters.AddRange(query.Filters.Select(filter => QueryArgument.For(new(filter.Id, filter.Name, filter.Type), types).Parameter + (filter.Type.IsOptional ? " = null" : string.Empty)));
         var returnType = query switch
         {
+            { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Live } => $"global::System.Reactive.Subjects.ISubject<{readModelName}?>",
             { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } => $"global::System.Reactive.Subjects.ISubject<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
             { Cardinality: SemanticQueryCardinality.Many } => $"global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
             _ => $"global::System.Threading.Tasks.Task<{readModelName}?>"
@@ -268,6 +275,21 @@ internal static class SemanticStateViewArtifactRenderer
         builder.ExpressionMember(
             $"public static {returnType} {methodName}({string.Join(", ", parameters)})",
             $"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral($"{waiting}; Stage renders its route and shape, not its code.")})");
+    }
+
+    static void RenderObservableLookup(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)
+    {
+        var readModelName = Identifiers.ToPascalCase(readModel.Name);
+        var argument = QueryArgument.For(query.Argument!, types);
+        var predicate = KeyPredicates(query, readModel, types).Single();
+
+        // Adapt both sides without eagerly subscribing: Arc's subscription owns Chronicle's observation lifetime.
+        builder.OpenBlock($"public static global::System.Reactive.Subjects.ISubject<{readModelName}?> {context.MemberNames.Query(query)}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {argument.Parameter})")
+            .Line($"var instances = readModels.Observe<{readModelName}>(instance => {predicate});")
+            .Line($"return global::System.Reactive.Subjects.Subject.Create<{readModelName}?>(")
+            .Line($"    global::System.Reactive.Observer.Create<{readModelName}?>(instance => instances.OnNext(instance is null ? [] : [instance]), instances.OnError, instances.OnCompleted),")
+            .Line("    global::System.Reactive.Linq.Observable.Select(instances, values => global::System.Linq.Enumerable.FirstOrDefault(values)));")
+            .EndBlock();
     }
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)

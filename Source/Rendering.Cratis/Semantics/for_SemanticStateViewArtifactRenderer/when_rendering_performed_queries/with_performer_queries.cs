@@ -20,6 +20,7 @@ public class with_performer_queries : given.a_performed_query_application
     [Fact] void should_render_the_read_model() => _source.ShouldContain("public record InvoiceFigures(");
     [Fact] void should_render_the_keyed_lookup_with_its_argument() => _source.ShouldContain("Task<InvoiceFigures?> CurrentFigures(global::Cratis.Chronicle.ReadModels.IReadModels readModels, string invoiceId)");
     [Fact] void should_render_the_filtered_list_with_its_filters_in_order() => _source.ShouldContain("FiguresInRegion(global::Cratis.Chronicle.ReadModels.IReadModels readModels, string region, string? status = null)");
+    [Fact] void should_render_the_observable_lookup() => _source.ShouldContain("ISubject<InvoiceFigures?> LiveCurrentFigures(global::Cratis.Chronicle.ReadModels.IReadModels readModels, string invoiceId)");
     [Fact] void should_render_the_observable_list() => _source.ShouldContain("ISubject<global::System.Collections.Generic.IEnumerable<InvoiceFigures>> LiveFigures(");
     [Fact] void should_keep_the_modeled_authorization() => _source.ShouldContain("AuthorizeAttribute");
     [Fact] void should_name_the_performer_each_query_waits_for() => _source.ShouldContain("('Queries/CurrentFigures.cs')");

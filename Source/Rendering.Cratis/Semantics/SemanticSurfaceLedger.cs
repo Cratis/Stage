@@ -35,7 +35,7 @@ internal static class SemanticSurfaceLedger
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
 
     /// <summary>
-    /// Gets the query shape matrix. Snapshot optional lookups require a key; snapshot and live collections may be keyed or unkeyed.
+    /// Gets the query shape matrix. Snapshot and live optional lookups require an identifier key; snapshot and live collections may be keyed or unkeyed.
     /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
     /// </summary>
     public static IReadOnlyDictionary<(SemanticQueryCardinality Cardinality, SemanticQueryDelivery Delivery, bool Keyed), SemanticSurfaceDisposition> QueryShapes { get; } =
@@ -44,7 +44,7 @@ internal static class SemanticSurfaceLedger
          from keyed in new[] { false, true }
          select (Cardinality: cardinality, Delivery: delivery, Keyed: keyed))
         .ToDictionary(shape => shape, shape =>
-            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery == SemanticQueryDelivery.Snapshot && shape.Keyed) ||
+            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live && shape.Keyed) ||
             (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live)
                 ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));

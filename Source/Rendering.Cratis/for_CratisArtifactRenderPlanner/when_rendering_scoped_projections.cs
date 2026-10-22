@@ -146,9 +146,6 @@ public class when_rendering_scoped_projections(when_rendering_scoped_projections
     public class context : a_generated_application
     {
         ArtifactRenderPlan _plan = null!;
-        string _debug = null!;
-        string _release = null!;
-        string _specifications = null!;
 
         protected override ArtifactRenderPlan CreatePlan()
         {
@@ -166,14 +163,14 @@ public class when_rendering_scoped_projections(when_rendering_scoped_projections
 
         async Task Because()
         {
-            _debug = await Run("scopes-debug.log", "build", "-c", "Debug");
-            _release = await Run("scopes-release.log", "build", "-c", "Release");
-            _specifications = await Run("scopes-specifications.log", "test", "-c", "Debug", "--no-build");
+            DebugWarnings = BuildWarnings(await Run("scopes-debug.log", "build", "-c", "Debug"));
+            ReleaseWarnings = BuildWarnings(await Run("scopes-release.log", "build", "-c", "Release"));
+            Specifications = await Run("scopes-specifications.log", "test", "-c", "Debug", "--no-build");
         }
 
-        public string DebugWarnings => BuildWarnings(_debug);
-        public string ReleaseWarnings => BuildWarnings(_release);
-        public string Specifications => _specifications;
+        public string DebugWarnings { get; private set; } = null!;
+        public string ReleaseWarnings { get; private set; } = null!;
+        public string Specifications { get; private set; } = null!;
         public string GeneratedFile(string relativePath) => ReadGeneratedFile(relativePath);
     }
 }

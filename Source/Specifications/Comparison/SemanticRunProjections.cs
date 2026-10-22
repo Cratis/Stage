@@ -13,6 +13,7 @@ using Cratis.Chronicle.Testing.ReadModels;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Types;
 

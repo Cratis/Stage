@@ -3,7 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 
-namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
+namespace Cratis.Stage.Semantics;
 
 internal static class SemanticProjectionObservation
 {

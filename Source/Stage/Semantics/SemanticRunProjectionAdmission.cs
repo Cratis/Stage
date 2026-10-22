@@ -68,6 +68,10 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "The seeded read model is not in the plan.");
             }
+            if (plan.Projections.Values.Any(projection => projection.ReadModel == seed.ReadModel) && SeedStructuredIncomplete(plan, model, seed.Values))
+            {
+                return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), IncompleteStructuredValue);
+            }
             if (plan.Projections.Values.Any(projection => projection.ReadModel == seed.ReadModel) &&
                 (model.Properties.Any(property => seed.Values.All(value => value.TargetProperty != property.Id || value.Value is SemanticNullValue)) ||
                     !seed.Values.Any(value => value.TargetProperty == model.Properties.Single(property => property.IsIdentifier).Id && SameScalar(value.Value, seed.Key))))
@@ -102,7 +106,7 @@ internal static partial class SemanticRunProjectionAdmission
         return null;
     }
 
-    static string? ShapeRejection(SemanticReadModel readModel, SemanticProjectionScope? scope)
+    static string? ShapeRejection(SemanticExecutionPlan plan, SemanticReadModel readModel, SemanticProjectionScope? scope)
     {
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         if (identifiers.Length > 1)
@@ -114,7 +118,7 @@ internal static partial class SemanticRunProjectionAdmission
             return "Per-run projections need one required identifier.";
         }
         return !IsScalar(identifiers[0].Type) || identifiers[0].Type.IsCollection ||
-            readModel.Properties.Any(property => (property.Type.IsCollection || !IsScalar(property.Type)) && scope?.Children.Any(child => child.Property == property.Id) != true)
+            readModel.Properties.Any(property => (property.Type.IsCollection || !IsScalar(property.Type)) && scope?.Children.Any(child => child.Property == property.Id) != true && !WholeValueCopy(plan, property, scope))
             ? "Per-run projections need scalar read model properties without collections or composite types."
             : null;
     }
@@ -135,7 +139,7 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "An event property name collides with Chronicle expression syntax.";
         }
-        if (ShapeRejection(readModel, projection.Scope) is { } shape)
+        if (ShapeRejection(plan, readModel, projection.Scope) is { } shape)
         {
             return shape;
         }
@@ -200,16 +204,16 @@ internal static partial class SemanticRunProjectionAdmission
             if (projection.Transitions.Length > 0 ||
                 scope.Removals.Any(removal => removal.ParentKey is not null) ||
                 scope.JoinRemovals.Length > 0 || scope.Nested.Length > 0 ||
-                scope.Joins.Any(join => join.Mappings.Any(mapping => !MappingSupported(mapping))) ||
+                scope.Joins.Any(join => join.Mappings.Any(mapping => !MappingSupported(plan, join.EventContract, mapping))) ||
                 scope.Children.Any(child => !ChildrenSupported(plan, specification, child, readModel.Properties, identifier.Type)) ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                     mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
                 scope.From.Any(from => from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier.Type) ||
-                    from.Mappings.Any(mapping => !MappingSupported(mapping))))
+                    from.Mappings.Any(mapping => !MappingSupported(plan, from.EventContract, mapping))))
             {
                 return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
             }
-            return null;
+            return StructuredValueRefusal(plan, scope, specification);
         }
 
         if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.Length != 1 || !FlatMatches(plan, specification, projection.Transitions[0], readModel))
@@ -260,12 +264,17 @@ internal static partial class SemanticRunProjectionAdmission
             scope.Children.All(nested => ChildrenSupported(plan, specification, nested, properties, identity));
     }
 
-    static bool MappingSupported(SemanticProjectionMapping mapping)
+    static bool MappingSupported(SemanticProjectionMapping mapping) => MappingSupported(null, null, mapping);
+
+    // Only root from and join blocks pass the plan and event, which admits a Set from a nested scalar event path.
+    static bool MappingSupported(SemanticExecutionPlan? plan, SemanticId? eventContract, SemanticProjectionMapping mapping)
     {
         if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
         return mapping.Operation switch
         {
-            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
+            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral ||
+                (plan is not null && eventContract is { } contract && mapping.Source is SemanticProjectionEventProperty { Path.Length: > 1 } nested &&
+                    NestedPathSupported(plan, plan.Events[contract], nested)),
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionLiteral,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             _ => false

@@ -54,6 +54,7 @@ internal static class SemanticTranslationSupport
     /// <returns>Whether translation admission may omit the generic slice refusal.</returns>
     internal static bool Slice(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         slice.Kind == SemanticSliceKind.Translate &&
+        slice.Reactions.IsDefaultOrEmpty &&
         (slice.Captures.IsDefaultOrEmpty || slice.Captures.All(capture => Capture(capture, events))) &&
         slice.Projections.All(projection => projection.Target != SemanticProjectionTargetKind.Event || Projection(projection, events)) &&
         slice.Reducers.All(reducer => reducer.Target != SemanticProjectionTargetKind.Event);

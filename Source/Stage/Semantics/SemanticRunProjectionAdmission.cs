@@ -35,13 +35,13 @@ internal static class SemanticRunProjectionAdmission
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
 
         var reachable = reachableEvents.ToHashSet();
-        var requested = plan.Projections.Values.Where(value =>
+        var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
             specification.GivenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
-            (value.Scope is not null ? reachable.Count > 0 : value.Transitions.Any(transition => reachable.Contains(transition.EventContract)))).ToArray();
-        var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.ReadModel == id) > 1);
+            reachable.Any(eventContract => SemanticProjectionObservation.Observes(value, eventContract)))).ToArray();
+        var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.Target != SemanticProjectionTargetKind.Event && projection.ReadModel == id) > 1);
         if (duplicate.IsSet)
         {
             return new(StageExecutionCapability.Projection, duplicate.ToString(), "A per-run read model needs exactly one projection.");
@@ -188,10 +188,9 @@ internal static class SemanticRunProjectionAdmission
                 scope.Removals.Any(removal => removal.ParentKey is not null) ||
                 scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                    mapping.Target.Length != 1 || mapping.Source is not SemanticProjectionEventSourceIdentity)) ||
+                    mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
                 scope.From.Any(from => from.ParentKey is not null || from.Key is not SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
-                    from.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set || mapping.Target.Length != 1 ||
-                        mapping.Source is not (SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity))))
+                    from.Mappings.Any(mapping => !MappingSupported(mapping, readModel))))
             {
                 return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
             }
@@ -203,6 +202,19 @@ internal static class SemanticRunProjectionAdmission
             return "A flat transition must use scalar event mappings and a key equal to the fact's event source.";
         }
         return null;
+    }
+
+    static bool MappingSupported(SemanticProjectionMapping mapping, SemanticReadModel model)
+    {
+        if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
+        var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
+        return mapping.Operation switch
+        {
+            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
+            SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionLiteral,
+            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => !target.Type.IsOptional && mapping.Source is null,
+            _ => false
+        };
     }
 
     static bool RemovalKeySupported(SemanticExecutionPlan plan, SemanticProjectionRemoval removal, SemanticTypeReference identifier)

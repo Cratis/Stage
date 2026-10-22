@@ -45,7 +45,7 @@ public class when_executing_performed_queries
         var method = Method(loaded);
         Assert.Equal(typeof(System.Reactive.Subjects.ISubject<>), method.ReturnType.GetGenericTypeDefinition());
         var (rows, _) = Rows(method);
-        var readModels = Substitute.For<IReadModels>();
+        var readModels = Substitute.For<ObservableReadModels>();
         var source = SupplyMethod(nameof(SupplyLive), method).Invoke(null, [readModels])!;
         var dependencies = Dependencies(readModels);
         var result = method.Invoke(null, dependencies.Append("Ada").ToArray())!;

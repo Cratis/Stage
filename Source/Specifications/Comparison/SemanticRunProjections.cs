@@ -94,6 +94,7 @@ internal static class SemanticRunProjections
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
                     SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key);
                 }
+                SemanticRunScopedMappings.DefineRelated(builder, scope, model.Properties, plan, types);
                 if (scope.Every is { } every)
                 {
                     DefineEvery(builder, every, model);
@@ -123,7 +124,7 @@ internal static class SemanticRunProjections
             foreach (var value in seed.Values)
             {
                 var property = typeof(TReadModel).GetProperty(model.Properties.Single(property => property.Id == value.TargetProperty).Name)!;
-                property.SetValue(instance, SemanticRuntimeTypes.ConvertValue(value.Value, property.PropertyType));
+                property.SetValue(instance, types.ReadModelValue(value.Value, model.Properties.Single(candidate => candidate.Id == value.TargetProperty).Type));
             }
             scenario.CollectReadModelFor(new EventSourceId(((SemanticTextValue)seed.Key).Value), instance);
         }
@@ -176,6 +177,17 @@ internal static class SemanticRunProjections
                 SemanticBooleanValue boolean => boolean.Value.ToString(CultureInfo.InvariantCulture),
                 _ => throw new UnsupportedSemanticMapping()
             };
+            if (projection.Scope is { } scope && !scope.From.Any(from => from.EventContract == fact.EventContract))
+            {
+                foreach (var child in scope.Children)
+                {
+                    if (child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract) is not { } from) continue;
+                    var parent = from.ParentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
+                        ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
+                    if (parent is not SemanticTextValue text || !scenario.Instances.Keys.Any(source => source.ToString() == text.Value))
+                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event; Chronicle cannot materialize that parent implicitly."));
+                }
+            }
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
         }
     }
@@ -266,7 +278,18 @@ internal static class SemanticRunProjections
 
     static SemanticValue Value(object? value, SemanticTypeReference type, SemanticExecutionPlan plan)
     {
-        if (value is null) return SemanticValue.Null;
+        if (value is null) return type.IsCollection ? SemanticValue.Array([]) : SemanticValue.Null;
+        if (type.IsCollection)
+        {
+            return SemanticValue.Array([.. ((System.Collections.IEnumerable)value).Cast<object>().Select(item => Value(item, type with { IsCollection = false, IsOptional = false }, plan))]);
+        }
+        if (type.Kind == SemanticTypeReferenceKind.CompositeType)
+        {
+            var composite = plan.Model.Application.Types.Single(composite => composite.Id == type.Target);
+            return SemanticValue.Composite([.. composite.Properties
+                .Where(property => !property.Type.IsOptional || value.GetType().GetProperty(property.Name)!.GetValue(value) is not null)
+                .Select(property => new SemanticPropertyValue(property.Id, Value(value.GetType().GetProperty(property.Name)!.GetValue(value), property.Type, plan)))]);
+        }
         var primitive = type.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Primitive : type.Primitive;
         return primitive switch

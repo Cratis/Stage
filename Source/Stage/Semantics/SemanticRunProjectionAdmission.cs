@@ -102,7 +102,7 @@ internal static partial class SemanticRunProjectionAdmission
         return null;
     }
 
-    static string? ShapeRejection(SemanticReadModel readModel)
+    static string? ShapeRejection(SemanticReadModel readModel, SemanticProjectionScope? scope)
     {
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         if (identifiers.Length > 1)
@@ -113,7 +113,8 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Per-run projections need one required identifier.";
         }
-        return readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type))
+        return !IsScalar(identifiers[0].Type) || identifiers[0].Type.IsCollection ||
+            readModel.Properties.Any(property => (property.Type.IsCollection || !IsScalar(property.Type)) && scope?.Children.Any(child => child.Property == property.Id) != true)
             ? "Per-run projections need scalar read model properties without collections or composite types."
             : null;
     }
@@ -134,7 +135,7 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "An event property name collides with Chronicle expression syntax.";
         }
-        if (ShapeRejection(readModel) is { } shape)
+        if (ShapeRejection(readModel, projection.Scope) is { } shape)
         {
             return shape;
         }
@@ -164,12 +165,16 @@ internal static partial class SemanticRunProjectionAdmission
 
         if (projection.Scope is { } scope)
         {
+            if (scope.Children.Any(child => ChildNullMappings(plan, child.Scope)))
+                return "An optional child source or null literal cannot preserve the distinction between a missing member and an explicit null in Chronicle's typed child instances.";
+            if ((!scope.Children.IsEmpty || !scope.Joins.IsEmpty) && specification.GivenReadModels.Any(seed => seed.ReadModel == readModel.Id))
+                return "Structured projection fixtures with children or joins are not admitted: replacing parent history must also replace child and join history.";
             var rejection = SemanticScopedProjectionSupport.Rejection(scope, new SemanticApplicationContext(plan), readModel.Properties);
             if (rejection is not null)
             {
                 return rejection;
             }
-            if (scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null)))
+            if (HasProduct(scope))
             {
                 return "A projection adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so Stage does not run it.";
             }
@@ -192,9 +197,11 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
             }
-            if (projection.Transitions.Length > 0 || scope.Joins.Length > 0 ||
+            if (projection.Transitions.Length > 0 ||
                 scope.Removals.Any(removal => removal.ParentKey is not null) ||
-                scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
+                scope.JoinRemovals.Length > 0 || scope.Nested.Length > 0 ||
+                scope.Joins.Any(join => join.Mappings.Any(mapping => !MappingSupported(mapping))) ||
+                scope.Children.Any(child => !ChildrenSupported(plan, specification, child, readModel.Properties, identifier.Type)) ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                     mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
                 scope.From.Any(from => from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier.Type) ||
@@ -205,11 +212,52 @@ internal static partial class SemanticRunProjectionAdmission
             return null;
         }
 
-        if (projection.Transitions.Length != 1 || !FlatMatches(plan, specification, projection.Transitions[0], readModel))
+        if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.Length != 1 || !FlatMatches(plan, specification, projection.Transitions[0], readModel))
         {
             return "A flat transition must use scalar event mappings and a key equal to the fact's event source.";
         }
         return null;
+    }
+
+    static bool HasProduct(SemanticProjectionScope scope) =>
+        scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null)) ||
+        scope.Joins.Any(join => join.Mappings.Any(mapping => mapping.Factor is not null)) ||
+        scope.Children.Any(child => HasProduct(child.Scope));
+
+    static bool ChildNullMappings(SemanticExecutionPlan plan, SemanticProjectionScope scope)
+    {
+        bool HasNull(SemanticId eventContract, System.Collections.Immutable.ImmutableArray<SemanticProjectionMapping> mappings) => mappings.Any(mapping => mapping.Source switch
+        {
+            SemanticProjectionLiteral { Value: SemanticNullValue } => true,
+            SemanticProjectionEventProperty { Path: [var id] } => plan.Events[eventContract].Properties.Single(property => property.Id == id).Type.IsOptional,
+            _ => false
+        });
+        return scope.From.Any(from => HasNull(from.EventContract, from.Mappings)) || scope.Joins.Any(join => HasNull(join.EventContract, join.Mappings)) || scope.Children.Any(child => ChildNullMappings(plan, child.Scope));
+    }
+
+    static bool ChildrenSupported(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionChildren child, System.Collections.Immutable.ImmutableArray<SemanticProperty> parentProperties, SemanticTypeReference parentIdentity)
+    {
+        var collection = parentProperties.Single(property => property.Id == child.Property);
+        var properties = plan.Model.Application.Types.Single(type => type.Id == collection.Type.Target).Properties;
+        var identity = properties.Single(property => property.Id == child.IdentifiedBy).Type;
+        var scope = child.Scope;
+        bool ParentMatches(SemanticProjectionKey? key, SemanticId eventContract) => key switch
+        {
+            null or SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => ScopedKeysMatch(plan, specification, eventContract, parentIdentity),
+            SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } } =>
+                plan.Events[eventContract].Properties.Single(property => property.Id == id) is { Type: { IsOptional: false, IsCollection: false } } source &&
+                IsScalar(source.Type) && SourceTypeMatches(plan, source.Type, parentIdentity) && ScopedKeysMatch(plan, specification, eventContract, parentIdentity, id),
+            _ => false
+        };
+        return IsScalar(identity) && !identity.IsOptional && !identity.IsCollection &&
+            Primitive(plan, identity) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
+            ChronicleReadModelPropertyNamesAreSafe.Check(properties) && SemanticRunAdmission.RuntimePropertyNamesAreUnique(properties) &&
+            properties.All(property => (IsScalar(property.Type) && !property.Type.IsCollection && Primitive(plan, property.Type) != SemanticPrimitiveType.DateTime) || scope.Children.Any(child => child.Property == property.Id)) &&
+            scope.Nested.IsEmpty && scope.Children.IsEmpty && scope.JoinRemovals.IsEmpty && scope.Every is null &&
+            scope.From.All(from => FromKeySupported(plan, specification, from, identity) && ParentMatches(from.ParentKey, from.EventContract) && from.Mappings.All(MappingSupported)) &&
+            scope.Removals.All(removal => RemovalKeySupported(plan, removal, identity) && ParentMatches(removal.ParentKey, removal.EventContract)) &&
+            scope.Joins.All(join => join.Mappings.All(MappingSupported)) &&
+            scope.Children.All(nested => ChildrenSupported(plan, specification, nested, properties, identity));
     }
 
     static bool MappingSupported(SemanticProjectionMapping mapping)

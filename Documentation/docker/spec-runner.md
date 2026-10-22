@@ -87,7 +87,7 @@ Screenplay 4.240.2 evaluator with the same refused-key checks. Read-backed requi
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
-Join removals, parent keys, children and nested projection scopes remain refused.
+Scoped projections also run one-level identified child collections: event-property child keys, event-source or required event-property parent keys, child removals and identity joins. Appends preserve first-insertion order; updates and joins do not reorder children. A child event needs an existing parent instance; implicit parent creation is refused by name. Root joins are supported too. Join removals, nested scopes, nested child collections, child `every` blocks and read-model fixtures combined with children or joins remain refused.
 The renderer renders protected reads and refuses only the shapes it cannot preserve with `STAGE-ESM-044`
 (see [Protected reads rendering](../reference/protected-reads-rendering.md)). Generated applications do not yet enforce
 the refused-key checks; the six canonical refused-key specifications remain known renderer differences.
@@ -357,8 +357,12 @@ remain distinct; a role-URI claim is blocked as `Unsupported(Authorization)` rat
 
 Given, appended and produced events can carry composite members and collections, including collections
 of composites. Event materialization preserves missing members, nulls and empty collections as distinct
-values; event assertions compare their structure rather than formatted object text. You can project scalar
-members from these events, but structured read-model properties and children/join lowering remain unsupported.
+values; event assertions compare their structure rather than formatted object text. Child collections use
+typed composite elements and ordered structural comparison, including missing optional scalar members.
+Optional mapping sources and null literals within children remain refused because typed instances lose
+the distinction between a missing member and an explicit null. Direct
+structured property mappings remain refused. Product arithmetic remains a separate named refusal, even
+when the same projection also has children.
 
 Command rules (`NotEmpty`, `Minimum`, `Maximum`, `Equal`, `NotEqual`, `GreaterThan`,
 `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Length`, `Matches`), scalar concept rules,

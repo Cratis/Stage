@@ -354,8 +354,8 @@ internal static class SemanticSurfaceLedger
         var v6 = rejected(SemanticVersionFeatures.Automation);
         Add(entries, "SemanticApplication", v6, "Triggers");
         Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
-        Add(entries, "SemanticSlice", v6, "Captures");
-        Add(entries, "SemanticSliceKind", v6, "Translate");
+        Add(entries, "SemanticSlice", rendered, "Captures");
+        Add(entries, "SemanticSliceKind", rendered, "Translate");
         Add(entries, "SemanticExpressionRootKind", v6, "Trigger");
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
         Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
@@ -365,18 +365,21 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");
         Add(entries, "SemanticReactionTriggerKind", rendered, "Event");
         Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Interval Schedule Shutdown Startup");
-        Add(entries, "SemanticCapture", v6, "Appends Children Id Key Map Name Nested");
-        Add(entries, "SemanticCaptureAppend", v6, "EventContract EventSourceType Mappings Tags When");
+        Add(entries, "SemanticCapture", rendered, "Appends Id Key Name");
+        Add(entries, "SemanticCapture", v6, "Children Map Nested");
+        Add(entries, "SemanticCaptureAppend", rendered, "EventContract EventSourceType Mappings Tags When");
         Add(entries, "SemanticCaptureChildren", v6, "Appends Field IdentifiedBy Map");
         Add(entries, "SemanticCaptureNested", v6, "Appends Field Map");
         Add(entries, "SemanticCaptureRecord", v6, "Fields");
         Add(entries, "SemanticCaptureField", v6, "Kind Name Record Records Value");
         Add(entries, "SemanticCaptureFieldKind", v6, "Unknown Record Records Value");
-        Add(entries, "SemanticCaptureCondition", v6, "Expression Fields From Kind To");
-        Add(entries, "SemanticCaptureConditionKind", v6, "Unknown Added AllChanged AnyChanged Expression Removed Transition");
+        Add(entries, "SemanticCaptureCondition", rendered, "Kind");
+        Add(entries, "SemanticCaptureCondition", v6, "Expression Fields From To");
+        Add(entries, "SemanticCaptureConditionKind", rendered, "Added");
+        Add(entries, "SemanticCaptureConditionKind", v6, "Unknown AllChanged AnyChanged Expression Removed Transition");
         Add(entries, "SemanticCaptureMap", v6, "Kind Separator Source Targets Template Translations");
         Add(entries, "SemanticCaptureMapKind", v6, "Unknown Split Template Value");
-        Add(entries, "SemanticCaptureMapping", v6, "Field TargetProperty Value");
+        Add(entries, "SemanticCaptureMapping", rendered, "Field TargetProperty Value");
         Add(entries, "SemanticCaptureTemplatePart", v6, "Field Text");
         Add(entries, "SemanticCaptureTranslation", v6, "From To");
         Add(entries, "SemanticSpecification", v6, "GivenCaptures GivenClock WhenCapture WhenClock WhenTrigger");
@@ -407,18 +410,18 @@ internal static class SemanticSurfaceLedger
         // Screenplay 4.117 added ESM v9: public events and their origin store, translation direction, projections and
         // reducers that target a slice's public event, and `source events` captures. Each is selected only by use, so a
         // v1–v8 model carries the default - a private local event, a read-model target, no direction - which is exactly
-        // what Stage renders. Admit v9 by version, but refuse publication, foreign consumption and translation separately.
-        var publication = rejected(SemanticVersionFeatures.PublicEvents);
-        var foreign = rejected(SemanticVersionFeatures.ForeignEvents);
+        // what Stage renders. Admit only the faithful inbox capture and outbox publication subset.
+        var publication = rendered;
+        var foreign = rendered;
         Add(entries, "SemanticEventContract", publication, "Visibility");
         Add(entries, "SemanticEventContract", foreign, "Origin");
         Add(entries, "SemanticEventVisibility", rendered, "Private");
         Add(entries, "SemanticEventVisibility", publication, "Public");
         Add(entries, "SemanticProjection", publication, "Target");
-        Add(entries, "SemanticReducer", publication, "Target");
+        Add(entries, "SemanticReducer", rejected(SemanticVersionFeatures.PublicEvents), "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
-        Add(entries, "SemanticSlice", v6, "Direction");
+        Add(entries, "SemanticSlice", rendered, "Direction");
         Add(entries, "SemanticCapture", foreign, "EventsSource");
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 

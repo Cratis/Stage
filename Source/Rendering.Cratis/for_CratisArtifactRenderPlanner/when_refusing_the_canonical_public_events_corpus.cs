@@ -12,11 +12,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// The canonical ESM v9 vector - public events, event origin, translation direction, event-target projections and
-/// reducers, and events-source captures - planned by Stage.
+/// The canonical ESM v9 vector requires an inbox/outbox specification harness before its scenarios can render.
 /// </summary>
 /// <remarks>
-/// The audited v9 version is admitted; each unsupported construct refuses the plan before anything is emitted.
+/// The translation artifacts are admitted, but the scenarios remain an explicit refusal.
 /// </remarks>
 public class when_refusing_the_canonical_public_events_corpus : Specification
 {
@@ -33,11 +32,7 @@ public class when_refusing_the_canonical_public_events_corpus : Specification
 
     [Fact] void should_load_an_esm_v9_model() => _model.SemanticVersion.Major.ShouldEqual(9u);
     [Fact] void should_carry_a_public_event() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Events).Any(@event => @event.Visibility == SemanticEventVisibility.Public).ShouldBeTrue();
-    [Theory]
-    [InlineData("STAGE-ESM-024")]
-    [InlineData("STAGE-ESM-032")]
-    [InlineData("STAGE-ESM-033")]
-    public void should_refuse_each_kind_of_construct(string code) => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code);
+    [Fact] void should_refuse_the_missing_translation_scenario_harness() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("inbox/outbox", StringComparison.Ordinal));
     [Fact] void should_have_no_reducer_bodies_to_analyze() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Reducers).ShouldBeEmpty();
     [Fact] void should_not_claim_reducer_transition_analysis() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-023");
     [Fact] void should_admit_the_version_pair() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

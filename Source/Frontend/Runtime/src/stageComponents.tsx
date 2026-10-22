@@ -116,7 +116,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
     const queryName = text(element, 'query', text(element, 'typeName', element.id));
     const route = (text(element, 'query') ? data.routes?.queries?.[text(element, 'query')] : undefined) ?? text(element, 'route');
     const queryArguments = useMemo(() => queryArgumentsFor(element, data), [data, element]);
-    const { rows, error, loading } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
+    const { rows, error, loading, awaitingCommand } = useStageQuery({ scope: element.id, name: queryName, route: route || undefined, arguments: queryArguments.values, ready: queryArguments.ready });
     const columns = columnsFor(element, rows);
     const navigateTo = text(element, 'navigateOnRowClickToScreen');
     const navigateBy = text(element, 'navigateOnRowClickByParameter');
@@ -180,7 +180,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {loading && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
+            {(loading || awaitingCommand) && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
             {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
@@ -206,7 +206,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
                             </tr>
                         );
                     })}
-                    {rows.length === 0 && !loading && (
+                    {rows.length === 0 && !loading && !awaitingCommand && (
                         <tr><td colSpan={Math.max(columns.length, 1)}>No records found</td></tr>
                     )}
                 </tbody>

@@ -10,16 +10,12 @@
     "AcmeAdmissionsCorpus.V29": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-032", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
-        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "artifact": "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067", "issue": 721 } ] },
+        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "artifact": "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067", "issue": 15 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 },
-        { "code": "STAGE-ESM-032", "kind": "specification", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 212 },
-        { "code": "STAGE-ESM-032", "kind": "specification", "artifact": "sem1:60cb7528f069d0cd19bda286a6436df2a67fa4b3c0e22381874c1bfab83a1cbc", "issue": 212 },
-        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 721 },
         { "code": "STAGE-ESM-032", "kind": "event", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
-        { "code": "STAGE-ESM-032", "kind": "projection", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 } ] },
+        { "code": "STAGE-ESM-032", "kind": "projection", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
+        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 15 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-001", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 79 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 500 },
@@ -3045,13 +3041,9 @@
     },
     "PublicEventsCorpus.CapturesFromEventsV9": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-024", "artifact": "sem1:3a7308eedfe2a6ce884f17af41ab2f4c43b33896fd90089eccf1db3e56d1a85f", "issue": 79 } ] },
+      "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:3a7308eedfe2a6ce884f17af41ab2f4c43b33896fd90089eccf1db3e56d1a85f", "issue": 79 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:1d4c10806c7f7b3aaba77f66c9c0707f9bca08c2c2fae2ee95a8ccce11ac8bc1", "issue": 79 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:94bf04eca942363ef31ccd084f70dbc7d2cd207b2ed4db8bcd334fe2c8b48d1f", "issue": 79 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:cce588d1a8f3964b4b33f3bf856edc56f00301d3977ed38782e4a187fff4095b", "issue": 79 },
         { "code": "STAGE-ESM-033", "kind": "capture", "artifact": "sem1:1250713e62d06a8ea1817e00cb5a5eff355e04c071301489b64f733f5189fb71", "issue": 213 },
         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:6d930903487646d85d533cce983d3bc0e3ee104af4f421c3fd35d0a3d8877289", "issue": 213 },
         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:b91aca58130203f5c4593e2455812bfe06d6d81ad1b6644208a656bc8bd1fd06", "issue": 213 } ] },
@@ -3067,12 +3059,10 @@
     },
     "PublicEventsCorpus.V9": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-024", "artifact": "sem1:325001ee7bf2784487957444861987584865a62902798736a8b533f7e9f3ad78", "issue": 79 } ] },
+      "executor": { "outcome": "supported" },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:325001ee7bf2784487957444861987584865a62902798736a8b533f7e9f3ad78", "issue": 79 },
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:d1f828400968542ab966f1d899e5bf441f16a3eeb4a46b146051d8952e4e3a48", "issue": 79 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:43fb56a40dadc05adc86eb340a1241799683f9b3b1bd941493ff94ca875b7c49", "issue": 79 },
         { "code": "STAGE-ESM-032", "kind": "event", "artifact": "sem1:09dca67e4f696f2369055a3a3bd0492841f4354bedfe85bf64ff835bce2c47cd", "issue": 212 },
         { "code": "STAGE-ESM-032", "kind": "projection", "artifact": "sem1:7df51312cf89358797caec9a1c98309e6baa8141bea48ce58688bf5973282361", "issue": 212 },
         { "code": "STAGE-ESM-033", "kind": "capture", "artifact": "sem1:a290476c8257d8471cd96d7c278a5f9b175c2001411c466656d692618262e1c3", "issue": 213 },

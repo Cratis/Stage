@@ -12,6 +12,8 @@ namespace Cratis.Stage.Semantics;
 
 internal static partial class SemanticRunProjectionAdmission
 {
+    const string JoinIdentityRefusal = "A join's event-source identity must have the joined key's value type and enumeration values.";
+
     [GeneratedRegex(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, 1000)]
     private static partial Regex FluentTextLiteral { get; }
 
@@ -274,8 +276,6 @@ internal static partial class SemanticRunProjectionAdmission
             scope.Joins.All(join => join.Mappings.All(MappingSupported)) &&
             scope.Children.All(nested => ChildrenSupported(plan, specification, nested, properties, identity));
     }
-
-    const string JoinIdentityRefusal = "A join's event-source identity must have the joined key's value type and enumeration values.";
 
     // Stage lowers every event-source identity to text, so Chronicle's join would match Text "1" with Number 1,
     // while the reference keeps them distinct. Admit a join only when its event's identities have the joined key's type.

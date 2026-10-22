@@ -19,6 +19,7 @@ public class and_a_root_template_appearance_and_defaults_are_declared : Specific
           root template blueprint Cratis.Blueprint.Default AppShell version "^4.5"
             option navigationMode slim
             option showFooter true
+            option showThemeSwitcher false
             option title "Back office"
             option density 2
           appearance
@@ -38,6 +39,7 @@ public class and_a_root_template_appearance_and_defaults_are_declared : Specific
     [Fact] void should_name_the_root_template_as_a_pinned_blueprint_reference() => _result.Root!.Template.ShouldEqual(new TemplateReference(TemplateReferenceSource.Blueprint, "AppShell", "Cratis.Blueprint.Default", "^4.5"));
     [Fact] void should_carry_a_word_option_as_text() => _result.Root!.Options!["navigationMode"]!.GetValue<string>().ShouldEqual("slim");
     [Fact] void should_carry_a_flag_option_as_a_boolean() => _result.Root!.Options!["showFooter"]!.GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_carry_the_theme_switcher_flag_as_a_boolean() => _result.Root!.Options!["showThemeSwitcher"]!.GetValue<bool>().ShouldBeFalse();
     [Fact] void should_carry_a_quoted_option_as_text() => _result.Root!.Options!["title"]!.GetValue<string>().ShouldEqual("Back office");
     [Fact] void should_carry_a_number_option_as_a_number() => _result.Root!.Options!["density"]!.GetValue<long>().ShouldEqual(2L);
     [Fact] void should_carry_the_colour_scheme() => _result.Appearance!.ColorScheme.ShouldEqual(ColorScheme.Dark);

@@ -569,7 +569,7 @@ The renderer also retains .NET's non-backtracking automaton-size limit rather th
 ## Chrome
 
 The topbar, sidebar, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them: the breadcrumb shows
-where the current screen is, the topbar carries the blueprint's theme switcher and, when the model declares more than one locale,
+where the current screen is, the topbar carries the blueprint's theme switcher (unless `option showThemeSwitcher false` or a pinned colour scheme removes it) and, when the model declares more than one locale,
 a locale picker, and the menu is one of two things.
 
 ### Navigation regions
@@ -607,6 +607,7 @@ ui profile Web
   root template blueprint Cratis.Blueprint.Default AppShell version "^4.5"
     option navigationMode slim
     option showFooter false
+    option showThemeSwitcher false
   appearance
     color scheme dark
     accent "#4f46e5"
@@ -616,7 +617,7 @@ ui profile Web
 * The shell is chosen by Scene's `resolveEffectiveShell` (in .NET `ShellResolver`, through `RootShell.Resolve`) - the function the Studio preview
   calls, so the Stage and the preview start in the same shell: `root`, then the legacy `layout`, then the default blueprint's layout,
   then the bare shell. Nothing in the Stage re-implements the order.
-* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme` and `option showFooter` are applied to the shell; an option or
+* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme`, `option showFooter` and `option showThemeSwitcher` (both flags, default `true`) are applied to the shell. The theme switcher is also left out when `color scheme` is `light` or `dark`, because the scheme is then pinned and there is nothing to switch, and when the blueprint offers only one theme. `option showFooter false` leaves out the footer, whose default text is the application's name; an option or
   value the shell does not understand is reported, never silently dropped.
 * `color scheme` (`light`, `dark`, `system`) selects the dark or light theme (a `system` scheme follows the operating system), and `accent`
   becomes the theme's primary colour.
@@ -624,6 +625,23 @@ ui profile Web
   a **build-time finding** when planning (`cratis render`, the render plan) and, in a running Stage, an explicit start-up message that names
   the cause. The Stage never falls back to a different shell, and never shows a blank page.
 * The runtime scene carries `root`, `appearance` and `defaults` and, as always, no sample data (see below).
+
+### Default labels and values
+
+With no extra authoring the Stage reads like a product, not a debug view:
+
+* **Navigation and breadcrumb.** A screen is listed by an explicit navigation label when there is one; otherwise by the text of the first
+  `core:title` at the top of the screen's body (a title inside a section names that section, not the screen); otherwise by its name
+  humanized. The breadcrumb's last item uses the same text.
+* **Humanized names.** PascalCase and camelCase are split into words and written in sentence case, and a run of capitals stays as written:
+  `RegisterOpportunity` is "Register opportunity", `RegisterSKU` is "Register SKU". A screen name also loses a trailing `Screen`, `Page` or
+  `Dialog`: `PipelineScreen` is "Pipeline".
+* **Actions.** An action's label is its authored label, else the humanized command name. A command dialog is titled with that label and
+  is submitted with the themed Button, labelled the same way (there is no "Execute" prefix) and, inside a dialog, a Cancel button beside it.
+  Adjacent actions sit on one row; the first is primary and the next ones secondary, unless an action authors its `emphasis`
+  (`primary`, `secondary` or `quiet`), which always wins.
+* **Table values.** A boolean reads Yes or No, and an ISO date or date-time reads in the locale of the user. Any other value, including
+  text that only looks like a date, is shown as it is.
 
 ### Navigation items that render into a shell slot
 

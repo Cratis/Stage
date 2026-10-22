@@ -79,7 +79,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            var converted = property.Type.Kind == SemanticTypeReferenceKind.CompositeType
+            var converted = property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType
                 ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
                 : ConvertValue(value.Value, Resolve(property.Type));
             type.GetProperty(property.Name)!.SetValue(instance, converted);
@@ -103,6 +103,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
 
     Type Resolve(SemanticTypeReference reference)
     {
+        if (reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType) return typeof(JsonElement);
         var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
             : reference.Primitive;

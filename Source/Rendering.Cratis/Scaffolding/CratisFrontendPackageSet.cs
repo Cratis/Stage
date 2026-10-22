@@ -227,7 +227,7 @@ public sealed class CratisFrontendPackageSet
         "19.3.0",
         "19.3.0",
         "4.34.0",
-        "4.80.0",
+        "4.80.2",
         "11.2.0",
         "8.0.2",
         "1.52.0",

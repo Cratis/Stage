@@ -27,7 +27,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 {
     // Re-frozen for #704/#705/#706 (enum column options, yarn pin); earlier: #656: only scene.json and src/stage-scene.json lose the synthetic layout and defer to the blueprint.
     // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
-    // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.0 and Components 4.34.0.
+    // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
     const string Digest = "44ed6f6ccb9218c3c3632d5b15933f0a5733833279e3dccba5630de5886dd2ed";
 
     const string QualifiedManifest = """

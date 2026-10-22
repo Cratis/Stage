@@ -11,6 +11,7 @@ public class with_an_unresolved_key_path : given.a_scoped_from_block
 {
     void Establish()
     {
+        Map(_mapping);
         _from = _from with { Key = new SemanticProjectionValueKey(SemanticProjectionValue.EventProperty([_missing])) };
     }
 

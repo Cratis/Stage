@@ -15,6 +15,7 @@ public class a_scoped_from_block : Specification
     private protected SemanticApplicationContext _context = null!;
     protected SemanticProjectionScope _scope = null!;
     protected SemanticProjectionFrom _from = null!;
+    protected SemanticProjectionFrom _firstFrom = null!;
     protected SemanticProperty _name = null!;
     protected SemanticProperty _info = null!;
     protected SemanticProperty _notes = null!;
@@ -45,6 +46,7 @@ public class a_scoped_from_block : Specification
         _notes = properties.Single(property => property.Name == "notes");
         _nestedName = _context.Types[_info.Type.Target].Properties.Single().Id;
         _scope = _projection.Scope!;
+        _firstFrom = _scope.From[0];
         _from = _scope.From[1];
         _mapping = _from.Mappings.Single(mapping => mapping.Target[0] == _name.Id);
         _eventName = ((SemanticProjectionEventProperty)_mapping.Source!).Path[0];
@@ -52,11 +54,12 @@ public class a_scoped_from_block : Specification
 
     protected void Evaluate()
     {
-        var scope = SemanticProjectionScope.Empty with { From = [_scope.From[0], _from] };
+        var scope = SemanticProjectionScope.Empty with { From = [_firstFrom, _from] };
         if (_child)
         {
             scope = SemanticProjectionScope.Empty with
             {
+                From = [_firstFrom],
                 Children = [_scope.Children.Single() with { Scope = SemanticProjectionScope.Empty with { From = [_from] } }]
             };
         }

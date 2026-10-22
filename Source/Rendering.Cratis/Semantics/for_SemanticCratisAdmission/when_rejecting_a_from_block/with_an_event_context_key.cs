@@ -11,6 +11,7 @@ public class with_an_event_context_key : given.a_scoped_from_block
 {
     void Establish()
     {
+        Map(_mapping);
         _from = _from with { Key = new SemanticProjectionValueKey(SemanticProjectionValue.EventContext("occurred")) };
     }
 

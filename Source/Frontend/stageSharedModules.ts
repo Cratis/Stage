@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createRequire } from 'node:module';
 import type { Plugin } from 'vite';
 
 /** The browser global the Stage registers the modules it shares with approved custom packages on. */
@@ -48,15 +47,16 @@ export function sharedModuleSource(specifier: string, names: string[]): string {
  * @returns The Vite plugin.
  */
 export function stageSharedModules(): Plugin {
-    const require = createRequire(import.meta.url);
     return {
         name: 'stage-shared-modules',
-        generateBundle() {
+        async generateBundle() {
             for (const specifier of sharedModuleSpecifiers) {
+                // Import, not require: shared packages such as @cratis/components publish ESM-only exports.
+                const module = await import(specifier) as object;
                 this.emitFile({
                     type: 'asset',
                     fileName: sharedModuleFile(specifier),
-                    source: sharedModuleSource(specifier, Object.keys(require(specifier) as object)),
+                    source: sharedModuleSource(specifier, Object.keys(module)),
                 });
             }
         },

@@ -407,11 +407,12 @@ jobs:
   # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
   # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
   standalone-generated-application:
-    needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    needs: [preflight, routing, dotnet-build]
+    # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
+    # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

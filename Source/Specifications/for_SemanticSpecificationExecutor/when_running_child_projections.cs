@@ -62,6 +62,19 @@ public class when_running_child_projections : Specification
         result.Unsupported.Details.ShouldContain("optional child source or null literal");
     }
 
+    [Theory]
+    [InlineData("join")]
+    [InlineData("root-join")]
+    public async Task should_refuse_a_join_whose_event_identity_has_another_value_type(string action)
+    {
+        var plan = Compile(action, numberedLabels: true);
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+            "A join's event-source identity must have the joined key's value type and enumeration values.");
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+        result.Unsupported!.Details.ShouldEqual("A join's event-source identity must have the joined key's value type and enumeration values.");
+    }
+
     [Fact]
     public void should_keep_product_arithmetic_refused_by_name()
     {
@@ -85,7 +98,7 @@ public class when_running_child_projections : Specification
         SemanticProjectionObservation.Observes(nested, opened).ShouldBeFalse();
     }
 
-    static SemanticExecutionPlan Compile(string action)
+    static SemanticExecutionPlan Compile(string action, bool numberedLabels = false)
     {
         var operation = action switch
         {
@@ -207,6 +220,13 @@ public class when_running_child_projections : Specification
 
             // Only Placed carries parentId; the removal retains its event-source parent.
             source = source.Replace("          remove with Removed key code\n            parent parentId", "          remove with Removed key code\n            parent $eventSourceId", StringComparison.Ordinal);
+        }
+        if (numberedLabels)
+        {
+            // Labeled's event source becomes a number while the joined child code and root id stay text.
+            source = source.Replace("      command RecordLabeled\n        source String identifier", "      command RecordLabeled\n        source Int identifier", StringComparison.Ordinal);
+            foreach (var (code, number) in new[] { ("second", 2), ("first", 1), ("third", 3), ("parent", 7) })
+                source = source.Replace($"Labeled\n          for \"{code}\"", $"Labeled\n          for {number}", StringComparison.Ordinal);
         }
         if (action == "child-id") source = source.Replace("code", "id", StringComparison.Ordinal);
         if (action == "optional-source") source = source.Replace("      event Labeled\n        label String", "      event Labeled\n        label String optional", StringComparison.Ordinal);

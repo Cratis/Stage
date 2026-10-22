@@ -217,7 +217,10 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
             }
-            return StructuredValueRefusal(plan, scope, specification);
+            return scope.Joins.Any(join => !JoinIdentityMatches(plan, specification, join, readModel.Properties, childIdentity: null)) ||
+                scope.Children.Any(child => !ChildJoinIdentitiesMatch(plan, specification, child, readModel.Properties))
+                ? JoinIdentityRefusal
+                : StructuredValueRefusal(plan, scope, specification);
         }
 
         if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.Length != 1 || !FlatMatches(plan, specification, projection.Transitions[0], readModel))
@@ -270,6 +273,27 @@ internal static partial class SemanticRunProjectionAdmission
             scope.Removals.All(removal => RemovalKeySupported(plan, removal, identity) && ParentMatches(removal.ParentKey, removal.EventContract)) &&
             scope.Joins.All(join => join.Mappings.All(MappingSupported)) &&
             scope.Children.All(nested => ChildrenSupported(plan, specification, nested, properties, identity));
+    }
+
+    const string JoinIdentityRefusal = "A join's event-source identity must have the joined key's value type and enumeration values.";
+
+    // Stage lowers every event-source identity to text, so Chronicle's join would match Text "1" with Number 1,
+    // while the reference keeps them distinct. Admit a join only when its event's identities have the joined key's type.
+    static bool JoinIdentityMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionJoin join, System.Collections.Immutable.ImmutableArray<SemanticProperty> properties, SemanticId? childIdentity) =>
+        join.Key is null &&
+        (childIdentity is null || join.On == childIdentity) &&
+        properties.SingleOrDefault(property => property.Id == join.On) is { Type: { IsCollection: false } onType } &&
+        IsScalar(onType) &&
+        Primitive(plan, onType) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
+        ScopedKeysMatch(plan, specification, join.EventContract, onType);
+
+    static bool ChildJoinIdentitiesMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionChildren child, System.Collections.Immutable.ImmutableArray<SemanticProperty> parentProperties)
+    {
+        var collection = parentProperties.SingleOrDefault(property => property.Id == child.Property);
+        if (collection is null) return false;
+        var properties = plan.Model.Application.Types.Single(type => type.Id == collection.Type.Target).Properties;
+        return child.Scope.Joins.All(join => JoinIdentityMatches(plan, specification, join, properties, child.IdentifiedBy)) &&
+            child.Scope.Children.All(nested => ChildJoinIdentitiesMatch(plan, specification, nested, properties));
     }
 
     static bool MappingSupported(SemanticProjectionMapping mapping) => MappingSupported(null, null, mapping);

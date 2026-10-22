@@ -14,7 +14,43 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 internal static partial class SemanticRunProjectionAdmission
 {
-    const string IncompleteStructuredValue = "A structured value copied or read by a projection must be complete (every member present, none null): Chronicle keeps the event's JSON as is, so a missing member cannot be distinguished from a default.";
+    const string IncompleteStructuredValue = "A structured value copied or read by a projection must be complete (every member present, none null) and whole numbers must be exact under double: Chronicle keeps the event's JSON as is, so a missing member cannot be distinguished from a default.";
+
+    const decimal MaxExactDouble = 9007199254740992m;
+
+    const string InexactStructuredValue = "A structured value copied or read by a projection cannot round-trip exactly: Chronicle reads its JSON without a schema and turns every number into a double, so a Decimal member or a whole number beyond 2^53 loses precision.";
+
+    static bool ContainsDecimal(SemanticExecutionPlan plan, SemanticTypeReference type, HashSet<SemanticId> visiting)
+    {
+        var element = type with { IsCollection = false };
+        if (element.Kind != SemanticTypeReferenceKind.CompositeType)
+        {
+            return IsScalar(element) && Primitive(plan, element) == SemanticPrimitiveType.DecimalNumber;
+        }
+        if (!visiting.Add(element.Target)) return false;
+        var found = plan.Model.Application.Types.Single(candidate => candidate.Id == element.Target).Properties.Any(property => ContainsDecimal(plan, property.Type, visiting));
+        visiting.Remove(element.Target);
+        return found;
+    }
+
+    // A Set from a nested event path whose leaf is a Decimal.
+    static bool InexactNestedRead(SemanticExecutionPlan plan, SemanticProjectionScope scope) =>
+        scope.From.Select(from => (from.EventContract, from.Mappings)).Concat(scope.Joins.Select(join => (join.EventContract, join.Mappings)))
+            .Any(block => block.Mappings.Any(mapping => mapping.Source is SemanticProjectionEventProperty { Path.Length: > 1 } source && NestedLeafIsDecimal(plan, plan.Events[block.EventContract], source)));
+
+    static bool NestedLeafIsDecimal(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionEventProperty source)
+    {
+        var properties = @event.Properties;
+        SemanticTypeReference? type = null;
+        foreach (var id in source.Path)
+        {
+            if (properties.SingleOrDefault(candidate => candidate.Id == id) is not { } member) return false;
+            type = member.Type;
+            if (type.Kind == SemanticTypeReferenceKind.CompositeType)
+                properties = plan.Model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties;
+        }
+        return type is { } leaf && IsScalar(leaf) && Primitive(plan, leaf) == SemanticPrimitiveType.DecimalNumber;
+    }
 
     // A whole-value copy keeps one closed type end to end: no optional members, no DateTime, recursively.
     static bool WholeValueCopy(SemanticExecutionPlan plan, SemanticProperty property, SemanticProjectionScope? scope)
@@ -162,7 +198,7 @@ internal static partial class SemanticRunProjectionAdmission
         }
         if (type.Kind != SemanticTypeReferenceKind.CompositeType)
         {
-            return true;
+            return value is not SemanticNumberValue { Value: var number } || Math.Abs(number) <= MaxExactDouble;
         }
 
         return value is SemanticCompositeValue composite && plan.Model.Application.Types.Single(candidate => candidate.Id == type.Target).Properties

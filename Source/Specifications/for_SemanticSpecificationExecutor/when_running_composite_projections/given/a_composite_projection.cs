@@ -11,13 +11,11 @@ public class a_composite_projection : Specification
 {
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected async Task Run(string addressType = "type Address\n  street String\n  city String", string address = "{\"street\":\"Main 1\",\"city\":\"Oslo\"}", string expectedCity = "Oslo")
+    protected async Task Run(string addressType = "type Address\n  street String\n  city String", string address = "{\"street\":\"Main 1\",\"city\":\"Oslo\"}", string expectedCity = "Oslo", string lineType = "type Line\n  sku String\n  quantity Int", bool decimalPath = false, string lines = "[{\"sku\":\"A-1\",\"quantity\":2},{\"sku\":\"B-2\",\"quantity\":1}]")
     {
         var source = $$"""
             {{addressType}}
-            type Line
-              sku String
-              quantity Int
+            {{lineType}}
             module Work
               feature Items
                 slice StateView Lookup
@@ -36,18 +34,18 @@ public class a_composite_projection : Specification
                     id String key
                     address Address
                     lines Line[]
-                    city String
+                    city String{{(decimalPath ? "\n                    lat Decimal" : "")}}
                   projection Orders => Order
                     from Placed
                       id = $eventSourceId
                       address = address
                       lines = lines
-                      city = address.city
+                      city = address.city{{(decimalPath ? "\n                      lat = address.lat" : "")}}
                   specification Checking
                     given Placed
                       for "one"
                       address = {{address}}
-                      lines = [{"sku":"A-1","quantity":2},{"sku":"B-2","quantity":1}]
+                      lines = {{lines}}
                     then readmodel Order
                       id = "one"
                       city = "{{expectedCity}}"

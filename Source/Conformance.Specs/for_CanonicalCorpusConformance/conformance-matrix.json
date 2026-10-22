@@ -10,13 +10,14 @@
     "AcmeAdmissionsCorpus.V29": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-024", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 } ] },
+        { "code": "STAGE-ESM-032", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
+        { "code": "STAGE-ESM-032", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
+        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "artifact": "sem1:2c6acbe63e132429856d07853d22e9aa71650556534dfdbfba76ba5122bde067", "issue": 721 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 213 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:60cb7528f069d0cd19bda286a6436df2a67fa4b3c0e22381874c1bfab83a1cbc", "issue": 213 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 213 },
-        { "code": "STAGE-ESM-024", "kind": "specification", "artifact": "sem1:a03378f05d75507dfee8bef6c18c34594bdfd979abad80d93c8d1868ac305d23", "issue": 213 },
+        { "code": "STAGE-ESM-032", "kind": "specification", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 212 },
+        { "code": "STAGE-ESM-032", "kind": "specification", "artifact": "sem1:60cb7528f069d0cd19bda286a6436df2a67fa4b3c0e22381874c1bfab83a1cbc", "issue": 212 },
+        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 721 },
         { "code": "STAGE-ESM-032", "kind": "event", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
         { "code": "STAGE-ESM-032", "kind": "projection", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 } ] },
       "renderer": { "outcome": "refused", "refusals": [
@@ -3160,7 +3161,10 @@
     "RecordCapturesCorpus.V6": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-024", "artifact": "sem1:365c5e9d0cd6dd5fda3a52f229ec81d01df33dfeab5d1af904b6f4536265d5bf", "issue": 79 } ] },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:5aa267c7183204248afbbe9f4145505a392dbeee3b35efdf34eb709267cdd893", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:a02cbe22e0ff2783154087bea303fd24bb2a8cc6b10b82dda9b8e5bcc66dc745", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:a5a8ae5c800f90ed2541fd4f44a998a3b775b4f8f1e5fc9d936c775319e6fbe5", "issue": 79 },
+        { "code": "STAGE-ESM-024", "artifact": "sem1:f792f35159a6fa61d1ff09ed38bc55a01a793db1b580cb0f4d75a330a02e1b74", "issue": 79 } ] },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-024", "kind": "capture", "artifact": "sem1:fa74629697e752c58ded0314b44ac3b28bb9633ac83e7303e09af35bab20ffca", "issue": 79 },
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:365c5e9d0cd6dd5fda3a52f229ec81d01df33dfeab5d1af904b6f4536265d5bf", "issue": 79 },

@@ -45,6 +45,15 @@ public class when_running_child_projections : Specification
     }
 
     [Fact]
+    public async Task should_refuse_a_child_removal_without_a_parent_by_name()
+    {
+        var plan = Compile("missing-parent-remove");
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+        result.Unsupported.Details.ShouldContain("existing parent instance");
+    }
+
+    [Fact]
     public async Task should_refuse_an_optional_child_mapping_source_by_name()
     {
         var plan = Compile("optional-source");
@@ -81,7 +90,7 @@ public class when_running_child_projections : Specification
         var operation = action switch
         {
             "root-join" => "when append Labeled\n  for \"parent\"\n  label = \"renamed\"",
-            "remove" => "when append Removed\n  for \"parent\"\n  code = \"second\"",
+            "remove" or "missing-parent-remove" => "when append Removed\n  for \"parent\"\n  code = \"second\"",
             "join" => "when append Labeled\n  for \"second\"\n  label = \"renamed\"",
             _ => $"when append Placed\n  for \"parent\"\n  code = \"{(action == "append" ? "third" : "second")}\"\n  quantity = 3"
         };
@@ -207,7 +216,7 @@ public class when_running_child_projections : Specification
                 source = source.Replace($"        given Labeled\n          for \"{code}\"\n          label = \"{label}\"\n", string.Empty, StringComparison.Ordinal);
         }
         if (action == "implicit-identity") source = source.Replace("            code = code\n", string.Empty, StringComparison.Ordinal);
-        if (action == "missing-parent") source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
+        if (action is "missing-parent" or "missing-parent-remove") source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
         return when_running_property_keyed_removal_only_projections.Compile(source);
     }
 }

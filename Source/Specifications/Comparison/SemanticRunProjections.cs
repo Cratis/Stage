@@ -183,8 +183,10 @@ internal static class SemanticRunProjections
             {
                 foreach (var child in scope.Children)
                 {
-                    if (child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract) is not { } from) continue;
-                    var parent = from.ParentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
+                    var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
+                        child.Scope.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.ParentKey;
+                    if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
+                    var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
                     if (parent is not SemanticTextValue text || !scenario.Instances.Keys.Any(source => source.ToString() == text.Value))
                         throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event; Chronicle cannot materialize that parent implicitly."));

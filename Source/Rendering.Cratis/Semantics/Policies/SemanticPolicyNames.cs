@@ -92,7 +92,7 @@ internal static class SemanticPolicyNames
             foreach (var collision in qualified.GroupBy(operation => Qualified(bases[operation.Id], operation, levels[operation.Id]), StringComparer.Ordinal)
                 .Where(group => group.Count() > 1 || plain.Contains(group.Key)))
             {
-                foreach (var operation in collision.Where(operation => levels[operation.Id] <= operation.Located.FeaturePath.Count))
+                foreach (var operation in collision.Where(operation => levels[operation.Id] < MaximumLevel(operation)))
                 {
                     levels[operation.Id]++;
                     changed = true;
@@ -106,16 +106,37 @@ internal static class SemanticPolicyNames
             result[operation.Id] = new($"{name}Policy", name, [operation.Id]);
         }
 
+        EnsureDistinct(result);
         return result;
     }
 
-    // Level 0 is the operation name; each further level adds the next outer feature, and the last adds the module.
+    // Operations that do not share a policy must never share a class: a shared class would silently enforce one
+    // operation's authorization on the other.
+    static void EnsureDistinct(Dictionary<SemanticId, PolicyName> names)
+    {
+        var conflict = names.Values
+            .GroupBy(name => name.ClassName, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Select(name => name.Sources).Distinct().Count() > 1);
+        if (conflict is not null)
+        {
+            throw new InvalidOperationException($"Operations {string.Join(", ", conflict.SelectMany(name => name.Sources).Distinct())} bind the policy '{conflict.First().Name}' differently and cannot be given distinct policy class names.");
+        }
+    }
+
+    // Levels 1 to the feature count add outer features, the next adds the module, the next the slice, and the last
+    // says whether the operation is a command or a query.
+    static int MaximumLevel(PolicyOperation operation) => operation.Located.FeaturePath.Count + 3;
+
+    // Level 0 is the operation name; each further level qualifies it further, see MaximumLevel.
     static string Qualified(string name, PolicyOperation operation, int level)
     {
         var segments = Segments(operation, level);
+        var kind = level >= MaximumLevel(operation) ? Kind(operation) : string.Empty;
 
-        return $"{name}For{string.Concat(segments.Select(GeneratedPascalCase.From))}{GeneratedPascalCase.From(operation.Name)}";
+        return $"{name}For{string.Concat(segments.Select(GeneratedPascalCase.From))}{GeneratedPascalCase.From(operation.Name)}{kind}";
     }
+
+    static string Kind(PolicyOperation operation) => operation.Command is not null ? "Command" : "Query";
 
     static IEnumerable<string> Segments(PolicyOperation operation, int level)
     {
@@ -125,9 +146,14 @@ internal static class SemanticPolicyNames
             return [];
         }
 
-        return level <= features.Count
-            ? features.Skip(features.Count - level).Select(feature => feature.Name)
-            : [operation.Located.Module.Name, .. features.Select(feature => feature.Name)];
+        if (level <= features.Count)
+        {
+            return features.Skip(features.Count - level).Select(feature => feature.Name);
+        }
+
+        return level == features.Count + 1
+            ? [operation.Located.Module.Name, .. features.Select(feature => feature.Name)]
+            : [operation.Located.Module.Name, .. features.Select(feature => feature.Name), operation.Located.Slice.Name];
     }
 
     static string Base(SemanticAuthorization authorization) => authorization switch

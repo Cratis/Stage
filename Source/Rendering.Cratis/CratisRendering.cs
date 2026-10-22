@@ -317,7 +317,7 @@ public static partial class CratisRendering
     /// </summary>
     /// <param name="listedPackages">The packages the ui profile lists, or null for none.</param>
     /// <returns>Whether PrimeReact is listed.</returns>
-    internal static bool ListsPrimeReact(IEnumerable<string>? listedPackages) =>
+    public static bool ListsPrimeReact(IEnumerable<string>? listedPackages) =>
         listedPackages?.Contains(StageShippedPackages.PrimeReact, StringComparer.Ordinal) == true;
 
     /// <summary>
@@ -331,9 +331,14 @@ public static partial class CratisRendering
     /// <param name="approvedPackages">The custom runtime packages the application approved, or null for none.</param>
     /// <param name="usesPrimeReact">Whether the ui profile lists <c language="text">PrimeReact</c>.</param>
     /// <returns>The immutable Cratis render profile.</returns>
+    /// <remarks>
+    /// A host that composes the Scene input itself, and so passes a null <paramref name="scene"/>, passes the authored ui profile's
+    /// choice here (see <see cref="ListsPrimeReact(IEnumerable{string}?)"/>) and appends the matching <c language="shell">scene.json</c> input.
+    /// Admission reads the choice from that Scene input's ui profiles, so the two must agree.
+    /// </remarks>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options, strings input or approved packages are invalid.</exception>
     /// <exception cref="InvalidArtifactRenderContract">The Scene contains conversion errors.</exception>
-    internal static ArtifactRenderProfile CreateProfile(
+    public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
         Contracts.Scene.SceneApplication? scene,

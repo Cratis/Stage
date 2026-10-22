@@ -17,6 +17,7 @@ export default defineConfig({
         lib: {
             entry: {
                 'src/index': fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+                'src/primereact': fileURLToPath(new URL('./src/primereact.ts', import.meta.url)),
                 styledPrimeReact: fileURLToPath(new URL('./styledPrimeReact.ts', import.meta.url)),
             },
             formats: ['es'],

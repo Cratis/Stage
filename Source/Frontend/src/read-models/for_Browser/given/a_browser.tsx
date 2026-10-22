@@ -2,13 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { render } from '@testing-library/react';
-import { PrimeReactProvider } from '@primereact/core/config';
+import { CratisComponentsProvider } from '@cratis/components';
 import { vi } from 'vitest';
 import { Browser } from '../../Browser';
 import { endpoints } from '../../endpoints';
 import type { Summary } from '../../Summary';
 import type { Detail } from '../../Detail';
-import { stageTheme } from '@cratis/stage.runtime';
 
 export const model: Summary = {
     id: 'sm:model', name: 'ProjectSummary', module: 'Projects', feature: 'Registration', slice: 'ProjectLookup',
@@ -32,5 +31,5 @@ export function serve(models: Summary[] = [model], selected = detail) {
 }
 
 export function renderBrowser() {
-    return render(<PrimeReactProvider theme={stageTheme}><Browser /></PrimeReactProvider>);
+    return render(<CratisComponentsProvider><Browser /></CratisComponentsProvider>);
 }

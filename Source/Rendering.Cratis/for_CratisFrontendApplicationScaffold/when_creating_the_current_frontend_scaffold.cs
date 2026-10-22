@@ -89,6 +89,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_type_check_the_bundler_configuration_through_the_referenced_project() => Content(".frontend/tsconfig.json").ShouldContain("\"path\": \"./tsconfig.node.json\"");
     [Fact] void should_type_the_react_shell_it_compiles() => DependencyVersions().ShouldContain("@types/react=");
     [Fact] void should_ignore_the_bundled_web_root_and_node_modules() => Content(".gitignore").ShouldContain("wwwroot/");
+    [Fact] void should_ignore_yarn_install_state() => Content(".gitignore").ShouldContain("\n.yarn/\n");
     [Fact] void should_not_emit_wildcard_range_or_latest_versions() => HasForbiddenValues().ShouldBeFalse();
 
     static bool IsRuntime(string path) => path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts";

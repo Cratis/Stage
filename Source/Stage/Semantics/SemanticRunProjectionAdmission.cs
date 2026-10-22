@@ -179,7 +179,8 @@ internal static class SemanticRunProjectionAdmission
                 ? reachable.Any(eventContract => !scope.Removals.Any(removal => removal.EventContract == eventContract &&
                     removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty }) &&
                     !ScopedKeysMatch(plan, specification, eventContract, identifier.Type))
-                : scope.From.Select(from => from.EventContract).Concat(sourceKeyedRemovals.Select(removal => removal.EventContract))
+                : scope.From.Where(from => from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity })
+                    .Select(from => from.EventContract).Concat(sourceKeyedRemovals.Select(removal => removal.EventContract))
                     .Any(eventContract => reachable.Contains(eventContract) && !ScopedKeysMatch(plan, specification, eventContract, identifier.Type)))
             {
                 return "A scoped event-source key must have the read-model identifier's value type and enumeration values.";
@@ -251,7 +252,7 @@ internal static class SemanticRunProjectionAdmission
     static bool ScopedKeysMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId eventContract, SemanticTypeReference identifier)
     {
         bool Matches(SemanticEventSourceIdentity? source) => source is not null &&
-            source.Type.Kind == identifier.Kind && source.Type.Target == identifier.Target && source.Type.Primitive == identifier.Primitive &&
+            SourceTypeMatches(plan, source.Type, identifier) &&
             source.Value is SemanticTextValue text &&
             (Primitive(plan, identifier) != SemanticPrimitiveType.Uuid ||
                 (Guid.TryParseExact(text.Value, "D", out var uuid) && uuid.ToString("D") == text.Value)) &&
@@ -274,7 +275,7 @@ internal static class SemanticRunProjectionAdmission
             var value = destination switch
             {
                 SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
-                    when.Values.SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
+                    when.Values.Concat(when.GeneratedValues).SingleOrDefault(input => input.TargetProperty == property.Target)?.Value,
                 SemanticValueExpression literal => literal.Value,
                 null => when.EventSource?.Value,
                 _ => null

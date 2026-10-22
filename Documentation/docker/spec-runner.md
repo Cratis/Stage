@@ -17,6 +17,7 @@ expectations, and matches any-order expectations by assignment at ESM v8 and lat
 publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STAGE-ESM-033`), and directed
 Translate slices (`STAGE-ESM-024`, naming the direction), and reducer observer filters (`STAGE-ESM-035`).
 The structural engine still refuses every reaction execution identity (`STAGE-ESM-034`) and reaction observer filter (`STAGE-ESM-035`); semantic renderer support for reaction filters and role-only or authenticated-only `runs as` invocations does not relax these structural refusals. Per-production route overrides run on the semantic engine; an override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, is not admitted yet and fails `STAGE-ESM-036`; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
+The semantic engine scopes translation refusals to each specification: an unrelated Translate slice does not block a run. It still refuses explicit public or foreign events, reachable outbound producers, and reachable behavior inside Translate slices; given history alone does not execute those producers.
 The semantic executor settles event-triggered reactions after each command or direct append, including
 `where`, productions, invocations, cascades, `runs as`, `from`, mixed effects and append constraints.
 It processes new facts in append order, reactions in semantic-identity order and triggers in authored order,
@@ -373,8 +374,8 @@ make it fail. Specifications can inspect projected Given events without a comman
 Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument
 and query key as the subject. An allowed query compares its result; a denied query matches only `then denied`,
 not an empty result or `then error`. A reached opaque policy returns `Unsupported(Authorization)`. Flat scalar projections and scoped projections using
-event-source keys (text or UUID) with scalar `from`/`set` mappings and property-keyed root removals run with per-specification artifacts. The
-semantic trace includes keyed read-model and query results; a mismatched result fails the specification.
+event-source keys (text or UUID) support scalar `set` mappings from event properties, event-source identities or typed literals, plus event-property `add`/`subtract` and numeric `increment`/`decrement`. Primitive numeric zero initialization with `add`/`subtract` is also supported; nonzero arithmetic literals, factors and expression-valued arithmetic remain refused. These mappings and property-keyed root removals run with per-specification artifacts. The
+semantic trace includes keyed read-model and query results; a mismatched result fails the specification. A named projection-lowering refusal is reported as `Unsupported(Projection)`; unexpected projection runtime failures fail the specification with the exception message. Neither is treated as a command rejection. For specifications expecting an error or denial, projections never run: actual rejections are compared, while accepted commands report the outcome mismatch before projection execution. Their produced-event projections are therefore not admission-relevant.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 
@@ -397,7 +398,7 @@ An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
-composite keys and Chronicle#4125 shapes remain rejected. The per-run executor runs identity-only `every` mappings for the declared `from` event types and identity-only `all` (`FromAll`) mappings for all facts, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Literal `every` mappings, literal or empty `all` blocks, and `every` including children remain unsupported. Queries other than optional snapshots
+composite keys and Chronicle#4125 shapes remain rejected. The per-run executor runs identity-only `every` mappings for the declared `from` event types and identity-only `all` (`FromAll`) mappings for all facts, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Literal `every` mappings apply to each declared `from` block and override an exact scalar `set` on the same target. Literal or empty `all` blocks and `every` including children remain unsupported. Queries other than optional snapshots
 by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic

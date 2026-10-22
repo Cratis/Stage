@@ -13,7 +13,7 @@ public class a_projected_specification : Specification
     protected SemanticSpecificationRun _reference = null!;
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected static SemanticExecutionPlan Compile(string scenario, string policy = "require role \"Staff\"", bool commandScenario = false)
+    protected static SemanticExecutionPlan Compile(string scenario, string policy = "require role \"Staff\"", bool commandScenario = false, bool validateDescription = false)
     {
         var source = $$"""
             policy Access
@@ -24,6 +24,7 @@ public class a_projected_specification : Specification
                   command RegisterInvoice
                     invoiceId String identifier
                     description String
+            {{(validateDescription ? "        validate\n          description not empty message \"Description is required\"" : string.Empty)}}
                     produces InvoiceRegistered
                       for invoiceId
                       description = description
@@ -51,6 +52,30 @@ public class a_projected_specification : Specification
         Assert.NotNull(admitted.Plan);
 
         return admitted.Plan!;
+    }
+
+    protected static SemanticExecutionPlan ExpectRejection(SemanticExecutionPlan plan, bool denied = false)
+    {
+        var model = plan.Model;
+        var application = model.Application with
+        {
+            Modules = [.. model.Application.Modules.Select(module => module with
+            {
+                Features = [.. module.Features.Select(feature => feature with
+                {
+                    Slices = [.. feature.Slices.Select(slice => slice with
+                    {
+                        Specifications = [.. slice.Specifications.Select(specification => specification with
+                        {
+                            GivenEvents = [], ThenEvents = [], ThenReadModels = [], ThenAbsentReadModels = [], ThenQueries = [],
+                            ThenErrors = denied ? [] : [new("LoweringRefused", "Object reference not set to an instance of an object.")],
+                            ThenDenied = denied
+                        })]
+                    })]
+                })]
+            })]
+        };
+        return SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
     }
 
     protected async Task Run()

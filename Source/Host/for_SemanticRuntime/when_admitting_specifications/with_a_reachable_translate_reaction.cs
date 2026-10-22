@@ -15,7 +15,7 @@ public class with_a_reachable_translate_reaction : Specification
 
     void Establish()
     {
-        var source = """
+        const string source = """
             module Work
               feature Work
                 slice StateChange Work

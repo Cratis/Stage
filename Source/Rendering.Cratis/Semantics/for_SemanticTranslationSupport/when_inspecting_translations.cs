@@ -33,6 +33,12 @@ public class when_inspecting_translations : Specification
             Reducers = [new("Publish", _publisher.ReadModel, []) { Target = SemanticProjectionTargetKind.Event }]
         },
         _events).ShouldBeFalse();
+    [Fact] void should_refuse_reactions_in_a_translate_slice() => SemanticTranslationSupport.Slice(
+        _slices.Single(slice => slice.Projections.Contains(_publisher)) with
+        {
+            Reactions = [new(_publisher.Id, "Follow", [])]
+        },
+        _events).ShouldBeFalse();
     [Fact] void should_admit_the_canonical_translation_slices() => _slices.Where(slice => slice.Kind == SemanticSliceKind.Translate).All(slice => SemanticTranslationSupport.Slice(slice, _events)).ShouldBeTrue();
     [Fact] void should_recognize_both_public_contracts() => _events.Values.Where(contract => contract.Visibility == SemanticEventVisibility.Public).All(contract => SemanticTranslationSupport.Event(contract, _slices, _events)).ShouldBeTrue();
     [Fact] void should_refuse_an_outside_system_capture() => SemanticTranslationSupport.Capture(_capture with { EventsSource = null }, _events).ShouldBeFalse();

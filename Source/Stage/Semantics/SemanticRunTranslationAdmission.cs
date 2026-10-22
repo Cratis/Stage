@@ -67,8 +67,7 @@ internal static class SemanticRunTranslationAdmission
             feature = features.FirstOrDefault(candidate => candidate.Kind != "event" && (candidate.Kind != "capture" || candidate.Code == SemanticVersionFeatures.ForeignEvents) && artifacts.Contains(candidate.Artifact));
             if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
             if (slice.Kind == SemanticSliceKind.Translate &&
-                (slice.Reactions.Any(reaction => reaction.Triggers.Any(trigger => trigger.Kind == SemanticReactionTriggerKind.Event &&
-                    (reachable.Contains(trigger.Source) || (!trigger.Source.IsSet && reachable.Count > 0)))) ||
+                (slice.Reactions.Any(reaction => Selected(reaction, specification, reachable)) ||
                     slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event && Observes(projection, reachable)) ||
                     slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)))))
             {
@@ -79,6 +78,12 @@ internal static class SemanticRunTranslationAdmission
         feature = features.FirstOrDefault(candidate => candidate.Kind == "event" && reachable.Contains(candidate.Artifact));
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
+
+    static bool Selected(SemanticReaction reaction, SemanticSpecification specification, HashSet<SemanticId> reachable) =>
+        specification.WhenRedelivered?.Reaction == reaction.Id || reaction.Triggers.Any(trigger =>
+            (trigger.Kind == SemanticReactionTriggerKind.Event && (reachable.Contains(trigger.Source) || (!trigger.Source.IsSet && reachable.Count > 0))) ||
+            (specification.WhenTrigger is { } fired && trigger.Kind == fired.Kind && trigger.Source == fired.Trigger) ||
+            (specification.WhenClock is not null && trigger.Kind is SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule));
 
     static bool Observes(SemanticProjection projection, HashSet<SemanticId> reachable) =>
         (projection.Scope?.Every?.SubscribesToAllEvents == true && reachable.Count > 0) ||

@@ -83,8 +83,9 @@ public class with_read_side_or_reactive_translate_behavior
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
 
-        result.Outcome.ShouldEqual(reachable ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
-        if (reachable) result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+        var unsupported = reachable || (kind == "reaction" && withinTranslate);
+        result.Outcome.ShouldEqual(unsupported ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
+        if (unsupported) result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
         else result.Unsupported.ShouldBeNull();
     }
 }

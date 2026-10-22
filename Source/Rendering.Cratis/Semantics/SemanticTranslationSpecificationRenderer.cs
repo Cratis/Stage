@@ -29,13 +29,14 @@ internal static partial class SemanticTranslationSpecificationRenderer
             .Line("readonly global::Cratis.Chronicle.IEventStore _store = Substitute.For<global::Cratis.Chronicle.IEventStore>();")
             .Line("readonly global::Cratis.Chronicle.EventSequences.IEventLog _log = Substitute.For<global::Cratis.Chronicle.EventSequences.IEventLog>();")
             .Line("readonly global::Cratis.Chronicle.EventSequences.IEventSequence _outbox = Substitute.For<global::Cratis.Chronicle.EventSequences.IEventSequence>();")
+            .Line("readonly global::Cratis.Chronicle.EventSequences.IEventSequence _inbox = Substitute.For<global::Cratis.Chronicle.EventSequences.IEventSequence>();")
             .Line("readonly global::System.Collections.Generic.List<global::Cratis.Chronicle.Events.AppendedEvent> _history = [];")
             .Line("readonly global::System.Collections.Generic.List<(global::Cratis.Chronicle.Events.EventSourceId EventSourceId, object Event)> _published = [];")
             .Line($"{reactor} _reactor = null!;")
             .Line("readonly global::System.Collections.Generic.List<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> _produced = [];")
             .Line(SemanticSpecificationValuesRenderer.Declarations).BlankLine();
         RenderSetup(builder, specification, context, types, reactor);
-        RenderAct(builder, specification, context, types, capture, publication);
+        RenderAct(builder, specification, context, types, publication);
         RenderAssertions(builder, specification, context, types, publication is not null);
         builder.EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
@@ -45,43 +46,45 @@ internal static partial class SemanticTranslationSpecificationRenderer
     {
         builder.OpenBlock("void Establish()")
             .Line("_store.EventLog.Returns(_log);")
+            .Line("_store.GetEventSequence(Arg.Any<global::Cratis.Chronicle.EventSequences.EventSequenceId>()).Returns(_inbox);")
             .Line("_store.GetEventSequence(global::Cratis.Chronicle.EventSequences.EventSequenceId.Outbox).Returns(_outbox);")
+            .Line("_inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<global::System.Collections.Generic.IEnumerable<EventType>>()).Returns(call => global::System.Threading.Tasks.Task.FromResult<global::System.Collections.Immutable.IImmutableList<AppendedEvent>>(global::System.Collections.Immutable.ImmutableList.CreateRange(_history.Where(fact => fact.Context.SequenceNumber.Value >= call.Arg<EventSequenceNumber>().Value && (call.ArgAt<global::System.Collections.Generic.IEnumerable<EventType>>(2)?.Contains(fact.Context.EventType) ?? true)))));")
             .Line("_log.GetForEventSourceIdAndEventTypes(Arg.Any<EventSourceId>(), Arg.Any<global::System.Collections.Generic.IEnumerable<EventType>>()).Returns(call => global::System.Threading.Tasks.Task.FromResult<global::System.Collections.Immutable.IImmutableList<AppendedEvent>>(global::System.Collections.Immutable.ImmutableList.CreateRange(_history.Where(fact => fact.Context.EventSourceId == call.Arg<EventSourceId>() && call.Arg<global::System.Collections.Generic.IEnumerable<EventType>>().Contains(fact.Context.EventType)))));")
             .Line("_outbox.GetForEventSourceIdAndEventTypes(Arg.Any<EventSourceId>(), Arg.Any<global::System.Collections.Generic.IEnumerable<EventType>>()).Returns(global::System.Threading.Tasks.Task.FromResult<global::System.Collections.Immutable.IImmutableList<AppendedEvent>>(global::System.Collections.Immutable.ImmutableList<AppendedEvent>.Empty));")
             .OpenBlock("_outbox.Append(Arg.Any<EventSourceId>(), Arg.Any<object>()).Returns(call =>")
             .Line("_published.Add((call.Arg<EventSourceId>(), call.Arg<object>()));")
             .Line("return global::System.Threading.Tasks.Task.FromResult(new global::Cratis.Chronicle.EventSequences.AppendResult { SequenceNumber = global::Cratis.Chronicle.Events.EventSequenceNumber.First });")
             .EndBlock().Line(");");
-        foreach (var contract in context.Events.Values)
+        var required = specification.GivenEvents.Concat(specification.ThenEvents).Select(occurrence => occurrence.EventContract)
+            .Append(specification.WhenAppended!.EventContract)
+            .Concat(SemanticTranslationSpecificationAdmission.SelectedContracts(context.DeclaringSlice(specification.Id).Slice, specification.WhenAppended)).Distinct();
+        foreach (var contract in required.Select(id => context.Events[id]))
         {
             builder.Line($"_store.EventTypes.GetEventTypeFor(typeof({types.EventType(contract)})).Returns(typeof({types.EventType(contract)}).GetEventType());");
         }
         foreach (var given in specification.GivenEvents)
         {
             var contract = context.Events[given.EventContract];
-            builder.Line($"_history.Add(new(EventContext.Empty with {{ EventSourceId = {Source(given.EventSource, types)}, EventType = typeof({types.EventType(contract)}).GetEventType() }}, {Fact(contract, given.Values, types)}));");
+            builder.Line($"_history.Add(new(EventContext.Empty with {{ EventSourceId = {Source(given.EventSource, types)}, EventType = typeof({types.EventType(contract)}).GetEventType(), SequenceNumber = new((ulong)_history.Count) }}, {Fact(contract, given.Values, types)}));");
         }
-        var slice = context.DeclaringSlice(specification.Id).Slice;
-        var capture = SemanticTranslationSpecificationAdmission.Capture(slice, specification.WhenAppended!);
-        var needsStore = capture?.Appends.Any(append => append.When is not null) != false;
-        builder.Line($"_reactor = new {reactor}({(needsStore ? "_store" : string.Empty)});").EndBlock().BlankLine();
+        builder.Line($"_reactor = new {reactor}(_store);").EndBlock().BlankLine();
     }
 
-    static void RenderAct(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types, SemanticCapture? capture, SemanticProjection? publication)
+    static void RenderAct(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types, SemanticProjection? publication)
     {
         var append = specification.WhenAppended!;
         var contract = context.Events[append.EventContract];
         var invocation = $"_reactor.On{Identifiers.ToPascalCase(contract.Name)}({Fact(contract, append.Values, types)}";
         builder.OpenBlock("async global::System.Threading.Tasks.Task Because()");
+        var delivery = $"EventContext.Empty with {{ EventSourceId = {Source(append.EventSource, types)}, SequenceNumber = new((ulong)_history.Count) }}";
         if (publication is not null)
         {
-            builder.Line($"await {invocation}, EventContext.Empty with {{ EventSourceId = {Source(append.EventSource, types)} }});");
+            builder.Line($"await {invocation}, {delivery});");
         }
         else
         {
-            var awaitResult = capture!.Appends.Any(append => append.When is not null) ? "await " : string.Empty;
-            builder.Line($"_produced.AddRange(({awaitResult}{invocation})).Cast<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>());");
-            if (awaitResult.Length == 0) builder.Line("await global::System.Threading.Tasks.Task.CompletedTask;");
+            // The delivered event follows every given: the reactor rebuilds capture state from the inbox before it.
+            builder.Line($"_produced.AddRange((await {invocation}, {delivery})).Cast<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>());");
         }
         builder.EndBlock().BlankLine();
     }

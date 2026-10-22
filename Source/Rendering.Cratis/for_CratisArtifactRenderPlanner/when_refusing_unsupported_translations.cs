@@ -30,32 +30,67 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     }
 
     [Theory]
+    [InlineData(SemanticCaptureConditionKind.Added)]
     [InlineData(SemanticCaptureConditionKind.AnyChanged)]
     [InlineData(SemanticCaptureConditionKind.AllChanged)]
     [InlineData(SemanticCaptureConditionKind.Removed)]
-    public void should_refuse_conditions_that_need_capture_state(SemanticCaptureConditionKind condition)
+    public void should_render_guards_decided_from_durable_capture_state(SemanticCaptureConditionKind condition)
     {
-        var model = Transform(_model, slice => slice with
-        {
-            Captures = [.. slice.Captures.Select(capture => capture with
-            {
-                Appends = [.. capture.Appends.Select(append => append with { When = new(condition, condition == SemanticCaptureConditionKind.Removed ? [] : [capture.Key]) })]
-            })]
-        });
-        var plan = Plan(model);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Message.Contains("persistent capture state", StringComparison.Ordinal));
+        var plan = Plan(Guarded(new(condition, condition is SemanticCaptureConditionKind.Removed or SemanticCaptureConditionKind.Added ? [] : ["orderId"])));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("ShipmentTracking.cs", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void should_refuse_the_changed_and_transition_conditions_in_the_canonical_events_capture()
+    public void should_refuse_an_expression_guard_by_name()
+    {
+        var plan = Plan(Guarded(new(SemanticCaptureConditionKind.Expression, []) { Expression = "orderId != null" }));
+        plan.Success.ShouldBeFalse();
+        plan.Artifacts.ShouldBeEmpty();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("expression guard 'orderId != null'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void should_refuse_a_guard_path_the_reference_evaluator_cannot_traverse()
+    {
+        var plan = Plan(Guarded(new(SemanticCaptureConditionKind.AnyChanged, ["order.id"])));
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("'order.id'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void should_refuse_a_transition_over_a_value_whose_text_differs_from_the_model()
+    {
+        var plan = Plan(Guarded(new(SemanticCaptureConditionKind.Transition, ["orderId"]) { From = "a", To = "b" }));
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("transition guard field 'orderId'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void should_render_the_canonical_changed_transition_and_overlay_capture()
     {
         var model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.ToArray()), slice => slice with { Specifications = [] });
         var plan = Plan(model);
-        plan.Success.ShouldBeFalse();
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("Feed.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void should_refuse_untyped_field_coercion_before_emitting_a_constructor_call()
+    {
+        var model = Transform(_model, slice => slice.Name == "TrackShipments" ? slice with
+        {
+            Events = [.. slice.Events.Select(contract => contract.Origin is null ? contract : contract with
+            {
+                Properties = [.. contract.Properties.Select(property => property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) })]
+            })]
+        } : slice);
+        var plan = Plan(model);
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" &&
+            diagnostic.Message.Contains("ShipmentDispatched.orderId", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("OrderDispatched.orderId", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("different types", StringComparison.Ordinal));
         plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("AnyChanged", StringComparison.Ordinal) && diagnostic.Message.Contains("Transition", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -131,5 +166,10 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
         plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("ShipmentTracking.cs", StringComparison.Ordinal));
         plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("OrderShippedPublisher.cs", StringComparison.Ordinal));
     }
+
+    ExecutableSemanticModel Guarded(SemanticCaptureCondition when) => Transform(_model, slice => slice with
+    {
+        Captures = [.. slice.Captures.Select(capture => capture with { Appends = [.. capture.Appends.Select(append => append with { When = when })] })]
+    });
 }
 #endif

@@ -21,19 +21,25 @@ public class when_capturing_foreign_events : given.a_translation_application
     const string Second = "4fa85f64-5717-4562-b3fc-2c963f66afa7";
     readonly List<EventForEventSourceId> _effects = [];
     readonly IEventStore _store = Substitute.For<IEventStore>();
+    readonly IEventSequence _inbox = Substitute.For<IEventSequence>();
+    readonly List<AppendedEvent> _delivered = [];
 
     async Task Because()
     {
         Render();
         _store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
+        _store.GetEventSequence(new EventSequenceId("inbox-shipping")).Returns(_inbox);
+        _inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(_ =>
+            Task.FromResult<IImmutableList<AppendedEvent>>([.. _delivered]));
         await Deliver(First);
         await Deliver(First);
         await Deliver(Second);
     }
 
-    [Fact] void should_append_a_local_fact_for_each_unconditional_occurrence() => _effects.Count.ShouldEqual(3);
-    [Fact] void should_derive_the_local_destination_from_the_capture_key_not_the_inbox_stream() => _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First, First, Second]);
-    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId")!.GetValue(effect.Event)!.ToString()).ShouldEqual([First, First, Second]);
+    [Fact] void should_append_nothing_for_an_unchanged_foreign_record() => _effects.Count.ShouldEqual(2);
+    [Fact] void should_derive_the_local_destination_from_the_capture_key_not_the_inbox_stream() => _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First, Second]);
+    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId")!.GetValue(effect.Event)!.ToString()).ShouldEqual([First, Second]);
+    [Fact] void should_read_capture_state_from_the_inbox_it_observes() => _inbox.ReceivedCalls().ShouldNotBeEmpty();
     [Fact] void should_produce_only_local_private_facts() => _effects.ShouldEachConformTo(effect => effect.Event.GetType() == Generated("TrackShipments", "OrderDispatched"));
 
     [Theory]
@@ -54,35 +60,31 @@ public class when_capturing_foreign_events : given.a_translation_application
     }
 
     [Fact]
-    public async Task should_approximate_added_with_existing_local_facts_for_the_key_and_target_type()
+    public async Task should_ignore_inbox_records_after_the_delivered_position_so_replayed_state_is_deterministic()
     {
-        _model = Transform(_model, slice => slice with
-        {
-            Captures = [.. slice.Captures.Select(capture => capture with { Appends = [.. capture.Appends.Select(append => append with { When = new(SemanticCaptureConditionKind.Added, []) })] })]
-        });
-        Render();
         _effects.Clear();
-        _store.EventLog.GetForEventSourceIdAndEventTypes(Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(call =>
-            Task.FromResult<IImmutableList<AppendedEvent>>([.. _effects.Where(effect => effect.EventSourceId == call.Arg<EventSourceId>()).Select(effect => new AppendedEvent(EventContext.EmptyWithEventSourceId(effect.EventSourceId), effect.Event))]));
-        await Deliver(First);
-        await Deliver(First);
-        await Deliver(Second);
-        _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First, Second]);
+        var reactor = NewReactor();
+        await Invoke(reactor, Dispatched(First), sequenceNumber: 0);
+        _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First]);
     }
 
-    object NewReactor()
-    {
-        var type = Generated("TrackShipments", "ShipmentTracking");
-        return type.GetConstructors().Single().GetParameters().Length == 0 ? Activator.CreateInstance(type)! : Activator.CreateInstance(type, _store)!;
-    }
+    object NewReactor() => Activator.CreateInstance(Generated("TrackShipments", "ShipmentTracking"), _store)!;
+
+    object Dispatched(string key) =>
+        Activator.CreateInstance(Generated("TrackShipments", "ShipmentDispatched"), Activator.CreateInstance(_assembly.GetType("Contracts.Common.OrderId", throwOnError: true)!, Guid.Parse(key)))!;
 
     async Task Deliver(string key)
     {
-        var keyType = _assembly.GetType("Contracts.Common.OrderId", throwOnError: true)!;
-        var source = Activator.CreateInstance(Generated("TrackShipments", "ShipmentDispatched"), Activator.CreateInstance(keyType, Guid.Parse(key)))!;
-        var reactor = NewReactor();
-        var result = reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source])!;
-        var effects = result is Task<IEnumerable<object>> pending ? await pending : (IEnumerable<object>)result;
+        var source = Dispatched(key);
+        var sequenceNumber = (ulong)_delivered.Count;
+        _delivered.Add(new(EventContext.Empty with { SequenceNumber = sequenceNumber, EventType = source.GetType().GetEventType() }, source));
+        await Invoke(NewReactor(), source, sequenceNumber);
+    }
+
+    async Task Invoke(object reactor, object source, ulong sequenceNumber)
+    {
+        var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context])!;
         _effects.AddRange(effects.Cast<EventForEventSourceId>());
     }
 }

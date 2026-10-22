@@ -24,12 +24,6 @@ internal static class SemanticTranslationSupport
             contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
             append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
 
-    /// <summary>Determines whether capture guards can be lowered by the renderer.</summary>
-    /// <param name="capture">The capture.</param>
-    /// <returns>Whether every append is unconditional or guarded by first observation.</returns>
-    internal static bool ConditionsRenderable(SemanticCapture capture) =>
-        capture.Appends.All(append => append.When is null or { Kind: SemanticCaptureConditionKind.Added });
-
     /// <summary>Determines whether a projection publishes a complete public event per source fact.</summary>
     /// <param name="projection">The projection.</param>
     /// <param name="events">The application's event contracts.</param>

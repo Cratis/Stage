@@ -32,7 +32,7 @@ internal static partial class SemanticTranslationSpecificationAdmission
         }
         if (!HistoryMatches(context, specification, captures.FirstOrDefault(), publications.FirstOrDefault()))
         {
-            return "given history must contain explicitly sourced private facts that do not trigger the selected translation.";
+            return "given history must contain the capture's own foreign events, or explicitly sourced private facts that do not trigger the selected translation.";
         }
         if (publications.Length != 0 && append.EventSource is null)
         {
@@ -54,6 +54,16 @@ internal static partial class SemanticTranslationSpecificationAdmission
     internal static SemanticCapture? Capture(SemanticSlice slice, SemanticSpecificationAppend append) =>
         slice.Captures.SingleOrDefault(capture => capture.EventsSource?.Events.Contains(append.EventContract) == true);
 
+    /// <summary>Lists the contracts the selected capture or publication resolves through the event store's type registry.</summary>
+    /// <param name="slice">The declaring slice.</param>
+    /// <param name="append">The appended input.</param>
+    /// <returns>The source and target contracts of the selected translation, never contracts outside the slice scope.</returns>
+    internal static IEnumerable<SemanticId> SelectedContracts(SemanticSlice slice, SemanticSpecificationAppend append)
+    {
+        if (Capture(slice, append) is { } capture) return capture.EventsSource!.Events.Concat(capture.Appends.Select(target => target.EventContract));
+        return Publication(slice, append) is { } publication ? [publication.ReadModel] : [];
+    }
+
     internal static SemanticProjection? Publication(SemanticSlice slice, SemanticSpecificationAppend append) =>
         slice.Projections.SingleOrDefault(projection => projection.Scope?.From.Any(from => from.EventContract == append.EventContract) == true);
 
@@ -67,8 +77,8 @@ internal static partial class SemanticTranslationSpecificationAdmission
     static bool HistoryMatches(SemanticApplicationContext context, SemanticSpecification specification, SemanticCapture? capture, SemanticProjection? publication)
     {
         var triggers = capture is not null ? capture.EventsSource!.Events.AsEnumerable() : publication!.Scope!.From.Select(from => from.EventContract);
-        return specification.GivenEvents.All(given => !triggers.Contains(given.EventContract) && given.EventSource is not null &&
-            context.Events[given.EventContract].Visibility == SemanticEventVisibility.Private && context.Events[given.EventContract].Origin is null);
+        return specification.GivenEvents.All(given => (capture is not null && triggers.Contains(given.EventContract)) || (!triggers.Contains(given.EventContract) && given.EventSource is not null &&
+            context.Events[given.EventContract].Visibility == SemanticEventVisibility.Private && context.Events[given.EventContract].Origin is null));
     }
 
     static bool ValuesMatch(SemanticApplicationContext context, SemanticSpecification specification) =>

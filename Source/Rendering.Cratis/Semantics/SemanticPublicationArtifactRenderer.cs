@@ -45,19 +45,19 @@ internal static class SemanticPublicationArtifactRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [projection.Id] };
     }
 
-    static void RenderComparison(CSharpCodeBuilder builder)
+    internal static void RenderComparison(CSharpCodeBuilder builder, string name = "SamePublicValue")
     {
-        builder.OpenBlock("static bool SamePublicValue(object? left, object? right)")
+        builder.OpenBlock($"static bool {name}(object? left, object? right)")
             .Line("if (global::System.Object.ReferenceEquals(left, right)) return true;")
             .Line("if (left is null || right is null) return false;")
             .OpenBlock("if (left is not string && left is global::System.Collections.IEnumerable leftItems && right is global::System.Collections.IEnumerable rightItems)")
             .Line("var first = leftItems.Cast<object?>().ToArray();")
             .Line("var second = rightItems.Cast<object?>().ToArray();")
-            .Line("return first.Length == second.Length && first.Zip(second).All(pair => SamePublicValue(pair.First, pair.Second));")
+            .Line($"return first.Length == second.Length && first.Zip(second).All(pair => {name}(pair.First, pair.Second));")
             .EndBlock()
             .Line("if (left.GetType() != right.GetType()) return false;")
             .Line("if (left is string || left.GetType().IsValueType) return left.Equals(right);")
-            .Line("return left.GetType().GetProperties().All(property => SamePublicValue(property.GetValue(left), property.GetValue(right)));")
+            .Line($"return left.GetType().GetProperties().All(property => {name}(property.GetValue(left), property.GetValue(right)));")
             .EndBlock().BlankLine();
     }
 

@@ -112,13 +112,12 @@ internal static class SemanticTranslationAdmission
         foreach (var capture in slice.Captures)
         {
             ValidateName(capture.Id, capture.Name, capture.EventsSource?.Events ?? [], context, diagnostics);
-            if (!SemanticTranslationSupport.ConditionsRenderable(capture))
+            foreach (var reason in SemanticCaptureConditionSupport.Refusals(capture, context).Distinct(StringComparer.Ordinal))
             {
-                var conditions = capture.Appends.Where(append => append.When is not null).Select(append => append.When!.Kind).Distinct();
                 diagnostics.Add(new(
                     SemanticVersionFeatures.Automation,
                     ArtifactRenderDiagnosticSeverity.Error,
-                    $"Capture '{capture.Name}' cannot render condition set '{string.Join(", ", conditions)}': only unconditional appends and 'added' are supported; change tracking conditions require a persistent capture state.",
+                    $"Capture '{capture.Name}' cannot render: {reason}.",
                     capture.Id));
             }
             ValidateSource(capture, context, diagnostics);
@@ -137,14 +136,33 @@ internal static class SemanticTranslationAdmission
                 $"Capture '{capture.Name}' reads several foreign event stores; an inbox reactor must read one origin.",
                 capture.Id));
         }
+        foreach (var append in capture.Appends)
+        {
+            var target = context.Events[append.EventContract];
+            foreach (var mapping in append.Mappings.Where(mapping => mapping.Field is not null))
+            {
+                var destination = target.Properties.Single(property => property.Id == mapping.TargetProperty);
+                foreach (var contract in contracts)
+                {
+                    if (contract.Properties.SingleOrDefault(property => property.Name == mapping.Field) is { } property && !Assignable(property.Type, destination.Type))
+                    {
+                        diagnostics.Add(new(
+                            SemanticVersionFeatures.Automation,
+                            ArtifactRenderDiagnosticSeverity.Error,
+                            $"Capture '{capture.Name}' field '{contract.Name}.{mapping.Field}' and target '{target.Name}.{destination.Name}' have different types; implicit capture field coercion is not rendered.",
+                            capture.Id));
+                    }
+                }
+            }
+        }
         foreach (var mapping in capture.Appends.SelectMany(append => append.Mappings).Where(mapping => mapping.Field is not null))
         {
-            if (contracts.Any(contract => contract.Properties.All(property => property.Name != mapping.Field)))
+            if (contracts.All(contract => contract.Properties.All(property => property.Name != mapping.Field)))
             {
                 diagnostics.Add(new(
                     SemanticVersionFeatures.Automation,
                     ArtifactRenderDiagnosticSeverity.Error,
-                    $"Capture '{capture.Name}' mapping '{mapping.Field}' requires a record overlay across source events, which the inbox reactor cannot render.",
+                    $"Capture '{capture.Name}' mapping '{mapping.Field}' names a field no source event carries, so the capture state can never hold it.",
                     capture.Id));
             }
         }
@@ -161,4 +179,7 @@ internal static class SemanticTranslationAdmission
                 artifact));
         }
     }
+
+    static bool Assignable(SemanticTypeReference source, SemanticTypeReference target) =>
+        source with { IsOptional = false } == target with { IsOptional = false } && (!source.IsOptional || target.IsOptional);
 }

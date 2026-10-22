@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Collections.Immutable;
 using System.Reflection;
+using Cratis.Screenplay;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -28,13 +29,13 @@ public class a_translation_application : Specification
         _model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.ToArray()), slice => slice with { Specifications = [] });
     }
 
-    protected void Render()
+    protected void Render(bool clientOnly = false)
     {
         _plan = Plan(_model);
         Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
         _sources = [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
-        _assembly = RenderedOutput.Load(_sources);
+        _assembly = RenderedOutput.Load(_sources, clientOnly);
     }
 
     protected Type Generated(string slice, string name) => _assembly.GetType($"Contracts.Integration.Translation.{slice}.{name}", throwOnError: true)!;
@@ -51,10 +52,10 @@ public class a_translation_application : Specification
         return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
-    protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform) => ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
-        {
-            Modules = [.. model.Application.Modules.Select(module => module with { Features = Features(module.Features, transform) })]
-        });
+    protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform, bool recovery = false) => ExecutableSemanticModel.Create(recovery ? LanguageVersion.V17 : model.LanguageVersion, recovery ? SemanticVersion.V17 : model.SemanticVersion, model.Application with
+    {
+        Modules = [.. model.Application.Modules.Select(module => module with { Features = Features(module.Features, transform) })]
+    });
 
     static ImmutableArray<SemanticFeature> Features(ImmutableArray<SemanticFeature> features, Func<SemanticSlice, SemanticSlice> transform) =>
         [.. features.Select(feature => feature with { Slices = [.. feature.Slices.Select(transform)], Features = Features(feature.Features, transform) })];

@@ -61,11 +61,14 @@ internal static class SemanticTranslationAdmission
         }
         foreach (var specification in slice.Specifications)
         {
-            diagnostics.Add(new(
-                "STAGE-ESM-011",
-                ArtifactRenderDiagnosticSeverity.Error,
-                $"Specification '{specification.Name}' cannot render: Translate specifications require an inbox/outbox scenario harness, which Stage does not provide yet.",
-                specification.Id));
+            if (SemanticTranslationSpecificationAdmission.CannotRender(context, slice, specification) is { } reason)
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-011",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Specification '{specification.Name}' cannot render: {reason}",
+                    specification.Id));
+            }
         }
     }
 

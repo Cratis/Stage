@@ -114,22 +114,20 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     }
 
     [Fact]
-    public void should_render_around_translation_specifications_without_faking_a_local_log_scenario()
+    public void should_render_direct_translation_specifications_without_a_local_log_publication()
     {
         var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.ToArray());
         var plan = Plan(model, ArtifactRefusalMode.RenderAround);
-        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
-        plan.Success.ShouldBeFalse();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        plan.Success.ShouldBeTrue();
         var specifications = model.Application.Modules.Single().Features.Single().Slices
             .Where(slice => slice.Kind == SemanticSliceKind.Translate).SelectMany(slice => slice.Specifications).ToArray();
         specifications.ShouldNotBeEmpty();
-        plan.Refusals.Length.ShouldEqual(specifications.Length);
+        plan.Refusals.ShouldBeEmpty();
         foreach (var specification in specifications)
         {
-            plan.Refusals.ShouldContain(refusal => refusal.Artifact == specification.Id);
+            plan.Artifacts.ShouldContain(artifact => artifact.Sources.Contains(specification.Id));
         }
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("inbox/outbox", StringComparison.Ordinal));
-        plan.Artifacts.ShouldNotContain(artifact => specifications.Any(specification => artifact.Sources.Contains(specification.Id)));
         plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("ShipmentTracking.cs", StringComparison.Ordinal));
         plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("OrderShippedPublisher.cs", StringComparison.Ordinal));
     }

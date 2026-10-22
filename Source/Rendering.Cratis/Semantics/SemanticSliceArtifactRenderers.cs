@@ -88,6 +88,13 @@ internal static class SemanticSliceArtifactRenderers
             {
                 yield return SemanticPublicationArtifactRenderer.Render(located, projection, context);
             }
+            foreach (var specification in located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)))
+            {
+                foreach (var file in SemanticSpecificationArtifactRenderer.Render(specification, context))
+                {
+                    yield return file;
+                }
+            }
         }
     }
 

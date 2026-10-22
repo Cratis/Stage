@@ -12,10 +12,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// The canonical ESM v9 vector requires an inbox/outbox specification harness before its scenarios can render.
+/// The canonical ESM v9 vector still has unsupported translation shapes.
 /// </summary>
 /// <remarks>
-/// The translation artifacts are admitted, but the scenarios remain an explicit refusal.
+/// Direct translation scenarios no longer require a missing inbox/outbox harness.
 /// </remarks>
 public class when_refusing_the_canonical_public_events_corpus : Specification
 {
@@ -32,7 +32,7 @@ public class when_refusing_the_canonical_public_events_corpus : Specification
 
     [Fact] void should_load_an_esm_v9_model() => _model.SemanticVersion.Major.ShouldEqual(9u);
     [Fact] void should_carry_a_public_event() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Events).Any(@event => @event.Visibility == SemanticEventVisibility.Public).ShouldBeTrue();
-    [Fact] void should_refuse_the_missing_translation_scenario_harness() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("inbox/outbox", StringComparison.Ordinal));
+    [Fact] void should_not_refuse_the_supported_direct_translation_scenarios() => _plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-011").ShouldBeEmpty();
     [Fact] void should_have_no_reducer_bodies_to_analyze() => _model.Application.Modules.SelectMany(Slices).SelectMany(slice => slice.Reducers).ShouldBeEmpty();
     [Fact] void should_not_claim_reducer_transition_analysis() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-023");
     [Fact] void should_admit_the_version_pair() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

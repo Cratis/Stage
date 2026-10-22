@@ -87,7 +87,7 @@ Screenplay 4.240.2 evaluator with the same refused-key checks. Read-backed requi
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
-Join removals, parent keys, children and nested projection scopes remain refused.
+Scoped projections also run one-level identified child collections: event-property child keys, event-source or required event-property parent keys, child removals and identity joins. Appends preserve first-insertion order; updates and joins do not reorder children. A child event needs an existing parent instance; implicit parent creation is refused by name. Root joins are supported too. Join removals, nested scopes, nested child collections, child `every` blocks and read-model fixtures combined with children or joins remain refused.
 The renderer renders protected reads and refuses only the shapes it cannot preserve with `STAGE-ESM-044`
 (see [Protected reads rendering](../reference/protected-reads-rendering.md)). Generated applications do not yet enforce
 the refused-key checks; the six canonical refused-key specifications remain known renderer differences.
@@ -355,6 +355,15 @@ sets an Arc principal, while authenticated, role, claim (literal, subject or art
 Screenplay's reference semantics. Nested artifact paths cannot reach composite values, because composite command values are not admitted. `then denied` checks Unauthorized and appends no new facts. Roles and claims
 remain distinct; a role-URI claim is blocked as `Unsupported(Authorization)` rather than treated as a role.
 
+Given, appended and produced events can carry composite members and collections, including collections
+of composites. Event materialization preserves missing members, nulls and empty collections as distinct
+values; event assertions compare their structure rather than formatted object text. Child collections use
+typed composite elements and ordered structural comparison, including missing optional scalar members.
+Optional mapping sources and null literals within children remain refused because typed instances lose
+the distinction between a missing member and an explicit null. Direct
+structured property mappings remain refused. Product arithmetic remains a separate named refusal, even
+when the same projection also has children.
+
 Command rules (`NotEmpty`, `Minimum`, `Maximum`, `Equal`, `NotEqual`, `GreaterThan`,
 `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Length`, `Matches`), scalar concept rules,
 and command requirements reject on every failed severity (including warning and information). The first
@@ -374,8 +383,13 @@ make it fail. Specifications can inspect projected Given events without a comman
 Protected queries evaluate the same portable policies as commands, with the fixture caller, query argument
 and query key as the subject. An allowed query compares its result; a denied query matches only `then denied`,
 not an empty result or `then error`. A reached opaque policy returns `Unsupported(Authorization)`. Flat scalar projections and scoped projections using
-event-source keys (text or UUID) support scalar `set` mappings from event properties, event-source identities or typed literals, plus event-property `add`/`subtract` and numeric `increment`/`decrement`. Primitive numeric zero initialization with `add`/`subtract` is also supported; nonzero arithmetic literals, factors and expression-valued arithmetic remain refused. These mappings and property-keyed root removals run with per-specification artifacts. The
+event-source keys (text or UUID) support scalar `set` mappings from event properties, event-source identities or typed literals, plus event-property `add`/`subtract` and numeric `increment`/`decrement`. Primitive numeric zero initialization with `add`/`subtract` is also supported; nonzero arithmetic literals, factors and expression-valued arithmetic remain refused. These mappings and property-keyed root removals run with per-specification artifacts. Event-source key types compare their underlying text or UUID primitive, so compatible concept and primitive types can share a projection. Keys must still satisfy the read-model identifier's enumeration values and canonical UUID form. Pinned generated command identifiers participate in this check; root `from` blocks can also use a required scalar event-property key of the identifier's value type or a non-empty text literal key for a text identifier. Optional numeric increment/decrement targets start from zero when unset. Given read-model seeds replace history at the resolved projection key, not the event-source key. The
 semantic trace includes keyed read-model and query results; a mismatched result fails the specification. A named projection-lowering refusal is reported as `Unsupported(Projection)`; unexpected projection runtime failures fail the specification with the exception message. Neither is treated as a command rejection. For specifications expecting an error or denial, projections never run: actual rejections are compared, while accepted commands report the outcome mismatch before projection execution. Their produced-event projections are therefore not admission-relevant. Admission and runtime share the same projection-observation predicate: explicit root event blocks, removals, flat transitions and all-event subscriptions. Unrelated projections are not admitted merely because a specification reaches some other event; explicitly seeded or asserted read models and queried results still require admission.
+DateTime read-model properties remain `Unsupported(Projection)`, with the property named in the refusal.
+The reference compares DateTime text ordinally, not by instant. Materializing the value as `DateTimeOffset`
+loses an authored `Z` suffix: the per-run projection returns `+00:00` instead. Numeric offsets and seven-digit
+fractional precision can survive the scenario, but not every accepted round-trip spelling. Payload mappings
+and clock-produced values therefore remain refused; Stage does not normalize either side to make assertions pass.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 

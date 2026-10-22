@@ -81,7 +81,7 @@ async function selectAndSubmit() {
     fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Dispatch' })); });
 
     await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     return fetched;

@@ -289,7 +289,7 @@ describe('when driving the two-item screen composition corpus', () => {
         const workItemId = await screen.findByLabelText('workItemId') as HTMLInputElement;
         expect(workItemId.value).toEqual(workItemB.workItemId);
         fireEvent.change(screen.getByLabelText('New title'), { target: { value: 'Renamed bravo' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Rename' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
 
         await waitFor(() => expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(1));
         const posted = JSON.parse(backend.requests.find(request => request.method === 'POST')!.body!) as Record<string, unknown>;
@@ -303,18 +303,18 @@ describe('when driving the two-item screen composition corpus', () => {
         renderStage();
         await screen.findByText(commentB.text);
 
-        fireEvent.click(screen.getByRole('button', { name: 'AddComment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add comment' }));
         const commentId = await screen.findByLabelText('commentId') as HTMLInputElement;
         expect(commentId.value).toEqual('');
         expect((screen.getByLabelText('workItemId') as HTMLInputElement).value).toEqual(workItemB.workItemId);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Execute AddComment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add comment' }));
         await waitFor(() => expect(commentId.getAttribute('aria-invalid')).toEqual('true'));
         expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(0);
 
         fireEvent.change(commentId, { target: { value: '33333333-3333-3333-3333-333333333333' } });
         fireEvent.change(screen.getByLabelText('text'), { target: { value: 'Native comment on bravo' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute AddComment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add comment' }));
 
         await waitFor(() => expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(1));
         const posted = JSON.parse(backend.requests.find(request => request.method === 'POST')!.body!) as Record<string, unknown>;
@@ -327,9 +327,9 @@ describe('when driving the two-item screen composition corpus', () => {
         renderStage();
         await screen.findByText(workItemB.title);
 
-        fireEvent.click(screen.getByRole('button', { name: 'CreateWorkItem' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Create work item' }));
         expect(((await screen.findByLabelText('workItemId')) as HTMLInputElement).value).toEqual('');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute CreateWorkItem' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Create work item' }));
         await waitFor(() => expect(screen.getByLabelText('title').getAttribute('aria-invalid')).toEqual('true'));
         expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(0);
     });

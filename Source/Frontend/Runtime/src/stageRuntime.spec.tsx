@@ -121,14 +121,14 @@ describe('the running Stage with navigation regions', () => {
         renderStage();
         fireEvent.click(within(await topbar()).getByText('Sales'));
 
-        await waitFor(() => expect(screen.getByText('Orders page')).toBeDefined());
+        await waitFor(() => expect(screen.getByRole('heading', { name: 'Orders page' })).toBeDefined());
         expect(labels(await sidebar())).toEqual(['Orders', 'Customers', 'Reports']);
     });
 
     it('marks the module and the feature of the page the user is on', async () => {
         renderStage();
         fireEvent.click(within(await topbar()).getByText('Sales'));
-        await screen.findByText('Orders page');
+        await screen.findByRole('heading', { name: 'Orders page' });
 
         expect(within(await topbar()).getByText('Sales').closest('[aria-current]')?.getAttribute('aria-current')).toBe('page');
         expect(within(await sidebar()).getByText('Orders').closest('[aria-current]')?.getAttribute('aria-current')).toBe('page');
@@ -138,12 +138,12 @@ describe('the running Stage with navigation regions', () => {
         renderStage();
         fireEvent.click(within(await topbar()).getByText('Sales'));
         fireEvent.click(within(await sidebar()).getByText('Customers'));
-        await screen.findByText('Customers page');
+        await screen.findByRole('heading', { name: 'Customers page' });
         expect(globalThis.location.hash).toContain('CustomerList');
         cleanup();
 
         renderStage();
-        expect(await screen.findByText('Customers page')).toBeDefined();
+        expect(await screen.findByRole('heading', { name: 'Customers page' })).toBeDefined();
         expect(labels(await sidebar())).toEqual(['Orders', 'Customers', 'Reports']);
     });
 
@@ -211,7 +211,7 @@ describe('the running Stage with a model that declares no navigation regions', (
         stubStage(plain);
         renderStage();
 
-        await screen.findByText('Overview page');
+        await screen.findByRole('heading', { name: 'Overview page' });
         expect(screen.queryByRole('navigation', { name: 'Modules' })).toBeNull();
         expect(screen.queryByRole('navigation', { name: 'Sidebar' })).toBeNull();
     });

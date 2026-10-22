@@ -101,6 +101,23 @@ describe('when the profile roots the application on a template', () => {
         expect(document.querySelector('footer')).not.toBeNull();
     });
 
+    it('should offer the theme switcher unless the showThemeSwitcher option is false or the profile pins a colour scheme', async () => {
+        const switcher = () => document.querySelector('[data-scene-id="topbar-theme"]');
+        const { unmount } = show(baseScene(blueprintRoot()));
+        await screen.findByRole('heading', { name: 'Invoices' });
+        expect(switcher()).not.toBeNull();
+        unmount();
+
+        const { unmount: unmountOption } = show(baseScene(blueprintRoot({ showThemeSwitcher: false })));
+        await screen.findByRole('heading', { name: 'Invoices' });
+        expect(switcher()).toBeNull();
+        unmountOption();
+
+        show(baseScene({ ...blueprintRoot(), appearance: { colorScheme: 'Light' } }));
+        await screen.findByRole('heading', { name: 'Invoices' });
+        expect(switcher()).toBeNull();
+    });
+
     it('should apply a dark colour scheme and the accent as the theme\'s primary colour', async () => {
         show(baseScene({ ...blueprintRoot(), appearance: { colorScheme: 'Dark', accent: '#e11d48' } }));
 

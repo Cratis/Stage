@@ -3,7 +3,7 @@
 
 import { registerTestQueries } from './testing/queries';
 import { queryResult } from './testing/queries';
-import { fireEvent, render as renderWithoutProvider, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as renderWithoutProvider, screen, waitFor, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,7 +11,7 @@ import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
 import { StageTable } from './stageComponents';
-import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm } from './testing/commands';
+import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm, registerTestCommand } from './testing/commands';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
 
@@ -407,7 +407,7 @@ describe('a native command form', () => {
         );
 
         expect(screen.getByText(/has no form fields or schema metadata/)).toBeDefined();
-        expect(screen.queryByRole('button', { name: 'Execute Create work item' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Create work item' })).toBeNull();
         expect(fetched).not.toHaveBeenCalled();
     });
 
@@ -423,7 +423,7 @@ describe('a native command form', () => {
                 </StageDataProvider>
             </PrimeReactProvider>,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Refresh dashboard' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Refresh dashboard' }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalled());
         expect(fetched.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST', body: JSON.stringify({}) }));
@@ -445,14 +445,14 @@ describe('a native command form', () => {
                 </StageDataProvider>
             </PrimeReactProvider>,
         );
-        fireEvent.click(screen.getByRole('button', { name: `Execute ${command}` }));
+        fireEvent.click(screen.getByRole('button', { name: command }));
         await waitFor(() => expect(screen.getByLabelText(fields[0].label).getAttribute('aria-invalid')).toEqual('true'));
         expect(fetched).not.toHaveBeenCalled();
 
         for (const [label, value] of Object.entries(values)) {
             fireEvent.change(screen.getByLabelText(label), { target: { value } });
         }
-        fireEvent.click(screen.getByRole('button', { name: `Execute ${command}` }));
+        fireEvent.click(screen.getByRole('button', { name: command }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalled());
         expect(String(fetched.mock.calls[0][0])).toEqual(`http://localhost:3000${route}`);
@@ -475,7 +475,7 @@ describe('a native command form', () => {
                 </StageDataProvider>
             </PrimeReactProvider>,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register order' }));
 
         await waitFor(() => expect(screen.getByLabelText('Order #').getAttribute('aria-invalid')).toEqual('true'));
         expect(fetched).not.toHaveBeenCalled();
@@ -676,7 +676,7 @@ describe('a native command form', () => {
 
         expect(await screen.findByText('O-1')).toBeDefined();
         fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-3' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register order' }));
 
         await waitFor(() => expect(fetched.mock.calls.some(call => String(call[0]).endsWith('/api/orders/register')
             && (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -717,7 +717,7 @@ describe('a native command form', () => {
         fireEvent.click((await screen.findByText('Work two')).closest('tr')!);
         await waitFor(() => expect((screen.getByLabelText('Work item') as HTMLInputElement).value).toEqual('W2'));
         expect((screen.getByLabelText('Comment') as HTMLInputElement).value).toEqual('Looks good');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Add comment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add comment' }));
 
         await waitFor(() => expect(fetched.mock.calls.some(call => String(call[0]).endsWith('/api/comments/add')
             && (call[1] as RequestInit | undefined)?.body === JSON.stringify({ workItemId: 'W2', text: 'Looks good' }))).toBe(true));
@@ -765,7 +765,7 @@ describe('a native command form', () => {
                 </StageDataProvider>
             </PrimeReactProvider>,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register order' }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalled());
         expect(screen.getByLabelText('Amount').getAttribute('aria-invalid')).not.toEqual('true');
@@ -796,7 +796,7 @@ describe('a native command form', () => {
 
         expect(screen.getByText(/Payload.*object fields are not supported/)).toBeDefined();
         expect(screen.getByText(/Tags.*array fields are not supported/)).toBeDefined();
-        expect(screen.queryByRole('button', { name: 'Execute Submit payload' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Submit payload' })).toBeNull();
     });
 
     it('uses form metadata, command route lookup and validation feedback', async () => {
@@ -816,7 +816,7 @@ describe('a native command form', () => {
             </PrimeReactProvider>,
         );
         fireEvent.change(screen.getByLabelText('Order #'), { target: { value: 'O-1' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Register order' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register order' }));
 
         await waitFor(() => expect(fetched).toHaveBeenCalled());
         expect(String(fetched.mock.calls[0][0])).toContain('/api/orders/register');
@@ -845,7 +845,7 @@ describe('a synthesized action', () => {
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
         fireEvent.blur(screen.getByLabelText('amount'));
-        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
         expect(String(fetchMock.mock.calls[0][0])).toContain('/api/sales/invoices/register-invoice');
@@ -862,9 +862,9 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
-        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
-        await waitFor(() => expect(screen.queryByRole('button', { name: /Execute/ })).toBeNull());
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         expect(screen.getByRole('button', { name: 'Register invoice' })).toBeDefined();
     });
 
@@ -878,7 +878,7 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
-        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect((await screen.findAllByText('Invoice number is required')).length).toBeGreaterThan(0);
     });
@@ -906,7 +906,7 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
-        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect(await screen.findByText('INV-2')).toBeDefined();
     });
@@ -944,7 +944,7 @@ describe('a synthesized action', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
         fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
         fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
-        fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect(await screen.findByText('INV-8', {}, { timeout: 2_000 })).toBeDefined();
     });
@@ -984,5 +984,23 @@ describe('a scoped query lifecycle', () => {
         expect(await screen.findByText('INV-C2')).toBeDefined();
         resolveFirst?.({ ok: true, json: async () => (queryResult({ data: [{ invoiceNumber: 'INV-C1' }] })) } as Response);
         await waitFor(() => expect(screen.getByLabelText('query-result').textContent).toEqual('INV-C2'));
+    });
+});
+
+describe('adjacent command actions', () => {
+    const actionOf = (id: string, command: string, extra: Record<string, unknown> = {}) => element(id, 'core:action', { command, route: `/api/${command}`, ...extra });
+    const variants = () => screen.getAllByRole('button').map(button => button.getAttribute('data-variant'));
+
+    it('should make the first action primary and the next one secondary, unless an emphasis is authored', async () => {
+        registerTestCommand('RegisterOpportunity', '/api/RegisterOpportunity');
+        registerTestCommand('ArchiveOpportunity', '/api/ArchiveOpportunity');
+        registerTestCommand('PromoteOpportunity', '/api/PromoteOpportunity');
+        renderWithoutProvider(<div>
+            <StageAction element={actionOf('a', 'RegisterOpportunity')} slots={{}} />
+            <StageAction element={actionOf('b', 'ArchiveOpportunity')} slots={{}} />
+            <StageAction element={actionOf('c', 'PromoteOpportunity', { emphasis: 'primary' })} slots={{}} />
+        </div>);
+
+        await waitFor(() => expect(variants()).toEqual(['solid', 'outline', 'solid']));
     });
 });

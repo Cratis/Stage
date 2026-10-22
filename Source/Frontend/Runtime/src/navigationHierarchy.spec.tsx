@@ -83,7 +83,7 @@ describe('composing a screen with authored navigation', () => {
         const nodes = slot(composed, 'menu')[0].properties.nodes as { label: string; children: { label: string; screen?: string }[] }[];
         expect(nodes.at(-1)?.label).toBe('Other screens');
         expect(nodes.at(-1)?.children.map(_ => _.screen)).toEqual(['AuditLog']);
-        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['AuditLog']);
+        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['Audit log']);
     });
 
     it('places a screen no entry lists under the module and feature it was declared in', () => {
@@ -94,7 +94,7 @@ describe('composing a screen with authored navigation', () => {
         const browsing = nodes[0].children[0];
         expect(nodes.map(_ => _.label)).toEqual(['Invoicing', 'Crm']);
         expect(browsing.children.map(_ => _.screen ?? _.label)).toEqual(['InvoiceList', 'Details', 'InvoiceAudit']);
-        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['Invoicing', 'Browsing', 'InvoiceAudit']);
+        expect((slot(composed, 'breadcrumb')[0].properties.items as { label: string }[]).map(_ => _.label)).toEqual(['Invoicing', 'Browsing', 'Invoice audit']);
     });
 
     it('lists the unlisted screens with no recorded place under the fallback group', () => {

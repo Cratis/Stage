@@ -69,7 +69,7 @@ describe('a feature toolbar button on a list whose rows carry the key its comman
 
         const dialog = document.querySelector('.scene-slice-dialog') as HTMLElement;
         expect(within(dialog).queryByLabelText('Product Id', { exact: false })).toBeNull();
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Approve product' })); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
@@ -92,7 +92,7 @@ describe('a feature toolbar button on a list whose rows are keyed id', () => {
 
         const dialog = document.querySelector('.scene-slice-dialog') as HTMLElement;
         expect(within(dialog).queryByLabelText('Product Id', { exact: false })).toBeNull();
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Approve product' })); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;

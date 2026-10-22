@@ -21,7 +21,7 @@ internal sealed partial class SemanticRunCaptures
             foreach (var mapping in append.Mappings)
             {
                 var property = contract.Properties.Single(candidate => candidate.Id == mapping.TargetProperty);
-                var source = mapping.Field is { } field ? Read(_after, field, structured: true) : new SemanticRunCaptureExpression.Lookup(((SemanticValueExpression)mapping.Value!).Value, null);
+                var source = mapping.Field is { } field ? Read(_after, field, structured: property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType) : new SemanticRunCaptureExpression.Lookup(((SemanticValueExpression)mapping.Value!).Value, null);
                 if (source.Unsupported is not null) break;
                 var value = source.Value ?? SemanticValue.Null;
                 if (mapping.Field is not null) value = Retarget(value, property.Type, property.Name);

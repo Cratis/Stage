@@ -9,6 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Describes the portable translation shapes shared by execution and rendering.
 /// Condition rendering is deliberately separate from structural admission.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0182:Unused internal type", Justification = "Compile-linked into Stage and Specifications, which use it; the Translate renderer uses it in this assembly.")]
 internal static class SemanticTranslationSupport
 {
     /// <summary>Determines whether a capture consumes foreign events into local facts.</summary>

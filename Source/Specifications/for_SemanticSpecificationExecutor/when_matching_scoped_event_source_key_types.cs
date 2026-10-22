@@ -55,9 +55,9 @@ public class when_matching_scoped_event_source_key_types : Specification
     }
 
     [Fact]
-    public async Task should_keep_literal_keys_unsupported_without_misreporting_the_source_type()
+    public async Task should_keep_literal_keys_unsupported_for_uuid_identifiers_without_misreporting_the_source_type()
     {
-        var plan = Compile("Uuid", "String", Uuid, false, "recorded", "\"global\"");
+        var plan = Compile("Uuid", "Uuid", Uuid, false, "recorded", $"\"{Uuid}\"");
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
             "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
@@ -84,7 +84,7 @@ public class when_matching_scoped_event_source_key_types : Specification
                   specification RecordIsProjected
             {{(generated ? $"        when Record\n          for \"{key}\"\n          value = \"recorded\"\n        then Recorded\n          for \"{key}\"\n          value = \"recorded\"" : $"        {(given ? "given" : "when append")} Recorded\n          for \"{key}\"\n          value = \"recorded\"")}}
                     then readmodel Current
-                      id = "{{(projectionKey == "$eventSourceId" ? key : "global")}}"
+                      id = "{{(projectionKey == "$eventSourceId" ? key : projectionKey.Trim('"'))}}"
                       value = "{{expected}}"
                 slice StateView Current
                   readmodel Current

@@ -92,7 +92,7 @@ internal static class SemanticRunProjections
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
-                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event);
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key);
                 }
                 if (scope.Every is { } every)
                 {
@@ -154,9 +154,14 @@ internal static class SemanticRunProjections
 
             // A fixture replaces that key's history, including property-keyed removals.
             // Only action and reaction facts may subsequently change it.
-            var projectedKey = projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
-            var fixtureKey = projectedKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
-                ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
+            var projectedKey = projection.Scope?.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.Key ??
+                projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
+            var fixtureKey = projectedKey switch
+            {
+                SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
+                SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
+                _ => destination
+            };
             if (index < context.WorldFixture.GivenEvents.Length && Seeds(context, projection.ReadModel)
                 .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, fixtureKey)))
             {

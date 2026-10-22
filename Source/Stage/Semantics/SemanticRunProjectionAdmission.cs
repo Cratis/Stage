@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -9,8 +10,11 @@ using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Semantics;
 
-internal static class SemanticRunProjectionAdmission
+internal static partial class SemanticRunProjectionAdmission
 {
+    [GeneratedRegex(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, 1000)]
+    private static partial Regex FluentTextLiteral { get; }
+
     internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, IEnumerable<SemanticId> reachableEvents) =>
         RequiredLookupRefusal(plan, specification) ?? CheckProjections(plan, specification, reachableEvents);
 
@@ -193,8 +197,8 @@ internal static class SemanticRunProjectionAdmission
                 scope.JoinRemovals.Length > 0 || scope.Children.Length > 0 || scope.Nested.Length > 0 ||
                 (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
                     mapping.Target.Length != 1 || mapping.Source is not (SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral))) ||
-                scope.From.Any(from => from.ParentKey is not null || from.Key is not SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } ||
-                    from.Mappings.Any(mapping => !MappingSupported(mapping, readModel))))
+                scope.From.Any(from => from.ParentKey is not null || !FromKeySupported(plan, specification, from, identifier.Type) ||
+                    from.Mappings.Any(mapping => !MappingSupported(mapping))))
             {
                 return "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.";
             }
@@ -208,17 +212,32 @@ internal static class SemanticRunProjectionAdmission
         return null;
     }
 
-    static bool MappingSupported(SemanticProjectionMapping mapping, SemanticReadModel model)
+    static bool MappingSupported(SemanticProjectionMapping mapping)
     {
         if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
-        var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
         return mapping.Operation switch
         {
             SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionLiteral,
-            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => !target.Type.IsOptional && mapping.Source is null,
+            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             _ => false
         };
+    }
+
+    static bool FromKeySupported(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionFrom from, SemanticTypeReference identifier)
+    {
+        if (from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }) return true;
+        if (from.Key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } })
+        {
+            return Primitive(plan, identifier) == SemanticPrimitiveType.Text && text.Value.Length > 0 &&
+                FluentTextLiteral.IsMatch(text.Value) &&
+                (identifier.Kind != SemanticTypeReferenceKind.Concept ||
+                    plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Target).Values is not { IsEmpty: false } values || values.Contains(text.Value));
+        }
+        return from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } } &&
+            plan.Events[from.EventContract].Properties.SingleOrDefault(property => property.Id == id) is { Type: { IsOptional: false, IsCollection: false } } source &&
+            IsScalar(source.Type) && SourceTypeMatches(plan, source.Type, identifier) &&
+            ScopedKeysMatch(plan, specification, from.EventContract, identifier, id);
     }
 
     static bool RemovalKeySupported(SemanticExecutionPlan plan, SemanticProjectionRemoval removal, SemanticTypeReference identifier)
@@ -252,7 +271,7 @@ internal static class SemanticRunProjectionAdmission
         type.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Primitive : type.Primitive;
 
-    static bool ScopedKeysMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId eventContract, SemanticTypeReference identifier)
+    static bool ScopedKeysMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId eventContract, SemanticTypeReference identifier, SemanticId? keyProperty = null)
     {
         bool Matches(SemanticEventSourceIdentity? source) => source is not null &&
             SourceTypeMatches(plan, source.Type, identifier) &&
@@ -262,8 +281,13 @@ internal static class SemanticRunProjectionAdmission
             (identifier.Kind != SemanticTypeReferenceKind.Concept ||
                 plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Target).Values is not { IsEmpty: false } values || values.Contains(text.Value));
 
-        if (specification.GivenEvents.Any(given => given.EventContract == eventContract && !Matches(given.EventSource)) ||
-            (specification.WhenAppended is { } appended && appended.EventContract == eventContract && !Matches(appended.EventSource)))
+        SemanticEventSourceIdentity? Key(SemanticEventSourceIdentity? source, IEnumerable<SemanticPropertyValue> values) =>
+            keyProperty is { } property ? new(
+                plan.Events[eventContract].Properties.Single(candidate => candidate.Id == property).Type,
+                values.SingleOrDefault(value => value.TargetProperty == property)?.Value ?? SemanticValue.Null) : source;
+
+        if (specification.GivenEvents.Any(given => given.EventContract == eventContract && !Matches(Key(given.EventSource, given.Values))) ||
+            (specification.WhenAppended is { } appended && appended.EventContract == eventContract && !Matches(Key(appended.EventSource, appended.Values))))
         {
             return false;
         }
@@ -274,7 +298,10 @@ internal static class SemanticRunProjectionAdmission
         }
         foreach (var produced in command.Produces.Where(produced => produced.EventContract == eventContract))
         {
-            var destination = produced.Destination ?? command.Destination?.Value;
+            var destination = keyProperty is { } key
+                ? produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == key)?.Source
+                : produced.Destination ?? command.Destination?.Value;
+            if (keyProperty is not null && destination is null) return false;
             var value = destination switch
             {
                 SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } property =>
@@ -285,6 +312,7 @@ internal static class SemanticRunProjectionAdmission
             };
             var type = destination is SemanticResolvedExpression resolved
                 ? command.Properties.Single(property => property.Id == resolved.Target).Type : command.Destination?.Type ?? when.EventSource?.Type;
+            if (keyProperty is { } propertyKey) type = plan.Events[eventContract].Properties.Single(property => property.Id == propertyKey).Type;
             if (type is null || value is null || !Matches(new(type, value)))
             {
                 return false;

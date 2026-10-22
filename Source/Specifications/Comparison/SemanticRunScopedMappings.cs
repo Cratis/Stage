@@ -13,16 +13,24 @@ namespace Cratis.Stage.Specifications.Comparison;
 
 internal static class SemanticRunScopedMappings
 {
-    internal static void Define<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event) =>
+    internal static void Define<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key) =>
         typeof(SemanticRunScopedMappings).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings, model, @event], null);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings, model, @event, key], null);
 
-    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event)
+    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key)
     {
         // TEvent is a runtime-emitted contract carrying [EventType].
 #pragma warning disable CHR0002
         builder.From<TEvent>(from =>
         {
+            if (key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } })
+            {
+                from.UsingConstantKey(text.Value);
+            }
+            else if (key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } })
+            {
+                from.UsingKey(Property<TEvent, object>(@event.Properties.Single(property => property.Id == id).Name));
+            }
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);

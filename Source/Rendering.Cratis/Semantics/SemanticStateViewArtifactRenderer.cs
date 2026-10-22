@@ -246,8 +246,7 @@ internal static class SemanticStateViewArtifactRenderer
             $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
     }
 
-    // A performer answers this query, and what it returns is the performer's to say: the method is the query's route, parameters and authorization, and
-    // names the performer it waits for.
+    // A performer owns the result; retain the route and shape whether its body is available or not.
     static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)
     {
         var parameters = new List<string> { "global::Cratis.Chronicle.ReadModels.IReadModels readModels" };
@@ -263,7 +262,15 @@ internal static class SemanticStateViewArtifactRenderer
             { Cardinality: SemanticQueryCardinality.Many } => $"global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
             _ => $"global::System.Threading.Tasks.Task<{readModelName}?>"
         };
-        var file = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id)?.File;
+        var requirement = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id);
+        var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnostic>();
+        if (requirement is not null && SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) && body is not null)
+        {
+            SemanticQueryContextRuntime.Render(builder, query, readModelName, methodName, returnType, types, requirement, body);
+            return;
+        }
+
+        var file = requirement?.File;
         var waiting = file is null ? $"Query '{query.Name}' is answered by a performer" : $"Query '{query.Name}' is answered by a performer ('{file}')";
         builder.ExpressionMember(
             $"public static {returnType} {methodName}({string.Join(", ", parameters)})",

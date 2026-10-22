@@ -150,9 +150,9 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
         }
-        if (readModel.Properties.Any(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime))
+        if (readModel.Properties.FirstOrDefault(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime) is { } dateTime)
         {
-            return "DateTime read-model values cannot preserve the reference's round-trip text in the per-run projection.";
+            return $"DateTime read-model property '{readModel.Name}.{dateTime.Name}' cannot preserve ordinal round-trip text: DateTimeOffset materialization renders authored 'Z' as '+00:00'.";
         }
         var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         var primitive = identifier.Type.Kind == SemanticTypeReferenceKind.Concept

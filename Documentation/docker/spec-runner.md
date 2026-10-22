@@ -355,6 +355,11 @@ sets an Arc principal, while authenticated, role, claim (literal, subject or art
 Screenplay's reference semantics. Nested artifact paths cannot reach composite values, because composite command values are not admitted. `then denied` checks Unauthorized and appends no new facts. Roles and claims
 remain distinct; a role-URI claim is blocked as `Unsupported(Authorization)` rather than treated as a role.
 
+Given, appended and produced events can carry composite members and collections, including collections
+of composites. Event materialization preserves missing members, nulls and empty collections as distinct
+values; event assertions compare their structure rather than formatted object text. You can project scalar
+members from these events, but structured read-model properties and children/join lowering remain unsupported.
+
 Command rules (`NotEmpty`, `Minimum`, `Maximum`, `Equal`, `NotEqual`, `GreaterThan`,
 `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual`, `Length`, `Matches`), scalar concept rules,
 and command requirements reject on every failed severity (including warning and information). The first

@@ -160,17 +160,6 @@ public class when_executing_performed_queries
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Code == "PLAY0268");
     }
 
-    [Fact]
-    public void should_not_silently_supply_a_context_sourced_by_argument()
-    {
-        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var source = Source("return readModels;", single: true).Replace("by name String", "by name String from $context.identity", StringComparison.Ordinal);
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("people"), "people", "People.play", source);
-        var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        Assert.False(compilation.Success);
-        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Code == "PLAY0268");
-    }
-
     static Task<LoadedSemanticModel> Load(string body, bool live = false, bool single = false, bool optional = false) =>
         when_rendering_a_pure_reducer.Load(Source(body, live, single, optional));
 

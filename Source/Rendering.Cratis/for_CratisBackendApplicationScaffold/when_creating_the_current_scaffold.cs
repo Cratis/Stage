@@ -65,6 +65,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_describe_running_the_specs_project() => Content("README.md").ShouldContain("dotnet test MyApp.Specs\n");
     [Fact] void should_describe_running_specs_in_any_configuration() => Content("README.md").ShouldContain("Specifications run in any configuration, including Release.");
     [Fact] void should_describe_the_actual_frontend_dev_script() => Content("README.md").ShouldContain("yarn dev");
+    [Fact] void should_enable_corepack_before_installing_with_the_pinned_yarn() => Content("README.md").ShouldContain("corepack enable\nyarn install\n");
     [Fact] void should_document_scaffold_ownership() => Content("README.md").ShouldContain("Scaffold files belong to you after first run");
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");

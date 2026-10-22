@@ -35,10 +35,10 @@ public class a_policy_application : Specification
               command {{name}}
                 authorize {{authorize}}
                 {{identifier}} InvoiceId identifier
-                produces {{eventName ?? name + "Done"}}
+                produces {{eventName ?? (name + "Done")}}
                   for {{identifier}}
                   {{identifier}} = {{identifier}}
-              event {{eventName ?? name + "Done"}}
+              event {{eventName ?? (name + "Done")}}
                 {{identifier}} InvoiceId
         """;
 

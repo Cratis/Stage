@@ -14,7 +14,7 @@ public class when_naming_from_a_scoped_selection : given.a_policy_application
 {
     ArtifactRenderPlan _application = null!;
     ArtifactRenderPlan _scoped = null!;
-    SemanticId _issue = default!;
+    SemanticId _issue;
 
     void Because()
     {

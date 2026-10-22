@@ -20,6 +20,7 @@ public class when_matching_scoped_event_source_key_types : Specification
     public async Task should_match_the_reference_for_compatible_keys(string primitive, string key, bool generated, bool passes)
     {
         var plan = Compile(primitive, primitive, key, generated, passes ? "recorded" : "wrong");
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         Assert.True(reference.Passed == passes, string.Join(';', reference.Failures));
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
@@ -28,10 +29,24 @@ public class when_matching_scoped_event_source_key_types : Specification
         result.Failures.ShouldContainOnly(reference.Failures);
     }
 
+    [Theory]
+    [InlineData("String", "one")]
+    [InlineData("Uuid", Uuid)]
+    public async Task should_project_compatible_given_event_keys(string primitive, string key)
+    {
+        var plan = Compile(primitive, primitive, key, false, "recorded", given: true);
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+        result.Failures.ShouldBeEmpty();
+    }
+
     [Fact]
     public async Task should_refuse_text_sources_even_when_the_value_looks_like_a_uuid()
     {
         var plan = Compile("String", "Uuid", Uuid, false, "recorded");
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+            "A scoped event-source key must have the read-model identifier's value type and enumeration values.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported!.Details.ShouldEqual("A scoped event-source key must have the read-model identifier's value type and enumeration values.");
@@ -41,12 +56,14 @@ public class when_matching_scoped_event_source_key_types : Specification
     public async Task should_keep_literal_keys_unsupported_without_misreporting_the_source_type()
     {
         var plan = Compile("Uuid", "String", Uuid, false, "recorded", "\"global\"");
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+            "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported!.Details.ShouldEqual("This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
     }
 
-    static SemanticExecutionPlan Compile(string sourceType, string identifierType, string key, bool generated, string expected, string projectionKey = "$eventSourceId")
+    static SemanticExecutionPlan Compile(string sourceType, string identifierType, string key, bool generated, string expected, string projectionKey = "$eventSourceId", bool given = false)
     {
         var source = $$"""
             concept Key : {{identifierType}}
@@ -63,7 +80,7 @@ public class when_matching_scoped_event_source_key_types : Specification
                   event Recorded
                     value String
                   specification RecordIsProjected
-            {{(generated ? $"        when Record\n          for \"{key}\"\n          value = \"recorded\"\n        then Recorded\n          for \"{key}\"\n          value = \"recorded\"" : $"        when append Recorded\n          for \"{key}\"\n          value = \"recorded\"")}}
+            {{(generated ? $"        when Record\n          for \"{key}\"\n          value = \"recorded\"\n        then Recorded\n          for \"{key}\"\n          value = \"recorded\"" : $"        {(given ? "given" : "when append")} Recorded\n          for \"{key}\"\n          value = \"recorded\"")}}
                     then readmodel Current
                       id = "{{(projectionKey == "$eventSourceId" ? key : "global")}}"
                       value = "{{expected}}"

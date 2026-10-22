@@ -15,9 +15,7 @@
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 343 },
         { "code": "STAGE-ESM-032", "kind": "event", "artifact": "sem1:5506b7cda49e7593497a3613f2daaa0185071e3d2e7e09878b050711bab53aa7", "issue": 212 },
         { "code": "STAGE-ESM-032", "kind": "projection", "artifact": "sem1:4fcfe6e771ac93d93e83380c6eda3721f537e3e29c27f98e644e819809d77605", "issue": 212 },
-        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 15 },
-        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 15 },
-        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:a03378f05d75507dfee8bef6c18c34594bdfd979abad80d93c8d1868ac305d23", "issue": 15 } ] },
+        { "code": "capability:Projection[a-projection-adds-or-subtracts]", "kind": "specification", "artifact": "sem1:9e3d7e5a9085e5415466a66bbb0bfc85c8324f81bcb184171843a45c46cd7be5", "issue": 15 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-001", "artifact": "sem1:0b66e5d726a3c6114a615404150251358dbd4bf8b54394d124a7fb75f9e5dbe1", "issue": 79 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:049fe0cb56ca5624a4732f5450af2a293a54a22287ff9334d1ed12a1b119e762", "issue": 500 },

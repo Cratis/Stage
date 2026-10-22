@@ -47,7 +47,7 @@ public class with_unordered_events(with_unordered_events.context fixture) : ICla
 
     public class context : a_generated_invoice_application
     {
-        protected override string InvoiceSource => Source;
+        protected override string InvoiceSource => with_unordered_events.Source;
 
         protected override ArtifactRenderPlan CreatePlan()
         {

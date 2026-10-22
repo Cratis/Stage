@@ -89,6 +89,8 @@ internal static class SemanticRunProjections
             {
                 foreach (var from in scope.From)
                 {
+                    // A product block whose event this run never delivers cannot fire; Chronicle cannot lower the product.
+                    if (from.Mappings.Any(mapping => mapping.Factor is not null) && !context.Facts.Any(fact => fact.EventContract == from.EventContract)) continue;
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();

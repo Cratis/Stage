@@ -13,8 +13,21 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <summary>
 /// Verifies that admitted scoped projections are emitted in a buildable application.
 /// </summary>
-public class when_rendering_scoped_projections : a_generated_application
+public class when_rendering_scoped_projections(when_rendering_scoped_projections.context fixture) : IClassFixture<when_rendering_scoped_projections.context>
 {
+    [Fact] void should_build_debug_warning_free() => fixture.DebugWarnings.ShouldEqual(string.Empty);
+    [Fact] void should_build_release_warning_free() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
+    [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => fixture.Specifications.ShouldContain("Passed!");
+    [Fact] void should_emit_scoped_projection_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("ReadModelScenario<global::Projects.Projects.Registration.ProjectLookup.ProjectSummary>");
+    [Fact] void should_emit_a_seeded_query_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new global::Projects.Projects.Registration.ProjectLookup.ProjectDetails");
+    [Fact] void should_emit_two_from_events_and_a_join() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<global::Projects.Projects.Registration.RegisterProject.ProjectRenamed>");
+    [Fact] void should_emit_identified_children() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
+    [Fact] void should_emit_increment_mappings() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");
+    [Fact] void should_emit_several_read_models_and_queries() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("ProjectDetailsById");
+    [Fact] void should_emit_nested_blocks() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<global::Projects.Projects.Registration.RegisterProject.ProjectRegistered>");
+    [Fact] void should_emit_every_and_removal_blocks() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.FromEvery(every =>");
+    [Fact] void should_emit_child_removals() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemoved>");
+
     internal const string ScopedSource = """
         concept ProjectId : Uuid
         concept ProjectName : String
@@ -130,42 +143,37 @@ public class when_rendering_scoped_projections : a_generated_application
                     parent projectId
         """;
 
-    ArtifactRenderPlan _plan = null!;
-    string _debug = null!;
-    string _release = null!;
-    string _specifications = null!;
-
-    protected override ArtifactRenderPlan CreatePlan()
+    public class context : a_generated_application
     {
-        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", ScopedSource);
-        var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
-        var execution = SemanticExecutionPlan.Compile(model);
-        Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
-        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
-        return _plan;
-    }
+        ArtifactRenderPlan _plan = null!;
+        string _debug = null!;
+        string _release = null!;
+        string _specifications = null!;
 
-    async Task Because()
-    {
-        _debug = await Run("scopes-debug.log", "build", "-c", "Debug");
-        _release = await Run("scopes-release.log", "build", "-c", "Release");
-        _specifications = await Run("scopes-specifications.log", "test", "-c", "Debug", "--no-build");
-    }
+        protected override ArtifactRenderPlan CreatePlan()
+        {
+            var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
+            var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", ScopedSource);
+            var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
+            Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+            var model = compilation.Value!.Model;
+            var execution = SemanticExecutionPlan.Compile(model);
+            Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
+            _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
+            Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
+            return _plan;
+        }
 
-    [Fact] void should_build_debug_warning_free() => BuildWarnings(_debug).ShouldEqual(string.Empty);
-    [Fact] void should_build_release_warning_free() => BuildWarnings(_release).ShouldEqual(string.Empty);
-    [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => _specifications.ShouldContain("Passed!");
-    [Fact] void should_emit_scoped_projection_specification() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("ReadModelScenario<global::Projects.Projects.Registration.ProjectLookup.ProjectSummary>");
-    [Fact] void should_emit_a_seeded_query_specification() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new global::Projects.Projects.Registration.ProjectLookup.ProjectDetails");
-    [Fact] void should_emit_two_from_events_and_a_join() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<global::Projects.Projects.Registration.RegisterProject.ProjectRenamed>");
-    [Fact] void should_emit_identified_children() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
-    [Fact] void should_emit_increment_mappings() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");
-    [Fact] void should_emit_several_read_models_and_queries() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("ProjectDetailsById");
-    [Fact] void should_emit_nested_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<global::Projects.Projects.Registration.RegisterProject.ProjectRegistered>");
-    [Fact] void should_emit_every_and_removal_blocks() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.FromEvery(every =>");
-    [Fact] void should_emit_child_removals() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemoved>");
+        async Task Because()
+        {
+            _debug = await Run("scopes-debug.log", "build", "-c", "Debug");
+            _release = await Run("scopes-release.log", "build", "-c", "Release");
+            _specifications = await Run("scopes-specifications.log", "test", "-c", "Debug", "--no-build");
+        }
+
+        public string DebugWarnings => BuildWarnings(_debug);
+        public string ReleaseWarnings => BuildWarnings(_release);
+        public string Specifications => _specifications;
+        public string GeneratedFile(string relativePath) => ReadGeneratedFile(relativePath);
+    }
 }

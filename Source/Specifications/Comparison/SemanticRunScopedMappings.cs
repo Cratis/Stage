@@ -8,6 +8,8 @@ using Cratis.Chronicle.Projections;
 using Cratis.Chronicle.Properties;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Types;
 
@@ -54,7 +56,7 @@ internal static class SemanticRunScopedMappings
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                var source = mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
+                var source = mapping.Factor is not null ? ProductSource(plan, @event, model.Properties, mapping) : mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(IFromBuilder<TReadModel, TEvent>))
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, target.Name, source], null);
@@ -190,6 +192,12 @@ internal static class SemanticRunScopedMappings
                 .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mapping, target.Name, source], null);
         }
     }
+
+    // The member a product is carried in: the event holds the multiplied value, which Chronicle's Add and Subtract then read as one property.
+    static string ProductSource(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticProperty> targets, SemanticProjectionMapping mapping) =>
+        SemanticProjectionProducts.Rejection(mapping, true, @event, targets, new SemanticApplicationContext(plan), out var product) is null
+            ? SemanticRuntimeTypes.ProductMember(product!)
+            : throw Refused(mapping);
 
     // An event property, or a member reached through composite values: the dotted path Chronicle reads from the event.
     static string SourceName(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticId> path)

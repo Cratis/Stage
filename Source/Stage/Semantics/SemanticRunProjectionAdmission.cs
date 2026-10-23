@@ -191,9 +191,13 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return rejection;
             }
-            if (HasProduct(scope))
+            if (HasProductOutsideFrom(scope))
             {
-                return "A projection adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so Stage does not run it.";
+                return "A join or child level adds or subtracts a product of two event values (ESM v29); only a root from block can carry the product on its event.";
+            }
+            if (ProductRejection(plan, scope, readModel) is { } product)
+            {
+                return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
             }
             if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
             {
@@ -232,12 +236,34 @@ internal static partial class SemanticRunProjectionAdmission
                 : null;
         }
 
-        if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.Length != 1 || !FlatMatches(plan, specification, projection.Transitions[0], readModel))
+        if (readModel.Properties.Any(property => property.Type.IsCollection || !IsScalar(property.Type)) || projection.Transitions.IsEmpty || projection.Transitions.Select(transition => transition.EventContract).Distinct().Count() != projection.Transitions.Length ||
+            projection.Transitions.Any(transition => !FlatMatches(plan, specification, transition, readModel)))
         {
-            return "A flat transition must use scalar event mappings and a key equal to the fact's event source.";
+            return "A flat transition must use scalar event mappings, one transition per event and a key that is a required scalar event property of the identifier's value type.";
         }
         return null;
     }
+
+    static string? ProductRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel)
+    {
+        var context = new SemanticApplicationContext(plan);
+        foreach (var from in scope.From)
+        {
+            foreach (var mapping in from.Mappings.Where(mapping => mapping.Factor is not null))
+            {
+                if (SemanticProjectionProducts.Rejection(mapping, true, plan.Events[from.EventContract], readModel.Properties, context, out _) is { } reason)
+                {
+                    return reason;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    static bool HasProductOutsideFrom(SemanticProjectionScope scope) =>
+        scope.Joins.Any(join => join.Mappings.Any(mapping => mapping.Factor is not null)) ||
+        scope.Children.Any(child => HasProduct(child.Scope));
 
     static bool HasProduct(SemanticProjectionScope scope) =>
         scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null)) ||
@@ -301,7 +327,8 @@ internal static partial class SemanticRunProjectionAdmission
 
     static bool MappingSupported(SemanticProjectionMapping mapping)
     {
-        if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
+        if (mapping.Target.Length != 1) return false;
+        if (mapping.Factor is not null) return mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract && mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 };
         return mapping.Operation switch
         {
             SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
@@ -352,7 +379,9 @@ internal static partial class SemanticRunProjectionAdmission
             SemanticFlatProjectionSupport.MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) &&
             transition.Mappings.All(mapping => mapping.TargetProperty != readModel.Properties.Single(property => property.IsIdentifier).Id ||
                 (mapping.Source is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } source && source.Target == key.Target)) &&
-            KeyMatchesSource(plan, specification, transition, key.Target);
+            @event.Properties.Single(property => property.Id == key.Target) is { Type: { IsOptional: false, IsCollection: false } } keyProperty && IsScalar(keyProperty.Type) &&
+            SourceTypeMatches(plan, keyProperty.Type, readModel.Properties.Single(property => property.IsIdentifier).Type) &&
+            ScopedKeysMatch(plan, specification, transition.EventContract, readModel.Properties.Single(property => property.IsIdentifier).Type, key.Target);
     }
 
     static SemanticPrimitiveType Primitive(SemanticExecutionPlan plan, SemanticTypeReference type) =>

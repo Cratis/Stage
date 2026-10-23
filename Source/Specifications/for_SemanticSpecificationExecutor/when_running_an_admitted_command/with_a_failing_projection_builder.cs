@@ -26,7 +26,7 @@ public class with_a_failing_projection_builder : Specification
             null,
             BindingFlags.DoNotWrapExceptions,
             null,
-            [builder, typeof(string), Array.Empty<(string Target, string? Source)>()],
+            [builder, typeof(string), Array.Empty<(string Target, string? Source)>(), "key"],
             null));
     }
 

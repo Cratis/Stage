@@ -63,7 +63,7 @@ public class with_integer_stream_id_bounds : given.a_routed_command
         {
             var validation = Assert.IsType<ValidationResult>(Assert.IsType<IOneOf>(result, exactMatch: false).Value);
             validation.Severity.ShouldEqual(ValidationResultSeverity.Error);
-            validation.Members.ShouldContainOnly(["Month"]);
+            validation.Members.ShouldContainOnly(["month"]);
             validation.Message.ShouldNotContain(value.ToString(CultureInfo.InvariantCulture));
         }
     }

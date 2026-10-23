@@ -12,6 +12,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
+    internal static bool TranslationValuesMatch(SemanticApplicationContext context, SemanticId contract, System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values) =>
+        context.Events.TryGetValue(contract, out var declaration) && ValuesMatch(values, declaration.Properties, context: context);
+
+    internal static bool TranslationSourceMatches(SemanticApplicationContext context, SemanticEventSourceIdentity source) =>
+        IsScalar(source.Value) && IsLosslessEventSource(context, source.Type);
+
     static bool EventMatches(SemanticApplicationContext context, SemanticSpecificationEvent expected) =>
         context.Events.TryGetValue(expected.EventContract, out var @event) && ValuesMatch(expected.Values, @event.Properties);
 

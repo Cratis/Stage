@@ -222,20 +222,18 @@ public class when_executing_performed_queries
         Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task should_admit_and_execute_the_rendered_scalar_and_identifier_concept_sentinels(bool identifier)
+    [Fact]
+    public async Task should_admit_and_execute_the_rendered_scalar_and_identifier_concept_sentinels()
     {
-        var body = "return readModels.Where(row => row.PersonId != PersonId.NotSet && row.Name != PersonName.NotSet" +
-            (identifier ? " && row.PersonId.TypedValue != Guid.Empty);" : ");");
+        // The read model key makes PersonId an identifier concept; PersonName stays a scalar concept.
+        const string body = "return readModels.Where(row => row.PersonId != PersonId.NotSet && row.Name != PersonName.NotSet && row.PersonId.TypedValue != Guid.Empty);";
         var source = "concept PersonId : Uuid\nconcept PersonName : String\n" + Source(body)
-            .Replace("personId Uuid", "personId PersonId" + (identifier ? " identifier" : string.Empty), StringComparison.Ordinal)
+            .Replace("personId Uuid", "personId PersonId", StringComparison.Ordinal)
             .Replace("        name String", "        name PersonName", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = Request(loaded);
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
-        Assert.Equal(identifier, context.IdentifierConcepts.Contains(loaded.Model.Application.Concepts.Single(concept => concept.Name == "PersonId").Id));
+        Assert.Contains(loaded.Model.Application.Concepts.Single(concept => concept.Name == "PersonId").Id, context.IdentifierConcepts);
         var method = Method(loaded);
         var constructor = method.DeclaringType!.GetConstructors().Single();
         var properties = constructor.GetParameters();

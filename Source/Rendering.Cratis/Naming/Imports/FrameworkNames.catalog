@@ -8,6 +8,7 @@ pin	Cratis.Arc.MongoDB	22.131.0
 pin	Cratis.Chronicle	19.99.1
 pin	Cratis.Chronicle.AspNetCore	19.99.1
 pin	Cratis.Chronicle.Testing	19.99.1
+pin	Cratis.Screenplay.Matching	4.241.0
 pin	Cratis.Specifications	4.1.1
 pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -37,6 +38,7 @@ package	AS	Cratis.Fundamentals	7.25.0
 package	AS	Cratis.Metrics.Roslyn	7.25.0
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
+package	AS	Cratis.Screenplay.Matching	4.241.0
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -493,6 +495,7 @@ namespace	AS	Cratis.Screenplay.Diagnostics
 namespace	AS	Cratis.Screenplay.Files
 namespace	AS	Cratis.Screenplay.Indexing
 namespace	AS	Cratis.Screenplay.Languages
+namespace	AS	Cratis.Screenplay.Matching
 namespace	AS	Cratis.Screenplay.Parsing
 namespace	AS	Cratis.Screenplay.Printing
 namespace	AS	Cratis.Screenplay.Processing
@@ -4084,6 +4087,8 @@ type	AS	Cratis.Screenplay.Files	PlayPlacement	class
 type	AS	Cratis.Screenplay.Languages	IScreenplayLanguageRegistry	interface
 type	AS	Cratis.Screenplay.Languages	ScreenplayLanguageRegistry	class
 type	AS	Cratis.Screenplay.Languages	TriggerDefinition	class
+type	AS	Cratis.Screenplay.Matching	InvalidPortableMatchPattern	class
+type	AS	Cratis.Screenplay.Matching	PortableMatcher	class
 type	AS	Cratis.Screenplay.Parsing	BlueprintDescriptor	class
 type	AS	Cratis.Screenplay.Parsing	InvalidStructuredNumber	class
 type	AS	Cratis.Screenplay.Parsing	TemplateDescriptor	class

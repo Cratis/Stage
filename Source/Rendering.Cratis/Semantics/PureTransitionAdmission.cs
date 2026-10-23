@@ -383,11 +383,6 @@ internal static partial class PureTransitionAdmission
     internal static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
 
-    static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
-        method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||
-        (method.Identifier.Text == SemanticReducerArtifactRenderer.SelfTransitionMethod &&
-            method.Parent is ClassDeclarationSyntax container && container.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal));
-
     internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodPrefix = "Transition_")
     {
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
@@ -426,6 +421,11 @@ internal static partial class PureTransitionAdmission
     // The audited pack, or the isolated failure-path override, for every pure body analysis.
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
+        method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||
+        (method.Identifier.Text == SemanticReducerArtifactRenderer.SelfTransitionMethod &&
+            method.Parent is ClassDeclarationSyntax container && container.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal));
 
     static string ForbiddenSymbol(SyntaxNode forbidden, string body) => forbidden switch
     {

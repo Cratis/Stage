@@ -164,9 +164,17 @@ public static partial class conformance_outcomes
 
         // A vector with source forms is planned from its compiled source with the implementation requirements, bodies and typed contexts,
         // as the three-way specs plan it. Without them every inline body would be refused as a missing envelope whatever Stage can do.
-        var rendered = source.Loaded is { } loaded
-            ? CratisRendering.Plan(loaded.Model, loaded.Plan, scope, new(name, name), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors)
-            : CratisRendering.Plan(model, plan, scope, new(name, name));
+        var profile = CratisRendering.CreateProfile(source.Loaded?.Model.Application.Name ?? model.Application.Name, new(name, name), null, canonical_strings_catalog.Files, "en");
+        var request = source.Loaded is { } loaded
+            ? new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, scope)
+            {
+                ImplementationRequirements = loaded.ImplementationRequirements,
+                ImplementationContents = loaded.ImplementationContents,
+                AttachmentDiagnostics = loaded.AttachmentDiagnostics,
+                TypedContextDescriptors = loaded.TypedContextDescriptors
+            }
+            : new ArtifactRenderRequest(model, plan, profile, scope);
+        var rendered = new CratisArtifactRenderPlanner().Plan(request);
         var codes = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (rendered.Success)

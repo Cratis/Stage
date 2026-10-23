@@ -52,7 +52,7 @@ public class when_admitting_nontext_claim_targets : Specification
     {
         var source = QuerySource.Replace("concept InvoiceId : Decimal", $"concept InvoiceId : {primitive}", StringComparison.Ordinal);
         var policy = RenderedPolicy(source);
-        policy.Split('\n').Count(line => line.Contains("FromResult((false || context.Principal.IsInRole(\"Staff\")))", StringComparison.Ordinal)).ShouldEqual(2);
+        policy.Split('\n').Count(line => line.Contains("FromResult((false || context.Principal.IsInRole(\"Staff\")))", StringComparison.Ordinal)).ShouldEqual(1);
         policy.Contains("PolicyValues.Match(", StringComparison.Ordinal).ShouldBeFalse();
     }
 
@@ -119,7 +119,7 @@ public class when_admitting_nontext_claim_targets : Specification
     {
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         plan.Success.ShouldBeTrue();
-        return string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal))
+        return string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal))
             .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
     }
 }

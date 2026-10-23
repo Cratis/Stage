@@ -23,7 +23,10 @@ internal static partial class SemanticCratisAdmission
         ValidateValidationBody(context, rule.RequirementId!, role, owner, property, diagnostics, rule.Name);
         if (!SemanticValidationRendering.CanResolve(rule.Message, context) || !Enum.IsDefined(rule.Severity))
         {
-            diagnostics.Add(Error("STAGE-ESM-019", $"Validation '{rule.Name}' has an unsupported message or severity.", owner));
+            var reason = context.Strings is null && rule.Message?.StartsWith("$strings.", StringComparison.Ordinal) == true
+                ? $"Validation '{rule.Name}' {MessageRenderingReason(rule.Message)}"
+                : $"Validation '{rule.Name}' has an unsupported message or severity.";
+            diagnostics.Add(Error("STAGE-ESM-019", reason, owner));
         }
     }
 

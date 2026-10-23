@@ -28,8 +28,8 @@ public class with_a_guest_alternative : Specification
         _assembly = opaque_policy_model.Compile(plan);
     }
 
-    [Fact] void should_evaluate_guests_for_a_portable_guest_alternative() => opaque_policy_model.EvaluatesAnonymous(_assembly, Operation(slice => slice.Commands.Select(command => command.Id))).ShouldBeTrue();
-    [Fact] void should_not_evaluate_guests_for_an_opaque_policy_alone() => opaque_policy_model.EvaluatesAnonymous(_assembly, Operation(slice => slice.Queries.Select(query => query.Id))).ShouldBeFalse();
+    [Fact] void should_evaluate_guests_for_a_portable_guest_alternative() => opaque_policy_model.EvaluatesAnonymous(_assembly, _model, Operation(slice => slice.Commands.Select(command => command.Id))).ShouldBeTrue();
+    [Fact] void should_not_evaluate_guests_for_an_opaque_policy_alone() => opaque_policy_model.EvaluatesAnonymous(_assembly, _model, Operation(slice => slice.Queries.Select(query => query.Id))).ShouldBeFalse();
 
     SemanticId Operation(Func<SemanticSlice, IEnumerable<SemanticId>> select) =>
         _model.Application.Modules.Single().Features.Single().Slices.SelectMany(select).Single();

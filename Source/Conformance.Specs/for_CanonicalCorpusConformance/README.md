@@ -1,3 +1,11 @@
+# Canonical fixture strings (#539)
+
+The renderer surface supplies `given/canonical_strings_catalog.cs` as companion
+`.strings` resources with default locale `en`. Its `validation.predicate` key
+resolves the `$strings.validation.predicate` rule message in EsmGoldenVectors
+V3–V24. The catalog belongs to the harness; production rendering still refuses
+`$strings.` messages without a supplied catalog.
+
 # Protected command read race coverage (#557)
 
 `ProtectedCommandReadRaceVectors.Model` has renderer `supported` because the

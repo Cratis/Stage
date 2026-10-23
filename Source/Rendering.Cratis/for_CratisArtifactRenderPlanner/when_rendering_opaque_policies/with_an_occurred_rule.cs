@@ -36,6 +36,6 @@ public class with_an_occurred_rule : Specification
     [Fact] void should_allow_a_query_received_in_the_ruled_year() => opaque_policy_model.AllowsQuery(_assembly, _model, opaque_policy_model.Caller(), opaque_policy_model.Receipt, "invoice-one").ShouldBeTrue();
     [Fact] void should_deny_a_query_received_in_another_year() => opaque_policy_model.AllowsQuery(_assembly, _model, opaque_policy_model.Caller(), opaque_policy_model.Receipt.AddYears(1), "invoice-one").ShouldBeFalse();
     [Fact] void should_deny_a_query_without_a_receipt_time() => opaque_policy_model.AllowsQuery(_assembly, _model, opaque_policy_model.Caller(), default, "invoice-one").ShouldBeFalse();
-    [Fact] void should_not_evaluate_guests() => opaque_policy_model.EvaluatesAnonymous(_assembly, _model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Commands).Single().Id).ShouldBeFalse();
+    [Fact] void should_not_evaluate_guests() => opaque_policy_model.EvaluatesAnonymous(_assembly, _model, _model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Commands).Single().Id).ShouldBeFalse();
 }
 #endif

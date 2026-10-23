@@ -119,7 +119,7 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                 static async Task AssertGuestDenied(MemberInfo target, object resource)
                 {
                     var name = target.GetCustomAttribute<AuthorizeAttribute>()!.Policy;
-                    var type = typeof(IssueInvoice).Assembly.GetTypes().Single(candidate => candidate.Name == name);
+                    var type = typeof(IssueInvoice).Assembly.GetTypes().Single(candidate => candidate.Name == name!.Split('.').Last() + "Policy");
                     var policy = (IAuthorizationPolicy)Activator.CreateInstance(type)!;
                     Assert.False(await policy.IsAuthorized(new(Guest(), target, resource), CancellationToken.None));
                 }

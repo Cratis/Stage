@@ -61,6 +61,8 @@ public class when_rendering_portable_authorization : Specification
     Assembly _assembly = null!;
     Type _command = null!;
     Type _query = null!;
+    string _commandPolicyName = null!;
+    string _queryPolicyName = null!;
     IAuthorizationPolicy _commandPolicy = null!;
     IAuthorizationPolicy _queryPolicy = null!;
     object _commandResource = null!;
@@ -76,8 +78,10 @@ public class when_rendering_portable_authorization : Specification
         _assembly = RenderedOutput.Load(sources);
         var command = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Commands.Length == 1).Commands.Single();
         var query = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Queries.Length == 1).Queries.Single();
-        _commandPolicy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(command.Id)))!;
-        _queryPolicy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(query.Id)))!;
+        _commandPolicyName = policy_names.NameOf(model, command.Id);
+        _queryPolicyName = policy_names.NameOf(model, query.Id);
+        _commandPolicy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, command.Id)))!;
+        _queryPolicy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, query.Id)))!;
         _command = _assembly.GetTypes().Single(type => type.Name == "IssueInvoice");
         _query = _assembly.GetTypes().Single(type => type.Name == "InvoiceSummary");
         var invoiceId = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "InvoiceId"), "invoice-one")!;
@@ -94,8 +98,8 @@ public class when_rendering_portable_authorization : Specification
         services.Count(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).ShouldEqual(2);
     }
 
-    [Fact] void should_mark_the_command_with_its_registered_policy() => _command.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_commandPolicy.GetType().Name);
-    [Fact] void should_mark_the_query_with_its_registered_policy() => _query.GetMethod("InvoiceById")!.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_queryPolicy.GetType().Name);
+    [Fact] void should_mark_the_command_with_its_registered_policy() => _command.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_commandPolicyName);
+    [Fact] void should_mark_the_query_with_its_registered_policy() => _query.GetMethod("InvoiceById")!.GetCustomAttributes<AuthorizeAttribute>().Single().Policy.ShouldEqual(_queryPolicyName);
     [Fact] void should_deny_anonymous_callers() => Allows(_commandPolicy, _command, _commandResource, Principal(false, "Staff", "invoice-one", "North")).ShouldBeFalse();
     [Fact] void should_allow_matching_role_claim_and_subject() => Allows(_commandPolicy, _command, _commandResource, Principal(true, "Staff", "invoice-one", "North")).ShouldBeTrue();
     [Fact] void should_allow_the_alternative_department_claim() => Allows(_commandPolicy, _command, _commandResource, Principal(true, null, "invoice-one", "North", "Sales")).ShouldBeTrue();

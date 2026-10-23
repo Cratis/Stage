@@ -63,7 +63,7 @@ internal static class SemanticQueryContextRuntime
             $"Query performer requirement '{requirement.RequirementId}' at {PureTransitionAdmission.SourceLocation(requirement, body, 0)}: {detail}",
             query.Id);
 
-        var collision = Arguments(query).Select(Name).FirstOrDefault(name => name is "readModels" or "context");
+        var collision = Arguments(query).Select(Name).FirstOrDefault(name => string.Equals(name, "readModels", StringComparison.Ordinal) || string.Equals(name, "context", StringComparison.Ordinal));
         if (collision is not null) return Error($"Argument '{collision}' conflicts with a reserved query performer body binding.");
 
         var parsed = PureTransitionAdmission.ParseBody(body, new HashSet<string>(StringComparer.Ordinal), "query performer", enforcePurity: false);
@@ -128,7 +128,7 @@ internal static class SemanticQueryContextRuntime
             .EndBlock();
     }
 
-    static IEnumerable<string> AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
+    static List<string> AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
     {
         // Reuse the actual concept declarations and pinned Fundamentals metadata, without loading
         // Arc or Chronicle. Only the external Chronicle base is a stand-in, as in reducer analysis.

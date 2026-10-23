@@ -42,13 +42,13 @@ public class when_rendering_an_unkeyed_list_policy : for_SemanticCratisAdmission
         var services = new ServiceCollection();
         assembly.GetType($"{_context.RootNamespace}.GeneratedPolicies.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
         _registrations = [.. services.Where(service => service.ServiceType == typeof(AuthorizationPolicyRegistration)).Select(service => (AuthorizationPolicyRegistration)service.ImplementationInstance!)];
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(_query.Id)))!;
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyNames.For(_context)[_query.Id].ClassName))!;
         _stateView = SemanticStateViewArtifactRenderer.Render(_context.Slice(_slice.Id), _context).Content;
     }
 
     [Fact] void should_admit_the_argument_free_policy() => _diagnostics.ShouldBeEmpty();
     [Fact] void should_register_the_policy() => _registrations.Length.ShouldEqual(1);
-    [Fact] void should_emit_the_matching_authorization_attribute() => _stateView.ShouldContain(SemanticPolicyArtifactRenderer.Name(_query.Id));
+    [Fact] void should_emit_the_matching_authorization_attribute() => _stateView.ShouldContain($"Policy = \"{SemanticPolicyNames.PolicyNameOf(_context, _query.Id)}\"");
     [Fact] void should_allow_the_declared_role() => Allows(new(new ClaimsIdentity([new(ClaimTypes.Role, "Staff")], "fixture"))).ShouldBeTrue();
     [Fact] void should_deny_a_guest() => Allows(new(new ClaimsIdentity())).ShouldBeFalse();
 

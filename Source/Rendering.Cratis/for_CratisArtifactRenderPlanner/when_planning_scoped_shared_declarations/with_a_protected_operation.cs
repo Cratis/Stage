@@ -4,8 +4,8 @@
 using Cratis.Arc.Authorization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
-using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -26,12 +26,12 @@ public class with_a_protected_operation : given.a_multi_module_application
     }
 
     [Fact] void should_include_the_same_policy_runtime() => SameArtifact(_application, _plan, "GeneratedPolicies/Policies.cs").ShouldBeTrue();
-    [Fact] void should_include_the_same_operation_policy() => SameArtifact(_application, _plan, $"GeneratedPolicies/{SemanticPolicyArtifactRenderer.Name(_placeOrder.Commands.Single().Id)}.cs").ShouldBeTrue();
-    [Fact] void should_exclude_other_operations_policies() => _plan.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal)).ShouldEqual(1);
-    [Fact] void should_register_only_the_selected_policy() => _scopedRegistrations.Select(registration => registration.Name).ShouldContainOnly([SemanticPolicyArtifactRenderer.Name(_placeOrder.Commands.Single().Id)]);
+    [Fact] void should_include_the_same_operation_policy() => SameArtifact(_application, _plan, $"GeneratedPolicies/{policy_names.ClassOf(_model, _placeOrder.Commands.Single().Id)}.cs").ShouldBeTrue();
+    [Fact] void should_exclude_other_operations_policies() => _plan.Artifacts.Count(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)).ShouldEqual(1);
+    [Fact] void should_register_only_the_selected_policy() => _scopedRegistrations.Select(registration => registration.Name).ShouldContainOnly([policy_names.NameOf(_model, _placeOrder.Commands.Single().Id)]);
     [Fact] void should_preserve_the_authenticated_only_registration() => _scopedRegistrations.Single().EvaluatesAnonymous.ShouldBeFalse();
     [Fact] void should_register_the_application_in_ordinal_name_order() => _applicationRegistrations.Select(registration => registration.Name).SequenceEqual(_applicationRegistrations.Select(registration => registration.Name).Order(StringComparer.Ordinal)).ShouldBeTrue();
-    [Fact] void should_preserve_the_foreign_operations_anonymous_opt_in() => _applicationRegistrations.Single(registration => registration.Name == SemanticPolicyArtifactRenderer.Name(_customers.Features.Single().Slices.Single().Commands.Single().Id)).EvaluatesAnonymous.ShouldBeTrue();
+    [Fact] void should_preserve_the_foreign_operations_anonymous_opt_in() => _applicationRegistrations.Single(registration => registration.Name == policy_names.NameOf(_model, _customers.Features.Single().Slices.Single().Commands.Single().Id)).EvaluatesAnonymous.ShouldBeTrue();
 
     static AuthorizationPolicyRegistration[] Registrations(System.Reflection.Assembly assembly)
     {

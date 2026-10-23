@@ -33,7 +33,7 @@ public class when_rendering_snake_case_query_authorization : Specification
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var assembly = RenderedOutput.Load(sources);
         var query = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Queries.Length == 1).Queries.Single();
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(query.Id)))!;
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, query.Id)))!;
         _method = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById")!;
         var id = assembly.GetTypes().Single(type => type.Name == "InvoiceId");
         _mine = Activator.CreateInstance(id, "mine")!;

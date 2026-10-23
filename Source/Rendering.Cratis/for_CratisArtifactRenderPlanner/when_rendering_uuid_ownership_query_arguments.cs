@@ -38,7 +38,7 @@ public class when_rendering_uuid_ownership_query_arguments : Specification
         var assembly = RenderedOutput.Load(sources);
         var query = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Queries.Length == 1).Queries.Single();
         _query = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById")!;
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(query.Id)))!;
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, query.Id)))!;
     }
 
     [Fact] void should_plan_uuid_ownership() => _plan.Success.ShouldBeTrue();

@@ -45,16 +45,26 @@ public class when_auditing_the_executable_model : Specification
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
     [Theory]
-    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-032")]
-    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-033")]
-    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-032")]
-    [InlineData("SemanticProjection.Target", "STAGE-ESM-032")]
-    [InlineData("SemanticReducer.Target", "STAGE-ESM-032")]
-    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-032")]
-    [InlineData("SemanticSlice.Direction", "STAGE-ESM-024")]
-    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-033")]
-    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
-    public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+    [InlineData("SemanticEventContract.Visibility")]
+    [InlineData("SemanticEventContract.Origin")]
+    [InlineData("SemanticEventVisibility.Public")]
+    [InlineData("SemanticProjection.Target")]
+    [InlineData("SemanticProjectionTargetKind.Event")]
+    [InlineData("SemanticSlice.Direction")]
+    [InlineData("SemanticSliceKind.Translate")]
+    [InlineData("SemanticCapture.EventsSource")]
+    [InlineData("SemanticCaptureEventsSource.Events")]
+    [InlineData("SemanticCaptureCondition.Kind")]
+    [InlineData("SemanticCaptureConditionKind.Added")]
+    [InlineData("SemanticCaptureConditionKind.AnyChanged")]
+    [InlineData("SemanticCaptureConditionKind.AllChanged")]
+    [InlineData("SemanticCaptureConditionKind.Transition")]
+    [InlineData("SemanticCaptureConditionKind.Removed")]
+    public void should_classify_translation_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]

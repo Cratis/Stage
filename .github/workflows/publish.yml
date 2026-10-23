@@ -70,8 +70,7 @@ jobs:
 
       - name: Release
         id: release
-        # Pinned to the batched-releases pilot (Cratis/release-action#217); back to @v1 once it is released.
-        uses: cratis/release-action@b1c4dbf13ab3fc90bf5b3fb8be64b26006209496
+        uses: cratis/release-action@v1
         with:
           version: ${{ github.event.inputs.version }}
           release-notes: ${{ github.event.inputs.release-notes }}

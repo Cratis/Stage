@@ -15,9 +15,9 @@ namespace Cratis.Stage.Specifications.Comparison;
 
 internal static class SemanticRunScopedMappings
 {
-    internal static void Define<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key) =>
+    internal static void Define<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key, SemanticExecutionPlan plan) =>
         typeof(SemanticRunScopedMappings).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings, model, @event, key], null);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings, model, @event, key, plan], null);
 
     internal static void DefineRelated<TReadModel, TBuilder>(IProjectionBuilder<TReadModel, TBuilder> builder, SemanticProjectionScope scope, ImmutableArray<SemanticProperty> properties, SemanticExecutionPlan plan, SemanticRuntimeTypes types)
         where TBuilder : class
@@ -37,7 +37,7 @@ internal static class SemanticRunScopedMappings
         }
     }
 
-    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key)
+    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionMapping[] mappings, SemanticReadModel model, SemanticEventContract @event, SemanticProjectionKey key, SemanticExecutionPlan plan)
     {
         // TEvent is a runtime-emitted contract carrying [EventType].
 #pragma warning disable CHR0002
@@ -54,7 +54,7 @@ internal static class SemanticRunScopedMappings
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                var source = mapping.Source is SemanticProjectionEventProperty property ? @event.Properties.Single(value => value.Id == property.Path[0]).Name : null;
+                var source = SourcePath(plan, @event, mapping);
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(IFromBuilder<TReadModel, TEvent>))
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, target.Name, source], null);
@@ -147,7 +147,7 @@ internal static class SemanticRunScopedMappings
                 from.UsingKey(Property<TEvent, object>(@event.Properties.Single(property => property.Id == key).Name));
             if (definition.ParentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var parent] } })
                 from.UsingParentKey(Property<TEvent, object>(@event.Properties.Single(property => property.Id == parent).Name));
-            ApplyMappings(from, definition.Mappings, properties, @event);
+            ApplyMappings(from, definition.Mappings, properties, @event, plan);
         });
 #pragma warning restore CHR0002
     }
@@ -173,22 +173,38 @@ internal static class SemanticRunScopedMappings
         builder.Join<TEvent>(join =>
         {
             if (!child) join.On(Property<TReadModel, object>(properties.Single(property => property.Id == definition.On).Name));
-            ApplyMappings(join, definition.Mappings, properties, plan.Events[definition.EventContract]);
+            ApplyMappings(join, definition.Mappings, properties, plan.Events[definition.EventContract], plan);
         });
 #pragma warning restore CHR0002
     }
 
-    static void ApplyMappings<TReadModel, TEvent, TBuilder>(IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder> builder, ImmutableArray<SemanticProjectionMapping> mappings, ImmutableArray<SemanticProperty> properties, SemanticEventContract @event)
+    static void ApplyMappings<TReadModel, TEvent, TBuilder>(IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder> builder, ImmutableArray<SemanticProjectionMapping> mappings, ImmutableArray<SemanticProperty> properties, SemanticEventContract @event, SemanticExecutionPlan plan)
         where TBuilder : class, IReadModelPropertiesBuilder<TReadModel, TEvent, TBuilder>
     {
         foreach (var mapping in mappings)
         {
             var target = properties.Single(property => property.Id == mapping.Target[0]);
-            var source = mapping.Source is SemanticProjectionEventProperty property ? @event.Properties.Single(value => value.Id == property.Path[0]).Name : null;
+            var source = SourcePath(plan, @event, mapping);
             typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(TBuilder))
                 .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mapping, target.Name, source], null);
         }
+    }
+
+    // A nested event path lowers to the declared names joined by dots, walked through the composite types.
+    static string? SourcePath(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionMapping mapping)
+    {
+        if (mapping.Source is not SemanticProjectionEventProperty source) return null;
+        var properties = @event.Properties;
+        var names = new List<string>();
+        foreach (var id in source.Path)
+        {
+            var member = properties.Single(property => property.Id == id);
+            names.Add(member.Name);
+            if (member.Type.Kind == SemanticTypeReferenceKind.CompositeType)
+                properties = plan.Model.Application.Types.Single(type => type.Id == member.Type.Target).Properties;
+        }
+        return string.Join('.', names);
     }
 
     static SemanticProjectionLoweringRefused Refused(SemanticProjectionMapping mapping, Exception? cause = null) =>

@@ -54,10 +54,17 @@ eventually consistent with the reactor that reads it, so a delivery can observe 
 yet seen the previous record, and replay rebuilds it independently of the reactor. Chronicle's client
 capture builder reads external systems, not inbox events, so it does not fit an events source.
 
-The cost is one inbox read per delivery that grows with the inbox length. The reactor is
-`[OnceOnly]`, so a full observer replay does not re-append. Ordinary redelivery after an append failed
-partway can append the same effect again; the read makes the decision deterministic, not the append
-exactly-once.
+The cost is one inbox read per delivery that grows with the inbox length. The reactor remains
+`[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
+idempotency key derived from the reactor delivery, capture id and modeled append position. Retrying
+that delivery after a partial append, a lost acknowledgment or an append followed by a lost checkpoint
+uses the same keys: already-appended effects succeed without appending duplicates. Different effects
+and different deliveries have different keys, even when an earlier append's guard produces no effect.
+
+This requires Chronicle client and kernel **19.99.1 or later** with idempotent appends. The generated
+application pins that kernel image. A kernel without the capability is refused; Stage does not fall
+back to unkeyed appends. This protects capture effects in the destination event log, not arbitrary
+external side effects. Publication, capture state reconstruction and replay exclusion are unchanged.
 
 Guards whose result Stage cannot reproduce exactly are refused by name with `STAGE-ESM-024`:
 expression guards, guard paths with `.` traversal, guards over list or record fields, and transitions
@@ -97,10 +104,11 @@ objects appended to the outbox, including their payloads and source ids. Public 
 is not yet supported in generated specifications. Explicit `then none`
 is a zero-output assertion, not a skipped check.
 
-These are isolated handler tests, not running Chronicle subscriptions. They do not prove inbox
-transport, checkpointing, or replay delivery. Input fan-out, downstream captures/publications/
-reactions, append-time constraints, history that triggers settlement, and recovery/redelivery
-remain explicit `STAGE-ESM-011` refusals. Expected outcomes must belong to the selected handler;
+These are isolated handler tests, not running Chronicle subscriptions. Capture specifications pass
+Chronicle delivery identity to the generated handler. They do not prove inbox transport,
+checkpointing, or replay delivery. Input fan-out, downstream captures/publications/reactions,
+append-time constraints, history that triggers settlement, and authored recovery/redelivery
+specifications remain explicit `STAGE-ESM-011` refusals. Expected outcomes must belong to the selected handler;
 a public outcome from another slice is not approximated as a local append. Unordered outcomes,
 caller/clock/error/return assertions, and values outside the existing typed event-fixture subset
 are also refused.

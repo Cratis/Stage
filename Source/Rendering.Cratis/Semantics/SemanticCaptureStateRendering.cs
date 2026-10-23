@@ -52,7 +52,7 @@ internal static class SemanticCaptureStateRendering
             .BlankLine()
             .Line($"static bool Changed({Record} previous, {Record} current, string field) =>")
             .Line("    previous.ContainsKey(field) != current.ContainsKey(field) ||")
-            .Line("    (previous.GetValueOrDefault(field) is { } was && current.GetValueOrDefault(field) is { } now && !Same(was, now));")
+            .Line("    (previous.ContainsKey(field) && !Same(previous.GetValueOrDefault(field), current.GetValueOrDefault(field)));")
             .BlankLine()
             .Line("static string Text(object? value) => (value is null ? null : ConceptValue(value) ?? value) switch")
             .Line("{")

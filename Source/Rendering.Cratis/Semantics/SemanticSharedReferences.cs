@@ -52,8 +52,21 @@ internal static class SemanticSharedReferences
             foreach (var query in slice.Queries) Query(query);
             foreach (var projection in slice.Projections)
             {
-                ReadModel(projection.ReadModel);
+                if (projection.Target == SemanticProjectionTargetKind.Event) Event(projection.ReadModel);
+                else ReadModel(projection.ReadModel);
                 foreach (var eventContract in ProjectionReferencedEventNamesAreUnique.Contracts(projection)) Event(eventContract);
+            }
+            foreach (var capture in slice.Captures)
+            {
+                if (capture.EventsSource is { } source)
+                {
+                    foreach (var contract in source.Events) Event(contract);
+                }
+                foreach (var append in capture.Appends)
+                {
+                    Event(append.EventContract);
+                    Reference(append.EventSourceType);
+                }
             }
             foreach (var reducer in slice.Reducers)
             {

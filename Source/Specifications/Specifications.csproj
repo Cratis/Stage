@@ -15,6 +15,8 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionProducts.cs" Link="Admission/SemanticProjectionProducts.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionScopes.cs" Link="Admission/SemanticFlatProjectionScopes.cs" />
+        <Compile Include="../Stage/Semantics/SemanticRunFlatProjections.cs" Link="Admission/SemanticRunFlatProjections.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Admission/GeneratedPascalCase.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Admission/GeneratedTypeNames.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeDeclaration.cs" Link="Admission/GeneratedTypeDeclaration.cs" />

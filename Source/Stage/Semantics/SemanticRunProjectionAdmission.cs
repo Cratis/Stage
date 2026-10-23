@@ -49,7 +49,7 @@ internal static partial class SemanticRunProjectionAdmission
             specification.ThenAbsentReadModels.Any(state => state.ReadModel == value.ReadModel) ||
             specification.ThenQueries.Any(query => plan.Queries.TryGetValue(query.Query, out var target) && target.ReadModel == value.ReadModel) ||
             reachable.Any(eventContract => SemanticProjectionObservation.Observes(value, eventContract))))
-            .OrderBy(value => value.Id.ToString(), StringComparer.Ordinal).ToArray();
+            .OrderBy(value => value.Id.ToString(), StringComparer.Ordinal).Select(value => SemanticRunFlatProjections.Normalize(value, plan.ReadModels[value.ReadModel])).ToArray();
         var duplicate = requested.Select(projection => projection.ReadModel).FirstOrDefault(id => plan.Projections.Values.Count(projection => projection.Target != SemanticProjectionTargetKind.Event && projection.ReadModel == id) > 1);
         if (duplicate.IsSet)
         {

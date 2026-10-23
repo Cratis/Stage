@@ -52,7 +52,8 @@ internal static class SemanticRunProjections
     {
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
-        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
+        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id) is { } found
+            ? SemanticRunFlatProjections.Normalize(found, model) : null;
         if (projection is null)
         {
             return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];
@@ -110,14 +111,11 @@ internal static class SemanticRunProjections
             }
             else
             {
-                foreach (var transition in projection.Transitions)
+                // Admission refuses every flat projection that has no scoped form, so only a malformed plan reaches this.
+                throw new SemanticProjectionLoweringRefused(new InvalidOperationException("A flat transition must use scalar event mappings and a key equal to the fact's event source."))
                 {
-                    var @event = plan.Events[transition.EventContract];
-                    var mappings = transition.Mappings.Select(mapping => (
-                        Target: model.Properties.Single(property => property.Id == mapping.TargetProperty).Name,
-                        Source: (string?)@event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name)).ToArray();
-                    DefineFrom(builder, types.For(transition.EventContract), mappings);
-                }
+                    Projection = projection.Id
+                };
             }
         });
         foreach (var seed in Seeds(context, model.Id))

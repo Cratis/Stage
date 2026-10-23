@@ -10,9 +10,9 @@ public class and_a_later_projection_refuses : when_settling_reactions.given.a_pr
     int _worldFacts;
 
     void Establish() => CompileProjected(
-        "\"two\"",
-        "then no readmodel Marker for \"two\"",
-        reaction: "reaction Worker\n  when Started\n    item\n    produces Completed\n    produces Followed\n      item = \"two\"",
+        expected: "then Followed\n  item = \"one\"",
+        shape: "scoped",
+        reaction: "reaction Worker\n  when Started\n    item\n    amount\n    produces Completed\n    produces Followed\n      for amount\n      item = item",
         scenario: new() { Policy = "reaction batches atomic" });
 
     async Task Because()

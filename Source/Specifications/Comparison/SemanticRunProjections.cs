@@ -179,6 +179,7 @@ internal static class SemanticRunProjections
             };
             if (projection.Scope is { } scope && !scope.From.Any(from => from.EventContract == fact.EventContract))
             {
+                var skip = false;
                 foreach (var child in scope.Children)
                 {
                     var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
@@ -186,12 +187,36 @@ internal static class SemanticRunProjections
                     if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
                     var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
-                    if (parent is not SemanticTextValue text || !scenario.Instances.Keys.Any(source => source.ToString() == text.Value))
-                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event; Chronicle cannot materialize that parent implicitly."));
+                    if (parent is SemanticTextValue text && scenario.Instances.Keys.Any(source => source.ToString() == text.Value)) continue;
+                    // The reference keeps a child with no parent pending for good, so it materializes nothing; Chronicle does the same.
+                    if (ParentArrivesLater(scope, context, index, parent))
+                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child event before its parent instance is not admitted; Chronicle's testing scenario resolves deferred children in a different order from the reference (existing parent instance required)."));
+                    skip = true;
                 }
+                if (skip) continue;
             }
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
         }
+    }
+
+    // A later fact the root scope observes with the parent's key (or through a join) could still create the parent.
+    static bool ParentArrivesLater(SemanticProjectionScope scope, SemanticRunContext context, int index, SemanticValue parent)
+    {
+        for (var later = index + 1; later < context.Facts.Count; later++)
+        {
+            var fact = context.Facts[later];
+            if (scope.Joins.Any(join => join.EventContract == fact.EventContract)) return true;
+            var from = scope.From.SingleOrDefault(candidate => candidate.EventContract == fact.EventContract);
+            if (from is null) continue;
+            var key = from.Key switch
+            {
+                SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
+                SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
+                _ => context.Destinations[later]
+            };
+            if (SemanticExpectationComparer.AreEqual(key, parent)) return true;
+        }
+        return false;
     }
 
     static IEnumerable<SemanticSpecificationReadModel> Seeds(SemanticRunContext context, SemanticId model) =>

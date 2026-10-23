@@ -11,6 +11,6 @@ public class and_the_specification_is_in_a_translate_slice : given.a_translated_
 
     async Task Because() => await Execute();
 
-    [Fact] void should_refuse_translation() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_preserve_the_translation_diagnostic() => _result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_execute_the_supported_shape() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_have_no_translation_refusal() => _result.Unsupported.ShouldBeNull();
 }

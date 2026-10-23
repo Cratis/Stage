@@ -32,8 +32,8 @@ public class when_refusing_public_events : Specification
 
     [Fact] void should_pass_the_frozen_reference_specification() => _reference.Passed.ShouldBeTrue();
     [Fact] void should_keep_the_frozen_reference_outcome() => _reference.Execution.Kind.ShouldEqual(PublicEventsCorpus.V9.SpecificationExpectations.Single().Outcome);
-    [Fact] void should_refuse_stage_execution() => _stage.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_name_the_translation_refusal() => _stage.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_execute_stage_translation() => _stage.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_match_the_reference_execution_kind() => _stage.Results.Single().ExecutionKind.ShouldEqual(_reference.Execution.Kind.ToString());
     [Fact] void should_refuse_rendering_by_construct() => _rendered.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-001", "STAGE-ESM-011", "STAGE-ESM-024", "STAGE-ESM-032", "STAGE-ESM-033"]);
     [Fact] void should_also_refuse_the_translate_slice_shapes() => _rendered.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-001").Select(diagnostic => diagnostic.Artifact).ShouldContainOnly([.. _plan.Model.Application.Modules.Single().Features.Single().Slices.Where(slice => slice.Kind == SemanticSliceKind.Translate).Select(slice => slice.Id)]);
     [Fact] void should_also_refuse_the_public_event_projection_specification() => _rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _plan.Specifications.Keys.Single());

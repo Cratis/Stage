@@ -32,6 +32,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _events = [];
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
+    readonly Dictionary<SemanticId, Type> _composites = [];
 
     internal static object? ConvertValue(SemanticValue value, Type target) =>
         ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
@@ -64,7 +65,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     {
         if (!_readModels.TryGetValue(readModel.Id, out var type))
         {
-            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
             _readModels.Add(readModel.Id, type);
         }
 
@@ -79,7 +80,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            var converted = property.Type.Kind == SemanticTypeReferenceKind.CompositeType
+            var converted = property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType
                 ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
                 : ConvertValue(value.Value, Resolve(property.Type));
             type.GetProperty(property.Name)!.SetValue(instance, converted);
@@ -101,8 +102,27 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         return type;
     }
 
+    internal object? ReadModelValue(SemanticValue value, SemanticTypeReference reference) =>
+        reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType
+            ? JsonSerializer.Deserialize(SemanticRunContext.Canonical(value, reference, new SemanticApplicationContext(plan)), ResolveReadModel(reference))
+            : ConvertValue(value, ResolveReadModel(reference));
+
+    internal Type ResolveReadModel(SemanticTypeReference reference)
+    {
+        if (reference.IsCollection) return ResolveReadModel(reference with { IsCollection = false, IsOptional = false }).MakeArrayType();
+        if (reference.Kind != SemanticTypeReferenceKind.CompositeType) return Resolve(reference);
+        if (!_composites.TryGetValue(reference.Target, out var type))
+        {
+            var composite = plan.Model.Application.Types.Single(composite => composite.Id == reference.Target);
+            type = _factory.CreateReadModelType("Stage.Semantic.Composites", $"Composite_{_composites.Count}", composite.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            _composites.Add(reference.Target, type);
+        }
+        return type;
+    }
+
     Type Resolve(SemanticTypeReference reference)
     {
+        if (reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType) return typeof(JsonElement);
         var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
             : reference.Primitive;

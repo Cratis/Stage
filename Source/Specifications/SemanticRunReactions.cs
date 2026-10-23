@@ -20,7 +20,10 @@ internal sealed class SemanticRunReactions(
     internal const int MaximumFacts = 1_000;
     readonly int _historyCount = historyCount;
     readonly Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> _pinned = PinnedValues(context.Specification);
+    readonly SemanticRunCaptures _captures = new(plan, context);
+    readonly SemanticRunPublication _publication = new(plan, context, historyCount);
     int _nextFact = historyCount;
+    bool _capturesSeeded;
 
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
@@ -32,13 +35,25 @@ internal sealed class SemanticRunReactions(
 
     internal async Task<SemanticRunReactionFailure?> Settle(CancellationToken cancellationToken)
     {
+        if (!_capturesSeeded)
+        {
+            _capturesSeeded = true;
+            if (_captures.Seed(_historyCount) is { } seedFailure) return seedFailure;
+        }
+        var delivered = new List<int>();
         while (_nextFact < context.Facts.Count)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (context.Facts.Count - _historyCount > MaximumFacts) return FactLimit();
-            if (await React(_nextFact++, cancellationToken) is { } failure) return failure;
+            if (await _publication.PublishPending(cancellationToken) is { } publicationFailure) return publicationFailure;
+            var index = _nextFact++;
+            delivered.Add(index);
+            if (await React(index, cancellationToken) is { } failure) return failure;
         }
-
+        foreach (var index in delivered)
+        {
+            if (await _captures.Deliver(index, Settle, cancellationToken) is { } captureFailure) return captureFailure;
+        }
         return null;
     }
 
@@ -149,7 +164,11 @@ internal sealed class SemanticRunReactions(
         foreach (var invocation in trigger.Invokes)
         {
             var outcome = await invoke(Invocation(reaction, invocation, cause), !invocation.OnRefused.IsEmpty);
-            if (outcome.Failure is null) continue;
+            if (outcome.Failure is null)
+            {
+                if (await _publication.PublishPending(cancellationToken) is { } publicationFailure) return publicationFailure;
+                continue;
+            }
             var branch = outcome.Refusal is { } refusal ? invocation.OnRefused.FirstOrDefault(refusal.Matches) : null;
             if (branch is null) return SemanticRunReactionFailure.Complete(outcome.Failure);
             if (await ProduceAll(reaction, branch.Produces, cause, cancellationToken, outcome.Refusal) is { } branchFailure) return branchFailure;
@@ -201,7 +220,7 @@ internal sealed class SemanticRunReactions(
             await context.Append(fact, cancellationToken);
         }
 
-        return null;
+        return await _publication.PublishPending(cancellationToken);
     }
 
     (SemanticSpecificationEvent Fact, SemanticValue Destination) Build(SemanticReaction reaction, SemanticProducedEvent produced, SemanticReactionCause cause, SemanticInvocationRefusalOutcome? refusal)
@@ -237,7 +256,7 @@ internal sealed class SemanticRunReactions(
         }
         await context.Append(fact, destination, occurred, cancellationToken);
 
-        return null;
+        return await _publication.PublishPending(cancellationToken);
     }
 
     SemanticSpecification Invocation(SemanticReaction reaction, SemanticInvocation invocation, SemanticReactionCause cause)

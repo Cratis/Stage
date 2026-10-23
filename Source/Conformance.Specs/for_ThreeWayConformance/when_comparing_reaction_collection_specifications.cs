@@ -14,7 +14,7 @@ public class when_comparing_reaction_collection_specifications(when_comparing_re
 {
     [Fact] void should_compare_both_production_and_invocation_collections() => fixture.Outcomes.Length.ShouldEqual(2);
     [Fact] void should_match_the_reference_and_rendered_outcomes() => ThreeWayOutcomes.Report(fixture, output);
-    [Fact] void should_pin_the_stage_scalar_append_limit() => fixture.Outcomes.All(outcome => outcome.EndsWith("Reference=Passed, Stage=Unsupported(Occurrence), Rendered=Passed", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_match_all_three_collection_outcomes() => Assert.True(fixture.Outcomes.All(outcome => outcome.EndsWith("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)), string.Join(Environment.NewLine, fixture.Outcomes));
 
     public class context : a_three_way_application
     {
@@ -72,8 +72,7 @@ public class when_comparing_reaction_collection_specifications(when_comparing_re
         protected override string ApplicationName => "ReactionCollections";
         protected override string ProjectFile => "ReactionCollections.csproj";
 
-        // Stage's execution admission supports scalar appends only; assert that limit above rather than skip it silently.
-        protected override bool RequireStageExecution => false;
+        protected override bool RequireStageExecution => true;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("inline", CompileModel())];
         Task Because() => Verify();
 

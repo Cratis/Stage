@@ -28,9 +28,9 @@ public class with_missing_null_and_empty_members : given.a_structured_event
             _ => member
         })] };
         var instance = new SemanticRuntimeTypes(_plan).Materialize(fact);
-        _entries = (JsonElement)instance.GetType().GetProperty("entries")!.GetValue(instance)!;
-        _details = (JsonElement)instance.GetType().GetProperty("details")!.GetValue(instance)!;
-        _numbers = (JsonElement)instance.GetType().GetProperty("numbers")!.GetValue(instance)!;
+        _entries = ((SemanticStructuredEventValue)instance.GetType().GetProperty("entries")!.GetValue(instance)!).Value;
+        _details = ((SemanticStructuredEventValue)instance.GetType().GetProperty("details")!.GetValue(instance)!).Value;
+        _numbers = ((SemanticStructuredEventValue)instance.GetType().GetProperty("numbers")!.GetValue(instance)!).Value;
     }
 
     [Fact] void should_keep_an_absent_member() => _entries[0].TryGetProperty("tags", out _).ShouldBeFalse();

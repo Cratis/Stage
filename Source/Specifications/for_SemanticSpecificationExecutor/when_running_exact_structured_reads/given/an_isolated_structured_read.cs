@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -12,11 +13,11 @@ public class an_isolated_structured_read : Specification
 {
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected async Task Run(string memberType, string value, bool wholeCopy)
+    protected async Task Run(string memberType, string value, bool wholeCopy, string? exactExpected = null)
     {
         var mapping = wholeCopy ? "detail = detail" : "amount = detail.amount";
         var property = wholeCopy ? "detail Detail" : $"amount {memberType}";
-        var expectation = wholeCopy ? "" : $"\n                      amount = {value}";
+        var expectation = wholeCopy ? $"\n                      detail = {{\"amount\":{value}}}" : $"\n                      amount = {value}";
         var source = $$"""
             type Detail
               amount {{memberType}}
@@ -50,16 +51,11 @@ public class an_isolated_structured_read : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("ExactReads", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        // The source parser reads every literal as a double, so a high-precision literal is restored from the text.
+        var plan = exactExpected is null ? SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan! : ExactNumberLiterals.Plan(compilation.Value!.Model, decimal.Parse(value, CultureInfo.InvariantCulture), decimal.Parse(exactExpected, CultureInfo.InvariantCulture));
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
     }
 
     protected void AssertOutcome(SemanticSpecificationOutcome outcome) =>
         Assert.True(_result.Outcome == outcome, $"{_result.Outcome}: {_result.Unsupported?.Details} {string.Join(';', _result.Failures)}");
-
-    protected void AssertNamedRefusal()
-    {
-        AssertOutcome(SemanticSpecificationOutcome.Unsupported);
-        Assert.Contains("cannot round-trip exactly", _result.Unsupported!.Details);
-    }
 }

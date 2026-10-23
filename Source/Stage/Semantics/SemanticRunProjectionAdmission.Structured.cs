@@ -19,7 +19,7 @@ internal static partial class SemanticRunProjectionAdmission
     // 2^53 is itself the first value a double cannot tell apart from its neighbor once parsed, so it is the exclusive bound.
     const decimal MaxExactDouble = 9007199254740992m;
 
-    const string InexactStructuredValue = "A structured value copied or read by a projection cannot round-trip exactly: Chronicle reads its JSON without a schema and turns every number into a double, so a Decimal member or a whole number beyond 2^53 loses precision.";
+    const string InexactStructuredValue = "A recursive structured value copied or read by a projection cannot round-trip exactly: Chronicle reads a recursive type's JSON without a schema and turns every number into a double, so a Decimal member or a whole number beyond 2^53 loses precision.";
 
     static bool ContainsDecimal(SemanticExecutionPlan plan, SemanticTypeReference type, HashSet<SemanticId> visiting)
     {
@@ -34,10 +34,11 @@ internal static partial class SemanticRunProjectionAdmission
         return found;
     }
 
-    // The one numeric-exactness step. Every mapping that reads a composite, a collection or a nested path goes through
-    // Chronicle's schema-less JSON conversion, which turns each number into a double: Decimal types and whole numbers
-    // of 2^53 or more cannot round-trip. Scalar event properties are typed and unaffected; Add/Subtract refuse nested
-    // paths and child scopes admit only single-segment scalar mappings, so they never reach this conversion.
+    // The one numeric-exactness step. Event properties that hold a finite composite or collection carry a typed schema
+    // (SemanticStructuredEventValue), so Chronicle reads their Decimal and large whole-number members exactly. A recursive
+    // type cannot be given a finite schema and stays schema-less: Chronicle turns each of its numbers into a double, so
+    // Decimal types and whole numbers of 2^53 or more cannot round-trip. Scalar event properties are typed and unaffected;
+    // Add/Subtract refuse nested paths and child scopes admit only single-segment scalar mappings, so they never reach this conversion.
     static string? ExactnessRefusal(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticSpecification specification)
     {
         var reads = ScopeBlocks(scope)
@@ -45,7 +46,8 @@ internal static partial class SemanticRunProjectionAdmission
             .Where(entry => entry.Mapping.Source is SemanticProjectionEventProperty && plan.Events.ContainsKey(entry.EventContract))
             .Select(entry => (entry.EventContract, ((SemanticProjectionEventProperty)entry.Mapping.Source!).Path))
             .Select(entry => (entry.EventContract, entry.Path, Type: PathType(plan, plan.Events[entry.EventContract], entry.Path)))
-            .Where(entry => entry.Type is not null && (entry.Path.Length > 1 || IsStructured(entry.Type)))
+            .Where(entry => entry.Type is not null && (entry.Path.Length > 1 || IsStructured(entry.Type)) &&
+                !SemanticStructuredTypes.HasFiniteShape(plan, plan.Events[entry.EventContract].Properties.Single(property => property.Id == entry.Path[0]).Type))
             .ToArray();
         if (reads.Any(read => ContainsDecimal(plan, read.Type!, [])))
         {

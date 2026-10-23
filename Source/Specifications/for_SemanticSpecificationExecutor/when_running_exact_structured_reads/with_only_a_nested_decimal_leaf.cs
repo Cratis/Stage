@@ -7,7 +7,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 
 public class with_only_a_nested_decimal_leaf : given.an_isolated_structured_read
 {
-    Task Because() => Run("Decimal", "0.5", false);
+    Task Because() => Run("Decimal", "12345678901234567.89", false);
 
-    [Fact] void should_report_the_outcome() => AssertNamedRefusal();
+    [Fact] void should_report_the_outcome() => AssertOutcome(SemanticSpecificationOutcome.Passed);
 }

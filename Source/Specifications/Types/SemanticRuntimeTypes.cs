@@ -33,6 +33,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
     readonly Dictionary<SemanticId, Type> _composites = [];
+    SemanticStructuredEventValueTypes? _eventValues;
 
     internal static object? ConvertValue(SemanticValue value, Type target) =>
         ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
@@ -80,10 +81,11 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
+            var member = type.GetProperty(property.Name)!;
             var converted = property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType
-                ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
-                : ConvertValue(value.Value, Resolve(property.Type));
-            type.GetProperty(property.Name)!.SetValue(instance, converted);
+                ? Structured(JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan))), member.PropertyType)
+                : ConvertValue(value.Value, member.PropertyType);
+            member.SetValue(instance, converted);
         }
 
         return instance;
@@ -97,7 +99,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
 
         var contract = plan.Events[eventContract];
-        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveEvent(property.Type)));
         _events.Add(eventContract, type);
         return type;
     }
@@ -119,6 +121,25 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
         return type;
     }
+
+    // The authored JSON is wrapped when the event property has a typed-schema wrapper; recursive types stay raw JSON.
+    static object Structured(JsonElement value, Type propertyType)
+    {
+        if (propertyType == typeof(JsonElement))
+        {
+            return value;
+        }
+
+        var wrapper = (SemanticStructuredEventValue)Activator.CreateInstance(propertyType)!;
+        wrapper.Value = value;
+        return wrapper;
+    }
+
+    // A finite composite or collection event property carries a typed schema so Chronicle reads numbers exactly.
+    Type ResolveEvent(SemanticTypeReference reference) =>
+        reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType
+            ? (_eventValues ??= new(plan)).For(reference) ?? typeof(JsonElement)
+            : Resolve(reference);
 
     Type Resolve(SemanticTypeReference reference)
     {

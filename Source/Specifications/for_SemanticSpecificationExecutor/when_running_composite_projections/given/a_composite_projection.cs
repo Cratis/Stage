@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -11,8 +12,9 @@ public class a_composite_projection : Specification
 {
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected async Task Run(string addressType = "type Address\n  street String\n  city String", string address = "{\"street\":\"Main 1\",\"city\":\"Oslo\"}", string expectedCity = "Oslo", string lineType = "type Line\n  sku String\n  quantity Int", bool decimalPath = false, string lines = "[{\"sku\":\"A-1\",\"quantity\":2},{\"sku\":\"B-2\",\"quantity\":1}]")
+    protected async Task Run(string addressType = "type Address\n  street String\n  city String", string address = "{\"street\":\"Main 1\",\"city\":\"Oslo\"}", string expectedCity = "Oslo", string lineType = "type Line\n  sku String\n  quantity Int", bool decimalPath = false, string lines = "[{\"sku\":\"A-1\",\"quantity\":2},{\"sku\":\"B-2\",\"quantity\":1}]", string? expectedLines = null, string? expectedLat = null, string? exactGiven = null, string? exactExpected = null)
     {
+        var expectation = (expectedLines is null ? "" : $"\n                      lines = {expectedLines}") + (expectedLat is null ? "" : $"\n                      lat = {expectedLat}");
         var source = $$"""
             {{addressType}}
             {{lineType}}
@@ -48,13 +50,14 @@ public class a_composite_projection : Specification
                       lines = {{lines}}
                     then readmodel Order
                       id = "one"
-                      city = "{{expectedCity}}"
+                      city = "{{expectedCity}}"{{expectation}}
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("CompositeProjections"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("CompositeProjections", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        // The source parser reads every literal as a double, so a high-precision literal is restored from the text.
+        var plan = exactExpected is null ? SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan! : ExactNumberLiterals.Plan(compilation.Value!.Model, decimal.Parse(exactGiven!, CultureInfo.InvariantCulture), decimal.Parse(exactExpected, CultureInfo.InvariantCulture));
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
     }
 

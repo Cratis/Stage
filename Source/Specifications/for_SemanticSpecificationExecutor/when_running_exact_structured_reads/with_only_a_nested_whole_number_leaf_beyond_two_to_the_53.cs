@@ -9,5 +9,5 @@ public class with_only_a_nested_whole_number_leaf_beyond_two_to_the_53 : given.a
 {
     Task Because() => Run("Int", "9007199254740993", false);
 
-    [Fact] void should_report_the_outcome() => AssertNamedRefusal();
+    [Fact] void should_report_the_outcome() => AssertOutcome(SemanticSpecificationOutcome.Passed);
 }

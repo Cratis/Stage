@@ -7,8 +7,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 
 public class with_a_whole_number_beyond_two_to_the_53 : given.a_composite_projection
 {
-    Task Because() => Run(lines: "[{\"sku\":\"A-1\",\"quantity\":9007199254740993}]");
+    Task Because() => Run(lines: "[{\"sku\":\"A-1\",\"quantity\":9007199254740993}]", expectedLines: "[{\"sku\":\"A-1\",\"quantity\":9007199254740993}]");
 
-    [Fact] void should_be_unsupported() => AssertOutcome(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_say_the_value_cannot_round_trip_exactly() => _result.Unsupported!.Details.ShouldContain("cannot round-trip exactly");
+    [Fact] void should_pass_with_the_exact_whole_number() => AssertOutcome(SemanticSpecificationOutcome.Passed);
 }

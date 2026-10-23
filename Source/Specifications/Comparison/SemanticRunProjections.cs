@@ -89,10 +89,12 @@ internal static class SemanticRunProjections
             {
                 foreach (var from in scope.From)
                 {
+                    // A product block whose event this run never delivers cannot fire; Chronicle cannot lower the product.
+                    if (from.Mappings.Any(mapping => mapping.Factor is not null) && !context.Facts.Any(fact => fact.EventContract == from.EventContract)) continue;
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
-                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key);
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key, plan);
                 }
                 SemanticRunScopedMappings.DefineRelated(builder, scope, model.Properties, plan, types);
                 if (scope.Every is { } every)
@@ -181,8 +183,10 @@ internal static class SemanticRunProjections
             {
                 foreach (var child in scope.Children)
                 {
-                    if (child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract) is not { } from) continue;
-                    var parent = from.ParentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
+                    var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
+                        child.Scope.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.ParentKey;
+                    if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
+                    var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
                     if (parent is not SemanticTextValue text || !scenario.Instances.Keys.Any(source => source.ToString() == text.Value))
                         throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event; Chronicle cannot materialize that parent implicitly."));

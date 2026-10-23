@@ -57,6 +57,12 @@ internal static partial class SemanticRunProjectionAdmission
         }
         foreach (var projection in requested)
         {
+            if (AuthorsExplicitNestedNull(specification))
+            {
+                return new(StageExecutionCapability.Projection, projection.Id.ToString(),
+                    "A composite or collection value authors an explicit null member; the typed per-run models cannot tell it from an absent member.");
+            }
+
             var reason = Rejection(plan, projection, plan.ReadModels[projection.ReadModel], specification, reachable);
             if (reason is not null)
             {
@@ -104,6 +110,20 @@ internal static partial class SemanticRunProjectionAdmission
         return null;
     }
 
+    static bool AuthorsExplicitNestedNull(SemanticSpecification specification) =>
+        specification.GivenEvents.SelectMany(given => given.Values)
+            .Concat(specification.WhenAppended?.Values ?? [])
+            .Concat(specification.When?.Values ?? [])
+            .Concat(specification.GivenReadModels.SelectMany(seed => seed.Values))
+            .Any(value => HasNestedNull(value.Value));
+
+    static bool HasNestedNull(SemanticValue value) => value switch
+    {
+        SemanticArrayValue array => array.Values.Any(element => element is SemanticNullValue || HasNestedNull(element)),
+        SemanticCompositeValue composite => composite.Properties.Any(property => property.Value is SemanticNullValue || HasNestedNull(property.Value)),
+        _ => false
+    };
+
     static string? ShapeRejection(SemanticReadModel readModel, SemanticProjectionScope? scope)
     {
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
@@ -115,9 +135,8 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Per-run projections need one required identifier.";
         }
-        return !IsScalar(identifiers[0].Type) || identifiers[0].Type.IsCollection ||
-            readModel.Properties.Any(property => (property.Type.IsCollection || !IsScalar(property.Type)) && scope?.Children.Any(child => child.Property == property.Id) != true)
-            ? "Per-run projections need scalar read model properties without collections or composite types."
+        return !IsScalar(identifiers[0].Type) || identifiers[0].Type.IsCollection
+            ? "Per-run projections need a scalar, non-collection identifier."
             : null;
     }
 
@@ -152,10 +171,6 @@ internal static partial class SemanticRunProjectionAdmission
         if (!SemanticRunAdmission.RuntimePropertyNamesAreUnique(readModel.Properties))
         {
             return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
-        }
-        if (readModel.Properties.FirstOrDefault(property => Primitive(plan, property.Type) == SemanticPrimitiveType.DateTime) is { } dateTime)
-        {
-            return $"DateTime read-model property '{readModel.Name}.{dateTime.Name}' cannot preserve ordinal round-trip text: DateTimeOffset materialization renders authored 'Z' as '+00:00'.";
         }
         var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         var primitive = identifier.Type.Kind == SemanticTypeReferenceKind.Concept
@@ -289,7 +304,7 @@ internal static partial class SemanticRunProjectionAdmission
         if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
         return mapping.Operation switch
         {
-            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
+            SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral,
             SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionLiteral,
             SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
             _ => false
@@ -322,7 +337,8 @@ internal static partial class SemanticRunProjectionAdmission
     }
 
     static bool SourceTypeMatches(SemanticExecutionPlan plan, SemanticTypeReference source, SemanticTypeReference identifier) =>
-        Primitive(plan, source) == Primitive(plan, identifier);
+        Primitive(plan, source) == Primitive(plan, identifier) ||
+        (Primitive(plan, source) == SemanticPrimitiveType.Text && Primitive(plan, identifier) == SemanticPrimitiveType.Uuid);
 
     static bool FlatMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionTransition transition, SemanticReadModel readModel)
     {
@@ -363,6 +379,23 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return false;
         }
+
+        // An event a capture appends takes the capture's key as its event source: the named field of the event it observes.
+        foreach (var capture in plan.Captures.Values.Where(capture => capture.EventsSource is not null && capture.Appends.Any(append => append.EventContract == eventContract)))
+        {
+            var observations = specification.GivenEvents.Select(given => (given.EventContract, given.Values))
+                .Concat(specification.WhenAppended is { } trigger ? [(trigger.EventContract, trigger.Values)] : []);
+            foreach (var observed in observations.Where(fact => capture.EventsSource!.Events.Contains(fact.EventContract)))
+            {
+                var field = plan.Events[observed.EventContract].Properties.SingleOrDefault(property => string.Equals(property.Name, capture.Key, StringComparison.Ordinal));
+                var value = field is null ? null : observed.Values.SingleOrDefault(candidate => candidate.TargetProperty == field.Id)?.Value;
+                if (field is null || value is null || !Matches(new(field.Type, value)))
+                {
+                    return false;
+                }
+            }
+        }
+
         if (specification.When is not { } when || !plan.Commands.TryGetValue(when.Command, out var command) ||
             !specification.ThenErrors.IsEmpty || specification.ThenDenied)
         {

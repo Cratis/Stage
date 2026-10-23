@@ -106,23 +106,6 @@ public class with_inexact_projection_shapes : a_command_only_plan
             false,
             SemanticSpecificationOutcome.Unsupported,
             model with { Properties = [.. model.Properties.Select(property => property.Id == name.Id ? property with { Name = "Id" } : property)] });
-
-        // The reference keeps the original DateTime text, while a CLR round-trip would turn Z into +00:00.
-        var timestamp = SemanticValue.Text("2025-01-01T00:00:00.0000000Z");
-        var datedFact = fact with { Values = [.. fact.Values.Select(value => value.TargetProperty == eventName.Id ? value with { Value = timestamp } : value)] };
-        var datedModel = model with { Properties = [.. model.Properties.Select(property => property.Id == name.Id ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.DateTime) } : property)] };
-        var datedAssertion = _original.ThenReadModels.Single() with { Values = [.. _original.ThenReadModels.Single().Values.Select(value => value.TargetProperty == name.Id ? value with { Value = timestamp } : value)] };
-        var datedEvent = @event with { Properties = [.. @event.Properties.Select(property => property.Id == eventName.Id ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.DateTime) } : property)] };
-        await Check(
-            "DateTime text",
-            append with { WhenAppended = new(fact.EventContract, datedFact.Values) { EventSource = source }, ThenReadModels = [datedAssertion], ThenQueries = [] },
-            scoped,
-            true,
-            SemanticSpecificationOutcome.Unsupported,
-            datedModel,
-            eventContract: datedEvent,
-            dateTimeSource: true,
-            rejectionContains: "DateTime");
     }
 
     [Fact] void should_reject_flat_transitions_without_an_identifier_mapping() => Verify("flat identifier omitted");
@@ -130,7 +113,6 @@ public class with_inexact_projection_shapes : a_command_only_plan
     [Fact] void should_reject_identifier_only_mapping_free_scopes() => Verify("identifier-only empty from");
     [Fact] void should_reject_number_sources_for_text_identifiers() => Verify("numeric source / text identifier");
     [Fact] void should_reject_multiple_projections_for_one_read_model() => Verify("multiple projections");
-    [Fact] void should_reject_lossy_datetime_projections() => Verify("DateTime text");
     [Fact] void should_reject_event_source_mappings_into_constrained_concepts() => Verify("event source into constrained concept");
     [Fact] void should_reject_non_identifier_id_collisions() => Verify("non-identifier Id collision");
 

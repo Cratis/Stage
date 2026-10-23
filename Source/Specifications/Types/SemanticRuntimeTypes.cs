@@ -80,9 +80,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            var converted = property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType
-                ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
-                : ConvertValue(value.Value, Resolve(property.Type));
+            var converted = ReadModelValue(value.Value, property.Type);
             type.GetProperty(property.Name)!.SetValue(instance, converted);
         }
 
@@ -97,7 +95,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
 
         var contract = plan.Events[eventContract];
-        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
         _events.Add(eventContract, type);
         return type;
     }

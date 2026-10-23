@@ -18,10 +18,9 @@ internal static class SemanticTranslationSupport
     internal static bool Capture(SemanticCapture capture, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         capture.EventsSource is { Events.IsDefaultOrEmpty: false } source &&
         !string.IsNullOrWhiteSpace(capture.Key) &&
-        capture.Map.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty &&
+        capture.Map.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty && capture.Children.IsDefaultOrEmpty &&
         source.Events.All(id => events.TryGetValue(id, out var contract) && contract.Origin is not null && contract.Properties.Any(property => property.Name == capture.Key)) &&
-        Appends(capture.Appends, events) &&
-        (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
+        Appends(capture.Appends, events);
 
     /// <summary>Determines whether a projection publishes a complete public event per source fact.</summary>
     /// <param name="projection">The projection.</param>
@@ -40,7 +39,8 @@ internal static class SemanticTranslationSupport
                     (mapping.Source is SemanticProjectionEventContextValue context && context.Path == "eventSourceId")) &&
                 (mapping.Source is not SemanticProjectionEventProperty property || (!property.Path.IsDefaultOrEmpty && source.Properties.Any(candidate => candidate.Id == property.Path[0])))) &&
             from.Mappings.All(mapping => target.Properties.Any(property => property.Id == mapping.Target[0]))) &&
-        target.Properties.Where(property => !property.Type.IsOptional).All(property => scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
+        scope.From.GroupBy(from => from.EventContract).All(group => target.Properties.Where(property => !property.Type.IsOptional)
+            .All(property => group.SelectMany(from => from.Mappings).Any(mapping => mapping.Target[0] == property.Id)));
 
     /// <summary>Determines whether a translation slice contains only supported translation structures.</summary>
     /// <param name="slice">The slice.</param>

@@ -28,7 +28,9 @@ public class when_comparing_reaction_projection_admission : a_projected_reaction
         CompileProjected("\"two\"", "then no readmodel Marker for \"two\"");
         await Execute();
         Assert.False(_reference.Passed);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, _result.Outcome);
-        Assert.Equal(StageExecutionCapability.Projection, _result.Unsupported!.Capability);
+        Assert.Equal(SemanticSpecificationOutcome.Failed, _result.Outcome);
+        var absent = _plan.Specifications.Values.Single().ThenAbsentReadModels.Single();
+        Assert.Equal($"Expected read model '{absent.ReadModel}' with key '{absent.Key}' to be absent.", Assert.Single(_reference.Failures));
+        Assert.Equal(Assert.Single(_reference.Failures), Assert.Single(_result.Failures));
     }
 }

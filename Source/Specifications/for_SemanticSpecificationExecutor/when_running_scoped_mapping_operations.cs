@@ -39,7 +39,7 @@ public class when_running_scoped_mapping_operations : Specification
 
     [Theory]
     [InlineData("add whole by 3")]
-    [InlineData("add amount by amount * amount")]
+    [InlineData("add whole by amount * amount")]
     public void should_keep_unsupported_arithmetic_refused(string mapping)
     {
         var plan = Compile("add", "12", "12", "draft", mapping);

@@ -62,7 +62,7 @@ internal static class SemanticCaptureArtifactRenderer
         if (guard is not null) builder.OpenBlock($"if ({guard})");
         var arguments = contract.Properties.Select(property => Mapping(append, property, types));
         var tags = contract.Tags.Concat(append.Tags).Select(CSharpCodeBuilder.StringLiteral).ToArray();
-        var metadata = $" {{ IdempotencyKey = delivery.IdempotencyKeyFor(\"{capture.Id}/{index}\"){(tags.Length == 0 ? string.Empty : $", Tags = [{string.Join(", ", tags)}]")} }}";
+        var metadata = $" {{ IdempotencyKey = delivery.IdempotencyKeyFor({CSharpCodeBuilder.StringLiteral($"{capture.Id}/{index}")}){(tags.Length == 0 ? string.Empty : $", Tags = [{string.Join(", ", tags)}]")} }}";
         builder.Line($"effects.Add(new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {types.EventType(contract)}({string.Join(", ", arguments)})){metadata});");
         if (guard is not null) builder.EndBlock();
     }

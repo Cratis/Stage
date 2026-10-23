@@ -37,7 +37,7 @@ public static class CommandValidatorRenderer
         var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, string Code)>();
 
         builder.BlankLine().OpenBlock($"public class {validatorName} : CommandValidator<{typeName}>");
-        ValidationRuleRenderer.RenderMatchFields(builder, rules);
+        ValidationRuleRenderer.RenderMatchFields(builder, rules, typeName);
         builder.OpenBlock($"public {validatorName}()");
 
         foreach (var rule in rules)

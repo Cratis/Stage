@@ -161,7 +161,7 @@ internal static class SemanticCommonArtifactRenderer
             .BlankLine()
             .Summary($"Validates {name}.")
             .OpenBlock($"public class {name}Validator : {builder.Type(new("Cratis.Arc.Validation", "ConceptValidator", 1, ReferenceContext.Type))}<{name}>");
-        SemanticValidationRendering.RenderMatchFields(builder, concept.Validations);
+        SemanticValidationRendering.RenderMatchFields(builder, concept.Validations, name);
         builder.OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {

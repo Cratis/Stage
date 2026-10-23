@@ -9,7 +9,9 @@ internal static class PortableMatchRendering
 {
     internal static string Predicate(string pattern, string value = "value") => $"_matchPatterns[{CSharpCodeBuilder.StringLiteral(pattern)}].IsMatch({value})";
 
-    internal static void RenderFields(CSharpCodeBuilder builder, IEnumerable<string> patterns)
+    internal static string ValidatorCall(string pattern) => $".SetValidator(new PortableMatchValidator({CSharpCodeBuilder.StringLiteral(pattern)}))";
+
+    internal static void RenderFields(CSharpCodeBuilder builder, IEnumerable<string> patterns, string ownerType)
     {
         var distinct = patterns.Distinct(StringComparer.Ordinal).ToArray();
         if (distinct.Length == 0) return;
@@ -22,6 +24,18 @@ internal static class PortableMatchRendering
             builder.Line($"    [{literal}] = {matcher}.Compile({literal}),");
         }
 
-        builder.Line("};").BlankLine();
+        builder.Line("};").BlankLine()
+            .OpenBlock($"sealed class PortableMatchValidator(string expression) : global::FluentValidation.Validators.PropertyValidator<{ownerType}, string?>, global::FluentValidation.Validators.IRegularExpressionValidator")
+            .Line("public string Expression => expression;")
+            .Line("public override string Name => \"RegularExpressionValidator\";")
+            .BlankLine()
+            .OpenBlock($"public override bool IsValid(global::FluentValidation.ValidationContext<{ownerType}> context, string? value)")
+            .Line("if (value is null || _matchPatterns[Expression].IsMatch(value)) return true;")
+            .Line("context.MessageFormatter.AppendArgument(\"RegularExpression\", Expression);")
+            .Line("return false;")
+            .EndBlock()
+            .BlankLine()
+            .Line("protected override string GetDefaultMessageTemplate(string errorCode) => Localized(errorCode, Name);")
+            .EndBlock().BlankLine();
     }
 }

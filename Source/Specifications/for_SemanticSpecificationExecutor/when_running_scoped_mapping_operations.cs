@@ -20,6 +20,8 @@ public class when_running_scoped_mapping_operations : Specification
     [InlineData("zero", "0", "0", "draft", true)]
     [InlineData("every", "2", "1.5", "fixed", true)]
     [InlineData("ordered", "16", "15", "draft", true)]
+    [InlineData("product", "14", "12.75", "draft", true)]
+    [InlineData("product", "13", "12.75", "draft", false)]
     [InlineData("set", "999", "2.5", "approved", false)]
     public async Task should_match_the_reference_without_leaking_between_runs(string operation, string whole, string amount, string state, bool passes)
     {
@@ -39,7 +41,6 @@ public class when_running_scoped_mapping_operations : Specification
 
     [Theory]
     [InlineData("add whole by 3")]
-    [InlineData("add amount by amount * amount")]
     public void should_keep_unsupported_arithmetic_refused(string mapping)
     {
         var plan = Compile("add", "12", "12", "draft", mapping);
@@ -52,6 +53,7 @@ public class when_running_scoped_mapping_operations : Specification
         {
             "set" => "state = \"approved\"\nwhole = 4\namount = 2.5\nactive = true",
             "every" => "state = state\nwhole = whole\namount = amount",
+            "product" => "add whole by whole * whole\nadd amount by amount * amount",
             "zero" => "add whole by 0\nsubtract amount by 0",
             "increment" or "decrement" => $"{operation} whole\n{operation} amount",
             _ => $"{(operation == "ordered" || operation == "concept-add" ? "add" : operation)} whole by whole\n{(operation == "ordered" || operation == "concept-add" ? "add" : operation)} amount by amount"

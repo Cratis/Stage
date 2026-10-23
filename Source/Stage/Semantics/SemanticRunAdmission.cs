@@ -163,7 +163,8 @@ public static class SemanticRunAdmission
         }
 
         if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticReadPathExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
-                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGetOccurrence(specification, out _)))))
+                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } &&
+                    (SemanticSpecificationClock.TryGetOccurrence(specification, out _) || !specification.ThenErrors.IsEmpty || specification.ThenDenied)))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
         }

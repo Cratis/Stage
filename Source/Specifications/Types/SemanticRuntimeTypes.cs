@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Types;
@@ -33,7 +34,6 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
     readonly Dictionary<SemanticId, Type> _composites = [];
-    SemanticStructuredEventValueTypes? _eventValues;
 
     internal static object? ConvertValue(SemanticValue value, Type target) =>
         ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
@@ -50,6 +50,8 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         SemanticBooleanValue boolean => boolean.Value,
         _ => throw new UnsupportedSemanticMapping()
     };
+
+    internal static string ProductMember(SemanticProjectionProduct product) => char.ToLowerInvariant(product.Name[0]) + product.Name[1..];
 
     internal Type ForCommand(SemanticCommand command)
     {
@@ -81,15 +83,34 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            var member = type.GetProperty(property.Name)!;
-            var converted = property.Type.IsCollection || property.Type.Kind == SemanticTypeReferenceKind.CompositeType
-                ? Structured(JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan))), member.PropertyType)
-                : ConvertValue(value.Value, member.PropertyType);
-            member.SetValue(instance, converted);
+            var converted = ReadModelValue(value.Value, property.Type);
+            type.GetProperty(property.Name)!.SetValue(instance, converted);
+        }
+
+        // Chronicle's Add and Subtract read one stored event property, so a product the projections add is carried by the event itself.
+        foreach (var product in Products(contract))
+        {
+            if (fact.Values.SingleOrDefault(value => value.TargetProperty == product.Left.Id)?.Value is not SemanticNumberValue left ||
+                fact.Values.SingleOrDefault(value => value.TargetProperty == product.Right.Id)?.Value is not SemanticNumberValue right)
+            {
+                continue;
+            }
+
+            if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
+            {
+                type.GetProperty(ProductMember(product))!.SetValue(instance, left.Value * right.Value);
+            }
+            else
+            {
+                type.GetProperty(ProductMember(product))!.SetValue(instance, checked(decimal.ToInt64(left.Value) * decimal.ToInt64(right.Value)));
+            }
         }
 
         return instance;
     }
+
+    internal IReadOnlyList<SemanticProjectionProduct> Products(SemanticEventContract contract) =>
+        SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan));
 
     internal Type For(SemanticId eventContract)
     {
@@ -99,7 +120,9 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
 
         var contract = plan.Events[eventContract];
-        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveEvent(property.Type)));
+        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type))
+            .Concat(Products(contract).Select(product => KeyValuePair.Create(ProductMember(product), product.Primitive == SemanticPrimitiveType.DecimalNumber ? typeof(decimal) : typeof(long))))
+            .ToDictionary());
         _events.Add(eventContract, type);
         return type;
     }
@@ -121,25 +144,6 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
         return type;
     }
-
-    // The authored JSON is wrapped when the event property has a typed-schema wrapper; recursive types stay raw JSON.
-    static object Structured(JsonElement value, Type propertyType)
-    {
-        if (propertyType == typeof(JsonElement))
-        {
-            return value;
-        }
-
-        var wrapper = (SemanticStructuredEventValue)Activator.CreateInstance(propertyType)!;
-        wrapper.Value = value;
-        return wrapper;
-    }
-
-    // A finite composite or collection event property carries a typed schema so Chronicle reads numbers exactly.
-    Type ResolveEvent(SemanticTypeReference reference) =>
-        reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType
-            ? (_eventValues ??= new(plan)).For(reference) ?? typeof(JsonElement)
-            : Resolve(reference);
 
     Type Resolve(SemanticTypeReference reference)
     {

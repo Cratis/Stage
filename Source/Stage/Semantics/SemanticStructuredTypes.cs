@@ -9,7 +9,7 @@ namespace Cratis.Stage.Semantics;
 /// <summary>
 /// Describes the shape of the composite and collection types an event property can carry.
 /// </summary>
-public static class SemanticStructuredTypes
+internal static class SemanticStructuredTypes
 {
     /// <summary>
     /// Determines whether a type reaches only a finite set of members, which is true unless a composite type contains itself.
@@ -17,7 +17,7 @@ public static class SemanticStructuredTypes
     /// <param name="plan">The semantic execution plan holding the model types.</param>
     /// <param name="type">The type to inspect.</param>
     /// <returns><see langword="true"/> when the type is not recursive; otherwise <see langword="false"/>.</returns>
-    public static bool HasFiniteShape(SemanticExecutionPlan plan, SemanticTypeReference type) => Finite(plan, type, []);
+    internal static bool HasFiniteShape(SemanticExecutionPlan plan, SemanticTypeReference type) => Finite(plan, type, []);
 
     static bool Finite(SemanticExecutionPlan plan, SemanticTypeReference type, HashSet<SemanticId> visiting)
     {

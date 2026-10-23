@@ -89,8 +89,6 @@ internal static class SemanticRunProjections
             {
                 foreach (var from in scope.From)
                 {
-                    // A product block whose event this run never delivers cannot fire; Chronicle cannot lower the product.
-                    if (from.Mappings.Any(mapping => mapping.Factor is not null) && !context.Facts.Any(fact => fact.EventContract == from.EventContract)) continue;
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
@@ -110,13 +108,18 @@ internal static class SemanticRunProjections
             }
             else
             {
+                // A flat transition is a root from block keyed by an event property, with each mapping an event property or a literal.
                 foreach (var transition in projection.Transitions)
                 {
                     var @event = plan.Events[transition.EventContract];
-                    var mappings = transition.Mappings.Select(mapping => (
-                        Target: model.Properties.Single(property => property.Id == mapping.TargetProperty).Name,
-                        Source: (string?)@event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name)).ToArray();
-                    DefineFrom(builder, types.For(transition.EventContract), mappings);
+                    var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([((SemanticResolvedExpression)transition.AffectedInstance.Key!).Target]));
+                    var mappings = transition.Mappings.Select(mapping => new SemanticProjectionMapping([mapping.TargetProperty], SemanticProjectionOperation.Set, mapping.Source switch
+                    {
+                        SemanticResolvedExpression resolved => new SemanticProjectionEventProperty([resolved.Target]),
+                        SemanticValueExpression literal => new SemanticProjectionLiteral(literal.Value),
+                        _ => throw new UnsupportedSemanticMapping()
+                    })).ToArray();
+                    SemanticRunScopedMappings.Define(builder, types.For(transition.EventContract), mappings, model, @event, key, plan);
                 }
             }
         });
@@ -159,7 +162,10 @@ internal static class SemanticRunProjections
             // Only action and reaction facts may subsequently change it.
             var projectedKey = projection.Scope?.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.Key ??
                 projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
-            var fixtureKey = projectedKey switch
+            var transitionKey = projection.Transitions.SingleOrDefault(transition => transition.EventContract == fact.EventContract)?.AffectedInstance.Key;
+            var fixtureKey = transitionKey is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolvedKey
+                ? fact.Values.Single(value => value.TargetProperty == resolvedKey.Target).Value
+                : projectedKey switch
             {
                 SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
                 SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
@@ -185,11 +191,11 @@ internal static class SemanticRunProjections
                 {
                     var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
                         child.Scope.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.ParentKey;
-                    if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
+                    if (!child.Scope.From.Any(from => from.EventContract == fact.EventContract) && !child.Scope.Removals.Any(removal => removal.EventContract == fact.EventContract)) continue;
                     var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
                     if (parent is not SemanticTextValue text || !scenario.Instances.Keys.Any(source => source.ToString() == text.Value))
-                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event; Chronicle cannot materialize that parent implicitly."));
+                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child projection needs an existing parent instance before its child event or removal; Chronicle cannot materialize that parent implicitly."));
                 }
             }
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
@@ -235,28 +241,6 @@ internal static class SemanticRunProjections
         var parameter = Expression.Parameter(typeof(TReadModel), "model");
 
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
-    }
-
-    static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings)
-    {
-        typeof(SemanticRunProjections).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings], null);
-    }
-
-    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, (string Target, string? Source)[] mappings)
-    {
-        // The generic parameter is a runtime-emitted type carrying [EventType]; the analyzer cannot see it.
-#pragma warning disable CHR0002
-        builder.From<TEvent>(from =>
-        {
-            foreach (var (target, source) in mappings)
-            {
-                var set = from.Set(new PropertyPath(target));
-                if (source is null) set.ToEventSourceId();
-                else set.To(new PropertyPath(source));
-            }
-        });
-#pragma warning restore CHR0002
     }
 
     static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>

@@ -87,7 +87,7 @@ interface SceneNavigateDetail {
 }
 
 /**
- * The registry a Stage renders with: Scene's core vocabulary, PrimeReact and the default blueprint, then any
+ * The registry a Stage renders with: Scene's core vocabulary, the libraries the profile lists (PrimeReact only then) and the default blueprint, then any
  * components the host adds, then the Stage's own table, action, form and chrome - which always win, because they
  * are what reach the running application.
  * @param components Components the host adds, such as a package an application composes with.
@@ -192,9 +192,9 @@ export interface AppProps {
 
 export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
     const source = useStageSource();
-    const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
     const [error, setError] = useState('');
+    const registry = useMemo(() => stageApplicationRegistry(components), [components, scene]);
     // Routes and strings are read alongside the scene, not after it, so a command is registered by the time it is first used.
     const routeState = useStageRouteState();
     const strings = useStrings();

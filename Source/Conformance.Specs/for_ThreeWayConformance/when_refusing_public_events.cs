@@ -47,13 +47,12 @@ public class when_refusing_public_events : Specification
     }
 
     [Fact]
-    void should_keep_capture_overlays_across_public_source_events_refused()
+    void should_render_capture_overlays_across_public_source_events()
     {
         var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.AsSpan());
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Contracts", "Contracts"));
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
-        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("record overlay across source events", StringComparison.Ordinal));
+        rendered.Success.ShouldBeTrue();
+        rendered.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("Feed.cs", StringComparison.Ordinal));
     }
 }

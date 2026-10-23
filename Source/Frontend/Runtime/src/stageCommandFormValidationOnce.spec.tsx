@@ -30,7 +30,7 @@ describe('validation messages of a command form', () => {
             </PrimeReactProvider>,
         );
         fireEvent.change(screen.getByLabelText('Owner id'), { target: { value: 'o-1' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Add pet' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add pet' }));
 
         await waitFor(() => expect(screen.getAllByText('The pet needs an owner')).toHaveLength(1));
         // Arc also gives the field a screen-reader-only copy of its error; that is not a second visible message.
@@ -55,7 +55,7 @@ describe('validation messages of a command form', () => {
             </PrimeReactProvider>,
         );
         fireEvent.change(screen.getByLabelText('Owner id'), { target: { value: 'o-1' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Add pet' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add pet' }));
 
         await waitFor(() => expect(screen.getAllByText('Owner id is unknown').filter(node => node.classList.contains('stage-form-error'))).toHaveLength(1));
         const inline = screen.getAllByText('Owner id is required').filter(node => !node.classList.contains('cratis-field-sr-only'));

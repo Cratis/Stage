@@ -108,14 +108,18 @@ internal static class SemanticRunProjections
             }
             else
             {
+                // A flat transition is a root from block keyed by an event property, with each mapping an event property or a literal.
                 foreach (var transition in projection.Transitions)
                 {
                     var @event = plan.Events[transition.EventContract];
-                    var mappings = transition.Mappings.Select(mapping => (
-                        Target: model.Properties.Single(property => property.Id == mapping.TargetProperty).Name,
-                        Source: (string?)@event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)mapping.Source).Target).Name)).ToArray();
-                    DefineFrom(builder, types.For(transition.EventContract), mappings,
-                        @event.Properties.Single(property => property.Id == ((SemanticResolvedExpression)transition.AffectedInstance.Key!).Target).Name);
+                    var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([((SemanticResolvedExpression)transition.AffectedInstance.Key!).Target]));
+                    var mappings = transition.Mappings.Select(mapping => new SemanticProjectionMapping([mapping.TargetProperty], SemanticProjectionOperation.Set, mapping.Source switch
+                    {
+                        SemanticResolvedExpression resolved => new SemanticProjectionEventProperty([resolved.Target]),
+                        SemanticValueExpression literal => new SemanticProjectionLiteral(literal.Value),
+                        _ => throw new UnsupportedSemanticMapping()
+                    })).ToArray();
+                    SemanticRunScopedMappings.Define(builder, types.For(transition.EventContract), mappings, model, @event, key, plan);
                 }
             }
         });
@@ -237,31 +241,6 @@ internal static class SemanticRunProjections
         var parameter = Expression.Parameter(typeof(TReadModel), "model");
 
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
-    }
-
-    static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings, string keyProperty)
-    {
-        typeof(SemanticRunProjections).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings, keyProperty], null);
-    }
-
-    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, (string Target, string? Source)[] mappings, string keyProperty)
-    {
-        // The generic parameter is a runtime-emitted type carrying [EventType]; the analyzer cannot see it.
-#pragma warning disable CHR0002
-        builder.From<TEvent>(from =>
-        {
-            // The key is an event property, which may differ from the event source the fact was appended to.
-            var parameter = Expression.Parameter(typeof(TEvent), "@event");
-            from.UsingKey(Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter));
-            foreach (var (target, source) in mappings)
-            {
-                var set = from.Set(new PropertyPath(target));
-                if (source is null) set.ToEventSourceId();
-                else set.To(new PropertyPath(source));
-            }
-        });
-#pragma warning restore CHR0002
     }
 
     static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>

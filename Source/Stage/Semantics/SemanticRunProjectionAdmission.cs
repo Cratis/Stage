@@ -375,13 +375,25 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return false;
         }
+
+        var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         return @event.Properties.Any(property => property.Id == key.Target) &&
-            SemanticFlatProjectionSupport.MappingsMatch(transition.Mappings, readModel.Properties, @event.Properties, SemanticExpressionRootKind.Event) &&
-            transition.Mappings.All(mapping => mapping.TargetProperty != readModel.Properties.Single(property => property.IsIdentifier).Id ||
-                (mapping.Source is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } source && source.Target == key.Target)) &&
+            ChronicleEventPropertyNameIsSafe.Check(@event.Properties.Single(property => property.Id == key.Target).Name) &&
+            @event.Properties.All(property => ChronicleEventPropertyNameIsSafe.Check(property.Name)) &&
+            ChronicleReadModelPropertyNamesAreSafe.Check(readModel.Properties) &&
+            transition.Mappings.Length == readModel.Properties.Length &&
+            readModel.Properties.All(target => transition.Mappings.Count(mapping => mapping.TargetProperty == target.Id) == 1) &&
+            transition.Mappings.All(mapping => mapping.Source switch
+            {
+                SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } source =>
+                    @event.Properties.Any(property => property.Id == source.Target) &&
+                    (mapping.TargetProperty != identifier.Id || source.Target == key.Target),
+                SemanticValueExpression { Value: SemanticTextValue or SemanticNumberValue or SemanticBooleanValue } => mapping.TargetProperty != identifier.Id,
+                _ => false
+            }) &&
             @event.Properties.Single(property => property.Id == key.Target) is { Type: { IsOptional: false, IsCollection: false } } keyProperty && IsScalar(keyProperty.Type) &&
-            SourceTypeMatches(plan, keyProperty.Type, readModel.Properties.Single(property => property.IsIdentifier).Type) &&
-            ScopedKeysMatch(plan, specification, transition.EventContract, readModel.Properties.Single(property => property.IsIdentifier).Type, key.Target);
+            SourceTypeMatches(plan, keyProperty.Type, identifier.Type) &&
+            ScopedKeysMatch(plan, specification, transition.EventContract, identifier.Type, key.Target);
     }
 
     static SemanticPrimitiveType Primitive(SemanticExecutionPlan plan, SemanticTypeReference type) =>

@@ -196,7 +196,7 @@ internal static partial class SemanticCratisAdmission
         requirement.ContextVersion == 1 && requirement.ResultVersion == 1 && requirement.RequiredCapability == "pure" &&
         IsCSharpImplementation(requirement);
 
-    static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) =>
+    internal static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) =>
         (requirement.Language == "csharp" && requirement.File is null) ||
         (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true);
 

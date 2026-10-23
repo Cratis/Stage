@@ -190,6 +190,7 @@ internal static class SemanticRunProjections
                     var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
                     if (parent is SemanticTextValue text && scenario.Instances.Keys.Any(source => source.ToString() == text.Value)) continue;
+
                     // The reference keeps a child with no parent pending for good, so it materializes nothing; Chronicle does the same.
                     if (ParentArrivesLater(scope, context, index, parent))
                         throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child event before its parent instance is not admitted; Chronicle's testing scenario resolves deferred children in a different order from the reference (existing parent instance required)."));
@@ -264,22 +265,6 @@ internal static class SemanticRunProjections
         var parameter = Expression.Parameter(typeof(TReadModel), "model");
 
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
-    }
-
-    static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, (string Target, string? Source)[] mappings)
-    {
-        // The generic parameter is a runtime-emitted type carrying [EventType]; the analyzer cannot see it.
-#pragma warning disable CHR0002
-        builder.From<TEvent>(from =>
-        {
-            foreach (var (target, source) in mappings)
-            {
-                var set = from.Set(new PropertyPath(target));
-                if (source is null) set.ToEventSourceId();
-                else set.To(new PropertyPath(source));
-            }
-        });
-#pragma warning restore CHR0002
     }
 
     static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>

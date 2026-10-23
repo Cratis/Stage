@@ -112,7 +112,7 @@ public class when_rendering_temporal_claim_targets : Specification
         var query = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Queries).Single();
         var target = assembly.GetTypes().Single(type => type.Name == "InvoiceSummary").GetMethod("InvoiceById")!;
         var resource = new QueryContext("InvoiceById", CorrelationId.New(), Paging.NotPaged, Sorting.None, new QueryArguments { ["invoiceId"] = argument });
-        return Allows(assembly, query.Id, target, resource, claim);
+        return Allows(assembly, model, query.Id, target, resource, claim);
     }
 
     bool AllowsCommand(string primitive, string canonical, string claim, string? deadline)
@@ -121,7 +121,7 @@ public class when_rendering_temporal_claim_targets : Specification
         var command = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Commands).Single();
         var type = assembly.GetTypes().Single(type => type.Name == "IssueInvoice");
         var instance = Activator.CreateInstance(type, Concept(primitive, "InvoiceId", Typed(primitive, canonical)), "North", deadline is null ? null : Concept(primitive, "Deadline", Typed(primitive, deadline)))!;
-        return Allows(assembly, command.Id, type, new CommandContext(CorrelationId.New(), type, instance, [], CommandContextValues.Empty), claim);
+        return Allows(assembly, model, command.Id, type, new CommandContext(CorrelationId.New(), type, instance, [], CommandContextValues.Empty), claim);
     }
 
     bool Reference(string primitive, string canonical, string claim, string? deadline)
@@ -142,9 +142,9 @@ public class when_rendering_temporal_claim_targets : Specification
 
     static object Typed(string primitive, string canonical) => primitive == "Date" ? DateOnly.Parse(canonical, CultureInfo.InvariantCulture) : DateTimeOffset.Parse(canonical, CultureInfo.InvariantCulture);
 
-    static bool Allows(Assembly assembly, SemanticId operation, MemberInfo target, object resource, string claim)
+    static bool Allows(Assembly assembly, ExecutableSemanticModel model, SemanticId operation, MemberInfo target, object resource, string claim)
     {
-        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(operation)))!;
+        var policy = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, operation)))!;
         var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("OWNER", claim)], "fixture"));
         return policy.IsAuthorized(new(principal, target, resource), CancellationToken.None).AsTask().GetAwaiter().GetResult();
     }

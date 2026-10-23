@@ -86,14 +86,14 @@ public class when_rendering_policy_negation : Specification
         if (!_plan.Success) return;
         var sources = _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
-        _generatedPolicies = string.Join('\n', sources.Where(file => file.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal)).Select(file => file.Content));
+        _generatedPolicies = string.Join('\n', sources.Where(file => file.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && file.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)).Select(file => file.Content));
         var assembly = RenderedOutput.Load(sources);
         var executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
         var commands = _model.Application.Modules.Single().Features.Single().Slices.Select(slice => slice.Commands.Single()).ToArray();
         for (var policy = 0; policy < _policies.Length; policy++)
         {
             var command = commands.Single(candidate => candidate.Name == $"File{policy}");
-            var generated = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(command.Id)))!;
+            var generated = (IAuthorizationPolicy)Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(_model, command.Id)))!;
             var type = assembly.GetTypes().Single(candidate => candidate.Name == command.Name);
             var allowed = _policies[policy].Allowed.Split(' ');
             for (var role = 0; role < _roles.Length; role++)

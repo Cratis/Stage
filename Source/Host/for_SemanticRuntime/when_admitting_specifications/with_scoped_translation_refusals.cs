@@ -27,5 +27,5 @@ public class with_scoped_translation_refusals : Specification
     void Because() => _admission = new(_plan);
 
     [Fact] void should_admit_the_unrelated_specification() => _admission.Entries.Single(entry => entry.Kind == "specification" && entry.Artifact == _plan.Specifications.Values.Single(specification => specification.Name == "RegisteringAProject").Id.ToString()).Status.ShouldEqual("supported");
-    [Fact] void should_keep_translation_specifications_refused() => _admission.Entries.Where(entry => entry.Kind == "specification" && entry.Artifact != _plan.Specifications.Values.Single(specification => specification.Name == "RegisteringAProject").Id.ToString()).All(entry => entry.Status == "unsupported").ShouldBeTrue();
+    [Fact] void should_admit_supported_translation_specifications() => _admission.Entries.Where(entry => entry.Kind == "specification" && entry.Artifact != _plan.Specifications.Values.Single(specification => specification.Name == "RegisteringAProject").Id.ToString()).All(entry => entry.Status == "supported").ShouldBeTrue();
 }

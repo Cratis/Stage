@@ -45,6 +45,12 @@ on:
       - "Directory.Packages.props"
       # Changes to the publish pipeline itself should be exercised by a release.
       - ".github/workflows/publish.yml"
+  # Batched releases (Cratis/Workflows#189, pilot): every 15 minutes, release everything merged since the last
+  # release once the oldest pending merge is older than `release-window`. A run with nothing pending, or a window
+  # that has not elapsed, ends in seconds without releasing. A `hotfix` label releases on its merge push; a manual
+  # run left at version 0.0.0 releases everything pending.
+  schedule:
+    - cron: '7,22,37,52 * * * *'
 
 jobs:
   release:
@@ -64,10 +70,12 @@ jobs:
 
       - name: Release
         id: release
-        uses: cratis/release-action@v1
+        # Pinned to the batched-releases pilot (Cratis/release-action#217); back to @v1 once it is released.
+        uses: cratis/release-action@b1c4dbf13ab3fc90bf5b3fb8be64b26006209496
         with:
           version: ${{ github.event.inputs.version }}
           release-notes: ${{ github.event.inputs.release-notes }}
+          release-window: 60
 
   publish-npm-package:
     if: needs.release.outputs.publish == 'true' && needs.release.outputs.version != ''

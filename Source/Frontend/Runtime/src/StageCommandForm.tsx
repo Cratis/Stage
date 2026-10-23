@@ -92,7 +92,7 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
+                onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={() => {
@@ -140,7 +140,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
     if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
-    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: property.name }));
+    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: humanize(property.name) }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
@@ -535,6 +535,19 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
         case FormWidthUnit.Percent: return `${width.value ?? 100}%`;
         case FormWidthUnit.Auto: return 'auto';
     }
+}
+
+/**
+ * The validation messages Arc's command form does not already show next to a field. Arc shows one message per field - the first result
+ * whose member is the field or a path under it - so exactly those are left out; any further message about the same field, and every
+ * message about no field of this form, is listed under the fields.
+ */
+export function unboundValidationMessages(fields: FormField[], validation: { message: string; members?: string[] }[]): string[] {
+    const matches = (result: { members?: string[] }, name: string) => !!result.members?.some(member => member === name || member.startsWith(`${name}.`));
+    const shown = new Set(fields
+        .map(field => validation.find(result => matches(result, field.sourceProperty ?? field.name)))
+        .filter(result => result !== undefined));
+    return [...new Set(validation.filter(result => !shown.has(result)).map(result => result.message))];
 }
 
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {

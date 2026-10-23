@@ -22,8 +22,8 @@ public class when_scoped_mapping_lowering_is_refused : Specification
             ? new SemanticProjectionEventProperty([]) : new SemanticProjectionLiteral(SemanticValue.Number(3));
         var mapping = new SemanticProjectionMapping([], operation, source);
         var from = Substitute.For<IFromBuilder<read_model, mapped_event>>();
-        var method = typeof(SemanticRunScopedMappings).GetMethod("Apply", BindingFlags.Static | BindingFlags.NonPublic)!
-            .MakeGenericMethod(typeof(read_model), typeof(mapped_event), typeof(long));
+        var method = typeof(SemanticRunScopedMappings).GetMethod("Apply", BindingFlags.Static | BindingFlags.NonPublic)
+            .MakeGenericMethod(typeof(read_model), typeof(mapped_event), typeof(long), typeof(IFromBuilder<read_model, mapped_event>));
         var failure = Assert.Throws<SemanticProjectionLoweringRefused>(() =>
             method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, nameof(read_model.Value), null], null));
         Assert.Contains(operation.ToString(), failure.Message, StringComparison.Ordinal);
@@ -35,8 +35,8 @@ public class when_scoped_mapping_lowering_is_refused : Specification
     {
         var mapping = new SemanticProjectionMapping([], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(new SemanticArrayValue([])));
         var from = Substitute.For<IFromBuilder<opaque_read_model, mapped_event>>();
-        var method = typeof(SemanticRunScopedMappings).GetMethod("Apply", BindingFlags.Static | BindingFlags.NonPublic)!
-            .MakeGenericMethod(typeof(opaque_read_model), typeof(mapped_event), typeof(object));
+        var method = typeof(SemanticRunScopedMappings).GetMethod("Apply", BindingFlags.Static | BindingFlags.NonPublic)
+            .MakeGenericMethod(typeof(opaque_read_model), typeof(mapped_event), typeof(object), typeof(IFromBuilder<opaque_read_model, mapped_event>));
         var failure = Assert.Throws<SemanticProjectionLoweringRefused>(() =>
             method.Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, nameof(opaque_read_model.Value), null], null));
         Assert.Contains("Set", failure.Message, StringComparison.Ordinal);

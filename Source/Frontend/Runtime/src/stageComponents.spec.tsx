@@ -527,10 +527,10 @@ describe('a native command form', () => {
             </PrimeReactProvider>,
         );
 
-        expect(screen.getByLabelText('name')).toBeDefined();
-        expect(screen.getByLabelText('enabled')).toBeDefined();
-        expect(screen.getByLabelText('amount')).toBeDefined();
-        expect(screen.getByLabelText('dueDate')).toBeDefined();
+        expect(screen.getByLabelText('Name')).toBeDefined();
+        expect(screen.getByLabelText('Enabled')).toBeDefined();
+        expect(screen.getByLabelText('Amount')).toBeDefined();
+        expect(screen.getByLabelText('Due date')).toBeDefined();
         const shell = container.querySelector('.stage-command-form') as HTMLElement;
         const layout = container.querySelector('.stage-command-form__layout') as HTMLElement;
         const amount = container.querySelector('[data-field="amount"]') as HTMLElement;
@@ -842,9 +842,9 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
-        fireEvent.blur(screen.getByLabelText('amount'));
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
+        fireEvent.blur(screen.getByLabelText('Amount'));
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -860,8 +860,8 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -876,8 +876,8 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect((await screen.findAllByText('Invoice number is required')).length).toBeGreaterThan(0);
@@ -904,8 +904,8 @@ describe('a synthesized action', () => {
         renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
         expect(await screen.findByText('INV-1')).toBeDefined();
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '14' } });
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect(await screen.findByText('INV-2')).toBeDefined();
@@ -942,8 +942,8 @@ describe('a synthesized action', () => {
         renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
         expect(await screen.findByText('INV-1')).toBeDefined();
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '14' } });
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Register invoice' }));
 
         expect(await screen.findByText('INV-8', {}, { timeout: 2_000 })).toBeDefined();

@@ -14,5 +14,5 @@ public class with_an_observed_product : given.a_product_projection
                       quantity = 3
         """);
 
-    [Fact] void should_be_unsupported() => AssertOutcome(SemanticSpecificationOutcome.Unsupported);
+    [Fact] void should_run_the_product_instead_of_refusing() => Assert.NotEqual(SemanticSpecificationOutcome.Unsupported, _result.Outcome);
 }

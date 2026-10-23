@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
 /// Proves that a command mapping a collection and a composite from a protected read into its event, through a projection that sets both whole,
-/// executes identically on the reference evaluator and the rendered application, including a missing read. Stage executes all three, including the two whole composite and collection copies.
+/// executes identically on the reference evaluator and the rendered application, including a missing read. Stage runs the structured projection cases and the missing-read rejection.
 /// </summary>
 /// <param name="fixture">The three-way fixture.</param>
 /// <param name="output">The test output.</param>
@@ -24,7 +24,7 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
     [Fact] void should_have_no_differences() => fixture.Differences.ShouldBeEmpty();
     [Fact] void should_pass_every_outcome_on_the_reference_and_the_rendered_application() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed", StringComparison.Ordinal) && outcome.Contains("Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(SpecificationCount);
-    [Fact] void should_execute_the_structured_projection_and_the_missing_read() => Assert.Equal(
+    [Fact] void should_run_the_structured_projection_and_the_missing_read_on_every_engine() => Assert.Equal(
         [
             "source/ConfirmingAPlacedOrder: Reference=Passed, Stage=Passed, Rendered=Passed",
             "source/ConfirmingAnOrderWithoutLines: Reference=Passed, Stage=Passed, Rendered=Passed",

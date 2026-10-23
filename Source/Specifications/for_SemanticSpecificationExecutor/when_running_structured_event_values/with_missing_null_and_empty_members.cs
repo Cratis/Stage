@@ -9,9 +9,9 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 
 public class with_missing_null_and_empty_members : given.a_structured_event
 {
-    JsonElement _entries;
-    JsonElement _details;
-    JsonElement _numbers;
+    Array _entries = null!;
+    object _details = null!;
+    Array _numbers = null!;
 
     void Establish() => Compile();
     void Because()
@@ -28,14 +28,17 @@ public class with_missing_null_and_empty_members : given.a_structured_event
             _ => member
         })] };
         var instance = new SemanticRuntimeTypes(_plan).Materialize(fact);
-        _entries = (JsonElement)instance.GetType().GetProperty("entries")!.GetValue(instance)!;
-        _details = (JsonElement)instance.GetType().GetProperty("details")!.GetValue(instance)!;
-        _numbers = (JsonElement)instance.GetType().GetProperty("numbers")!.GetValue(instance)!;
+        _entries = (Array)instance.GetType().GetProperty("entries")!.GetValue(instance)!;
+        _details = instance.GetType().GetProperty("details")!.GetValue(instance)!;
+        _numbers = (Array)instance.GetType().GetProperty("numbers")!.GetValue(instance)!;
     }
 
-    [Fact] void should_keep_an_absent_member() => _entries[0].TryGetProperty("tags", out _).ShouldBeFalse();
-    [Fact] void should_keep_an_empty_collection() => _entries[1].GetProperty("tags").GetArrayLength().ShouldEqual(0);
-    [Fact] void should_keep_a_null_collection() => _entries[2].GetProperty("tags").ValueKind.ShouldEqual(JsonValueKind.Null);
-    [Fact] void should_keep_a_null_member() => _details.GetProperty("label").ValueKind.ShouldEqual(JsonValueKind.Null);
-    [Fact] void should_keep_primitive_collection_elements() => _numbers[1].GetInt32().ShouldEqual(2);
+    // Typed members cannot tell an absent member from a null one; the run refuses specifications that author an explicit null (see the projection admission).
+    [Fact] void should_leave_an_absent_member_unset() => Member(_entries.GetValue(0)!, "tags").ShouldBeNull();
+    [Fact] void should_keep_an_empty_collection() => ((Array)Member(_entries.GetValue(1)!, "tags")!).Length.ShouldEqual(0);
+    [Fact] void should_leave_a_null_collection_unset() => Member(_entries.GetValue(2)!, "tags").ShouldBeNull();
+    [Fact] void should_leave_a_null_member_unset() => Member(_details, "label").ShouldBeNull();
+    [Fact] void should_keep_primitive_collection_elements() => Convert.ToInt32(_numbers.GetValue(1)).ShouldEqual(2);
+
+    static object? Member(object value, string name) => value.GetType().GetProperty(name)!.GetValue(value);
 }

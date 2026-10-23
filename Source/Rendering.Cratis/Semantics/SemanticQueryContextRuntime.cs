@@ -30,24 +30,24 @@ internal static class SemanticQueryContextRuntime
         var arguments = Arguments(query).ToArray();
         var parameters = new List<string>
         {
-            "global::Cratis.Chronicle.ReadModels.IReadModels readModelStore",
-            "global::Cratis.Arc.Queries.IQueryContextManager queryContexts",
-            "global::Cratis.Arc.Tenancy.ITenantIdAccessor tenantAccessor",
-            "global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor principalAccessor"
+            "global::Cratis.Chronicle.ReadModels.IReadModels __stageReadModelStore",
+            "global::Cratis.Arc.Queries.IQueryContextManager __stageQueryContexts",
+            "global::Cratis.Arc.Tenancy.ITenantIdAccessor __stageTenantAccessor",
+            "global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor __stagePrincipalAccessor"
         };
         parameters.AddRange(arguments.Select(argument => Parameter(argument, types, optionalDefault: true)));
         var live = query.Delivery == SemanticQueryDelivery.Live;
-        var invocation = $"StagePerform_{method}(readModels, context{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
+        var invocation = $"StagePerform_{method}(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
         builder.OpenBlock($"public static {(live ? string.Empty : "async ")}{returnType} {method}({string.Join(", ", parameters)})")
-            .Line($"var context = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), tenantAccessor.Current.Value, queryContexts.Current.AuthorizedPrincipal ?? principalAccessor.Current, queryContexts.Current.ReceivedAt);");
+            .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);");
         if (live)
         {
-            builder.Line($"var source = readModelStore.Observe<{model}>();")
-                .Line($"return global::System.Reactive.Subjects.Subject.Create<global::System.Collections.Generic.IEnumerable<{model}>>(source, global::System.Reactive.Linq.Observable.Select(source, readModels => {invocation}));");
+            builder.Line($"var __stageSource = __stageReadModelStore.Observe<{model}>();")
+                .Line($"return global::System.Reactive.Subjects.Subject.Create<global::System.Collections.Generic.IEnumerable<{model}>>(__stageSource, global::System.Reactive.Linq.Observable.Select(__stageSource, __stageReadModels => {invocation}));");
         }
         else
         {
-            builder.Line($"var readModels = await readModelStore.GetInstances<{model}>();")
+            builder.Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
                 .Line($"return {invocation};");
         }
 
@@ -62,6 +62,9 @@ internal static class SemanticQueryContextRuntime
             ArtifactRenderDiagnosticSeverity.Error,
             $"Query performer requirement '{requirement.RequirementId}' at {PureTransitionAdmission.SourceLocation(requirement, body, 0)}: {detail}",
             query.Id);
+
+        var collision = Arguments(query).Select(Name).FirstOrDefault(name => name is "readModels" or "context");
+        if (collision is not null) return Error($"Argument '{collision}' conflicts with a reserved query performer body binding.");
 
         var parsed = PureTransitionAdmission.ParseBody(body, new HashSet<string>(StringComparer.Ordinal), "query performer", enforcePurity: false);
         if (parsed.Rejection is { } rejection) return Error(rejection.Reason!);
@@ -82,7 +85,7 @@ internal static class SemanticQueryContextRuntime
         MetadataReference[] references;
         try
         {
-            references = PureTransitionAdmission.AnalysisReferences();
+            references = [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference];
         }
         catch (InvalidOperationException exception)
         {
@@ -91,7 +94,7 @@ internal static class SemanticQueryContextRuntime
 
         var compilation = CSharpCompilation.Create(
             "QueryPerformerAnalysis",
-            [CSharpSyntaxTree.ParseText(ImplicitUsings + declarations, options), tree],
+            [CSharpSyntaxTree.ParseText(ImplicitUsings, options), .. declarations.Select(declaration => CSharpSyntaxTree.ParseText(declaration, options)), tree],
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var diagnostics = compilation.GetDiagnostics();
@@ -125,23 +128,16 @@ internal static class SemanticQueryContextRuntime
             .EndBlock();
     }
 
-    static string AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
+    static IEnumerable<string> AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
     {
-        // Boundary types are BCL-only here, just as in the generated body helper. Do not load Arc or
-        // Chronicle into the renderer process; the generated-app specs bind the real boundary.
-        var declarations = new List<string> { $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}" };
-        foreach (var concept in context.Application.Concepts)
+        // Reuse the actual concept declarations and pinned Fundamentals metadata, without loading
+        // Arc or Chronicle. Only the external Chronicle base is a stand-in, as in reducer analysis.
+        var declarations = new List<string>
         {
-            var name = Identifiers.ToPascalCase(concept.Name);
-            if (!concept.Values.IsEmpty)
-            {
-                declarations.Add($"namespace {context.CommonNamespace} {{ public enum {name} {{ {string.Join(", ", SemanticEnumMembers.Declarations(concept))} }} }}");
-                continue;
-            }
-
-            var scalar = types.Primitive(concept.Primitive);
-            declarations.Add($"namespace {context.CommonNamespace} {{ public record {name}({scalar} Value) {{ {(context.IdentifierConcepts.Contains(concept.Id) ? $"public {scalar} TypedValue => Value;" : string.Empty)} public static implicit operator {scalar}({name} value) => value.Value; public static implicit operator {name}({scalar} value) => new(value); }} }}");
-        }
+            $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}",
+            "namespace Cratis.Chronicle.Events { public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue) where T : global::System.IComparable { public static implicit operator T(EventSourceId<T> value) => value.TypedValue; } }"
+        };
+        declarations.AddRange(context.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true, declarationOnly: true).Content));
 
         foreach (var readModel in context.ReadModels.Values.Where(SemanticVersionFeatures.HasCompositeKey))
         {
@@ -154,7 +150,7 @@ internal static class SemanticQueryContextRuntime
             declarations.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Properties(composite.Properties, types)}); }}");
         }
 
-        return string.Join('\n', declarations);
+        return declarations;
     }
 
     static string Properties(IEnumerable<SemanticProperty> properties, SemanticTypeSystem types) =>

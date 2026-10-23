@@ -21,8 +21,9 @@ internal static class SemanticCommonArtifactRenderer
     /// <param name="concept">The semantic concept.</param>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="qualified">Whether specifications request the pre-short-name spelling oracle.</param>
+    /// <param name="declarationOnly">Whether to omit compliance annotations, factory implementations and the companion validator for body analysis.</param>
     /// <returns>The generated source artifact.</returns>
-    public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context, bool qualified = false)
+    public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context, bool qualified = false, bool declarationOnly = false)
     {
         var name = Identifiers.ToPascalCase(concept.Name);
         var builder = Builder(context, qualified);
@@ -35,7 +36,7 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context, qualified);
+            RenderConcept(builder, concept, name, context, qualified, declarationOnly);
         }
 
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
@@ -80,7 +81,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context, bool qualified)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context, bool qualified, bool declarationOnly)
     {
         var types = new SemanticTypeSystem(context, builder);
         var isIdentifier = context.IdentifierConcepts.Contains(concept.Id);
@@ -97,12 +98,12 @@ internal static class SemanticCommonArtifactRenderer
         var baseType = isIdentifier ? $"{builder.Type(new("Cratis.Chronicle.Events", "EventSourceId", 1, ReferenceContext.Type))}<{primitive}>" : $"{builder.Type(new("Cratis.Concepts", "ConceptAs", 1, ReferenceContext.Type))}<{primitive}>";
         var generationInterface = GenerationInterface(concept, context, builder);
         builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.");
-        ConceptComplianceRendering.Render(builder, concept.Compliance);
+        if (!declarationOnly) ConceptComplianceRendering.Render(builder, concept.Compliance);
         builder.OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value){generationInterface}")
             .Line($"public static readonly {name} NotSet = new({types.NotSet(concept.Primitive)});")
             .BlankLine();
 
-        RenderFactory(builder, concept, context);
+        RenderFactory(builder, concept, context, declarationOnly);
         if (!isIdentifier)
         {
             builder.Line($"public static implicit operator {primitive}({name} value) => value.Value;");
@@ -118,7 +119,7 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         builder.EndBlock();
-        RenderValidator(builder, concept, name, context);
+        if (!declarationOnly) RenderValidator(builder, concept, name, context);
     }
 
     static bool NeedsFactory(SemanticConcept concept, SemanticApplicationContext context) =>
@@ -134,19 +135,24 @@ internal static class SemanticCommonArtifactRenderer
     static bool UsesGenerationContext(SemanticConcept concept, SemanticApplicationContext context) =>
         IsGeneratable(concept, context) && context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15) && SemanticGenerationRendering.UsesContext(concept.Generation);
 
-    static void RenderFactory(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
+    static void RenderFactory(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context, bool declarationOnly)
     {
         if (!NeedsFactory(concept, context)) return;
         var usesContext = UsesGenerationContext(concept, context);
-        var value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
+        var value = string.Empty;
+        if (!declarationOnly)
+        {
+            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
+        }
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
         var name = Identifiers.ToPascalCase(concept.Name);
 
         // A concept named New cannot declare a member named New (CS0542); Arc only reaches the factory through
         // IGeneratable, so the colliding factory implements the interface explicitly and the type keeps its name.
         var factory = name == "New" && IsGeneratable(concept, context) ? $"static {name} {GeneratableType(concept, context, builder)}.New" : $"public static {name} New";
-        builder.Line($"{factory}({parameters}) => new({value});").BlankLine();
-        SemanticGenerationRendering.RenderBody(builder, concept, context);
+        var implementation = declarationOnly ? "throw new global::System.NotImplementedException()" : $"new({value})";
+        builder.Line($"{factory}({parameters}) => {implementation};").BlankLine();
+        if (!declarationOnly) SemanticGenerationRendering.RenderBody(builder, concept, context);
     }
 
     static void RenderValidator(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context)

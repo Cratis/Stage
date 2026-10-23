@@ -57,6 +57,16 @@ internal static class SemanticImplementationAdmission
             foreach (var query in context.Queries.Values.Where(query => context.PerformedQueries.Contains(query.Id)))
             {
                 var requirement = requirements.Single(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id);
+                if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
+                {
+                    diagnostics.Add(new(
+                        "STAGE-ESM-019",
+                        ArtifactRenderDiagnosticSeverity.Error,
+                        $"Query '{query.Name}' has an unsupported performer language.",
+                        query.Id));
+                    continue;
+                }
+
                 if (TryGetVerifiedBody(request, byId, requirement.RequirementId, query.Id, diagnostics, out var body) && body is not null &&
                     SemanticQueryContextRuntime.Analyze(context, query, requirement, body) is { } diagnostic)
                 {

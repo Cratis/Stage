@@ -160,6 +160,123 @@ public class when_executing_performed_queries
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Code == "PLAY0268");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_supply_an_anonymous_identity_when_both_principal_sources_are_absent(bool live)
+    {
+        var loaded = await Load("return readModels.Where(row => row.Name == name && !context.Identity.Identities.Any());", live: live);
+        var method = Method(loaded);
+        var (rows, row) = Rows(method);
+        var readModels = Substitute.For<ObservableReadModels>();
+        var dependencies = Dependencies(readModels);
+        ((IQueryContextManager)dependencies[1]).Current.Returns(QueryContext.NotSet);
+        ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns((ClaimsPrincipal?)null);
+        if (live)
+        {
+            var source = SupplyMethod(nameof(SupplyLive), method).Invoke(null, [readModels])!;
+            var result = method.Invoke(null, dependencies.Append("Ada").ToArray())!;
+            SupplyMethod(nameof(AssertLive), method).Invoke(null, [source, result, rows]);
+            return;
+        }
+
+        SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
+        var task = (Task)method.Invoke(null, dependencies.Append("Ada").ToArray())!;
+        await task;
+        var snapshot = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        Assert.Same(row, Assert.Single(snapshot.Cast<object>()));
+    }
+
+    [Fact]
+    public async Task should_prefer_the_authorized_principal_over_the_ambient_principal()
+    {
+        var loaded = await Load("return readModels.Where(row => row.Name == context.Identity.Identity!.Name);");
+        var method = Method(loaded);
+        var (rows, row) = Rows(method);
+        var readModels = Substitute.For<IReadModels>();
+        SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
+        var dependencies = Dependencies(readModels);
+        var authorizedContext = QueryContext.NotSet with { ReceivedAt = DateTimeOffset.MinValue };
+        typeof(QueryContext).GetProperty(nameof(QueryContext.AuthorizedPrincipal))!.SetValue(authorizedContext,
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Ada")], "authorized")));
+        ((IQueryContextManager)dependencies[1]).Current.Returns(authorizedContext);
+        ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Other")], "ambient")));
+        var task = (Task)method.Invoke(null, dependencies.Append("Ada").ToArray())!;
+        await task;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        Assert.Same(row, Assert.Single(result.Cast<object>()));
+    }
+
+    [Fact]
+    public async Task should_leave_a_non_csharp_performer_stub_and_report_its_unsupported_language()
+    {
+        var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
+        var request = Request(loaded);
+        var diagnostics = SemanticImplementationAdmission.Verify(request);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains("throw new global::System.NotImplementedException(", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_admit_and_execute_the_rendered_scalar_and_identifier_concept_sentinels(bool identifier)
+    {
+        var body = "return readModels.Where(row => row.PersonId != PersonId.NotSet && row.Name != PersonName.NotSet" +
+            (identifier ? " && row.PersonId.TypedValue != Guid.Empty);" : ");");
+        var source = "concept PersonId : Uuid\nconcept PersonName : String\n" + Source(body)
+            .Replace("personId Uuid", "personId PersonId" + (identifier ? " identifier" : string.Empty), StringComparison.Ordinal)
+            .Replace("        name String", "        name PersonName", StringComparison.Ordinal);
+        var loaded = await when_rendering_a_pure_reducer.Load(source);
+        var request = Request(loaded);
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        Assert.Equal(identifier, context.IdentifierConcepts.Contains(loaded.Model.Application.Concepts.Single(concept => concept.Name == "PersonId").Id));
+        var method = Method(loaded);
+        var constructor = method.DeclaringType!.GetConstructors().Single();
+        var properties = constructor.GetParameters();
+        var row = constructor.Invoke([
+            Activator.CreateInstance(properties[0].ParameterType, Guid.NewGuid()),
+            Activator.CreateInstance(properties[1].ParameterType, "Ada")
+        ]);
+        var rows = Array.CreateInstance(method.DeclaringType, 1);
+        rows.SetValue(row, 0);
+        var readModels = Substitute.For<IReadModels>();
+        SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
+        var task = (Task)method.Invoke(null, Dependencies(readModels).Append("Ada").ToArray())!;
+        await task;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        Assert.Same(row, Assert.Single(result.Cast<object>()));
+    }
+
+    [Theory]
+    [InlineData("readModelStore")]
+    [InlineData("queryContexts")]
+    [InlineData("tenantAccessor")]
+    [InlineData("principalAccessor")]
+    [InlineData("source")]
+    public async Task should_not_collide_with_adapter_local_names(string name)
+    {
+        var loaded = await when_rendering_a_pure_reducer.Load(Source($"return readModels.Where(row => row.Name == {name});", live: true)
+            .Replace("filter name String", $"filter {name} String", StringComparison.Ordinal));
+        Assert.NotNull(Method(loaded));
+    }
+
+    [Theory]
+    [InlineData("context")]
+    [InlineData("readModels")]
+    public async Task should_diagnose_arguments_that_collide_with_body_bindings(string name)
+    {
+        var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("filter name String", $"filter {name} String", StringComparison.Ordinal));
+        var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005" && diagnostic.Message.Contains("reserved query performer body binding", StringComparison.Ordinal));
+        Assert.Empty(plan.Artifacts);
+    }
+
     static Task<LoadedSemanticModel> Load(string body, bool live = false, bool single = false, bool optional = false) =>
         when_rendering_a_pure_reducer.Load(Source(body, live, single, optional));
 
@@ -213,6 +330,7 @@ public class when_executing_performed_queries
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         Assert.Empty(RenderedOutput.Errors(files));
+        Assert.Empty(RenderedOutput.Warnings(files));
         var assembly = RenderedOutput.Load(files);
         return assembly.GetTypes().SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Single(method => method.Name == "FindPeople");
     }

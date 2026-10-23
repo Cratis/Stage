@@ -264,7 +264,8 @@ internal static class SemanticStateViewArtifactRenderer
         };
         var requirement = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id);
         var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnostic>();
-        if (requirement is not null && SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) && body is not null)
+        if (requirement is not null && SemanticCratisAdmission.IsCSharpImplementation(requirement) &&
+            SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) && body is not null)
         {
             SemanticQueryContextRuntime.Render(builder, query, readModelName, methodName, returnType, types, requirement, body);
             return;

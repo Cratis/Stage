@@ -179,21 +179,27 @@ internal static class SemanticRunProjections
             };
             if (projection.Scope is { } scope && !scope.From.Any(from => from.EventContract == fact.EventContract))
             {
-                var skip = false;
+                var observing = 0;
+                var orphaned = 0;
                 foreach (var child in scope.Children)
                 {
                     var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
                         child.Scope.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.ParentKey;
                     if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
+                    observing++;
                     var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;
                     if (parent is SemanticTextValue text && scenario.Instances.Keys.Any(source => source.ToString() == text.Value)) continue;
                     // The reference keeps a child with no parent pending for good, so it materializes nothing; Chronicle does the same.
                     if (ParentArrivesLater(scope, context, index, parent))
                         throw new SemanticProjectionLoweringRefused(new NotSupportedException("A child event before its parent instance is not admitted; Chronicle's testing scenario resolves deferred children in a different order from the reference (existing parent instance required)."));
-                    skip = true;
+                    orphaned++;
                 }
-                if (skip) continue;
+
+                // One appended event feeds every child scope, so an orphan in only some of them cannot be dropped on its own.
+                if (orphaned > 0 && orphaned < observing)
+                    throw new SemanticProjectionLoweringRefused(new NotSupportedException("An event feeding several child collections with a missing parent in only some of them is not admitted (existing parent instance required in every collection)."));
+                if (orphaned > 0) continue;
             }
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
         }
@@ -258,12 +264,6 @@ internal static class SemanticRunProjections
         var parameter = Expression.Parameter(typeof(TReadModel), "model");
 
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
-    }
-
-    static void DefineFrom<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, (string Target, string? Source)[] mappings)
-    {
-        typeof(SemanticRunProjections).GetMethod(nameof(DefineEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mappings], null);
     }
 
     static void DefineEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, (string Target, string? Source)[] mappings)

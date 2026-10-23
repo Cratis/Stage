@@ -8,8 +8,8 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
-using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Commands;
+using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Types;
 
@@ -98,28 +98,6 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         return instance;
     }
 
-    // The product is taken exactly, in decimals or checked whole numbers; an overflow is refused by name rather than reported as a wrong total.
-    static object Multiply(SemanticProjectionProduct product, Type type, object instance)
-    {
-        var left = type.GetProperty(product.Left.Name);
-        var right = type.GetProperty(product.Right.Name);
-        try
-        {
-            var first = left!.GetValue(instance);
-            var second = right!.GetValue(instance);
-            if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
-            {
-                return Convert.ToDecimal(first, CultureInfo.InvariantCulture) * Convert.ToDecimal(second, CultureInfo.InvariantCulture);
-            }
-
-            return checked(Convert.ToInt64(first, CultureInfo.InvariantCulture) * Convert.ToInt64(second, CultureInfo.InvariantCulture));
-        }
-        catch (OverflowException exception)
-        {
-            throw new SemanticProjectionLoweringRefused(new NotSupportedException("A product of two event values overflows its number type.", exception));
-        }
-    }
-
     internal Type For(SemanticId eventContract)
     {
         if (_events.TryGetValue(eventContract, out var existing))
@@ -158,6 +136,28 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     }
 
     // The authored JSON is wrapped when the event property has a typed-schema wrapper; recursive types stay raw JSON.
+    // The product is taken exactly, in decimals or checked whole numbers; an overflow is refused by name rather than reported as a wrong total.
+    static object Multiply(SemanticProjectionProduct product, Type type, object instance)
+    {
+        var left = type.GetProperty(product.Left.Name);
+        var right = type.GetProperty(product.Right.Name);
+        try
+        {
+            var first = left!.GetValue(instance);
+            var second = right!.GetValue(instance);
+            if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
+            {
+                return Convert.ToDecimal(first, CultureInfo.InvariantCulture) * Convert.ToDecimal(second, CultureInfo.InvariantCulture);
+            }
+
+            return checked(Convert.ToInt64(first, CultureInfo.InvariantCulture) * Convert.ToInt64(second, CultureInfo.InvariantCulture));
+        }
+        catch (OverflowException exception)
+        {
+            throw new SemanticProjectionLoweringRefused(new NotSupportedException("A product of two event values overflows its number type.", exception));
+        }
+    }
+
     static object Structured(JsonElement value, Type propertyType)
     {
         if (propertyType == typeof(JsonElement))

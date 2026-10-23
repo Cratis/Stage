@@ -19,11 +19,10 @@ internal static class SemanticTranslationSupport
     internal static bool Capture(SemanticCapture capture, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         capture.EventsSource is { Events.IsDefaultOrEmpty: false } source &&
         !string.IsNullOrWhiteSpace(capture.Key) &&
-        capture.Map.IsDefaultOrEmpty && capture.Children.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty &&
+        capture.Map.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty &&
         source.Events.All(id => events.TryGetValue(id, out var contract) && contract.Origin is not null && contract.Properties.Any(property => property.Name == capture.Key)) &&
-        capture.Appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
-            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
-            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
+        Appends(capture.Appends, events) &&
+        (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
 
     /// <summary>Determines whether capture guards can be lowered by the renderer.</summary>
     /// <param name="capture">The capture.</param>
@@ -47,7 +46,8 @@ internal static class SemanticTranslationSupport
                 (mapping.Source is SemanticProjectionLiteral or SemanticProjectionEventProperty or SemanticProjectionEventSourceIdentity ||
                     (mapping.Source is SemanticProjectionEventContextValue context && context.Path == "eventSourceId")) &&
                 (mapping.Source is not SemanticProjectionEventProperty property || (!property.Path.IsDefaultOrEmpty && source.Properties.Any(candidate => candidate.Id == property.Path[0])))) &&
-            target.Properties.Where(property => !property.Type.IsOptional).All(property => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
+            from.Mappings.All(mapping => target.Properties.Any(property => property.Id == mapping.Target[0]))) &&
+        target.Properties.Where(property => !property.Type.IsOptional).All(property => scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
 
     /// <summary>Determines whether a translation slice contains only supported translation structures.</summary>
     /// <param name="slice">The slice.</param>
@@ -69,4 +69,9 @@ internal static class SemanticTranslationSupport
         slices.Any(slice => Slice(slice, events) && (contract.Origin is not null
             ? slice.Captures.Any(capture => capture.EventsSource!.Events.Contains(contract.Id))
             : contract.Visibility == SemanticEventVisibility.Public && slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events))));
+
+    static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
+            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
+            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
 }

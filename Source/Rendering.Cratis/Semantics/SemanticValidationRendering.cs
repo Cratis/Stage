@@ -45,7 +45,9 @@ internal static class SemanticValidationRendering
         var value = concept ? "_.Value" : $"_.{generatedMember ?? Identifiers.ToPascalCase(property)}";
         conceptRendering ??= new();
         var ruleFor = conceptRendering.RuleFor;
-        var predicate = conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder);
+        var validation = rule.Kind == SemanticValidationRuleKind.Matches
+            ? PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value)
+            : $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})";
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severity = rule.Severity switch
         {
@@ -57,20 +59,22 @@ internal static class SemanticValidationRendering
         var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity({Name(typeBuilder, "Cratis.Arc.Validation", "ValidationResultSeverity")}.{severity})";
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
-            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage(_ => {Name(typeBuilder, rootNamespace!, "GeneratedStrings")}.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}){validation}.WithMessage(_ => {Name(typeBuilder, rootNamespace!, "GeneratedStrings")}.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
         else
         {
-            builder.Line($"{ruleFor}(_ => {value}).Must(value => {predicate}).WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
+            builder.Line($"{ruleFor}(_ => {value}){validation}.WithMessage({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
         }
     }
 
     internal static SemanticPrimitiveType UnderlyingPrimitive(SemanticTypeReference type, SemanticApplicationContext context) =>
         type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive;
 
-    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<SemanticValidationRule> rules) =>
-        PortableMatchRendering.RenderFields(builder, rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches)
-            .Select(rule => ((SemanticTextValue)rule.Operand!).Value));
+    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<SemanticValidationRule> rules, string ownerType) =>
+        PortableMatchRendering.RenderFields(
+            builder,
+            rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches).Select(rule => ((SemanticTextValue)rule.Operand!).Value),
+            ownerType);
 
     static string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional, CSharpCodeBuilder? builder)
     {

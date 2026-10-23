@@ -1,12 +1,15 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using FluentValidation;
+using FluentValidation.Validators;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Validation.for_ValidationRuleRenderer;
@@ -63,7 +66,12 @@ public class when_compiling_portable_matches : Specification
         (SemanticValidationRules.Check(rule, input is null ? SemanticValue.Null : SemanticValue.Text(input)).Status == SemanticRuleStatus.Satisfied).ShouldEqual(expected);
         var call = ValidationRuleRenderer.RenderCall(ValidationRuleKind.Matches, CSharpCodeBuilder.StringLiteral(pattern));
         var fields = new CSharpCodeBuilder();
-        PortableMatchRendering.RenderFields(fields, [pattern]);
+        var syntaxRule = new ValidationRuleSyntax("value", ValidationRuleKind.Matches, new LiteralExpressionSyntax(pattern, SourceLocation.Start), null, SourceLocation.Start);
+        ValidationRuleRenderer.RenderMatchFields(fields, [syntaxRule], "Probe");
+        var semanticFields = new CSharpCodeBuilder();
+        SemanticValidationRendering.RenderMatchFields(semanticFields, [rule], "Probe");
+        var semanticBody = new CSharpCodeBuilder();
+        SemanticValidationRendering.Render(semanticBody, rule, "value", SemanticPrimitiveType.Text, false, false);
         var code = $$"""
             public record Probe(string Value);
             public class ProbeValidator : AbstractValidator<Probe>
@@ -71,14 +79,27 @@ public class when_compiling_portable_matches : Specification
                 {{fields}}
                 public ProbeValidator() => RuleFor(_ => _.Value){{call}};
             }
+            public class SemanticProbeValidator : AbstractValidator<Probe>
+            {
+                {{semanticFields}}
+                public SemanticProbeValidator()
+                {
+                    {{semanticBody}}
+                }
+            }
             """;
         var assembly = RenderedOutput.Load([new("Probe.cs", code)]);
         var probe = assembly.GetType("Probe")!;
-        var validator = (IValidator)Activator.CreateInstance(assembly.GetType("ProbeValidator")!)!;
-        var cache = validator.GetType().GetField("_matchPatterns", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-        cache.IsInitOnly.ShouldBeTrue();
-        var instance = Activator.CreateInstance(probe, input)!;
+        var instance = Activator.CreateInstance(probe, [input])!;
         var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance)!;
-        validator.Validate(context).IsValid.ShouldEqual(expected);
+        foreach (var name in new[] { "ProbeValidator", "SemanticProbeValidator" })
+        {
+            var validator = (IValidator)Activator.CreateInstance(assembly.GetType(name)!)!;
+            var cache = validator.GetType().GetField("_matchPatterns", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            cache.IsInitOnly.ShouldBeTrue();
+            var metadata = validator.CreateDescriptor().GetValidatorsForMember("Value").Single().Validator;
+            Assert.IsType<IRegularExpressionValidator>(metadata, exactMatch: false).Expression.ShouldEqual(pattern);
+            validator.Validate(context).IsValid.ShouldEqual(expected);
+        }
     }
 }

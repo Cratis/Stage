@@ -77,11 +77,13 @@ public static class ValidationRuleRenderer
         throw new UnsupportedValidationRule(rule);
     }
 
-    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<ValidationRuleSyntax> rules) =>
-        PortableMatchRendering.RenderFields(builder, rules.Where(rule => rule.Rule == ValidationRuleKind.Matches)
-            .Select(rule => MatchPattern(ExpressionRenderer.Render(rule.Value!))));
+    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<ValidationRuleSyntax> rules, string ownerType) =>
+        PortableMatchRendering.RenderFields(
+            builder,
+            rules.Where(rule => rule.Rule == ValidationRuleKind.Matches).Select(rule => MatchPattern(rule.Value is null ? throw new UnsupportedValidationRule(ValidationRuleKind.Matches, "matches requires a portable constant text pattern") : ExpressionRenderer.Render(rule.Value))),
+            ownerType);
 
-    static string RenderMatch(string value) => $".Must(value => value is null || {PortableMatchRendering.Predicate(MatchPattern(value))})";
+    static string RenderMatch(string value) => PortableMatchRendering.ValidatorCall(MatchPattern(value));
 
     static string MatchPattern(string value)
     {

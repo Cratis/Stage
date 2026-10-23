@@ -23,7 +23,7 @@ public class when_carrying_authored_patterns_to_clients : Specification
         var client = ValidationRuleConverter.Convert([new DeclarativeValidateSyntax([rule], SourceLocation.Start)]);
         client.Single().Rules.OfType<Matches>().Single().Pattern.ShouldEqual(pattern);
         var builder = new CSharpCodeBuilder();
-        ValidationRuleRenderer.RenderMatchFields(builder, [rule, rule]);
+        ValidationRuleRenderer.RenderMatchFields(builder, [rule, rule], "Probe");
         builder.ToString().Split("PortableMatcher.Compile(", StringSplitOptions.None).Length.ShouldEqual(2);
         builder.ToString().ShouldContain(CSharpCodeBuilder.StringLiteral(pattern));
         ValidationRuleRenderer.RenderCall(rule.Rule, CSharpCodeBuilder.StringLiteral(pattern)).ShouldNotContain("Compile(");

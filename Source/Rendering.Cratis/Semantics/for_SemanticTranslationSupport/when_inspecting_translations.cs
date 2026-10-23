@@ -48,15 +48,11 @@ public class when_inspecting_translations : Specification
     [Fact] void should_refuse_an_unmapped_required_property() => SemanticTranslationSupport.Projection(_publisher with { Scope = _publisher.Scope! with { From = [_publisher.Scope.From.Single() with { Mappings = [] }] } }, _events).ShouldBeFalse();
 
     [Theory]
-    [InlineData(SemanticCaptureConditionKind.Added, true)]
-    [InlineData(SemanticCaptureConditionKind.AnyChanged, false)]
-    [InlineData(SemanticCaptureConditionKind.AllChanged, false)]
-    [InlineData(SemanticCaptureConditionKind.Transition, false)]
-    [InlineData(SemanticCaptureConditionKind.Expression, false)]
-    public void should_keep_condition_rendering_separate(SemanticCaptureConditionKind kind, bool renderable)
-    {
-        var capture = _capture with { Appends = [_capture.Appends.Single() with { When = new(kind, ["orderId"]) }] };
-        SemanticTranslationSupport.Capture(capture, _events).ShouldBeTrue();
-        SemanticTranslationSupport.ConditionsRenderable(capture).ShouldEqual(renderable);
-    }
+    [InlineData(SemanticCaptureConditionKind.Added)]
+    [InlineData(SemanticCaptureConditionKind.AnyChanged)]
+    [InlineData(SemanticCaptureConditionKind.AllChanged)]
+    [InlineData(SemanticCaptureConditionKind.Transition)]
+    [InlineData(SemanticCaptureConditionKind.Expression)]
+    public void should_keep_condition_rendering_separate(SemanticCaptureConditionKind kind) =>
+        SemanticTranslationSupport.Capture(_capture with { Appends = [_capture.Appends.Single() with { When = new(kind, ["orderId"]) }] }, _events).ShouldBeTrue();
 }

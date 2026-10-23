@@ -24,6 +24,10 @@ internal static class SemanticSpecificationArtifactRenderer
     {
         specification = specification.WithPinnedActionValues();
         var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
+        if (context.DeclaringSlice(specification.Id).Slice.Kind == SemanticSliceKind.Translate)
+        {
+            return [SemanticTranslationSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];
+        }
         if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
         {
             return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] }),

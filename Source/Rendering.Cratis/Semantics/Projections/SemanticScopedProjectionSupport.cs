@@ -205,7 +205,7 @@ internal static class SemanticScopedProjectionSupport
 
     // A projection keyed by an event property still reads the event's source identity ($eventSourceId): Chronicle converts the identity text
     // into the target's type, which is only sound when every command that produces the event addresses it with a value of exactly that type
-    // (Translate captures that append the event are refused before rendering, and nothing else can produce a rendered event).
+    // and every capture or reaction addresses it with that type as well.
     static bool EventSourceIsProducedAs(SemanticEventContract @event, SemanticTypeReference target, SemanticApplicationContext context)
     {
         var destinations = context.Commands.Values
@@ -218,7 +218,12 @@ internal static class SemanticScopedProjectionSupport
             .Where(production => production.Produced.EventContract == @event.Id)
             .Select(production => production.Produced.DestinationType)
             .ToArray();
-        return destinations.Length + reactions.Length > 0 &&
+        var captures = SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Captures)
+            .Where(capture => capture.Appends.Any(append => append.EventContract == @event.Id) && SemanticTranslationSupport.Capture(capture, context.Events))
+            .SelectMany(capture => capture.EventsSource!.Events.Select(id => context.Events[id].Properties.Single(property => property.Name == capture.Key).Type))
+            .ToArray();
+        return destinations.Length + reactions.Length + captures.Length > 0 &&
+            captures.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false }) &&
             reactions.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false }) &&
             destinations.All(type => type is { IsCollection: false } && type with { IsOptional = false } == target with { IsOptional = false });
     }

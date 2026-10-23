@@ -69,6 +69,15 @@ internal static class SemanticStateChangeArtifactRenderer
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
 
+        if (@event.Origin is { } origin)
+        {
+            builder.Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(origin)})");
+        }
+        else if (@event.Visibility == SemanticEventVisibility.Public)
+        {
+            builder.Attribute("global::Cratis.Chronicle.Events.PublicAttribute");
+        }
+
         // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
         var products = SemanticProjectionProducts.For(@event, context);
         if (products.Count == 0)

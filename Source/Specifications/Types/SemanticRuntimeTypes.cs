@@ -7,6 +7,8 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
+using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Types;
@@ -88,7 +90,34 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
             member.SetValue(instance, converted);
         }
 
+        foreach (var product in SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan)))
+        {
+            type.GetProperty(product.Name)!.SetValue(instance, Multiply(product, type, instance));
+        }
+
         return instance;
+    }
+
+    // The product is taken exactly, in decimals or checked whole numbers; an overflow is refused by name rather than reported as a wrong total.
+    static object Multiply(SemanticProjectionProduct product, Type type, object instance)
+    {
+        var left = type.GetProperty(product.Left.Name);
+        var right = type.GetProperty(product.Right.Name);
+        try
+        {
+            var first = left!.GetValue(instance);
+            var second = right!.GetValue(instance);
+            if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
+            {
+                return Convert.ToDecimal(first, CultureInfo.InvariantCulture) * Convert.ToDecimal(second, CultureInfo.InvariantCulture);
+            }
+
+            return checked(Convert.ToInt64(first, CultureInfo.InvariantCulture) * Convert.ToInt64(second, CultureInfo.InvariantCulture));
+        }
+        catch (OverflowException exception)
+        {
+            throw new SemanticProjectionLoweringRefused(new NotSupportedException("A product of two event values overflows its number type.", exception));
+        }
     }
 
     internal Type For(SemanticId eventContract)
@@ -99,7 +128,13 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
 
         var contract = plan.Events[eventContract];
-        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveEvent(property.Type)));
+        var members = contract.Properties.ToDictionary(property => property.Name, property => ResolveEvent(property.Type));
+        foreach (var product in SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan)))
+        {
+            members[product.Name] = product.Primitive == SemanticPrimitiveType.DecimalNumber ? typeof(decimal) : typeof(long);
+        }
+
+        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), members);
         _events.Add(eventContract, type);
         return type;
     }

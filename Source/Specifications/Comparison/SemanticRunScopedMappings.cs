@@ -8,6 +8,8 @@ using Cratis.Chronicle.Projections;
 using Cratis.Chronicle.Properties;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Types;
 
@@ -54,7 +56,7 @@ internal static class SemanticRunScopedMappings
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                var source = SourcePath(plan, @event, mapping);
+                var source = mapping.Factor is null ? SourcePath(plan, @event, mapping) : ProductName(plan, @event, mapping, model);
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(IFromBuilder<TReadModel, TEvent>))
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, target.Name, source], null);
@@ -190,6 +192,11 @@ internal static class SemanticRunScopedMappings
                 .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mapping, target.Name, source], null);
         }
     }
+
+    // A product is read from the member the event carries for it, as the renderer lowers it.
+    static string ProductName(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionMapping mapping, SemanticReadModel model) =>
+        SemanticProjectionProducts.Of(mapping, @event, model.Properties, new SemanticApplicationContext(plan))?.Name
+            ?? throw Refused(mapping);
 
     // A nested event path lowers to the declared names joined by dots, walked through the composite types.
     static string? SourcePath(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionMapping mapping)

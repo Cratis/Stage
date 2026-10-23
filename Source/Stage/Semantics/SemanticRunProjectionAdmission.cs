@@ -184,7 +184,7 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return rejection;
             }
-            if (HasProduct(scope, reachable))
+            if (UnlowerableProduct(plan, scope, reachable, readModel.Properties))
             {
                 return "A projection adds or subtracts a product of two event values (ESM v29); Chronicle's projection engine adds one event property, so Stage does not run it.";
             }
@@ -233,10 +233,20 @@ internal static partial class SemanticRunProjectionAdmission
     }
 
     // A product in a from block whose event the run never reaches cannot fire, so it is skipped rather than refused.
-    static bool HasProduct(SemanticProjectionScope scope, HashSet<SemanticId> reachable) =>
-        scope.From.Any(from => reachable.Contains(from.EventContract) && from.Mappings.Any(mapping => mapping.Factor is not null)) ||
+    // A reachable root from product lowers as the renderer does, onto a member of the event; a join, every or child product has no event of its own to carry it.
+    static bool UnlowerableProduct(SemanticExecutionPlan plan, SemanticProjectionScope scope, HashSet<SemanticId> reachable, IReadOnlyList<SemanticProperty> targets)
+    {
+        var context = new SemanticApplicationContext(plan);
+        return scope.From.Any(from => reachable.Contains(from.EventContract) && from.Mappings.Any(mapping => mapping.Factor is not null &&
+                SemanticProjectionProducts.Rejection(mapping, true, plan.Events[from.EventContract], targets, context, out _) is not null)) ||
+            scope.Joins.Any(join => join.Mappings.Any(mapping => mapping.Factor is not null)) ||
+            scope.Children.Any(child => HasProduct(child.Scope));
+    }
+
+    static bool HasProduct(SemanticProjectionScope scope) =>
+        scope.From.Any(from => from.Mappings.Any(mapping => mapping.Factor is not null)) ||
         scope.Joins.Any(join => join.Mappings.Any(mapping => mapping.Factor is not null)) ||
-        scope.Children.Any(child => HasProduct(child.Scope, reachable));
+        scope.Children.Any(child => HasProduct(child.Scope));
 
     static bool UnobservedProduct(SemanticProjectionFrom from, HashSet<SemanticId> reachable) =>
         !reachable.Contains(from.EventContract) && from.Mappings.Any(mapping => mapping.Factor is not null);
@@ -301,7 +311,7 @@ internal static partial class SemanticRunProjectionAdmission
     // Only root from and join blocks pass the plan and event, which admits a Set from a nested scalar event path.
     static bool MappingSupported(SemanticExecutionPlan? plan, SemanticId? eventContract, SemanticProjectionMapping mapping)
     {
-        if (mapping.Target.Length != 1 || mapping.Factor is not null) return false;
+        if (mapping.Target.Length != 1 || (mapping.Factor is not null && !(plan is not null && mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract))) return false;
         return mapping.Operation switch
         {
             SemanticProjectionOperation.Set => mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } or SemanticProjectionEventSourceIdentity or SemanticProjectionLiteral ||

@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
+using Cratis.Chronicle.Reactors;
 using Cratis.Chronicle.Reactors.SideEffects;
 using Cratis.Execution;
 using Cratis.Screenplay.Semantics;
@@ -42,21 +43,25 @@ public class when_capturing_foreign_events : given.a_translation_application
     [Fact] void should_read_capture_state_from_the_inbox_it_observes() => _inbox.ReceivedCalls().ShouldNotBeEmpty();
     [Fact] void should_produce_only_local_private_facts() => _effects.ShouldEachConformTo(effect => effect.Event.GetType() == Generated("TrackShipments", "OrderDispatched"));
 
+    [Fact] void should_key_every_capture_effect() => _effects.ShouldEachConformTo(effect => effect.IdempotencyKey is not null);
+    [Fact] void should_key_distinct_deliveries_separately() => _effects.Select(effect => effect.IdempotencyKey).Distinct().Count().ShouldEqual(2);
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task should_append_the_capture_effects_to_the_local_log_and_propagate_its_result(bool refused)
     {
-        var log = Substitute.For<IEventLog>();
-        _store.EventLog.Returns(log);
-        log.AppendMany(Arg.Any<IEnumerable<EventForEventSourceId>>()).Returns(refused
+        var log = new given.a_keyed_capture_log();
+        _store.EventLog.Returns(log.Log);
+        log.Refusal = refused
             ? AppendManyResult.Failed(CorrelationId.New(), [new AppendError("Refused")])
-            : AppendManyResult.Success(CorrelationId.New(), [EventSequenceNumber.First]));
+            : null;
         var context = new ReactorContext(EventContext.Empty, NewReactor(), []);
         var handler = new EventsForEventSourceIdResultHandler();
         var result = await handler.Handle(context, _store, _effects.ToArray());
         result.IsSuccess.ShouldEqual(!refused);
-        await log.Received(1).AppendMany(Arg.Is<IEnumerable<EventForEventSourceId>>(effects => effects.SequenceEqual(_effects)));
+        log.Attempts.Count.ShouldEqual(1);
+        log.Attempts.Single().ShouldEqual(_effects);
     }
 
     [Fact]
@@ -84,7 +89,7 @@ public class when_capturing_foreign_events : given.a_translation_application
     async Task Invoke(object reactor, object source, ulong sequenceNumber)
     {
         var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
         _effects.AddRange(effects.Cast<EventForEventSourceId>());
     }
 }

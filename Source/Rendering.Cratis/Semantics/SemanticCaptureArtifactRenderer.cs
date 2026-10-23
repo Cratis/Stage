@@ -30,15 +30,16 @@ internal static class SemanticCaptureArtifactRenderer
         foreach (var source in sources)
         {
             const string result = "global::System.Collections.Generic.IEnumerable<object>";
-            builder.OpenBlock($"public async global::System.Threading.Tasks.Task<{result}> On{Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)")
+            builder.Line("// Each effect is keyed by its delivery; a kernel without idempotent appends refuses the key rather than appending twice.")
+                .OpenBlock($"public async global::System.Threading.Tasks.Task<{result}> On{Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context, global::Cratis.Chronicle.Reactors.ReactorDelivery delivery)")
                 .Line("var effects = new global::System.Collections.Generic.List<object>();")
                 .Line("var observed = Observe(@event)!;")
                 .Line("var previous = await Previous(observed, context.SequenceNumber);")
                 .Line("var current = Overlay(previous, observed);")
                 .Line("if (previous is not null && SameState(previous, current)) return effects;");
-            foreach (var append in capture.Appends)
+            for (var index = 0; index < capture.Appends.Length; index++)
             {
-                RenderAppend(builder, capture, append, source, context, types);
+                RenderAppend(builder, capture, capture.Appends[index], index, source, context, types);
             }
             builder.Line("return effects;").EndBlock().BlankLine();
         }
@@ -47,7 +48,7 @@ internal static class SemanticCaptureArtifactRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [capture.Id] };
     }
 
-    static void RenderAppend(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureAppend append, SemanticEventContract source, SemanticApplicationContext context, SemanticTypeSystem types)
+    static void RenderAppend(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureAppend append, int index, SemanticEventContract source, SemanticApplicationContext context, SemanticTypeSystem types)
     {
         var contract = context.Events[append.EventContract];
         if (append.When is { Kind: SemanticCaptureConditionKind.Removed })
@@ -61,7 +62,7 @@ internal static class SemanticCaptureArtifactRenderer
         if (guard is not null) builder.OpenBlock($"if ({guard})");
         var arguments = contract.Properties.Select(property => Mapping(append, property, types));
         var tags = contract.Tags.Concat(append.Tags).Select(CSharpCodeBuilder.StringLiteral).ToArray();
-        var metadata = tags.Length == 0 ? string.Empty : $" {{ Tags = [{string.Join(", ", tags)}] }}";
+        var metadata = $" {{ IdempotencyKey = delivery.IdempotencyKeyFor(\"{capture.Id}/{index}\"){(tags.Length == 0 ? string.Empty : $", Tags = [{string.Join(", ", tags)}]")} }}";
         builder.Line($"effects.Add(new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {types.EventType(contract)}({string.Join(", ", arguments)})){metadata});");
         if (guard is not null) builder.EndBlock();
     }

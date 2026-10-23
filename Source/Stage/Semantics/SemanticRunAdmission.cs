@@ -109,12 +109,12 @@ public static class SemanticRunAdmission
         if (specification.WhenAppended is { } appended)
         {
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
-            if (EventValueRefusal(plan, appendedContract, "Only scalar appended event values are admitted.") is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
+            if (EventValueRefusal(plan, appendedContract, appended.Values) is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
         }
         foreach (var given in specification.GivenEvents)
         {
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
-            if (EventValueRefusal(plan, givenContract, "Only scalar Given event values are admitted.") is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
+            if (EventValueRefusal(plan, givenContract, given.Values) is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
         }
         if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when)
@@ -154,7 +154,7 @@ public static class SemanticRunAdmission
         foreach (var production in command.Produces)
         {
             if (!plan.Events.TryGetValue(production.EventContract, out var eventContract)) return Block(StageExecutionCapability.Command, command.Id, "The produced event is not in the plan.");
-            if (EventValueRefusal(plan, eventContract, "Only scalar command and event values are admitted.") is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
+            if (EventValueRefusal(plan, eventContract) is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
         }
 
         if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
@@ -163,7 +163,8 @@ public static class SemanticRunAdmission
         }
 
         if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticReadPathExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
-                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGetOccurrence(specification, out _)))))
+                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } &&
+                    (SemanticSpecificationClock.TryGetOccurrence(specification, out _) || !specification.ThenErrors.IsEmpty || specification.ThenDenied)))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
         }
@@ -295,14 +296,34 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
-    static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, string collectionRefusal)
+    static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, IEnumerable<SemanticPropertyValue>? values = null)
     {
         var context = new SemanticApplicationContext(plan);
         foreach (var property in eventContract.Properties)
         {
             if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
-            if (SemanticValueShapeAdmission.Closure(context, property.Type).Any(member => member.Type.IsCollection)) return collectionRefusal;
+        }
+        var properties = eventContract.Properties.ToLookup(property => property.Id);
+        foreach (var value in values ?? [])
+        {
+            if (properties[value.TargetProperty].ToArray() is not [var property])
+            {
+                return $"Event '{eventContract.Name}' payload property '{value.TargetProperty}' must identify exactly one declared property.";
+            }
+            if (!EventValueMatches(context, property.Type, value.Value))
+            {
+                return "An event payload value does not match its declared structure.";
+            }
         }
         return null;
+    }
+
+    static bool EventValueMatches(SemanticApplicationContext context, SemanticTypeReference type, SemanticValue value)
+    {
+        if (value is SemanticNullValue) return type.IsOptional;
+        if (type.IsCollection) return value is SemanticArrayValue array && array.Values.All(member => EventValueMatches(context, type with { IsCollection = false, IsOptional = false }, member));
+        if (type.Kind != SemanticTypeReferenceKind.CompositeType) return value is not SemanticArrayValue and not SemanticCompositeValue;
+        return value is SemanticCompositeValue composite && composite.Properties.All(member =>
+            context.Types[type.Target].Properties.FirstOrDefault(property => property.Id == member.TargetProperty) is { } property && EventValueMatches(context, property.Type, member.Value));
     }
 }

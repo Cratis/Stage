@@ -56,7 +56,7 @@ internal static class SemanticRunScopedMappings
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                var source = mapping.Factor is not null ? ProductSource(plan, @event, model.Properties, mapping) : mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
+                var source = MappingSource(plan, @event, model.Properties, mapping);
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(IFromBuilder<TReadModel, TEvent>))
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, target.Name, source], null);
@@ -191,6 +191,12 @@ internal static class SemanticRunScopedMappings
                 .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(TBuilder))
                 .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mapping, target.Name, source], null);
         }
+    }
+
+    static string? MappingSource(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticProperty> targets, SemanticProjectionMapping mapping)
+    {
+        if (mapping.Factor is not null) return ProductSource(plan, @event, targets, mapping);
+        return mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
     }
 
     // The member a product is carried in: the event holds the multiplied value, which Chronicle's Add and Subtract then read as one property.

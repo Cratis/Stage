@@ -59,7 +59,9 @@ internal static partial class SemanticRunProjectionAdmission
         {
             if (AuthorsExplicitNestedNull(specification))
             {
-                return new(StageExecutionCapability.Projection, projection.Id.ToString(),
+                return new(
+                    StageExecutionCapability.Projection,
+                    projection.Id.ToString(),
                     "A composite or collection value authors an explicit null member; the typed per-run models cannot tell it from an absent member.");
             }
 
@@ -462,41 +464,6 @@ internal static partial class SemanticRunProjectionAdmission
             if (type is null || value is null || !Matches(new(type, value)))
             {
                 return false;
-            }
-        }
-        return true;
-    }
-
-    static bool KeyMatchesSource(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionTransition transition, SemanticId key)
-    {
-        foreach (var given in specification.GivenEvents.Where(given => given.EventContract == transition.EventContract))
-        {
-            var value = given.Values.SingleOrDefault(value => value.TargetProperty == key)?.Value;
-            if (value is null || given.EventSource is null || !SameScalar(value, given.EventSource.Value))
-            {
-                return false;
-            }
-        }
-        if (specification.WhenAppended?.EventContract == transition.EventContract)
-        {
-            var appended = specification.WhenAppended;
-            var value = appended.Values.SingleOrDefault(value => value.TargetProperty == key)?.Value;
-            if (value is null || appended.EventSource is null || !SameScalar(value, appended.EventSource.Value))
-            {
-                return false;
-            }
-        }
-        if (specification.When is { } when && plan.Commands.TryGetValue(when.Command, out var command))
-        {
-            foreach (var produced in command.Produces.Where(produced => produced.EventContract == transition.EventContract && specification.ThenErrors.IsEmpty && !specification.ThenDenied))
-            {
-                var mapping = produced.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == key);
-                var destination = produced.Destination ?? command.Destination?.Value;
-                if (mapping?.Source is not SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } source ||
-                    destination is not SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property } target || source.Target != target.Target)
-                {
-                    return false;
-                }
             }
         }
         return true;

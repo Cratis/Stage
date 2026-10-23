@@ -24,11 +24,6 @@ internal static class SemanticTranslationSupport
         Appends(capture.Appends, events) &&
         (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
 
-    static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
-        appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
-            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
-            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
-
     /// <summary>Determines whether capture guards can be lowered by the renderer.</summary>
     /// <param name="capture">The capture.</param>
     /// <returns>Whether every append is unconditional or guarded by first observation.</returns>
@@ -74,4 +69,9 @@ internal static class SemanticTranslationSupport
         slices.Any(slice => Slice(slice, events) && (contract.Origin is not null
             ? slice.Captures.Any(capture => capture.EventsSource!.Events.Contains(contract.Id))
             : contract.Visibility == SemanticEventVisibility.Public && slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events))));
+
+    static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
+            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
+            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
 }

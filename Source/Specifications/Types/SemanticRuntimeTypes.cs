@@ -51,6 +51,8 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         _ => throw new UnsupportedSemanticMapping()
     };
 
+    internal static string ProductMember(SemanticProjectionProduct product) => char.ToLowerInvariant(product.Name[0]) + product.Name[1..];
+
     internal Type ForCommand(SemanticCommand command)
     {
         if (!_commands.TryGetValue(command.Id, out var type))
@@ -88,9 +90,12 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         // Chronicle's Add and Subtract read one stored event property, so a product the projections add is carried by the event itself.
         foreach (var product in Products(contract))
         {
-            var left = fact.Values.SingleOrDefault(value => value.TargetProperty == product.Left.Id)?.Value as SemanticNumberValue;
-            var right = fact.Values.SingleOrDefault(value => value.TargetProperty == product.Right.Id)?.Value as SemanticNumberValue;
-            if (left is null || right is null) continue;
+            if (fact.Values.SingleOrDefault(value => value.TargetProperty == product.Left.Id)?.Value is not SemanticNumberValue left ||
+                fact.Values.SingleOrDefault(value => value.TargetProperty == product.Right.Id)?.Value is not SemanticNumberValue right)
+            {
+                continue;
+            }
+
             if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
             {
                 type.GetProperty(ProductMember(product))!.SetValue(instance, left.Value * right.Value);
@@ -103,8 +108,6 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
 
         return instance;
     }
-
-    internal static string ProductMember(SemanticProjectionProduct product) => char.ToLowerInvariant(product.Name[0]) + product.Name[1..];
 
     internal IReadOnlyList<SemanticProjectionProduct> Products(SemanticEventContract contract) =>
         SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan));

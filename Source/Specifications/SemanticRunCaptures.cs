@@ -72,36 +72,8 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         return null;
     }
 
-    async Task<SemanticRunReactionFailure?> Emit(
-        Evaluation evaluation,
-        System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends,
-        SemanticValue key,
-        int index,
-        Func<CancellationToken, Task<SemanticRunReactionFailure?>> settle,
-        CancellationToken cancellationToken)
-    {
-        foreach (var append in appends)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var holds = evaluation.Holds(append.When);
-            if (evaluation.Unsupported is { } unsupported) return SemanticRunReactionFailure.Unsupported(unsupported);
-            if (!holds) continue;
-            var produced = evaluation.Produce(append);
-            if (evaluation.Unsupported is { } missing) return SemanticRunReactionFailure.Unsupported(missing);
-
-            // A terminal disposition from an earlier append must precede later guards and mappings.
-            var history = context.Facts.Select((value, offset) => new SemanticConstraintEvaluator.Fact(value.EventContract, context.Destinations[offset], value.Values)).ToArray();
-            if (SemanticConstraintEvaluator.FindViolation(plan, history, [new(produced.EventContract, key, produced.Values)]) is { } violation)
-            {
-                return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
-            }
-            if (SemanticRunAdmission.CheckProjectionFact(plan, produced) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
-            if (context.Facts.Count - _historyCount >= SemanticRunReactions.MaximumFacts) return SemanticRunReactions.FactLimit();
-            await context.Append(produced, key, context.Occurrences[index], cancellationToken);
-            if (await settle(cancellationToken) is { } failure) return failure;
-        }
-        return null;
-    }
+    static SemanticRunReactionFailure UnsupportedKey(SemanticCapture capture) =>
+        SemanticRunReactionFailure.Unsupported($"Capture '{capture.Name}' requires a text or numeric event key '{capture.Key}'.");
 
     static System.Collections.Immutable.ImmutableArray<SemanticCaptureRecord> Records(SemanticCaptureRecord? record, string field) =>
         record?.Fields.SingleOrDefault(value => value.Name == field) switch
@@ -113,7 +85,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
 
     static SemanticValue Identity(SemanticCaptureRecord record, string field) => record.Fields.SingleOrDefault(value => value.Name == field) switch
     {
-        { Kind: SemanticCaptureFieldKind.Value, Value: SemanticTextValue or SemanticNumberValue } value => value.Value!,
+        { Kind: SemanticCaptureFieldKind.Value, Value: SemanticTextValue or SemanticNumberValue } value => value.Value,
         _ => throw new InvalidSemanticContract($"Capture child identity '{field}' must be present as text or a number.")
     };
 
@@ -126,9 +98,6 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         }
         return index;
     }
-
-    static SemanticRunReactionFailure UnsupportedKey(SemanticCapture capture) =>
-        SemanticRunReactionFailure.Unsupported($"Capture '{capture.Name}' requires a text or numeric event key '{capture.Key}'.");
 
     static SemanticCaptureField EventField(string name, SemanticValue value, IReadOnlyDictionary<SemanticId, string> names) => value switch
     {
@@ -166,5 +135,36 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
             throw new InvalidSemanticContract($"Capture '{capture.Name}' received event '{plan.Events[fact.EventContract].Name}' with an empty key '{capture.Key}'.");
         }
         return key;
+    }
+
+    async Task<SemanticRunReactionFailure?> Emit(
+        Evaluation evaluation,
+        System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends,
+        SemanticValue key,
+        int index,
+        Func<CancellationToken, Task<SemanticRunReactionFailure?>> settle,
+        CancellationToken cancellationToken)
+    {
+        foreach (var append in appends)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var holds = evaluation.Holds(append.When);
+            if (evaluation.Unsupported is { } unsupported) return SemanticRunReactionFailure.Unsupported(unsupported);
+            if (!holds) continue;
+            var produced = evaluation.Produce(append);
+            if (evaluation.Unsupported is { } missing) return SemanticRunReactionFailure.Unsupported(missing);
+
+            // A terminal disposition from an earlier append must precede later guards and mappings.
+            var history = context.Facts.Select((value, offset) => new SemanticConstraintEvaluator.Fact(value.EventContract, context.Destinations[offset], value.Values)).ToArray();
+            if (SemanticConstraintEvaluator.FindViolation(plan, history, [new(produced.EventContract, key, produced.Values)]) is { } violation)
+            {
+                return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
+            }
+            if (SemanticRunAdmission.CheckProjectionFact(plan, produced) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+            if (context.Facts.Count - _historyCount >= SemanticRunReactions.MaximumFacts) return SemanticRunReactions.FactLimit();
+            await context.Append(produced, key, context.Occurrences[index], cancellationToken);
+            if (await settle(cancellationToken) is { } failure) return failure;
+        }
+        return null;
     }
 }

@@ -117,7 +117,7 @@ internal sealed partial class SemanticRunCaptures
                 Unsupported ??= $"Capture path '{field}' requires traversal the reference evaluator does not support.";
                 return new(null, Unsupported);
             }
-            var present = record?.GetValueOrDefault(field) ?? (_enclosing is not null ? _enclosing.GetValueOrDefault(field) : null);
+            var present = record?.GetValueOrDefault(field) ?? _enclosing?.GetValueOrDefault(field);
             if (structured && present is { Value: SemanticCompositeValue or SemanticArrayValue }) return new(present.Value, null);
             if (present is null or { Kind: SemanticCaptureFieldKind.Value, Value: not (SemanticCompositeValue or SemanticArrayValue) }) return new(present?.Value, null);
             Unsupported ??= $"Capture field '{field}' is a {present.Kind} value the reference evaluator cannot use as a scalar.";

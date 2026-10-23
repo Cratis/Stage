@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Cratis.Chronicle.Projections;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Comparison;
 using NSubstitute;
@@ -20,13 +21,13 @@ public class with_a_failing_projection_builder : Specification
         builder.When(value => value.From<string>(Arg.Any<Action<IFromBuilder<object, string>>>()))
             .Do(_ => throw new UnsupportedSemanticMapping());
 #pragma warning restore CHR0002
-        var method = typeof(SemanticRunProjections).GetMethod("DefineFrom", BindingFlags.Static | BindingFlags.NonPublic)!
+        var method = typeof(SemanticRunScopedMappings).GetMethod("Define", BindingFlags.Static | BindingFlags.NonPublic)!
             .MakeGenericMethod(typeof(object));
         _exception = Assert.Throws<UnsupportedSemanticMapping>(() => method.Invoke(
             null,
             BindingFlags.DoNotWrapExceptions,
             null,
-            [builder, typeof(string), Array.Empty<(string Target, string? Source)>()],
+            [builder, typeof(string), Array.Empty<SemanticProjectionMapping>(), null!, null!, new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()), null!],
             null));
     }
 

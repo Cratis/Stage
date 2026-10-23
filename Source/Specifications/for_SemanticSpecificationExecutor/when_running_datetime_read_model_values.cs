@@ -8,26 +8,24 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
-public class when_refusing_datetime_read_model_values : Specification
+public class when_running_datetime_read_model_values : Specification
 {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task should_name_the_property_whose_ordinal_text_cannot_round_trip(bool clock, bool differentOffset)
+    [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", true)]
+    [InlineData(false, "2026-01-01T00:00:00.0000000Z", "2026-01-01T00:00:00.0000000Z", true)]
+    [InlineData(false, "2026-01-01T01:00:00.1234567+01:00", "2026-01-01T01:00:00.1234567+01:00", true)]
+    [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T01:00:00+01:00", false)]
+    [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:01Z", false)]
+    [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+00:00", true)]
+    [InlineData(false, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00Z", true)]
+    [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00.0000000Z", true)]
+    public async Task should_agree_with_the_reference_when_one_instant_is_spelled_one_way(bool clock, string authored, string expected, bool passes)
     {
-        var authored = clock ? "2026-01-01T00:00:00.0000000+00:00" : "2026-01-01T00:00:00.0000000Z";
-        var expected = differentOffset ? "2026-01-01T01:00:00.0000000+01:00" : authored;
         var plan = Compile(clock, authored, expected);
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
-        reference.Passed.ShouldEqual(!differentOffset);
+        reference.Passed.ShouldEqual(passes);
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
-        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
-        result.Unsupported.Construct.ShouldEqual(plan.Projections.Values.Single().Id.ToString());
-        result.Unsupported.Details.ShouldEqual("DateTime read-model property 'Current.at' cannot preserve ordinal round-trip text: DateTimeOffset materialization renders authored 'Z' as '+00:00'.");
-        result.Trace.ShouldBeNull();
+        result.Outcome.ShouldEqual(passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
     }
 
     static SemanticExecutionPlan Compile(bool clock, string authored, string expected)

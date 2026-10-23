@@ -38,15 +38,18 @@ internal sealed partial class SemanticRunCaptures
         return properties.Count == after.Properties.Length && after.Properties.All(property => properties.TryGetValue(names[property.TargetProperty], out var earlier) && SameValue(earlier, property.Value));
     }
 
-    private sealed partial class Evaluation(SemanticExecutionPlan plan, SemanticCapture capture, SemanticValue key, SemanticCaptureRecord? previous, SemanticCaptureRecord current)
+    // Evaluates one record, or one child of it: the child reads its own fields and falls back to the enclosing record's.
+    // A null current is a child that is no longer there, which only a removed condition holds for.
+    private sealed partial class Evaluation(SemanticExecutionPlan plan, SemanticCapture capture, SemanticValue key, SemanticCaptureRecord? previous, SemanticCaptureRecord? current, SemanticCaptureRecord? enclosing = null)
     {
         readonly Dictionary<string, SemanticCaptureField>? _before = previous?.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal);
-        readonly Dictionary<string, SemanticCaptureField> _after = current.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal);
+        readonly Dictionary<string, SemanticCaptureField> _after = current?.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal) ?? [];
+        readonly Dictionary<string, SemanticCaptureField>? _enclosing = enclosing?.Fields.ToDictionary(field => field.Name, StringComparer.Ordinal);
         internal string? Unsupported { get; private set; }
 
-        internal void ValidateSources()
+        internal void ValidateSources(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends)
         {
-            foreach (var append in capture.Appends)
+            foreach (var append in appends)
             {
                 var type = append.EventSourceType;
                 var primitive = type.Kind == SemanticTypeReferenceKind.Concept ? plan.Model.Application.Concepts.Single(concept => concept.Id == type.Target).Primitive : type.Primitive;
@@ -60,9 +63,10 @@ internal sealed partial class SemanticRunCaptures
 
         internal bool Holds(SemanticCaptureCondition? when) => when?.Kind switch
         {
-            null => true,
-            SemanticCaptureConditionKind.Added => _before is null,
-            SemanticCaptureConditionKind.Removed => false,
+            null => current is not null,
+            SemanticCaptureConditionKind.Added => current is not null && _before is null,
+            SemanticCaptureConditionKind.Removed => current is null,
+            _ when current is null => false,
             SemanticCaptureConditionKind.AnyChanged or SemanticCaptureConditionKind.AllChanged or SemanticCaptureConditionKind.Transition when _before is null => FirstObservation(when),
             SemanticCaptureConditionKind.AnyChanged => when.Fields.Any(field => Unsupported is null && Changed(field)),
             SemanticCaptureConditionKind.AllChanged => when.Fields.All(field => Unsupported is null && Changed(field)),
@@ -113,7 +117,7 @@ internal sealed partial class SemanticRunCaptures
                 Unsupported ??= $"Capture path '{field}' requires traversal the reference evaluator does not support.";
                 return new(null, Unsupported);
             }
-            var present = record?.GetValueOrDefault(field);
+            var present = record?.GetValueOrDefault(field) ?? _enclosing?.GetValueOrDefault(field);
             if (structured && present is { Value: SemanticCompositeValue or SemanticArrayValue }) return new(present.Value, null);
             if (present is null or { Kind: SemanticCaptureFieldKind.Value, Value: not (SemanticCompositeValue or SemanticArrayValue) }) return new(present?.Value, null);
             Unsupported ??= $"Capture field '{field}' is a {present.Kind} value the reference evaluator cannot use as a scalar.";

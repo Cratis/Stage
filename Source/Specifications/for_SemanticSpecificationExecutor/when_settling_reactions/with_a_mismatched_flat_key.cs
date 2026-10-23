@@ -9,7 +9,6 @@ public class with_a_mismatched_flat_key : given.a_projected_reaction
 {
     void Establish() => CompileProjected("\"two\"", "then no readmodel Marker for \"two\"");
     Task Because() => Execute();
-    [Fact] void should_refuse_instead_of_falsely_passing_absence() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_identify_the_projection_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_run_the_projection_keyed_by_the_event_property() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
     [Fact] void should_expose_the_reference_failure() => _reference.Passed.ShouldBeFalse();
 }

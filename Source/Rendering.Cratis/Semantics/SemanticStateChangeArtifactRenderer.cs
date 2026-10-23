@@ -304,8 +304,9 @@ internal static class SemanticStateChangeArtifactRenderer
 
         var commandName = Identifiers.ToPascalCase(command.Name);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
-            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
-            .OpenBlock($"public {commandName}Validator()");
+            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>");
+        SemanticValidationRendering.RenderMatchFields(builder, command.Validations);
+        builder.OpenBlock($"public {commandName}Validator()");
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         foreach (var rule in command.Validations)
         {
@@ -338,13 +339,7 @@ internal static class SemanticStateChangeArtifactRenderer
             SemanticRequirementRendering.Render(builder, requirement, command, context);
         }
 
-        builder.EndBlock();
-        if (command.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
-        {
-            SemanticValidationRendering.RenderMatchHelper(builder);
-        }
-
-        builder.EndBlock();
+        builder.EndBlock().EndBlock();
     }
 
     static SemanticValidationRendering.ConceptRendering CommandConceptRendering(SemanticValidationRule rule, SemanticProperty property, SemanticApplicationContext context)

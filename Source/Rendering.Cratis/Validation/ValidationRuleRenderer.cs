@@ -1,12 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Renderers;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 using Microsoft.CodeAnalysis.CSharp;
-
 using CSharpLiteral = Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax;
 
 namespace Cratis.Stage.Rendering.Cratis.Validation;
@@ -77,20 +77,24 @@ public static class ValidationRuleRenderer
         throw new UnsupportedValidationRule(rule);
     }
 
-    static string RenderMatch(string value)
+    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<ValidationRuleSyntax> rules) =>
+        PortableMatchRendering.RenderFields(builder, rules.Where(rule => rule.Rule == ValidationRuleKind.Matches)
+            .Select(rule => MatchPattern(ExpressionRenderer.Render(rule.Value!))));
+
+    static string RenderMatch(string value) => $".Must(value => value is null || {PortableMatchRendering.Predicate(MatchPattern(value))})";
+
+    static string MatchPattern(string value)
     {
         if (SyntaxFactory.ParseExpression(value) is not CSharpLiteral literal || literal.RawKind != (int)SyntaxKind.StringLiteralExpression)
         {
             throw new UnsupportedValidationRule(ValidationRuleKind.Matches, "non-literal match pattern");
         }
 
-        if (SemanticMatchAnchors.Refusal(literal.Token.ValueText) is { } construct)
+        if (PortableMatchPattern.Check(literal.Token.ValueText) is { Status: not PortableMatchStatus.Admitted } check)
         {
-            throw new UnsupportedValidationRule(ValidationRuleKind.Matches, construct);
+            throw new UnsupportedValidationRule(ValidationRuleKind.Matches, check.Description);
         }
 
-        var pattern = CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(literal.Token.ValueText));
-
-        return $".Matches(new global::System.Text.RegularExpressions.Regex({pattern}, global::System.Text.RegularExpressions.RegexOptions.NonBacktracking | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.Text.RegularExpressions.Regex.InfiniteMatchTimeout))";
+        return literal.Token.ValueText;
     }
 }

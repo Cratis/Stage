@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -67,13 +68,9 @@ internal static class SemanticValidationRendering
     internal static SemanticPrimitiveType UnderlyingPrimitive(SemanticTypeReference type, SemanticApplicationContext context) =>
         type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive;
 
-    internal static void RenderMatchHelper(CSharpCodeBuilder builder, CSharpCodeBuilder? typeBuilder = null)
-    {
-        builder.BlankLine()
-            .OpenBlock("static bool MatchesPattern(string value, string pattern)")
-            .Line($"return {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.IsMatch(value, pattern, {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.NonBacktracking | {Name(typeBuilder, "System.Text.RegularExpressions", "RegexOptions")}.CultureInvariant, {Name(typeBuilder, "System.Text.RegularExpressions", "Regex")}.InfiniteMatchTimeout);")
-            .EndBlock();
-    }
+    internal static void RenderMatchFields(CSharpCodeBuilder builder, IEnumerable<SemanticValidationRule> rules) =>
+        PortableMatchRendering.RenderFields(builder, rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches)
+            .Select(rule => ((SemanticTextValue)rule.Operand!).Value));
 
     static string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional, CSharpCodeBuilder? builder)
     {
@@ -111,7 +108,7 @@ internal static class SemanticValidationRendering
             SemanticValidationRuleKind.Equal => $"{absentPasses}{Name(builder, "System", "Object")}.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.NotEqual => $"{absentPasses}!{Name(builder, "System", "Object")}.Equals({scalar}, {equality})",
             SemanticValidationRuleKind.Length => $"{absentPasses}{scalar}.Length == {number}",
-            SemanticValidationRuleKind.Matches => $"{absentPasses}MatchesPattern({scalar}, {CSharpCodeBuilder.StringLiteral(SemanticMatchAnchors.Portable(((SemanticTextValue)operand!).Value))})",
+            SemanticValidationRuleKind.Matches => $"{absentPasses}{PortableMatchRendering.Predicate(((SemanticTextValue)operand!).Value, scalar)}",
             SemanticValidationRuleKind.Contains => $"{absentPasses}{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.NotContains => $"{absentPasses}!{scalar}.Contains({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",
             SemanticValidationRuleKind.StartsWith => $"{absentPasses}{scalar}.StartsWith({equality}, {Name(builder, "System", "StringComparison")}.Ordinal)",

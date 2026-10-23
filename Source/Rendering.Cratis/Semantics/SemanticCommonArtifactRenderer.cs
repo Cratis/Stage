@@ -160,8 +160,9 @@ internal static class SemanticCommonArtifactRenderer
         builder.Using("Cratis.Arc.Validation")
             .BlankLine()
             .Summary($"Validates {name}.")
-            .OpenBlock($"public class {name}Validator : {builder.Type(new("Cratis.Arc.Validation", "ConceptValidator", 1, ReferenceContext.Type))}<{name}>")
-            .OpenBlock($"public {name}Validator()");
+            .OpenBlock($"public class {name}Validator : {builder.Type(new("Cratis.Arc.Validation", "ConceptValidator", 1, ReferenceContext.Type))}<{name}>");
+        SemanticValidationRendering.RenderMatchFields(builder, concept.Validations);
+        builder.OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {
             if (SemanticValidationContextRuntime.IsBody(rule))
@@ -174,12 +175,6 @@ internal static class SemanticCommonArtifactRenderer
             }
         }
 
-        builder.EndBlock();
-        if (concept.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
-        {
-            SemanticValidationRendering.RenderMatchHelper(builder, builder);
-        }
-
-        builder.EndBlock();
+        builder.EndBlock().EndBlock();
     }
 }

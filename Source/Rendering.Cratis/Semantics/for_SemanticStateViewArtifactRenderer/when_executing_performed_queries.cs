@@ -226,7 +226,7 @@ public class when_executing_performed_queries
     public async Task should_admit_and_execute_the_rendered_scalar_and_identifier_concept_sentinels()
     {
         // The read model key makes PersonId an identifier concept; PersonName stays a scalar concept.
-        const string body = "return readModels.Where(row => row.PersonId != PersonId.NotSet && row.Name != PersonName.NotSet && row.PersonId.TypedValue != Guid.Empty);";
+        const string body = "return readModels.Where(row => row.PersonId != PersonId.NotSet && row.Name != PersonName.NotSet && row.PersonId.TypedValue != default(Guid));";
         var source = "concept PersonId : Uuid\nconcept PersonName : String\n" + Source(body)
             .Replace("personId Uuid", "personId PersonId", StringComparison.Ordinal)
             .Replace("        name String", "        name PersonName", StringComparison.Ordinal);

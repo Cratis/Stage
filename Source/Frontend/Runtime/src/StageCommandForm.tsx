@@ -17,6 +17,7 @@ import type { StageDataState } from './stageData';
 import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
+import { withReferenceField } from './StageReferenceField';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -64,8 +65,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates), [creates, data.selections, data.queries]);
     const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const rowAction = element.properties.rowAction === true;
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
-    const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
+    const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
+    const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
+    const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
@@ -171,7 +174,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const title = field.label ?? field.name;
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
-    const fieldElement = (() => {
+    const fieldElement = withReferenceField(descriptor, { value: accessor, fieldName: property, title, required }, (() => {
         if (descriptor?.options) {
             const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
             return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
@@ -185,7 +188,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
             case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon isNonModal showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
-    })();
+    })());
 
     const style = placementStyle(placement);
     return (
@@ -275,6 +278,17 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     }
 
     return values;
+}
+
+function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[]): StageCommandContent {
+    return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
+        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        return value === undefined ? [] : [[property.name, value]];
+    }));
+}
+
+function referenceFieldsToAsk(fields: FormField[], supplied: StageCommandContent): FormField[] {
+    return fields.filter(field => !Object.hasOwn(supplied, field.sourceProperty ?? field.name));
 }
 
 /**

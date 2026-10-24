@@ -67,6 +67,11 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </remarks>
     public const string CreatesKeyword = "x-creates";
 
+    /// <summary>
+    /// The schema keyword naming a reference's list query, key member and display member. Routes are resolved at runtime.
+    /// </summary>
+    public const string ReferenceKeyword = "x-reference";
+
     readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -156,6 +161,19 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
         }
 
         return new JsonObject { ["type"] = "object", ["properties"] = schemaProperties }.ToJsonString();
+    }
+
+    internal string ForCommandProperties(IEnumerable<PropertySyntax> properties, CommandReferences references, IReadOnlySet<string> generated)
+    {
+        var propertyList = properties.ToArray();
+        var schema = JsonNode.Parse(ForProperties(propertyList))!.AsObject();
+        foreach (var property in propertyList.Where(property => !generated.Contains(property.Name)))
+        {
+            var reference = references.For(property);
+            if (reference is not null) schema["properties"]![property.Name]![ReferenceKeyword] = reference;
+        }
+
+        return schema.ToJsonString();
     }
 
     static JsonObject? Primitive(string name) =>

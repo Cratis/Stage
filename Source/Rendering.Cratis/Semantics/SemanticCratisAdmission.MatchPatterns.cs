@@ -16,9 +16,9 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var rule in rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches))
             {
-                if (rule.Operand is SemanticTextValue pattern && SemanticMatchAnchors.Refusal(pattern.Value) is { } construct)
+                if (rule.Operand is SemanticTextValue pattern && PortableMatchPattern.Check(pattern.Value) is { Status: not PortableMatchStatus.Admitted } check)
                 {
-                    diagnostics.Add(Error("STAGE-ESM-005", $"'{name}' validation '{rule.Name ?? rule.Kind.ToString()}' cannot preserve match construct '{construct}' in generated code.", id));
+                    diagnostics.Add(Error("STAGE-ESM-005", $"'{name}' validation '{rule.Name ?? rule.Kind.ToString()}' cannot preserve match construct '{check.Construct}' in generated code. {check.Code}: {check.Description}", id));
                 }
             }
         }

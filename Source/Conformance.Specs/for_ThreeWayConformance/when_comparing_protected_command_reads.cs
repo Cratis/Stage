@@ -14,17 +14,17 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_comparing_protected_command_reads(when_comparing_protected_command_reads.context fixture) : IClassFixture<when_comparing_protected_command_reads.context>
 {
-    // The original thirteen specifications retain parity in every form. The six decision-0091
-    // specifications expose the renderer gap tracked by Stage#503; neither engine may diverge.
+    // Arc 22.131 rejects the six decision-0091 invalid keys before acquiring protected state.
+    // All nineteen specifications must retain parity in every source form.
     const int OutcomeCount = 76;
 
-    static string[] RendererDifferences => [.. ProtectedCommandReadsCorpus.V25.SourceForms.SelectMany(form => refused_read_keys.Names.Select(name =>
-        $"{form.Name}/{name}: Reference=Passed, Stage=Passed, Rendered=Failed"))];
+    static string[] RefusedKeyOutcomes => [.. ProtectedCommandReadsCorpus.V25.SourceForms.SelectMany(form => refused_read_keys.Names.Select(name =>
+        $"{form.Name}/{name}: Reference=Passed, Stage=Passed, Rendered=Passed"))];
 
-    [Fact] void should_record_only_the_exact_refused_key_renderer_differences() => fixture.Differences.ShouldContainOnly(RendererDifferences);
-    [Fact] void should_execute_each_refused_key_in_every_form() => fixture.Outcomes.Intersect(RendererDifferences, StringComparer.Ordinal).Count().ShouldEqual(24);
+    [Fact] void should_have_no_differences() => fixture.Differences.ShouldBeEmpty();
+    [Fact] void should_execute_each_refused_key_in_every_form() => fixture.Outcomes.Intersect(RefusedKeyOutcomes, StringComparer.Ordinal).Count().ShouldEqual(24);
     [Fact] void should_compare_every_specification_of_every_form() => fixture.Outcomes.Length.ShouldEqual(OutcomeCount);
-    [Fact] void should_pass_every_other_outcome_on_every_path() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(52);
+    [Fact] void should_pass_every_outcome_on_every_path() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(OutcomeCount);
 
     public class context : a_three_way_application
     {
@@ -32,7 +32,6 @@ public class when_comparing_protected_command_reads(when_comparing_protected_com
         protected override string ProjectFile => "ProtectedReads.csproj";
         protected override CanonicalCorpusVector? Baseline => ProtectedCommandReadsCorpus.V25;
         protected override bool RequireStageExecution => true;
-        protected override bool ExpectFailedGeneratedTest => true;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models =>
             ProtectedCommandReadsCorpus.V25.SourceForms.Select(form => (form.Name, Compile(ProtectedCommandReadsCorpus.V25, form)));
 

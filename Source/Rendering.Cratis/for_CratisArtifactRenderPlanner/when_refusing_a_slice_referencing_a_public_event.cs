@@ -17,7 +17,7 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
     [InlineData("given")]
     [InlineData("then")]
     [InlineData("append")]
-    public void should_refuse_a_reference_without_selecting_the_declaring_slice(string form)
+    public void should_refuse_an_unsupported_use_without_selecting_the_declaring_slice(string form)
     {
         var original = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
         var module = original.Application.Modules.Single();
@@ -43,7 +43,16 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         };
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, selected.Id), new("Contracts", "Contracts"));
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
+        if (form == "then")
+        {
+            plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
+            plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id && diagnostic.Message.Contains("The append must select one reaction trigger", StringComparison.Ordinal));
+        }
+        else
+        {
+            plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
+        }
+        plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
     }
 

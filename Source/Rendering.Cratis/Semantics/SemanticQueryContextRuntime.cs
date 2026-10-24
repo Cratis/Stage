@@ -8,6 +8,7 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -28,32 +29,66 @@ internal static class SemanticQueryContextRuntime
         string body)
     {
         var arguments = Arguments(query).ToArray();
-        var parameters = new List<string>
-        {
-            "global::Cratis.Chronicle.ReadModels.IReadModels __stageReadModelStore",
-            "global::Cratis.Arc.Queries.IQueryContextManager __stageQueryContexts",
-            "global::Cratis.Arc.Tenancy.ITenantIdAccessor __stageTenantAccessor",
-            "global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor __stagePrincipalAccessor"
-        };
-        parameters.AddRange(arguments.Select(argument => Parameter(argument, types, optionalDefault: true)));
-        var live = query.Delivery == SemanticQueryDelivery.Live;
         var invocation = $"StagePerform_{method}(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
-        builder.OpenBlock($"public static {(live ? string.Empty : "async ")}{returnType} {method}({string.Join(", ", parameters)})")
-            .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);");
-        if (live)
-        {
-            builder.Line($"var __stageSource = __stageReadModelStore.Observe<{model}>();")
-                .Line($"return global::System.Reactive.Subjects.Subject.Create<global::System.Collections.Generic.IEnumerable<{model}>>(__stageSource, global::System.Reactive.Linq.Observable.Select(__stageSource, __stageReadModels => {invocation}));");
-        }
-        else
-        {
-            builder.Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
-                .Line($"return {invocation};");
-        }
-
-        builder.EndBlock().BlankLine();
+        builder.OpenBlock($"public static async {returnType} {method}({Parameters(query, types)})")
+            .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);")
+            .Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
+            .Line($"return {invocation};")
+            .EndBlock().BlankLine();
         RenderBody(builder, query, model, method, types, requirement, body);
     }
+
+    internal static void RenderGap(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticApplicationContext context, SemanticImplementationAdmission.PerformerAdmission admission)
+    {
+        var method = context.MemberNames.Query(query);
+        var model = Identifiers.ToPascalCase(context.ReadModels[query.ReadModel].Name);
+        var returnType = ReturnType(query, model);
+        var types = new SemanticTypeSystem(context);
+        var source = admission.Requirement?.File is { } file ? $" ({file})" : string.Empty;
+        var message = $"Query '{query.Name}' (requirement {admission.Requirement?.RequirementId}){source} is not runnable: {admission.Reason}";
+        builder.OpenBlock($"public static {returnType} {method}({Parameters(query, types)})")
+            .Line($"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral(message)});")
+            .EndBlock().BlankLine();
+        RenderContextDeclarations(builder, query, method, types);
+    }
+
+    internal static ArtifactImplementationGap Gap(SemanticApplicationContext context, SemanticKeyedQuery query, PlannedArtifact artifact, string reason)
+    {
+        var text = System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
+        var methodName = context.MemberNames.Query(query);
+        var model = context.ReadModels[query.ReadModel];
+        var modelName = Identifiers.ToPascalCase(model.Name);
+        var declaration = CSharpSyntaxTree.ParseText(text).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Single(method => method.Identifier.ValueText == methodName && method.Parent is RecordDeclarationSyntax record && record.Identifier.ValueText == modelName);
+        var body = declaration.Body!;
+        var typeName = $"{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{modelName}";
+        var typedContext = new ArtifactImplementationContext(
+            $"{typeName}.StageQueryContext_{methodName}",
+            [
+                new("Arguments", $"{typeName}.StageQueryArguments_{methodName}", false),
+                new("Tenant", "string", false),
+                new("Identity", "global::System.Security.Claims.ClaimsPrincipal", false),
+                new("ReceivedAt", "global::System.DateTimeOffset", false)
+            ]);
+        var requirement = context.Request.ImplementationRequirements.First(candidate =>
+            candidate.Role == SemanticImplementationRole.QueryPerformer && candidate.Source.SemanticId == query.Id);
+        var stub = new ArtifactImplementationStub(
+            artifact.RelativePath,
+            typeName,
+            methodName,
+            text[declaration.Modifiers[0].SpanStart..body.OpenBraceToken.SpanStart].TrimEnd(),
+            new(body.OpenBraceToken.Span.End, body.CloseBraceToken.SpanStart - body.OpenBraceToken.Span.End),
+            typedContext,
+            []);
+        return new(ArtifactImplementationGapOrigin.Unverified, requirement.RequirementId, query.Id.ToString(), SemanticImplementationRole.QueryPerformer, [reason], 1, 1, [stub]);
+    }
+
+    internal static string ReturnType(SemanticKeyedQuery query, string model) => query switch
+    {
+        { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } => $"global::System.Reactive.Subjects.ISubject<global::System.Collections.Generic.IEnumerable<{model}>>",
+        { Cardinality: SemanticQueryCardinality.Many } => $"global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{model}>>",
+        _ => $"global::System.Threading.Tasks.Task<{model}?>"
+    };
 
     internal static ArtifactRenderDiagnostic? Analyze(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticImplementationRequirement requirement, string body)
     {
@@ -63,7 +98,7 @@ internal static class SemanticQueryContextRuntime
             $"Query performer requirement '{requirement.RequirementId}' at {PureTransitionAdmission.SourceLocation(requirement, body, 0)}: {detail}",
             query.Id);
 
-        var collision = Arguments(query).Select(Name).FirstOrDefault(name => name is "readModels" or "context");
+        var collision = Arguments(query).Select(Name).FirstOrDefault(name => string.Equals(name, "readModels", StringComparison.Ordinal) || string.Equals(name, "context", StringComparison.Ordinal));
         if (collision is not null) return Error($"Argument '{collision}' conflicts with a reserved query performer body binding.");
 
         var parsed = PureTransitionAdmission.ParseBody(body, new HashSet<string>(StringComparer.Ordinal), "query performer", enforcePurity: false);
@@ -111,13 +146,22 @@ internal static class SemanticQueryContextRuntime
             query.Id);
     }
 
+    static string Parameters(SemanticKeyedQuery query, SemanticTypeSystem types)
+    {
+        string[] dependencies =
+        [
+            "global::Cratis.Chronicle.ReadModels.IReadModels __stageReadModelStore",
+            "global::Cratis.Arc.Queries.IQueryContextManager __stageQueryContexts",
+            "global::Cratis.Arc.Tenancy.ITenantIdAccessor __stageTenantAccessor",
+            "global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor __stagePrincipalAccessor"
+        ];
+        return string.Join(", ", dependencies.Concat(Arguments(query).Select(argument => Parameter(argument, types, optionalDefault: true))));
+    }
+
     static void RenderBody(CSharpCodeBuilder builder, SemanticKeyedQuery query, string model, string method, SemanticTypeSystem types, SemanticImplementationRequirement requirement, string body)
     {
-        var arguments = Arguments(query).ToArray();
-        builder.Line($"sealed record StageQueryArguments_{method}({string.Join(", ", arguments.Select(argument => $"{types.Type(argument.Type)} {Identifiers.ToPascalCase(argument.Name)}"))});")
-            .Line($"sealed record StageQueryContext_{method}(StageQueryArguments_{method} Arguments, string Tenant, global::System.Security.Claims.ClaimsPrincipal Identity, global::System.DateTimeOffset ReceivedAt);")
-            .BlankLine();
-        var parameters = arguments.Select(argument => Parameter(argument, types));
+        RenderContextDeclarations(builder, query, method, types);
+        var parameters = Arguments(query).Select(argument => Parameter(argument, types));
         var result = query.Cardinality == SemanticQueryCardinality.Many ? $"global::System.Collections.Generic.IEnumerable<{model}>" : $"{model}?";
         builder.OpenBlock($"static {result} StagePerform_{method}(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})");
         var line = requirement.File is null && !requirement.BodyLines.IsDefaultOrEmpty ? requirement.BodyLines[0].Line : 1;
@@ -128,7 +172,12 @@ internal static class SemanticQueryContextRuntime
             .EndBlock();
     }
 
-    static IEnumerable<string> AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
+    static void RenderContextDeclarations(CSharpCodeBuilder builder, SemanticKeyedQuery query, string method, SemanticTypeSystem types) =>
+        builder.Line($"sealed record StageQueryArguments_{method}({string.Join(", ", Arguments(query).Select(argument => $"{types.Type(argument.Type)} {Identifiers.ToPascalCase(argument.Name)}"))});")
+            .Line($"sealed record StageQueryContext_{method}(StageQueryArguments_{method} Arguments, string Tenant, global::System.Security.Claims.ClaimsPrincipal Identity, global::System.DateTimeOffset ReceivedAt);")
+            .BlankLine();
+
+    static List<string> AnalysisDeclarations(SemanticApplicationContext context, SemanticTypeSystem types)
     {
         // Reuse the actual concept declarations and pinned Fundamentals metadata, without loading
         // Arc or Chronicle. Only the external Chronicle base is a stand-in, as in reducer analysis.

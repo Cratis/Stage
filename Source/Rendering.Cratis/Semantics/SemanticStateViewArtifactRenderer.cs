@@ -249,33 +249,15 @@ internal static class SemanticStateViewArtifactRenderer
     // A performer owns the result; retain the route and shape whether its body is available or not.
     static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)
     {
-        var parameters = new List<string> { "global::Cratis.Chronicle.ReadModels.IReadModels readModels" };
-        if (query.Argument is not null)
-        {
-            parameters.Add(QueryArgument.For(query.Argument, types).Parameter);
-        }
-
-        parameters.AddRange(query.Filters.Select(filter => QueryArgument.For(new(filter.Id, filter.Name, filter.Type), types).Parameter + (filter.Type.IsOptional ? " = null" : string.Empty)));
-        var returnType = query switch
-        {
-            { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live } => $"global::System.Reactive.Subjects.ISubject<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
-            { Cardinality: SemanticQueryCardinality.Many } => $"global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<{readModelName}>>",
-            _ => $"global::System.Threading.Tasks.Task<{readModelName}?>"
-        };
-        var requirement = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.Role == SemanticImplementationRole.QueryPerformer && requirement.Source.SemanticId == query.Id);
-        var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnostic>();
-        if (requirement is not null && SemanticCratisAdmission.IsCSharpImplementation(requirement) &&
-            SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) && body is not null)
+        var returnType = SemanticQueryContextRuntime.ReturnType(query, readModelName);
+        var admission = SemanticImplementationAdmission.AdmitPerformer(context, query);
+        if (admission is { Reason: null, Requirement: { } requirement, Body: { } body })
         {
             SemanticQueryContextRuntime.Render(builder, query, readModelName, methodName, returnType, types, requirement, body);
             return;
         }
 
-        var file = requirement?.File;
-        var waiting = file is null ? $"Query '{query.Name}' is answered by a performer" : $"Query '{query.Name}' is answered by a performer ('{file}')";
-        builder.ExpressionMember(
-            $"public static {returnType} {methodName}({string.Join(", ", parameters)})",
-            $"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral($"{waiting}; Stage renders its route and shape, not its code.")})");
+        SemanticQueryContextRuntime.RenderGap(builder, query, context, admission);
     }
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)

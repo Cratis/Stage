@@ -22,36 +22,97 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateViewArtifactR
 
 public class when_executing_performed_queries
 {
+    [Theory]
+    [InlineData("live", "observable")]
+    [InlineData("language", "language")]
+    [InlineData("missing", "no resolved body")]
+    [InlineData("changed", "SHA-256")]
+    [InlineData("hash", "SHA-256")]
+    [InlineData("compile", "CS0103")]
+    public async Task should_render_an_unverified_performer_as_a_compilable_gap(string failure, string reason)
+    {
+        var source = Source(failure == "compile" ? "return missing;" : "return readModels;", live: failure == "live");
+        if (failure == "language") source = source.Replace("```csharp", "```sql", StringComparison.Ordinal);
+        var loaded = await when_rendering_a_pure_reducer.Load(source);
+        var request = GapRequest((loaded, failure));
+        var requirement = Assert.Single(request.ImplementationRequirements);
+        var plan = new CratisArtifactRenderPlanner().Plan(request);
+        Assert.NotEmpty(plan.Artifacts);
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-IMPL-006"));
+        Assert.Equal(ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(requirement.Source.SemanticId, diagnostic.Artifact);
+        Assert.Contains(reason, diagnostic.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        var gap = Assert.Single(plan.ImplementationGaps);
+        Assert.Equal(ArtifactImplementationGapOrigin.Unverified, gap.Origin);
+        Assert.Equal(requirement.RequirementId, gap.RequirementId);
+        Assert.Equal(ArtifactRenderOutcome.Partial, plan.Outcome);
+        Assert.True(plan.Success);
+        var marker = Assert.Single(plan.Artifacts.Where(artifact => artifact.RelativePath == "STAGE-NOT-RUNNABLE.md"));
+        Assert.Contains(requirement.RequirementId, System.Text.Encoding.UTF8.GetString(marker.Bytes.AsSpan()), StringComparison.Ordinal);
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains($"Query 'FindPeople' (requirement {requirement.RequirementId}) is not runnable:", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+            .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Empty(RenderedOutput.Errors(files));
+        Assert.Empty(RenderedOutput.Warnings(files));
+        var stub = Assert.Single(gap.Stubs);
+        var baseline = System.Text.Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == stub.RelativePath).Bytes.AsSpan());
+        Assert.Contains(stub.Signature, baseline, StringComparison.Ordinal);
+        Assert.Contains("NotImplementedException", baseline.Substring(stub.BodyLocator.Start, stub.BodyLocator.Length), StringComparison.Ordinal);
+        var assembly = RenderedOutput.Load(files);
+        var method = assembly.GetTypes().SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Single(method => method.Name == "FindPeople");
+        var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [.. Dependencies(Substitute.For<IReadModels>()), "Ada"]));
+        var notImplemented = Assert.IsType<NotImplementedException>(exception.InnerException);
+        Assert.Contains(requirement.RequirementId, notImplemented.Message, StringComparison.Ordinal);
+        Assert.Contains(reason, notImplemented.Message, StringComparison.Ordinal);
+    }
+
+    static ArtifactRenderRequest GapRequest((LoadedSemanticModel Loaded, string Failure) scenario)
+    {
+        var request = Request(scenario.Loaded);
+        var requirement = Assert.Single(request.ImplementationRequirements);
+        return scenario.Failure switch
+        {
+            "missing" => request with { ImplementationContents = request.ImplementationContents.Remove(requirement.RequirementId) },
+            "changed" => request with { ImplementationContents = request.ImplementationContents.SetItem(requirement.RequirementId, "return missing;") },
+            "hash" => request with { ImplementationRequirements = [requirement with { ContentHash = "invalid" }] },
+            _ => request
+        };
+    }
+
     const string Body = "return readModels.Where(row => row.Name == context.Arguments.Name && context.ReceivedAt.Year == 2026 && context.Identity.Identity?.IsAuthenticated == true && context.Tenant == \"tenant-a\");";
 
     [Fact]
     public async Task should_execute_a_snapshot_body_with_arguments_and_the_receipt_clock()
     {
         var loaded = await Load(Body);
+        var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
+        Assert.True(plan.Success);
+        Assert.Equal(ArtifactRenderOutcome.Complete, plan.Outcome);
+        Assert.Empty(plan.ImplementationGaps);
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == "STAGE-NOT-RUNNABLE.md");
         var method = Method(loaded);
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, Dependencies(readModels).Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
     [Fact]
-    public async Task should_apply_a_live_body_on_each_emission_with_the_original_receipt_context()
+    public async Task should_throw_instead_of_presenting_a_live_performer_as_a_body_owned_stream()
     {
-        var loaded = await Load("return readModels.Where(row => row.Name == name && context.Arguments.Name == name && context.ReceivedAt.Year == 2026 && context.Tenant == \"tenant-a\");", live: true);
+        var loaded = await Load("return readModels;", live: true);
         var method = Method(loaded);
         Assert.Equal(typeof(System.Reactive.Subjects.ISubject<>), method.ReturnType.GetGenericTypeDefinition());
-        var (rows, _) = Rows(method);
-        var readModels = Substitute.For<ObservableReadModels>();
-        var source = SupplyMethod(nameof(SupplyLive), method).Invoke(null, [readModels])!;
-        var dependencies = Dependencies(readModels);
-        var result = method.Invoke(null, dependencies.Append("Ada").ToArray())!;
-        ((IQueryContextManager)dependencies[1]).Current.Returns(QueryContext.NotSet with { ReceivedAt = DateTimeOffset.MinValue });
-        ((ITenantIdAccessor)dependencies[2]).Current.Returns(new TenantId("other"));
-        SupplyMethod(nameof(AssertLive), method).Invoke(null, [source, result, rows]);
+        var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [.. Dependencies(Substitute.For<IReadModels>()), "Ada"]));
+        var gap = Assert.IsType<NotImplementedException>(exception.InnerException);
+        Assert.Contains("no body-owned stream", gap.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,7 +123,7 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, Dependencies(readModels).Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         Assert.Same(row, task.GetType().GetProperty("Result")!.GetValue(task));
     }
@@ -77,7 +138,7 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, Dependencies(readModels).Append(null).ToArray())!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), null])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
@@ -96,18 +157,18 @@ public class when_executing_performed_queries
     [InlineData("return 42;", "CS0029")]
     [InlineData("return readModels.Where(row => context.Occurred.Year == 2026);", "CS1061")]
     [InlineData("return readModels.Where(row => context.CausedBy != null);", "CS1061")]
-    public async Task should_refuse_invalid_bodies_at_the_requirement(string body, string compilerCode)
+    public async Task should_report_invalid_body_gaps_at_the_requirement(string body, string compilerCode)
     {
         var loaded = await Load(body);
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
         var requirement = Assert.Single(loaded.ImplementationRequirements);
-        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-IMPL-005"));
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-IMPL-006"));
         Assert.Equal(requirement.Source.SemanticId, diagnostic.Artifact);
         Assert.Contains(requirement.RequirementId, diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains(compilerCode, diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains(requirement.Source.Span.Document.ToString(), diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains($":{requirement.BodyLines[0].Line}:", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Empty(plan.Artifacts);
+        Assert.NotEmpty(plan.Artifacts);
     }
 
     [Fact]
@@ -120,7 +181,7 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, Dependencies(readModels).Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
@@ -131,9 +192,9 @@ public class when_executing_performed_queries
     {
         var loaded = await LoadFile("return missing;");
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
-        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-IMPL-005"));
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-IMPL-006"));
         Assert.Contains("Queries/FindPeople.cs:1:", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Empty(plan.Artifacts);
+        Assert.NotEmpty(plan.Artifacts);
     }
 
     [Fact]
@@ -145,8 +206,8 @@ public class when_executing_performed_queries
             ImplementationContents = loaded.ImplementationContents.SetItem(loaded.ImplementationRequirements.Single().RequirementId, "return missing;")
         };
         var plan = new CratisArtifactRenderPlanner().Plan(request);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-020");
-        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.NotEmpty(plan.Artifacts);
     }
 
     [Fact]
@@ -160,28 +221,18 @@ public class when_executing_performed_queries
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Code == "PLAY0268");
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task should_supply_an_anonymous_identity_when_both_principal_sources_are_absent(bool live)
+    [Fact]
+    public async Task should_supply_an_anonymous_identity_when_both_principal_sources_are_absent()
     {
-        var loaded = await Load("return readModels.Where(row => row.Name == name && !context.Identity.Identities.Any());", live: live);
+        var loaded = await Load("return readModels.Where(row => row.Name == name && !context.Identity.Identities.Any());");
         var method = Method(loaded);
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<ObservableReadModels>();
         var dependencies = Dependencies(readModels);
         ((IQueryContextManager)dependencies[1]).Current.Returns(QueryContext.NotSet);
         ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns((ClaimsPrincipal?)null);
-        if (live)
-        {
-            var source = SupplyMethod(nameof(SupplyLive), method).Invoke(null, [readModels])!;
-            var result = method.Invoke(null, dependencies.Append("Ada").ToArray())!;
-            SupplyMethod(nameof(AssertLive), method).Invoke(null, [source, result, rows]);
-            return;
-        }
-
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, dependencies.Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"])!;
         await task;
         var snapshot = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(snapshot.Cast<object>()));
@@ -201,7 +252,7 @@ public class when_executing_performed_queries
             new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Ada")], "authorized")));
         ((IQueryContextManager)dependencies[1]).Current.Returns(authorizedContext);
         ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Other")], "ambient")));
-        var task = (Task)method.Invoke(null, dependencies.Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
@@ -213,7 +264,7 @@ public class when_executing_performed_queries
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
         var request = Request(loaded);
         var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
@@ -245,7 +296,7 @@ public class when_executing_performed_queries
         rows.SetValue(row, 0);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, Dependencies(readModels).Append("Ada").ToArray())!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
@@ -271,8 +322,16 @@ public class when_executing_performed_queries
     {
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("filter name String", $"filter {name} String", StringComparison.Ordinal));
         var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005" && diagnostic.Message.Contains("reserved query performer body binding", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006" && diagnostic.Message.Contains("reserved query performer body binding", StringComparison.Ordinal));
+        if (string.Equals(name, "readModels", StringComparison.Ordinal))
+        {
+            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012");
+            Assert.Empty(plan.Artifacts);
+        }
+        else
+        {
+            Assert.NotEmpty(plan.Artifacts);
+        }
     }
 
     static Task<LoadedSemanticModel> Load(string body, bool live = false, bool single = false, bool optional = false) =>
@@ -333,6 +392,32 @@ public class when_executing_performed_queries
         return assembly.GetTypes().SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Single(method => method.Name == "FindPeople");
     }
 
+    static System.Reactive.Subjects.Subject<IEnumerable<T>> SupplyLive<T>(IReadModels readModels)
+        where T : class
+    {
+        var source = new System.Reactive.Subjects.Subject<IEnumerable<T>>();
+        readModels.Observe<T>().Returns(source);
+        return source;
+    }
+
+    static void AssertLive<T>(System.Reactive.Subjects.Subject<IEnumerable<T>> source, System.Reactive.Subjects.ISubject<IEnumerable<T>> result, Array rows)
+    {
+        var emissions = new List<T[]>();
+        using (result.Subscribe(value => emissions.Add([.. value])))
+        {
+            source.OnNext(rows.Cast<T>());
+            source.OnNext([]);
+            source.OnNext(rows.Cast<T>());
+        }
+
+        source.OnNext(rows.Cast<T>());
+        Assert.Equal(3, emissions.Count);
+        Assert.Equal(rows.GetValue(0), Assert.Single(emissions[0]));
+        Assert.Empty(emissions[1]);
+        Assert.Equal(rows.GetValue(0), Assert.Single(emissions[2]));
+        source.Dispose();
+    }
+
     static object[] Dependencies(IReadModels readModels)
     {
         var clock = Substitute.For<TimeProvider>();
@@ -364,31 +449,5 @@ public class when_executing_performed_queries
 
     static void Supply<T>(IReadModels readModels, Array rows)
         where T : class => readModels.GetInstances<T>().Returns(Task.FromResult(rows.Cast<T>().AsEnumerable()));
-
-    static System.Reactive.Subjects.Subject<IEnumerable<T>> SupplyLive<T>(IReadModels readModels)
-        where T : class
-    {
-        var source = new System.Reactive.Subjects.Subject<IEnumerable<T>>();
-        readModels.Observe<T>().Returns(source);
-        return source;
-    }
-
-    static void AssertLive<T>(System.Reactive.Subjects.Subject<IEnumerable<T>> source, System.Reactive.Subjects.ISubject<IEnumerable<T>> result, Array rows)
-    {
-        var emissions = new List<T[]>();
-        using (result.Subscribe(value => emissions.Add(value.ToArray())))
-        {
-            source.OnNext(rows.Cast<T>());
-            source.OnNext([]);
-            source.OnNext(rows.Cast<T>());
-        }
-
-        source.OnNext(rows.Cast<T>());
-        Assert.Equal(3, emissions.Count);
-        Assert.Same(rows.GetValue(0), Assert.Single(emissions[0]));
-        Assert.Empty(emissions[1]);
-        Assert.Same(rows.GetValue(0), Assert.Single(emissions[2]));
-        source.Dispose();
-    }
 }
 #endif

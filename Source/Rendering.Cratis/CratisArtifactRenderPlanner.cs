@@ -255,6 +255,36 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return CreatePlan(request, artifacts, diagnostics, refusals, removals);
     }
 
+    static (List<PlannedArtifact> Artifacts, ImmutableArray<ArtifactImplementationGap> Gaps) AddPerformerGaps(ArtifactRenderRequest request, IEnumerable<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var planned = artifacts.ToList();
+        if (planned.Count == 0 || !diagnostics.Exists(diagnostic => diagnostic.Code == SemanticImplementationAdmission.PerformerGapCode)) return (planned, []);
+        if (!CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _)) return (planned, []);
+        var gaps = PerformerGaps(new(request, options), planned, diagnostics);
+        if (gaps.IsEmpty) return (planned, gaps);
+        var entries = gaps.Select(gap => $"- Query requirement `{gap.RequirementId}` ({gap.Owner}): {string.Join(' ', gap.Hints)}");
+        planned.Add(PlannedArtifact.CreateText(
+            "STAGE-NOT-RUNNABLE.md",
+            $"# Not fully runnable\n\nThis render contains unverified performer gaps. Calls to these queries throw NotImplementedException.\n\n{string.Join('\n', entries)}\n",
+            [request.Model.Application.Id]));
+        return (planned, gaps);
+    }
+
+    static ImmutableArray<ArtifactImplementationGap> PerformerGaps(SemanticApplicationContext context, List<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var gaps = ImmutableArray.CreateBuilder<ArtifactImplementationGap>();
+        foreach (var diagnostic in diagnostics.Where(diagnostic => diagnostic.Code == SemanticImplementationAdmission.PerformerGapCode))
+        {
+            if (!context.Queries.TryGetValue(diagnostic.Artifact, out var query)) continue;
+            var artifact = artifacts.FirstOrDefault(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.Sources.Contains(diagnostic.Artifact));
+            if (artifact is not null)
+            {
+                gaps.Add(SemanticQueryContextRuntime.Gap(context, query, artifact, diagnostic.Message));
+            }
+        }
+        return [.. gaps.OrderBy(gap => gap.RequirementId, StringComparer.Ordinal)];
+    }
+
     static void AddScaffold(
         ArtifactRenderRequest request,
         SemanticApplicationContext context,
@@ -305,6 +335,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
+        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))
@@ -313,7 +344,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         var unique = new List<PlannedArtifact>();
-        foreach (var group in artifacts.GroupBy(_ => _.RelativePath, StringComparer.OrdinalIgnoreCase))
+        foreach (var group in planned.GroupBy(_ => _.RelativePath, StringComparer.OrdinalIgnoreCase))
         {
             unique.Add(group.OrderBy(_ => _.RelativePath, StringComparer.Ordinal).First());
             if (group.Count() > 1)
@@ -350,7 +381,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], [], refusals, required);
+        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

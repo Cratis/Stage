@@ -53,7 +53,7 @@ public sealed record ArtifactImplementationGap(
     }
 
     bool HasValidMetadata() => HasKnownRoleAndOrigin() && HasIdentity() && HasV1Contracts();
-    bool HasKnownRoleAndOrigin() => Origin == ArtifactImplementationGapOrigin.Described && Enum.IsDefined(Role);
+    bool HasKnownRoleAndOrigin() => Origin is ArtifactImplementationGapOrigin.Described or ArtifactImplementationGapOrigin.Unverified && Enum.IsDefined(Role);
     bool HasIdentity() => !string.IsNullOrWhiteSpace(RequirementId) && !string.IsNullOrWhiteSpace(Owner);
     bool HasV1Contracts() => ContextVersion == 1 && ResultVersion == 1;
     bool HasValidCollections() => HasValidHints() && HasValidStubs();

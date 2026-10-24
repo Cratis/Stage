@@ -67,11 +67,13 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
-    def test_small_projects_shard_runs_exactly_the_six_merged_projects_with_unchanged_filters(self):
+    def test_small_projects_shard_runs_exactly_the_eight_merged_projects_with_unchanged_filters(self):
         expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
                     "Source/Contracts/Contracts.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
-                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
+                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",
+                    "Source/Rendering.Axon/Rendering.Axon.csproj",
+                    "Source/Rendering.Axon.Verification/Rendering.Axon.Verification.csproj"]
         for lane in (False, True):
             with self.subTest(blueprint_templates_lane=lane):
                 shards = {shard["name"]: shard for shard in SHARDS["matrix"](blueprint_templates_lane=lane)["include"]}
@@ -104,6 +106,8 @@ class SpecShardsTests(unittest.TestCase):
         self.assertTrue(all(by_name[name]["projects"] == [SHARDS["CONFORMANCE"]] for name in conformance))
         projects = Counter(project for shard in shards for project in shard["projects"])
         self.assertEqual(1, projects["Source/Specifications/Specifications.csproj"])
+        self.assertEqual(1, projects["Source/Rendering.Axon/Rendering.Axon.csproj"])
+        self.assertEqual(1, projects["Source/Rendering.Axon.Verification/Rendering.Axon.Verification.csproj"])
         self.assertEqual(3, projects[SHARDS["CONFORMANCE"]])
 
     def test_rendering_shards_do_not_depend_on_conformance_sharding(self):
@@ -343,7 +347,7 @@ class SpecShardsTests(unittest.TestCase):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
             run.return_value.stdout = "true\n"
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(8, run.call_count)
+            self.assertEqual(10, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])

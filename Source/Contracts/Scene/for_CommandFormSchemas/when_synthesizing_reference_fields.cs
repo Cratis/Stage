@@ -71,7 +71,7 @@ public class when_synthesizing_reference_fields : Specification
     {
         var property = Reference with { IsGenerated = true };
         var schema = Schema(Application(), [property], new ConversionDiagnostics());
-        (schema["properties"]![property.Name]!.AsObject().ContainsKey("type")).ShouldBeTrue();
+        schema["properties"]![property.Name]!.AsObject().ContainsKey("type").ShouldBeTrue();
     }
 
     [Theory]

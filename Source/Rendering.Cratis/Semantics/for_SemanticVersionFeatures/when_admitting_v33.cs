@@ -30,8 +30,7 @@ public class when_admitting_v33 : Specification
     [Fact]
     void should_keep_typed_identity_validation_for_v33()
     {
-        var original = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(32).Bytes.AsSpan());
-        var model = ExecutableSemanticModel.Create(LanguageVersion.V33, SemanticVersion.V33, original.Application);
+        var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(33).Bytes.AsSpan());
         var slice = SemanticVersionFeatures.Slices(model.Application).Single(slice => slice.Captures.Length > 0);
         var capture = slice.Captures.Single();
         var events = slice.Events.ToDictionary(contract => contract.Id);

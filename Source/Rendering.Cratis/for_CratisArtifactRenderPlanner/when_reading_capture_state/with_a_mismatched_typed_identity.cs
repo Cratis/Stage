@@ -13,6 +13,7 @@ public class with_a_mismatched_typed_identity : given.a_translation_application
 {
     void Establish() => _model = Transform(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(33).Bytes.AsSpan()), slice => slice with
     {
+        Specifications = [],
         Captures = [.. slice.Captures.Select(capture => capture with
         {
             Appends = [capture.Appends.Single() with { EventSourceType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) }]

@@ -42,14 +42,10 @@ public class a_captured_delivery : a_translation_application
 
     protected object Reactor() => Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true)!, _store)!;
 
-    protected void MarkSourceKey()
+    protected void MarkSourceKey() => _model = ExecutableSemanticModel.Create(LanguageVersion.V33, SemanticVersion.V33, _model.Application with
     {
-        _model = Transform(_model, slice => slice with
-        {
-            Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = capture.EventsSource! with { KeyIsEventSource = true } })]
-        });
-        _model = ExecutableSemanticModel.Create(LanguageVersion.V33, SemanticVersion.V33, _model.Application);
-    }
+        Modules = [.. _model.Application.Modules.Select(module => module with { Features = MarkSourceKeys(module.Features) })]
+    });
 
     protected AppendedEvent Fact(ulong sequence, string status = "sent", string source = "foreign-stream", string key = "parcel") => new(
         EventContext.Empty with { SequenceNumber = sequence, EventSourceId = source },
@@ -76,5 +72,14 @@ public class a_captured_delivery : a_translation_application
         var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true)!.GetConstructors().Single();
         return constructor.Invoke([.. constructor.GetParameters().Select(parameter => string.Equals(parameter.Name, "Id", StringComparison.OrdinalIgnoreCase) ? key : status)]);
     }
+
+    static ImmutableArray<SemanticFeature> MarkSourceKeys(ImmutableArray<SemanticFeature> features) => [.. features.Select(feature => feature with
+    {
+        Features = MarkSourceKeys(feature.Features),
+        Slices = [.. feature.Slices.Select(slice => slice with
+        {
+            Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = capture.EventsSource! with { KeyIsEventSource = true } })]
+        })]
+    })];
 }
 #endif

@@ -304,7 +304,7 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
     return (
         <div className='stage-action' data-scene-id={element.id}>
             <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
-            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );
 }

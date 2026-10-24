@@ -57,12 +57,11 @@ static class CatalogScaffold
             </Project>
             """);
         await Run(directory.FullName, "restore", $"{ProjectName}.slnx");
-        await Run(directory.FullName, "build", $"{ProjectName}.slnx", "--no-restore", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={GeneratedSources}");
-        var specifications = Path.Combine(directory.FullName, $"{ProjectName}.Specs");
+        await Run(directory.FullName, "build", $"{ProjectName}.slnx", "--configuration", "Debug", "--no-restore", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={GeneratedSources}");
 
         return (
             await Read(GeneratedProjects.Application, directory.FullName, $"{ProjectName}.csproj"),
-            await Read(GeneratedProjects.Specifications, specifications, $"{ProjectName}.Specs.csproj"));
+            await Read(GeneratedProjects.Specifications, directory.FullName, $"{ProjectName}.csproj"));
     }
 
     static async Task<ScaffoldedProject> Read(GeneratedProjects project, string directory, string file)
@@ -72,6 +71,7 @@ static class CatalogScaffold
             "msbuild",
             file,
             "-nologo",
+            "-p:Configuration=Debug",
             "-t:FindReferenceAssembliesForReferences",
             "-getItem:ReferencePathWithRefAssemblies",
             "-getItem:Using",

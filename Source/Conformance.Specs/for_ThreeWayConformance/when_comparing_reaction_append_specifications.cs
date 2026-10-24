@@ -6,7 +6,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -135,7 +134,7 @@ public class when_comparing_reaction_append_specifications(when_comparing_reacti
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("appends"), "appends", "Appends.play", Source);
             var compilation = new SemanticModelCompiler().Compile("ReactionAppends", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             var module = model.Application.Modules.Single();
             var feature = module.Features.Single();
             var slice = feature.Slices.Single();

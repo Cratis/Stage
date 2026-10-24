@@ -8,7 +8,6 @@ using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -16,7 +15,8 @@ public class when_comparing_canonical_generated_values(when_comparing_canonical_
 {
     [Fact] void should_compare_all_twelve_cases() => fixture.Outcomes.Length.ShouldEqual(12);
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
-    [Fact] void should_preserve_canonical_bytes() => Assert.All(GeneratedValuesCorpus.V15.SourceForms, form =>
+    [Fact]
+    void should_preserve_canonical_bytes() => Assert.All(GeneratedValuesCorpus.V15.SourceForms, form =>
         Assert.True(SemanticModelSerializer.Serialize(context.Model(form)).AsSpan().SequenceEqual(GeneratedValuesCorpus.V15.EsmBytes.AsSpan())));
 
     public class context : a_three_way_application

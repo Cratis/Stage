@@ -24,7 +24,7 @@ public class when_running_datetime_read_model_values : Specification
         var plan = Compile(clock, authored, expected);
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldEqual(passes);
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
     }
 

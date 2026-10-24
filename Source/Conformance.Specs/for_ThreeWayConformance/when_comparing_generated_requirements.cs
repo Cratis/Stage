@@ -13,7 +13,6 @@ using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
@@ -25,17 +24,17 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
     [Fact]
     public async Task should_reject_unmet_requirements_without_generated_or_appended_effects()
     {
-        var plan = SemanticExecutionPlan.Compile(generated_requirement_cases.Compile()).Plan!;
+        var plan = SemanticExecutionPlan.Compile(generated_requirement_cases.Compile()).Plan;
         var specification = plan.Specifications.Values.Single(value => value.Name == "RequirementUnmet");
-        specification.When!.GeneratedValues.ShouldBeEmpty();
+        specification.When.GeneratedValues.ShouldBeEmpty();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         reference.Passed.ShouldBeTrue();
         var rejection = (SemanticRejected)reference.Execution;
         rejection.Category.ShouldEqual(SemanticRejectionCategory.Validation);
         rejection.World.Facts.ShouldBeEmpty();
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(rejection.Details);
+        stage.Trace.Rejection.ShouldEqual(rejection.Details);
         stage.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -43,11 +42,11 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
     public async Task should_refuse_a_hand_built_requirement_reading_a_generated_property()
     {
         var model = generated_requirement_cases.WithGeneratedRead();
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var specification = plan.Specifications.Values.First();
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        stage.Unsupported!.Details.ShouldContain("STAGE-ESM-038");
+        stage.Unsupported.Details.ShouldContain("STAGE-ESM-038");
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedRequirements", "GeneratedRequirements"));
         rendered.Success.ShouldBeFalse();
         rendered.Artifacts.ShouldBeEmpty();

@@ -8,7 +8,6 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Conformance.Specs.for_MatchEndOfInput;
 
@@ -35,14 +34,14 @@ public class when_comparing_the_canonical_source(when_comparing_the_canonical_so
 
         static ExecutableSemanticModel CompileSource()
         {
-            using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.MatchEndOfInput.source.play")!;
+            using var resource = typeof(RegisterProjectCorpus).Assembly.GetManifestResourceStream("Cratis.Screenplay.CanonicalCorpus.Corpus.MatchEndOfInput.source.play");
             using var reader = new StreamReader(resource);
             var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("MatchEndOfInput"));
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("source"), "source", "MatchEndOfInput.play", reader.ReadToEnd());
             var compilation = new SemanticModelCompiler().Compile("MatchEndOfInput", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

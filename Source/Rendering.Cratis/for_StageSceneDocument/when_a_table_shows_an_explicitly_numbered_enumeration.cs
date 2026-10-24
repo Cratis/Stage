@@ -44,16 +44,18 @@ public class when_a_table_shows_an_explicitly_numbered_enumeration : Specificati
                   query AllOpportunities => Opportunity[]
             """);
         var profile = CratisRendering.CreateProfile("Sales", new("Sales", "Sales"));
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Sales", "Sales"));
-        var result = StageSceneDocument.Render("""
+        var result = StageSceneDocument.Render(
+            """
             {"toolbar":{"slice":"Sales.Opportunities.CaptureOpportunity"},"screens":[{"name":"Pipeline","slotContent":{"content":[{"componentName":"core:table","properties":{"typeName":"Sales.Opportunities.Pipeline.Opportunity"},"slots":{"columns":[{"componentName":"core:column","properties":{"property":"stage","label":"Stage"}},{"componentName":"core:column","properties":{"property":"title","label":"Title"}}]}}]}}]}
-            """, context);
-        var document = JsonNode.Parse(result)!;
-        _columns = document["screens"]![0]!["slotContent"]!["content"]![0]!["slots"]!["columns"]!.AsArray();
-        _dialogOptions = JsonNode.Parse(document["commandSchemas"]!["CaptureOpportunity"]!.GetValue<string>())!["properties"]!["stage"]!["enum"]!.AsArray();
+            """,
+            context);
+        var document = JsonNode.Parse(result);
+        _columns = document["screens"][0]["slotContent"]["content"][0]["slots"]["columns"].AsArray();
+        _dialogOptions = JsonNode.Parse(document["commandSchemas"]["CaptureOpportunity"].GetValue<string>())["properties"]["stage"]["enum"].AsArray();
     }
 
-    [Fact] void should_carry_the_members_in_declared_order() => _columns[0]!["properties"]!["options"]!.AsArray().Select(option => option!.GetValue<string>()).ShouldContainOnly("newLead", "inProgress", "won");
-    [Fact] void should_carry_the_number_of_each_member() => _columns[0]!["properties"]!["optionValues"]!.AsArray().Select(option => option!.GetValue<int>()).ShouldContainOnly(-1, 4, 90);
+    [Fact] void should_carry_the_members_in_declared_order() => _columns[0]["properties"]["options"].AsArray().Select(option => option.GetValue<string>()).ShouldContainOnly("newLead", "inProgress", "won");
+    [Fact] void should_carry_the_number_of_each_member() => _columns[0]["properties"]["optionValues"].AsArray().Select(option => option.GetValue<int>()).ShouldContainOnly(-1, 4, 90);
 }

@@ -24,7 +24,7 @@ public class when_loading_an_unsupported_scene : given.a_model_path
                 body
                 outlet details
             """;
-        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen);
+        await File.WriteAllTextAsync(_path, Cratis.Stage.Api.for_SceneSynthesizer.given.a_scene_model.Source + "\n" + screen, TestContext.Current.CancellationToken);
         var issues = new List<StageUnsupportedIssue>();
         LoadedSemanticModel? model = null;
         SceneApplication? scene = null;

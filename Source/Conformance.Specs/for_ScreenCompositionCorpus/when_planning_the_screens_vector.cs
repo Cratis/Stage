@@ -119,7 +119,6 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         // Rebaselined for the @cratis/stage.runtime package (#499): beyond the original invariant, the previous plan's vendored
         // .frontend/stage/* runtime and styledPrimeReact.ts are no longer emitted and the entry point, vite config and package.json import/depend on the package. The
         // shell also declares Vite's client types in .frontend/vite-env.d.ts, which the vendored runtime used to carry.
-
         var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var plan = planned.Plan;

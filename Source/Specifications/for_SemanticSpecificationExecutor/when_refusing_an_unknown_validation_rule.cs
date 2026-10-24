@@ -31,9 +31,9 @@ public class when_refusing_an_unknown_validation_rule : given.a_command_only_pla
             };
 
         // Deliberately bypass compiler validation, as for a rule introduced by a newer dependency.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
-        var report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
+        var report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.ShouldNotBeEmpty();
-        report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported!.Details.Contains("STAGE-ESM-005", StringComparison.Ordinal) && result.Unsupported.Details.Contains("999", StringComparison.Ordinal) && result.Unsupported.Construct == (conceptRule ? concept.Id : command.Id).ToString());
+        report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Unsupported && result.Unsupported.Details.Contains("STAGE-ESM-005", StringComparison.Ordinal) && result.Unsupported.Details.Contains("999", StringComparison.Ordinal) && result.Unsupported.Construct == (conceptRule ? concept.Id : command.Id).ToString());
     }
 }

@@ -8,7 +8,6 @@ using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 

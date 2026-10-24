@@ -23,7 +23,7 @@ public class when_matching_scoped_event_source_key_types : Specification
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         Assert.True(reference.Passed == passes, string.Join(';', reference.Failures));
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.True(result.Outcome == (passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed),
             $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
         result.Failures.ShouldContainOnly(reference.Failures);
@@ -36,7 +36,7 @@ public class when_matching_scoped_event_source_key_types : Specification
     {
         var plan = Compile(primitive, primitive, key, false, "recorded", given: true);
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
         result.Failures.ShouldBeEmpty();
     }
@@ -50,7 +50,7 @@ public class when_matching_scoped_event_source_key_types : Specification
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldBeTrue();
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 
@@ -58,11 +58,11 @@ public class when_matching_scoped_event_source_key_types : Specification
     public async Task should_keep_literal_keys_unsupported_for_uuid_identifiers_without_misreporting_the_source_type()
     {
         var plan = Compile("Uuid", "Uuid", Uuid, false, "recorded", $"\"{Uuid}\"");
-        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).Details.ShouldEqual(
             "This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldEqual("This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
+        result.Unsupported.Details.ShouldEqual("This admitted ESM scope needs a per-run lowering beyond scalar from/set mappings.");
     }
 
     static SemanticExecutionPlan Compile(string sourceType, string identifierType, string key, bool generated, string expected, string projectionKey = "$eventSourceId", bool given = false)
@@ -100,7 +100,7 @@ public class when_matching_scoped_event_source_key_types : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("ScopedKeyTypes", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var compiled = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var compiled = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.NotNull(compiled.Plan);
         return compiled.Plan;
     }

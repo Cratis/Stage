@@ -93,8 +93,17 @@ public class when_starting_with_the_shared_executor : Specification
     [Fact] void should_start_and_serve_status() => _status.ShouldEqual(HttpStatusCode.OK);
     [Fact] void should_keep_the_host_ready_after_a_run() => _stageStatus.State.ShouldEqual("ready");
     [Fact] void should_run_the_specification_in_the_child() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_have_no_kernel_or_testing_dependencies() => _dependencies.Where(name => new[] { "Cratis.Chronicle.Core", "Cratis.Chronicle.Grpc" }.Contains(name, StringComparer.Ordinal) || name.Contains(".Testing", StringComparison.Ordinal)).ShouldBeEmpty();
+    [Fact]
+    void should_have_no_kernel_or_testing_dependencies() => _dependencies.Where(name => !IsSpecificationRunnerDependency(name) &&
+        (new[] { "Cratis.Chronicle.Core", "Cratis.Chronicle.Grpc" }.Contains(name, StringComparer.Ordinal) || name.Contains(".Testing", StringComparison.Ordinal))).ShouldBeEmpty();
     [Fact] void should_discover_only_stage_command_handlers() => _handlers.Where(name => !new[] { "Cratis.Stage", "Cratis.Stage.Host", "Stage.Generated" }.Contains(name, StringComparer.Ordinal)).ShouldBeEmpty();
+
+    // This file exists only in Debug; the executable runner contributes these packages, not the host runtime.
+    static bool IsSpecificationRunnerDependency(string name) =>
+        name.Equals("Microsoft.Testing.Extensions.Telemetry", StringComparison.Ordinal) ||
+        name.Equals("Microsoft.Testing.Extensions.TrxReport.Abstractions", StringComparison.Ordinal) ||
+        name.Equals("Microsoft.Testing.Platform", StringComparison.Ordinal) ||
+        name.Equals("Microsoft.Testing.Platform.MSBuild", StringComparison.Ordinal);
 
     async Task Destroy()
     {

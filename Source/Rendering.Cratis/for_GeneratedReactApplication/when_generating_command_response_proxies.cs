@@ -7,7 +7,6 @@ using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication;
 
@@ -70,7 +69,7 @@ public class when_generating_command_response_proxies(when_generating_command_re
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application, artifact.RelativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

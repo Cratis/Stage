@@ -26,7 +26,7 @@ public class when_rendering_escaped_text_values : a_register_project_render_requ
         var files = new[] { new RenderedFile("TextProbe.cs", code) };
         RenderedOutput.Errors(files).ShouldBeEmpty();
         var assembly = RenderedOutput.Load(files);
-        assembly.GetType("TextProbe")!.GetMethod("Value")!.Invoke(null, null).ShouldEqual(value);
+        assembly.GetType("TextProbe").GetMethod("Value").Invoke(null, null).ShouldEqual(value);
         literal.ShouldEqual(CSharpCodeBuilder.StringLiteral(value));
     }
 
@@ -36,7 +36,7 @@ public class when_rendering_escaped_text_values : a_register_project_render_requ
         const string value = "line\n\"quoted\"\\tail";
         var context = new SemanticApplicationContext(_request, _options);
         var specification = _registerProject.Specifications.First(specification => specification.When is not null);
-        var property = context.Commands[specification.When!.Command].Properties.Single(property => property.Name == "name");
+        var property = context.Commands[specification.When.Command].Properties.Single(property => property.Name == "name");
         specification = specification with
         {
             When = specification.When with
@@ -45,9 +45,9 @@ public class when_rendering_escaped_text_values : a_register_project_render_requ
             }
         };
         var file = SemanticCommandSpecificationRenderer.Render(specification, context);
-        var syntax = CSharpSyntaxTree.ParseText(file.Content, new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]));
-        syntax.GetDiagnostics().ShouldBeEmpty();
-        var literal = syntax.GetRoot().DescendantTokens().Single(token => token.RawKind == (int)SyntaxKind.StringLiteralToken && token.ValueText == value);
+        var syntax = CSharpSyntaxTree.ParseText(file.Content, new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]), cancellationToken: TestContext.Current.CancellationToken);
+        syntax.GetDiagnostics(TestContext.Current.CancellationToken).ShouldBeEmpty();
+        var literal = syntax.GetRoot(TestContext.Current.CancellationToken).DescendantTokens().Single(token => token.RawKind == (int)SyntaxKind.StringLiteralToken && token.ValueText == value);
         literal.Text.ShouldEqual(CSharpCodeBuilder.StringLiteral(value));
         literal.ValueText.ShouldEqual(value);
     }

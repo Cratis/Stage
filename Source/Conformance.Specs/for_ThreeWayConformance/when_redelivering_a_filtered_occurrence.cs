@@ -63,13 +63,13 @@ public class when_redelivering_a_filtered_occurrence : Specification
                     when redelivered Started to Filtered
                     then no events
             """);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
-        stage.Trace!.Facts.ShouldBeEmpty();
+        stage.Trace.Facts.ShouldBeEmpty();
         reference.Execution.World.Facts.Length.ShouldEqual(1);
     }
 }

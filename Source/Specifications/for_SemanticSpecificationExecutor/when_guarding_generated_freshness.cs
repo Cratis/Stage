@@ -24,17 +24,17 @@ public class when_guarding_generated_freshness : Specification
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldBeTrue();
         reference.Execution.Kind.ShouldEqual(kind);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
         if (kind == SemanticExecutionOutcomeKind.Rejected)
         {
             ((SemanticRejected)reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Concurrency);
-            stage.Trace!.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
+            stage.Trace.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
             stage.Trace.Facts.ShouldBeEmpty();
         }
         else
         {
-            stage.Trace!.Facts.Count.ShouldEqual(2);
+            stage.Trace.Facts.Count.ShouldEqual(2);
         }
     }
 }

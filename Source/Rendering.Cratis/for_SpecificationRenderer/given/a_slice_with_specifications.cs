@@ -50,8 +50,10 @@ public class a_slice_with_specifications : Specification
         IEnumerable<SpecificationReadModelSyntax>? thenReadModels = null) =>
         new(name, given ?? [], when, then ?? [], errors ?? [], SourceLocation.Start, ThenReadModels: thenReadModels);
 
+#pragma warning disable CRSPEC0007 // This static AST factory returns a value; it is not a lifecycle hook.
     protected static SpecificationCommandSyntax When(string command, params (string Property, object Value)[] values) =>
         new(command, [.. values.Select(Mapping)], SourceLocation.Start);
+#pragma warning restore CRSPEC0007
 
     protected static SpecificationEventSyntax Event(string type, params (string Property, object Value)[] values) =>
         new(type, [.. values.Select(Mapping)], SourceLocation.Start);

@@ -14,7 +14,7 @@ public class when_admitting_the_v21_golden_vector : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(21).Bytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(21).Bytes.AsSpan()), []).Plan;
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
 
     [Fact] void should_read_the_full_v21_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V21);
@@ -32,13 +32,13 @@ public class when_admitting_the_v21_golden_vector : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("refusals"), "refusals", "Refusals.play", source);
         var compilation = new SemanticModelCompiler().Compile("V21Refusals", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var application = compilation.Value!.Model.Application;
+        var application = compilation.Value.Model.Application;
         var model = ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application with
         {
             Concepts = application.Concepts.Add(concept)
         });
-        var plan = SemanticExecutionPlan.Compile(model, []).Plan!;
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
+        var plan = SemanticExecutionPlan.Compile(model, []).Plan;
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.ShouldNotBeEmpty();
         Assert.All(report.Results, result =>
         {

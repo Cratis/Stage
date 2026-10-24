@@ -28,7 +28,7 @@ public class when_loading_a_routed_model : Specification
         fromSource.ShouldBeOfExactType<UnsupportedEventSourceRoutes>();
         fromSource.Message.StartsWith("STAGE-ESM-030:", StringComparison.Ordinal).ShouldBeTrue();
         var path = Path.Combine(_directory, "routed.play");
-        await File.WriteAllTextAsync(path, source);
+        await File.WriteAllTextAsync(path, source, TestContext.Current.CancellationToken);
         foreach (var input in new[] { path, _directory })
         {
             var fromPath = await Catch.Exception(() => EventModelLoader.LoadStageApplicationFromPathAsync(input));

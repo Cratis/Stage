@@ -70,7 +70,7 @@ public class with_read_side_or_reactive_translate_behavior
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Work", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         if (withinTranslate)
         {
             var module = model.Application.Modules.Single();
@@ -80,12 +80,12 @@ public class with_read_side_or_reactive_translate_behavior
             var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [.. slices] }] }] };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
         }
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
-        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
+        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
 
         var unsupported = reachable || (kind == "reaction" && withinTranslate);
         result.Outcome.ShouldEqual(unsupported ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
-        if (unsupported) result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+        if (unsupported) result.Unsupported.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
         else result.Unsupported.ShouldBeNull();
     }
 }

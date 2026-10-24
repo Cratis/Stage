@@ -37,7 +37,7 @@ public class when_refusing_invalid_all_comparison_rules : Specification
             """);
         var compilation = new SemanticModelCompiler().Compile("Comparisons", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
@@ -49,12 +49,12 @@ public class when_refusing_invalid_all_comparison_rules : Specification
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Commands = [command] }] }] }] };
 
         // Fault injection bypasses Screenplay's contract checks to exercise Stage's fail-closed boundary.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         var result = report.Results.Single();
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Command);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Command);
         result.Unsupported.Construct.ShouldEqual(command.Id.ToString());
         result.Unsupported.Details.ShouldEqual(invalidOperand
             ? $"Command 'Check' validation '{kind}' on property 'values' requires a numeric operand."

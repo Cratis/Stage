@@ -18,10 +18,10 @@ public class with_canonical_events : Specification
     public async Task should_match_the_frozen_reference_outcomes_and_facts(bool captures)
     {
         var corpus = captures ? PublicEventsCorpus.CapturesFromEventsV9 : PublicEventsCorpus.V9;
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan())).Plan;
         var observed = new Dictionary<SemanticId, int>();
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (id, count) => observed[id] = count };
-        var report = await executor.Run(plan, new([.. plan.Specifications.Keys]), new());
+        var report = await executor.Run(plan, new([.. plan.Specifications.Keys]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(corpus.SpecificationExpectations.Length);
         foreach (var specification in plan.Specifications.Values)
         {
@@ -35,7 +35,7 @@ public class with_canonical_events : Specification
             observed[specification.Id].ShouldEqual(reference.Execution.World.Facts.Length);
             reference.Execution.World.Facts.Length.ShouldEqual(expected.WorldFactCount ?? 2);
             var accepted = (SemanticAccepted)reference.Execution;
-            actual.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
+            actual.Trace.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
             foreach (var pair in accepted.Facts.Zip(actual.Trace.Facts))
             {
                 pair.Second.EventSource.ShouldEqual(SemanticRunContext.Canonical(pair.First.Destination));

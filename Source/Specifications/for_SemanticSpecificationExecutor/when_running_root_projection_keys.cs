@@ -26,10 +26,10 @@ public class when_running_root_projection_keys : Specification
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
         for (var run = 0; run < 2; run++)
         {
-            var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+            var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
             Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed,
                 $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-            result.Trace!.ReadModels.Count.ShouldEqual(constant ? 1 : 2);
+            result.Trace.ReadModels.Count.ShouldEqual(constant ? 1 : 2);
         }
     }
 
@@ -40,7 +40,7 @@ public class when_running_root_projection_keys : Specification
     {
         var plan = Compile(true, false, mapping, expected);
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     }
 

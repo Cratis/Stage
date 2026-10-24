@@ -24,10 +24,10 @@ public class with_reachable_unsupported_publication : Specification
         var publishedFeature = publishedModule.Features.Single();
         var outbound = publishedFeature.Slices.Single(slice => slice.Direction == SemanticTranslationDirection.Outbound);
         var projection = outbound.Projections.Single();
-        var source = reachable ? capturedSlice.Events.Single(@event => @event.Name == "Added").Id : projection.Scope!.From[0].EventContract;
+        var source = reachable ? capturedSlice.Events.Single(@event => @event.Name == "Added").Id : projection.Scope.From[0].EventContract;
         projection = projection with
         {
-            Scope = projection.Scope! with
+            Scope = projection.Scope with
             {
                 From = [projection.Scope.From[0] with { EventContract = source, Mappings = [] }]
             }
@@ -39,11 +39,11 @@ public class with_reachable_unsupported_publication : Specification
             Modules = [capturedModule, publishedModule with { Features = [publishedFeature with
             { Slices = [.. publishedFeature.Slices.Where(slice => slice.Kind == SemanticSliceKind.StateChange), outbound] }] }]
         };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(captured.LanguageVersion, captured.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(captured.LanguageVersion, captured.SemanticVersion, application)).Plan;
         var specification = plan.Specifications.Values.Single(candidate => candidate.Name == "FirstArrival");
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new());
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken);
         var actual = report.Results.Single();
         actual.Outcome.ShouldEqual(reachable ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
-        if (reachable) actual.Unsupported!.Details.StartsWith("STAGE-ESM-032:", StringComparison.Ordinal).ShouldBeTrue();
+        if (reachable) actual.Unsupported.Details.StartsWith("STAGE-ESM-032:", StringComparison.Ordinal).ShouldBeTrue();
     }
 }

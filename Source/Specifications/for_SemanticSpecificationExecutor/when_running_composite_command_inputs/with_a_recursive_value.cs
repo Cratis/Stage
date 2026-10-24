@@ -13,5 +13,5 @@ public class with_a_recursive_value : given.a_composite_input
 
     [Fact] void should_match_reference_rejection() => (_reference.Passed && _result.Outcome == SemanticSpecificationOutcome.Passed).ShouldBeTrue();
     [Fact] void should_descend_into_present_recursive_members() => _failures.Select(failure => failure.Message).ShouldEqual(["Count minimum", "Count excluded", "Count minimum", "Count excluded"]);
-    [Fact] void should_preserve_reference_failure_order() => _failures.ShouldEqual(((SemanticRejected)_reference.Execution).ValidationFailures);
+    [Fact] void should_preserve_reference_failure_order() => _failures.ShouldEqual([.. ((SemanticRejected)_reference.Execution).ValidationFailures]);
 }

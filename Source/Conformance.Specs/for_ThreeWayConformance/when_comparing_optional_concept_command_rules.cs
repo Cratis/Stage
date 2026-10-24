@@ -11,7 +11,6 @@ using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
@@ -30,7 +29,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(optional_concept_command_rule_cases.Compile()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(optional_concept_command_rule_cases.Compile()).Plan;
             var probes = plan.Specifications.Values.Select(specification =>
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -43,7 +42,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
                 {
                     Assert.Equal<string>(["Warning", "Information", "Error"], failures.Select(failure => failure[1]));
                 }
-                var inputValue = specification.When!.Values.Single(value => plan.Commands[specification.When.Command].Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
+                var inputValue = specification.When.Values.Single(value => plan.Commands[specification.When.Command].Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
                 var text = inputValue switch
                 {
                     SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),

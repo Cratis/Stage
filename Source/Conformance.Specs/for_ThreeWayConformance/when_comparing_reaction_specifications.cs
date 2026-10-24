@@ -30,7 +30,7 @@ public class when_comparing_reaction_specifications : Specification
         };
         var model = SemanticModelSerializer.Deserialize(vector.EsmBytes.AsSpan());
         if (form != "identity") model = EventSubset(model, form);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var admitted = plan.Specifications.Values.Where(specification => SemanticSpecificationAdmission.Check(plan, specification) is null).ToArray();
         admitted.ShouldNotBeEmpty();
 
@@ -85,14 +85,14 @@ public class when_comparing_reaction_specifications : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reaction"), "reaction", "Reaction.play", source);
         var compilation = new SemanticModelCompiler().Compile("InlineReactions", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         reference.Passed.ShouldEqual(fires);
         stage.Outcome.ShouldEqual(fires ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
         stage.ExecutionKind.ShouldEqual(reference.Execution.Kind.ToString());
-        Assert.Equal(((SemanticAccepted)reference.Execution).Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
+        Assert.Equal(((SemanticAccepted)reference.Execution).Facts.Select(fact => fact.EventContract.ToString()), stage.Trace.Facts.Select(fact => fact.EventContract));
     }
 
     static async Task AssertMatchesReference(SemanticExecutionPlan plan, SemanticSpecification specification)
@@ -105,11 +105,11 @@ public class when_comparing_reaction_specifications : Specification
         switch (reference.Execution)
         {
             case SemanticAccepted accepted:
-                Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
+                Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace.Facts.Select(fact => fact.EventContract));
                 Assert.Equal(accepted.Facts.Select(fact => fact.Route), stage.Trace.Facts.Select(fact => fact.Route));
                 break;
             case SemanticRejected rejected:
-                stage.Trace!.Rejection.ShouldEqual(rejected.Details);
+                stage.Trace.Rejection.ShouldEqual(rejected.Details);
                 break;
         }
     }

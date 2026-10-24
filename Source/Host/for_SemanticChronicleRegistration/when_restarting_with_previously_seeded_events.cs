@@ -37,15 +37,16 @@ public class when_restarting_with_previously_seeded_events : a_seeding_store
                   price = 24
                   featured = false
                   tags = []
-            """, tail: 1);
+            """,
+            tail: 1);
         _sourcesWithEvents.UnionWith(["mug", "tee"]);
-        _history = SemanticSeeds.Stored(_plan, _seeds.Groups.SelectMany(group => group.Facts), 0, _seeds.Occurred).ToArray();
+        _history = [.. SemanticSeeds.Stored(_plan, _seeds.Groups.SelectMany(group => group.Facts), 0, _seeds.Occurred)];
         var contract = _plan.Events.Values.Single();
         var schema = JsonSchema.FromJson(SemanticSchemas.Schema(contract.Properties, _plan.Model.Application));
         var converter = new ExpandoObjectConverter(new TypeFormats());
         foreach (var stored in _history)
         {
-            stored.Content = JsonSerializer.Serialize(converter.ToExpandoObject(JsonNode.Parse(stored.Content)!.AsObject(), schema));
+            stored.Content = JsonSerializer.Serialize(converter.ToExpandoObject(JsonNode.Parse(stored.Content).AsObject(), schema));
         }
         _contracts.Sequences.FromSequenceNumber(Arg.Any<FromSequenceNumberRequest>()).Returns(
             QueryResult<IEnumerable<AppendedEventResponse>>.Success(Guid.Empty, _history));

@@ -52,7 +52,7 @@ public class with_an_expression_named_event_property
         var plan = Compile(property, input, expected);
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.False(reference.Passed);
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
@@ -66,7 +66,7 @@ public class with_an_expression_named_event_property
         var plan = Compile("true_", "false", "true", declared: true);
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.False(reference.Passed);
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
@@ -100,8 +100,8 @@ public class with_an_expression_named_event_property
             model.SemanticVersion,
             model.Application with { Modules = [module with { Features = [changed] }] }));
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var reference = new SemanticSpecificationRunner().Run(compiled.Plan!, specification.Id);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan!, new([specification.Id]), new())).Results);
+        var reference = new SemanticSpecificationRunner().Run(compiled.Plan, specification.Id);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.False(reference.Passed);
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Unsupported,
@@ -144,8 +144,8 @@ public class with_an_expression_named_event_property
             model.Application with { Modules = [module with { Features = [changed] }] });
         var compiled = SemanticExecutionPlan.Compile(updated);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var specification = compiled.Plan!.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new())).Results);
+        var specification = compiled.Plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
         Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);
@@ -164,7 +164,7 @@ public class with_an_expression_named_event_property
     {
         var plan = Compile(property, "false", "true");
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);
         Assert.Equal(StageExecutionCapability.Projection, stage.Unsupported?.Capability);

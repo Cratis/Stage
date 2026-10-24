@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactionSpecificationRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_rendering_productions : given.a_reaction_specification
 {
     void Because() => Render();

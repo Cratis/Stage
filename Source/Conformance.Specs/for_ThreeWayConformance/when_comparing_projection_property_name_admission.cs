@@ -134,10 +134,10 @@ public class when_comparing_projection_property_name_admission
             $"{path}/{authored}: event [{string.Join(", ", eventContract.Properties.Select(property => property.Name))}], model [{string.Join(", ", view.ReadModels.Single().Properties.Select(property => $"{property.Name}/{property.IsIdentifier}"))}]");
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.Equal(safe, rendered.Success);
         Assert.Equal(safe, executed.Outcome == SemanticSpecificationOutcome.Passed);
@@ -184,10 +184,10 @@ public class when_comparing_projection_property_name_admission
             model.Application with { Modules = [module with { Features = [modified] }] });
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.False(rendered.Success);
         Assert.Empty(rendered.Artifacts);
@@ -285,10 +285,10 @@ public class when_comparing_projection_property_name_admission
             original.Application with { Modules = [module with { Features = [changed] }] });
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var specification = plan.Specifications.Values.Single();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(
@@ -343,12 +343,9 @@ public class when_comparing_projection_property_name_admission
             original.Application with { Concepts = [changed] });
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
-            plan,
-            new([plan.Specifications.Values.Single().Id]),
-            new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new(), TestContext.Current.CancellationToken)).Results);
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(
             model,
@@ -384,12 +381,9 @@ public class when_comparing_projection_property_name_admission
             original.Application with { Types = [changed] });
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
-            plan,
-            new([plan.Specifications.Values.Single().Id]),
-            new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new(), TestContext.Current.CancellationToken)).Results);
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(
             model,
@@ -484,7 +478,7 @@ public class when_comparing_projection_property_name_admission
         }
         var original = Compile(source);
         var declaredScope = original.Application.Modules.Single().Features.Single().Slices
-            .Single(slice => slice.Kind == SemanticSliceKind.StateView).Projections.Single().Scope!;
+            .Single(slice => slice.Kind == SemanticSliceKind.StateView).Projections.Single().Scope;
         Assert.Equal(scope == "nested", !declaredScope.Nested.IsEmpty);
         Assert.Equal(scope == "children", !declaredScope.Children.IsEmpty);
         var module = original.Application.Modules.Single();
@@ -506,13 +500,10 @@ public class when_comparing_projection_property_name_admission
             original.Application with { Modules = [module with { Features = [changed] }] });
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var view = changed.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Slice, view.Id), new("Projects", "Projects"));
-        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(
-            plan,
-            new([plan.Specifications.Values.Single().Id]),
-            new())).Results);
+        var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         var collides = propertyName != "title";
         Assert.True(!collides == rendered.Success, $"{scope}/{propertyName}: {string.Join("; ", rendered.Diagnostics)}");
@@ -590,7 +581,7 @@ public class when_comparing_projection_property_name_admission
         var model = Compile(childSource);
         var compiled = SemanticExecutionPlan.Compile(model);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var plan = compiled.Plan!;
+        var plan = compiled.Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
@@ -621,7 +612,7 @@ public class when_comparing_projection_property_name_admission
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("names"), "names", "Names.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

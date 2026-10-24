@@ -46,7 +46,7 @@ public class when_comparing_atomic_reaction_batch_corpora : Specification
             // A friend assembly exposes duplicate linked admission types from the renderer and executor.
             typeof(SemanticSpecificationExecutor).GetProperty("ObserveWorldFacts", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(executor, (Action<SemanticId, int>)((_, count) => worldFacts = count));
-            var result = (await executor.Run(plan, new([specification.Id]), new())).Results.Single();
+            var result = (await executor.Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
             Assert.Equal(expectation.WorldFactCount!.Value, worldFacts);
             reference.Passed.ShouldEqual(expectation.Passed);
             reference.Execution.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);

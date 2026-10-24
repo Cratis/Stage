@@ -70,12 +70,12 @@ public class when_running_colliding_generated_property_names
             model.Application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] });
         var execution = SemanticExecutionPlan.Compile(changedModel);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        var specification = execution.Plan!.Specifications.Values.Single();
+        var specification = execution.Plan.Specifications.Values.Single();
 
-        var blocker = SemanticRunAdmission.Check(execution.Plan!, specification);
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([specification.Id]), new())).Results);
+        var blocker = SemanticRunAdmission.Check(execution.Plan, specification);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.Null(blocker);
-        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan!, specification.Id).Passed);
+        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan, specification.Id).Passed);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 
@@ -107,9 +107,9 @@ public class when_running_colliding_generated_property_names
             model.Application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] });
         var execution = SemanticExecutionPlan.Compile(changedModel);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([specification.Id]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
-        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan!, specification.Id).Passed);
+        Assert.True(new SemanticSpecificationRunner().Run(execution.Plan, specification.Id).Passed);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 
@@ -123,7 +123,7 @@ public class when_running_colliding_generated_property_names
         // The source compiler accepts distinct authored casing; runtime JSON binding does not.
         var execution = SemanticExecutionPlan.Compile(Compile(source));
         Assert.True(execution.Success, string.Join(';', execution.Issues));
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan!, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(execution.Plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
         Assert.Equal(StageExecutionCapability.Command, result.Unsupported?.Capability);
@@ -136,7 +136,7 @@ public class when_running_colliding_generated_property_names
         var model = Compile(Source.Replace("displayName", "project_title", StringComparison.Ordinal));
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        Assert.Null(SemanticRunAdmission.Check(execution.Plan!, execution.Plan!.Specifications.Values.Single()));
+        Assert.Null(SemanticRunAdmission.Check(execution.Plan, execution.Plan.Specifications.Values.Single()));
     }
 
     static ExecutableSemanticModel Compile(string source)
@@ -145,6 +145,6 @@ public class when_running_colliding_generated_property_names
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("collision-run"), "collision-run", "CollisionRun.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }

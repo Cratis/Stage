@@ -13,7 +13,7 @@ public class when_loading_reaction_identity_syntax : given.a_model_path
     [InlineData("from Account.Notes", "STAGE-ESM-035")]
     public async Task should_refuse_the_legacy_model_before_registration(string construct, string code)
     {
-        await File.WriteAllTextAsync(_path, "eventsource Account\n  stream Notes\nmodule Work\n  feature Completion\n    slice Automation Complete\n      event Started\n      reaction Follow\n        " + construct + "\n        when Started");
+        await File.WriteAllTextAsync(_path, "eventsource Account\n  stream Notes\nmodule Work\n  feature Completion\n    slice Automation Complete\n      event Started\n      reaction Follow\n        " + construct + "\n        when Started", TestContext.Current.CancellationToken);
         var issues = new List<StageUnsupportedIssue>();
         var application = await EventModelHost.LoadModel(_path, issues);
         application.ShouldBeNull();

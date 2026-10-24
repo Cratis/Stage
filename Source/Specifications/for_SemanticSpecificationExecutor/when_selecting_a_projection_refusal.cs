@@ -51,7 +51,7 @@ public class when_selecting_a_projection_refusal : Specification
         Assert.NotNull(refusal);
         refusal.Capability.ShouldEqual(StageExecutionCapability.Projection);
         refusal.Construct.ShouldEqual(expected.Id.ToString());
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported.ShouldEqual(refusal);
     }

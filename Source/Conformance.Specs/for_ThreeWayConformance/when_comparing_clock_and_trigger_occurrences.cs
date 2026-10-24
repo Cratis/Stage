@@ -54,14 +54,14 @@ public class when_comparing_clock_and_trigger_occurrences : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("automatic"), "automatic", "Automatic.play", source);
         var compilation = new SemanticModelCompiler().Compile("AutomaticOccurrences", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Passed, $"{stage.Unsupported?.Details} {string.Join(';', stage.Failures)}");
         var facts = ((SemanticAccepted)reference.Execution).Facts;
-        stage.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual(facts.Select(fact => fact.EventContract.ToString()));
+        stage.Trace.Facts.Select(fact => fact.EventContract).ShouldEqual(facts.Select(fact => fact.EventContract.ToString()));
         stage.Trace.Facts.Select(fact => fact.Values.Single().Value).ShouldEqual(facts.Select(fact => $"\"{((SemanticTextValue)fact.Values.Single().Value).Value}\""));
     }
 }

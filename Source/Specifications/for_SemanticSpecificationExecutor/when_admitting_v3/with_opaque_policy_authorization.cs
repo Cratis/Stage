@@ -39,16 +39,16 @@ public class with_opaque_policy_authorization : a_command_only_plan
                 new SemanticPolicy("ManagersOnly", new SemanticRoleCondition("Manager")),
                 new SemanticPolicy("CustomAccess", new SemanticOpaquePolicyCondition("policy-body"))]
         };
-        var plan = SemanticExecutionPlan.Compile(CreateV3(application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(CreateV3(application)).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var result = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var result = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         var unsupported = opaqueFirst || or;
         Assert.Equal(unsupported, reference.Execution is SemanticUnsupported { Capability: SemanticExecutionCapability.Authorization });
         Assert.Equal(unsupported ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed, result.Outcome);
         if (unsupported)
         {
             Assert.Equal(StageExecutionCapability.Authorization, result.Unsupported?.Capability);
-            Assert.Contains("CustomAccess", result.Unsupported!.Details);
+            Assert.Contains("CustomAccess", result.Unsupported.Details);
         }
     }
 }

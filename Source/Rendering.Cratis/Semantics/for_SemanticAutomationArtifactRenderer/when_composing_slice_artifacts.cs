@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifactRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_composing_slice_artifacts : given.an_automation
 {
     [Fact]

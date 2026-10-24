@@ -28,14 +28,14 @@ public class when_preserving_reducer_filter_runtime_refusals
         """;
         var source = when_rendering_reducer_observer_filters.Source(filter).Replace("    slice StateView Totals", specification + "\n    slice StateView Totals", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
-        var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan;
         var rendered = when_rendering_a_pure_reducer.Plan(loaded);
         Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
         var hostFeature = Assert.Single(SemanticRunAdmission.ModelFeatures(loaded.Model));
         Assert.StartsWith("STAGE-ESM-035:", hostFeature.Details, StringComparison.Ordinal);
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new(), TestContext.Current.CancellationToken);
         var result = Assert.Single(report.Results);
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
-        Assert.StartsWith("STAGE-ESM-035:", result.Unsupported!.Details, StringComparison.Ordinal);
+        Assert.StartsWith("STAGE-ESM-035:", result.Unsupported.Details, StringComparison.Ordinal);
     }
 }

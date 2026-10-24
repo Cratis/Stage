@@ -19,7 +19,7 @@ public class when_refusing_reaction_identity_syntax : Specification
     {
         var file = Path.Combine(_folder, "ReactionIdentity.play");
         var result = Path.Combine(_folder, "results.json");
-        await File.WriteAllTextAsync(file, "module Work\n  feature Completion\n    slice Automation Complete\n      event Started\n      reaction Follow\n        runs as system\n        when Started");
+        await File.WriteAllTextAsync(file, "module Work\n  feature Completion\n    slice Automation Complete\n      event Started\n      reaction Follow\n        runs as system\n        when Started", TestContext.Current.CancellationToken);
         await using var error = new StringWriter();
         var exitCode = await Program.Run(["--model", file, "--output", result], TextWriter.Null, error);
         exitCode.ShouldEqual(1);

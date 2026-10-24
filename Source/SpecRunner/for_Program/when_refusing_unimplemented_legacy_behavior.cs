@@ -22,7 +22,7 @@ public class when_refusing_unimplemented_legacy_behavior : Specification
     {
         var file = Path.Combine(_folder, "Fees.play");
         var result = Path.Combine(_folder, "results.json");
-        await File.WriteAllTextAsync(file, boundary + "module Billing\n  feature Invoices\n    slice StateChange ApplyFee\n      command ApplyFee\n" + handler + "        produces FeeApplied\n      event FeeApplied");
+        await File.WriteAllTextAsync(file, boundary + "module Billing\n  feature Invoices\n    slice StateChange ApplyFee\n      command ApplyFee\n" + handler + "        produces FeeApplied\n      event FeeApplied", TestContext.Current.CancellationToken);
         await using var error = new StringWriter();
         var exitCode = await Program.Run(["--model", file, "--output", result, "--engine", "structural"], TextWriter.Null, error);
         exitCode.ShouldEqual(1);

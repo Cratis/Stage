@@ -26,7 +26,7 @@ public class when_lowering_exact_numbers : a_seeded_model
     static ExactNumber Exact(string text)
     {
         Assert.True(ExactNumber.TryParse(text, out var number));
-        return number!;
+        return number;
     }
 
     [Fact] void should_keep_the_fraction() => ((SemanticNumberValue)_seeds.Groups.Single().Facts[0].Values.Single().Value).Value.ToString(System.Globalization.CultureInfo.InvariantCulture).ShouldEqual("12.5");

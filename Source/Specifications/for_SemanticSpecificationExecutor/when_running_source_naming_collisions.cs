@@ -50,13 +50,13 @@ public class when_running_source_naming_collisions : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("names"), "names", "Names.play", source);
         var compilation = new SemanticModelCompiler().Compile("Payments", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var execution = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var execution = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.True(execution.Success, string.Join(';', execution.Issues));
-        var plan = execution.Plan!;
+        var plan = execution.Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
 
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");

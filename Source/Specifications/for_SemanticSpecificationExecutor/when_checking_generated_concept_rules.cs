@@ -19,7 +19,7 @@ public class when_checking_generated_concept_rules : Specification
         // Preserve the corpus's Unproven rule and its single shape-valid failing value, a{63}b.
         var concept = SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan())
             .Application.Concepts.Single(concept => concept.Name == "InviteCode");
-        var pattern = ((SemanticTextValue)concept.Validations.Single().Operand!).Value;
+        var pattern = ((SemanticTextValue)concept.Validations.Single().Operand).Value;
         var source = $$"""
             concept Code : String
               generate nanoid 64 alphabet "ab"
@@ -42,14 +42,14 @@ public class when_checking_generated_concept_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("rules"), "rules", "Rules.play", source);
         var compilation = new SemanticModelCompiler().Compile("Rules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldBeTrue();
         var rejection = (SemanticRejected)reference.Execution;
         rejection.Category.ShouldEqual(SemanticRejectionCategory.Contract);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(rejection.Details);
+        stage.Trace.Rejection.ShouldEqual(rejection.Details);
         stage.Trace.Facts.ShouldBeEmpty();
     }
 }

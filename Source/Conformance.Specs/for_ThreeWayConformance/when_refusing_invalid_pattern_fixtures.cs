@@ -43,9 +43,9 @@ public class when_refusing_invalid_pattern_fixtures : Specification
                 }]
             }]
         });
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         reference.Passed.ShouldBeTrue();
         reference.Execution.ShouldBeOfExactType<SemanticRejected>();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);

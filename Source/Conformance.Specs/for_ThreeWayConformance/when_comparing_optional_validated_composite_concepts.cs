@@ -15,7 +15,6 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
@@ -29,7 +28,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
     void should_admit_every_renderer_admitted_well_formed_composite_command_shape_without_opaque_rules()
     {
         var model = optional_validated_composite_concept_cases.Admitted();
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("OptionalComposites", "OptionalComposites"));
         Assert.True(rendered.Success, string.Join(';', rendered.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(16, plan.Specifications.Count);
@@ -42,10 +41,10 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
     public async Task should_refuse_rendering_explicit_null_members_that_both_engines_execute(string shape)
     {
         var model = optional_validated_composite_concept_cases.ExplicitNull(shape);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Values.Single().Id);
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([plan.Specifications.Values.Single().Id]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.Equal("Passed", stage.Outcome.ToString());
         var rendered = CratisRendering.Plan(
             model,
@@ -61,7 +60,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
     async Task should_refuse_reordered_rejection_inputs_that_pass_the_reference()
     {
         var model = optional_validated_composite_concept_cases.Reordered();
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
@@ -74,7 +73,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
         Assert.False(rendered.Success);
         Assert.Empty(rendered.Artifacts);
         Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.Equal("Passed", stage.Outcome.ToString());
     }
 
@@ -93,7 +92,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             var rendered = CreatePlan();
             Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
             var model = optional_validated_composite_concept_cases.Admitted();
-            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(model).Plan;
             var options = new CratisRenderingOptions(ApplicationName, ApplicationName);
             var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile(ApplicationName, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
             var application = new SemanticApplicationContext(request, options);
@@ -114,7 +113,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
                         : [.. Enumerable.Repeat<string[]>(["Count minimum", "Count excluded", "Amount minimum", "Amount excluded", "Label pattern", "Label excluded"], specification.Name.StartsWith("Collection", StringComparison.Ordinal) ? 2 : 1).SelectMany(messages => messages)];
                     Assert.Equal(expected, failures.Select(failure => failure[0]));
                 }
-                var command = plan.Commands[specification.When!.Command];
+                var command = plan.Commands[specification.When.Command];
                 var property = command.Properties.Single(property => property.Name == "value");
                 var value = specification.When.Values.Single(value => value.TargetProperty == property.Id).Value;
                 var behaviorNamespace = SliceNaming.Namespace(ApplicationName, application.DeclaringSlice(specification.Id).Path) +

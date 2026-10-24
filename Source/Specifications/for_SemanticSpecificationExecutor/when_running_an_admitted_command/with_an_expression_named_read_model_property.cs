@@ -64,7 +64,7 @@ public class with_an_expression_named_read_model_property
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("target"), "target", "Target.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var changed = feature with
@@ -82,9 +82,9 @@ public class with_an_expression_named_read_model_property
             model.SemanticVersion,
             model.Application with { Modules = [module with { Features = [changed] }] }));
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var specification = compiled.Plan!.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var specification = compiled.Plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var reference = new SemanticSpecificationRunner().Run(compiled.Plan, specification.Id);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new())).Results);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
 
         Assert.False(reference.Passed);
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Unsupported,

@@ -32,7 +32,7 @@ public class when_running_uuid_comparisons : Specification
         plan.Revision.ShouldEqual(corpus.SemanticRevision);
         var counts = new Dictionary<SemanticId, int>();
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (id, count) => counts.Add(id, count) };
-        var report = await executor.Run(plan, new([]), new());
+        var report = await executor.Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(6);
         foreach (var expectation in corpus.SpecificationExpectations)
         {

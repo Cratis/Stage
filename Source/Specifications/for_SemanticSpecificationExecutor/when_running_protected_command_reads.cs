@@ -29,7 +29,7 @@ public class when_running_protected_command_reads : Specification
         plan.Revision.ShouldEqual(corpus.SemanticRevision);
         var factCounts = new Dictionary<SemanticId, int>();
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (id, count) => factCounts.Add(id, count) };
-        var report = await executor.Run(plan, new([]), new());
+        var report = await executor.Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(19);
         foreach (var expectation in corpus.SpecificationExpectations)
         {

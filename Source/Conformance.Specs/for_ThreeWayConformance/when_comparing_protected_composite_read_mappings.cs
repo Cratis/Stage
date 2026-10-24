@@ -6,7 +6,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -24,7 +23,8 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
     [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
     [Fact] void should_have_no_differences() => fixture.Differences.ShouldBeEmpty();
     [Fact] void should_pass_every_outcome_on_the_reference_and_the_rendered_application() => fixture.Outcomes.Count(outcome => outcome.Contains("Reference=Passed", StringComparison.Ordinal) && outcome.Contains("Rendered=Passed", StringComparison.Ordinal)).ShouldEqual(SpecificationCount);
-    [Fact] void should_run_the_structured_projection_and_the_missing_read_on_every_engine() => Assert.Equal(
+    [Fact]
+    void should_run_the_structured_projection_and_the_missing_read_on_every_engine() => Assert.Equal(
         [
             "source/ConfirmingAPlacedOrder: Reference=Passed, Stage=Passed, Rendered=Passed",
             "source/ConfirmingAnOrderWithoutLines: Reference=Passed, Stage=Passed, Rendered=Passed",
@@ -124,7 +124,7 @@ public class when_comparing_protected_composite_read_mappings(when_comparing_pro
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("CompositeReadMappings", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

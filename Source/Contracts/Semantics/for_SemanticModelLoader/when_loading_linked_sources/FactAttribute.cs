@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Runtime.CompilerServices;
+
 namespace Cratis.Stage.Contracts.Semantics.for_SemanticModelLoader.when_loading_linked_sources;
 
 /// <summary>
@@ -16,12 +18,13 @@ public sealed class FactAttribute : Xunit.FactAttribute
 {
     static readonly Lazy<string?> _skipReason = new(ProbePermission);
 
-    public FactAttribute() => Skip = _skipReason.Value;
+    public FactAttribute([CallerFilePath] string? sourceFilePath = null, [CallerLineNumber] int sourceLineNumber = 0)
+        : base(sourceFilePath, sourceLineNumber) => Skip = _skipReason.Value;
 
     static string? ProbePermission()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent!;
+        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
         var folder = Path.Combine(directory.FullName, ".ai-work", "210", "link-probes", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         try

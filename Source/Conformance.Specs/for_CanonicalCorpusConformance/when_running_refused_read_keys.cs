@@ -30,13 +30,13 @@ public class when_running_refused_read_keys : Specification
             reference.Execution.ShouldBeOfExactType<SemanticRejected>();
             ((SemanticRejected)reference.Execution).Details.ShouldEqual(specification.ThenErrors.Single().Message);
         }
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([.. selected.Select(specification => specification.Id)]), new());
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([.. selected.Select(specification => specification.Id)]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(6);
         foreach (var result in report.Results)
         {
             Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{formName}/{result.Name}: {result.Outcome} {string.Join(';', result.Failures)}");
             result.ExecutionKind.ShouldEqual("Rejected");
-            result.Trace!.Facts.ShouldBeEmpty();
+            result.Trace.Facts.ShouldBeEmpty();
         }
     }
 }

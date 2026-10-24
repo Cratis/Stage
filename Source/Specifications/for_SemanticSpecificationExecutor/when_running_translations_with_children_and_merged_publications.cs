@@ -74,7 +74,7 @@ public class when_running_translations_with_children_and_merged_publications : S
             Assert.True(reference.Passed, string.Join(';', reference.Failures));
         }
 
-        var results = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results;
+        var results = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results;
         results.Count.ShouldEqual(2);
         foreach (var result in results)
         {
@@ -134,7 +134,7 @@ public class when_running_translations_with_children_and_merged_publications : S
         var id = plan.Specifications.Keys.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, id);
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 

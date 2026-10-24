@@ -24,14 +24,14 @@ public class with_reaction_publication_boundaries : Specification
         Assert.True(reference.Passed, string.Join(';', reference.Failures));
         var count = 0;
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (_, facts) => count = facts };
-        var actual = (await executor.Run(plan, new([specification.Id]), new())).Results.Single();
+        var actual = (await executor.Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         Assert.True(actual.Outcome == SemanticSpecificationOutcome.Passed, $"{actual.Unsupported?.Details} {string.Join(';', actual.Failures)}");
         actual.ExecutionKind.ShouldEqual(reference.Execution.Kind.ToString());
         count.ShouldEqual(reference.Execution.World.Facts.Length);
         if (!rejectSecond)
         {
             var accepted = (SemanticAccepted)reference.Execution;
-            actual.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
+            actual.Trace.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
             var names = accepted.Facts.Select(fact => plan.Events[fact.EventContract].Name).ToArray();
             names.ShouldEqual(mode == "atomic" ? ["Started", "First", "Second", "Published"] : ["Started", "First", "Published", "Second"]);
         }

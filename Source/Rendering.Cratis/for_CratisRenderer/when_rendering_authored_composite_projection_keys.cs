@@ -13,6 +13,7 @@ using NativeScreenplayCompiler = Cratis.Screenplay.ScreenplayCompiler;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
+[PerFactSpecificationLifecycle]
 public class when_rendering_authored_composite_projection_keys : a_multi_slice_application
 {
     // The FROM block is the released Screenplay 4.10 compiler fixture (2af8ebd), embedded in an
@@ -47,7 +48,7 @@ public class when_rendering_authored_composite_projection_keys : a_multi_slice_a
         var compilation = new NativeScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, $"Invalid authored application: {string.Join(Environment.NewLine, compilation.Diagnostics)}");
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         var projection = _application.Modules.Single().Features.Single().Slices.Single().Projections.Single();
         var from = Assert.IsType<FromSyntax>(Assert.Single(projection.Blocks));
         var key = Assert.IsType<CompositeKeySyntax>(from.Key);

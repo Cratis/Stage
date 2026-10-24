@@ -8,7 +8,6 @@ using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -31,7 +30,7 @@ public class when_comparing_ordinal_text_rules(when_comparing_ordinal_text_rules
             var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
             var compilation = new SemanticModelCompiler().Compile("TextRules", SemanticDocumentSet.Create([.. documents], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            compilation.Value!.Model.LanguageVersion.ShouldEqual(LanguageVersion.V24);
+            compilation.Value.Model.LanguageVersion.ShouldEqual(LanguageVersion.V24);
             compilation.Value.Model.SemanticVersion.ShouldEqual(SemanticVersion.V24);
             return compilation.Value.Model;
         }

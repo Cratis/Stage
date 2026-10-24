@@ -30,7 +30,7 @@ public class when_refusing_public_event_syntax : Specification
             "foreign" => "    slice StateView Publication\n      event Published from \"producer\"",
             _ => "    slice Translate Publication\n      direction inbound\n      event Received"
         };
-        await File.WriteAllTextAsync(file, "module Integration\n  feature Exchange\n" + slice);
+        await File.WriteAllTextAsync(file, "module Integration\n  feature Exchange\n" + slice, TestContext.Current.CancellationToken);
         await using var error = new StringWriter();
         var exitCode = await Program.Run(["--model", file, "--output", result], TextWriter.Null, error);
         exitCode.ShouldEqual(1);

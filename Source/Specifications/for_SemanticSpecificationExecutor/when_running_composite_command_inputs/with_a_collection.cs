@@ -13,5 +13,5 @@ public class with_a_collection : given.a_composite_input
 
     [Fact] void should_match_reference_rejection() => (_reference.Passed && _result.Outcome == SemanticSpecificationOutcome.Passed).ShouldBeTrue();
     [Fact] void should_visit_each_element_in_order() => _failures.Select(failure => failure.Message).ShouldEqual(["Count minimum", "Count excluded", "Label pattern", "Count minimum", "Count excluded", "Label pattern"]);
-    [Fact] void should_preserve_reference_failure_order() => _failures.ShouldEqual(((SemanticRejected)_reference.Execution).ValidationFailures);
+    [Fact] void should_preserve_reference_failure_order() => _failures.ShouldEqual([.. ((SemanticRejected)_reference.Execution).ValidationFailures]);
 }

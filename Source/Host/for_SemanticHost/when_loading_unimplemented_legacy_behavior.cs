@@ -14,7 +14,7 @@ public class when_loading_unimplemented_legacy_behavior : given.a_model_path
     [InlineData("", "        handler\n          implementation\n            hint \"Calculate the fee\"\n", "STAGE-IMPL-002")]
     public async Task should_refuse_before_registering_the_legacy_model(string boundary, string handler, string code)
     {
-        await File.WriteAllTextAsync(_path, boundary + "module Billing\n  feature Invoices\n    slice StateChange ApplyFee\n      command ApplyFee\n" + handler + "        produces FeeApplied\n      event FeeApplied");
+        await File.WriteAllTextAsync(_path, boundary + "module Billing\n  feature Invoices\n    slice StateChange ApplyFee\n      command ApplyFee\n" + handler + "        produces FeeApplied\n      event FeeApplied", TestContext.Current.CancellationToken);
         var issues = new List<StageUnsupportedIssue>();
         var application = await EventModelHost.LoadModel(_path, issues);
         application.ShouldBeNull();

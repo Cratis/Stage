@@ -29,7 +29,7 @@ public class when_comparing_invocation_refusals_corpus : Specification
         {
             var specification = plan.Specifications[expectation.Specification];
             var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
-            var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+            var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
             Assert.True(reference.Passed, string.Join(';', reference.Failures));
             reference.Execution.Kind.ShouldEqual(expectation.Outcome);
             reference.Execution.World.Facts.Length.ShouldEqual(expectation.WorldFactCount!.Value);
@@ -58,7 +58,7 @@ public class when_comparing_invocation_refusals_corpus : Specification
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
-        compiled.Value!.Model.Revision.ShouldEqual(corpus.SemanticRevision);
+        compiled.Value.Model.Revision.ShouldEqual(corpus.SemanticRevision);
         byte[] expected = [.. corpus.EsmBytes];
         byte[] actual = [.. SemanticModelSerializer.Serialize(compiled.Value.Model)];
         Assert.Equal(expected, actual);

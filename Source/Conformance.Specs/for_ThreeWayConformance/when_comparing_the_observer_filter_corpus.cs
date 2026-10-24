@@ -10,7 +10,6 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -26,7 +25,7 @@ public class when_comparing_the_observer_filter_corpus(when_comparing_the_observ
     public void should_refuse_the_remaining_corpus_boundaries_separately(string specification, string code)
     {
         var model = an_observer_filter_model.Create(specification);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
@@ -37,7 +36,7 @@ public class when_comparing_the_observer_filter_corpus(when_comparing_the_observ
     void should_refuse_the_unrendered_reducer_body_in_the_complete_corpus()
     {
         var model = SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan());
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-011");
@@ -55,7 +54,7 @@ public class when_comparing_the_observer_filter_corpus(when_comparing_the_observ
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(an_observer_filter_model.Create()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(an_observer_filter_model.Create()).Plan;
             FactCount = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single()).Execution.World.Facts.Length;
             await Verify();
         }

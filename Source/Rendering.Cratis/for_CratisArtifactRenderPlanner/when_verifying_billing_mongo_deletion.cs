@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Runtime.CompilerServices;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -16,7 +17,7 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
         when_rendering_a_pure_reducer.Plan(when_rendering_the_billing_payment_reducer.LoadBilling(deleteOnNegative: true));
 
     [MongoFact]
-    async Task mongo_container_matches_model_bound_read_model_query_when_configured()
+    async Task should_mongo_container_matches_model_bound_read_model_query_when_configured()
     {
         try
         {
@@ -81,12 +82,12 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
 
 public sealed class MongoFactAttribute : FactAttribute
 {
-    public override string? Skip
+    public MongoFactAttribute([CallerFilePath] string? sourceFilePath = null, [CallerLineNumber] int sourceLineNumber = 0)
+        : base(sourceFilePath, sourceLineNumber)
     {
-        get => string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION"))
+        Skip = string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION"))
             ? "STAGE_CHRONICLE_MONGO_CONNECTION is not configured."
             : null;
-        set => base.Skip = value;
     }
 }
 #endif

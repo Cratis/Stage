@@ -21,10 +21,10 @@ public class when_aligning_projection_admission_with_runtime : given.a_projectio
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         reference.Passed.ShouldEqual(passes);
         SemanticRunAdmission.Check(plan, specification).ShouldBeNull();
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
         result.Failures.ShouldContainOnly(reference.Failures);
-        Assert.StartsWith(plan.ReadModels.Values.Single(model => model.Name == "Current").Id.ToString() + ":", Assert.Single(result.Trace!.ReadModels).Key);
+        Assert.StartsWith(plan.ReadModels.Values.Single(model => model.Name == "Current").Id.ToString() + ":", Assert.Single(result.Trace.ReadModels).Key);
         result.Unsupported.ShouldBeNull();
     }
 
@@ -47,9 +47,9 @@ public class when_aligning_projection_admission_with_runtime : given.a_projectio
         refusal.Capability.ShouldEqual(StageExecutionCapability.Projection);
         refusal.Construct.ShouldEqual(projection.Id.ToString());
 
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
         result.Unsupported.Construct.ShouldEqual(projection.Id.ToString());
         Assert.NotEmpty(result.Unsupported.Details);
         result.Trace.ShouldBeNull();

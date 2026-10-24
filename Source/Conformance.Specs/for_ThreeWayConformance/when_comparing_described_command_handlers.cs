@@ -23,7 +23,7 @@ public class when_comparing_described_command_handlers : Specification
         var corpus = DescribedCommandHandlersCorpus.V23;
         var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
         var plan = SemanticExecutionPlan.Compile(model, []).Plan!;
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(7);
         var differences = new List<string>();
         foreach (var expectation in corpus.SpecificationExpectations)
@@ -77,7 +77,7 @@ public class when_comparing_described_command_handlers : Specification
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
-        compiled.Value!.Model.Revision.ShouldEqual(corpus.SemanticRevision);
+        compiled.Value.Model.Revision.ShouldEqual(corpus.SemanticRevision);
         byte[] expected = [.. corpus.EsmBytes];
         byte[] actual = [.. SemanticModelSerializer.Serialize(compiled.Value.Model)];
         Assert.Equal(expected, actual);

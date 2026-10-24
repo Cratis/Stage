@@ -59,17 +59,17 @@ public class when_a_projection_lowering_fails : a_projected_specification
         var reference = new SemanticSpecificationRunner().Run(_plan, _plan.Specifications.Keys.Single());
         reference.Passed.ShouldEqual(scenario != "matching-lowering-error" && scenario != "accepted-denial");
         var cache = (ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes>)typeof(SemanticSpecificationExecutor)
-            .GetField("_types", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            .GetField("_types", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
         var types = new SemanticRuntimeTypes(_plan);
         var models = (Dictionary<SemanticId, Type>)typeof(SemanticRuntimeTypes)
-            .GetField("_readModels", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(types)!;
+            .GetField("_readModels", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(types);
 
         // Inject a broken emitted read-model type so the real projection builder fails if it is reached.
         models.Add(_plan.ReadModels.Keys.Single(), typeof(object));
         cache.TryAdd(_plan.Revision, types).ShouldBeTrue();
         try
         {
-            _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results);
+            _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
             if (scenario == "accepted")
             {
                 _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
@@ -82,14 +82,14 @@ public class when_a_projection_lowering_fails : a_projected_specification
                 _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
                 _result.Failures.ShouldContainOnly(reference.Failures);
                 _result.ExecutionKind.ShouldEqual("Accepted");
-                _result.Trace!.ReadModels.ShouldBeEmpty();
+                _result.Trace.ReadModels.ShouldBeEmpty();
                 _result.Trace.Rejection.ShouldBeNull();
             }
             else
             {
                 _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
                 _result.Failures.ShouldBeEmpty();
-                Assert.NotEqual("LoweringRefused", _result.Trace!.RejectionCode);
+                Assert.NotEqual("LoweringRefused", _result.Trace.RejectionCode);
                 _result.Trace.ReadModels.ShouldBeEmpty();
                 _result.Trace.Queries.ShouldBeEmpty();
             }

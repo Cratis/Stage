@@ -50,7 +50,7 @@ public class when_running_all_comparison_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("Comparisons", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         foreach (var specification in plan.Specifications.Values)
         {
             SemanticRunAdmission.Check(plan, specification).ShouldBeNull();
@@ -62,7 +62,7 @@ public class when_running_all_comparison_rules : Specification
         var failure = SemanticRuleEvaluation.RuleFailures(command, rejectedSpecification, plan.Model.Application).Single();
         failure.Message.ShouldEqual("All values must meet the bound");
         failure.Severity.ShouldEqual(command.Validations.Single().Severity);
-        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
+        var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken);
         report.Results.Count.ShouldEqual(3);
         report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Passed);
     }

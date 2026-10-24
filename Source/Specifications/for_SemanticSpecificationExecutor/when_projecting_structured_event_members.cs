@@ -18,9 +18,9 @@ public class when_projecting_structured_event_members : Specification
     {
         var plan = Compile(whole, city);
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
-        Assert.True(reference.Passed == passes, string.Join(";", reference.Failures));
+        Assert.True(reference.Passed == passes, string.Join(';', reference.Failures));
         SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         Assert.True(result.Outcome == (passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed),
             $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }

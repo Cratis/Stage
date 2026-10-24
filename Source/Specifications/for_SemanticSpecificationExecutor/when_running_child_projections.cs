@@ -29,7 +29,7 @@ public class when_running_child_projections : Specification
         var executor = new SemanticSpecificationExecutor();
         for (var run = 0; run < 2; run++)
         {
-            var result = Assert.Single((await executor.Run(plan, new([]), new())).Results);
+            var result = Assert.Single((await executor.Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
             Assert.True(result.Outcome == (passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed),
                 $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)} {string.Join(';', result.Trace?.ReadModels.Values ?? [])}");
         }
@@ -39,7 +39,7 @@ public class when_running_child_projections : Specification
     public async Task should_refuse_implicit_parent_creation_by_name()
     {
         var plan = Compile("missing-parent");
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported.Details.ShouldContain("existing parent instance");
     }
@@ -48,7 +48,7 @@ public class when_running_child_projections : Specification
     public async Task should_refuse_an_optional_child_mapping_source_by_name()
     {
         var plan = Compile("optional-source");
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported.Details.ShouldContain("optional child source or null literal");
     }
@@ -59,11 +59,11 @@ public class when_running_child_projections : Specification
     public async Task should_refuse_a_join_whose_event_identity_has_another_value_type(string action)
     {
         var plan = Compile(action, numberedLabels: true);
-        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).Details.ShouldEqual(
             "A join's event-source identity must have the joined key's value type and enumeration values.");
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldEqual("A join's event-source identity must have the joined key's value type and enumeration values.");
+        result.Unsupported.Details.ShouldEqual("A join's event-source identity must have the joined key's value type and enumeration values.");
     }
 
     [Fact]

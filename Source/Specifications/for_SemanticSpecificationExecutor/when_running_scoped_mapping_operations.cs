@@ -31,11 +31,11 @@ public class when_running_scoped_mapping_operations : Specification
         var executor = new SemanticSpecificationExecutor();
         for (var run = 0; run < 2; run++)
         {
-            var result = Assert.Single((await executor.Run(plan, new([]), new())).Results);
+            var result = Assert.Single((await executor.Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results);
             Assert.True(result.Outcome == (passes ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed),
                 $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
             result.Failures.ShouldContainOnly(reference.Failures);
-            result.Trace!.ReadModels.Count.ShouldEqual(1);
+            result.Trace.ReadModels.Count.ShouldEqual(1);
         }
     }
 
@@ -44,7 +44,7 @@ public class when_running_scoped_mapping_operations : Specification
     public void should_keep_unsupported_arithmetic_refused(string mapping)
     {
         var plan = Compile("add", "12", "12", "draft", mapping);
-        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).Capability.ShouldEqual(StageExecutionCapability.Projection);
     }
 
     internal static SemanticExecutionPlan Compile(string operation, string whole, string amount, string state, string? overrideMapping = null)

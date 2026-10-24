@@ -37,13 +37,13 @@ public class when_refusing_non_error_protected_requirements : Specification
                 Commands = [.. slice.Commands.Select(command => command.Id == changed.Id ? changed : command)]
             } : candidate)] }] }]
         });
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var specification = plan.Specifications.Values.Single(specification => specification.Name == specificationName);
         var observed = new Dictionary<SemanticId, int>();
         var executor = new SemanticSpecificationExecutor { ObserveWorldFacts = (id, count) => observed.Add(id, count) };
-        var result = Assert.Single((await executor.Run(plan, new([specification.Id]), new())).Results);
+        var result = Assert.Single((await executor.Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Command);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Command);
         Assert.StartsWith("STAGE-ESM-045:", result.Unsupported.Details);
         result.Unsupported.Details.ShouldContain("non-Error requirement");
         result.Trace.ShouldBeNull();

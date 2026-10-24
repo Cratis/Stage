@@ -13,7 +13,7 @@ public class when_loading_a_routed_model : given.a_model_path
     [Fact]
     public async Task should_refuse_the_legacy_model_and_serve_no_application_api()
     {
-        await File.WriteAllTextAsync(_path, "eventsource Invoice\n  stream Changes\nmodule Billing\n  feature Invoices\n    slice StateChange Register\n      event InvoiceRegistered\n");
+        await File.WriteAllTextAsync(_path, "eventsource Invoice\n  stream Changes\nmodule Billing\n  feature Invoices\n    slice StateChange Register\n      event InvoiceRegistered\n", TestContext.Current.CancellationToken);
         var issues = new List<StageUnsupportedIssue>();
         var application = await EventModelHost.LoadModel(_path, issues);
         application.ShouldBeNull();

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
     <PropertyGroup>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <OutputType>Library</OutputType>
+        <OutputType Condition="'$(Configuration)' != 'Debug'">Library</OutputType>
         <AssemblyName>Cratis.Stage</AssemblyName>
         <RootNamespace>Cratis.Stage</RootNamespace>
         <IsPackable>true</IsPackable>

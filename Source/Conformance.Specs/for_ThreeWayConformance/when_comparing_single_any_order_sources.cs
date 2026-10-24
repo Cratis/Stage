@@ -6,7 +6,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_SpecificationRenderer.given;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -61,7 +60,7 @@ public class when_comparing_single_any_order_sources(when_comparing_single_any_o
                 Specifications = [.. slice.Specifications.Select(specification => specification with
                 {
                     ThenEventsInAnyOrder = true,
-                    When = specification.When! with { EventSource = new(type, SemanticValue.Text(specification.Name == "WrongActionSource" ? "acc-2" : "acc-1")) },
+                    When = specification.When with { EventSource = new(type, SemanticValue.Text(specification.Name == "WrongActionSource" ? "acc-2" : "acc-1")) },
                     ThenEvents = [specification.ThenEvents[0] with { EventSource = new(type, SemanticValue.Text(specification.Name == "WrongThenSource" ? "acc-2" : "acc-1")) }]
                 })]
             };

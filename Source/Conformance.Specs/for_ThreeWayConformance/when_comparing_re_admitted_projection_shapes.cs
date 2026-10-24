@@ -6,7 +6,6 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
-using Xunit.Abstractions;
 
 using static Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.ThreeWayOutcomes;
 
@@ -204,7 +203,7 @@ public class when_comparing_re_admitted_projection_shapes(when_comparing_re_admi
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("re-admitted"), "re-admitted", "Scopes.play", source);
             var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

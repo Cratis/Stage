@@ -141,7 +141,8 @@ public class when_compiling_generated_name_matrix
             var rows = new TheoryData<string, string>();
             foreach (var kind in PropertyKinds)
             {
-                foreach (var name in MemberNames(kind)) rows.Add(kind, name);
+                // xUnit v2 deduplicated the four repeated "equals" cases; keep the same case set on v3.
+                foreach (var name in MemberNames(kind).Distinct(StringComparer.Ordinal)) rows.Add(kind, name);
             }
             return rows;
         }

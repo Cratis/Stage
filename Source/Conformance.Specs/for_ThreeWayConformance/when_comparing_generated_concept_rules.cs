@@ -25,7 +25,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
     public async Task should_execute_the_failing_pin_as_a_contract_rejection_but_refuse_to_render_it()
     {
         var model = context.WithoutOpaqueRule(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan()));
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         plan.Specifications.Count.ShouldEqual(2);
         var specification = plan.Specifications.Values.Single(specification => specification.Name == "InvalidInviteFixture");
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -33,9 +33,9 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
         var rejected = (SemanticRejected)reference.Execution;
         rejected.Category.ShouldEqual(SemanticRejectionCategory.Contract);
         rejected.World.Facts.ShouldBeEmpty();
-        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
+        var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new(), TestContext.Current.CancellationToken)).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(rejected.Details);
+        stage.Trace.Rejection.ShouldEqual(rejected.Details);
         stage.Trace.Facts.ShouldBeEmpty();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedConceptRules", "GeneratedConceptRules"));
         rendered.Success.ShouldBeFalse();

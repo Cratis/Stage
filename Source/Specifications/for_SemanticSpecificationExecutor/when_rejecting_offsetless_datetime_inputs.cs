@@ -25,7 +25,7 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
         rejection.Category.ShouldEqual(SemanticRejectionCategory.Validation);
         rejection.ValidationFailures.Length.ShouldEqual(1);
         rejection.World.Facts.ShouldBeEmpty();
-        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
         if (scenario == 5)
         {
             // Run admission still refuses attached code before any command executes (plan §4).
@@ -33,7 +33,7 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
             return;
         }
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-        result.Trace!.Rejection.ShouldEqual(rejection.Details);
+        result.Trace.Rejection.ShouldEqual(rejection.Details);
         result.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -43,9 +43,9 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
         var plan = Compile(0, authorize: true);
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         ((SemanticRejected)reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Unauthorized);
-        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        result.Trace!.Rejection.ShouldEqual("Caller is not authorized.");
+        result.Trace.Rejection.ShouldEqual("Caller is not authorized.");
         result.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -78,16 +78,16 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
             """;
 
         // Bind directly like Screenplay's ExactSpelling vector: source preflight rejects intentionally wrong then-values.
-        var syntax = new ScreenplayCompiler().Parse(source).Value!;
+        var syntax = new ScreenplayCompiler().Parse(source).Value;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("OrdinalDates"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var bound = new SemanticModelBinder().Bind("OrdinalDates", syntax, SemanticDocumentSet.Create([document], catalog));
         Assert.True(bound.Success, string.Join(';', bound.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(bound.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(bound.Value.Model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldBeFalse();
         reference.Execution.ShouldBeOfExactType<SemanticAccepted>();
-        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
+        var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new(), TestContext.Current.CancellationToken)).Results.Single();
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
         result.ExecutionKind.ShouldEqual("Accepted");
     }

@@ -12,7 +12,6 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
@@ -33,7 +32,7 @@ public class when_comparing_exact_number_corpus_specifications : Specification
             var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
             var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             model.LanguageVersion.ShouldEqual(LanguageVersion.V11);
             model.SemanticVersion.ShouldEqual(SemanticVersion.V11);
             model.Revision.ShouldEqual(corpus.SemanticRevision);
@@ -41,7 +40,7 @@ public class when_comparing_exact_number_corpus_specifications : Specification
             _canonicalMatches.Add(bytes.SequenceEqual(corpus.EsmBytes));
             var restored = SemanticModelSerializer.Deserialize(bytes);
             _roundTrips.Add(SemanticModelSerializer.Serialize(restored).SequenceEqual(bytes));
-            var plan = SemanticExecutionPlan.Compile(restored).Plan!;
+            var plan = SemanticExecutionPlan.Compile(restored).Plan;
             plan.Specifications.Count.ShouldEqual(corpus.SpecificationExpectations.Length);
             _rendering.Add(invoice_model.Plan(restored));
             foreach (var specification in plan.Specifications.Values)

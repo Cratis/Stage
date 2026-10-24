@@ -110,7 +110,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
                 }
                 catch (OverflowException exception)
                 {
-                    throw new SemanticProjectionLoweringRefused(new OverflowException($"Event '{contract.Name}' product '{product.Name}' exceeds Stage's exact whole-number carrier (Int64).", exception));
+                    throw new SemanticProjectionLoweringRefused(new OverflowException($"Event '{contract.Name}' product '{product.Name}' or one of its operands exceeds Stage's exact whole-number carrier (Int64).", exception)) { Projection = contract.Id };
                 }
             }
         }

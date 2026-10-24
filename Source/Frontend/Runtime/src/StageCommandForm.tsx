@@ -60,9 +60,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
     const rowAction = element.properties.rowAction === true;
+    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries, rowAction), [data.selections, data.queries, rowAction]);
+    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
@@ -359,9 +359,10 @@ export function selectableRowsOf(queries: StageDataState['queries']): Record<str
 }
 
 /** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
-export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries'], currentOnly = false): Record<string, unknown>[] {
     const keyed = new Map(entityRowsOf(queries));
-    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
+    return Object.entries(selections).filter((entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined && (!currentOnly || queries[entry[0]]?.rows.includes(entry[1])))
+        .map(([, row]) => keyed.get(row) ?? row);
 }
 
 /**

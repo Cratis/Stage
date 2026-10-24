@@ -58,6 +58,21 @@ describe('a toolbar action on a list whose rows carry the key it acts on', () =>
         expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).title).toBe('Select a row first');
     });
 
+    it('opens without selecting a row when no row carries its identity and submits the session identity', async () => {
+        const held = sessionIdentity('ShipmentId');
+        const fetched = renderShipments([{ productId: 'product-1', consignee: 'Fjordline' }]);
+        await screen.findByText('Fjordline');
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(false));
+        fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).queryAllByLabelText(/shipment id/i)).toHaveLength(0);
+        fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: held, carrier: 'Posten' });
+    });
+
     it('is enabled once a row is selected and submits that row\'s key', async () => {
         const fetched = await selectAndSubmit();
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;

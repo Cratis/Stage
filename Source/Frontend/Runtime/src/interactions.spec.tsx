@@ -148,9 +148,11 @@ describe('when a modeled interaction is clicked', () => {
     // A command the Stage never registered must say so. Guessing a URL would turn a modelling mistake into a
     // 404 at the worst possible moment, long after the cause.
     it('should report a command this Stage does not serve', async () => {
+        let completeRoutes!: (response: Response) => void;
+        const pendingRoutes = new Promise<Response>(resolve => { completeRoutes = resolve; });
         const fetched = vi.fn((input: RequestInfo | URL) => {
             const url = String(input);
-            if (url === 'stage/routes') return Promise.resolve({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+            if (url === 'stage/routes') return pendingRoutes;
             return respond(url);
         });
         vi.stubGlobal('fetch', fetched);
@@ -158,6 +160,11 @@ describe('when a modeled interaction is clicked', () => {
         render(<PrimeReactProvider theme={stageTheme}><App /></PrimeReactProvider>);
         await screen.findByRole('button', { name: 'Cancel invoice' });
 
+        // The scene can render before the independent routes lookup finishes. A click then reports
+        // "waiting for Stage routes", not an unknown command. Finish that lookup before exercising it.
+        await act(async () => {
+            completeRoutes({ ok: true, json: () => Promise.resolve({ commands: {}, queries: {} }) } as Response);
+        });
         fireEvent.click(screen.getByRole('button', { name: 'Cancel invoice' }));
 
         await screen.findByText(/not registered by this Stage/);

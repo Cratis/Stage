@@ -11,8 +11,8 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
-import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsFor, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -241,11 +241,13 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
     const command = registeredCommand(name, text(element, 'typeName'), text(element, 'route'));
     const schema = text(element, 'schema') || routes?.commandSchemas?.[name];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    // A command that creates its entity (`x-creates`) is about no row: it neither waits for a selection nor takes a row's identifiers.
+    const creates = element.properties.createsEntity === true || createsEntity(schema ?? '');
+    const selectableRows = useMemo(() => selectableRowsFor(queries, creates), [creates, queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries, true), [selections, queries]);
     const carried = properties.filter(property => property.identifier && property.required && carriedBy(property, selectableRows));
     const awaiting = carried.filter(property => !parameters[property.name]).filter(property => selectedIdentifier(property, selectedRows) === undefined);
-    const awaitingRows = awaitingTableRows(element, properties, parameters, selectableRows);
+    const awaitingRows = !creates && awaitingTableRows(element, properties, parameters, selectableRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
@@ -255,7 +257,8 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
         return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
     }
 
-    return <StageCommandDialog element={rowActionElement(element, schema, properties, carried)} label={label} />;
+    const dialogElement = creates ? { ...element, properties: { ...element.properties, createsEntity: true } } : rowActionElement(element, schema, properties, carried);
+    return <StageCommandDialog element={dialogElement} label={label} />;
 }
 
 /** A scene-declared row action still waits when its table is empty, before carried identifiers can be inferred from rows. */
@@ -285,7 +288,7 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
     return (
         <div className='stage-action' data-scene-id={element.id}>
             <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
-            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );
 }
@@ -374,6 +377,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
+ * A command that creates an entity (`x-creates`) is about no row: it neither waits for selection nor takes a selected row's identifiers.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
@@ -383,12 +387,14 @@ function StageToolbarCommand(props: RegisteredProps) {
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const creates = createsEntity(schema ?? '');
+    const selectableRows = useMemo(() => selectableRowsFor(queries, creates), [creates, queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields } } as ExternalComponent;
+    const intent = creates ? { createsEntity: true } : {};
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...intent, ...askedFields } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

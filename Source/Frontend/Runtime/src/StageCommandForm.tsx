@@ -60,9 +60,11 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
+    // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
+    const creates = element.properties.createsEntity === true;
     const rowAction = element.properties.rowAction === true;
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries, rowAction), [data.selections, data.queries, rowAction]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates, rowAction), [creates, data.selections, data.queries, rowAction]);
+    const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
@@ -183,7 +185,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
-            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
+            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon isNonModal showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
     })());
@@ -353,15 +355,30 @@ function entityRowsOf(queries: StageDataState['queries']): [Record<string, unkno
     return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
 }
 
+/** Creating an entity is about no selected row, even when the person selected one on the screen. */
+function selectedRowsFor(selections: StageDataState['selections'], queries: StageDataState['queries'], creates: boolean, currentOnly: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectedRowsOf(selections, queries, currentOnly);
+}
+
+/** Creating an entity is about no row, so it does not borrow identifiers or selection requirements from a list. */
+export function selectableRowsFor(queries: StageDataState['queries'], creates: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectableRowsOf(queries);
+}
+
 /** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */
 export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
     return entityRowsOf(queries).map(([, row]) => row);
 }
 
-/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
+/**
+ * The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. With `currentOnly`, a table's
+ * selection counts only while the table still shows that row; a selection a component publishes itself (a board's selected card) has no table
+ * query to check and is cleared by its publisher.
+ */
 export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries'], currentOnly = false): Record<string, unknown>[] {
     const keyed = new Map(entityRowsOf(queries));
-    return Object.entries(selections).filter((entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined && (!currentOnly || queries[entry[0]]?.rows.includes(entry[1])))
+    const current = ([key, row]: [string, Record<string, unknown>]) => !currentOnly || !Object.hasOwn(queries, key) || queries[key].rows.includes(row);
+    return Object.entries(selections).filter((entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined && current(entry as [string, Record<string, unknown>]))
         .map(([, row]) => keyed.get(row) ?? row);
 }
 

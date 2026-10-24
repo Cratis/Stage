@@ -602,6 +602,8 @@ Submitting posts the command to the route the Stage registered for it, through t
 form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
 keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
 
+Creation intent (`x-creates`) classifies a command as creating a row in some listed read model, not necessarily on the current screen; `STAGE-INTENT-001` reports only guarded or ambiguous creation candidates, not ordinary updates.
+
 ### Root template, options and appearance
 
 A `ui profile` can name the application's shell, configure it and set its look:

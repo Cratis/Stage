@@ -25,6 +25,11 @@ const assignmentSchema = JSON.stringify({ type: 'object', required: ['shipmentId
     driverId: { type: 'string', format: 'uuid', 'x-concept': 'DriverId' },
 } });
 
+const creationSchema = JSON.stringify({ type: 'object', 'x-creates': true, required: ['shipmentId', 'carrier'], properties: {
+    shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId' },
+    carrier: { type: 'string' },
+} });
+
 function renderShipments(generated = false, otherScreen = false, empty = false, referenceSchema?: string) {
     const commandSchema = referenceSchema ?? (generated ? JSON.stringify({ type: 'object', required: ['carrier'], properties: { carrier: { type: 'string' } } }) : schema);
     const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { AllShipments: '/api/shipments' }, commandSchemas: { DispatchShipment: commandSchema } };
@@ -100,6 +105,18 @@ describe('a plain action beside a collection', () => {
         renderShipments(true);
         await screen.findByText('Fjordline');
         (screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled.should.be.false;
+    });
+
+    it('should neither wait for nor take a selected row when the command creates its entity', async () => {
+        const fetched = renderShipments(false, false, false, creationSchema);
+        await screen.findByText('Fjordline');
+        (screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled.should.be.false;
+        const dialog = await selectShipmentAndOpen();
+        const entered = '7d1c8f3a-0000-4000-8000-000000000009';
+        fireEvent.change(within(dialog).getByLabelText('Shipment Id', { exact: false }), { target: { value: entered } });
+        fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
+        const submitted = await execute(dialog, fetched);
+        submitted.should.deep.equal({ shipmentId: entered, carrier: 'Posten' });
     });
 
     it('should not bind to a table on another screen', async () => {

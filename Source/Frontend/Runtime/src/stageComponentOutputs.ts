@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, useRef } from 'react';
 import { useStageData } from './stageData';
 
 /**
@@ -15,7 +15,33 @@ import { useStageData } from './stageData';
  */
 export function useComponentOutputsPublisher(): (outputs: Record<string, Record<string, unknown>>) => void {
     const scope = useId();
-    const { publishComponentOutputs, withdrawComponentOutputs } = useStageData();
-    useEffect(() => () => withdrawComponentOutputs(scope), [scope, withdrawComponentOutputs]);
-    return useCallback((outputs: Record<string, Record<string, unknown>>) => publishComponentOutputs(scope, outputs), [publishComponentOutputs, scope]);
+    const { publishComponentOutputs, withdrawComponentOutputs, selectRow, clearSelection } = useStageData();
+    const selections = useRef<Record<string, Record<string, unknown>>>({});
+    useEffect(() => () => {
+        withdrawComponentOutputs(scope);
+        Object.keys(selections.current).forEach(component => clearSelection(`${scope}:${component}`));
+    }, [clearSelection, scope, withdrawComponentOutputs]);
+    return useCallback((outputs: Record<string, Record<string, unknown>>) => {
+        publishComponentOutputs(scope, outputs);
+        const next = selectedItemsOf(outputs);
+        const components = new Set([...Object.keys(selections.current), ...Object.keys(next)]);
+        for (const component of components) {
+            if (selections.current[component] !== next[component]) selectRow(`${scope}:${component}`, next[component]);
+        }
+        selections.current = next;
+    }, [publishComponentOutputs, scope, selectRow]);
+}
+
+/** Native selectedItem outputs join the same selection state that Stage tables already publish. */
+function selectedItemsOf(outputs: Record<string, Record<string, unknown>>): Record<string, Record<string, unknown>> {
+    const selections: Record<string, Record<string, unknown>> = {};
+    for (const [component, output] of Object.entries(outputs)) {
+        const row = output.selectedItem;
+        if (isRecord(row)) selections[component] = row;
+    }
+    return selections;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

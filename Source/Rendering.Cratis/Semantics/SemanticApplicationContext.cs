@@ -16,6 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
+    readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
@@ -216,6 +217,16 @@ internal sealed class SemanticApplicationContext
     public LocatedSemanticSlice DeclaringSlice(SemanticId artifact) =>
         _slices.Values.Single(_ => _.Declares(artifact));
 
+    internal SemanticCaptureMemberPlan CaptureMembers(SemanticCapture capture)
+    {
+        if (!_captureMembers.TryGetValue(capture.Id, out var plan))
+        {
+            plan = SemanticCaptureMemberPlan.Create(capture, this);
+            _captureMembers.Add(capture.Id, plan);
+        }
+        return plan;
+    }
+
     internal AuthoringMetadataInput.Metadata Docs(SemanticId id) =>
         Documentation?.Entries.GetValueOrDefault(id.ToString()) ?? new(null, null);
 
@@ -325,7 +336,13 @@ internal sealed class SemanticApplicationContext
             .SelectMany(_ => _.Slice.Commands.SelectMany(command => command.Properties)
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
-            .Select(_ => _.Type.Target)];
+            .Select(_ => _.Type.Target)
+            .Concat(Request.Model.SemanticVersion == SemanticVersion.V32
+                ? _slices.Values.Where(located => !located.Slice.Captures.IsDefaultOrEmpty)
+                    .SelectMany(located => located.Slice.Captures).SelectMany(capture => capture.Appends)
+                    .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)
+                    .Select(append => append.EventSourceType.Target)
+                : [])];
 
     Dictionary<SemanticId, string> ResolveResponseTypes()
     {

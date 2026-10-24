@@ -13,6 +13,34 @@ namespace Cratis.Stage.Contracts.Projections;
 /// </remarks>
 /// <param name="Property">The target property path on the read model.</param>
 /// <param name="Expression">The source expression that produces the value.</param>
+/// <param name="Factor">
+/// The second operand of an <c language="csharp">$add</c> or <c language="csharp">$subtract</c> that adds or subtracts a product of two event
+/// values (<c>add total by unitPrice * quantity</c>), or <see langword="null"/> when the mapping has one operand. Chronicle's own projection
+/// engine takes a single event property, so a definition carrying a factor cannot be run by Play.
+/// </param>
 public record PropertyMapping(
     string Property,
-    string Expression);
+    string Expression,
+    string? Factor)
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PropertyMapping"/> record for a mapping with one operand.
+    /// </summary>
+    /// <param name="property">The target property path on the read model.</param>
+    /// <param name="expression">The source expression that produces the value.</param>
+    public PropertyMapping(string property, string expression)
+        : this(property, expression, null)
+    {
+    }
+
+    /// <summary>
+    /// Deconstructs the mapping into its target property and source expression.
+    /// </summary>
+    /// <param name="property">The target property path on the read model.</param>
+    /// <param name="expression">The source expression that produces the value.</param>
+    public void Deconstruct(out string property, out string expression)
+    {
+        property = Property;
+        expression = Expression;
+    }
+}

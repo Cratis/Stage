@@ -19,6 +19,7 @@ static class ScaffoldPins
     public static ImmutableSortedDictionary<string, string> Of(CratisBackendApplicationScaffoldProfile profile) =>
         new Dictionary<string, string>
         {
+            ["Cratis.Screenplay.Matching"] = ScaffoldPackageVersions.ScreenplayMatching,
             ["TargetFramework"] = profile.TargetFramework,
             ["TargetingPackVersion"] = CatalogScaffold.ReferencePackVersion,
             ["Cratis"] = profile.CratisPackageVersion,

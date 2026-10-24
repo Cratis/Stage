@@ -47,6 +47,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
           </PropertyGroup>
           <ItemGroup>
+            <PackageVersion Include="Cratis.Screenplay.Matching" Version="{{ScaffoldPackageVersions.ScreenplayMatching}}" />
             <PackageVersion Include="Cratis" Version="{{profile.CratisPackageVersion}}" />
             <PackageVersion Include="Cratis.Fundamentals" Version="{{profile.CratisFundamentalsPackageVersion}}" />
             <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="{{profile.CratisArcChronicleTestingPackageVersion}}" />
@@ -91,6 +92,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <None Remove="package.json" />
           </ItemGroup>
           <ItemGroup>
+            <PackageReference Include="Cratis.Screenplay.Matching" />
             <PackageReference Include="Cratis" />
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />

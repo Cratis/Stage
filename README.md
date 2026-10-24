@@ -335,9 +335,9 @@ CHRONICLE_SOURCE_ROOT=/path/to/Chronicle bash .github/scripts/run-specifications
 ```
 
 The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
-each test project (Rendering.Cratis and Conformance.Specs count separately) runs at most a quarter of the processors'
-worth of those processes at once (at least one); in CI (`CI=true`) they are unlimited. Set
-`STAGE_MAX_PARALLEL_APP_BUILDS` to choose the per-project limit yourself:
+each test project (Rendering.Cratis and Conformance.Specs count separately) runs one of those processes at a time,
+locally and in CI, and caps each `dotnet build` or `dotnet test` at three MSBuild nodes. Set
+`STAGE_MAX_PARALLEL_APP_BUILDS` to raise the per-project limit:
 
 ```shell
 STAGE_MAX_PARALLEL_APP_BUILDS=2 bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj --no-build

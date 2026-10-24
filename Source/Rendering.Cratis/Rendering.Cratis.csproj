@@ -121,6 +121,7 @@
     <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
         <ItemGroup>
             <_ScaffoldPackage Include="Cratis.Fundamentals" Constant="Fundamentals" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Fundamentals')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Screenplay.Matching" Constant="ScreenplayMatching" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Screenplay.Matching')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis" Constant="Cratis" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.MongoDB" Constant="ArcMongoDB" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.MongoDB')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />

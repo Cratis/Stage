@@ -8,6 +8,8 @@ using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -45,7 +47,13 @@ public class when_selecting_self_reducing_rendering
         var previous = classic.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
         Assert.Equal(previous.SelectMany(artifact => artifact.Sources).Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal), combined.Sources.Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal));
         Assert.Contains("public static global::Projects.Orders.Ordering.Totals.Total? Reduce(", Text(combined), StringComparison.Ordinal);
-        Assert.Contains("static global::Projects.Orders.Ordering.Totals.Total? Transition_", Text(combined), StringComparison.Ordinal);
+        var root = await CSharpSyntaxTree.ParseText(Text(combined), cancellationToken: TestContext.Current.CancellationToken).GetRootAsync(TestContext.Current.CancellationToken);
+        var record = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single();
+        Assert.DoesNotContain(record.Members.OfType<MethodDeclarationSyntax>(), method => method.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
+        var helper = Assert.Single(record.Members.OfType<ClassDeclarationSyntax>());
+        Assert.StartsWith("Transition_", helper.Identifier.Text, StringComparison.Ordinal);
+        Assert.Contains($"var result = {helper.Identifier.Text}.Apply(", Text(combined), StringComparison.Ordinal);
+        Assert.Equal("Apply", Assert.Single(helper.Members.OfType<MethodDeclarationSyntax>()).Identifier.Text);
         Assert.Contains(" ById(", Text(combined), StringComparison.Ordinal);
         Assert.DoesNotContain("IReducerFor", Text(combined), StringComparison.Ordinal);
         Assert.Empty(RenderedOutput.Errors(Files(self)));

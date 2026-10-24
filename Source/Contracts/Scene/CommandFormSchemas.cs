@@ -30,25 +30,7 @@ public static class CommandFormSchemas
     /// <param name="properties">The command properties.</param>
     /// <returns>The JSON schema text.</returns>
     /// <exception cref="UnsupportedCommandFormSchema">Thrown when a property has a type no form schema can describe.</exception>
-    public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties)
-    {
-        var concepts = application.Concepts.ToDictionary(
-            concept => concept.Name,
-            concept => new ConceptSyntax(
-                concept.Name,
-                concept.Values.IsEmpty ? PrimitiveName(concept.Primitive) : "Enum",
-                [],
-                concept.Values,
-                SourceLocation.Start),
-            StringComparer.Ordinal);
-        var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
-
-        return schemas.ForProperties(properties.Select(property => new PropertySyntax(
-            property.Name,
-            new TypeRefSyntax(TypeName(application, property.Type), property.Type.IsCollection, property.Type.IsOptional, SourceLocation.Start),
-            SourceLocation.Start,
-            property.IsIdentifier)));
-    }
+    public static string For(SemanticApplication application, IEnumerable<SemanticProperty> properties) => Create(application, properties, new CommandReferences(application, null, string.Empty, SourceLocation.Start));
 
     /// <summary>
     /// Creates a command schema while reporting unsupported semantic types instead of throwing.
@@ -62,7 +44,7 @@ public static class CommandFormSchemas
     public static string? For(SemanticApplication application, IEnumerable<SemanticProperty> properties, ConversionDiagnostics? diagnostics, string path, SourceLocation location)
     {
         if (diagnostics is null) return For(application, properties);
-        var all = properties.ToArray();
+        var all = properties.Where(property => !property.IsGenerated).ToArray();
         var omissions = new List<(string Code, string Construct, string Path)>();
         foreach (var concept in application.Concepts.Where(concept => concept.Values.IsEmpty && !Supported(concept.Primitive)))
         {
@@ -84,7 +66,7 @@ public static class CommandFormSchemas
             diagnostics.Report(new(omission.Code, DiagnosticSeverity.Error, omission.Construct, omission.Path, location, $"Command schema '{path}' was omitted because of unsupported {omission.Construct}."));
         }
 
-        return omissions.Count == 0 ? For(application, all) : null;
+        return omissions.Count == 0 ? Create(application, all, new CommandReferences(application, diagnostics, path, location)) : null;
     }
 
     /// <summary>
@@ -113,6 +95,28 @@ public static class CommandFormSchemas
         {
             return [];
         }
+    }
+
+    static string Create(SemanticApplication application, IEnumerable<SemanticProperty> properties, CommandReferences references)
+    {
+        var concepts = application.Concepts.ToDictionary(
+            concept => concept.Name,
+            concept => new ConceptSyntax(
+                concept.Name,
+                concept.Values.IsEmpty ? PrimitiveName(concept.Primitive) : "Enum",
+                [],
+                concept.Values,
+                SourceLocation.Start),
+            StringComparer.Ordinal);
+        var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
+
+        return schemas.ForCommandProperties(
+            properties.Where(property => !property.IsGenerated).Select(property => new PropertySyntax(
+                property.Name,
+                new TypeRefSyntax(TypeName(application, property.Type), property.Type.IsCollection, property.Type.IsOptional, SourceLocation.Start),
+                SourceLocation.Start,
+                property.IsIdentifier)),
+            references);
     }
 
     // The members of every composite type, so a record property is presented as the fields it holds rather than as an opaque object. A member

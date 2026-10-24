@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.Screenplay;
 /// </summary>
 internal sealed class CommandReferences
 {
-    static readonly string[] LabelNames = ["name", "title", "displayName"];
+    static readonly string[] _labelNames = ["name", "title", "displayName"];
 
     readonly SemanticApplication _application;
     readonly SemanticReadModel[] _models;
@@ -84,7 +84,7 @@ internal sealed class CommandReferences
     SemanticProperty Label(SemanticReadModel model, SemanticProperty key)
     {
         var text = model.Properties.Where(property => !property.Type.IsCollection && IsText(property.Type)).ToArray();
-        return LabelNames.Select(name => text.FirstOrDefault(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)))
+        return _labelNames.Select(name => text.FirstOrDefault(property => string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)))
             .FirstOrDefault(property => property is not null) ?? text.FirstOrDefault(property => property.Id != key.Id) ?? key;
     }
 

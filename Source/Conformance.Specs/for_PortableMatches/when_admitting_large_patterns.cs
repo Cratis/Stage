@@ -14,12 +14,12 @@ using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_PortableMatches;
 
-public class when_refusing_unrepresentable_patterns : Specification
+public class when_admitting_large_patterns : Specification
 {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_execute_the_reference_and_stage_but_refuse_generated_counted_repeat_overflow(bool concept)
+    public async Task should_execute_the_reference_and_stage_and_render_counted_repeat_overflow(bool concept)
     {
         const string pattern = "(){999999999999999999999999999}";
         PortableMatchPattern.Check(pattern).Status.ShouldEqual(PortableMatchStatus.Admitted);
@@ -33,12 +33,12 @@ public class when_refusing_unrepresentable_patterns : Specification
         }
 
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PortableMatches", "PortableMatches"));
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
-        var diagnostic = rendered.Diagnostics.Single();
-        diagnostic.Code.ShouldEqual("STAGE-ESM-005");
-        diagnostic.Message.ShouldContain("QuantifierOrCaptureGroupOutOfRange");
-        diagnostic.Artifact.ShouldEqual(concept ? model.Application.Concepts.Single(value => value.Name == "Match0Concept").Id : plan.Commands.Values.Single(command => command.Validations.Length == 1).Id);
+        rendered.Success.ShouldBeTrue();
+        rendered.Diagnostics.ShouldBeEmpty();
+        var validator = rendered.Artifacts.Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))
+            .Single(text => text.Contains("PortableMatcher.Compile(", StringComparison.Ordinal) && text.Contains(pattern, StringComparison.Ordinal));
+        validator.ShouldContain(pattern);
+        validator.ShouldNotContain("RegularExpressions");
     }
 }
 #endif

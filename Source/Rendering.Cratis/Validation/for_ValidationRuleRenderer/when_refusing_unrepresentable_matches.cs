@@ -12,7 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Validation.for_ValidationRuleRenderer;
 public class when_refusing_unrepresentable_matches : Specification
 {
     [Theory]
-    [InlineData("(){999999999999999999999999999}", "QuantifierOrCaptureGroupOutOfRange")]
+    [InlineData("b{10000}", "expanded pattern size")]
+    [InlineData("^(ab){10000}$", "expanded pattern size")]
     [InlineData("(?=a)a", "lookaround")]
     [InlineData(@"\bword", "word boundary")]
     [InlineData(@"\p{L}", "Unicode property escape")]

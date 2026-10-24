@@ -132,7 +132,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var runtimeType = command is null ? typeof(DynamicCommand) : runtimeTypes.ForCommand(command);
         var instance = command is null ? null : Materialize(runtimeType, command, when!, plan);
 
-        var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
+        // An event that cannot be materialized stays out of the eager set; a run that needs it is refused when it is resolved.
+        var eventTypes = runtimeTypes.MaterializableEvents();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
         var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);

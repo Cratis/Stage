@@ -168,7 +168,7 @@ public class a_generated_application : a_register_project_render_request
     {
         // Bounded so a local run does not start every generated application's build at once.
         using var slot = await GeneratedApplicationBuilds.Enter();
-        arguments = SpecificationsArguments(arguments);
+        arguments = GeneratedApplicationBuilds.Capped("dotnet", SpecificationsArguments(arguments));
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = _application!.FullName,

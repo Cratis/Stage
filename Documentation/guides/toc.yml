@@ -2,5 +2,7 @@
   href: generated-values.md
 - name: Build a renderer target
   href: build-renderer-target.md
+- name: Verify a third-party render target
+  href: third-party-render-target.md
 - name: Customize a rendered application
   href: customize-rendered-application.md

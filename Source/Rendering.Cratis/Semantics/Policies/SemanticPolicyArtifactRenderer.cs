@@ -64,7 +64,7 @@ internal static class SemanticPolicyArtifactRenderer
                 .Line("// Module initialization registers a known generated policy, without assembly scanning.")
                 .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
                 .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
-                .OpenBlock("internal static void RegisterPolicy()")
+                .OpenBlock("internal static void InitializeGeneratedAuthorization()")
                 .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{name.ClassName}>({policyName}{anonymous}));")
                 .EndBlock()
                 .Line("#pragma warning restore CA2255")

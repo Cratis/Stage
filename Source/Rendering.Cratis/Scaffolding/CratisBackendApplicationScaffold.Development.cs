@@ -26,7 +26,7 @@ public sealed partial class CratisBackendApplicationScaffold
         dotnet_sort_system_directives_first = true
         dotnet_separate_import_directive_groups = false
 
-        [{**/*.Specs/**/*.cs,**/when_*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]
+        [{**/when_*.cs,**/when_*/**/*.cs,**/for_*/**/*.cs,**/given/**/*.cs}]
         # Cratis specifications use BDD names, including should_ facts.
         dotnet_diagnostic.IDE1006.severity = none
         dotnet_diagnostic.CA1707.severity = none
@@ -74,12 +74,13 @@ public sealed partial class CratisBackendApplicationScaffold
         ## Run specifications
 
         ```bash
-        dotnet test {{request.ProjectName}}.Specs
+        dotnet test {{request.ProjectName}}.csproj
         ```
 
-        The separate specs project links the generated slice-local `when_*.cs` files.
-        Specifications run in any configuration, including Release. The web project
-        excludes `when_*.cs` specifications in every configuration.
+        Specifications live beside the slices they specify, in `when_*.cs` files and
+        `when_*/`, `for_*/` and `given/` folders. They compile into the application in
+        Debug, which is also when its test packages are referenced. A Release build
+        removes them and needs no test packages.
 
         ## Customize
 

@@ -32,7 +32,6 @@ public sealed partial class CratisBackendApplicationScaffold
             ("Directory.Build.targets", DirectoryBuildTargets()),
             ("Directory.Packages.props", DirectoryPackagesProps(profile)),
             ($"{request.ProjectName}.csproj", Project(request)),
-            ($"{request.ProjectName}.Specs/{request.ProjectName}.Specs.csproj", SpecificationsProject(request)),
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),

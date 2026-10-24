@@ -1,6 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+/** A modeled list query whose rows supply a reference key and display text; StageRoutes supplies its URL. */
+export interface SchemaReference {
+    query: string;
+    value: string;
+    label: string;
+}
+
 /**
  * What a command's presentation schema says about one property, in the terms a form needs: its scalar type, the
  * values an enumeration declares, the members of a record and the element of a collection.
@@ -10,6 +17,7 @@ export interface SchemaProperty {
 
     /** The identifier concept of a uuid property (`x-concept`) - `BasketId`; what a session holds one value of. */
     identifier?: string;
+    reference?: SchemaReference;
 
     /**
      * Whether this is the identifier the command acts on (`x-identity`) - the basket an add to basket appends to - rather than a reference to
@@ -42,6 +50,7 @@ interface JsonSchemaDefinition {
     required?: unknown;
     'x-concept'?: unknown;
     'x-identity'?: unknown;
+    'x-reference'?: unknown;
 }
 
 const maximumDepth = 8;
@@ -67,13 +76,22 @@ function membersOf(parsed: JsonSchemaDefinition, depth: number): SchemaProperty[
 }
 
 function describe(name: string, definition: JsonSchemaDefinition | undefined, required: boolean, depth: number): SchemaProperty {
+    const reference = referenceOf(definition?.['x-reference']);
     return {
         name,
-        identifier: definition?.format === 'uuid' && typeof definition['x-concept'] === 'string' ? definition['x-concept'] : undefined,
+        identifier: (definition?.format === 'uuid' || reference) && typeof definition?.['x-concept'] === 'string' ? definition['x-concept'] : undefined,
+        ...(reference ? { reference } : {}),
         ...(definition?.['x-identity'] === true ? { identity: true } : {}),
         required,
         ...propertyType(definition, depth),
     };
+}
+
+function referenceOf(value: unknown): SchemaReference | undefined {
+    if (!isRecord(value)) return undefined;
+    const { query, value: key, label } = value;
+    return typeof query === 'string' && query.length > 0 && typeof key === 'string' && key.length > 0 && typeof label === 'string' && label.length > 0
+        ? { query, value: key, label } : undefined;
 }
 
 function propertyType(definition: JsonSchemaDefinition | undefined, depth: number): Partial<SchemaProperty> {

@@ -63,7 +63,7 @@ public static class GeneratedApplicationBuilds
     public static string[] Capped(string fileName, string[] arguments) =>
         string.Equals(fileName, "dotnet", StringComparison.Ordinal)
         && arguments.Length > 0
-        && arguments[0] is "build" or "test"
+        && (string.Equals(arguments[0], "build", StringComparison.Ordinal) || string.Equals(arguments[0], "test", StringComparison.Ordinal))
         && !arguments.Any(argument => argument.StartsWith("-m:", StringComparison.Ordinal))
             ? [arguments[0], $"-m:{MaxCpuCount}", .. arguments.Skip(1)]
             : arguments;

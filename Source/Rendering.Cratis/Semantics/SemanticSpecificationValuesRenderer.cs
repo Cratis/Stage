@@ -17,7 +17,7 @@ internal sealed class SemanticSpecificationValuesRenderer(SemanticApplicationCon
     readonly Dictionary<(string Type, string Expression), Fixture> _fixtures = [];
     readonly HashSet<string> _names = new(StringComparer.Ordinal)
     {
-        "_scenario", "_reactor", "_result", "_results", "_givenEventCount", "_facts", "_settled", "_principal", "_principalAccessor", "_readModels", "_readModelScenario", "_store", "_log", "_outbox", "_history", "_published", "_produced"
+        "_scenario", "_reactor", "_result", "_results", "_givenEventCount", "_facts", "_settled", "_principal", "_principalAccessor", "_readModels", "_readModelScenario", "_store", "_log", "_outbox", "_inbox", "_history", "_published", "_produced"
     };
 
     internal string Value(SemanticValue value, SemanticTypeReference type, string expression, SemanticTypeSystem types)

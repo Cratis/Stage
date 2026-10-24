@@ -74,7 +74,11 @@ internal static partial class SemanticTranslationSpecificationRenderer
     {
         var append = specification.WhenAppended!;
         var contract = context.Events[append.EventContract];
-        var invocation = $"_reactor.On{Identifiers.ToPascalCase(contract.Name)}({Fact(contract, append.Values, types)}";
+        var handler = publication is not null
+            ? $"On{Identifiers.ToPascalCase(contract.Name)}"
+            : context.CaptureMembers(SemanticTranslationSpecificationAdmission.Capture(context.DeclaringSlice(specification.Id).Slice, append)
+                ?? throw UnsupportedSemanticRendering.For(nameof(SemanticCapture), specification.Name)).Handler(contract.Id);
+        var invocation = $"_reactor.{handler}({Fact(contract, append.Values, types)}";
         builder.OpenBlock("async global::System.Threading.Tasks.Task Because()");
         var delivery = $"EventContext.Empty with {{ EventSourceId = {Source(append.EventSource, types)}, SequenceNumber = new((ulong)_history.Count) }}";
         if (publication is not null)

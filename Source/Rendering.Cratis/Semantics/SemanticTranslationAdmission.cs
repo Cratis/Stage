@@ -14,12 +14,12 @@ internal static class SemanticTranslationAdmission
 {
     internal static IEnumerable<SemanticVersionFeature> AdmittedFeatures(SemanticSlice slice, SemanticApplicationContext context)
     {
-        if (!SemanticTranslationSupport.Slice(slice, context.Events)) yield break;
+        if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events)) yield break;
         foreach (var feature in SemanticVersionFeatures.InSlice(slice))
         {
             if (feature.Artifact == slice.Id ||
-                slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticTranslationSupport.Projection(projection, context.Events)) ||
-                slice.Captures.Any(capture => capture.Id == feature.Artifact && SemanticTranslationSupport.Capture(capture, context.Events)))
+                slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticTranslationSupport.RenderableProjection(projection, context.Events)) ||
+                slice.Captures.Any(capture => capture.Id == feature.Artifact && SemanticTranslationSupport.RenderableCapture(capture, context.Events)))
             {
                 yield return feature;
             }
@@ -27,13 +27,13 @@ internal static class SemanticTranslationAdmission
     }
 
     internal static bool AdmitsEvent(SemanticId id, SemanticSlice slice, SemanticApplicationContext context) =>
-        (SemanticTranslationSupport.Slice(slice, context.Events) || DeclarationOnly(slice, id, context) || ExpectationOnly(slice, id, context)) &&
+        (SemanticTranslationSupport.RenderableSlice(slice, context.Events) || DeclarationOnly(slice, id, context) || ExpectationOnly(slice, id, context)) &&
         !LocallyProduces(slice, id) && context.Events.TryGetValue(id, out var contract) &&
-        SemanticTranslationSupport.Event(contract, context.AllSlices.Select(located => located.Slice), context.Events);
+        SemanticTranslationSupport.RenderableEvent(contract, context.AllSlices.Select(located => located.Slice), context.Events);
 
     internal static void Validate(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (!SemanticTranslationSupport.Slice(slice, context.Events))
+        if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events))
         {
             diagnostics.Add(new(
                 SemanticVersionFeatures.Automation,
@@ -72,9 +72,9 @@ internal static class SemanticTranslationAdmission
         }
     }
 
-    internal static IEnumerable<GeneratedTypeDeclaration> Declarations(IReadOnlyList<LocatedSemanticSlice> slices) =>
+    internal static IEnumerable<GeneratedTypeDeclaration> Declarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.Where(located => located.Slice.Kind == SemanticSliceKind.Translate).SelectMany(located =>
-            located.Slice.Captures.Select(capture => new GeneratedTypeDeclaration(capture.Id, "Capture", string.Join('.', located.Path.Select(Identifiers.ToPascalCase)), Identifiers.ToPascalCase(capture.Name))));
+            located.Slice.Captures.Select(capture => new GeneratedTypeDeclaration(capture.Id, "Capture", string.Join('.', located.Path.Select(Identifiers.ToPascalCase)), context.CaptureMembers(capture).TypeName)));
 
     static bool DeclarationOnly(SemanticSlice slice, SemanticId id, SemanticApplicationContext context) =>
         slice.Events.Any(candidate => candidate.Id == id) &&
@@ -111,7 +111,14 @@ internal static class SemanticTranslationAdmission
     {
         foreach (var capture in slice.Captures)
         {
-            ValidateName(capture.Id, capture.Name, capture.EventsSource?.Events ?? [], context, diagnostics);
+            foreach (var reason in context.CaptureMembers(capture).Refusals)
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-004",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Capture '{capture.Name}' cannot render: {reason}.",
+                    capture.Id));
+            }
             if (SemanticCaptureIdentitySupport.Check(capture, context.Request.Model, context.Events) is { } identityFailure)
             {
                 diagnostics.Add(new(SemanticCaptureIdentitySupport.Code, ArtifactRenderDiagnosticSeverity.Error, identityFailure, capture.Id));

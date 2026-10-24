@@ -42,7 +42,7 @@ public class with_shadowing_names : Specification
                 .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
             _errors.AddRange(RenderedOutput.Errors(files));
             _warnings.AddRange(RenderedOutput.Warnings(files));
-            _policies.AddRange(files.Where(file => Path.GetFileName(file.RelativePath).StartsWith("StagePolicy_", StringComparison.Ordinal)).Select(file => file.Content));
+            _policies.AddRange(files.Where(file => Path.GetFileName(file.RelativePath).EndsWith("Policy.cs", StringComparison.Ordinal)).Select(file => file.Content));
         }
     }
 

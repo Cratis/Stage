@@ -23,7 +23,7 @@ internal static class SemanticTranslationSupport
         Appends(capture.Appends, events) &&
         (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
 
-    /// <summary>Determines whether a projection publishes a complete public event per source fact.</summary>
+    /// <summary>Determines whether a projection publishes a complete public event across source facts.</summary>
     /// <param name="projection">The projection.</param>
     /// <param name="events">The application's event contracts.</param>
     /// <returns>Whether its event-target structure is supported.</returns>
@@ -62,6 +62,47 @@ internal static class SemanticTranslationSupport
         slices.Any(slice => Slice(slice, events) && (contract.Origin is not null
             ? slice.Captures.Any(capture => capture.EventsSource!.Events.Contains(contract.Id))
             : contract.Visibility == SemanticEventVisibility.Public && slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events))));
+
+    /// <summary>
+    /// Determines whether a supported capture can render without child processing.
+    /// </summary>
+    /// <param name="capture">The capture.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the capture can render.</returns>
+    internal static bool RenderableCapture(SemanticCapture capture, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Capture(capture, events) && capture.Children.IsDefaultOrEmpty;
+
+    /// <summary>
+    /// Determines whether a supported publication supplies every required property per source fact.
+    /// </summary>
+    /// <param name="projection">The projection.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the publication can render.</returns>
+    internal static bool RenderableProjection(SemanticProjection projection, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Projection(projection, events) &&
+        projection.Scope!.From.GroupBy(from => from.EventContract).All(group => events[projection.ReadModel].Properties.Where(property => !property.Type.IsOptional)
+            .All(property => group.SelectMany(from => from.Mappings).Any(mapping => mapping.Target[0] == property.Id)));
+
+    /// <summary>
+    /// Determines whether a supported translation slice contains only renderable structures.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the translation slice can render.</returns>
+    internal static bool RenderableSlice(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Slice(slice, events) &&
+        (slice.Captures.IsDefaultOrEmpty || slice.Captures.All(capture => RenderableCapture(capture, events))) &&
+        slice.Projections.All(projection => projection.Target != SemanticProjectionTargetKind.Event || RenderableProjection(projection, events));
+
+    /// <summary>
+    /// Determines whether a foreign or public contract participates in a renderable translation.
+    /// </summary>
+    /// <param name="contract">The event contract.</param>
+    /// <param name="slices">The application's slices.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the special event contract can render.</returns>
+    internal static bool RenderableEvent(SemanticEventContract contract, IEnumerable<SemanticSlice> slices, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Event(contract, slices.Where(slice => RenderableSlice(slice, events)), events);
 
     static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&

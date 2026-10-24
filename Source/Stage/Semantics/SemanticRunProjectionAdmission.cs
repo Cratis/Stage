@@ -158,6 +158,11 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "An event property name collides with Chronicle expression syntax.";
         }
+        if (readModel.Properties.Concat(ProjectionReferencedEventNamesAreUnique.Contracts(projection).Where(plan.Events.ContainsKey).SelectMany(id => plan.Events[id].Properties))
+            .Any(property => !SemanticStructuredTypes.HasFiniteShape(plan, property.Type)))
+        {
+            return "A recursive composite type cannot be materialized as a runtime type.";
+        }
         if (ShapeRejection(readModel, projection.Scope) is { } shape)
         {
             return shape;
@@ -197,7 +202,7 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return "A join or child level adds or subtracts a product of two event values (ESM v29); only a root from block can carry the product on its event.";
             }
-            if (ProductRejection(plan, scope, readModel) is { } product)
+            if (ProductRejection(plan, scope, readModel, reachable) is { } product)
             {
                 return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
             }
@@ -246,10 +251,10 @@ internal static partial class SemanticRunProjectionAdmission
         return null;
     }
 
-    static string? ProductRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel)
+    static string? ProductRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel, HashSet<SemanticId> reachable)
     {
         var context = new SemanticApplicationContext(plan);
-        foreach (var from in scope.From)
+        foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, reachable)))
         {
             foreach (var mapping in from.Mappings.Where(mapping => mapping.Factor is not null))
             {

@@ -136,7 +136,9 @@ internal static partial class SemanticCratisAdmission
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
-            selfReduces: context.SelfReduces).Concat(SemanticTranslationAdmission.Declarations(slices));
+            selfReduces: context.SelfReduces,
+            policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
+            .Concat(SemanticTranslationAdmission.Declarations(context, slices));
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
@@ -189,7 +191,10 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateGeneratedTypeNames(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), GeneratedDeclarations(context, slices)))
+        var declarations = GeneratedDeclarations(context, slices).ToArray();
+        var collisions = GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), declarations)
+            .Concat(SemanticCaptureDeclarationCollisions.Find(slices, declarations)).Distinct();
+        foreach (var (artifact, kind, name) in collisions)
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."

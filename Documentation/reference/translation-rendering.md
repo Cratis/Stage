@@ -29,7 +29,8 @@ A supported capture has an events source, one foreign origin, a key on every sou
 local private append targets. Field mappings read the key's capture state, which overlays every source
 contract seen for that key, so a mapped field must exist on at least one source contract and have the
 target property's type; Stage does not coerce field values. Literal mappings retain their modeled types.
-Capture `map`, children and nested scopes remain refused.
+Capture `map`, children and nested scopes remain refused. A capture with child appends is refused
+as a whole; Stage does not emit only its top-level appends.
 
 ### Typed capture keys (ESM v32)
 
@@ -101,6 +102,12 @@ A supported event-target projection publishes a local public event from private 
 is per event source, its key is the event-source identity, and its top-level mappings use `set` with a
 source property, literal or event-source identity. `every`, joins, child scopes, composite or custom keys,
 `clear`, non-set operations and event-target reducers remain refused.
+
+Each source event must supply every required target property, considering all `from` clauses for that
+event together. A publication that needs another source event to supply a required property is refused
+with `STAGE-ESM-032`, naming the projection. Stage does not reconstruct missing required values from
+private-event history or assume an earlier public fact exists. Optional properties may retain their
+previous public value, or remain null before the first publication.
 
 Before publishing, the reactor reads the last public fact of the target type for the same event source
 from the outbox. It appends only when the mapped public record differs. Identical consecutive records

@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="Cratis" />
+        <PackageReference Include="Cratis.Fundamentals" />
         <PackageReference Include="Cratis.Arc.MongoDB" />
         <!--
             The Chronicle client packages are referenced directly, not left to arrive transitively through the Cratis

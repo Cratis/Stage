@@ -46,19 +46,7 @@ internal static class SemanticReducerArtifactRenderer
         var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
         var self = context.SelfReduces(reducer.ReadModel);
         var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
-        var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
-        var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
-            keyType.Primitive == SemanticPrimitiveType.Uuid;
-        var key = $"result.{keyMember}";
-        var typedValue = concept ? $"{key}.TypedValue" : key;
-        var value = concept ? $"{key}.Value" : key;
-        var typedWire = uuid ? $"{typedValue}.ToString()" : typedValue;
-        var valueWire = uuid ? $"{value}.ToString()" : value;
-        var check = $"!global::System.String.Equals({typedWire}, originalSourceId, global::System.StringComparison.Ordinal)";
-        if (concept)
-        {
-            check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
-        }
+        var check = IdentityCheck(keyType, keyMember, context);
 
         foreach (var transition in reducer.Transitions)
         {
@@ -105,5 +93,23 @@ internal static class SemanticReducerArtifactRenderer
                 .BlankLine();
             if (self) builder.EndBlock().BlankLine();
         }
+    }
+
+    static string IdentityCheck(SemanticTypeReference keyType, string keyMember, SemanticApplicationContext context)
+    {
+        var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
+        var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
+            keyType.Primitive == SemanticPrimitiveType.Uuid;
+        var key = $"result.{keyMember}";
+        var typedValue = concept ? $"{key}.TypedValue" : key;
+        var value = concept ? $"{key}.Value" : key;
+        var typedWire = uuid ? $"{typedValue}.ToString()" : typedValue;
+        var valueWire = uuid ? $"{value}.ToString()" : value;
+        var check = $"!global::System.String.Equals({typedWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        if (concept)
+        {
+            check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        }
+        return check;
     }
 }

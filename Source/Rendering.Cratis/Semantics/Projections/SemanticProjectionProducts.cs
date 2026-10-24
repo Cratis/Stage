@@ -28,6 +28,15 @@ internal sealed record SemanticProjectionProduct(string Name, SemanticPrimitiveT
 internal static class SemanticProjectionProducts
 {
     /// <summary>
+    /// Whether a root from block carries a product but its event can never occur in the run, so neither admission nor lowering considers the block.
+    /// </summary>
+    /// <param name="from">The root from block.</param>
+    /// <param name="reachable">The events the run can append.</param>
+    /// <returns><see langword="true"/> when the block is skipped.</returns>
+    public static bool IsUnreachable(SemanticProjectionFrom from, IReadOnlySet<SemanticId> reachable) =>
+        from.Mappings.Any(mapping => mapping.Factor is not null) && !reachable.Contains(from.EventContract);
+
+    /// <summary>
     /// Finds the reason a mapping with a second factor cannot be lowered.
     /// </summary>
     /// <param name="mapping">The mapping.</param>

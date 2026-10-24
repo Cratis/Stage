@@ -68,7 +68,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, useScreenRows());
+    const rows = useScreenRows();
+    // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
+    const creates = element.properties.createsEntity === true;
+    const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, creates ? { selectableRows: [], selectedRows: [] } : rows);
 
     // What the action binds from its subject row wins over the session, which only holds what nobody chose.
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, subjectValues]);

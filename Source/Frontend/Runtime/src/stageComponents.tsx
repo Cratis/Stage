@@ -14,7 +14,7 @@ import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
 import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
-import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
+import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -397,6 +397,7 @@ function carriedByRows(property: SchemaProperty, subject: ActionSubject | undefi
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
+ * A command that creates an entity (`x-creates`) is about no row: it neither waits for selection nor takes a selected row's identifiers.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
@@ -406,14 +407,17 @@ function StageToolbarCommand(props: RegisteredProps) {
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const { selectableRows, selectedRows } = useScreenRows();
+    const creates = createsEntity(schema ?? '');
+    const { selectableRows: screenRows, selectedRows } = useScreenRows();
+    const selectableRows = creates ? [] : screenRows;
     const subject = actionSubjectOf(element);
 
-    // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action.
-    const awaiting = subject === undefined ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
+    // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action. A creation is about no row.
+    const awaiting = subject === undefined && !creates ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
+    const intent = creates ? { createsEntity: true } : subjectActionProperties(element, subject);
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...intent } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

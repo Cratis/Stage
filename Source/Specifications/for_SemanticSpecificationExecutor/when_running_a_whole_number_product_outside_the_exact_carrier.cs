@@ -18,7 +18,9 @@ public class when_running_a_whole_number_product_outside_the_exact_carrier : Spe
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+        result.Unsupported.Construct.ShouldEqual(plan.Events.Values.Single(contract => contract.Name == "LineAdded").Id.ToString());
         result.Unsupported.Details.ShouldContain("Event 'LineAdded' product");
+        result.Unsupported.Details.ShouldContain("or one of its operands exceeds");
         result.Unsupported.Details.ShouldContain("exact whole-number carrier (Int64)");
         result.Failures.ShouldBeEmpty();
     }

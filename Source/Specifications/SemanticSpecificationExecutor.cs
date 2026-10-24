@@ -204,6 +204,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static async Task<SemanticInvocationOutcome> ExecuteCommand(SemanticCommandRun run, CancellationToken cancellationToken, bool collectRefusalDetails = false)
     {
         var context = run.Context;
+        context.ProjectionLoweringRefusal = null;
         var specification = context.Specification;
         var command = context.Command;
         if (SemanticVersionFeatures.UnsupportedReadRequirements(command).FirstOrDefault() is { } feature)
@@ -253,6 +254,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static SemanticSpecificationRunRecord? CommandOutcome(SemanticCommandRun run, CommandResult result, bool allowed, int priorFacts)
     {
         var (slice, expected) = (run.Slice, run.Expected);
+        if (run.Context.ProjectionLoweringRefusal is { } refusal)
+        {
+            return Unsupported(slice, expected, new(StageExecutionCapability.Projection, refusal.Projection.ToString(), refusal.Message));
+        }
         if (result.HasExceptions) return Failed(slice, expected, [.. result.ExceptionMessages]);
         if (!result.IsAuthorized)
         {

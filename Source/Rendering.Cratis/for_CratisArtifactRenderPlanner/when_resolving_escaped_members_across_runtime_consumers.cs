@@ -41,7 +41,7 @@ public class when_resolving_escaped_members_across_runtime_consumers : a_generat
         _assembly = RenderedOutput.Load(sources);
         _command = _assembly.GetTypes().Single(type => type.Name == "Text");
         var command = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Commands).Single();
-        _policy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == SemanticPolicyArtifactRenderer.Name(command.Id)))!;
+        _policy = (IAuthorizationPolicy)Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == policy_names.ClassOf(model, command.Id)))!;
         return _plan;
     }
 

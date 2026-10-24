@@ -10,7 +10,7 @@ public class with_a_runtime_type_needed_for_the_recursive_event : given.a_recurs
 {
     Exception _error = null!;
 
-    void Because() => _error = Catch.Exception(() => new SemanticRuntimeTypes(_plan).For(_plan.Events.Single(@event => @event.Value.Name == "Linked").Key))!;
+    void Because() => _error = Catch.Exception(() => new SemanticRuntimeTypes(_plan).For(_plan.Events.Single(@event => @event.Value.Name == "Linked").Key));
 
     [Fact] void should_refuse_by_name() => _error.ShouldBeOfExactType<SemanticProjectionLoweringRefused>();
     [Fact] void should_say_the_composite_is_recursive() => _error.Message.ShouldContain("recursive composite");

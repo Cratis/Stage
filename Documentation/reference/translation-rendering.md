@@ -31,6 +31,22 @@ contract seen for that key, so a mapped field must exist on at least one source 
 target property's type; Stage does not coerce field values. Literal mappings retain their modeled types.
 Capture `map`, children and nested scopes remain refused.
 
+### Typed capture keys (ESM v32)
+
+Stage admits the exact language/semantic v32 pair from Screenplay 4.241.0; v31 remains unaudited.
+A v32 capture preserves the key's declared event-source type rather than treating it as text.
+Required scalar `Text`, `Uuid` and `WholeNumber` keys, and non-enumerated concepts over those
+primitives, render when every source contract has the same key type and every append declares that
+same identity type. A concept used only as a capture identity renders as `EventSourceId<T>` too;
+no command or read-model key is needed to establish its identity role.
+
+Optional, collection, composite, enumerated or other primitive keys, inconsistent source types,
+and append types that would lose that identity are refused with `STAGE-ESM-052`. In particular,
+Stage will not convert a typed v32 key to text to make an inferred text append fit. Existing v9
+text-key translations retain their behavior. The specification executor retains the same typed
+identity in captured facts and typed givens; the live host still refuses foreign inbox contracts
+with `STAGE-ESM-033` rather than claiming transport support.
+
 ### Capture state
 
 The generated inbox reactor decides every guard from the key's previous capture state, the same state
@@ -93,6 +109,7 @@ one transaction or provide concurrent exactly-once delivery.
 | `STAGE-ESM-032` | Public contracts outside the supported translation subset; unsupported event-target projections and event-target reducers |
 | `STAGE-ESM-033` | Foreign contracts outside the supported subset, including a capture spanning several origin stores |
 | `STAGE-ESM-011` | Translate specifications outside the isolated handler-fixture subset described below |
+| `STAGE-ESM-052` | v32 capture keys without a faithful scalar identity conversion, or source/append identity types that disagree |
 
 A direct `when append` can render a `Specification` that constructs and calls the generated
 reactor handler. Inbound fixtures place given foreign records in the inbox before the delivered

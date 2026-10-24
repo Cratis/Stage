@@ -57,7 +57,8 @@ internal static class SemanticCaptureArtifactRenderer
             return;
         }
         var key = source.Properties.Single(property => property.Name == capture.Key);
-        var destination = types.EventSourceExpression($"@event.{Identifiers.ToPascalCase(key.Name)}", key.Type);
+        var identityType = context.Request.Model.SemanticVersion == SemanticVersion.V32 ? append.EventSourceType : key.Type;
+        var destination = types.EventSourceExpression($"@event.{Identifiers.ToPascalCase(key.Name)}", identityType);
         var guard = SemanticCaptureStateRendering.Condition(append.When);
         if (guard is not null) builder.OpenBlock($"if ({guard})");
         var arguments = contract.Properties.Select(property => Mapping(append, property, types));

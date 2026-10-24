@@ -141,17 +141,24 @@ public class a_generated_application : a_register_project_render_request
         }
     }
 
-    protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
+    protected string ReadGeneratedFile(string relativePath)
+    {
+        var path = GeneratedPath(relativePath);
+        if (!File.Exists(path) && Path.GetFileName(path).StartsWith("when_", StringComparison.Ordinal))
+        {
+            path = Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path), SearchOption.AllDirectories).Single();
+        }
+        return File.ReadAllText(path);
+    }
 
     protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application!.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
 
     protected void AddGeneratedSpecification(string name, string content)
     {
-        var project = Directory.GetFiles(_application!.FullName, "*.csproj").Single();
-        WriteGeneratedSupport(Path.Combine($"{Path.GetFileNameWithoutExtension(project)}.Specs", name), content);
+        WriteGeneratedSupport(Path.Combine(Path.GetDirectoryName(name)!, "for_Generated", Path.GetFileName(name)), content);
     }
 
-    // Partial Program hooks must compile into the host, not the separate specification assembly.
+    // Partial Program hooks compile into the host in both Debug and Release.
     protected void AddGeneratedHostSupport(string name, string content) => WriteGeneratedSupport(Path.Combine("Customizations", name), content);
 
     void WriteGeneratedSupport(string relativePath, string content)
@@ -229,21 +236,17 @@ public class a_generated_application : a_register_project_render_request
         return output;
     }
 
-    // Callers name the host they rendered; restore/build cover both projects and test targets only specs.
-    static string[] SpecificationsArguments(string[] arguments)
+    // Existing verification vectors name the host; execute its inline specifications with the native runner.
+    string[] SpecificationsArguments(string[] arguments)
     {
-        if (arguments.Length < 2 || !arguments[1].EndsWith(".csproj", StringComparison.Ordinal))
+        if (arguments.Length > 0 && arguments[0] == "test")
         {
-            return arguments;
+            var project = arguments.Length > 1 && arguments[1].EndsWith(".csproj", StringComparison.Ordinal)
+                ? arguments[1]
+                : Path.GetFileName(Directory.GetFiles(_application!.FullName, "*.csproj").Single());
+            return GeneratedSpecificationArguments.Native(project, arguments);
         }
-
-        var project = arguments[1][..^".csproj".Length];
-        return arguments[0] switch
-        {
-            "restore" or "build" => [arguments[0], $"{project}.slnx", .. arguments.Skip(2)],
-            "test" => [arguments[0], $"{project}.Specs/{project}.Specs.csproj", .. arguments.Skip(2)],
-            _ => arguments
-        };
+        return arguments;
     }
 
     static async Task<(string Text, bool Truncated)> ReadOutput(StreamReader reader)

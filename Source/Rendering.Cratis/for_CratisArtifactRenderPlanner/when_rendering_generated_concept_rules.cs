@@ -24,7 +24,7 @@ public class when_rendering_generated_concept_rules : Specification
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Text(plan, "Common/CustomerId.cs").ShouldContain("GenerateValue.Ulid(context)");
         Text(plan, "Common/CustomerId.cs").ShouldContain("ConceptValidator<CustomerId>");
-        Text(plan, "Common/CustomerId.cs").ShouldContain("MatchesPattern(");
+        Text(plan, "Common/CustomerId.cs").ShouldContain("PortableMatcher.Compile(");
     }
 
     [Theory]

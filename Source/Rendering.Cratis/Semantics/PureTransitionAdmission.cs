@@ -304,7 +304,7 @@ internal static partial class PureTransitionAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.Text == $"Transition_{suffix}");
+            var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
             var methodOffset = code.IndexOf(body, helper.Body!.OpenBraceToken.Span.End, StringComparison.Ordinal);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
             if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
@@ -317,7 +317,7 @@ internal static partial class PureTransitionAdmission
             return Reject("STAGE-ESM-019", $"Reducer body {location}: {detail}");
         }
 
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == $"Transition_{suffix}");
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
         return Walk(semanticModel, method.Body!, descriptor, context.RootNamespace);
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
@@ -371,7 +371,7 @@ internal static partial class PureTransitionAdmission
         var tree = compilation.SyntaxTrees.Single(_ => _.FilePath == reducerPath);
         var methodName = "Transition_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(_ => _.Identifier.Text == methodName);
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, methodName));
         if (compilation.GetDiagnostics().Any(_ => _.Severity == DiagnosticSeverity.Error))
         {
             return Reject("STAGE-ESM-019", "The rendered application does not compile.");
@@ -386,7 +386,7 @@ internal static partial class PureTransitionAdmission
     internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodPrefix = "Transition_")
     {
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(declaration => declaration.Identifier.Text.StartsWith(methodPrefix, StringComparison.Ordinal));
+            .Single(declaration => IsTransitionMethod(declaration, methodPrefix));
         var names = new HashSet<(string Name, string? Namespace)>();
         foreach (var name in method.Body!.DescendantNodes().OfType<SimpleNameSyntax>())
         {
@@ -421,6 +421,11 @@ internal static partial class PureTransitionAdmission
     // The audited pack, or the isolated failure-path override, for every pure body analysis.
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
+        method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||
+        (method.Identifier.Text == SemanticReducerArtifactRenderer.SelfTransitionMethod &&
+            method.Parent is ClassDeclarationSyntax container && container.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal));
 
     static string ForbiddenSymbol(SyntaxNode forbidden, string body) => forbidden switch
     {

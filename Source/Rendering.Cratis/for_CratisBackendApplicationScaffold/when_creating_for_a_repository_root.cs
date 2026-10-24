@@ -47,7 +47,7 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
     [Fact] void should_not_run_on_a_schedule() => _workflow.ShouldNotContain("schedule");
     [Fact] void should_not_use_secrets() => _workflow.ShouldNotContain("secrets.");
     [Fact] void should_build_the_solution_for_debug_and_release() => (_workflow.Contains("dotnet build MyApp.slnx -c Debug --no-restore") && _workflow.Contains("dotnet build MyApp.slnx -c Release --no-restore")).ShouldBeTrue();
-    [Fact] void should_run_the_specifications_project_without_rebuilding() => _workflow.ShouldContain("dotnet test MyApp.Specs/MyApp.Specs.csproj -c Debug --no-build");
+    [Fact] void should_run_inline_specifications_without_rebuilding() => _workflow.ShouldContain("dotnet run --project MyApp.csproj -c Debug --no-build -- --specifications");
     [Fact] void should_derive_the_sdk_version_from_the_target_framework() => _workflow.ShouldContain("dotnet-version: 10.0.x");
     [Fact] void should_generate_the_proxies_before_building_the_frontend() => _workflow.IndexOf("dotnet build MyApp.csproj", StringComparison.Ordinal).ShouldBeLessThan(_workflow.IndexOf("npm run build", StringComparison.Ordinal));
     [Fact] void should_install_the_frontend_with_npm() => _workflow.ShouldContain("npm install --no-audit --no-fund");

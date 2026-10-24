@@ -74,12 +74,12 @@ public sealed partial class CratisBackendApplicationScaffold
         ## Run specifications
 
         ```bash
-        dotnet test {{request.ProjectName}}.Specs
+        dotnet run --project {{request.ProjectName}}.csproj -c Debug -- --specifications
         ```
 
-        The separate specs project links the generated slice-local `when_*.cs` files.
-        Specifications run in any configuration, including Release. The web project
-        excludes `when_*.cs` specifications in every configuration.
+        Specifications live beside their slice under `for_*` folders and run inline
+        through the native xUnit v3 runner in Debug. Release excludes the specification
+        sources and test dependencies.
 
         ## Customize
 

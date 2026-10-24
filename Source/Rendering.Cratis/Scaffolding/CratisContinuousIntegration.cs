@@ -58,7 +58,7 @@ static class CratisContinuousIntegration
                   - name: Build Debug
                     run: dotnet build {{{project}}}.slnx -c Debug --no-restore
                   - name: Run specifications
-                    run: dotnet test {{{project}}}.Specs/{{{project}}}.Specs.csproj -c Debug --no-build
+                    run: dotnet run --project {{{project}}}.csproj -c Debug --no-build -- --specifications
                   - name: Build Release
                     run: dotnet build {{{project}}}.slnx -c Release --no-restore
 

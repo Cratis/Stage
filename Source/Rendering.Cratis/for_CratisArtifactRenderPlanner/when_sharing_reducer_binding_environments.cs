@@ -136,9 +136,6 @@ public class when_sharing_reducer_binding_environments
         var wrapper = SemanticTypedContextRenderer.Suffix(descriptor);
         const string modelType = "global::Projects.Orders.Ordering.Totals.Total";
         var expected = $$"""
-            // Copyright (c) Cratis. All rights reserved.
-            // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
             using Cratis.Chronicle.Events;
             using Cratis.Chronicle.Reducers;
             using Projects.Orders.Ordering.PlaceOrder;

@@ -25,8 +25,12 @@ public class without_a_domain : given.a_domain_policy_plan
 
         // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
         // These assertions confine the updated pins below to that one generated declaration change.
-        Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("8C7B38ABBD21DED65A68BAAEF4E69595AFBF11C21D573E5C1BAB31EA8A1A1292");
-        Digest(BeforeInitializerRename(qualified)).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(result.Artifacts))).ShouldEqual("8C7B38ABBD21DED65A68BAAEF4E69595AFBF11C21D573E5C1BAB31EA8A1A1292");
+        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(qualified))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+
+        // Restoring the former license header must reproduce the pins from before headers became optional.
+        Digest(LegacyLicenseHeader.Restore(result.Artifacts)).ShouldEqual("F72648610254219C75E6EFCA82EEBB9030253CFFACE8DE14F2A4B344D3DD6BD2");
+        Digest(LegacyLicenseHeader.Restore(qualified)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
     }
@@ -51,7 +55,7 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("F72648610254219C75E6EFCA82EEBB9030253CFFACE8DE14F2A4B344D3DD6BD2");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("2F1ED66E09AA59EFA3F6D5A7DA9DBC32004928E85262DE8234BBD2D6A2E3435B");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("05777F401D263E5BC39126494FB4912F7096AA91C5F3F5E22AE41AA55D20D689");
 }
 #endif

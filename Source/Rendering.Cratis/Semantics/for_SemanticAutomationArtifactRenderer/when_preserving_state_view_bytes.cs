@@ -30,9 +30,6 @@ public class when_preserving_state_view_bytes : given.an_automation
         var parameters = string.Join(", ", model.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
             .Select(property => property.Name == "id" ? "[global::Cratis.Chronicle.Keys.KeyAttribute] string Id" : "decimal Amount"));
         _expected = $$"""
-            // Copyright (c) Cratis. All rights reserved.
-            // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
             using Cratis.Arc.Authorization;
             using Cratis.Arc.Queries.ModelBound;
             using Cratis.Chronicle.Events;

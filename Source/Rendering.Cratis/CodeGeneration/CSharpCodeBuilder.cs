@@ -251,17 +251,14 @@ public class CSharpCodeBuilder
             topUsings = resolved.Resolution.TopLevelUsings;
         }
 
-        var result = new StringBuilder()
-            .AppendLine("// Copyright (c) Cratis. All rights reserved.")
-            .AppendLine("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
-            .AppendLine();
-
+        // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
+        var result = new StringBuilder();
         foreach (var @using in topUsings.Order(StringComparer.Ordinal))
         {
             result.AppendLine($"using {@using};");
         }
 
-        if (_usings.Count > 0)
+        if (result.Length > 0)
         {
             result.AppendLine();
         }

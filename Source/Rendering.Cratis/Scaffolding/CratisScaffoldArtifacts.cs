@@ -16,7 +16,7 @@ internal static class CratisScaffoldArtifacts
     {
         var strings = StringsCatalogInput.From(profile);
         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
-        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name and not ScreenPartitionsInput.Name and not ReducerConventionInput.Name and not ReducerMigrationInput.Name and not RefusalModeInput.Name))
+        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name and not ScreenPartitionsInput.Name and not ReducerConventionInput.Name and not ReducerMigrationInput.Name and not RefusalModeInput.Name and not FileHeaderInput.Name))
         {
             if (!CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {

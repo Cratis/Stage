@@ -62,9 +62,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string Program(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Cratis.Arc.MongoDB;
 
         var builder = WebApplication.CreateBuilder(args);
@@ -95,9 +92,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string PolicyRegistration(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Microsoft.Extensions.DependencyInjection;
 
         namespace {{request.RootNamespace}}.GeneratedPolicies;

@@ -24,9 +24,6 @@ public class and_a_source_has_streams : a_routed_command
     }
 
     [Fact] void should_use_explicit_stored_names_in_ordinal_order() => _definition.ShouldEqual("""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         namespace InvoiceApp.EventSources;
 
         /// <summary>

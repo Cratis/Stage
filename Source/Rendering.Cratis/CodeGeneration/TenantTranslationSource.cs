@@ -21,6 +21,12 @@ internal static class TenantTranslationSource
         using var resource = typeof(TenantTranslationSource).Assembly.GetManifestResourceStream(name)!;
         using var reader = new StreamReader(resource);
 
-        return reader.ReadToEnd();
+        // Stage's own license header stays with Stage; the generated copy belongs to the application.
+        var lines = reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var start = 0;
+        while (start < lines.Length && lines[start].StartsWith("//", StringComparison.Ordinal)) start++;
+        while (start < lines.Length && lines[start].Length == 0) start++;
+
+        return string.Join('\n', lines[start..]);
     }
 }

@@ -19,9 +19,6 @@ public class and_names_are_not_identity_names : a_routed_command
     }
 
     [Fact] void should_preserve_the_existing_definition_bytes() => _definition.ShouldEqual("""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         namespace InvoiceApp.EventSources;
 
         /// <summary>

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -34,6 +35,14 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     /// The caller decides, because planning never inspects the file system.
     /// </summary>
     public bool RepositoryRoot { get; init; }
+
+    /// <summary>
+    /// Gets the plain-text lines every generated code file starts with. Empty, the default, writes no header at all.
+    /// Stage writes each line as a comment in the file's language (<c language="csharp">// line</c> for C#, TypeScript and
+    /// JavaScript; an empty line becomes <c language="csharp">//</c>), followed by one blank line. Lines carry no comment
+    /// markers and no line breaks. Configuration, markup and documentation files never get a header.
+    /// </summary>
+    public ImmutableArray<string> FileHeader { get; init; } = [];
 
     /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.

@@ -9,9 +9,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifact
 public class when_preserving_state_change_bytes : given.an_automation
 {
     const string Expected = """
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Cratis.Arc.Authorization;
         using Cratis.Arc.Commands.ModelBound;
         using Cratis.Arc.Validation;

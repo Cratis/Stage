@@ -83,7 +83,7 @@ public class when_recording_declaring_slice_sources
         var context = Context(source);
         var files = context.Specifications.Values.SelectMany(specification => SemanticSpecificationArtifactRenderer.Render(specification, context));
         var hashes = files.OrderBy(file => file.RelativePath, StringComparer.Ordinal)
-            .Select(file => $"{file.RelativePath} {Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(file.Content)))}");
+            .Select(file => $"{file.RelativePath} {Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore(file.RelativePath, file.Content))))}");
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', hashes)))).ShouldEqual(digest);
     }
 

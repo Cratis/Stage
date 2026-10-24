@@ -337,7 +337,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
-        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
+
+        // The header is written before gaps are located, so their stub spans address the published bytes.
+        var (planned, gaps) = AddPerformerGaps(request, GeneratedFileHeader.Apply(request.Profile, artifacts), diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))

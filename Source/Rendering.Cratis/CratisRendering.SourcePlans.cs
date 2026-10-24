@@ -72,11 +72,11 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
-        var artifacts = CratisScaffoldArtifacts.Render(profile, options.RootNamespace, []);
+        var artifacts = GeneratedFileHeader.Apply(profile, CratisScaffoldArtifacts.Render(profile, options.RootNamespace, []));
         ImmutableArray<CratisPlanDiagnostic> diagnostics = SceneCompositionInput.IsCarriedBy(profile)
             ? [new("STAGE-PLAN-031", ArtifactRenderDiagnosticSeverity.Information, "Scene artifacts are produced only by application-scope plans.", default, null)]
             : [];
@@ -106,7 +106,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
         }
@@ -186,6 +186,19 @@ public static partial class CratisRendering
                     profile.Renderer,
                     profile.RendererVersion,
                     [.. profile.Inputs, RefusalModeInput.Create(options.Refusals)]);
+            }
+
+            if (!FileHeaderInput.IsValid(options.FileHeader))
+            {
+                return (null, CratisPlanResult.Error("STAGE-PLAN-023", "Every file header line must be non-null plain text without line breaks."));
+            }
+            if (!options.FileHeader.IsDefaultOrEmpty)
+            {
+                if (profile.Inputs.Any(input => input.Name == FileHeaderInput.Name))
+                {
+                    return (null, ProfileError("The caller's profile must omit the file header when the FileHeader option is set."));
+                }
+                profile = FileHeaderInput.With(profile, options.FileHeader);
             }
 
             return (DomainPlacementInput.WithDomain(profile, domain), null);

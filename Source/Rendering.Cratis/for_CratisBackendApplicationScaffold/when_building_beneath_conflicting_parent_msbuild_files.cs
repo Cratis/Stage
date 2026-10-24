@@ -142,7 +142,7 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
             // redirected output pipes open, so reading the output would never finish. Build in fresh nodes that exit with the command.
             startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
             startInfo.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
-            foreach (var argument in arguments)
+            foreach (var argument in GeneratedApplicationBuilds.Capped("dotnet", arguments))
             {
                 startInfo.ArgumentList.Add(argument);
             }

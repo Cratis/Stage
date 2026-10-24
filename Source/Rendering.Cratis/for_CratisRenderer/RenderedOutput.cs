@@ -96,11 +96,25 @@ internal static class RenderedOutput
     /// Compiles and loads rendered files so specs can exercise the real Arc evaluators against generated members.
     /// </summary>
     /// <param name="files">The rendered files to compile and load.</param>
+    /// <param name="clientOnly">Whether to disambiguate client SDK types that overlap the kernel assemblies in the test host.</param>
     /// <returns>The loaded rendered application assembly.</returns>
     /// <exception cref="RenderedOutputDoesNotCompile">The rendered output does not compile.</exception>
-    public static Assembly Load(IEnumerable<RenderedFile> files)
+    public static Assembly Load(IEnumerable<RenderedFile> files, bool clientOnly = false)
     {
         var compilation = CreateCompilation(files);
+        if (clientOnly)
+        {
+            var clientReferences = _references.Select(reference => Path.GetFileName(reference.Display) == "Cratis.Chronicle.dll"
+                ? reference.WithAliases(["global", "ChronicleClient"])
+                : reference);
+            var clientFiles = files.Select(file => file with
+            {
+                Content = "extern alias ChronicleClient;\n" + file.Content
+                    .Replace("global::Cratis.Chronicle.EventSequences.IEventSequence", "ChronicleClient::Cratis.Chronicle.EventSequences.IEventSequence", StringComparison.Ordinal)
+                    .Replace("global::Cratis.Chronicle.EventSequences.AppendResult", "ChronicleClient::Cratis.Chronicle.EventSequences.AppendResult", StringComparison.Ordinal)
+            });
+            compilation = CreateCompilation(clientFiles).WithReferences(clientReferences);
+        }
         using var assembly = new MemoryStream();
         var result = compilation.Emit(assembly);
         if (!result.Success)

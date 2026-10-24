@@ -4,6 +4,9 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specs;
@@ -30,6 +33,8 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
 
     void Establish()
     {
+        _model = CreateLongMatchModel();
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
         _application = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-generated-application"));
         var plan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options);
         if (!plan.Success)
@@ -103,9 +108,30 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     [Fact] void should_execute_a_nonempty_set_of_release_specifications() => ExecutedSpecifications("release.trx").ShouldBeGreaterThan(0);
     [Fact] void should_pass_every_release_specification() => PassedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications("release.trx"));
     [Fact] void should_execute_the_same_specifications_in_both_configurations() => ExecutedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications());
+    [Fact] void should_accept_the_long_match_and_reject_the_near_miss_in_debug() => AssertLongMatchPassed("generated.trx");
+    [Fact] void should_accept_the_long_match_and_reject_the_near_miss_in_release() => AssertLongMatchPassed("release.trx");
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
+
+    internal static ExecutableSemanticModel CreateLongMatchModel()
+    {
+        var form = Corpus.SourceForms.Single(form => form.Name == "single");
+        var document = form.Documents.Single();
+        var source = StandaloneLongMatchSource.AppendTo(document.Text);
+        return Compile(form with { Documents = [document with { Bytes = [.. Encoding.UTF8.GetBytes(source)] }] }).Model;
+    }
+
+    void AssertLongMatchPassed(string fileName)
+    {
+        var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
+        foreach (var name in new[] { "when_accepting_a_long_match.should_return_the_expected_response", "when_rejecting_a_long_match.should_report_the_expected_first_error" })
+        {
+            var result = results.Descendants().Single(element => element.Name.LocalName == "UnitTestResult" &&
+                element.Attribute("testName")!.Value.EndsWith($".{name}", StringComparison.Ordinal));
+            result.Attribute("outcome")!.Value.ShouldEqual("Passed");
+        }
+    }
 
     // The Cratis package also contributes its own GlobalUsings.cs outside the application root.
     static bool IsPackageGlobalUsings(string source) => source.StartsWith("../", StringComparison.Ordinal) &&
@@ -356,7 +382,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         // redirected output pipes open, so reading the output would never finish. Build in fresh nodes that exit with the command.
         startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         startInfo.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
-        foreach (var argument in arguments)
+        foreach (var argument in GeneratedApplicationBuilds.Capped(fileName, arguments))
         {
             startInfo.ArgumentList.Add(argument);
         }

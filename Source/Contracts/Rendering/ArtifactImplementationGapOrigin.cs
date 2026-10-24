@@ -16,5 +16,10 @@ public enum ArtifactImplementationGapOrigin
     /// <summary>
     /// Behavior is described by an explicit pending implementation intent.
     /// </summary>
-    Described = 1
+    Described = 1,
+
+    /// <summary>
+    /// A performer body could not be verified or rendered and remains an explicit compilable gap.
+    /// </summary>
+    Unverified = 2
 }

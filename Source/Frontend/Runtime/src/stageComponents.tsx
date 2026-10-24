@@ -243,18 +243,24 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries, true), [selections, queries]);
-    const carried = properties.filter(property => property.identifier && property.required && (element.properties.rowAction === true || carriedBy(property, selectableRows)));
+    const carried = properties.filter(property => property.identifier && property.required && carriedBy(property, selectableRows));
     const awaiting = carried.filter(property => !parameters[property.name]).filter(property => selectedIdentifier(property, selectedRows) === undefined);
+    const awaitingRows = awaitingTableRows(element, properties, parameters, selectableRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    if (awaiting.length > 0) {
+    if (awaitingRows || awaiting.length > 0) {
         return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
     }
 
     return <StageCommandDialog element={rowActionElement(element, schema, properties, carried)} label={label} />;
+}
+
+/** A scene-declared row action still waits when its table is empty, before carried identifiers can be inferred from rows. */
+function awaitingTableRows(element: ExternalComponent, properties: SchemaProperty[], parameters: Record<string, string>, selectableRows: Record<string, unknown>[]): boolean {
+    return element.properties.rowAction === true && selectableRows.length === 0 && properties.some(property => property.identifier && property.required && !parameters[property.name]);
 }
 
 function rowActionElement(element: ExternalComponent, schema: string | undefined, properties: SchemaProperty[], carried: SchemaProperty[]): ExternalComponent {
@@ -382,7 +388,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

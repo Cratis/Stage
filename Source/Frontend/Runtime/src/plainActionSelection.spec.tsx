@@ -11,6 +11,7 @@ import { element } from './testElements';
 import { RegisteredTable, registerTestQueries, queryResult } from './testing/queries';
 import { commandResult } from './testing/commands';
 import { sessionIdentity } from './stageSession';
+import { humanize, schemaPropertiesOf } from './stageFormSchema';
 
 chai.should();
 const rows = [{ shipmentId: '7d1c8f3a-0000-4000-8000-000000000001', consignee: 'Fjordline' }];
@@ -19,8 +20,13 @@ const schema = JSON.stringify({ type: 'object', required: ['shipmentId', 'carrie
     carrier: { type: 'string' },
 } });
 
-function renderShipments(generated = false, otherScreen = false, empty = false) {
-    const commandSchema = generated ? JSON.stringify({ type: 'object', required: ['carrier'], properties: { carrier: { type: 'string' } } }) : schema;
+const assignmentSchema = JSON.stringify({ type: 'object', required: ['shipmentId', 'driverId'], properties: {
+    shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId', 'x-identity': true },
+    driverId: { type: 'string', format: 'uuid', 'x-concept': 'DriverId' },
+} });
+
+function renderShipments(generated = false, otherScreen = false, empty = false, referenceSchema?: string) {
+    const commandSchema = referenceSchema ?? (generated ? JSON.stringify({ type: 'object', required: ['carrier'], properties: { carrier: { type: 'string' } } }) : schema);
     const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { AllShipments: '/api/shipments' }, commandSchemas: { DispatchShipment: commandSchema } };
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
@@ -32,11 +38,25 @@ function renderShipments(generated = false, otherScreen = false, empty = false) 
     render(<PrimeReactProvider>
         {otherScreen && <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Other'>{table}</StageDataProvider>}
         <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments'>
-            <StageAction element={element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema: commandSchema, rowAction: !generated && !otherScreen, fields: generated ? [{ name: 'carrier', label: 'Carrier' }] : [{ name: 'shipmentId', label: 'Shipment Id' }, { name: 'carrier', label: 'Carrier' }] })} slots={{}} />
+            <StageAction element={element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema: commandSchema, rowAction: !generated && !otherScreen, fields: schemaPropertiesOf(commandSchema).map(property => ({ name: property.name, label: humanize(property.name) })) })} slots={{}} />
             {!otherScreen && table}
         </StageDataProvider>
     </PrimeReactProvider>);
     return fetched;
+}
+
+async function selectShipmentAndOpen() {
+    fireEvent.click(await screen.findByText('Fjordline'));
+    await waitFor(() => (screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled.should.be.false);
+    fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
+    return screen.findByRole('dialog');
+}
+
+async function execute(dialog: HTMLElement, fetched: ReturnType<typeof renderShipments>) {
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+    await waitFor(() => fetched.mock.calls.some(([, init]) => init?.method === 'POST').should.be.true);
+    const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+    return JSON.parse(String(init?.body)) as Record<string, unknown>;
 }
 
 describe('a plain action beside a collection', () => {
@@ -52,17 +72,22 @@ describe('a plain action beside a collection', () => {
     it('should hide and submit the selected identifier instead of the held session identity', async () => {
         const held = sessionIdentity('ShipmentId');
         const fetched = renderShipments();
-        fireEvent.click(await screen.findByText('Fjordline'));
-        await waitFor(() => (screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled.should.be.false);
-        fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
-        const dialog = await screen.findByRole('dialog');
+        const dialog = await selectShipmentAndOpen();
         within(dialog).queryAllByLabelText(/shipment id/i).length.should.equal(0);
         fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
-        await waitFor(() => fetched.mock.calls.some(([, init]) => init?.method === 'POST').should.be.true);
-        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
-        JSON.parse(String(init?.body)).should.deep.equal({ shipmentId: rows[0].shipmentId, carrier: 'Posten' });
+        const submitted = await execute(dialog, fetched);
+        submitted.should.deep.equal({ shipmentId: rows[0].shipmentId, carrier: 'Posten' });
         held.should.not.equal(rows[0].shipmentId);
+    });
+
+    it('should ask for an unrelated uuid reference and submit only the carried identifier from the row', async () => {
+        const fetched = renderShipments(false, false, false, assignmentSchema);
+        const dialog = await selectShipmentAndOpen();
+        within(dialog).queryAllByLabelText(/shipment id/i).length.should.equal(0);
+        const driverId = '7d1c8f3a-0000-4000-8000-000000000003';
+        fireEvent.change(within(dialog).getByLabelText('Driver Id', { exact: false }), { target: { value: driverId } });
+        const submitted = await execute(dialog, fetched);
+        submitted.should.deep.equal({ shipmentId: rows[0].shipmentId, driverId });
     });
 
     it('should keep a modeled row action disabled when its table is empty', async () => {

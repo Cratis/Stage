@@ -261,7 +261,7 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        if (rowAction) {
+        if (rowAction && carriedBy(property, selectableRows)) {
             const rowValue = parameters[property.name] || selectedIdentifier(property, selectedRows);
             if (rowValue) values[property.name] = rowValue;
             continue;

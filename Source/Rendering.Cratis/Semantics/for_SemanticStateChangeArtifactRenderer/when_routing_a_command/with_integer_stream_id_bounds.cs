@@ -57,17 +57,19 @@ public class with_integer_stream_id_bounds : given.a_routed_command
     [Fact] void should_never_throw_for_an_integer_identity() => _exceptions.ShouldBeEmpty();
     [Fact] void should_reject_every_out_of_range_scalar_and_composite_before_returning_events() => _rejected.TrueForAll(rejected => rejected.Result is IOneOf { Value: ValidationResult }).ShouldBeTrue();
     [Fact] void should_check_all_rejected_values() => _rejected.Count.ShouldEqual(12);
-    [Fact] void should_return_value_free_errors_naming_the_property()
+    [Fact]
+    void should_return_value_free_errors_naming_the_property()
     {
         foreach (var (value, result) in _rejected)
         {
             var validation = Assert.IsType<ValidationResult>(Assert.IsType<IOneOf>(result, exactMatch: false).Value);
             validation.Severity.ShouldEqual(ValidationResultSeverity.Error);
-            validation.Members.ShouldContainOnly(["Month"]);
+            validation.Members.ShouldContainOnly(["month"]);
             validation.Message.ShouldNotContain(value.ToString(CultureInfo.InvariantCulture));
         }
     }
-    [Fact] void should_accept_the_endpoints_and_their_neighbors_with_exact_ids()
+    [Fact]
+    void should_accept_the_endpoints_and_their_neighbors_with_exact_ids()
     {
         _accepted.Count.ShouldEqual(8);
         foreach (var (value, composite, result) in _accepted)

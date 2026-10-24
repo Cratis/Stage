@@ -76,7 +76,7 @@ SHARED = (
     "*.props", "*.targets", "Source/Directory.Build.*", "global.json", "*[Nn]u[Gg]et.[Cc]onfig", "*packages.lock.json",
     "Source/Contracts/**", "Source/Host/Dockerfile",
     "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
-    ".github/workflows/**", ".github/*.py",
+    ".github/workflows/**", ".github/*.py", ".github/scripts/run-specifications*",
 )
 # Admission, emission and compilation transitively reach the whole renderer: routing
 # subfolders individually risks silently omitting dependencies as the implementation evolves.

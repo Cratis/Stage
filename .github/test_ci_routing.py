@@ -44,7 +44,8 @@ class RoutingTests(unittest.TestCase):
                      "Source/Directory.Build.targets", "Source/Directory.Build.rsp", "global.json", "NuGet.config", "Source/Host/packages.lock.json",
                      "Source/Contracts/Scene/Screen.cs", "Source/Host/Dockerfile",
                      "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
-                     ".github/workflows/publish.yml", ".github/ci-routing.py", ".github/test_spec_shards.py"):
+                     ".github/workflows/publish.yml", ".github/ci-routing.py", ".github/test_spec_shards.py",
+                     ".github/scripts/run-specifications.sh", ".github/scripts/run-specifications.test.mjs"):
             with self.subTest(path=path):
                 self.assertEqual(ALL, self.select(path))
 
@@ -210,7 +211,8 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("paths:", triggers)
         # GitHub does not allow paths-ignore alongside the existing source allowlist.
         self.assertNotIn("paths-ignore:", triggers)
-        for path in ('"Source/**"', '".github/ci-routing.py"', '".github/test_ci_routing.py"', '".github/spec-shards.py"'):
+        for path in ('"Source/**"', '".github/ci-routing.py"', '".github/test_ci_routing.py"', '".github/spec-shards.py"',
+                     '".github/scripts/run-specifications*"'):
             self.assertIn(path, triggers)
         self.assertNotIn('"Documentation/**"', triggers)
         self.assertEqual(1, triggers.count("- cron:"))

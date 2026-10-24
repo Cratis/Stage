@@ -122,7 +122,7 @@ class SpecShardsTests(unittest.TestCase):
     def test_blueprint_templates_run_exactly_once_with_or_without_the_dedicated_lane(self):
         workflow = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").read_text()
         lane = workflow.split("  generated-react-blueprint-templates:\n", 1)[1]
-        dedicated_filter = re.search(r'--filter "([^"]+)"', lane)[1]
+        dedicated_filter = re.search(r'-filterVSTest "([^"]+)"', lane)[1]
         name = SHARDS["NAMESPACE"] + ".for_GeneratedReactApplication." + SHARDS["BLUEPRINT_TEMPLATES_FIXTURE"] + ".should_pass"
         self.assertIn("BLUEPRINT_TEMPLATES_LANE: ${{ needs.routing.outputs.generated-react-blueprint-templates }}", workflow)
         guard_script = re.search(r'          args=\(\)\n.*?          python3 \.github/spec-shards.py guard "\$\{args\[@\]\}"', workflow, re.DOTALL)[0]
@@ -141,7 +141,7 @@ class SpecShardsTests(unittest.TestCase):
     def test_standalone_generated_application_runs_only_in_its_gating_job(self):
         jobs = self.workflow_jobs()
         lane = jobs["standalone-generated-application"]
-        dedicated_filter = re.search(r'--filter "([^"]+)"', lane)[1]
+        dedicated_filter = re.search(r'-filterVSTest "([^"]+)"', lane)[1]
         name = (SHARDS["NAMESPACE"] + ".for_CratisBackendApplicationScaffold." +
                 SHARDS["STANDALONE_APPLICATION_FIXTURE"] + ".should_run_the_generated_specifications_in_release")
         for dedicated_lane in (False, True):
@@ -384,8 +384,12 @@ class SpecShardsTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as raised:
                 SHARDS["run_shard"](shard)
         self.assertEqual(3, run.call_count)
-        self.assertIn("A: dotnet test exited 1", str(raised.exception))
-        self.assertIn("C: dotnet test exited 3", str(raised.exception))
+        self.assertIn("A: specification executable exited 1", str(raised.exception))
+        self.assertIn("C: specification executable exited 3", str(raised.exception))
+        for call in run.call_args_list:
+            command = call.args[0]
+            self.assertEqual(["bash", ".github/scripts/run-specifications.sh"], command[:2])
+            self.assertEqual(["--no-build", "-filterVSTest", "F", "-result-trx"], command[3:7])
         self.assertNotIn("B:", str(raised.exception))
 
     def test_trx_guard_rejects_empty_or_skipped_runs_and_accepts_execution(self):

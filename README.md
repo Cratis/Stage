@@ -311,11 +311,19 @@ npm ci --prefix Source/Frontend
 npm test --prefix Source/Frontend
 npm run build --prefix Source/Frontend
 dotnet build -c Debug
-dotnet test -c Debug
+python3 .github/spec-shards.py matrix
+# Run each entry returned by matrix, for example:
+python3 .github/spec-shards.py run small-projects
 dotnet build -c Release
 ```
 
-`dotnet test` needs a Chronicle source checkout for the projection conformance specs. They compile Chronicle's actual
+In Debug, all eight .NET projects are specification executables using Specifications 5 and xUnit v3.
+The guarded CI shards run the built executables without rebuilding and require non-empty TRX results.
+To run one project, use `bash .github/scripts/run-specifications.sh <project.csproj> --no-build`.
+The launcher validates a fresh, non-empty TRX result and accepts native xUnit options such as `-filterVSTest` and `-result-trx`.
+Host and SpecRunner keep their normal entry points; the launcher selects their `--specifications` mode.
+
+The specification executables need a Chronicle source checkout for the projection conformance specs. They compile Chronicle's actual
 `ProjectionDefinitionSyntaxVisitor` in memory against the released `Cratis.Chronicle.Infrastructure` package and
 compare its definitions with Stage's. This checks definition equivalence for the corpus, not full kernel runtime behavior. The specs
 use `CHRONICLE_SOURCE_ROOT` when set and otherwise `../Chronicle` beside this repository; if the source is missing,
@@ -323,7 +331,7 @@ they fail rather than skip. CI fetches a fixed Chronicle commit (see `.github/wo
 at an existing checkout elsewhere:
 
 ```shell
-CHRONICLE_SOURCE_ROOT=/path/to/Chronicle dotnet test -c Debug
+CHRONICLE_SOURCE_ROOT=/path/to/Chronicle bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj --no-build
 ```
 
 The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
@@ -332,7 +340,7 @@ worth of those processes at once (at least one); in CI (`CI=true`) they are unli
 `STAGE_MAX_PARALLEL_APP_BUILDS` to choose the per-project limit yourself:
 
 ```shell
-STAGE_MAX_PARALLEL_APP_BUILDS=2 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj -c Debug
+STAGE_MAX_PARALLEL_APP_BUILDS=2 bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj --no-build
 ```
 
 Release treats warnings as errors. Both Dockerfiles consume prebuilt, framework-dependent publish output;

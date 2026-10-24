@@ -229,12 +229,11 @@ def run_shard(shard):
         trx = results / "specs.trx"
         trx.unlink(missing_ok=True)  # A stale result must not satisfy an empty invocation.
         completed = subprocess.run(
-            ["dotnet", "test", project, "--no-build", "--configuration", "Debug",
-             "--filter", shard["filter"], "--logger", "trx;LogFileName=specs.trx",
-             "--results-directory", str(results)], cwd=ROOT,
+            ["bash", ".github/scripts/run-specifications.sh", project, "--no-build",
+             "-filterVSTest", shard["filter"], "-result-trx", str(trx)], cwd=ROOT,
         )
         if completed.returncode != 0:
-            failures.append(f"{name}: dotnet test exited {completed.returncode}")
+            failures.append(f"{name}: specification executable exited {completed.returncode}")
             continue
         try:
             require_executed(trx)

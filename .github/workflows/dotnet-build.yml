@@ -37,6 +37,7 @@ on:
       - ".github/spec-shards.py"
       - ".github/spec-shard-timings.json"
       - ".github/test_spec_shards.py"
+      - ".github/scripts/run-specifications*"
       - ".github/ci-routing.py"
       - ".github/test_ci_routing.py"
       - ".github/workflows/warm-nuget-cache.yml"
@@ -119,10 +120,13 @@ jobs:
           npm test --prefix Source/Frontend
           npm run build --prefix Source/Frontend
 
+      - name: Verify specification executable launcher
+        run: node --test .github/scripts/run-specifications.test.mjs
+
       - name: Verify spec shard routing and guards
         run: python3 -B -m unittest discover -s .github -p 'test_*.py'
 
-      # Inline specs and their test SDK exist only in Debug. Build once, then hand off the binaries
+      # Inline specs and their executable runner exist only in Debug. Build once, then hand off the binaries
       # (including Host's isolated specrunner) to parallel --no-build spec jobs. Release still compiles
       # without specs and remains the zero-warning/package-validation gate below.
       - name: Build Debug
@@ -216,8 +220,8 @@ jobs:
           git -C "$RUNNER_TEMP/chronicle-source" fetch --depth=1 origin 6b32f743afcbeaa0fdeab5b0fa72ab1f40f96e9e
           git -C "$RUNNER_TEMP/chronicle-source" checkout --detach FETCH_HEAD
 
-      # The helper invokes dotnet test --no-build with the guarded filter for each project, then
-      # requires a non-empty TRX with executed tests. A zero dotnet exit cannot hide an empty shard.
+      # The helper runs each built specification executable with its guarded filter, then
+      # requires a non-empty TRX with executed tests. A zero runner exit cannot hide an empty shard.
       # Specs run --no-build against the downloaded output, but some (the template scaffolder) load packages
       # from the local NuGet cache at run time. Without an exact cache hit, restore so they are present.
       - name: Restore packages without an exact cache hit
@@ -298,19 +302,19 @@ jobs:
           # Keeps the generated application's own build and test logs with the uploaded results.
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured"
-          --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
+          bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj
+          -filterVSTest "FullyQualifiedName~when_verifying_billing_mongo_deletion.should_mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured"
+          -result-trx ./TestResults/reducer-mongo/billing-mongo.trx
 
       - name: Run Stage projection reconnect probe
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
         run: >-
-          dotnet test Source/Host/Host.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured|FullyQualifiedName~when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured"
-          --logger "trx;LogFileName=stage-reconnect.trx" --results-directory ./TestResults/reducer-mongo
+          bash .github/scripts/run-specifications.sh Source/Host/Host.csproj
+          -filterVSTest "FullyQualifiedName~when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured|FullyQualifiedName~when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured"
+          -result-trx ./TestResults/reducer-mongo/stage-reconnect.trx
 
-      # A zero exit from dotnet test can mean that nothing ran. Require every named probe to
+      # A zero runner exit can mean that nothing ran. Require every named probe to
       # execute and pass, so a missing or skipped probe cannot silently make this gate green.
       - name: Require all live probes to execute and pass
         run: |
@@ -322,7 +326,7 @@ jobs:
           results = [result for root in roots for result in root.findall("t:Results/t:UnitTestResult", ns)]
           prefix = "Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner."
           expected = {
-              prefix + "when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured",
+              prefix + "when_verifying_billing_mongo_deletion.should_mongo_container_matches_model_bound_read_model_query_when_configured",
               prefix + "when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured",
               prefix + "when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured",
               prefix + "when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured",
@@ -401,7 +405,7 @@ jobs:
       - name: Run generated-name matrix
         env:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
-        run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
+        run: bash .github/scripts/run-specifications.sh Source/Conformance.Specs/Conformance.Specs.csproj -filterVSTest "FullyQualifiedName~when_compiling_generated_name_matrix"
 
   # Renders an application, then builds and tests it in Debug and Release and serves it against the pinned
   # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
@@ -438,11 +442,11 @@ jobs:
 
       - name: Build, test and serve the standalone generated application
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_verifying_a_standalone_generated_application"
-          --logger "trx;LogFileName=standalone-generated-application.trx" --results-directory ./TestResults/standalone-generated-application
+          bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj
+          -filterVSTest "FullyQualifiedName~when_verifying_a_standalone_generated_application"
+          -result-trx ./TestResults/standalone-generated-application/standalone-generated-application.trx
 
-      # A zero exit from dotnet test can mean that nothing ran, or that assertions were skipped.
+      # A zero runner exit can mean that nothing ran, or that assertions were skipped.
       - name: Require every standalone application assertion to execute and pass
         run: |
           python3 .github/spec-shards.py require-executed TestResults/standalone-generated-application/standalone-generated-application.trx
@@ -588,11 +592,11 @@ jobs:
         env:
           STAGE_GENERATED_REACT_KEEP: ${{ runner.temp }}/generated-react
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_building_the_generated_screen_composition_application"
-          --logger "trx;LogFileName=generated-react.trx" --results-directory ./TestResults/generated-react
+          bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj
+          -filterVSTest "FullyQualifiedName~when_building_the_generated_screen_composition_application"
+          -result-trx ./TestResults/generated-react/generated-react.trx
 
-      # A zero exit from dotnet test can mean that nothing ran.
+      # A zero runner exit can mean that nothing ran.
       - name: Require the build specification to execute and pass
         run: |
           python3 - <<'PY'
@@ -665,9 +669,9 @@ jobs:
         env:
           STAGE_BLUEPRINT_TEMPLATES_KEEP: ${{ runner.temp }}/generated-blueprint-templates
         run: >-
-          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug
-          --filter "FullyQualifiedName~when_building_the_blueprint_templates_application"
-          --logger "trx;LogFileName=blueprint-templates.trx" --results-directory ./TestResults/generated-blueprint-templates
+          bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj
+          -filterVSTest "FullyQualifiedName~when_building_the_blueprint_templates_application"
+          -result-trx ./TestResults/generated-blueprint-templates/blueprint-templates.trx
 
       - name: Require the build specification to execute and pass
         run: |

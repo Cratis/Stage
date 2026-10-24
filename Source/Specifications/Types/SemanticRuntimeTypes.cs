@@ -104,7 +104,14 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
             }
             else
             {
-                type.GetProperty(ProductMember(product))!.SetValue(instance, checked(decimal.ToInt64(left.Value) * decimal.ToInt64(right.Value)));
+                try
+                {
+                    type.GetProperty(ProductMember(product))!.SetValue(instance, checked(decimal.ToInt64(left.Value) * decimal.ToInt64(right.Value)));
+                }
+                catch (OverflowException exception)
+                {
+                    throw new SemanticProjectionLoweringRefused(new OverflowException($"Event '{contract.Name}' product '{product.Name}' exceeds Stage's exact whole-number carrier (Int64).", exception));
+                }
             }
         }
 

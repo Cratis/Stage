@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Semantics;
@@ -10,12 +11,17 @@ namespace Cratis.Stage.Semantics;
 /// Canonicalizes typed DateTime assertion values using the Screenplay reference's round-trip text representation.
 /// </summary>
 /// <remarks>
-/// Mirrors Cratis/Screenplay at 52af009f, Source/DotNET/Screenplay/Semantics/SemanticModelBinder.Specifications.cs:504-509
-/// and Source/DotNET/Screenplay/Semantics/Execution/SemanticCaptureEvaluation.cs:435-443.
+/// Mirrors Cratis/Screenplay at 52af009f, Source/DotNET/Screenplay/Semantics/SemanticModelBinder.Specifications.cs:17,504-509.
+/// Only complete ISO instants with an explicit zone are canonicalized; other literals remain unchanged.
 /// Zero offsets use UTC "O" text; non-zero offsets remain distinct for ordinal assertion equality.
+/// Capture coercion separately follows Source/DotNET/Screenplay/Semantics/Execution/SemanticCaptureEvaluation.cs:435-443:
+/// Stage's SemanticRunCaptures.Values.cs rejects invalid capture instants and converts valid ones to UTC before assertion comparison.
 /// </remarks>
-public static class SemanticDateTimeCanonicalization
+public static partial class SemanticDateTimeCanonicalization
 {
+    [GeneratedRegex(@"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$", RegexOptions.NonBacktracking)]
+    private static partial Regex IsoInstant { get; }
+
     /// <summary>
     /// Canonicalizes DateTime values, including concept-backed and nested values, without changing other primitives.
     /// </summary>
@@ -47,7 +53,7 @@ public static class SemanticDateTimeCanonicalization
 
     static string CanonicalText(string value)
     {
-        if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var instant)) return value;
+        if (!IsoInstant.IsMatch(value) || !DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var instant)) return value;
         return instant.Offset == TimeSpan.Zero
             ? instant.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)
             : instant.ToString("O", CultureInfo.InvariantCulture);

@@ -15,8 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.Specifications;
 /// </summary>
 /// <remarks>
 /// <para>
-/// One file per specification, in the folder layout the repository conventions use, compiled by the separate specs project
-/// in every configuration. A Screenplay specification carries a single name rather than a
+/// One file per specification, in a subject-based for_ folder, compiled by the application in Debug. A Screenplay specification carries a single name rather than a
 /// behavior/outcome pair, so it renders as a single <c language="csharp">when_</c> file rather than being split into a hierarchy
 /// the document never stated.
 /// </para>
@@ -157,7 +156,7 @@ public static class SpecificationRenderer
             content = builder.Using("System.Globalization").ToString();
         }
 
-        var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { $"{name}.cs" };
+        var path = new List<string>(SliceNaming.FolderPath(slice.FullPath)) { $"for_{commandType}", $"{name}.cs" };
         return new RenderedFile(Path.Combine([.. path]), Conditional(content)) { Diagnostics = diagnostics };
     }
 

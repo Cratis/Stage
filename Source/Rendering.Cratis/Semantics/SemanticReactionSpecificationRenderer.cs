@@ -123,7 +123,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderProductionExpectations(builder, specification, prelude, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{Identifiers.ToPascalCase(prelude.Selection.Reaction.Name)}", $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)

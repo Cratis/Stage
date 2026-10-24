@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
+using System.Xml.Linq;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -85,7 +86,8 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
         var editorConfigPath = Path.Combine(_application.FullName, ".editorconfig");
         File.WriteAllText(editorConfigPath, File.ReadAllText(editorConfigPath).Replace("[*.cs]", methodNaming, StringComparison.Ordinal));
         File.WriteAllText(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void ValidName() { } }");
-        File.WriteAllText(Path.Combine(_application.FullName, "SmokeApp.Specs", "when_probing.cs"), """
+        Directory.CreateDirectory(Path.Combine(_application.FullName, "for_Probe"));
+        File.WriteAllText(Path.Combine(_application.FullName, "for_Probe", "when_probing.cs"), """
             using Cratis.Specifications;
             using Xunit;
 
@@ -100,8 +102,14 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
 
     async Task Because()
     {
-        _debug = await Run("test", "SmokeApp.Specs/SmokeApp.Specs.csproj", "-c", "Debug", "--nologo");
-        _release = await Run("build", "SmokeApp.slnx", "-c", "Release", "--nologo");
+        _debug = await Run("run", "--project", "SmokeApp.csproj", "-c", "Debug", "--", "--specifications", "-filterVSTest", "FullyQualifiedName=SmokeApp.Specs.when_probing.should_allow_bdd_names", "-result-trx", Path.Combine(_application.FullName, "specifications.trx"));
+        _debug.ExitCode.ShouldEqual(0);
+        _release = await Run("publish", "SmokeApp.csproj", "-c", "Release", "--nologo", "-o", Path.Combine(_application.FullName, "published"));
+        _release.ExitCode.ShouldEqual(0);
+
+        // Release has a different package graph: restore the Debug-only specification references before probing its rules.
+        var debugRestore = await Run("restore", "SmokeApp.csproj", "-p:Configuration=Debug", "--nologo");
+        debugRestore.ExitCode.ShouldEqual(0);
         await File.WriteAllTextAsync(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void invalidName() { } }");
         _ownRules = await Run("build", "SmokeApp.csproj", "-c", "Debug", "--no-restore", "--nologo");
     }
@@ -116,10 +124,19 @@ public class when_building_beneath_conflicting_parent_msbuild_files : Specificat
 
     [Fact] void should_test_the_debug_scaffold_successfully() => _debug.ExitCode.ShouldEqual(0);
     [Fact] void should_build_the_release_scaffold_successfully() => _release.ExitCode.ShouldEqual(0);
-    [Fact] void should_not_import_the_conflicting_parent_build_properties() => $"{_debug.Output}{_release.Output}".ShouldNotContain("conflicting parent build properties");
-    [Fact] void should_not_import_the_conflicting_parent_build_targets() => $"{_debug.Output}{_release.Output}".ShouldNotContain("conflicting parent build targets");
+    [Fact] void should_not_import_the_conflicting_parent_build_properties() => $"{_debug.Output}{_release.Output}{_ownRules.Output}".ShouldNotContain("conflicting parent build properties");
+    [Fact] void should_not_import_the_conflicting_parent_build_targets() => $"{_debug.Output}{_release.Output}{_ownRules.Output}".ShouldNotContain("conflicting parent build targets");
     [Fact] void should_build_without_analyzer_warnings() => $"{_debug.Output}{_release.Output}".ShouldNotContain(": warning ");
-    [Fact] void should_execute_the_specification_with_bdd_names() => _debug.Output.ShouldContain("Passed:     1");
+    [Fact] void should_execute_the_specification_with_bdd_names()
+    {
+        var results = XDocument.Load(Path.Combine(_application.FullName, "specifications.trx"));
+        var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
+        foreach (var name in new[] { "total", "executed", "passed" }) counters.Attribute(name)!.Value.ShouldEqual("1");
+        foreach (var name in new[] { "failed", "error", "timeout", "aborted", "notExecuted" }) counters.Attribute(name)!.Value.ShouldEqual("0");
+        var result = results.Descendants().Single(element => element.Name.LocalName == "UnitTestResult");
+        result.Attribute("testName")!.Value.ShouldEqual("SmokeApp.Specs.when_probing.should_allow_bdd_names");
+        result.Attribute("outcome")!.Value.ShouldEqual("Passed");
+    }
     [Fact] void should_reject_violations_of_the_application_editor_configuration() => _ownRules.ExitCode.ShouldNotEqual(0);
     [Fact] void should_report_the_application_naming_rule_violation() => _ownRules.Output.ShouldContain("error IDE1006");
 

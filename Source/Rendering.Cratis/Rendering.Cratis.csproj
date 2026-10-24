@@ -120,10 +120,13 @@
     <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->
     <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
         <ItemGroup>
+            <_ScaffoldPackage Include="Cratis.Fundamentals" Constant="Fundamentals" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Fundamentals')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis" Constant="Cratis" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.MongoDB" Constant="ArcMongoDB" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.MongoDB')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Specifications.XUnit.v3" Constant="SpecificationsXUnitV3" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit.v3')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="xunit.v3" Constant="XunitV3" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.v3')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />

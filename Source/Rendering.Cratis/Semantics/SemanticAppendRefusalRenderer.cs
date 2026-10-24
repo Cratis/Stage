@@ -52,6 +52,6 @@ internal static class SemanticAppendRefusalRenderer
         builder.Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
             .BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Constraint_{Identifiers.ToPascalCase(constraint.Name)}", $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 }

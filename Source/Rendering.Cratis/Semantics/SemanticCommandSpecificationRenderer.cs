@@ -56,7 +56,8 @@ internal static partial class SemanticCommandSpecificationRenderer
             SemanticReactionSpecificationRenderer.RenderDispose(builder);
         }
         builder.EndBlock();
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
+        var subject = Identifiers.ToPascalCase(reaction?.Selection.Reaction.Name ?? command.Name);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{subject}", $"{behavior}.cs"]);
 
         // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
         // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting

@@ -116,7 +116,7 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         }
 
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Query_{Identifiers.ToPascalCase(readModel.Name)}_{Identifiers.ToPascalCase(query.Name)}", $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
@@ -182,7 +182,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Line("[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => (_result is not null).ShouldBeTrue();");
         RenderProperties(builder, result.Values, readModel, types, context);
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Query_{Identifiers.ToPascalCase(readModel.Name)}_{Identifiers.ToPascalCase(query.Name)}", $"{behavior}.cs"]);
         var content = types.SpecificationContent(builder.ToString());
         if (SpecificationValues.NeedsGlobalization(content))
         {

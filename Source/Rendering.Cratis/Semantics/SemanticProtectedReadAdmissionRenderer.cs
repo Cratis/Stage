@@ -15,7 +15,7 @@ internal static class SemanticProtectedReadAdmissionRenderer
     /// <summary>
     /// The folder-relative path of the generated specification.
     /// </summary>
-    internal const string Path = "GeneratedCommands/when_admitting_protected_reads.cs";
+    internal const string Path = "GeneratedCommands/for_DecisionReadAdmissions/when_admitting_protected_reads.cs";
 
     /// <summary>
     /// Renders the admission specification.

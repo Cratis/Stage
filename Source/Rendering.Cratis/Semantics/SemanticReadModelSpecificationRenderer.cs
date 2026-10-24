@@ -164,7 +164,7 @@ internal static class SemanticReadModelSpecificationRenderer
         {
             builder.Using(context.CommonNamespace);
         }
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{Identifiers.ToPascalCase(readModel.Name)}", $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.

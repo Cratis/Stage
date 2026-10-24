@@ -32,7 +32,6 @@ public sealed partial class CratisBackendApplicationScaffold
             ("Directory.Build.targets", DirectoryBuildTargets()),
             ("Directory.Packages.props", DirectoryPackagesProps(profile)),
             ($"{request.ProjectName}.csproj", Project(request)),
-            ($"{request.ProjectName}.Specs/{request.ProjectName}.Specs.csproj", SpecificationsProject(request)),
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
@@ -67,6 +66,13 @@ public sealed partial class CratisBackendApplicationScaffold
 
         using Cratis.Arc.MongoDB;
 
+        #if DEBUG
+        if (args.Length > 0 && args[0] == "--specifications")
+        {
+            return await Xunit.Runner.InProc.SystemConsole.ConsoleRunner.Run(args[1..]);
+        }
+        #endif
+
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
         builder.AddCratis(
@@ -84,6 +90,7 @@ public sealed partial class CratisBackendApplicationScaffold
         ConfigureApplication(app);
 
         await app.RunAsync();
+        return 0;
 
         // Optional partial methods disappear when Customizations/Program.cs supplies no implementation.
         public partial class Program

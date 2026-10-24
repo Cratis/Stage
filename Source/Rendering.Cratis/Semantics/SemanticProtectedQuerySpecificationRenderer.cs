@@ -87,7 +87,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
         }
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Query_{Identifiers.ToPascalCase(readModel.Name)}_{Identifiers.ToPascalCase(query.Name)}", $"{name}.cs"]), content);
     }
 
     static void UseEventNamespaces(CSharpCodeBuilder builder, IEnumerable<SemanticId> events, string queryNamespace, SemanticApplicationContext context)

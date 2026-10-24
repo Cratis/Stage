@@ -24,6 +24,7 @@ internal static class FrozenScaffoldPins
             (string Id, string Current, string Baseline)[] pins =
             [
                 ("Cratis", profile.CratisPackageVersion, previous ? "22.87.0" : TargetVersion),
+                ("Cratis.Fundamentals", profile.CratisFundamentalsPackageVersion, "7.25.1"),
                 ("Cratis.Arc.MongoDB", profile.CratisArcMongoDBPackageVersion, previous ? "22.87.0" : TargetVersion),
                 ("Cratis.Arc.Chronicle.Testing", profile.CratisArcChronicleTestingPackageVersion, previous ? "22.87.0" : TargetVersion),
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),

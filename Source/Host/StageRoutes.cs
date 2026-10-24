@@ -28,7 +28,8 @@ public record StageRoutes(
 
     /// <summary>
     /// Gets every modeled command's presentation schema, used to register native command proxies in the live host and to build a
-    /// toolbar slice's task dialog - so the property each command acts on carries <see cref="Contracts.Screenplay.SchemaSynthesizer.IdentityKeyword"/>.
+    /// toolbar slice's task dialog - so the property each command acts on carries <see cref="Contracts.Screenplay.SchemaSynthesizer.IdentityKeyword"/>,
+    /// and a command whose identity the runtime allocates carries <see cref="Contracts.Screenplay.SchemaSynthesizer.CreatesKeyword"/>.
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandSchemas { get; init; } = new Dictionary<string, string>();
 
@@ -42,7 +43,7 @@ public record StageRoutes(
         [],
         StageModelWalker.Slices(model)
             .Where(located => located.Slice.Command is not null)
-            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", Contracts.Screenplay.SchemaSynthesizer.WithIdentity(located.Slice.Command.Schema, located.Slice.Command.Identifier), "object")));
+            .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", IntentOf(located.Slice.Command.Schema, located.Slice.Command.Identifier, false), "object")));
 
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model)
     {
@@ -55,7 +56,8 @@ public record StageRoutes(
                 var identity = $"{located.TypeNamespace}.{command.Name}";
                 var schema = CommandFormSchemas.For(model.Application, command.Properties.Where(property => !property.IsGenerated), diagnostics, identity, SourceLocation.Start);
                 if (schema is null) continue;
-                schema = Contracts.Screenplay.SchemaSynthesizer.WithIdentity(schema, command.Properties.SingleOrDefault(property => property.IsIdentifier)?.Name);
+                var identifier = command.Properties.SingleOrDefault(property => property.IsIdentifier);
+                schema = IntentOf(schema, identifier?.Name, identifier?.IsGenerated == true);
                 var kind = ResponseKind(model.Application, command, diagnostics, identity);
                 if (kind is not null) metadata.Add((identity, schema, kind));
             }
@@ -67,6 +69,12 @@ public record StageRoutes(
         var result = Create(routes, live, metadata);
         return result with { Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")] };
     }
+
+    // The command's own identifier is the entity it acts on; one the runtime allocates - generated, or none declared - is an entity it creates.
+    static string IntentOf(string schema, string? identifier, bool generated) =>
+        Contracts.Screenplay.SchemaSynthesizer.WithCreationIntent(
+            Contracts.Screenplay.SchemaSynthesizer.WithIdentity(schema, identifier),
+            identifier is null || generated);
 
     static string? ResponseKind(SemanticApplication application, SemanticCommand command, ConversionDiagnostics diagnostics, string path)
     {

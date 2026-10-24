@@ -59,8 +59,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
+    const creates = element.properties.createsEntity === true;
+    const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates), [creates, data.selections, data.queries]);
+    const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const rowAction = element.properties.rowAction === true;
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
@@ -337,6 +339,16 @@ function withEntityKeys(row: Record<string, unknown>, query: StageDataState['que
 
 function entityRowsOf(queries: StageDataState['queries']): [Record<string, unknown>, Record<string, unknown>][] {
     return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
+}
+
+/** Creating an entity is about no selected row, even when the person selected one on the screen. */
+function selectedRowsFor(selections: StageDataState['selections'], queries: StageDataState['queries'], creates: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectedRowsOf(selections, queries);
+}
+
+/** Creating an entity is about no row, so it does not borrow identifiers or selection requirements from a list. */
+export function selectableRowsFor(queries: StageDataState['queries'], creates: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectableRowsOf(queries);
 }
 
 /** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */

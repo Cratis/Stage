@@ -16,6 +16,21 @@ public class when_rendering_translation_specifications : given.a_translation_spe
     [Fact] async Task should_compile_and_run_the_outbox_specification() => await RunGenerated("when_publishing_a_packed_order");
     [Fact] async Task should_compile_and_run_the_inbox_specification() => await RunGenerated("when_receiving_a_shipment");
     [Fact]
+    void should_place_the_outbox_specification_beneath_its_subject()
+    {
+        var subject = _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "PublishOrderShipped").Projections.Single().Name;
+        var artifact = _plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/when_publishing_a_packed_order.cs", StringComparison.Ordinal));
+        Path.GetFileName(Path.GetDirectoryName(artifact.RelativePath)).ShouldEqual($"for_{Naming.Identifiers.ToPascalCase(subject)}");
+    }
+
+    [Fact]
+    void should_place_the_inbox_specification_beneath_its_subject()
+    {
+        var subject = _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "TrackShipments").Captures.Single().Name;
+        var artifact = _plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/when_receiving_a_shipment.cs", StringComparison.Ordinal));
+        Path.GetFileName(Path.GetDirectoryName(artifact.RelativePath)).ShouldEqual($"for_{Naming.Identifiers.ToPascalCase(subject)}");
+    }
+    [Fact]
     void should_not_reference_unselected_foreign_contracts_in_the_publication_setup() =>
         _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("when_publishing_a_packed_order.cs", StringComparison.Ordinal))
             .ShouldEachConformTo(artifact => !System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("ShipmentDispatched", StringComparison.Ordinal));

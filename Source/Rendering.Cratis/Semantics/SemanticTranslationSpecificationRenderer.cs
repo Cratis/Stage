@@ -39,7 +39,7 @@ internal static partial class SemanticTranslationSpecificationRenderer
         RenderAct(builder, specification, context, types, publication);
         RenderAssertions(builder, specification, context, types, publication is not null);
         builder.EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{Identifiers.ToPascalCase(capture?.Name ?? publication!.Name)}", $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
     }
 
     static void RenderSetup(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types, string reactor)

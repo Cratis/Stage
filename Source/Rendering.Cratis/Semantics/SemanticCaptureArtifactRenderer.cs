@@ -19,30 +19,31 @@ internal static class SemanticCaptureArtifactRenderer
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticCapture capture, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
-        var name = Identifiers.ToPascalCase(capture.Name);
+        var plan = context.CaptureMembers(capture);
+        var name = plan.TypeName;
         var sources = capture.EventsSource!.Events.Select(id => context.Events[id]).ToArray();
         var builder = new CSharpCodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(capture.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(sources[0].Origin!)})")
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(capture.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute")
-            .OpenBlock($"public class {name}(global::Cratis.Chronicle.IEventStore eventStore) : global::Cratis.Chronicle.Reactors.IReactor");
+            .OpenBlock($"public class {name}(global::Cratis.Chronicle.IEventStore {plan.Store}) : global::Cratis.Chronicle.Reactors.IReactor");
         foreach (var source in sources)
         {
             const string result = "global::System.Collections.Generic.IEnumerable<object>";
-            builder.OpenBlock($"public async global::System.Threading.Tasks.Task<{result}> On{Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)")
+            builder.OpenBlock($"public async global::System.Threading.Tasks.Task<{result}> {plan.Handler(source.Id)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)")
                 .Line("var effects = new global::System.Collections.Generic.List<object>();")
-                .Line("var observed = Observe(@event)!;")
-                .Line("var previous = await Previous(observed, context.SequenceNumber);")
-                .Line("var current = Overlay(previous, observed);")
-                .Line("if (previous is not null && SameState(previous, current)) return effects;");
+                .Line($"var observed = {plan["Observe"]}(@event)!;")
+                .Line($"var previous = await {plan["Previous"]}(observed, context.SequenceNumber);")
+                .Line($"var current = {plan["Overlay"]}(previous, observed);")
+                .Line($"if (previous is not null && {plan["SameState"]}(previous, current)) return effects;");
             foreach (var append in capture.Appends)
             {
                 RenderAppend(builder, capture, append, source, context, types);
             }
             builder.Line("return effects;").EndBlock().BlankLine();
         }
-        SemanticCaptureStateRendering.Render(builder, capture, name, sources, types);
+        SemanticCaptureStateRendering.Render(builder, capture, plan, sources, types);
         builder.EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [capture.Id] };
     }
@@ -57,19 +58,19 @@ internal static class SemanticCaptureArtifactRenderer
         }
         var key = source.Properties.Single(property => property.Name == capture.Key);
         var destination = types.EventSourceExpression($"@event.{Identifiers.ToPascalCase(key.Name)}", key.Type);
-        var guard = SemanticCaptureStateRendering.Condition(append.When);
+        var guard = SemanticCaptureStateRendering.Condition(append.When, context.CaptureMembers(capture));
         if (guard is not null) builder.OpenBlock($"if ({guard})");
-        var arguments = contract.Properties.Select(property => Mapping(append, property, types));
+        var arguments = contract.Properties.Select(property => Mapping(append, property, types, context.CaptureMembers(capture)));
         var tags = contract.Tags.Concat(append.Tags).Select(CSharpCodeBuilder.StringLiteral).ToArray();
         var metadata = tags.Length == 0 ? string.Empty : $" {{ Tags = [{string.Join(", ", tags)}] }}";
         builder.Line($"effects.Add(new global::Cratis.Chronicle.EventSequences.EventForEventSourceId({destination}, new {types.EventType(contract)}({string.Join(", ", arguments)})){metadata});");
         if (guard is not null) builder.EndBlock();
     }
 
-    static string Mapping(SemanticCaptureAppend append, SemanticProperty property, SemanticTypeSystem types) =>
+    static string Mapping(SemanticCaptureAppend append, SemanticProperty property, SemanticTypeSystem types, SemanticCaptureMemberPlan plan) =>
         append.Mappings.SingleOrDefault(mapping => mapping.TargetProperty == property.Id) switch
         {
-            { Field: { } field } => $"Field<{types.Type(property.Type)}>(current, {CSharpCodeBuilder.StringLiteral(field)}, required: {(property.Type.IsOptional ? "false" : "true")})",
+            { Field: { } field } => $"{plan["Field"]}<{types.Type(property.Type)}>(current, {CSharpCodeBuilder.StringLiteral(field)}, required: {(property.Type.IsOptional ? "false" : "true")})",
             { Value: SemanticValueExpression value } => types.Value(value.Value, property.Type),
             null when property.Type.IsOptional => "null",
             _ => throw UnsupportedSemanticRendering.For(nameof(SemanticCaptureMapping), property.Name)

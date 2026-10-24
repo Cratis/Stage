@@ -13,6 +13,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -38,6 +39,31 @@ public class a_translation_application : Specification
         _assembly = RenderedOutput.Load(_sources, clientOnly);
     }
 
+    private protected (SemanticApplicationContext Context, LocatedSemanticSlice Located, SemanticCapture Capture, SemanticId First, SemanticId Second) InternalCaptureProbe(bool sameNamespace, bool reverse = false)
+    {
+        var slices = _model.Application.Modules.Single().Features.Single().Slices;
+        var source = slices.Single(slice => slice.Name == "TrackShipments").Events.Single(contract => contract.Origin is not null);
+        var other = slices.Single(slice => slice.Name == "PackOrder").Events.Single() with
+        {
+            Name = sameNamespace ? "Shipment Dispatched" : source.Name,
+            Origin = source.Origin,
+            Visibility = source.Visibility,
+            Properties = [.. source.Properties.Select(property => property with { Id = SemanticId.Create(SemanticKind.Property, $"second-source-{property.Name}") })]
+        };
+        var model = Transform(
+            _model,
+            slice => slice.Captures.IsEmpty ? slice with { Events = sameNamespace ? [] : [other], Commands = [] } : slice with
+            {
+                Events = sameNamespace ? slice.Events.Add(other) : slice.Events,
+                Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched", EventsSource = capture.EventsSource! with { Events = reverse ? [other.Id, source.Id] : [source.Id, other.Id] } })]
+            },
+            include: slice => slice.Name != "PublishOrderShipped");
+        var options = new CratisRenderingOptions("Contracts", "Contracts");
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var located = context.SelectedSlices().Single(slice => slice.Slice.Name == "TrackShipments");
+        return (context, located, located.Slice.Captures.Single(), source.Id, other.Id);
+    }
+
     protected Type Generated(string slice, string name) => _assembly.GetType($"Contracts.Integration.Translation.{slice}.{name}", throwOnError: true)!;
 
     protected static ArtifactRenderPlan Plan(ExecutableSemanticModel model, ArtifactRefusalMode refusals = ArtifactRefusalMode.Refuse)
@@ -52,12 +78,12 @@ public class a_translation_application : Specification
         return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
-    protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform, bool recovery = false) => ExecutableSemanticModel.Create(recovery ? LanguageVersion.V17 : model.LanguageVersion, recovery ? SemanticVersion.V17 : model.SemanticVersion, model.Application with
+    protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform, bool recovery = false, Func<SemanticSlice, bool>? include = null) => ExecutableSemanticModel.Create(recovery ? LanguageVersion.V17 : model.LanguageVersion, recovery ? SemanticVersion.V17 : model.SemanticVersion, model.Application with
     {
-        Modules = [.. model.Application.Modules.Select(module => module with { Features = Features(module.Features, transform) })]
+        Modules = [.. model.Application.Modules.Select(module => module with { Features = Features(module.Features, transform, include) })]
     });
 
-    static ImmutableArray<SemanticFeature> Features(ImmutableArray<SemanticFeature> features, Func<SemanticSlice, SemanticSlice> transform) =>
-        [.. features.Select(feature => feature with { Slices = [.. feature.Slices.Select(transform)], Features = Features(feature.Features, transform) })];
+    static ImmutableArray<SemanticFeature> Features(ImmutableArray<SemanticFeature> features, Func<SemanticSlice, SemanticSlice> transform, Func<SemanticSlice, bool>? include) =>
+        [.. features.Select(feature => feature with { Slices = [.. feature.Slices.Where(slice => include?.Invoke(slice) ?? true).Select(transform)], Features = Features(feature.Features, transform, include) })];
 }
 #endif

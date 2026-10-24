@@ -72,9 +72,9 @@ internal static class SemanticTranslationAdmission
         }
     }
 
-    internal static IEnumerable<GeneratedTypeDeclaration> Declarations(IReadOnlyList<LocatedSemanticSlice> slices) =>
+    internal static IEnumerable<GeneratedTypeDeclaration> Declarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.Where(located => located.Slice.Kind == SemanticSliceKind.Translate).SelectMany(located =>
-            located.Slice.Captures.Select(capture => new GeneratedTypeDeclaration(capture.Id, "Capture", string.Join('.', located.Path.Select(Identifiers.ToPascalCase)), Identifiers.ToPascalCase(capture.Name))));
+            located.Slice.Captures.Select(capture => new GeneratedTypeDeclaration(capture.Id, "Capture", string.Join('.', located.Path.Select(Identifiers.ToPascalCase)), context.CaptureMembers(capture).TypeName)));
 
     static bool DeclarationOnly(SemanticSlice slice, SemanticId id, SemanticApplicationContext context) =>
         slice.Events.Any(candidate => candidate.Id == id) &&
@@ -111,7 +111,14 @@ internal static class SemanticTranslationAdmission
     {
         foreach (var capture in slice.Captures)
         {
-            ValidateName(capture.Id, capture.Name, capture.EventsSource?.Events ?? [], context, diagnostics);
+            foreach (var reason in context.CaptureMembers(capture).Refusals)
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-004",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Capture '{capture.Name}' cannot render: {reason}.",
+                    capture.Id));
+            }
             foreach (var reason in SemanticCaptureConditionSupport.Refusals(capture, context).Distinct(StringComparer.Ordinal))
             {
                 diagnostics.Add(new(

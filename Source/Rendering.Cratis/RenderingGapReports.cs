@@ -20,9 +20,14 @@ static class RenderingGapReports
             [application]));
     }
 
+    internal static bool IsPathDiagnostic(ArtifactRenderDiagnostic diagnostic) =>
+        string.Equals(diagnostic.Code, "STAGE-CRATIS-004", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-CRATIS-005", StringComparison.Ordinal);
+
     internal static ImmutableArray<ArtifactImplementationGap> FromPathDiagnostics(IEnumerable<ArtifactRenderDiagnostic> diagnostics) =>
-        [.. diagnostics.Where(diagnostic => string.Equals(diagnostic.Code, "STAGE-CRATIS-004", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-CRATIS-005", StringComparison.Ordinal))
-            .GroupBy(diagnostic => (diagnostic.Code, diagnostic.Artifact))
+        FromDiagnostics(diagnostics.Where(IsPathDiagnostic));
+
+    internal static ImmutableArray<ArtifactImplementationGap> FromDiagnostics(IEnumerable<ArtifactRenderDiagnostic> diagnostics) =>
+        [.. diagnostics.GroupBy(diagnostic => (diagnostic.Code, diagnostic.Artifact))
             .Select(group => new ArtifactImplementationGap(
                 ArtifactImplementationGapOrigin.Unverified,
                 $"render:{group.Key.Code}:{group.Key.Artifact}",

@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,7 +17,7 @@ static class ArtifactDependencyAdmission
     internal static List<PlannedArtifact> Admit(
         IReadOnlyList<PlannedArtifact> original,
         List<PlannedArtifact> admitted,
-        SemanticId application,
+        SemanticApplication application,
         List<ArtifactRenderDiagnostic> diagnostics)
     {
         var omitted = original.Except(admitted).ToHashSet();
@@ -31,8 +32,8 @@ static class ArtifactDependencyAdmission
             sources.ToDictionary(pair => pair.Key, pair => Declarations(pair.Value)),
             sources.ToDictionary(pair => pair.Key, pair => UnboundNames(compilation, pair.Value)));
         var causes = original.ToDictionary(artifact => artifact, artifact => diagnostics.FirstOrDefault(diagnostic =>
-            IsPathOmission(diagnostic) && artifact.Sources.Contains(diagnostic.Artifact)));
-        var fallback = diagnostics.First(IsPathOmission);
+            IsOmission(diagnostic) && artifact.Sources.Contains(diagnostic.Artifact)));
+        var fallback = diagnostics.First(IsOmission);
 
         while (true)
         {
@@ -45,14 +46,19 @@ static class ArtifactDependencyAdmission
                 causes[artifact] = cause;
                 omitted.Add(artifact);
                 admitted.Remove(artifact);
-                Warn(artifact, cause, application, diagnostics);
+                Warn(artifact, cause, application.Id, diagnostics);
             }
         }
     }
 
-    static PlannedArtifact[] Rejected(DependencyGraph graph, HashSet<PlannedArtifact> omitted, List<PlannedArtifact> admitted, SemanticId application)
+    static PlannedArtifact[] Rejected(DependencyGraph graph, HashSet<PlannedArtifact> omitted, List<PlannedArtifact> admitted, SemanticApplication application)
     {
-        var owners = omitted.SelectMany(artifact => artifact.Sources).Where(owner => owner != application).ToHashSet();
+        var slices = GeneratedTypeNames.AllSlices(application).Select(located => located.Slice.Id).ToHashSet();
+
+        // A specification file also cites its enclosing slice for provenance. Losing that file must
+        // not evict an independent command merely because it shares the enclosing slice.
+        var owners = omitted.SelectMany(artifact => artifact.Sources.Where(owner =>
+            owner != application.Id && (!slices.Contains(owner) || artifact.Sources.Length == 1))).ToHashSet();
         var removedTrees = omitted.Where(graph.Sources.ContainsKey).Select(artifact => graph.Sources[artifact]).ToHashSet();
         var missingNamespaces = MissingNamespaces(graph.Sources, omitted);
 
@@ -66,8 +72,8 @@ static class ArtifactDependencyAdmission
                 ReferencesMissingName(tree, graph.UnboundNames[artifact], missingNames, missingNamespaces))))];
     }
 
-    static bool IsPathOmission(ArtifactRenderDiagnostic diagnostic) =>
-        string.Equals(diagnostic.Code, "STAGE-CRATIS-004", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-CRATIS-005", StringComparison.Ordinal);
+    static bool IsOmission(ArtifactRenderDiagnostic diagnostic) =>
+        diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning;
 
     static void Warn(PlannedArtifact artifact, ArtifactRenderDiagnostic cause, SemanticId application, List<ArtifactRenderDiagnostic> diagnostics)
     {

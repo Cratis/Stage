@@ -25,7 +25,7 @@ public class when_omitting_transitive_artifact_dependencies : given.a_register_p
             PlannedArtifact.CreateText("Independent.cs", "public record Independent(Retained.Item Value);", [_model.Application.Id])
         };
         var admitted = ArtifactPathAdmission.Admit(artifacts, _model.Application.Id, diagnostics);
-        admitted = ArtifactDependencyAdmission.Admit(artifacts, admitted, _model.Application.Id, diagnostics);
+        admitted = ArtifactDependencyAdmission.Admit(artifacts, admitted, _model.Application, diagnostics);
         var gaps = RenderingGapReports.FromPathDiagnostics(diagnostics);
         RenderingGapReports.AddMarker(admitted, gaps, _model.Application.Id);
         _plan = ArtifactRenderPlan.Create(_request, [.. admitted], [.. diagnostics], gaps);

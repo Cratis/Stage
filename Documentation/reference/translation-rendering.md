@@ -70,8 +70,16 @@ eventually consistent with the reactor that reads it, so a delivery can observe 
 yet seen the previous record, and replay rebuilds it independently of the reactor. Chronicle's client
 capture builder reads external systems, not inbox events, so it does not fit an events source.
 
-The cost is one inbox read per delivery that grows with the inbox length. The reactor remains
-`[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
+Without `key is event source`, the cost is one inbox read per delivery that grows with the inbox
+length: matching keys may occur in different foreign streams. With this marker (ESM v33), the reactor
+first checks that the key's invariant text equals the delivered event source, using an ordinal
+comparison. An empty or mismatched key is rejected before inbox access or effects. It then reads only
+that source and the captured event types, so history cost grows with that source's history rather
+than the whole inbox. Both paths retain key matching and the strict sequence cutoff. A foreign
+partition's latest snapshot is unsafe: it can include changes after the delivered position and
+would change the state seen by retries or redeliveries.
+
+The reactor remains `[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
 idempotency key derived from the reactor delivery, capture id and modeled append position. Retrying
 that delivery after a partial append, a lost acknowledgment or an append followed by a lost checkpoint
 uses the same keys: already-appended effects succeed without appending duplicates. Different effects

@@ -11,7 +11,7 @@ internal static class SemanticCaptureIdentitySupport
 
     internal static string? Check(SemanticCapture capture, ExecutableSemanticModel model, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
     {
-        if (model.SemanticVersion != SemanticVersion.V32 || capture.EventsSource is not { } source) return null;
+        if (!UsesTypedIdentity(model.SemanticVersion) || capture.EventsSource is not { } source) return null;
         var keys = source.Events.SelectMany(id => events[id].Properties.Where(property => property.Name == capture.Key)).ToArray();
         if (keys.Length != source.Events.Length || keys.Length == 0 || keys.Any(key => key.Type.IsOptional || key.Type.IsCollection))
         {
@@ -27,6 +27,8 @@ internal static class SemanticCaptureIdentitySupport
             ? $"Capture '{capture.Name}' key '{capture.Key}' does not match every append's declared event-source identity type; Stage will not coerce the key to text."
             : null;
     }
+
+    internal static bool UsesTypedIdentity(SemanticVersion version) => version == SemanticVersion.V32 || version == SemanticVersion.V33;
 
     static bool Convertible(SemanticTypeReference type, SemanticApplication application)
     {

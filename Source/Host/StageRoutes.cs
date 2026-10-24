@@ -29,7 +29,7 @@ public record StageRoutes(
     /// <summary>
     /// Gets every modeled command's presentation schema, used to register native command proxies in the live host and to build a
     /// toolbar slice's task dialog - so the property each command acts on carries <see cref="Contracts.Screenplay.SchemaSynthesizer.IdentityKeyword"/>,
-    /// and a command whose identity the runtime allocates carries <see cref="Contracts.Screenplay.SchemaSynthesizer.CreatesKeyword"/>.
+    /// and a command whose identity the runtime allocates or whose event uniquely initializes a listed row carries <see cref="Contracts.Screenplay.SchemaSynthesizer.CreatesKeyword"/>.
     /// </summary>
     public IReadOnlyDictionary<string, string> CommandSchemas { get; init; } = new Dictionary<string, string>();
 
@@ -48,6 +48,7 @@ public record StageRoutes(
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model)
     {
         var diagnostics = new ConversionDiagnostics();
+        var creation = new SemanticListCreation(model);
         var metadata = new List<(string Identity, string Schema, string ResponseKind)>();
         foreach (var located in SemanticModelWalker.Slices(model))
         {
@@ -57,7 +58,7 @@ public record StageRoutes(
                 var schema = CommandFormSchemas.For(model.Application, command.Properties.Where(property => !property.IsGenerated), diagnostics, identity, SourceLocation.Start);
                 if (schema is null) continue;
                 var identifier = command.Properties.SingleOrDefault(property => property.IsIdentifier);
-                schema = IntentOf(schema, identifier?.Name, identifier?.IsGenerated == true);
+                schema = IntentOf(schema, identifier?.Name, creation.Creates(command, diagnostics, identity));
                 var kind = ResponseKind(model.Application, command, diagnostics, identity);
                 if (kind is not null) metadata.Add((identity, schema, kind));
             }
@@ -70,11 +71,11 @@ public record StageRoutes(
         return result with { Diagnostics = [.. result.Diagnostics, .. diagnostics.All.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")] };
     }
 
-    // The command's own identifier is the entity it acts on; one the runtime allocates - generated, or none declared - is an entity it creates.
-    static string IntentOf(string schema, string? identifier, bool generated) =>
+    // Identity stays marked even when allocation or explicit list projection evidence proves creation.
+    static string IntentOf(string schema, string? identifier, bool creates) =>
         Contracts.Screenplay.SchemaSynthesizer.WithCreationIntent(
             Contracts.Screenplay.SchemaSynthesizer.WithIdentity(schema, identifier),
-            identifier is null || generated);
+            identifier is null || creates);
 
     static string? ResponseKind(SemanticApplication application, SemanticCommand command, ConversionDiagnostics diagnostics, string path)
     {

@@ -19,6 +19,7 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// <summary>
     /// The empty object schema used for a command's state schema (Screenplay has no state schema concept).
     /// </summary>
+    // language=json
     public const string EmptyObjectSchema = """{"type":"object","properties":{}}""";
 
     /// <summary>
@@ -59,9 +60,10 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// The schema keyword, on the schema itself, marking a command that creates the entity it appends to rather than acting on one that exists.
     /// </summary>
     /// <remarks>
-    /// The model says so when the runtime allocates the command's identity: its <c language="csharp">identifier</c> is <c language="csharp">generated</c>,
-    /// or the command declares none. A caller-supplied identifier names an entity the caller already holds - on a list, the row the person selected -
-    /// so it carries no mark (see <see cref="WithCreationIntent"/>).
+    /// Creation is explicit when the runtime allocates the command's identity: its <c language="csharp">identifier</c> is <c language="csharp">generated</c>,
+    /// or the command declares none. The live host also marks caller-supplied identifiers when one unconditional root projection handler
+    /// uniquely initializes a listed row's key from that command's event source, with no other selected-row or parent-key input.
+    /// Ambiguous evidence leaves the schema unmarked (see <see cref="WithCreationIntent"/>).
     /// </remarks>
     public const string CreatesKeyword = "x-creates";
 
@@ -97,7 +99,7 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// Marks a command's schema with <see cref="CreatesKeyword"/>: the command creates the entity it appends to, whose identity the runtime allocates.
     /// </summary>
     /// <param name="schema">The command's JSON Schema text, as <see cref="ForProperties"/> synthesizes it.</param>
-    /// <param name="creates">Whether the command's identity is allocated by the runtime rather than supplied by the caller.</param>
+    /// <param name="creates">Whether runtime allocation or structural list projection evidence establishes creation.</param>
     /// <returns>The schema with the mark when creating; unchanged otherwise or when the text is not a schema object.</returns>
     public static string WithCreationIntent(string schema, bool creates)
     {

@@ -23,7 +23,7 @@ internal enum SemanticSurfaceDispositionKind
 internal sealed record SemanticSurfaceDisposition(SemanticSurfaceDispositionKind Kind, string Detail = "");
 
 /// <summary>
-/// Inventories the executable semantic surface audited against Screenplay 4.240.2; exact ESM v1–v30 pairs are admitted, but evolved events require migration rendering
+/// Inventories the executable semantic surface audited against Screenplay 4.241.0; exact ESM v1–v30 and v32 pairs are admitted, but evolved events require migration rendering
 /// and each v5–v10 construct Stage does not render yet refuses the model with its own diagnostic.
 /// A rejected member names the admission diagnostic that blocks its unsupported shape.
 /// </summary>
@@ -367,6 +367,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Interval Schedule Shutdown Startup");
         Add(entries, "SemanticCapture", rendered, "Appends Id Key Name");
         Add(entries, "SemanticCapture", v6, "Children Map Nested");
+
+        // v32 retains the declared key type, including capture-only identity concepts; inconsistent
+        // or non-convertible key/append identities refuse with STAGE-ESM-052 instead of becoming text.
         Add(entries, "SemanticCaptureAppend", rendered, "EventContract EventSourceType Mappings Tags When");
         Add(entries, "SemanticCaptureChildren", v6, "Appends Field IdentifiedBy Map");
         Add(entries, "SemanticCaptureNested", v6, "Appends Field Map");

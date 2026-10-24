@@ -47,6 +47,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticDestinations.cs" Link="Semantics/Admission/SemanticDestinations.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticReactionProductions.cs" Link="Semantics/Admission/SemanticReactionProductions.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Semantics/Admission/SemanticTranslationSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticCaptureIdentitySupport.cs" Link="Semantics/Admission/SemanticCaptureIdentitySupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Semantics/Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />

@@ -119,6 +119,10 @@ internal static class SemanticTranslationAdmission
                     $"Capture '{capture.Name}' cannot render: {reason}.",
                     capture.Id));
             }
+            if (SemanticCaptureIdentitySupport.Check(capture, context.Request.Model, context.Events) is { } identityFailure)
+            {
+                diagnostics.Add(new(SemanticCaptureIdentitySupport.Code, ArtifactRenderDiagnosticSeverity.Error, identityFailure, capture.Id));
+            }
             foreach (var reason in SemanticCaptureConditionSupport.Refusals(capture, context).Distinct(StringComparer.Ordinal))
             {
                 diagnostics.Add(new(

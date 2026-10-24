@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using Cratis.Chronicle;
 using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
+using Cratis.Chronicle.Reactors;
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using NSubstitute;
@@ -72,7 +73,7 @@ public class when_capturing_changes_to_an_optional_scalar_field : given.a_transl
         _delivered.Add(new(EventContext.Empty with { SequenceNumber = sequenceNumber, EventType = source.GetType().GetEventType() }, source));
         var reactor = Activator.CreateInstance(Generated("TrackShipments", "ShipmentTracking"), _store)!;
         var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
         _effects.AddRange(effects.Cast<EventForEventSourceId>());
     }
 }

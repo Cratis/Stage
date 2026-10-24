@@ -88,7 +88,11 @@ internal static partial class SemanticTranslationSpecificationRenderer
         else
         {
             // The delivered event follows every given: the reactor rebuilds capture state from the inbox before it.
-            builder.Line($"_produced.AddRange((await {invocation}, {delivery})).Cast<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>());");
+            var capture = SemanticTranslationSpecificationAdmission.Capture(context.DeclaringSlice(specification.Id).Slice, specification.WhenAppended!)!;
+            var origin = context.Events[specification.WhenAppended!.EventContract].Origin!;
+            builder.Line($"var context = {delivery};")
+                .Line($"var delivery = global::Cratis.Chronicle.Reactors.ReactorDelivery.For(new global::Cratis.Chronicle.Reactors.ReactorId({CSharpCodeBuilder.StringLiteral(capture.Id.ToString())}), new global::Cratis.Chronicle.EventSequences.EventSequenceId({CSharpCodeBuilder.StringLiteral($"inbox-{origin}")}), context);")
+                .Line($"_produced.AddRange((await {invocation}, context, delivery)).Cast<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>());");
         }
         builder.EndBlock().BlankLine();
     }

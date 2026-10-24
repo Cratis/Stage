@@ -32,6 +32,22 @@ target property's type; Stage does not coerce field values. Literal mappings ret
 Capture `map`, children and nested scopes remain refused. A capture with child appends is refused
 as a whole; Stage does not emit only its top-level appends.
 
+### Typed capture keys (ESM v32)
+
+Stage admits the exact language/semantic v32 pair from Screenplay 4.241.0; v31 remains unaudited.
+A v32 capture preserves the key's declared event-source type rather than treating it as text.
+Required scalar `Text`, `Uuid` and `WholeNumber` keys, and non-enumerated concepts over those
+primitives, render when every source contract has the same key type and every append declares that
+same identity type. A concept used only as a capture identity renders as `EventSourceId<T>` too;
+no command or read-model key is needed to establish its identity role.
+
+Optional, collection, composite, enumerated or other primitive keys, inconsistent source types,
+and append types that would lose that identity are refused with `STAGE-ESM-052`. In particular,
+Stage will not convert a typed v32 key to text to make an inferred text append fit. Existing v9
+text-key translations retain their behavior. The specification executor retains the same typed
+identity in captured facts and typed givens; the live host still refuses foreign inbox contracts
+with `STAGE-ESM-033` rather than claiming transport support.
+
 ### Capture state
 
 The generated inbox reactor decides every guard from the key's previous capture state, the same state
@@ -55,10 +71,17 @@ eventually consistent with the reactor that reads it, so a delivery can observe 
 yet seen the previous record, and replay rebuilds it independently of the reactor. Chronicle's client
 capture builder reads external systems, not inbox events, so it does not fit an events source.
 
-The cost is one inbox read per delivery that grows with the inbox length. The reactor is
-`[OnceOnly]`, so a full observer replay does not re-append. Ordinary redelivery after an append failed
-partway can append the same effect again; the read makes the decision deterministic, not the append
-exactly-once.
+The cost is one inbox read per delivery that grows with the inbox length. The reactor remains
+`[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
+idempotency key derived from the reactor delivery, capture id and modeled append position. Retrying
+that delivery after a partial append, a lost acknowledgment or an append followed by a lost checkpoint
+uses the same keys: already-appended effects succeed without appending duplicates. Different effects
+and different deliveries have different keys, even when an earlier append's guard produces no effect.
+
+This requires Chronicle client and kernel **19.99.1 or later** with idempotent appends. The generated
+application pins that kernel image. A kernel without the capability is refused; Stage does not fall
+back to unkeyed appends. This protects capture effects in the destination event log, not arbitrary
+external side effects. Publication, capture state reconstruction and replay exclusion are unchanged.
 
 Guards whose result Stage cannot reproduce exactly are refused by name with `STAGE-ESM-024`:
 expression guards, guard paths with `.` traversal, guards over list or record fields, and transitions
@@ -93,6 +116,7 @@ one transaction or provide concurrent exactly-once delivery.
 | `STAGE-ESM-032` | Public contracts outside the supported translation subset; unsupported event-target projections and event-target reducers |
 | `STAGE-ESM-033` | Foreign contracts outside the supported subset, including a capture spanning several origin stores |
 | `STAGE-ESM-011` | Translate specifications outside the isolated handler-fixture subset described below |
+| `STAGE-ESM-052` | v32 capture keys without a faithful scalar identity conversion, or source/append identity types that disagree |
 
 A direct `when append` can render a `Specification` that constructs and calls the generated
 reactor handler. Inbound fixtures place given foreign records in the inbox before the delivered
@@ -104,10 +128,11 @@ objects appended to the outbox, including their payloads and source ids. Public 
 is not yet supported in generated specifications. Explicit `then none`
 is a zero-output assertion, not a skipped check.
 
-These are isolated handler tests, not running Chronicle subscriptions. They do not prove inbox
-transport, checkpointing, or replay delivery. Input fan-out, downstream captures/publications/
-reactions, append-time constraints, history that triggers settlement, and recovery/redelivery
-remain explicit `STAGE-ESM-011` refusals. Expected outcomes must belong to the selected handler;
+These are isolated handler tests, not running Chronicle subscriptions. Capture specifications pass
+Chronicle delivery identity to the generated handler. They do not prove inbox transport,
+checkpointing, or replay delivery. Input fan-out, downstream captures/publications/reactions,
+append-time constraints, history that triggers settlement, and authored recovery/redelivery
+specifications remain explicit `STAGE-ESM-011` refusals. Expected outcomes must belong to the selected handler;
 a public outcome from another slice is not approximated as a local append. Unordered outcomes,
 caller/clock/error/return assertions, and values outside the existing typed event-fixture subset
 are also refused.

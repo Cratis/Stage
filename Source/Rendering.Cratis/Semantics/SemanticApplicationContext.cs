@@ -336,7 +336,13 @@ internal sealed class SemanticApplicationContext
             .SelectMany(_ => _.Slice.Commands.SelectMany(command => command.Properties)
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
-            .Select(_ => _.Type.Target)];
+            .Select(_ => _.Type.Target)
+            .Concat(Request.Model.SemanticVersion == SemanticVersion.V32
+                ? _slices.Values.Where(located => !located.Slice.Captures.IsDefaultOrEmpty)
+                    .SelectMany(located => located.Slice.Captures).SelectMany(capture => capture.Appends)
+                    .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)
+                    .Select(append => append.EventSourceType.Target)
+                : [])];
 
     Dictionary<SemanticId, string> ResolveResponseTypes()
     {

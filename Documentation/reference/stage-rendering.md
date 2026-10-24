@@ -289,7 +289,9 @@ captures, and `STAGE-ESM-024` Translate slices and captures appear as `renderedA
 Public events are published locally only; inbound translation requires seeded foreign facts and never polls
 external sources. These entries do not block unrelated local execution. Non-event reactions and other
 unsupported behavior still refuse admission. This does not relax renderer or legacy-engine admission;
-see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution).
+see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution). Generated applications
+can instead render the supported inbox capture and outbox publication subset; see
+[Translation rendering](translation-rendering.md) for its mappings, added-state approximation and refusals.
 
 ## Generated C# whole numbers
 

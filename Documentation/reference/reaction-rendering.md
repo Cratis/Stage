@@ -131,7 +131,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate slices; clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
+| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |

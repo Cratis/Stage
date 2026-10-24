@@ -9,6 +9,7 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
+using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Types;
 
@@ -34,6 +35,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
     readonly Dictionary<SemanticId, Type> _composites = [];
+    readonly HashSet<SemanticId> _resolving = [];
 
     internal static object? ConvertValue(SemanticValue value, Type target) =>
         ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
@@ -112,6 +114,27 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     internal IReadOnlyList<SemanticProjectionProduct> Products(SemanticEventContract contract) =>
         SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan));
 
+    /// <summary>
+    /// Materializes every event contract that has a runtime type; one holding a recursive composite is left out, and a run that needs it is refused on resolving it.
+    /// </summary>
+    /// <returns>The runtime event types.</returns>
+    internal Type[] MaterializableEvents()
+    {
+        var types = new List<Type>();
+        foreach (var eventContract in plan.Events.Keys)
+        {
+            try
+            {
+                types.Add(For(eventContract));
+            }
+            catch (SemanticProjectionLoweringRefused)
+            {
+            }
+        }
+
+        return [.. types];
+    }
+
     internal Type For(SemanticId eventContract)
     {
         if (_events.TryGetValue(eventContract, out var existing))
@@ -138,8 +161,21 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         if (reference.Kind != SemanticTypeReferenceKind.CompositeType) return Resolve(reference);
         if (!_composites.TryGetValue(reference.Target, out var type))
         {
+            if (!_resolving.Add(reference.Target))
+            {
+                throw new SemanticProjectionLoweringRefused(new NotSupportedException("A recursive composite type cannot be materialized as a runtime type."));
+            }
+
             var composite = plan.Model.Application.Types.Single(composite => composite.Id == reference.Target);
-            type = _factory.CreateReadModelType("Stage.Semantic.Composites", $"Composite_{_composites.Count}", composite.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            try
+            {
+                type = _factory.CreateReadModelType("Stage.Semantic.Composites", $"Composite_{_composites.Count}", composite.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            }
+            finally
+            {
+                _resolving.Remove(reference.Target);
+            }
+
             _composites.Add(reference.Target, type);
         }
         return type;

@@ -52,15 +52,15 @@ internal static class SemanticQueryContextRuntime
         RenderContextDeclarations(builder, query, method, types);
     }
 
-    internal static ArtifactImplementationGap Gap(SemanticApplicationContext context, SemanticKeyedQuery query, PlannedArtifact artifact, string reason)
+    internal static ArtifactImplementationGap? Gap(SemanticApplicationContext context, SemanticKeyedQuery query, PlannedArtifact artifact, string reason)
     {
         var text = System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
         var methodName = context.MemberNames.Query(query);
         var model = context.ReadModels[query.ReadModel];
         var modelName = Identifiers.ToPascalCase(model.Name);
         var declaration = CSharpSyntaxTree.ParseText(text).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Single(method => method.Identifier.ValueText == methodName && method.Parent is RecordDeclarationSyntax record && record.Identifier.ValueText == modelName);
-        var body = declaration.Body!;
+            .SingleOrDefault(method => method.Identifier.ValueText == methodName && method.Parent is RecordDeclarationSyntax record && record.Identifier.ValueText == modelName);
+        if (declaration?.Body is not { } body) return null;
         var typeName = $"{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{modelName}";
         var typedContext = new ArtifactImplementationContext(
             $"{typeName}.StageQueryContext_{methodName}",

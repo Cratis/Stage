@@ -276,11 +276,13 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         foreach (var diagnostic in diagnostics.Where(diagnostic => diagnostic.Code == SemanticImplementationAdmission.PerformerGapCode))
         {
             if (!context.Queries.TryGetValue(diagnostic.Artifact, out var query)) continue;
-            var artifact = artifacts.FirstOrDefault(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.Sources.Contains(diagnostic.Artifact));
-            if (artifact is not null)
-            {
-                gaps.Add(SemanticQueryContextRuntime.Gap(context, query, artifact, diagnostic.Message));
-            }
+
+            // Policy artifacts also list the query as a source; only the slice artifact declares the performer method.
+            var gap = artifacts
+                .Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.Sources.Contains(diagnostic.Artifact))
+                .Select(artifact => SemanticQueryContextRuntime.Gap(context, query, artifact, diagnostic.Message))
+                .FirstOrDefault(candidate => candidate is not null);
+            if (gap is not null) gaps.Add(gap);
         }
         return [.. gaps.OrderBy(gap => gap.RequirementId, StringComparer.Ordinal)];
     }

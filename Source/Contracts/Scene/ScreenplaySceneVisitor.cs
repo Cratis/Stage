@@ -166,7 +166,8 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         var structure = scope.Structure ?? StructureConverter.Convert(syntax);
 
-        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, PagesBeforeDialogs(screens))
+        var rowActions = new CollectionRowActions(syntax);
+        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, PagesBeforeDialogs(screens.ConvertAll(rowActions.Bind)))
         {
             Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],

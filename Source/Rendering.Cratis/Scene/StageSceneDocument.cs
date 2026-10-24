@@ -96,6 +96,7 @@ internal static class StageSceneDocument
             foreach (var screen in screens.OfType<JsonObject>())
             {
                 Apply(screen, commands);
+                CollectionActionMetadata.Apply(screen, context);
             }
         }
 

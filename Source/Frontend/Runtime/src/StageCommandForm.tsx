@@ -62,9 +62,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const populated = useMemo(() => answered, [populationKey]);
     // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
     const creates = element.properties.createsEntity === true;
-    const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates), [creates, data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const rowAction = element.properties.rowAction === true;
+    const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates, rowAction), [creates, data.selections, data.queries, rowAction]);
+    const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
@@ -356,8 +356,8 @@ function entityRowsOf(queries: StageDataState['queries']): [Record<string, unkno
 }
 
 /** Creating an entity is about no selected row, even when the person selected one on the screen. */
-function selectedRowsFor(selections: StageDataState['selections'], queries: StageDataState['queries'], creates: boolean): Record<string, unknown>[] {
-    return creates ? [] : selectedRowsOf(selections, queries);
+function selectedRowsFor(selections: StageDataState['selections'], queries: StageDataState['queries'], creates: boolean, currentOnly: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectedRowsOf(selections, queries, currentOnly);
 }
 
 /** Creating an entity is about no row, so it does not borrow identifiers or selection requirements from a list. */
@@ -370,10 +370,16 @@ export function selectableRowsOf(queries: StageDataState['queries']): Record<str
     return entityRowsOf(queries).map(([, row]) => row);
 }
 
-/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
-export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+/**
+ * The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. With `currentOnly`, a table's
+ * selection counts only while the table still shows that row; a selection a component publishes itself (a board's selected card) has no table
+ * query to check and is cleared by its publisher.
+ */
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries'], currentOnly = false): Record<string, unknown>[] {
     const keyed = new Map(entityRowsOf(queries));
-    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
+    const current = ([key, row]: [string, Record<string, unknown>]) => !currentOnly || !Object.hasOwn(queries, key) || queries[key].rows.includes(row);
+    return Object.entries(selections).filter((entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined && current(entry as [string, Record<string, unknown>]))
+        .map(([, row]) => keyed.get(row) ?? row);
 }
 
 /**

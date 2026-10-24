@@ -42,7 +42,7 @@ public class with_a_published_blueprint_manifest : Specification
             layout.Name,
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
             {
-                ["main"] = [SceneElementFactory.Component("Leads.main.0-action", "core:action"), SceneElementFactory.Component("Leads.main.1-button", "inputText")],
+                ["main"] = [SceneElementFactory.Component("Leads.main.0-action", "core:action"), SceneElementFactory.Component("Leads.main.1-button", "inputTextField")],
             },
             [],
             []);

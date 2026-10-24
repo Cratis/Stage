@@ -56,7 +56,7 @@ internal static class SemanticRunScopedMappings
             foreach (var mapping in mappings)
             {
                 var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                var source = mapping.Factor is null ? SourcePath(plan, @event, mapping) : ProductName(plan, @event, mapping, model);
+                var source = MappingSource(plan, @event, model.Properties, mapping);
                 typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(IFromBuilder<TReadModel, TEvent>))
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [from, mapping, target.Name, source], null);
@@ -186,31 +186,31 @@ internal static class SemanticRunScopedMappings
         foreach (var mapping in mappings)
         {
             var target = properties.Single(property => property.Id == mapping.Target[0]);
-            var source = SourcePath(plan, @event, mapping);
+            var source = mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
             typeof(SemanticRunScopedMappings).GetMethod(nameof(Apply), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(typeof(TReadModel), typeof(TEvent), typeof(TReadModel).GetProperty(target.Name)!.PropertyType, typeof(TBuilder))
                 .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, mapping, target.Name, source], null);
         }
     }
 
-    // A product is read from the member the event carries for it, as the renderer lowers it.
-    static string ProductName(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionMapping mapping, SemanticReadModel model) =>
-        SemanticProjectionProducts.Of(mapping, @event, model.Properties, new SemanticApplicationContext(plan))?.Name
-            ?? throw Refused(mapping);
-
-    // A nested event path lowers to the declared names joined by dots, walked through the composite types.
-    static string? SourcePath(SemanticExecutionPlan plan, SemanticEventContract @event, SemanticProjectionMapping mapping)
+    static string? MappingSource(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticProperty> targets, SemanticProjectionMapping mapping)
     {
-        if (mapping.Source is not SemanticProjectionEventProperty source) return null;
-        var properties = @event.Properties;
-        var names = new List<string>();
-        foreach (var id in source.Path)
-        {
-            var member = properties.Single(property => property.Id == id);
-            names.Add(member.Name);
-            if (member.Type.Kind == SemanticTypeReferenceKind.CompositeType)
-                properties = plan.Model.Application.Types.Single(type => type.Id == member.Type.Target).Properties;
-        }
+        if (mapping.Factor is not null) return ProductSource(plan, @event, targets, mapping);
+        return mapping.Source is SemanticProjectionEventProperty property ? SourceName(plan, @event, property.Path) : null;
+    }
+
+    // The member a product is carried in: the event holds the multiplied value, which Chronicle's Add and Subtract then read as one property.
+    static string ProductSource(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticProperty> targets, SemanticProjectionMapping mapping) =>
+        SemanticProjectionProducts.Rejection(mapping, true, @event, targets, new SemanticApplicationContext(plan), out var product) is null
+            ? SemanticRuntimeTypes.ProductMember(product!)
+            : throw Refused(mapping);
+
+    // An event property, or a member reached through composite values: the dotted path Chronicle reads from the event.
+    static string SourceName(SemanticExecutionPlan plan, SemanticEventContract @event, ImmutableArray<SemanticId> path)
+    {
+        var names = new List<string> { @event.Properties.Single(value => value.Id == path[0]).Name };
+        var members = plan.Model.Application.Types.SelectMany(type => type.Properties).ToDictionary(member => member.Id, member => member.Name);
+        names.AddRange(path.Skip(1).Select(id => members[id]));
         return string.Join('.', names);
     }
 

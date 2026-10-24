@@ -23,7 +23,6 @@ public class a_projected_reaction : a_reaction_plan
         var projections = shape switch
         {
             "literal" => new[] { flat with { Transitions = [transition with { Mappings = [new(model.Properties.Single().Id, new SemanticValueExpression(SemanticValue.Text("one")))] }] } },
-            "mapping-free" => [projection with { Scope = projection.Scope! with { From = [projection.Scope!.From.Single() with { EventContract = @event.Id, Mappings = [] }] } }],
             "duplicate" => [flat, flat with { Id = SemanticId.Parse("sem1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), Name = "OtherMarkers" }],
             "scoped" => [projection with { Scope = projection.Scope! with { From = [projection.Scope!.From.Single() with { EventContract = @event.Id }] } }],
             _ => [flat]

@@ -15,8 +15,10 @@ application gets.
 | `screen` | One entry in the blueprint menu, addressed by `#/<ScreenName>`. |
 | `screen template` | The template's `arrangement flow` positions the screen's slots, evaluated for the current size class. |
 | `layout` | The blueprint's shell for that layout name (`AppShell`, `FullPage`). A layout the blueprint does not provide is drawn in `AppShell`. |
-| `ui profile` | Decides which packages a bare component name resolves against. `core`, `PrimeReact` and the blueprint are always admitted. Its `root template`, shell options and `appearance` decide the shell the application starts in (see [Root template, options and appearance](#root-template-options-and-appearance)). |
+| `ui profile` | Decides which packages a bare component name resolves against. `core`, `Cratis.Components` (React Aria) and the blueprint are always admitted. React Aria is the zero-configuration default; `packages PrimeReact` explicitly opts in to PrimeReact. Its `root template`, shell options and `appearance` decide the shell the application starts in (see [Root template, options and appearance](#root-template-options-and-appearance)). |
 | Command and query | Components wired to the routes the running application exposes. |
+
+With `packages PrimeReact`, the frontend adds the PrimeReact packages and icons, its provider, theme CSS, styling plugin and build-time PrimeUI license. Without that declaration, the scaffold emits none of them and the live Stage does not load the provider, license or theme. Bare names shared with React Aria resolve to PrimeReact only when it is listed; blueprint names still take precedence.
 
 A bare component name in a template (for example `title` or `inputText`) is resolved against the profile's
 packages before it is rendered, so a template written against the blueprint's vocabulary draws real components

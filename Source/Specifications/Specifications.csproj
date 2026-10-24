@@ -15,8 +15,6 @@
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticScopedProjectionSupport.cs" Link="Admission/SemanticScopedProjectionSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticProjectionProducts.cs" Link="Admission/SemanticProjectionProducts.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionSupport.cs" Link="Admission/SemanticFlatProjectionSupport.cs" />
-        <Compile Include="../Rendering.Cratis/Semantics/Projections/SemanticFlatProjectionScopes.cs" Link="Admission/SemanticFlatProjectionScopes.cs" />
-        <Compile Include="../Stage/Semantics/SemanticRunFlatProjections.cs" Link="Admission/SemanticRunFlatProjections.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedPascalCase.cs" Link="Admission/GeneratedPascalCase.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeNames.cs" Link="Admission/GeneratedTypeNames.cs" />
         <Compile Include="../Rendering.Cratis/Naming/GeneratedTypeDeclaration.cs" Link="Admission/GeneratedTypeDeclaration.cs" />
@@ -26,6 +24,7 @@
         <Compile Include="../Stage/Semantics/SemanticProjectionObservation.cs" Link="Admission/SemanticProjectionObservation.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticDestinations.cs" Link="Admission/SemanticDestinations.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticReactionProductions.cs" Link="Admission/SemanticReactionProductions.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Admission/SemanticTranslationSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Admission/SemanticVersionFeatures.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Admission/SemanticGenerationShapes.cs" />

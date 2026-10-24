@@ -52,8 +52,7 @@ internal static class SemanticRunProjections
     {
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
-        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id) is { } found
-            ? SemanticRunFlatProjections.Normalize(found, model) : null;
+        var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
         if (projection is null)
         {
             return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];
@@ -88,10 +87,9 @@ internal static class SemanticRunProjections
             builder.NoAutoMap();
             if (projection.Scope is { } scope)
             {
-                foreach (var from in scope.From)
+                var appended = context.Facts.Select(fact => fact.EventContract).ToHashSet();
+                foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, appended)))
                 {
-                    // A product block whose event this run never delivers cannot fire; Chronicle cannot lower the product.
-                    if (from.Mappings.Any(mapping => mapping.Factor is not null) && !context.Facts.Any(fact => fact.EventContract == from.EventContract)) continue;
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
                     var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
@@ -111,11 +109,19 @@ internal static class SemanticRunProjections
             }
             else
             {
-                // Admission refuses every flat projection that has no scoped form, so only a malformed plan reaches this.
-                throw new SemanticProjectionLoweringRefused(new InvalidOperationException("A flat transition must use scalar event mappings and a key equal to the fact's event source."))
+                // A flat transition is a root from block keyed by an event property, with each mapping an event property or a literal.
+                foreach (var transition in projection.Transitions)
                 {
-                    Projection = projection.Id
-                };
+                    var @event = plan.Events[transition.EventContract];
+                    var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([((SemanticResolvedExpression)transition.AffectedInstance.Key!).Target]));
+                    var mappings = transition.Mappings.Select(mapping => new SemanticProjectionMapping([mapping.TargetProperty], SemanticProjectionOperation.Set, mapping.Source switch
+                    {
+                        SemanticResolvedExpression resolved => new SemanticProjectionEventProperty([resolved.Target]),
+                        SemanticValueExpression literal => new SemanticProjectionLiteral(literal.Value),
+                        _ => throw new UnsupportedSemanticMapping()
+                    })).ToArray();
+                    SemanticRunScopedMappings.Define(builder, types.For(transition.EventContract), mappings, model, @event, key, plan);
+                }
             }
         });
         foreach (var seed in Seeds(context, model.Id))
@@ -157,7 +163,10 @@ internal static class SemanticRunProjections
             // Only action and reaction facts may subsequently change it.
             var projectedKey = projection.Scope?.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.Key ??
                 projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
-            var fixtureKey = projectedKey switch
+            var transitionKey = projection.Transitions.SingleOrDefault(transition => transition.EventContract == fact.EventContract)?.AffectedInstance.Key;
+            var fixtureKey = transitionKey is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolvedKey
+                ? fact.Values.Single(value => value.TargetProperty == resolvedKey.Target).Value
+                : projectedKey switch
             {
                 SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
                 SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
@@ -185,7 +194,7 @@ internal static class SemanticRunProjections
                 {
                     var parentKey = child.Scope.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.ParentKey ??
                         child.Scope.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.ParentKey;
-                    if (child.Scope.From.All(from => from.EventContract != fact.EventContract) && child.Scope.Removals.All(removal => removal.EventContract != fact.EventContract)) continue;
+                    if (!child.Scope.From.Any(from => from.EventContract == fact.EventContract) && !child.Scope.Removals.Any(removal => removal.EventContract == fact.EventContract)) continue;
                     observing++;
                     var parent = parentKey is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } }
                         ? fact.Values.Single(value => value.TargetProperty == property).Value : destination;

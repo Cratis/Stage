@@ -10,6 +10,5 @@ public class with_a_structured_read_model : given.a_structured_event
     void Establish() => Compile(modelProperties: "entries Details[]");
 
     Task Because() => Execute();
-    [Fact] void should_remain_unsupported() => AssertOutcome(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_keep_the_named_projection_refusal() => _result.Unsupported!.Details.ShouldContain("Per-run projections need scalar read model properties");
+    [Fact] void should_run() => AssertOutcome(SemanticSpecificationOutcome.Passed);
 }

@@ -235,14 +235,35 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 }
 
 function StageCommandAction({ element, interactions }: RegisteredProps) {
-    const label = text(element, 'label', text(element, 'command'));
-    const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
+    const { routes, parameters, queries, selections } = useStageData();
+    const name = text(element, 'command');
+    const label = text(element, 'label', name);
+    const command = registeredCommand(name, text(element, 'typeName'), text(element, 'route'));
+    const schema = text(element, 'schema') || routes?.commandSchemas?.[name];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries, true), [selections, queries]);
+    const carried = properties.filter(property => property.identifier && property.required && (element.properties.rowAction === true || carriedBy(property, selectableRows)));
+    const awaiting = carried.filter(property => !parameters[property.name]).filter(property => selectedIdentifier(property, selectedRows) === undefined);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    return <StageCommandDialog element={element} label={label} />;
+    if (awaiting.length > 0) {
+        return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+    }
+
+    return <StageCommandDialog element={rowActionElement(element, schema, properties, carried)} label={label} />;
+}
+
+function rowActionElement(element: ExternalComponent, schema: string | undefined, properties: SchemaProperty[], carried: SchemaProperty[]): ExternalComponent {
+    if (carried.length === 0) return element;
+    const fields = Array.isArray(element.properties.fields) ? element.properties.fields : properties.map(property => ({ name: property.name, label: humanize(property.name) }));
+    return {
+        ...element,
+        properties: { ...element.properties, schema, rowAction: true, fields: fields.filter(field => !carried.some(property => property.name === (field.sourceProperty ?? field.name))) },
+    };
 }
 
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */

@@ -356,7 +356,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         // redirected output pipes open, so reading the output would never finish. Build in fresh nodes that exit with the command.
         startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         startInfo.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
-        foreach (var argument in arguments)
+        foreach (var argument in GeneratedApplicationBuilds.Capped(fileName, arguments))
         {
             startInfo.ArgumentList.Add(argument);
         }

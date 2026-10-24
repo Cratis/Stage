@@ -337,34 +337,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
-        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
+        var admitted = ArtifactPathAdmission.Admit(artifacts, request.Model.Application.Id, diagnostics);
+        var (planned, gaps) = AddPerformerGaps(request, admitted, diagnostics);
+        var renderingGaps = RenderingGapReports.FromPathDiagnostics(diagnostics);
+        gaps = gaps.AddRange(renderingGaps);
+        if (!renderingGaps.IsEmpty) RenderingGapReports.AddMarker(planned, gaps, request.Model.Application.Id);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))
         {
             diagnostics = [.. diagnostics.DistinctBy(diagnostic => (diagnostic.Code, diagnostic.Artifact, diagnostic.Message))];
-        }
-
-        var unique = new List<PlannedArtifact>();
-        foreach (var group in planned.GroupBy(_ => _.RelativePath, StringComparer.OrdinalIgnoreCase))
-        {
-            unique.Add(group.OrderBy(_ => _.RelativePath, StringComparer.Ordinal).First());
-            if (group.Count() > 1)
-            {
-                diagnostics.Add(Error(
-                    "STAGE-CRATIS-004",
-                    $"Generated artifact path '{group.Key}' collides with another scaffold or semantic artifact.",
-                    request.Model.Application.Id));
-            }
-        }
-
-        if (unique.Exists(artifact => artifact.RelativePath.StartsWith("Customizations/", StringComparison.OrdinalIgnoreCase)))
-        {
-            diagnostics.Add(Error(
-                "STAGE-CRATIS-005",
-                "The top-level Customizations directory is reserved for user-owned files. Rename the modeled module or feature that would render into it.",
-                request.Model.Application.Id));
-            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
         }
 
         if (!refusals.IsEmpty)
@@ -383,7 +365,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        return ArtifactRenderPlan.Create(request, [.. planned], [.. diagnostics], gaps, refusals, required);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

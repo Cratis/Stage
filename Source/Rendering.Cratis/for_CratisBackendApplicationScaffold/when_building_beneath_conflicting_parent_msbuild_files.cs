@@ -13,6 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 public class when_building_beneath_conflicting_parent_msbuild_files(when_building_beneath_conflicting_parent_msbuild_files.context fixture) : IClassFixture<when_building_beneath_conflicting_parent_msbuild_files.context>
 {
     [Fact] void should_test_the_debug_scaffold_successfully() => fixture.Debug.ExitCode.ShouldEqual(0);
+    [Fact] void should_discover_the_inline_specification() => fixture.Discovery.Output.ShouldContain("SmokeApp.Specs.when_probing.should_allow_bdd_names");
+    [Fact] void should_publish_no_specification_types_or_references() => ReleaseSpecificationMetadata.Verify(fixture.PublishedPath);
     [Fact] void should_build_the_release_scaffold_successfully() => fixture.Release.ExitCode.ShouldEqual(0);
     [Fact] void should_not_import_the_conflicting_parent_build_properties() => $"{fixture.Debug.Output}{fixture.Release.Output}".ShouldNotContain("conflicting parent build properties");
     [Fact] void should_not_import_the_conflicting_parent_build_targets() => $"{fixture.Debug.Output}{fixture.Release.Output}".ShouldNotContain("conflicting parent build targets");
@@ -35,10 +37,12 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
     {
         DirectoryInfo _root = null!;
         DirectoryInfo _application = null!;
+        public ProcessResult Discovery { get; private set; } = null!;
         public ProcessResult Debug { get; private set; } = null!;
         public ProcessResult Release { get; private set; } = null!;
         public ProcessResult OwnRules { get; private set; } = null!;
         public string ResultsPath => Path.Combine(_application.FullName, "specifications.trx");
+        public string PublishedPath => Path.Combine(_application.FullName, "published");
 
         void Establish()
         {
@@ -124,9 +128,11 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
 
         async Task Because()
         {
+            Discovery = await Run("run", "--project", "SmokeApp.csproj", "-c", "Debug", "--", "--specifications", "-list", "full");
+            Discovery.ExitCode.ShouldEqual(0);
             Debug = await Run("run", "--project", "SmokeApp.csproj", "-c", "Debug", "--", "--specifications", "-filterVSTest", "FullyQualifiedName=SmokeApp.Specs.when_probing.should_allow_bdd_names", "-result-trx", ResultsPath);
             Debug.ExitCode.ShouldEqual(0);
-            Release = await Run("publish", "SmokeApp.csproj", "-c", "Release", "--nologo", "-o", Path.Combine(_application.FullName, "published"));
+            Release = await Run("publish", "SmokeApp.csproj", "-c", "Release", "--nologo", "-o", PublishedPath);
             Release.ExitCode.ShouldEqual(0);
 
             // Release has a different package graph: restore the Debug-only specification references before probing its rules.

@@ -28,7 +28,7 @@
   "peerDependencies": {
     "@cratis/arc": "22.112.1",
     "@cratis/arc.react": "22.112.1",
-    "@cratis/components": "4.34.0",
+    "@cratis/components": "4.36.0",
     "@cratis/fundamentals": "7.25.1",
     "@cratis/scene.blueprint.default": "4.80.2",
     "@cratis/scene.components": "4.80.2",

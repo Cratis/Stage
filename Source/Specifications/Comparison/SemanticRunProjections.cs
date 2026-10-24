@@ -209,11 +209,30 @@ internal static class SemanticRunProjections
                 // One appended event feeds every child scope, so an orphan in only some of them cannot be dropped on its own.
                 if (orphaned > 0 && orphaned < observing)
                     throw new SemanticProjectionLoweringRefused(new NotSupportedException("An event feeding several child collections with a missing parent in only some of them is not admitted (existing parent instance required in every collection)."));
-                if (orphaned > 0) continue;
+                if (orphaned > 0)
+                {
+                    // Dropping the event would also drop whatever else the projection does with it.
+                    if (HasOperationsBesidesDirectChildren(projection, scope, fact.EventContract))
+                        throw new SemanticProjectionLoweringRefused(new NotSupportedException("An event with a missing child parent that the projection also uses for a root removal, a join, a transition or a nested child is not admitted (the orphan child cannot be dropped on its own)."));
+                    continue;
+                }
             }
             scenario.CollectEventsFor(new EventSourceId(key), [types.Materialize(fact)]);
         }
     }
+
+    // Direct child from/remove is the only operation an orphan drop may cover; everything else on the event must stay.
+    static bool HasOperationsBesidesDirectChildren(SemanticProjection projection, SemanticProjectionScope scope, SemanticId contract) =>
+        projection.Transitions.Any(transition => transition.EventContract == contract) ||
+        scope.Removals.Any(removal => removal.EventContract == contract) ||
+        scope.Joins.Any(join => join.EventContract == contract) ||
+        scope.Children.Any(child => child.Scope.Joins.Any(join => join.EventContract == contract) || child.Scope.Children.Any(grandchild => ObservesAnywhere(grandchild.Scope, contract)));
+
+    static bool ObservesAnywhere(SemanticProjectionScope scope, SemanticId contract) =>
+        scope.From.Any(from => from.EventContract == contract) ||
+        scope.Removals.Any(removal => removal.EventContract == contract) ||
+        scope.Joins.Any(join => join.EventContract == contract) ||
+        scope.Children.Any(child => ObservesAnywhere(child.Scope, contract));
 
     // A later fact the root scope observes with the parent's key (or through a join) could still create the parent.
     static bool ParentArrivesLater(SemanticProjectionScope scope, SemanticRunContext context, int index, SemanticValue parent)

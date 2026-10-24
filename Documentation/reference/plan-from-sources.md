@@ -358,6 +358,31 @@ by full commit hash, and Dependabot updates them weekly. Application-scope plans
 scoped plans do not. Pass the same value, together with the same `Profile`, to every planning call:
 a profile and options that disagree are refused with `STAGE-CRATIS-001`.
 
+### File header option
+
+Generated code belongs to the application, so by default no generated file carries a license or
+copyright header. Set `FileHeader` to the plain-text lines every generated code file should start
+with:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    FileHeader = ["Copyright (c) Acme Corporation. All rights reserved.", "", "Proprietary and confidential."]
+};
+```
+
+Stage writes each line as a line comment in the file's language, followed by one blank line. For
+`.cs`, `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files, a line becomes `// line`, and an empty or
+whitespace-only line becomes `//`. Trailing whitespace is trimmed. Do not add comment markers
+yourself; a line containing a line break is refused with `STAGE-PLAN-023`. JSON, CSS, HTML,
+Markdown, YAML and MSBuild files never get a header.
+
+The header travels in the profile as the hashed `cratis-render:file-header` input, so it
+contributes to the plan digest and applies to the scaffold, scoped plans and application-scope
+plans alike. `CratisRenderingOptions.FileHeader` sets it for `CratisRendering.Plan(...)` and
+`CreateProfile(...)`. Pass the same lines to every planning call; a caller profile that already
+carries a header combined with a non-empty `FileHeader` option is refused with `STAGE-CRATIS-001`.
+
 Scene composition, bindings, and screen runtime artifacts require the whole model and
 come only from an application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
 A scaffold profile carrying a Scene emits no Scene artifacts and reports the
@@ -504,6 +529,7 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-020` | Invalid domain segment. |
 | `STAGE-PLAN-021` | Domain collides with a reserved root path. |
 | `STAGE-PLAN-022` | Domain supplied for scaffold-only mode. |
+| `STAGE-PLAN-023` | A `FileHeader` line is null or contains a line break. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
 | `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 

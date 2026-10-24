@@ -31,7 +31,7 @@ module Storefront
         then returns "11111111-1111-1111-1111-111111111111"
 ```
 
-Stage renders the identifier concept and the command with its event. These are excerpts: license headers, usings and doc comments are omitted.
+Stage renders the identifier concept and the command with its event. These are excerpts: usings and doc comments are omitted.
 
 ```csharp title="Common/ProjectId.cs (excerpt)"
 public record ProjectId(global::System.Guid Value) : global::Cratis.Chronicle.Events.EventSourceId<global::System.Guid>(Value), global::Cratis.Concepts.IGeneratable<ProjectId>

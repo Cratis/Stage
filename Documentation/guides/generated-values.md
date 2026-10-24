@@ -145,7 +145,7 @@ A plan proves that Stage admitted the model. This guide also built the rendered 
 
 Each concept becomes a record that knows how to make itself. `CustomerId` is used as an `identifier`, so it derives from Chronicle's `EventSourceId<string>`. It is time-ordered, so it implements `IGeneratableInContext<T>`:
 
-```csharp title="Common/CustomerId.cs (license header omitted)"
+```csharp title="Common/CustomerId.cs"
 using Cratis.Chronicle.Events;
 using Cratis.Concepts;
 
@@ -166,7 +166,7 @@ public record CustomerId(string Value) : global::Cratis.Chronicle.Events.EventSo
 
 `OrderId` has the same shape. Only the factory differs:
 
-```csharp title="Common/OrderId.cs (license header omitted)"
+```csharp title="Common/OrderId.cs"
 using Cratis.Chronicle.Events;
 using Cratis.Concepts;
 
@@ -187,7 +187,7 @@ public record OrderId(string Value) : global::Cratis.Chronicle.Events.EventSourc
 
 `InviteCode` is neither time-ordered nor an identifier. It is a plain value concept with `IGeneratable<T>` and a parameterless `New()`:
 
-```csharp title="Common/InviteCode.cs (license header omitted)"
+```csharp title="Common/InviteCode.cs"
 using Cratis.Concepts;
 
 namespace Acme.Shop.Common;
@@ -212,7 +212,7 @@ Time-ordered concepts have no parameterless `New()`. The compiler stops hand-wri
 
 The command follows the model. Nothing about the identifier appears in the constructor:
 
-```csharp title="Storefront/Customers/Register/Register.cs (license header omitted)"
+```csharp title="Storefront/Customers/Register/Register.cs"
 using Acme.Shop.Common;
 using Cratis.Arc.Authorization;
 using Cratis.Arc.Commands.ModelBound;
@@ -473,7 +473,7 @@ slice StateChange Keys
 
 Stage renders the compliance marking onto the concept, and the command property carries a marker of its own:
 
-```csharp title="Common/ApiKey.cs (license header omitted)"
+```csharp title="Common/ApiKey.cs"
 using Cratis.Concepts;
 
 namespace Acme.Shop.Common;

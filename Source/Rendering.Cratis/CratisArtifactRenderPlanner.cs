@@ -337,7 +337,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
-        var admitted = ArtifactPathAdmission.Admit(artifacts, request.Model.Application.Id, diagnostics);
+        var original = artifacts.ToList();
+        var admitted = ArtifactPathAdmission.Admit(original, request.Model.Application.Id, diagnostics);
+        admitted = ArtifactDependencyAdmission.Admit(original, admitted, request.Model.Application.Id, diagnostics);
+        OmittedSceneArtifacts.Repair(request, original, admitted);
         var (planned, gaps) = AddPerformerGaps(request, admitted, diagnostics);
         var renderingGaps = RenderingGapReports.FromPathDiagnostics(diagnostics);
         gaps = gaps.AddRange(renderingGaps);

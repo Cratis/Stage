@@ -5,6 +5,7 @@ using System.Text.Json;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -13,10 +14,13 @@ namespace Cratis.Stage.Host.for_StageRoutes;
 public partial class when_describing_whether_a_command_creates_a_listed_row : Specification
 {
     StageRoutes _routes = null!;
+    bool _scopedCreate;
 
     async Task Because()
     {
         var plan = compiled_plan.From(Source + "\n" + NegativeSource);
+        _scopedCreate = SemanticModelWalker.Slices(plan.Model).SelectMany(located => located.Slice.Projections)
+            .Single(projection => projection.Name == "ScopedResourcesProjection").Scope is not null;
         await using var app = WebApplication.CreateBuilder().Build();
         var scene = new SceneApplication([], [], [], [], [], []);
         _routes = StageRoutes.For(new StageSceneRoutes(scene, app.Services, NullLogger.Instance), plan.Model);
@@ -28,6 +32,23 @@ public partial class when_describing_whether_a_command_creates_a_listed_row : Sp
         return schema.RootElement.TryGetProperty("x-creates", out var mark) && mark.GetBoolean();
     }
 
+    bool Reports(string command) => _routes.Diagnostics.Any(message => message.Contains("STAGE-INTENT-001", StringComparison.Ordinal) && message.Contains($"Command '{command}'", StringComparison.Ordinal));
+
+    [Fact]
+    void should_mark_a_scoped_projection_create()
+    {
+        _scopedCreate.ShouldBeTrue();
+        Creates("RegisterScopedResource").ShouldBeTrue();
+    }
+
+    [Fact] void should_not_report_change_user_role() => Reports("ChangeUserRole").ShouldBeFalse();
+    [Fact] void should_not_report_a_command_touching_no_listed_projection() => Reports("RecordAudit").ShouldBeFalse();
+    [Fact] void should_not_report_an_update_with_an_extra_identifier() => Reports("ChangeUserRoleWithParent").ShouldBeFalse();
+    [Fact] void should_not_mark_a_child_with_a_string_concept_parent() => Creates("AddCustomerNote").ShouldBeFalse();
+    [Fact] void should_report_the_string_parent_as_information() => Reports("AddCustomerNote").ShouldBeTrue();
+    [Fact] void should_not_mark_a_child_with_a_raw_uuid_parent() => Creates("AddRawLine").ShouldBeFalse();
+    [Fact] void should_not_mark_a_child_with_a_matching_parent_key_name() => Creates("AddNamedCustomerNote").ShouldBeFalse();
+
     [Fact] void should_mark_register_product() => Creates("RegisterProduct").ShouldBeTrue();
     [Fact] void should_mark_register_invoice() => Creates("RegisterInvoice").ShouldBeTrue();
     [Fact] void should_mark_register_booking() => Creates("RegisterBooking").ShouldBeTrue();
@@ -36,10 +57,10 @@ public partial class when_describing_whether_a_command_creates_a_listed_row : Sp
     [Fact] void should_mark_the_single_key_establishing_event_among_update_handlers() => Creates("InviteUser").ShouldBeTrue();
     [Fact] void should_not_mark_change_user_role() => Creates("ChangeUserRole").ShouldBeFalse();
     [Fact] void should_not_mark_an_ambiguous_creation() => Creates("RegisterSummary").ShouldBeFalse();
-    [Fact] void should_report_the_ambiguous_creation_as_information() => _routes.Diagnostics.Any(message => message.Contains("STAGE-INTENT-001", StringComparison.Ordinal) && message.Contains("RegisterSummary", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_report_the_ambiguous_creation_as_information() => Reports("RegisterSummary").ShouldBeTrue();
     [Fact] void should_keep_marking_a_generated_identifier() => Creates("PlanShipment").ShouldBeTrue();
     [Fact] void should_not_mark_a_child_create_command() => Creates("AddInvoiceLine").ShouldBeFalse();
-    [Fact] void should_report_the_parent_selection_as_information() => _routes.Diagnostics.Any(message => message.Contains("STAGE-INTENT-001", StringComparison.Ordinal) && message.Contains("AddInvoiceLine", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_report_the_parent_selection_as_information() => Reports("AddInvoiceLine").ShouldBeTrue();
 
     const string Source = """
         concept ProductId : Uuid
@@ -51,6 +72,8 @@ public partial class when_describing_whether_a_command_creates_a_listed_row : Sp
         concept SummaryId : Uuid
         concept LineId : Uuid
         concept ShipmentId : Uuid
+        concept NoteId : Uuid
+        concept CustomerKey : String
         module Business
           feature Registration
             slice StateChange RegisterProduct
@@ -143,5 +166,18 @@ public partial class when_describing_whether_a_command_creates_a_listed_row : Sp
                 from ResourceRegistered
                   resourceId = $eventSourceId
                   name = name
+            slice StateChange RegisterScopedResource
+              command RegisterScopedResource
+                resourceId ResourceId identifier
+                produces ScopedResourceRegistered
+                  for resourceId
+              event ScopedResourceRegistered
+            slice StateView ScopedResources
+              readmodel ScopedResources
+                resourceId ResourceId
+              query AllScopedResources => ScopedResources[]
+              projection ScopedResourcesProjection => ScopedResources
+                from ScopedResourceRegistered key $eventSourceId
+                  resourceId = $eventSourceId
         """;
 }

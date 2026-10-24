@@ -19,6 +19,17 @@ public partial class when_describing_whether_a_command_creates_a_listed_row
                 produces UserRoleChanged
                   for userId
                   role = role
+              command ChangeUserRoleWithParent
+                userId UserId identifier
+                invoiceId InvoiceId
+                produces UserRoleChanged
+                  for userId
+                  role = "Support"
+              command RecordAudit
+                userId UserId identifier
+                produces AuditRecorded
+                  for userId
+              event AuditRecorded
               event UserRoleChanged
                 role String
               event UserInvited
@@ -78,6 +89,70 @@ public partial class when_describing_whether_a_command_creates_a_listed_row
                 from InvoiceLineAdded
                   lineId = $eventSourceId
                   invoiceId = invoiceId
+            slice StateChange AddCustomerNotes
+              command RegisterCustomer
+                customerKey CustomerKey identifier
+                produces CustomerRegistered
+                  for customerKey
+              event CustomerRegistered
+              command AddCustomerNote
+                noteId NoteId identifier
+                accountKey CustomerKey
+                produces CustomerNoteAdded
+                  for noteId
+                  accountKey = accountKey
+              command AddNamedCustomerNote
+                noteId NoteId identifier
+                customerKey String
+                produces NamedCustomerNoteAdded
+                  for noteId
+                  customerKey = customerKey
+              event CustomerNoteAdded
+                accountKey CustomerKey
+              event NamedCustomerNoteAdded
+                customerKey String
+            slice StateView CustomerNotes
+              readmodel CustomerNotes
+                noteId NoteId
+                accountKey CustomerKey
+              query AllCustomerNotes => CustomerNotes[]
+              query GetCustomerNote => CustomerNotes optional
+                by noteId NoteId
+              projection CustomerNotesProjection => CustomerNotes
+                from CustomerNoteAdded
+                  noteId = $eventSourceId
+                  accountKey = accountKey
+            slice StateView NamedCustomerNotes
+              readmodel NamedCustomerNotes
+                noteId NoteId
+                customerKey String
+              query AllNamedCustomerNotes => NamedCustomerNotes[]
+              query GetNamedCustomerNote => NamedCustomerNotes optional
+                by noteId NoteId
+              projection NamedCustomerNotesProjection => NamedCustomerNotes
+                from NamedCustomerNoteAdded
+                  noteId = $eventSourceId
+                  customerKey = customerKey
+            slice StateChange AddRawLines
+              command AddRawLine
+                lineId LineId identifier
+                parentToken Uuid
+                produces RawLineAdded
+                  for lineId
+                  parentToken = parentToken
+              event RawLineAdded
+                parentToken Uuid
+            slice StateView RawLines
+              readmodel RawLines
+                lineId LineId
+                parentToken Uuid
+              query AllRawLines => RawLines[]
+              query GetRawLine => RawLines optional
+                by lineId LineId
+              projection RawLinesProjection => RawLines
+                from RawLineAdded
+                  lineId = $eventSourceId
+                  parentToken = parentToken
             slice StateChange PlanShipment
               command PlanShipment
                 shipmentId ShipmentId generated identifier

@@ -11,7 +11,7 @@ public class a_product_projection : Specification
 {
     protected SemanticSpecificationRunRecord _result = null!;
 
-    protected async Task Run(string givenEvent)
+    protected async Task Run(string givenEvent, string factorSuffix = "")
     {
         var source = $$"""
             module Work
@@ -34,7 +34,7 @@ public class a_product_projection : Specification
                   event Named
                     name String
                   event Added
-                    unitPrice Decimal
+                    unitPrice Decimal{{factorSuffix}}
                     quantity Int
                   readmodel Basket
                     id String key

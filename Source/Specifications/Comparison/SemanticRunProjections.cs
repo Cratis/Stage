@@ -87,7 +87,8 @@ internal static class SemanticRunProjections
             builder.NoAutoMap();
             if (projection.Scope is { } scope)
             {
-                foreach (var from in scope.From)
+                var appended = context.Facts.Select(fact => fact.EventContract).ToHashSet();
+                foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, appended)))
                 {
                     var @event = plan.Events[from.EventContract];
                     var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];

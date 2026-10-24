@@ -254,7 +254,7 @@ internal static partial class SemanticRunProjectionAdmission
     static string? ProductRejection(SemanticExecutionPlan plan, SemanticProjectionScope scope, SemanticReadModel readModel, HashSet<SemanticId> reachable)
     {
         var context = new SemanticApplicationContext(plan);
-        foreach (var from in scope.From.Where(from => reachable.Contains(from.EventContract)))
+        foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, reachable)))
         {
             foreach (var mapping in from.Mappings.Where(mapping => mapping.Factor is not null))
             {

@@ -67,11 +67,12 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
-    def test_small_projects_shard_runs_exactly_the_six_merged_projects_with_unchanged_filters(self):
+    def test_small_projects_shard_runs_exactly_the_seven_merged_projects_with_unchanged_filters(self):
         expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
                     "Source/Contracts/Contracts.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
-                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
+                    "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",
+                    "Source/Rendering.Conformance/Rendering.Conformance.csproj"]
         for lane in (False, True):
             with self.subTest(blueprint_templates_lane=lane):
                 shards = {shard["name"]: shard for shard in SHARDS["matrix"](blueprint_templates_lane=lane)["include"]}

@@ -4,6 +4,7 @@
         <Project Path="Source/Contracts/Contracts.csproj" />
         <Project Path="Source/Rendering.Cratis/Rendering.Cratis.csproj" />
         <Project Path="Source/Rendering.Axon/Rendering.Axon.csproj" />
+        <Project Path="Source/Rendering.Conformance/Rendering.Conformance.csproj" />
         <Project Path="Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj" />
         <Project Path="Source/Stage/Stage.csproj" />
         <Project Path="Source/Host/Host.csproj" />

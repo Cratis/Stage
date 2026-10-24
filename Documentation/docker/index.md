@@ -206,6 +206,7 @@ At v26 the semantic engine executes Date/DateTime ordering and instant equality 
 conditional productions and validation rules, including concept-backed properties. Participating DateTime inputs
 must carry an explicit offset or `Z`; validation rejects missing offsets after authorization and before other
 input validation, including reaction invocations. Date compares calendar days; DateTime compares UTC ticks.
+DateTime event and read-model assertions instead compare ordinally after both sides use Screenplay's round-trip canonical text: zero offsets become UTC `Z`, while non-zero offsets remain distinct.
 Specification expectations remain ordinal. Opaque `validate csharp` is an explicit ordering difference:
 the specification executor refuses it at run admission, and the Host refuses it before authorization and
 input validation. The reference checks authorization, then offsets, then opaque validation, so an offset-less

@@ -44,14 +44,14 @@ public class when_matching_scoped_event_source_key_types : Specification
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_refuse_text_sources_even_when_the_value_looks_like_a_uuid(bool given)
+    public async Task should_match_the_reference_for_text_sources_holding_a_uuid(bool given)
     {
         var plan = Compile("String", "Uuid", Uuid, false, "recorded", given: given);
-        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())!.Details.ShouldEqual(
-            "A scoped event-source key must have the read-model identifier's value type and enumeration values.");
+        SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single()).ShouldBeNull();
+        var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
+        reference.Passed.ShouldBeTrue();
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
-        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldEqual("A scoped event-source key must have the read-model identifier's value type and enumeration values.");
+        Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
     }
 
     [Fact]

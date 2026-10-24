@@ -31,9 +31,10 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
     // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
     // Re-frozen for Cratis/Stage#734 and #741: the scaffolded .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/. The previous-plan comparison restores both, so its claim is unchanged.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("0f21e41b202ff1605f409e346616e9e539e1cc244c5e2d6353200057507ba410");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("6f5233c76e0650b9147c119b05465d4e4fe9d83180f0a4b8a70cdc3f81a865c5");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("50ee1b50bce7629d5ab94ec4f0753e95b0dca0a9355482111d2bd2b10d92b173");
+    // Re-frozen for #437: only the Matching package pin and host reference are added.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("e81f658db40c274620820ae5b82255eb531554cf9c5843e3410e0eba9a4cc667");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("6c78371fa776b5ebaef626b35e7616e05dc64bcae65dab6118efa31b7dd1c09b");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

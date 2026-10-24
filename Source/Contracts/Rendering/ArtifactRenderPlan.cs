@@ -312,19 +312,20 @@ public sealed partial class ArtifactRenderPlan
     public ImmutableArray<ArtifactRenderRefusal> Refusals { get; }
 
     /// <summary>
-    /// Gets the distinct rendering outcome. Partial plans retain their errors and are not successful.
+    /// Gets the distinct rendering outcome. Plans with implementation gaps are partial even without errors.
     /// </summary>
     public ArtifactRenderOutcome Outcome
     {
         get
         {
+            if (!ImplementationGaps.IsEmpty) return ArtifactRenderOutcome.Partial;
             if (Success) return ArtifactRenderOutcome.Complete;
             return !Refusals.IsEmpty && !Artifacts.IsEmpty ? ArtifactRenderOutcome.Partial : ArtifactRenderOutcome.Refused;
         }
     }
 
     /// <summary>
-    /// Gets a value indicating whether the plan is complete and publishable.
+    /// Gets a value indicating whether the plan has no error diagnostics. A successful plan can still contain implementation gaps.
     /// </summary>
     public bool Success => Diagnostics.All(_ => _.Severity != ArtifactRenderDiagnosticSeverity.Error);
 

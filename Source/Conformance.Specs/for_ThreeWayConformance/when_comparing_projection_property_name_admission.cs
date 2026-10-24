@@ -426,7 +426,7 @@ public class when_comparing_projection_property_name_admission
 
     [Theory]
     [MemberData(nameof(NestedEventMembers))]
-    public async Task should_reject_cross_slice_events_referenced_only_below_the_root(string scope, string propertyName)
+    public async Task should_run_what_the_renderer_refuses_for_cross_slice_events_referenced_only_below_the_root(string scope, string propertyName)
     {
         var source = """
             type ProjectNote
@@ -523,8 +523,9 @@ public class when_comparing_projection_property_name_admission
                 diagnostic.Artifact == plan.Projections.Values.Single().Id);
         }
 
-        // Child/nested execution is not admitted even when its generated C# compiles.
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+        // The run emits its own event types, so it does not depend on the generated C# names the renderer refuses; it runs the specification either way.
+        // Nested records are still not run; child collections are.
+        Assert.Equal(scope == "nested" ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed, executed.Outcome);
 
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(

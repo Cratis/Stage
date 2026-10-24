@@ -21,7 +21,7 @@ internal sealed class SemanticRuntimeAdmission
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
         foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
         {
-            var details = RenderedAround(plan, feature);
+            var details = SemanticRunAdmission.RunsAround(plan.Model.Application, feature);
             var entry = details is null ? Refused(feature) : new(feature.Artifact, feature.Kind, "renderedAround", feature.Capability, details);
             entries.Add(entry);
             if (details is null) blocking.Add(entry);
@@ -119,29 +119,6 @@ internal sealed class SemanticRuntimeAdmission
             problem is null ? null : nameof(SemanticExecutionCapability.IdentityAllocation),
             problem);
     }
-
-    static string? RenderedAround(SemanticExecutionPlan plan, SemanticAdmissionFeature feature)
-    {
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
-        {
-            return $"{SemanticVersionFeatures.PublicEvents}: Published locally only: the sandbox appends the public event to its own event log; no external publication occurs. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
-        }
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
-        {
-            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation is not executed in the sandbox: foreign events arrive only through seeds; captures do not poll external sources.";
-        }
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
-            (IsKind(feature, "capture") || (IsKind(feature, "slice") && SemanticVersionFeatures.Slices(plan.Model.Application)
-                .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate))))
-        {
-            return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
-        }
-
-        return null;
-    }
-
-    static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
-        kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));
 
     static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>
         new(feature.Artifact, feature.Kind, "unsupported", feature.Capability, feature.Details);

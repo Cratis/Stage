@@ -49,10 +49,11 @@ internal static class SemanticRunTranslationAdmission
             reachable.UnionWith(plan.Captures.Values.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains))
                 .SelectMany(capture => capture.Appends).Select(append => append.EventContract));
             reachable.UnionWith(plan.Projections.Values.Where(projection => projection.Target == SemanticProjectionTargetKind.Event &&
-                ((projection.Scope?.Every?.SubscribesToAllEvents == true && reachable.Count > 0) || ProjectionReferencedEventNamesAreUnique.Contracts(projection).Any(reachable.Contains)))
+                Observes(projection, reachable))
                 .Select(projection => projection.ReadModel));
         }
         while (previousCount != reachable.Count);
+        if (CheckReachableCaptureIdentities(plan, reachable) is { } captureFailure) return captureFailure;
         feature = features.FirstOrDefault(candidate => candidate.Kind == "event" && reachable.Contains(candidate.Artifact));
         if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
         foreach (var slice in slices)
@@ -77,6 +78,18 @@ internal static class SemanticRunTranslationAdmission
         }
         feature = features.FirstOrDefault(candidate => candidate.Kind == "event" && reachable.Contains(candidate.Artifact));
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
+    }
+
+    static SemanticUnsupportedCapability? CheckReachableCaptureIdentities(SemanticExecutionPlan plan, HashSet<SemanticId> reachable)
+    {
+        foreach (var capture in plan.Captures.Values.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains)))
+        {
+            if (SemanticCaptureIdentitySupport.Check(capture, plan.Model, plan.Events) is { } identityFailure)
+            {
+                return new(StageExecutionCapability.ExternalEffect, capture.Id.ToString(), $"{SemanticCaptureIdentitySupport.Code}: {identityFailure}");
+            }
+        }
+        return null;
     }
 
     static bool Selected(SemanticReaction reaction, SemanticSpecification specification, HashSet<SemanticId> reachable) =>

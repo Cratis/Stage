@@ -94,7 +94,7 @@ static class CatalogScaffold
         // Reused MSBuild nodes outlive the command and keep the redirected pipes open.
         start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
         start.Environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0";
-        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        foreach (var argument in GeneratedApplicationBuilds.Capped("dotnet", arguments)) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();

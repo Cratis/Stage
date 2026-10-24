@@ -219,7 +219,7 @@ internal static class SemanticScopedProjectionSupport
             .Select(production => production.Produced.DestinationType)
             .ToArray();
         var captures = SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Captures)
-            .Where(capture => capture.Appends.Any(append => append.EventContract == @event.Id) && SemanticTranslationSupport.Capture(capture, context.Events))
+            .Where(capture => capture.Appends.Any(append => append.EventContract == @event.Id) && SemanticTranslationSupport.RenderableCapture(capture, context.Events))
             .SelectMany(capture => capture.EventsSource!.Events.Select(id => context.Events[id].Properties.Single(property => property.Name == capture.Key).Type))
             .ToArray();
         return destinations.Length + reactions.Length + captures.Length > 0 &&

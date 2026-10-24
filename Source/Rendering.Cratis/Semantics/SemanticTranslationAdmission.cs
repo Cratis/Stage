@@ -14,12 +14,12 @@ internal static class SemanticTranslationAdmission
 {
     internal static IEnumerable<SemanticVersionFeature> AdmittedFeatures(SemanticSlice slice, SemanticApplicationContext context)
     {
-        if (!SemanticTranslationSupport.Slice(slice, context.Events)) yield break;
+        if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events)) yield break;
         foreach (var feature in SemanticVersionFeatures.InSlice(slice))
         {
             if (feature.Artifact == slice.Id ||
-                slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticTranslationSupport.Projection(projection, context.Events)) ||
-                slice.Captures.Any(capture => capture.Id == feature.Artifact && SemanticTranslationSupport.Capture(capture, context.Events)))
+                slice.Projections.Any(projection => projection.Id == feature.Artifact && SemanticTranslationSupport.RenderableProjection(projection, context.Events)) ||
+                slice.Captures.Any(capture => capture.Id == feature.Artifact && SemanticTranslationSupport.RenderableCapture(capture, context.Events)))
             {
                 yield return feature;
             }
@@ -27,13 +27,13 @@ internal static class SemanticTranslationAdmission
     }
 
     internal static bool AdmitsEvent(SemanticId id, SemanticSlice slice, SemanticApplicationContext context) =>
-        (SemanticTranslationSupport.Slice(slice, context.Events) || DeclarationOnly(slice, id, context) || ExpectationOnly(slice, id, context)) &&
+        (SemanticTranslationSupport.RenderableSlice(slice, context.Events) || DeclarationOnly(slice, id, context) || ExpectationOnly(slice, id, context)) &&
         !LocallyProduces(slice, id) && context.Events.TryGetValue(id, out var contract) &&
-        SemanticTranslationSupport.Event(contract, context.AllSlices.Select(located => located.Slice), context.Events);
+        SemanticTranslationSupport.RenderableEvent(contract, context.AllSlices.Select(located => located.Slice), context.Events);
 
     internal static void Validate(SemanticApplicationContext context, SemanticSlice slice, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (!SemanticTranslationSupport.Slice(slice, context.Events))
+        if (!SemanticTranslationSupport.RenderableSlice(slice, context.Events))
         {
             diagnostics.Add(new(
                 SemanticVersionFeatures.Automation,

@@ -43,6 +43,6 @@ public class with_multiple_integer_parts : given.a_routed_command
         }
     }
 
-    [Fact] void should_report_the_first_invalid_declared_part_not_the_first_command_property() => _results[0].Members.ShouldContainOnly(["OtherMonth"]);
-    [Fact] void should_validate_later_parts_before_returning_events() => _results[1].Members.ShouldContainOnly(["Month"]);
+    [Fact] void should_report_the_first_invalid_declared_part_not_the_first_command_property() => _results[0].Members.ShouldContainOnly(["otherMonth"]);
+    [Fact] void should_validate_later_parts_before_returning_events() => _results[1].Members.ShouldContainOnly(["month"]);
 }

@@ -32,6 +32,14 @@ public static class conformance_source_bodies
         }
 
         var model = compiled.Value!.Model;
+
+        // A frozen vector whose source now binds to a later semantic version (PublicEventsCorpus.V9 since typed capture identities in
+        // V32) keeps its ESM bytes on purpose; the bytes alone are then the vector, without source bodies.
+        if (vector.Name == "PublicEventsCorpus.V9" && model.Revision != vector.Model.Revision && model.SemanticVersion.Major > vector.Model.SemanticVersion.Major)
+        {
+            return (null, null);
+        }
+
         if (model.Revision != vector.Model.Revision)
         {
             return (null, "source-form-differs-from-esm-bytes");

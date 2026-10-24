@@ -1,6 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
+using System.Security.Cryptography;
+using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
@@ -53,10 +56,16 @@ public class a_performed_query_application : Specification
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         var model = compilation.Value!.Model;
         var options = new CratisRenderingOptions("Billing", "Billing");
+        var bodies = compilation.ImplementationRequirements.ToImmutableDictionary(requirement => requirement.RequirementId,
+            requirement => requirement.QueryShape?.Cardinality == SemanticQueryCardinality.Many ? "return readModels;" : "return readModels.FirstOrDefault();");
+        var requirements = compilation.ImplementationRequirements.Select(requirement => requirement with
+        {
+            ContentHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(bodies[requirement.RequirementId])))
+        }).ToImmutableArray();
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Billing", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
-            ImplementationRequirements = compilation.ImplementationRequirements,
-            ImplementationContents = []
+            ImplementationRequirements = requirements,
+            ImplementationContents = bodies
         };
         _context = new(request, options);
     }

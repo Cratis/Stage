@@ -193,6 +193,8 @@ describe('the running Stage with navigation regions', () => {
             await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit')!); });
 
             expect(await within(dialog).findByText('Quantity must be positive')).toBeDefined();
+            expect(within(dialog).getByLabelText('Quantity', { exact: false }).getAttribute('aria-invalid')).toBe('true');
+            expect(within(dialog).getByLabelText('Customer', { exact: false }).getAttribute('aria-invalid')).not.toBe('true');
             expect(screen.getByRole('dialog')).toBeDefined();
         });
     });

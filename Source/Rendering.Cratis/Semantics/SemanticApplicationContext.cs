@@ -16,6 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
+    readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
@@ -215,6 +216,16 @@ internal sealed class SemanticApplicationContext
     /// <returns>The located slice.</returns>
     public LocatedSemanticSlice DeclaringSlice(SemanticId artifact) =>
         _slices.Values.Single(_ => _.Declares(artifact));
+
+    internal SemanticCaptureMemberPlan CaptureMembers(SemanticCapture capture)
+    {
+        if (!_captureMembers.TryGetValue(capture.Id, out var plan))
+        {
+            plan = SemanticCaptureMemberPlan.Create(capture, this);
+            _captureMembers.Add(capture.Id, plan);
+        }
+        return plan;
+    }
 
     internal AuthoringMetadataInput.Metadata Docs(SemanticId id) =>
         Documentation?.Entries.GetValueOrDefault(id.ToString()) ?? new(null, null);

@@ -13,7 +13,7 @@ internal static class SemanticCaptureIdentitySupport
     {
         if (model.SemanticVersion != SemanticVersion.V32 || capture.EventsSource is not { } source) return null;
         var keys = source.Events.SelectMany(id => events[id].Properties.Where(property => property.Name == capture.Key)).ToArray();
-        if (keys.Length != source.Events.Length || keys.Length == 0 || keys.Any(key => key.Type.IsOptional || key.Type.IsCollection))
+        if (!HasEverySourceKey(keys.Length, source.Events.Length) || keys.Any(key => !RequiredScalar(key.Type)))
         {
             return $"Capture '{capture.Name}' key '{capture.Key}' must be one required scalar property on every source event.";
         }
@@ -22,6 +22,15 @@ internal static class SemanticCaptureIdentitySupport
         {
             return $"Capture '{capture.Name}' key '{capture.Key}' must have one consistent Text, Uuid or WholeNumber identity type (or a non-enumerated concept over it).";
         }
+        return CheckAppendIdentities(capture, type);
+    }
+
+    static bool HasEverySourceKey(int keyCount, int sourceCount) => keyCount == sourceCount && keyCount > 0;
+
+    static bool RequiredScalar(SemanticTypeReference type) => !type.IsOptional && !type.IsCollection;
+
+    static string? CheckAppendIdentities(SemanticCapture capture, SemanticTypeReference type)
+    {
         var appends = capture.Appends.Concat((capture.Children.IsDefault ? [] : capture.Children).SelectMany(children => children.Appends));
         return appends.Any(append => append.EventSourceType != type)
             ? $"Capture '{capture.Name}' key '{capture.Key}' does not match every append's declared event-source identity type; Stage will not coerce the key to text."

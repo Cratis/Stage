@@ -49,14 +49,7 @@ internal static class SemanticValidationRendering
             ? PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value)
             : $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})";
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
-        var severity = rule.Severity switch
-        {
-            SemanticValidationSeverity.Error => "Error",
-            SemanticValidationSeverity.Warning => "Warning",
-            SemanticValidationSeverity.Information => "Information",
-            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), rule.Severity)
-        };
-        var severitySuffix = severity == "Error" ? string.Empty : $".WithSeverity({Name(typeBuilder, "Cratis.Arc.Validation", "ValidationResultSeverity")}.{severity})";
+        var severitySuffix = SeveritySuffix(rule.Severity, typeBuilder);
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
         {
             builder.Line($"{ruleFor}(_ => {value}){validation}.WithMessage(_ => {Name(typeBuilder, rootNamespace!, "GeneratedStrings")}.Resolve({CSharpCodeBuilder.StringLiteral(message)})).WithState({CSharpCodeBuilder.StringLiteral(message)}){severitySuffix};");
@@ -75,6 +68,18 @@ internal static class SemanticValidationRendering
             builder,
             rules.Where(rule => rule.Kind == SemanticValidationRuleKind.Matches).Select(rule => ((SemanticTextValue)rule.Operand!).Value),
             ownerType);
+
+    static string SeveritySuffix(SemanticValidationSeverity severity, CSharpCodeBuilder? typeBuilder)
+    {
+        var name = severity switch
+        {
+            SemanticValidationSeverity.Error => "Error",
+            SemanticValidationSeverity.Warning => "Warning",
+            SemanticValidationSeverity.Information => "Information",
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticValidationSeverity), severity)
+        };
+        return name == "Error" ? string.Empty : $".WithSeverity({Name(typeBuilder, "Cratis.Arc.Validation", "ValidationResultSeverity")}.{name})";
+    }
 
     static string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional, CSharpCodeBuilder? builder)
     {

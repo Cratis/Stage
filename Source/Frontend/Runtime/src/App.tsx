@@ -37,6 +37,7 @@ import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
 import { useComponentOutputsPublisher } from './stageComponentOutputs';
+import { withBoardSelection } from './stageBoardSelection';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
@@ -142,7 +143,7 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
-            const bound = bindDataSources(element);
+            const bound = bindDataSources(withBoardSelection(element));
             return dictionary ? resolveStringsInElement(bound, dictionary) : bound;
         },
     };

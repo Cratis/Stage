@@ -53,6 +53,13 @@ internal static class SemanticRunTranslationAdmission
                 .Select(projection => projection.ReadModel));
         }
         while (previousCount != reachable.Count);
+        foreach (var capture in plan.Captures.Values.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains)))
+        {
+            if (SemanticCaptureIdentitySupport.Check(capture, plan.Model, plan.Events) is { } identityFailure)
+            {
+                return new(StageExecutionCapability.ExternalEffect, capture.Id.ToString(), $"{SemanticCaptureIdentitySupport.Code}: {identityFailure}");
+            }
+        }
         feature = features.FirstOrDefault(candidate => candidate.Kind == "event" && reachable.Contains(candidate.Artifact));
         if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
         foreach (var slice in slices)

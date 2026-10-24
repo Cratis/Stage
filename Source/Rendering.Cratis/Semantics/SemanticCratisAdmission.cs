@@ -136,7 +136,7 @@ internal static partial class SemanticCratisAdmission
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
-            selfReduces: context.SelfReduces);
+            selfReduces: context.SelfReduces).Concat(SemanticTranslationAdmission.Declarations(slices));
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
@@ -210,7 +210,10 @@ internal static partial class SemanticCratisAdmission
         Collect(() => analysedBodies = ValidateReducers(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
         Collect(() => ValidateSliceKind(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
         Collect(() => ValidateCallerFixtures(located.Slice, diagnostics), located.Slice.Id, diagnostics);
-        Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        if (located.Slice.Kind != SemanticSliceKind.Translate)
+        {
+            Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        }
 
         return analysedBodies;
     }
@@ -221,6 +224,9 @@ internal static partial class SemanticCratisAdmission
         {
             case SemanticSliceKind.StateChange:
                 ValidateStateChange(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.Translate:
+                SemanticTranslationAdmission.Validate(context, slice, diagnostics);
                 break;
             case SemanticSliceKind.Automation:
                 ValidateAutomation(context, slice, diagnostics);

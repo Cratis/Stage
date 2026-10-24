@@ -9,7 +9,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Describes the portable translation shapes shared by execution and rendering.
 /// Condition rendering is deliberately separate from structural admission.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0182:Unused internal type", Justification = "Compile-linked into Stage and Specifications, which use it; the Translate renderer uses it in this assembly.")]
 internal static class SemanticTranslationSupport
 {
     /// <summary>Determines whether a capture consumes foreign events into local facts.</summary>
@@ -23,12 +22,6 @@ internal static class SemanticTranslationSupport
         source.Events.All(id => events.TryGetValue(id, out var contract) && contract.Origin is not null && contract.Properties.Any(property => property.Name == capture.Key)) &&
         Appends(capture.Appends, events) &&
         (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
-
-    /// <summary>Determines whether capture guards can be lowered by the renderer.</summary>
-    /// <param name="capture">The capture.</param>
-    /// <returns>Whether every append is unconditional or guarded by first observation.</returns>
-    internal static bool ConditionsRenderable(SemanticCapture capture) =>
-        capture.Appends.All(append => append.When is null or { Kind: SemanticCaptureConditionKind.Added });
 
     /// <summary>Determines whether a projection publishes a complete public event per source fact.</summary>
     /// <param name="projection">The projection.</param>

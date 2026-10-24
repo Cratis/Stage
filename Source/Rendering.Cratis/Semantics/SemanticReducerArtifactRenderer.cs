@@ -13,6 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Renders one Chronicle reducer with one statically dispatched overload per observed event.</summary>
 internal static class SemanticReducerArtifactRenderer
 {
+    internal const string SelfTransitionMethod = "Apply";
+
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticReducer reducer, SemanticApplicationContext context)
     {
         var model = context.ReadModels[reducer.ReadModel];
@@ -85,7 +87,7 @@ internal static class SemanticReducerArtifactRenderer
             if (analysisRequirement is null)
             {
                 builder.Line("var originalSourceId = eventContext.EventSourceId.Value;")
-                .Line($"var result = {helper}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
+                .Line($"var result = {helper}{(self ? $".{SelfTransitionMethod}" : string.Empty)}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
                 .OpenBlock($"if (result is not null && ({check}))")
                 .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
                 .EndBlock()
@@ -95,12 +97,13 @@ internal static class SemanticReducerArtifactRenderer
             {
                 builder.Line("throw new global::System.NotImplementedException();");
             }
-            builder.EndBlock()
-                .BlankLine()
-                .OpenBlock($"static {modelType}? {helper}(global::{context.TypedContextsNamespace}.{wrapper} context)")
+            builder.EndBlock().BlankLine();
+            if (self) builder.OpenBlock($"static class {helper}");
+            builder.OpenBlock($"{(self ? "internal static" : "static")} {modelType}? {(self ? SelfTransitionMethod : helper)}(global::{context.TypedContextsNamespace}.{wrapper} context)")
                 .RawVerbatim(body!)
                 .EndBlock()
                 .BlankLine();
+            if (self) builder.EndBlock().BlankLine();
         }
     }
 }

@@ -44,7 +44,7 @@ public static class CommandFormSchemas
     public static string? For(SemanticApplication application, IEnumerable<SemanticProperty> properties, ConversionDiagnostics? diagnostics, string path, SourceLocation location)
     {
         if (diagnostics is null) return For(application, properties);
-        var all = properties.Where(property => !property.IsGenerated).ToArray();
+        var all = properties.ToArray();
         var omissions = new List<(string Code, string Construct, string Path)>();
         foreach (var concept in application.Concepts.Where(concept => concept.Values.IsEmpty && !Supported(concept.Primitive)))
         {
@@ -109,14 +109,18 @@ public static class CommandFormSchemas
                 SourceLocation.Start),
             StringComparer.Ordinal);
         var schemas = new SchemaSynthesizer(concepts, CompositeTypes(application));
+        var all = properties.ToArray();
 
+        // A generated property is still described, since callers read its type, but it never asks for a reference picker.
+        var generated = all.Where(property => property.IsGenerated).Select(property => property.Name).ToHashSet(StringComparer.Ordinal);
         return schemas.ForCommandProperties(
-            properties.Where(property => !property.IsGenerated).Select(property => new PropertySyntax(
+            all.Select(property => new PropertySyntax(
                 property.Name,
                 new TypeRefSyntax(TypeName(application, property.Type), property.Type.IsCollection, property.Type.IsOptional, SourceLocation.Start),
                 SourceLocation.Start,
                 property.IsIdentifier)),
-            references);
+            references,
+            generated);
     }
 
     // The members of every composite type, so a record property is presented as the fields it holds rather than as an opaque object. A member

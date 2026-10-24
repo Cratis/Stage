@@ -134,11 +134,11 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
         return new JsonObject { ["type"] = "object", ["properties"] = schemaProperties }.ToJsonString();
     }
 
-    internal string ForCommandProperties(IEnumerable<PropertySyntax> properties, CommandReferences references)
+    internal string ForCommandProperties(IEnumerable<PropertySyntax> properties, CommandReferences references, IReadOnlySet<string> generated)
     {
         var propertyList = properties.ToArray();
         var schema = JsonNode.Parse(ForProperties(propertyList))!.AsObject();
-        foreach (var property in propertyList)
+        foreach (var property in propertyList.Where(property => !generated.Contains(property.Name)))
         {
             var reference = references.For(property);
             if (reference is not null) schema["properties"]![property.Name]![ReferenceKeyword] = reference;

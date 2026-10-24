@@ -66,6 +66,14 @@ public class when_synthesizing_reference_fields : Specification
         diagnostics.All.ShouldBeEmpty();
     }
 
+    [Fact]
+    public void should_still_describe_a_generated_member_so_its_type_can_be_read()
+    {
+        var property = Reference with { IsGenerated = true };
+        var schema = Schema(Application(), [property], new ConversionDiagnostics());
+        (schema["properties"]![property.Name]!.AsObject().ContainsKey("type")).ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

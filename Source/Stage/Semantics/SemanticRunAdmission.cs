@@ -45,6 +45,44 @@ public static class SemanticRunAdmission
     }
 
     /// <summary>
+    /// Finds later-version constructs that block live model admission, leaving out the translation constructs the live
+    /// runtime runs around (see <see cref="RunsAround"/>).
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> BlockingModelFeatures(SemanticApplication application) =>
+        ModelFeatures(application).Where(feature => RunsAround(application, feature) is null);
+
+    /// <summary>
+    /// Says how the live runtime runs a public-event or translation construct without an external integration: public events
+    /// are appended to the application's own event log, and foreign events arrive through seeds.
+    /// </summary>
+    /// <param name="application">The application the feature belongs to.</param>
+    /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
+    /// <returns>The note describing what is and is not executed, or null when the live runtime does not run the construct at all.</returns>
+    public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature)
+    {
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
+        {
+            return $"{SemanticVersionFeatures.PublicEvents}: Published locally only: the sandbox appends the public event to its own event log; no external publication occurs. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
+        }
+
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
+        {
+            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation is not executed in the sandbox: foreign events arrive only through seeds; captures do not poll external sources.";
+        }
+
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
+            (IsKind(feature, "capture") || (IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
+                .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate))))
+        {
+            return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Finds later-version constructs in a command.
     /// </summary>
     /// <param name="command">The command.</param>
@@ -326,4 +364,7 @@ public static class SemanticRunAdmission
         return value is SemanticCompositeValue composite && composite.Properties.All(member =>
             context.Types[type.Target].Properties.FirstOrDefault(property => property.Id == member.TargetProperty) is { } property && EventValueMatches(context, property.Type, member.Value));
     }
+
+    static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
+        kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));
 }

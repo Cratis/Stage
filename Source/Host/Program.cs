@@ -13,6 +13,14 @@ using Cratis.Stage.Runtime;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 
+#if DEBUG
+if (args is ["--specifications", .. var specificationArguments])
+{
+    Environment.ExitCode = await Xunit.Runner.InProc.SystemConsole.ConsoleRunner.Run(specificationArguments);
+    return;
+}
+#endif
+
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;

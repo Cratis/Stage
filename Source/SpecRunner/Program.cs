@@ -11,6 +11,13 @@ using Cratis.Stage.Running;
 using Cratis.Stage.Specifications;
 using Cratis.Stage.SpecRunner;
 
+#if DEBUG
+if (args is ["--specifications", .. var specificationArguments])
+{
+    return await Xunit.Runner.InProc.SystemConsole.ConsoleRunner.Run(specificationArguments);
+}
+#endif
+
 return await Program.Run(args, Console.Out, Console.Error);
 
 /// <summary>

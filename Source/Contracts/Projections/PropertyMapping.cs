@@ -13,6 +13,12 @@ namespace Cratis.Stage.Contracts.Projections;
 /// </remarks>
 /// <param name="Property">The target property path on the read model.</param>
 /// <param name="Expression">The source expression that produces the value.</param>
+/// <param name="Factor">
+/// The second operand of an <c language="csharp">$add</c> or <c language="csharp">$subtract</c> that adds or subtracts a product of two event
+/// values (<c>add total by unitPrice * quantity</c>), or <see langword="null"/> when the mapping has one operand. Chronicle's own projection
+/// engine takes a single event property, so a definition carrying a factor cannot be run by Play.
+/// </param>
 public record PropertyMapping(
     string Property,
-    string Expression);
+    string Expression,
+    string? Factor = null);

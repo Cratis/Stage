@@ -398,9 +398,8 @@ The backend scaffold contains:
 
 | Artifact | Purpose |
 | --- | --- |
-| `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, and the optional `Customizations/Dependencies.props` import. |
-| `{Project}.Specs/{Project}.Specs.csproj` | Separate plain-SDK test project referencing the host and linking slice-local `**/when_*.cs` files. |
-| `{Project}.slnx` | Solution containing both projects. |
+| `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, Debug-only test packages, and the optional `Customizations/Dependencies.props` import. |
+| `{Project}.slnx` | Solution containing the application project. |
 | `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, compiler/analyzer warnings as errors, and build-time code style. |
 | `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
 | `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
@@ -409,11 +408,13 @@ The backend scaffold contains:
 | `Program.cs`, `GeneratedPolicyRegistration.cs` | Application startup and generated policy registration. |
 | `appsettings.json`, `docker-compose.yml` | Development connection settings and pinned Chronicle image with named data volumes. |
 
-Generated specification paths do not change: command, projection, query, and reaction
-specifications remain beside their slices. The web host excludes them and the nested specs
-folder in both configurations. The specs project links them without moving them; their
-existing `#if DEBUG` wrappers remain, so run `dotnet test {Project}.Specs -c Debug`.
-Build `{Project}.slnx` to compile both projects. Frontend scaffold files remain at their
+Command, projection, query, and reaction specifications stay beside their slices, and there
+is no separate specifications project. In Debug the application project is a test project: it
+references the testing packages and compiles every `when_*.cs` file and every file under a
+`when_*/`, `for_*/` or `given/` folder, so hand-written specifications follow the same
+convention. Run them with `dotnet test {Project}.csproj -c Debug`. Release removes those files
+and references no testing package. Because the package set differs, switching between Debug and
+Release restores again; a Release build after a Debug restore must not pass `--no-restore`. Frontend scaffold files remain at their
 existing paths, including `package.json` and `.frontend/`.
 
 Builds explicitly include the application's `.editorconfig` and disable automatic

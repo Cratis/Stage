@@ -227,8 +227,8 @@ fails restore under central package management. Older inline-spec scaffolds that
 management still require `Version` instead; check your existing `Directory.Packages.props` before adding a package.
 
 The import is the last element of the web project body: a property you set in this file replaces the generated
-value, so set only what you mean to change. The separate specs project references the host and inherits its
-additional dependencies transitively; the import is not applied to the specs project a second time.
+value, so set only what you mean to change. Specifications compile into the same project in Debug,
+so they see these dependencies too.
 
 ## Restyle the frontend
 

@@ -24,4 +24,27 @@ public class when_refusing_unsupported_validation : given.concepts
         Assert.StartsWith(kind == (ValidationRuleKind)999 ? "STAGE-ESM-005:" : "STAGE-ESM-042:", error.Message, StringComparison.Ordinal);
         Assert.Contains(kind.ToString(), error.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    void should_preserve_the_todo_for_a_match_against_an_out_of_scope_value()
+    {
+        var concept = _emailAddress with
+        {
+            Validations = [new DeclarativeValidateSyntax([new(ValidationRuleSyntax.ConceptValue, ValidationRuleKind.Matches, new PathExpressionSyntax("missing", SourceLocation.Start), null, SourceLocation.Start)], SourceLocation.Start)]
+        };
+        var file = ConceptRenderer.Render(concept, _applicationSet, "Shop");
+        Assert.Contains($"// TODO: validation rule 'Matches' on '{ValidationRuleSyntax.ConceptValue}' compares against a value outside the concept's scope", file.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain("PortableMatchValidator", file.Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    void should_refuse_a_match_without_a_pattern_with_an_explicit_diagnostic()
+    {
+        var concept = _emailAddress with
+        {
+            Validations = [new DeclarativeValidateSyntax([new(ValidationRuleSyntax.ConceptValue, ValidationRuleKind.Matches, null, null, SourceLocation.Start)], SourceLocation.Start)]
+        };
+        var error = Assert.Throws<UnsupportedValidationRule>(() => ConceptRenderer.Render(concept, _applicationSet, "Shop"));
+        Assert.Contains("matches requires a portable constant text pattern", error.Message, StringComparison.Ordinal);
+    }
 }

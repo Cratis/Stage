@@ -21,6 +21,8 @@ public class when_running_child_projections : Specification
     [InlineData("child-id", true)]
     [InlineData("wrong", false)]
     [InlineData("reordered", false)]
+    [InlineData("missing-parent", false)]
+    [InlineData("missing-parent-remove", false)]
     public async Task should_match_ordered_reference_children(string action, bool passes)
     {
         var plan = Compile(action);
@@ -36,9 +38,9 @@ public class when_running_child_projections : Specification
     }
 
     [Fact]
-    public async Task should_refuse_implicit_parent_creation_by_name()
+    public async Task should_refuse_a_child_before_its_later_parent_by_name()
     {
-        var plan = Compile("missing-parent");
+        var plan = Compile("late-parent");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
         result.Unsupported.Details.ShouldContain("existing parent instance");
@@ -94,7 +96,7 @@ public class when_running_child_projections : Specification
         var operation = action switch
         {
             "root-join" => "when append Labeled\n  for \"parent\"\n  label = \"renamed\"",
-            "remove" => "when append Removed\n  for \"parent\"\n  code = \"second\"",
+            "remove" or "missing-parent-remove" => "when append Removed\n  for \"parent\"\n  code = \"second\"",
             "join" => "when append Labeled\n  for \"second\"\n  label = \"renamed\"",
             _ => $"when append Placed\n  for \"parent\"\n  code = \"{(action == "append" ? "third" : "second")}\"\n  quantity = 3"
         };
@@ -227,7 +229,13 @@ public class when_running_child_projections : Specification
                 source = source.Replace($"        given Labeled\n          for \"{code}\"\n          label = \"{label}\"\n", string.Empty, StringComparison.Ordinal);
         }
         if (action == "implicit-identity") source = source.Replace("            code = code\n", string.Empty, StringComparison.Ordinal);
-        if (action == "missing-parent") source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
+        if (action is "missing-parent" or "missing-parent-remove") source = source.Replace("        given Opened\n          for \"parent\"\n          name = \"parent name\"\n", string.Empty, StringComparison.Ordinal);
+        if (action == "late-parent")
+        {
+            const string opened = "        given Opened\n          for \"parent\"\n          name = \"parent name\"\n";
+            const string firstPlaced = "          code = \"first\"\n          quantity = 1\n";
+            source = source.Replace(opened, string.Empty, StringComparison.Ordinal).Replace(firstPlaced, firstPlaced + opened, StringComparison.Ordinal);
+        }
         return when_running_property_keyed_removal_only_projections.Compile(source);
     }
 }

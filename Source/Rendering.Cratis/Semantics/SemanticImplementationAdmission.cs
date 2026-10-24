@@ -12,6 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Verifies the resolved implementation envelope without interpreting implementation code.</summary>
 internal static class SemanticImplementationAdmission
 {
+    internal const string PerformerGapCode = "STAGE-IMPL-006";
+
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request)
     {
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
@@ -23,18 +25,10 @@ internal static class SemanticImplementationAdmission
             return diagnostics.ToImmutable();
         }
 
-        var byId = new Dictionary<string, SemanticImplementationRequirement>(StringComparer.Ordinal);
-        foreach (var requirement in requirements)
-        {
-            if (requirement is null || string.IsNullOrEmpty(requirement.RequirementId) ||
-                !byId.TryAdd(requirement.RequirementId, requirement))
-            {
-                diagnostics.Add(Error("The implementation attachment envelope contains a missing or duplicate requirement identity.", request.Model.Application.Id));
-            }
-        }
+        var byId = IndexRequirements(request, diagnostics);
 
         // Check the whole supplied envelope, even for a narrow render scope or an unused role.
-        foreach (var (id, requirement) in byId)
+        foreach (var (id, requirement) in byId.Where(pair => pair.Value.Role != SemanticImplementationRole.QueryPerformer))
         {
             TryGetVerifiedBody(request, byId, id, requirement.Source?.SemanticId ?? request.Model.Application.Id, diagnostics, out _);
         }
@@ -51,7 +45,38 @@ internal static class SemanticImplementationAdmission
             TryGetVerifiedBody(request, byId, id, owner, diagnostics, out _);
         }
 
+        if (diagnostics.Count == 0 && CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _))
+        {
+            var context = new SemanticApplicationContext(request, options);
+            diagnostics.AddRange(PerformerDiagnostics(context));
+        }
+
         return diagnostics.ToImmutable();
+    }
+
+    internal static PerformerAdmission AdmitPerformer(SemanticApplicationContext context, SemanticKeyedQuery query)
+    {
+        var requirements = context.Request.ImplementationRequirements;
+        var requirement = requirements.IsDefault ? null : requirements.FirstOrDefault(candidate =>
+            candidate is { Role: SemanticImplementationRole.QueryPerformer } && candidate.Source?.SemanticId == query.Id);
+        if (requirement is null) return new(null, null, "The performer requirement is missing.");
+        if (query.Delivery == SemanticQueryDelivery.Live)
+        {
+            return new(requirement, null, "An observable performer has no body-owned stream; live performer bodies are not supported.");
+        }
+        if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
+        {
+            return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
+        }
+
+        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+        if (!TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) || body is null)
+        {
+            return new(requirement, null, string.Join(' ', diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        var analysis = SemanticQueryContextRuntime.Analyze(context, query, requirement, body);
+        return new(requirement, body, analysis?.Message);
     }
 
     // This is the only path by which an implementation body can be obtained. Any future admitted
@@ -70,6 +95,34 @@ internal static class SemanticImplementationAdmission
                 .Where(group => group.Count() == 1)
                 .ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
         return TryGetVerifiedBody(request, byId, requirementId, owner, diagnostics, out body);
+    }
+
+    static Dictionary<string, SemanticImplementationRequirement> IndexRequirements(ArtifactRenderRequest request, ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics)
+    {
+        var byId = new Dictionary<string, SemanticImplementationRequirement>(StringComparer.Ordinal);
+        foreach (var requirement in request.ImplementationRequirements)
+        {
+            if (requirement is null || string.IsNullOrEmpty(requirement.RequirementId) ||
+                !byId.TryAdd(requirement.RequirementId, requirement))
+            {
+                diagnostics.Add(Error("The implementation attachment envelope contains a missing or duplicate requirement identity.", request.Model.Application.Id));
+            }
+        }
+        return byId;
+    }
+
+    static IEnumerable<ArtifactRenderDiagnostic> PerformerDiagnostics(SemanticApplicationContext context)
+    {
+        foreach (var query in context.Queries.Values.Where(query => context.PerformedQueries.Contains(query.Id)))
+        {
+            var admission = AdmitPerformer(context, query);
+            if (admission.Reason is not { } reason) continue;
+            yield return new(
+                PerformerGapCode,
+                ArtifactRenderDiagnosticSeverity.Warning,
+                $"Query '{query.Name}' (requirement {admission.Requirement?.RequirementId}) performer rendered as a gap: {reason}",
+                query.Id);
+        }
     }
 
     static bool TryGetVerifiedBody(
@@ -200,4 +253,6 @@ internal static class SemanticImplementationAdmission
 
     static ArtifactRenderDiagnostic Error(string message, SemanticId artifact) =>
         new("STAGE-ESM-020", ArtifactRenderDiagnosticSeverity.Error, message, artifact);
+
+    internal sealed record PerformerAdmission(SemanticImplementationRequirement? Requirement, string? Body, string? Reason);
 }

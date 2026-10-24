@@ -113,7 +113,7 @@ public static class a_query_filter_model
                 scenario.Given.ForEventSource("two").ReadModel(nullFlag);
                 scenario.Given.ForEventSource("three").ReadModel(nullCategory);
                 scenario.Given.ForEventSource("four").ReadModel(differentFlag);
-                var result = await scenario.Perform(nameof(InvoiceSummary.FilteredOptionalProperties), new QueryArguments { ["flag"] = true, ["category"] = "North" });
+                var result = await scenario.Perform(nameof(InvoiceSummary.FilteredOptionalProperties), new QueryArguments { ["flag"] = true, ["category"] = "North" }, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                 Assert.Empty(result.ValidationResults);
                 Assert.Same(matching, Assert.Single(Assert.IsType<IEnumerable<object>>(result.Data, exactMatch: false)));
@@ -176,10 +176,10 @@ public static class a_query_filter_model
                 scenario.Given.ForEventSource("one").Events(new InvoiceIssued(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North")));
                 scenario.Given.ForEventSource("two").Events(new InvoiceIssued(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("North")));
                 scenario.Given.ForEventSource("three").Events(new InvoiceIssued(InvoiceId: new InvoiceId("three"), Status: "open", Category: new Category("South")));
-                var filtered = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "North" });
-                var optional = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open" });
-                var keyed = await scenario.Perform(nameof(InvoiceSummary.FilteredById), new QueryArguments { ["invoiceId"] = "three", ["status"] = "open" });
-                var invalid = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "x" });
+                var filtered = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "North" }, cancellationToken: TestContext.Current.CancellationToken);
+                var optional = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open" }, cancellationToken: TestContext.Current.CancellationToken);
+                var keyed = await scenario.Perform(nameof(InvoiceSummary.FilteredById), new QueryArguments { ["invoiceId"] = "three", ["status"] = "open" }, cancellationToken: TestContext.Current.CancellationToken);
+                var invalid = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), new QueryArguments { ["status"] = "open", ["category"] = "x" }, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.All(new[] { filtered, optional, keyed, invalid }, result =>
                 {
                     Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
@@ -191,7 +191,7 @@ public static class a_query_filter_model
                 Assert.Equal(2, Assert.IsType<IEnumerable<object>>(optional.Data, exactMatch: false).Count());
                 Assert.Equal(south, Assert.Single(Assert.IsType<IEnumerable<object>>(keyed.Data, exactMatch: false)));
                 Assert.Null(invalid.Data);
-                var missing = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), QueryArguments.Empty);
+                var missing = await scenario.Perform(nameof(InvoiceSummary.FilteredInvoices), QueryArguments.Empty, cancellationToken: TestContext.Current.CancellationToken);
                 Assert.NotEmpty(missing.ValidationResults);
                 Assert.Null(missing.Data);
             }

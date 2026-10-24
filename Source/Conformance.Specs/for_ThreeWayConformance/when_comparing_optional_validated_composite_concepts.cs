@@ -131,7 +131,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
                                 var commandType = typeof(OptionalComposites.Common.Count).Assembly.GetTypes().Single(type => type.Name == {{JsonSerializer.Serialize(command.Name)}});
                                 {{types.Type(property.Type)}} value = {{types.Value(value, property.Type)}};
                                 using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
-                                var result = await scenario.Execute(commandType.GetConstructors().Single().Invoke(["one", value]));
+                                var result = await scenario.Execute(commandType.GetConstructors().Single().Invoke(["one", value]), TestContext.Current.CancellationToken);
                                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                                 var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
                                 Assert.Equal(expected.Select(pair => (pair[0], pair[1])), result.ValidationResults.Select(failure => (failure.Message, failure.Severity.ToString())));

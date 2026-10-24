@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using System.Xml.Linq;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
@@ -20,7 +21,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
     [Fact] void should_preserve_the_collection_query_refusal() => Assert.All(fixture.StageResults.Skip(2), result => result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Query));
     [Fact] void should_reject_an_invalid_optional_query_key() => fixture.StageResults[1].ExecutionKind.ShouldEqual("Rejected");
     [Fact] void should_detect_the_missing_query_validation() => fixture.StageResultsWithoutValidation[1].Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
-    [Fact] void should_match_lookup_and_collection_results_in_the_rendered_query_pipeline() => fixture.RenderedResults.ShouldContain("Passed!");
+    [Fact] void should_match_lookup_and_collection_results_in_the_rendered_query_pipeline() => fixture.RenderedPassed.ShouldEqual(1);
     [Fact] void should_build_the_rendered_application_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
 
     public class context : a_generated_application
@@ -28,7 +29,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
         public bool[] ReferenceResults { get; private set; } = [];
         public SemanticSpecificationRunRecord[] StageResults { get; private set; } = [];
         public SemanticSpecificationRunRecord[] StageResultsWithoutValidation { get; private set; } = [];
-        public string RenderedResults { get; private set; } = string.Empty;
+        public int RenderedPassed { get; private set; }
         public string DebugWarnings { get; private set; } = string.Empty;
 
         protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile(a_validated_query_key_model.Source));
@@ -95,7 +96,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     [Fact]
                     public async Task should_preserve_all_four_query_answers()
                     {
-                        var results = await QueryKeys.Execute();
+                        var results = await QueryKeys.Execute(Xunit.TestContext.Current.CancellationToken);
                         Assert.False(results[1].IsValid);
                         Assert.False(results[3].IsValid);
                         Assert.NotEmpty(results[1].ValidationResults);
@@ -105,7 +106,10 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                 }
                 """);
             DebugWarnings = BuildWarnings(await Run("validated-query-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
-            RenderedResults = await Run("validated-query-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
+            await Run("validated-query-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-keys.trx", "--results-directory", _evidence.FullName);
+            var results = XDocument.Load(Path.Combine(_evidence.FullName, "query-keys.trx"));
+            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
+            RenderedPassed = results.Descendants(ns + "UnitTestResult").Count(result => (string?)result.Attribute("outcome") == "Passed");
         }
     }
 }

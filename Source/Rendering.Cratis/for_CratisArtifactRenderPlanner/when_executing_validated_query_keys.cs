@@ -74,7 +74,7 @@ public class when_executing_validated_query_keys(when_executing_validated_query_
                 public class validated_keys
                 {
                     [Fact]
-                    public Task should_preserve_lookup_and_filtered_answers() => QueryKeys.Execute();
+                    public Task should_preserve_lookup_and_filtered_answers() => QueryKeys.Execute(Xunit.TestContext.Current.CancellationToken);
                 }
                 """);
             DebugWarnings = BuildWarnings(await Run("validated-query-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));

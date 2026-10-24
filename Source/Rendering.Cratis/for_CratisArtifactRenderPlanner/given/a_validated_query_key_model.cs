@@ -61,7 +61,7 @@ public static class a_validated_query_key_model
 
         public static class QueryKeys
         {
-            public static async Task<QueryResult[]> Execute()
+            public static async Task<QueryResult[]> Execute(CancellationToken cancellationToken)
             {
                 var id = new InvoiceId("invoice-one");
                 var invalidId = new InvoiceId("x");
@@ -81,15 +81,15 @@ public static class a_validated_query_key_model
                 lookupScenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));
                 var valid = new QueryArguments { ["invoiceId"] = "invoice-one" };
                 var invalid = new QueryArguments { ["invoiceId"] = "x" };
-                var lookup = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), valid);
-                var rejected = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), invalid);
-                var missing = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = "invoice-missing" });
+                var lookup = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), valid, cancellationToken: cancellationToken);
+                var rejected = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), invalid, cancellationToken: cancellationToken);
+                var missing = await lookupScenario.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = "invoice-missing" }, cancellationToken: cancellationToken);
                 await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)id);
                 await readModels.DidNotReceive().GetInstanceById<InvoiceSummary>((EventSourceId)invalidId);
                 await readModels.Received(1).GetInstanceById<InvoiceSummary>((EventSourceId)unmatchedId);
-                var filtered = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), valid);
-                var rejectedFilter = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), invalid);
-                var empty = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), new QueryArguments { ["invoiceId"] = "invoice-missing" });
+                var filtered = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), valid, cancellationToken: cancellationToken);
+                var rejectedFilter = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), invalid, cancellationToken: cancellationToken);
+                var empty = await lookupScenario.Perform(nameof(InvoiceSummary.InvoicesById), new QueryArguments { ["invoiceId"] = "invoice-missing" }, cancellationToken: cancellationToken);
                 Assert.All(new[] { rejected, rejectedFilter }, result =>
                 {
                     Assert.False(result.IsValid);

@@ -35,7 +35,7 @@ public class when_comparing_non_error_generated_concept_rules(when_comparing_non
                     {
                         using var scenario = new CommandScenario<global::NonErrorGeneration.M.F.Warning.CreateWarning>();
                         scenario.PinGeneratedValue("code", new global::NonErrorGeneration.Common.WarningCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
-                        var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Warning.CreateWarning());
+                        var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Warning.CreateWarning(), Xunit.TestContext.Current.CancellationToken);
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);
                         Assert.False(result.IsSuccess);
@@ -45,7 +45,7 @@ public class when_comparing_non_error_generated_concept_rules(when_comparing_non
                     {
                         using var scenario = new CommandScenario<global::NonErrorGeneration.M.F.Information.CreateInformation>();
                         scenario.PinGeneratedValue("code", new global::NonErrorGeneration.Common.InformationCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
-                        var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Information.CreateInformation());
+                        var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Information.CreateInformation(), Xunit.TestContext.Current.CancellationToken);
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);
                         Assert.False(result.IsSuccess);

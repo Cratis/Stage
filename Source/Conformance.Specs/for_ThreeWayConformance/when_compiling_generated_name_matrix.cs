@@ -652,6 +652,24 @@ public class when_compiling_generated_name_matrix
             $"crossnamespace/{kind}/{name}");
     }
 
+    // A concept named like a type a global using imports, carried by a member of the same name: the short name is
+    // ambiguous above the namespace, so its namespace is imported inside it, while the handler writes the member name.
+    [Theory]
+    [InlineData("Subject")]
+    [InlineData("Task")]
+    [InlineData("TaskStatus")]
+    public Task concepts_named_like_imported_types_on_same_named_members_match_the_emitted_compilation(string name)
+    {
+        var member = Identifiers.ToCamelCase(name);
+        var source = Source.Replace("concept Badge : String", $"concept Badge : String\nconcept {name} : String", StringComparison.Ordinal)
+            .Replace("                projectId String identifier\n", $"                projectId String identifier\n                {member} {name}\n", StringComparison.Ordinal)
+            .Replace("                  for projectId\n", $"                  for projectId\n                  {member} = {member}\n", StringComparison.Ordinal)
+            .Replace("              event ProjectRegistered\n                projectId String\n", $"              event ProjectRegistered\n                projectId String\n                {member} {name}\n", StringComparison.Ordinal)
+            .Replace("                when RegisterProject\n                  projectId = \"project-1\"\n", $"                when RegisterProject\n                  projectId = \"project-1\"\n                  {member} = \"x\"\n", StringComparison.Ordinal)
+            .Replace("                then ProjectRegistered\n                  projectId = \"project-1\"\n", $"                then ProjectRegistered\n                  projectId = \"project-1\"\n                  {member} = \"x\"\n", StringComparison.Ordinal);
+        return Verify(Compile(source), $"samenamedmember/{name}");
+    }
+
     [Fact]
     public Task a_flat_read_model_member_cannot_shadow_its_source_event_in_nameof()
     {

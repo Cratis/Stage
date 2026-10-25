@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -46,7 +47,7 @@ internal static class SemanticCaptureStateRendering
         RenderFields(builder, capture, plan);
         if (capture.EventsSource!.KeyIsEventSource)
         {
-            builder.Line($"sealed class {plan["CaptureKeyIsNotTheEventSource"]}() : global::System.Exception({Literal($"Capture '{capture.Name}' key '{capture.Key}' does not match the delivered event source.")});").BlankLine();
+            builder.Line($"sealed class {plan["CaptureKeyIsNotTheEventSource"]}() : {builder.Type(new("System", "Exception", 0, ReferenceContext.Type))}({Literal($"Capture '{capture.Name}' key '{capture.Key}' does not match the delivered event source.")});").BlankLine();
         }
         SemanticPublicationArtifactRenderer.RenderComparison(builder, plan["Same"]);
     }
@@ -92,12 +93,12 @@ internal static class SemanticCaptureStateRendering
     {
         var key = Literal(capture.Key);
         var keyIsEventSource = capture.EventsSource!.KeyIsEventSource;
-        builder.OpenBlock($"async global::System.Threading.Tasks.Task<{Record}?> {plan["Previous"]}({Record} observed, global::Cratis.Chronicle.Events.EventContext context)")
+        builder.OpenBlock($"async global::System.Threading.Tasks.Task<{Record}?> {plan["Previous"]}({Record} observed, {builder.Type(new("Cratis.Chronicle.Events", "EventContext", 0, ReferenceContext.Type))} context)")
             .Line($"var key = observed.GetValueOrDefault({key});")
             .Line($"if (key is null || ({plan["ConceptValue"]}(key) ?? key) is string text && string.IsNullOrWhiteSpace(text)) throw new {plan["EmptyCaptureKey"]}();");
         if (keyIsEventSource)
         {
-            builder.Line($"if (!global::System.String.Equals(global::System.Convert.ToString({plan["ConceptValue"]}(key) ?? key, {Invariant}), context.EventSourceId.Value, global::System.StringComparison.Ordinal)) throw new {plan["CaptureKeyIsNotTheEventSource"]}();");
+            builder.Line($"if (!{builder.Type(new("System", "String", 0, ReferenceContext.Expression))}.Equals({builder.Type(new("System", "Convert", 0, ReferenceContext.Expression))}.ToString({plan["ConceptValue"]}(key) ?? key, {Invariant}), context.EventSourceId.Value, {builder.Type(new("System", "StringComparison", 0, ReferenceContext.Expression))}.Ordinal)) throw new {plan["CaptureKeyIsNotTheEventSource"]}();");
         }
         var sourceFilter = keyIsEventSource ? "eventSourceId: context.EventSourceId, " : string.Empty;
         builder.Line($"var inbox = {plan.Store}.GetEventSequence(global::Cratis.Chronicle.Reactors.ReactorTypeExtensions.GetEventSequenceId(typeof({plan.TypeName})));")

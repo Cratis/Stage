@@ -172,7 +172,7 @@ For legacy syntax rendering, an inline C# command handler keeps its authored bod
 | Anything else, including a generic constructed type, returned variable, array, mixed types or target-typed `new(...)` | `IEnumerable<object>` |
 
 Returns and yields inside lambdas, anonymous methods and local functions do not affect the signature.
-Explicit type names are compared after whitespace normalization; qualified names, including
+Explicit type names are compared after whitespace normalization; qualified names in the authored body, such as
 `global::Cratis.Chronicle.EventSequences.EventForEventSourceId`, are preserved. A constructed type whose
 rightmost name is generic, such as `List<object>` or `System.Collections.Generic.List<object>`, keeps
 `IEnumerable<object>` so collections retain the collection-of-events signature. Returning a list variable
@@ -365,7 +365,7 @@ ordinal.
 
 The Cratis renderer renders these comparisons: `CompareTo` over `DateOnly` values or `DateTimeOffset` values built
 from the literal's UTC ticks, in requirements, `produces when` and validation rules (absence passes). Each compared
-DateTime command property carries `[property: global::Cratis.Arc.Commands.ExplicitOffset]`, so Arc refuses input
+DateTime command property carries `[property: ExplicitOffset]` (from `Cratis.Arc.Commands`), so Arc refuses input
 without an offset or `Z` after authorization with the reference message. The rules render as server-side `.Must`
 predicates, so no client-side date comparator is extracted. Reactions do not admit date comparisons. Three-way
 conformance covers `DateComparisonsCorpus` in all four source forms.
@@ -390,7 +390,7 @@ V28 admits Uuid `==` and `!=` in command `require` conditions and `produces when
 specification executor compare Uuids ordinally in canonical lowercase hyphenated spelling, including through concepts and
 protected read paths, and reject a non-canonical input before the requirement runs. The Cratis renderer renders property
 and literal comparisons: concept properties compare by `.Value` and a literal compared with a Uuid operand becomes
-`global::System.Guid.Parse("…")`, so the comparison is a Guid comparison rather than a Guid-to-text one. A comparison whose
+`Guid.Parse("…")`, so the comparison is a Guid comparison rather than a Guid-to-text one. A comparison whose
 operand is a protected read path, such as `require PlantAccessGrant.memberId == requestedBy`, renders too: the renderer
 resolves the read operand's type through the read scope, so it compares as a Guid like any other operand. A read path in
 `produces when` keeps `STAGE-ESM-044` (see [Protected reads rendering](protected-reads-rendering.md)). The legacy

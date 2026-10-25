@@ -11,7 +11,7 @@ using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
-sealed class RenderingPartAdmission(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+sealed class RenderingPartAdmission(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics, IReadOnlySet<SemanticId>? userInterface = null)
 {
     readonly SemanticOwnerIndex _owners = new(context.Application);
     readonly HashSet<SemanticId> _omitted = [];
@@ -23,6 +23,10 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
 
     internal bool HasUncontainedErrors => diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
         (!_owners.Contains(diagnostic.Artifact) || !Refusals.Any(refusal => refusal.Artifact == diagnostic.Artifact && refusal.Codes.Contains(diagnostic.Code))));
+
+    internal IReadOnlySet<SemanticId> OmittedOwners => _omitted;
+
+    internal IReadOnlySet<SemanticId>? UserInterface => userInterface;
 
     internal List<RenderedFile> RenderModelParts(IReadOnlyList<LocatedSemanticSlice> slices)
     {

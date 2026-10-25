@@ -28,10 +28,11 @@ internal static class StageModuleRenderer
     /// Renders the module.
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
+    /// <param name="slices">The slices whose generated proxies are present, in model order; only their command routes are read.</param>
     /// <returns>The generated module text.</returns>
-    public static string Render(SemanticApplicationContext context)
+    public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = context.Commands.Values
+        var commands = slices.SelectMany(slice => slice.Slice.Commands)
             .Select(command => (command.Name, Export: command.Name, Module: Module(context, command.Id)))
             .DistinctBy(command => command.Name, StringComparer.Ordinal)
             .OrderBy(command => command.Name, StringComparer.Ordinal)

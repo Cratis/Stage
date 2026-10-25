@@ -259,6 +259,21 @@ public class when_executing_performed_queries
     }
 
     [Fact]
+    public async Task should_leave_a_non_csharp_performer_stub_and_report_its_unsupported_language()
+    {
+        var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
+        var request = Request(loaded);
+        var diagnostics = SemanticImplementationAdmission.Verify(request);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task should_admit_and_execute_the_rendered_scalar_and_identifier_concept_sentinels()
     {
         // The read model key makes PersonId an identifier concept; PersonName stays a scalar concept.

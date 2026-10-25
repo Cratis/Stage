@@ -39,6 +39,6 @@ public class when_planning_initial_events_in_a_v4_model : Specification
 
     [Fact] void should_keep_the_v4_version_gate_open() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V4);
     [Fact] void should_render_the_unrelated_initial_event_scope() => Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
-    [Fact] void should_emit_the_initial_event_with_the_unchanged_attribute() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[global::Cratis.Chronicle.Events.EventTypeAttribute]\npublic record InvoiceIssued", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_emit_the_initial_event_with_the_unchanged_attribute() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("[EventType]\npublic record InvoiceIssued", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_refuse_the_whole_evolved_application() => rendering_refusals.Original(invoice_model.Plan(_model), "STAGE-ESM-026").Artifact.ShouldEqual(_model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "ChangeOther").Events.Single().Id);
 }

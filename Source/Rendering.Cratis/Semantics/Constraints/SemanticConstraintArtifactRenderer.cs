@@ -15,7 +15,7 @@ internal static class SemanticConstraintArtifactRenderer
     internal static RenderedFile Render(SemanticSlice slice, SemanticConstraint constraint, SemanticApplicationContext context)
     {
         var location = context.Slice(slice.Id);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.CodeBuilder()
             .Namespace(SliceNaming.Namespace(context.RootNamespace, location.Path))
             .Using("Cratis.Chronicle.Events.Constraints");
         var className = Identifiers.ToPascalCase(constraint.Name);

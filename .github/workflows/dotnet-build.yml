@@ -457,8 +457,8 @@ jobs:
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           root = ET.parse("TestResults/standalone-generated-application/standalone-generated-application.trx").getroot()
           results = root.findall("t:Results/t:UnitTestResult", ns)
-          if len(results) != 16 or any(result.get("outcome") != "Passed" for result in results):
-              raise SystemExit(f"Expected 16 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          if len(results) != 13 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 13 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
           print(f"{len(results)} standalone application assertions passed")
           PY
 

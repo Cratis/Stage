@@ -46,7 +46,7 @@ public class when_selecting_self_reducing_rendering
         var combined = self.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal));
         var previous = classic.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
         Assert.Equal(previous.SelectMany(artifact => artifact.Sources).Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal), combined.Sources.Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal));
-        Assert.Contains("public static global::Projects.Orders.Ordering.Totals.Total? Reduce(", Text(combined), StringComparison.Ordinal);
+        Assert.Contains("public static Total? Reduce(", Text(combined), StringComparison.Ordinal);
         var root = await CSharpSyntaxTree.ParseText(Text(combined)).GetRootAsync();
         var record = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single();
         Assert.DoesNotContain(record.Members.OfType<MethodDeclarationSyntax>(), method => method.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));

@@ -17,6 +17,6 @@ public class with_multiple_events_and_a_text_stream_id : given.a_routed_command
     }
     void Because() => Plan();
 
-    [Fact] void should_wrap_the_interface_return_explicitly() => _code.Contains(".FromT0(new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[]", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_wrap_the_interface_return_explicitly() => _code.Contains(".FromT0(new EventForEventSourceId[]", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_compile_the_oneof_interface_branch() => RenderedOutput.Errors(Files()).ShouldBeEmpty();
 }

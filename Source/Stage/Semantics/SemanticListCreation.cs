@@ -15,15 +15,15 @@ internal sealed class SemanticListCreation
     readonly HashSet<string> _identifierNames;
     readonly HashSet<SemanticId> _candidateEvents;
 
-    internal SemanticListCreation(ExecutableSemanticModel model)
+    internal SemanticListCreation(SemanticApplication application)
     {
-        var slices = SemanticModelWalker.Slices(model).Select(located => located.Slice).ToArray();
+        var slices = Slices(application.Modules.SelectMany(module => module.Features)).ToArray();
         _models = [.. slices.SelectMany(slice => slice.ReadModels)];
         var identifiers = slices.SelectMany(slice => slice.Commands).SelectMany(command => command.Properties)
             .Concat(_models.SelectMany(readModel => readModel.Properties)).Where(property => property.IsIdentifier).ToArray();
         _identifierConcepts =
         [
-            .. model.Application.Concepts.Where(concept => concept.Primitive == SemanticPrimitiveType.Uuid).Select(concept => concept.Id),
+            .. application.Concepts.Where(concept => concept.Primitive == SemanticPrimitiveType.Uuid).Select(concept => concept.Id),
             .. identifiers.Where(property => property.Type.Kind == SemanticTypeReferenceKind.Concept).Select(property => property.Type.Target)
         ];
         _identifierNames = new(identifiers.Select(property => property.Name), StringComparer.OrdinalIgnoreCase);
@@ -51,6 +51,9 @@ internal sealed class SemanticListCreation
             $"Command '{command.Name}' has no proven list creation intent: {reason}"));
         return false;
     }
+
+    static IEnumerable<SemanticSlice> Slices(IEnumerable<SemanticFeature> features) =>
+        features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
 
     static string? ProjectionRefusal(SemanticProjection projection, SemanticReadModel model, SemanticProperty identifier, SemanticProducedEvent production)
     {

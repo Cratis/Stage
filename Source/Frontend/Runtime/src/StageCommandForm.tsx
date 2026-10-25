@@ -14,7 +14,7 @@ import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
 import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
-import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import { asCommandValue, createsEntity, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { withReferenceField } from './StageReferenceField';
@@ -50,8 +50,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
-    const schema = useMemo(() => schemaProperties(element), [element]);
-    const hasSchemaMetadata = typeof element.properties.schema === 'string';
+    const schemaText = commandSchema(element, data, form);
+    const schema = useMemo(() => schemaPropertiesOf(schemaText), [schemaText]);
+    const hasSchemaMetadata = schemaText !== '';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
@@ -61,8 +62,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
-    const creates = element.properties.createsEntity === true;
-    const rowAction = element.properties.rowAction === true;
+    const { creates, rowAction } = actionIntent(element, schemaText);
     const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates, rowAction), [creates, data.selections, data.queries, rowAction]);
     const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
@@ -114,6 +114,15 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
             </NativeCommandForm>
         </section>
     );
+}
+
+function commandSchema(element: ExternalComponent, data: StageDataState, form: NativeFormProperties | undefined): string {
+    return text(element, 'schema') || data.routes?.commandSchemas?.[form?.command ?? ''] || '';
+}
+
+function actionIntent(element: ExternalComponent, schemaText: string) {
+    const creates = element.properties.createsEntity === true || createsEntity(schemaText);
+    return { creates, rowAction: !creates && element.properties.rowAction === true };
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {

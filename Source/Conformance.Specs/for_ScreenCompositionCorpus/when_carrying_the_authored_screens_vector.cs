@@ -44,8 +44,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    // Re-pinned for #745: plain collection-screen actions that take the selected row now carry "rowAction":true (two on WorkItemDetails, one on WorkItemList; +51 bytes).
-    [Fact] void should_mark_the_actions_that_take_the_selected_row() => Encoding.UTF8.GetString(_bytes).Split("\"rowAction\":true").Length.ShouldEqual(4);
+    // Raw Scene carries advisory selection hints; canonical creation intent can override these during rendering without changing these bytes.
+    [Fact] void should_carry_the_advisory_collection_selection_hints() => Encoding.UTF8.GetString(_bytes).Split("\"rowAction\":true").Length.ShouldEqual(4);
     [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("d186ca30122ac199487caac46223c862fbe1ac468a883fe5b2dcc6eef3c3bcbb");
     [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24023);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");

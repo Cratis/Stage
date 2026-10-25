@@ -159,7 +159,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
     }
 
     ChronicleSequences.AppendManyForEventSourcesRequest Request(string storeName, EventSequenceId sequence, IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope) =>
-        new ChronicleSequences.AppendManyForEventSourcesRequest
+        new()
         {
             EventStore = storeName,
             Namespace = EventStoreNamespaceName.Default,

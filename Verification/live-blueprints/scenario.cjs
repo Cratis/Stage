@@ -26,6 +26,7 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
     let browser;
     try {
         if (screens.length === 0) throw new Error(`${playPath} has no screen built from a blueprint template`);
+        const { show, schemes, contrast } = require('../blueprint-templates/contrast.cjs');
         browser = await chromium.launch();
         const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
         const errors = [];
@@ -43,6 +44,7 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
             }
         }
 
+        let contrastScreen;
         for (const { screen, template } of screens.filter(candidate => !notScreens.includes(candidate))) {
             const path = `live.blueprint.${name}.${screen}`;
             await page.goto(`${baseUrl}/#/${screen}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
@@ -54,9 +56,23 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
                 alert === 0
                     ? record(path, 'passed', `${template} mounted with content`)
                     : block(path, `${template} mounted but the Stage reported: ${await page.locator('#root').innerText()}`);
+                if (alert === 0) contrastScreen ??= { screen, template };
             } catch {
                 block(path, `${template} did not mount with content; page errors: ${errors.join(' | ') || 'none'}; page: ${(await page.locator('#root').innerText()).slice(0, 300)}`);
             }
+        }
+
+        if (contrastScreen) {
+            for (const scheme of schemes) {
+                const path = `live.blueprint.${name}.${contrastScreen.screen}.${scheme}.contrast`;
+                await show(page, baseUrl, contrastScreen, scheme);
+                const violations = await contrast(page);
+                violations.length === 0
+                    ? record(path, 'passed', 'color-contrast (WCAG AA)')
+                    : block(path, violations.join(' | '));
+            }
+        } else {
+            block(`live.blueprint.${name}.contrast`, 'no rendered screen is available for the light and dark color-contrast checks');
         }
 
         errors.length === 0

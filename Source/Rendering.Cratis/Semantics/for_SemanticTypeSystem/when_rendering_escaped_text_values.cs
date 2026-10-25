@@ -45,9 +45,9 @@ public class when_rendering_escaped_text_values : a_register_project_render_requ
             }
         };
         var file = SemanticCommandSpecificationRenderer.Render(specification, context);
-        var syntax = CSharpSyntaxTree.ParseText(file.Content, new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]));
-        syntax.GetDiagnostics().ShouldBeEmpty();
-        var literal = syntax.GetRoot().DescendantTokens().Single(token => token.RawKind == (int)SyntaxKind.StringLiteralToken && token.ValueText == value);
+        var syntax = CSharpSyntaxTree.ParseText(file.Content, new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]), cancellationToken: TestContext.Current.CancellationToken);
+        syntax.GetDiagnostics(TestContext.Current.CancellationToken).ShouldBeEmpty();
+        var literal = syntax.GetRoot(TestContext.Current.CancellationToken).DescendantTokens().Single(token => token.RawKind == (int)SyntaxKind.StringLiteralToken && token.ValueText == value);
         literal.Text.ShouldEqual(CSharpCodeBuilder.StringLiteral(value));
         literal.ValueText.ShouldEqual(value);
     }

@@ -322,7 +322,7 @@ public class when_rendering_a_pure_reducer
         {
             var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
                 .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
-            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics().Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
+            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
             Assert.Fail($"Admitted a namespace shadow; rendered compilation: {string.Join("; ", errors)}");
         }
 
@@ -339,7 +339,7 @@ public class when_rendering_a_pure_reducer
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
             .Append(new RenderedFile("Math.cs", "namespace Projects.Orders.Ordering.Math { }"));
-        var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics()
+        var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics(TestContext.Current.CancellationToken)
             .Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error).ToArray();
         Assert.Contains(errors, error => error.Id == "CS0234" && error.GetMessage().Contains("Abs", StringComparison.Ordinal));
     }
@@ -721,7 +721,7 @@ public class when_rendering_a_pure_reducer
         var compilation = RenderedOutput.CreateCompilation(files);
         var path = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor);
-        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
+        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics(TestContext.Current.CancellationToken))}");
         Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
         Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Concepts.ConceptAs<string>.Value", StringComparison.Ordinal));
         Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Chronicle.Events.EventSourceId<string>.TypedValue", StringComparison.Ordinal));
@@ -1064,7 +1064,7 @@ public class when_rendering_a_pure_reducer
             var actual = PureTransitionAdmission.AnalyzeRendered(real, reducerFile.RelativePath, descriptor);
             Assert.True(synthetic.Accepted == actual.Accepted,
                 $"{fixture}: analysis {synthetic.Code}: {synthetic.Reason}; rendered {actual.Code}: {actual.Reason}; " +
-                string.Join("; ", real.GetDiagnostics().Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
+                string.Join("; ", real.GetDiagnostics(TestContext.Current.CancellationToken).Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
             Assert.Equal(synthetic.ContextReads, actual.ContextReads);
             Assert.Equal(synthetic.UsedAllowlistEntries, actual.UsedAllowlistEntries);
             Assert.True(synthetic.Accepted, $"Parity fixture {fixture} was refused: {synthetic.Code}: {synthetic.Reason}");

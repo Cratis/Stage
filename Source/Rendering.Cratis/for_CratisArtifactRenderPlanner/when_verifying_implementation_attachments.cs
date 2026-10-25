@@ -73,11 +73,11 @@ public class when_verifying_implementation_attachments : Specification
             """;
         var source = policy + "\n" + FileSource.Replace("    slice StateChange PlaceOrder", "    slice StateChange Healthy\n      command CreateHealthy\n        id Uuid identifier\n        produces HealthyCreated\n          for id\n          id = id\n      event HealthyCreated\n        id Uuid\n    slice StateView Totals\n      readmodel Total\n        id Uuid\n        amount Decimal\n      query ById => Total?\n        by id Uuid\n      reducer Fold => Total\n        on OrderPlaced\n          file Reducers/OrderPlaced.cs\n    slice StateChange PlaceOrder", StringComparison.Ordinal)
             .Replace("      command PlaceOrder\n", "      command PlaceOrder\n        authorize Access\n", StringComparison.Ordinal);
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source, TestContext.Current.CancellationToken);
         Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return context.Value > 0;");
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return context.Value > 0;", TestContext.Current.CancellationToken);
         Directory.CreateDirectory(Path.Combine(_folder, "Reducers"));
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Reducers", "OrderPlaced.cs"), "return state;");
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Reducers", "OrderPlaced.cs"), "return state;", TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         Assert.Contains(loaded.TypedContextDescriptors, descriptor => descriptor.Role == SemanticImplementationRole.RulePredicate);
         Assert.Contains(loaded.TypedContextDescriptors, descriptor => descriptor.Role == SemanticImplementationRole.PolicyPredicate);
@@ -109,7 +109,7 @@ public class when_verifying_implementation_attachments : Specification
             """;
         var modelSource = policySource + "\n" + Source.Replace("    slice StateChange PlaceOrder", "    slice StateChange Healthy\n      command CreateHealthy\n        id Uuid identifier\n        authorize Access\n        produces HealthyCreated\n          for id\n          id = id\n      event HealthyCreated\n        id Uuid\n    slice StateChange PlaceOrder", StringComparison.Ordinal)
             .Replace("      command PlaceOrder\n", "      command PlaceOrder\n        authorize Access\n", StringComparison.Ordinal);
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), modelSource);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), modelSource, TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var policies = loaded.TypedContextDescriptors.Where(descriptor => descriptor.Role == SemanticImplementationRole.PolicyPredicate).ToArray();
         Assert.Equal(2, policies.Length);
@@ -280,9 +280,9 @@ public class when_verifying_implementation_attachments : Specification
     [Fact]
     async Task should_load_a_file_body_from_the_model_root()
     {
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource, TestContext.Current.CancellationToken);
         Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return context.Value > 0;");
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return context.Value > 0;", TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var requirement = loaded.ImplementationRequirements.Single();
         loaded.ImplementationContents[requirement.RequirementId].ShouldEqual("return context.Value > 0;");
@@ -350,7 +350,7 @@ public class when_verifying_implementation_attachments : Specification
     {
         var loaded = await LoadFileBody("return context.Value > 0;");
         var requirement = loaded.ImplementationRequirements.Single();
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return false;");
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return false;", TestContext.Current.CancellationToken);
         var reloaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         Render(loaded, reloaded.ImplementationContents).Diagnostics.ShouldContain(diagnostic =>
             diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains(requirement.RequirementId, StringComparison.Ordinal));
@@ -369,7 +369,7 @@ public class when_verifying_implementation_attachments : Specification
     [Fact]
     async Task should_refuse_an_out_of_root_file()
     {
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource.Replace("Rules/Positive.cs", "../x.cs", StringComparison.Ordinal));
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource.Replace("Rules/Positive.cs", "../x.cs", StringComparison.Ordinal), TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         loaded.ImplementationRequirements.Single().AttachmentResolution.ShouldEqual(SemanticAttachmentResolution.UnresolvedFile);
         Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("PLAY0430", StringComparison.Ordinal));
@@ -379,9 +379,9 @@ public class when_verifying_implementation_attachments : Specification
     async Task should_refuse_a_symlinked_file()
     {
         Directory.CreateDirectory(Path.Combine(_folder, "Rules"));
-        await File.WriteAllTextAsync(Path.Combine(_folder, "real.cs"), "return true;");
+        await File.WriteAllTextAsync(Path.Combine(_folder, "real.cs"), "return true;", TestContext.Current.CancellationToken);
         File.CreateSymbolicLink(Path.Combine(_folder, "Rules", "Positive.cs"), Path.Combine(_folder, "real.cs"));
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), FileSource, TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         loaded.ImplementationRequirements.Single().AttachmentResolution.ShouldEqual(SemanticAttachmentResolution.UnresolvedFile);
         Render(loaded).Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("PLAY0431", StringComparison.Ordinal));
@@ -405,7 +405,7 @@ public class when_verifying_implementation_attachments : Specification
     async Task should_render_a_verified_concept_code_validation()
     {
         const string source = "concept Label : String\n  validate\n    ```csharp\n    yield return \"Invalid label\";\n    ```\n" + Source;
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source, TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var plan = CratisRendering.Plan(loaded.Model, loaded.Plan, Scope(loaded), new("Orders", "Orders"), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -433,7 +433,7 @@ public class when_verifying_implementation_attachments : Specification
                         return new(context.Event.amount);
                         ```
             """;
-        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source);
+        await File.WriteAllTextAsync(Path.Combine(_folder, "Orders.play"), source, TestContext.Current.CancellationToken);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         var plan = Render(loaded);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021");

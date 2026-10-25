@@ -29,6 +29,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
     // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
     // Re-frozen for Cratis/Stage#734 and #741: .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/ (manifest below updated), merged with main#437 (Matching pin).
+    // Re-frozen for #437: only the Matching package pin and host reference are added.
+    // Re-frozen for Cratis/Stage#757: package.json adds only the @cratis/fundamentals resolutions entry.
     const string Digest = "a6e3d39b53fbe615bb69ddc1e177bf02f43e2a127795a2138f6dcd6ed134df02";
 
     const string QualifiedManifest = """
@@ -70,7 +72,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
-        package.json 6eb19e79f8836f665353688575a6bf74694f7df6c4142f915455abdc6bacf697 1194
+        package.json 035504320003ba9bc91cfad46587622b8221707754786c2e039743c61ac2e78a 1255
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 26c5414114643e1a95d6cae0ac550193813053efead2fc81624791a290a001f7 2173
         src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
@@ -138,7 +140,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9dc204a0cec035fca7840156d42462bca6556c27f03eb16de007033962663413");
+            plan.Diagnostics).ShouldEqual("9b7c628e1b7f6c80bdfecc7d9928b7d2ef68a3246ab6d62df3dd2e69145f5f12");
     }
 
     [Theory]

@@ -154,6 +154,9 @@ public sealed class CratisFrontendApplicationScaffold
           },
           "devDependencies": {
         {{string.Join(",\n", DevDependencies(frontend).Select(_ => $"    \"{_.Name}\": \"{_.Version}\""))}}
+          },
+          "resolutions": {
+            "@cratis/fundamentals": "{{frontend.FundamentalsPackageVersion}}"
           }
         }
         """;

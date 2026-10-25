@@ -428,8 +428,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCapture", foreign, "EventsSource");
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
-        // ESM v33 `key <property> is event source`: Stage does not admit ESM v33 pairs yet (Stage#752), so a model that uses it is refused whole (STAGE-ESM-016).
-        Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
+        // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading
+        // the inbox and reads only that source's history (Stage#752).
+        Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.

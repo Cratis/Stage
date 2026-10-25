@@ -46,8 +46,9 @@ internal static class ImportResolver
         var kept = required.Where(file.NeedsRequired).ToArray();
         var top = file.Settle([], [.. kept, .. references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Where(file.CanImportAtTop)], kept, out _);
         var spellings = file.Spell([], top);
-        var unresolved = references.Where(reference => spellings[reference] == reference.Qualified)
-            .Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Where(file.CanImportInside).ToArray();
+        var candidates = references.Where(reference => spellings[reference] == reference.Qualified)
+            .Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).ToArray();
+        var unresolved = candidates.Where(@namespace => file.CanImportInside(@namespace, candidates, top)).ToArray();
         List<string> inner = [];
         if (unresolved.Length > 0)
         {
@@ -64,7 +65,8 @@ internal static class ImportResolver
 
         return new([.. inner.Order(StringComparer.Ordinal)], spellings)
         {
-            TopLevelUsings = [.. top.Order(StringComparer.Ordinal)]
+            TopLevelUsings = [.. top.Order(StringComparer.Ordinal)],
+            RootedUsings = [.. inner.Where(@namespace => !file.BindsFromGlobal(@namespace))]
         };
     }
 }

@@ -59,7 +59,7 @@ static class QualifiedFileRewrite
 
         if (resolution.Usings.Length > 0 && namespaces is [FileScopedNamespaceDeclarationSyntax fileNamespace])
         {
-            var lines = string.Concat(resolution.Usings.Select(@namespace => $"\nusing global::{@namespace};"));
+            var lines = string.Concat(resolution.Usings.Select(@namespace => $"\nusing {resolution.Inner(@namespace)};"));
             changes.Add(new(new(fileNamespace.SemicolonToken.Span.End, 0), $"\n{lines}\n"));
         }
 

@@ -79,6 +79,26 @@ internal sealed class NameScope
     public bool HidesImport(string name) => TypeNames(string.Empty).Contains(name, StringComparer.Ordinal);
 
     /// <summary>
+    /// Determines whether a directive inside the file-scoped namespace may name a namespace without
+    /// <c language="csharp">global::</c>: its first segment is looked up from the file namespace outwards, so no
+    /// enclosing namespace may hold a type or namespace of that name, and no global type may hide it.
+    /// </summary>
+    /// <param name="namespace">The namespace the directive imports.</param>
+    /// <returns><see langword="true"/> when the first segment provably binds to the global namespace member.</returns>
+    public bool BindsFromGlobal(string @namespace)
+    {
+        var first = @namespace.Split('.')[0];
+        if (HidesImport(first)) return false;
+        foreach (var enclosing in CatalogNames.SelfAndContaining(FileNamespace).Where(enclosing => enclosing.Length > 0))
+        {
+            if (!Knows(enclosing) || IsNamespace(CatalogNames.Qualify(enclosing, first))) return false;
+            if (TypeNames(enclosing).Contains(first, StringComparer.Ordinal)) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Gets the names of every top-level type in a namespace, generated or referenced.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
@@ -117,6 +137,28 @@ internal sealed class NameScope
         }
 
         return compilationUnit is null ? NameLookup.Unknown : Imported(name, arity, compilationUnit, target);
+    }
+
+    /// <summary>
+    /// Determines whether a simple name is ambiguous where the compilation unit's imports are searched, with nothing of
+    /// that name in any closer scope. A use of such a name in a file that compiles never reaches the namespaces: it binds
+    /// to a member, parameter or local first.
+    /// </summary>
+    /// <param name="name">The simple name.</param>
+    /// <param name="compilationUnit">The namespaces the compilation unit imports, including the global usings.</param>
+    /// <returns><see langword="true"/> when the name is provably ambiguous at the compilation unit only.</returns>
+    public bool IsAmbiguousOnlyInCompilationUnit(string name, IReadOnlyCollection<string> compilationUnit)
+    {
+        if (_typeNames.Contains(name)) return false;
+        foreach (var @namespace in CatalogNames.SelfAndContaining(FileNamespace))
+        {
+            if (IsNamespace(CatalogNames.Qualify(@namespace, name))) return false;
+            if (@namespace.Length > 0 && !Knows(@namespace)) return false;
+            if (TypeNames(@namespace).Contains(name, StringComparer.Ordinal)) return false;
+        }
+
+        if (compilationUnit.Any(@namespace => !Knows(@namespace))) return false;
+        return compilationUnit.Sum(@namespace => Count(@namespace, name, 0)) > 1;
     }
 
     /// <summary>

@@ -95,7 +95,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
 
         if (fileNamespace is not null && resolution.Usings.Length > 0)
         {
-            changes.Add(new(new(fileNamespace.SemicolonToken.Span.End, 0), string.Concat(resolution.Usings.Select(@namespace => $"{Environment.NewLine}using global::{@namespace};")).Insert(0, Environment.NewLine)));
+            changes.Add(new(new(fileNamespace.SemicolonToken.Span.End, 0), string.Concat(resolution.Usings.Select(@namespace => $"{Environment.NewLine}using {resolution.Inner(@namespace)};")).Insert(0, Environment.NewLine)));
         }
 
         var text = new StringBuilder();

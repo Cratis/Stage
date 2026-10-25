@@ -82,8 +82,24 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     /// Gets a value indicating whether a namespace can be imported inside the file-scoped namespace.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
+    /// <param name="inner">Every namespace about to be imported inside the file-scoped namespace.</param>
+    /// <param name="top">The imports above the namespace.</param>
     /// <returns><see langword="true"/> when it can.</returns>
-    public bool CanImportInside(string @namespace) => !_scope.Encloses(@namespace) && CanImport(@namespace);
+    /// <remarks>
+    /// A name the file writes outside the spelled references may be brought in when it already binds to that same type
+    /// through the imports above the namespace and still does with the imports inside it: moving the import closer
+    /// cannot change what it binds to. So may a name that is ambiguous among the compilation unit's imports and found
+    /// nowhere closer: the file compiles, so every use of it binds to a member, parameter or local before the namespaces.
+    /// </remarks>
+    public bool CanImportInside(string @namespace, IReadOnlyCollection<string> inner, IReadOnlyCollection<string> top) =>
+        !_scope.Encloses(@namespace) && CanImport(@namespace, name => KeepsBinding(name, @namespace, inner, top));
+
+    /// <summary>
+    /// Determines whether a directive inside the file-scoped namespace may name a namespace without <c language="csharp">global::</c>.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <returns><see langword="true"/> when its first segment provably binds to the global namespace member.</returns>
+    public bool BindsFromGlobal(string @namespace) => _scope.BindsFromGlobal(@namespace);
 
     /// <summary>
     /// Spells every reference against the final import sets and drops the imports no short spelling goes through, until
@@ -126,17 +142,30 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
         return _references.ToImmutableDictionary(reference => reference, reference => Spell(reference, inner, compilationUnit));
     }
 
-    bool Brings(string @namespace) => _scope.TypeNames(@namespace).Any(name => _unspelled.Contains(name) ||
+    bool Brings(string @namespace) => Brings(@namespace, _ => false);
+
+    bool Brings(string @namespace, Func<string, bool> tolerated) => _scope.TypeNames(@namespace).Any(name => (_unspelled.Contains(name) && !tolerated(name)) ||
         (name.EndsWith("Attribute", StringComparison.Ordinal) && _unspelled.Contains(name[..^"Attribute".Length])));
 
-    bool CanImport(string @namespace)
+    bool KeepsBinding(string name, string @namespace, IReadOnlyCollection<string> inner, IReadOnlyCollection<string> top)
+    {
+        if (_global is null || _scope.TypeNames(@namespace).Count(candidate => candidate == name) != 1) return false;
+        var target = new TypeReference(@namespace, name, 0, ReferenceContext.Type);
+        IReadOnlyCollection<string> compilationUnit = [.. _global.Concat(top).Distinct(StringComparer.Ordinal)];
+        return (_scope.Find(name, 0, [], compilationUnit, target) == NameLookup.Target || _scope.IsAmbiguousOnlyInCompilationUnit(name, compilationUnit)) &&
+            _scope.Find(name, 0, inner, compilationUnit, target) == NameLookup.Target;
+    }
+
+    bool CanImport(string @namespace) => CanImport(@namespace, _ => false);
+
+    bool CanImport(string @namespace, Func<string, bool> tolerated)
     {
         if (@namespace.Length == 0 || !_scope.Knows(@namespace)) return false;
 
         // A directive's first segment binds in the global namespace, where a type of that name would hide it.
         if (_scope.HidesImport(@namespace.Split('.')[0])) return false;
         if (_scope.ExtensionNames(@namespace).Any(_accessed.Contains)) return false;
-        return !Brings(@namespace);
+        return !Brings(@namespace, tolerated);
     }
 
     string Spell(TypeReference reference, IReadOnlyCollection<string> inner, IReadOnlyCollection<string>? compilationUnit)

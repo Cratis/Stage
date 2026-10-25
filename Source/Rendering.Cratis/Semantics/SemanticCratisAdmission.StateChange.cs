@@ -81,22 +81,28 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (command.Produces.Any(produced =>
-            !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
-            !HasRenderableProductionCondition(produced, command, context) ||
-            @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
-            !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) ||
-            @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
-            produced.Mappings.Length != @event.Properties.Length ||
-            !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
-                (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||
-                 (mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence && occurrence.Type == property.Type) ||
-                 mapping.Source is SemanticValueExpression ||
-                 mapping.Source is SemanticReadPathExpression)))))
+        if (command.Produces.Any(produced => !HasRenderableProductionShape(produced, command, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
+
+    // A described handler supplies payload and destination; STAGE-IMPL-002 refuses the command until #316 renders handlers. Revisit these checks then.
+    static bool HasRenderableProductionShape(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
+        context.Events.TryGetValue(produced.EventContract, out var @event) && produced.Condition is null &&
+        HasRenderableProductionCondition(produced, command, context) &&
+        @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() == @event.Tags.Length + produced.Tags.Length &&
+        @event.Properties.All(property => TypeExists(context, property.Type) && !property.Type.IsOptional) &&
+        (command.Handler is not null || HasRenderableDestinationAndMappings(produced, command, @event));
+
+    static bool HasRenderableDestinationAndMappings(SemanticProducedEvent produced, SemanticCommand command, SemanticEventContract @event) =>
+        IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) &&
+        produced.Mappings.Length == @event.Properties.Length &&
+        @event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
+            (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||
+             (mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence && occurrence.Type == property.Type) ||
+             mapping.Source is SemanticValueExpression ||
+             mapping.Source is SemanticReadPathExpression)));
 
     // ESM v30 lets a production address any required, non-collection scalar command property as its event source, not only the identifier.
     static IEnumerable<SemanticId> EventSourceProperties(SemanticCommand command) =>

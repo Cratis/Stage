@@ -35,7 +35,7 @@ public class when_executing_protected_query_specifications : a_generated_applica
             {
                 StreamingQueryProbe.Invocations = 0;
                 await using var scenario = new QueryScenario<StreamingQueryProbe>();
-                await Assert.ThrowsAsync<StreamingQueryNotSupported>(() => scenario.Perform(nameof(StreamingQueryProbe.Stream)));
+                await Assert.ThrowsAsync<StreamingQueryNotSupported>(() => scenario.Perform(nameof(StreamingQueryProbe.Stream), cancellationToken: TestContext.Current.CancellationToken));
                 Assert.Equal(0, StreamingQueryProbe.Invocations);
             }
         }

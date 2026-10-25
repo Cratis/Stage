@@ -58,7 +58,7 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     await AssertGuestDenied(typeof(InvoiceSummary).GetMethod(nameof(InvoiceSummary.InvoiceById))!,
                         new QueryContext(nameof(InvoiceSummary.InvoiceById), CorrelationId.New(), Paging.NotPaged, Sorting.None, new QueryArguments { ["invoiceId"] = id }));
                     {{emptyQueryDenial}}
-                    var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id });
+                    var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id }, cancellationToken: TestContext.Current.CancellationToken);
                     Assert.False(queryResult.HasExceptions, string.Join("; ", queryResult.ExceptionMessages));
                     Assert.Empty(queryResult.ValidationResults);
                     return (commandResult.IsAuthorized, command.AppendedEvents.Count, queryResult.IsAuthorized, queryResult.Data is InvoiceSummary);
@@ -111,7 +111,7 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     command.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
                     await AssertGuestDenied(typeof(IssueInvoice),
                         new CommandContext(CorrelationId.New(), typeof(IssueInvoice), new IssueInvoice(id, "North"), [], CommandContextValues.Empty));
-                    var commandResult = await command.Execute(new IssueInvoice(id, "North"));
+                    var commandResult = await command.Execute(new IssueInvoice(id, "North"), cancellationToken: TestContext.Current.CancellationToken);
                     Assert.False(commandResult.HasExceptions, string.Join("; ", commandResult.ExceptionMessages));
                     {{query}}
                 }
@@ -121,7 +121,7 @@ public abstract class a_portable_policy_pipeline : a_generated_invoice_applicati
                     var name = target.GetCustomAttribute<AuthorizeAttribute>()!.Policy;
                     var type = typeof(IssueInvoice).Assembly.GetTypes().Single(candidate => candidate.Name == name!.Split('.').Last() + "Policy");
                     var policy = (IAuthorizationPolicy)Activator.CreateInstance(type)!;
-                    Assert.False(await policy.IsAuthorized(new(Guest(), target, resource), CancellationToken.None));
+                    Assert.False(await policy.IsAuthorized(new(Guest(), target, resource), TestContext.Current.CancellationToken));
                 }
             }
 

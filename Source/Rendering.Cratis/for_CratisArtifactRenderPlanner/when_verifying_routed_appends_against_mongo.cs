@@ -145,9 +145,9 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                 WebApplication? app = null;
                 try
                 {
-                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120));
+                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
                     if (startup == running) await running;
-                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120));
+                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
                     using var scope = app.Services.CreateScope();
                     var services = scope.ServiceProvider;
                     var store = services.GetRequiredService<IEventStore>();
@@ -192,8 +192,8 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                     app ??= Program.ProbeApplication;
                     if (app is not null)
                     {
-                        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(30));
-                        await running.WaitAsync(TimeSpan.FromSeconds(30));
+                        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                        await running.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
                         await app.DisposeAsync();
                     }
                 }

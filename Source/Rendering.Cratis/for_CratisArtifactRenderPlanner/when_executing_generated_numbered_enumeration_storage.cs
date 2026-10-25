@@ -34,7 +34,7 @@ public class when_executing_generated_numbered_enumeration_storage : a_generated
             public async Task should_store_the_model_owned_number(Status status, int number)
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
-                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), status));
+                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), status), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<InvoiceIssued>(appended.Content);

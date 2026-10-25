@@ -44,7 +44,7 @@ public class when_executing_command_receipt_time : a_generated_application
                 using var caller = new CurrentPrincipalAccessor(new HttpRequestContextAccessor())
                     .BeginScope(new ClaimsPrincipal(new ClaimsIdentity([], "fixture")));
                 GeneratedPolicies.Registration.Register(scenario.Services);
-                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), "North"));
+                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), "North"), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.IsSuccess, $"Authorized={result.IsAuthorized}; clock reads={clock.Calls}; authorization={result.AuthorizationFailureReason}; validation={System.Text.Json.JsonSerializer.Serialize(result.ValidationResults)}; exceptions={string.Join("; ", result.ExceptionMessages)}");
                 Assert.Single(scenario.AppendedEvents);
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));

@@ -71,7 +71,7 @@ public class when_executing_opaque_policies(context fixture) : IClassFixture<con
                         Invoices.GeneratedPolicies.Registration.Register(command.Services);
                         command.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
                         command.Services.AddSingleton<TimeProvider>(new FixedReceipt(receipt));
-                        var commandResult = await command.Execute(new IssueInvoice(id, "North"));
+                        var commandResult = await command.Execute(new IssueInvoice(id, "North"), cancellationToken: TestContext.Current.CancellationToken);
                         Assert.False(commandResult.HasExceptions, string.Join("; ", commandResult.ExceptionMessages));
 
                         using var query = new QueryScenario<InvoiceSummary>();
@@ -79,7 +79,7 @@ public class when_executing_opaque_policies(context fixture) : IClassFixture<con
                         query.Services.AddSingleton<ICurrentPrincipalAccessor>(accessor);
                         query.Services.AddSingleton<TimeProvider>(new FixedReceipt(receipt));
                         query.Given.ForEventSource((Cratis.Chronicle.Events.EventSourceId)id).Events(new InvoiceIssued(id, "North"));
-                        var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id });
+                        var queryResult = await query.Perform(nameof(InvoiceSummary.InvoiceById), new QueryArguments { ["invoiceId"] = id }, cancellationToken: TestContext.Current.CancellationToken);
                         Assert.False(queryResult.HasExceptions, string.Join("; ", queryResult.ExceptionMessages));
                         return (commandResult.IsAuthorized, command.AppendedEvents.Count, queryResult.IsAuthorized, queryResult.Data is InvoiceSummary);
                     }

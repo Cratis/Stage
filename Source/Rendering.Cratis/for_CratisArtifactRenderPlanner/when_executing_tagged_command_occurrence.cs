@@ -35,7 +35,7 @@ public class when_executing_tagged_command_occurrence : a_generated_application
             public async Task should_preserve_tags_and_payload_occurrence()
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
-                await scenario.Execute(new IssueInvoice("First", "invoice-one"));
+                await scenario.Execute(new IssueInvoice("First", "invoice-one"), cancellationToken: TestContext.Current.CancellationToken);
                 var appended = Assert.Single(scenario.AppendedEvents);
                 Assert.True(appended.Result.IsSuccess);
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));

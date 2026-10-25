@@ -35,7 +35,7 @@ public class when_executing_validation_severity_policy : a_generated_application
             public async Task should_reject_without_appending(string description, ValidationResultSeverity severity)
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
-                var result = await scenario.Execute(new IssueInvoice(description, "invoice-one"));
+                var result = await scenario.Execute(new IssueInvoice(description, "invoice-one"), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Contains(result.ValidationResults, failure => failure.Severity == severity);
                 Assert.Empty(scenario.AppendedEvents);
             }

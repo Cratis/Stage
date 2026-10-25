@@ -35,7 +35,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                 var clock = new FixedClock();
                 scenario.Services.AddSingleton<TimeProvider>(clock);
                 scenario.AllowGeneration();
-                var result = await scenario.Execute(new PlaceOrder());
+                var result = await scenario.Execute(new PlaceOrder(), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 Assert.Single(scenario.AppendedEvents);
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
@@ -56,7 +56,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                 using var scenario = new CommandScenario<PlaceOrder>();
                 scenario.Clock(Receipt);
                 scenario.AllowGeneration();
-                var result = await scenario.Execute(new PlaceOrder());
+                var result = await scenario.Execute(new PlaceOrder(), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 Assert.Equal(Receipt.ToUnixTimeMilliseconds(), Decode(scenario.GeneratedValues.Last<OrderId>("orderId").Value[6..16]));
                 Assert.Equal(Receipt.ToUnixTimeMilliseconds(), Decode(scenario.GeneratedValues.Last<ReceiptId>("receiptId").Value[..10]));

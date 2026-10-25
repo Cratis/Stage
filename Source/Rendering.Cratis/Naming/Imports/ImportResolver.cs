@@ -2,31 +2,21 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 /// <summary>
 /// Decides the using directives of a generated C# file and spells each type it names by its short name wherever C#
 /// provably binds that name to the intended type, falling back to the fully qualified <c language="csharp">global::</c>
-/// name everywhere else. An import is added only when it cannot change what anything else in the file binds to: it may
-/// not bring a type named like a name the resolver does not spell, nor an extension member named like a member the file
-/// accesses. Spellings are decided against the final import set, and imports no short name needs are dropped again, so
-/// the result is deterministic for a given request.
+/// name everywhere else. A type a global using already imports needs no directive; any other namespace is imported with a
+/// <c language="csharp">using</c> directive above the file-scoped namespace, and only where that cannot be proven safe with
+/// a globally rooted directive inside it. An import is added only when it cannot change what anything else in the file
+/// binds to: it may not bring a type named like a name the resolver does not spell, nor an extension member named like a
+/// member the file accesses. Spellings are decided against the final import set, and imports no short name needs are
+/// dropped again, so the result is deterministic for a given request.
 /// </summary>
 internal static class ImportResolver
 {
-    // Members C# binds by pattern rather than by an explicit call: awaiting, iterating, deconstructing, collection
-    // initializers and query expressions can each pick up an extension member a new import brings into scope.
-    static readonly ImmutableHashSet<string> _patternMembers =
-    [
-        "Add", "Cast", "Deconstruct", "Dispose", "DisposeAsync", "GetAsyncEnumerator", "GetAwaiter", "GetEnumerator", "GetPinnableReference",
-        "GroupBy", "GroupJoin", "Join", "OrderBy", "OrderByDescending", "Select", "SelectMany", "ThenBy", "ThenByDescending", "Where"
-    ];
-
-    // Contextual keywords a generated file writes as identifiers; a type of one of these names would rebind them.
-    static readonly ImmutableHashSet<string> _contextualNames = ["dynamic", "field", "managed", "nameof", "nint", "notnull", "nuint", "unmanaged", "value", "var"];
-
     /// <summary>
     /// Resolves a file against the checked-in framework name catalog.
     /// </summary>
@@ -52,75 +42,29 @@ internal static class ImportResolver
             };
         }
 
-        var scope = new NameScope(request, catalog);
-        var imported = new HashSet<string>(StringComparer.Ordinal);
-        var unspelled = request.PinnedNames.Concat(_contextualNames).ToHashSet(StringComparer.Ordinal);
-        var accessed = request.MemberAccessNames.Concat(_patternMembers).ToHashSet(StringComparer.Ordinal);
-        var chosen = references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal)
-            .Where(@namespace => CanImport(scope, @namespace, imported, unspelled, accessed))
-            .Order(StringComparer.Ordinal)
-            .ToList();
-        while (true)
+        var file = new FileImports(new NameScope(request, catalog), catalog, request, references);
+        var kept = required.Where(file.NeedsRequired).ToArray();
+        var top = file.Settle([], [.. kept, .. references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Where(file.CanImportAtTop)], kept, out _);
+        var spellings = file.Spell([], top);
+        var unresolved = references.Where(reference => spellings[reference] == reference.Qualified)
+            .Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Where(file.CanImportInside).ToArray();
+        List<string> inner = [];
+        if (unresolved.Length > 0)
         {
-            var imports = imported.Concat(chosen).ToArray();
-            var spellings = references.ToImmutableDictionary(reference => reference, reference => Spell(scope, reference, imports));
-            var used = chosen.Where(@namespace => references.Any(reference => reference.Namespace == @namespace && spellings[reference] != reference.Qualified)).ToList();
-            if (used.Count == chosen.Count)
+            var innerTop = file.Settle(unresolved, top, kept, out var innerImports);
+
+            // An import inside the namespace outranks every enclosing scope, so it may hide a name that already binds
+            // outside it. Keep it only when nothing spelled short before loses its short spelling.
+            var withInner = file.Spell(innerImports, innerTop);
+            if (spellings.All(entry => entry.Value == entry.Key.Qualified || withInner[entry.Key] != entry.Key.Qualified))
             {
-                return new([.. chosen.Order(StringComparer.Ordinal)], spellings)
-                {
-                    TopLevelUsings = [.. required.Order(StringComparer.Ordinal)]
-                };
+                (inner, top, spellings) = (innerImports, innerTop, withInner);
             }
-
-            chosen = used;
         }
-    }
 
-    static bool CanImport(NameScope scope, string @namespace, HashSet<string> imported, HashSet<string> unspelled, HashSet<string> accessed)
-    {
-        if (@namespace.Length == 0 || imported.Contains(@namespace) || scope.Encloses(@namespace) || !scope.Knows(@namespace)) return false;
-
-        // Resolver directives start with global::. Enclosing namespace prefixes cannot hide them,
-        // but retain the conservative check for a type at the global namespace's first segment.
-        if (scope.HidesImport(@namespace.Split('.')[0])) return false;
-        if (scope.ExtensionNames(@namespace).Any(accessed.Contains)) return false;
-        return !scope.TypeNames(@namespace).Any(name => unspelled.Contains(name) ||
-            (name.EndsWith("Attribute", StringComparison.Ordinal) && unspelled.Contains(name[..^"Attribute".Length])));
-    }
-
-    static string Spell(NameScope scope, TypeReference reference, IReadOnlyCollection<string> imports)
-    {
-        if (SyntaxFacts.GetContextualKeywordKind(reference.Name) != SyntaxKind.None) return reference.Qualified;
-        return reference.Context switch
+        return new([.. inner.Order(StringComparer.Ordinal)], spellings)
         {
-            ReferenceContext.Attribute => Attribute(scope, reference, imports),
-            ReferenceContext.NameOf when scope.ValueNames.Contains("nameof") => reference.Qualified,
-            ReferenceContext.Expression or ReferenceContext.NameOf when scope.ValueNames.Contains(reference.Name) => reference.Qualified,
-            _ => Binds(scope, reference.Name, reference, imports) ? Identifiers.EscapeKeyword(reference.Name) : reference.Qualified
+            TopLevelUsings = [.. top.Order(StringComparer.Ordinal)]
         };
     }
-
-    // [Key] is looked up both as Key and as KeyAttribute; [KeyAttribute] both as KeyAttribute and as KeyAttributeAttribute.
-    // A spelling is used only when its other candidate binds to nothing at all.
-    static string Attribute(NameScope scope, TypeReference reference, IReadOnlyCollection<string> imports)
-    {
-        const string suffix = "Attribute";
-        if (reference.Name.Length > suffix.Length && reference.Name.EndsWith(suffix, StringComparison.Ordinal))
-        {
-            var stem = reference.Name[..^suffix.Length];
-            if (SyntaxFacts.GetKeywordKind(stem) == SyntaxKind.None && SyntaxFacts.GetContextualKeywordKind(stem) == SyntaxKind.None &&
-                scope.Find(stem, reference.Arity, imports, reference) == NameLookup.Nothing && Binds(scope, reference.Name, reference, imports))
-            {
-                return stem;
-            }
-        }
-
-        return scope.Find($"{reference.Name}{suffix}", reference.Arity, imports, reference) == NameLookup.Nothing && Binds(scope, reference.Name, reference, imports)
-            ? Identifiers.EscapeKeyword(reference.Name)
-            : reference.Qualified;
-    }
-
-    static bool Binds(NameScope scope, string name, TypeReference reference, IReadOnlyCollection<string> imports) =>
-        scope.Find(name, reference.Arity, imports, reference) == NameLookup.Target;
 }

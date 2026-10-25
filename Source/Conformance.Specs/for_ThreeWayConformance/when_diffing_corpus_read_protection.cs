@@ -30,7 +30,20 @@ public class when_diffing_corpus_read_protection : Specification
         // Golden application display names are not always scaffold identifiers; preserve all command identities.
         var model = ExecutableSemanticModel.Create(vector.Model.LanguageVersion, vector.Model.SemanticVersion, vector.Model.Application with { Name = "CorpusApp" });
         if (SemanticExecutionPlan.Compile(model, []).Plan is not { } execution) return;
-        var plan = CratisRendering.Plan(model, execution, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("CorpusApp", "CorpusApp"));
+        var source = conformance_source_bodies.Compile(vector);
+        Assert.Null(source.Problem);
+        var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
+        var profile = CratisRendering.CreateProfile(source.Loaded?.Model.Application.Name ?? model.Application.Name, new("CorpusApp", "CorpusApp"), null, canonical_strings_catalog.Files, "en");
+        var request = source.Loaded is { } loaded
+            ? new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, scope)
+            {
+                ImplementationRequirements = loaded.ImplementationRequirements,
+                ImplementationContents = loaded.ImplementationContents,
+                AttachmentDiagnostics = loaded.AttachmentDiagnostics,
+                TypedContextDescriptors = loaded.TypedContextDescriptors
+            }
+            : new ArtifactRenderRequest(model, execution, profile, scope);
+        var plan = new CratisArtifactRenderPlanner().Plan(request);
         if (vector.Name == "ProtectedCommandReadsCorpus.V25") Assert.True(plan.Success, string.Join('\n', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
         if (!plan.Success) return; // Refused models have no generated commands to compare.
 

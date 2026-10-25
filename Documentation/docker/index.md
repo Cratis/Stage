@@ -166,7 +166,7 @@ application's own outbox, never to its event log, including supported outbound e
 application receives it through its inbox when the two run against the same Chronicle kernel. Foreign
 events are registered with the store they come from, and the application's store is subscribed to that store's
 outbox: what arrives in the inbox joins the world, sets off its captures and reactions, and what they append reaches
-the event log. Foreign events also still arrive through seeds, and captures do not poll external sources. A restart
+the event log. The origin store need not be running first: Chronicle creates it when the foreign event is registered and starts delivering once the application that owns it publishes, so nothing arrives from an origin until that application runs against the same kernel. Run the applications of a project together, pinning each one's event store name (`STAGE_EVENT_STORE`) to the name its consumers write after `from`. Foreign events also still arrive through seeds, and captures do not poll external sources. A restart
 does not replay the inbox into the world, so start a fresh session after restarting a running host. Unsupported public-projection shapes still refuse the affected command without appending facts.
 Because the event log holds no publication, a restart over a log is rebuilt without the former `World rebuild refused` stop for local publications.
 The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters

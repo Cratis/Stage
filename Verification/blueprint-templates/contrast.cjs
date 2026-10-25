@@ -28,12 +28,14 @@ function formatViolations(violations) {
     return violations.map(violation => `${violation.id}: ${violation.nodes.map(describe).slice(0, 4).join(', ')}`);
 }
 
+// Returns the formatted violations and how many elements axe judged, so a pass that judged nothing is visible.
 async function contrast(page) {
-    const violations = await page.evaluate(async () => {
+    const { violations, checked } = await page.evaluate(async () => {
         const result = await window.axe.run(document.body, { runOnly: { type: 'rule', values: ['color-contrast'] } });
-        return result.violations;
+        const nodes = rule => rule.nodes.length;
+        return { violations: result.violations, checked: [...result.passes, ...result.incomplete, ...result.violations].map(nodes).reduce((sum, count) => sum + count, 0) };
     });
-    return formatViolations(violations);
+    return { violations: formatViolations(violations), checked };
 }
 
 module.exports = { show, schemes, formatViolations, contrast };

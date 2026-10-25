@@ -65,11 +65,15 @@ const screens = [...readFileSync(playPath, 'utf8').matchAll(/^\s*screen\s+(\w+)\
         if (contrastScreen) {
             for (const scheme of schemes) {
                 const path = `live.blueprint.${name}.${contrastScreen.screen}.${scheme}.contrast`;
-                await show(page, baseUrl, contrastScreen, scheme);
-                const violations = await contrast(page);
-                violations.length === 0
-                    ? record(path, 'passed', 'color-contrast (WCAG AA)')
-                    : block(path, violations.join(' | '));
+                try {
+                    await show(page, baseUrl, contrastScreen, scheme);
+                    const { violations, checked } = await contrast(page);
+                    if (checked === 0) block(path, 'color-contrast judged no element');
+                    else if (violations.length === 0) record(path, 'passed', `color-contrast (WCAG AA), ${checked} elements`);
+                    else block(path, violations.join(' | '));
+                } catch (error) {
+                    block(path, `the ${scheme} color-contrast check could not run: ${error.message}`);
+                }
             }
         } else {
             block(`live.blueprint.${name}.contrast`, 'no rendered screen is available for the light and dark color-contrast checks');

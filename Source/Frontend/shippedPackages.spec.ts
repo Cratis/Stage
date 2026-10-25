@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { coreComponents, corePackageManifest } from '@cratis/scene.react';
+import { cratisComponentsPackageManifest } from '@cratis/scene.components/runtime';
 import { primeReactPackageManifest } from '@cratis/scene.primereact';
 import { defaultBlueprintManifest } from '@cratis/scene.blueprint.default';
 
@@ -47,13 +48,13 @@ const core = {
 };
 
 describe('the shipped packages document', () => {
-    const expected = `${JSON.stringify([core, primeReactPackageManifest, defaultBlueprintManifest].map(shipped), null, 2)}\n`;
+    const expected = `${JSON.stringify([core, cratisComponentsPackageManifest, primeReactPackageManifest, defaultBlueprintManifest].map(shipped), null, 2)}\n`;
 
     if (process.env.STAGE_UPDATE_SHIPPED_PACKAGES) {
         writeFileSync(documentPath, expected);
     }
 
-    it('matches the manifests of core, PrimeReact and the default blueprint', () => {
+    it('matches the manifests of core, Cratis.Components, PrimeReact and the default blueprint', () => {
         expect(readFileSync(documentPath, 'utf8')).toBe(expected);
     });
 });

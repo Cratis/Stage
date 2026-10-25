@@ -8,7 +8,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.given;
 
 public class a_universal_projection : a_projected_specification
 {
-    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId")
+    protected static SemanticExecutionPlan CreatePlan(bool all, string expected = "audit-2", string mapping = "$eventSourceId", bool expectRejection = false, bool rejectCommand = false)
     {
         var unrelated = all ? $$"""
                     then readmodel InvoiceView
@@ -17,6 +17,28 @@ public class a_universal_projection : a_projected_specification
             """ : """
                     then no readmodel InvoiceView for "audit-2"
             """;
+        var scenario = expectRejection ? $$"""
+                  specification ExpectingRejection
+                    when RegisterInvoice
+                      invoiceId = "invoice-1"
+                      description = "{{(rejectCommand ? string.Empty : "North")}}"
+                    then error "{{(rejectCommand ? "Description is required" : "A rejection was expected")}}"
+            """ : $$"""
+                  specification RegisteringAnInvoice
+                    given AuditRecorded
+                      for "audit-2"
+                      message = "unrelated"
+                    when RegisterInvoice
+                      invoiceId = "invoice-1"
+                      description = "North"
+                    then InvoiceRegistered
+                      for "invoice-1"
+                      description = "North"
+                    then readmodel InvoiceView
+                      invoiceId = "invoice-1"
+                      lastSeen = "{{(mapping == "\"fixed\"" ? "fixed" : "invoice-1")}}"
+            {{unrelated}}
+            """;
         var source = $$"""
             module Billing
               feature Invoices
@@ -24,6 +46,7 @@ public class a_universal_projection : a_projected_specification
                   command RegisterInvoice
                     invoiceId String identifier
                     description String
+            {{(rejectCommand ? "        validate\n          description not empty message \"Description is required\"" : string.Empty)}}
                     produces InvoiceRegistered
                       for invoiceId
                       description = description
@@ -37,20 +60,7 @@ public class a_universal_projection : a_projected_specification
                       message = message
                   event AuditRecorded
                     message String
-                  specification RegisteringAnInvoice
-                    given AuditRecorded
-                      for "audit-2"
-                      message = "unrelated"
-                    when RegisterInvoice
-                      invoiceId = "invoice-1"
-                      description = "North"
-                    then InvoiceRegistered
-                      for "invoice-1"
-                      description = "North"
-                    then readmodel InvoiceView
-                      invoiceId = "invoice-1"
-                      lastSeen = "invoice-1"
-            {{unrelated}}
+            {{scenario}}
                 slice StateView Lookup
                   readmodel InvoiceView
                     invoiceId String

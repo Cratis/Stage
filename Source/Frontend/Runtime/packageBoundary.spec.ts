@@ -42,12 +42,40 @@ describe('the runtime package boundary', () => {
             }
             inspect(source);
         }
-        for (const entry of [runtime.exports['.'], runtime.exports['./vite']]) {
+        for (const entry of [runtime.exports['.'], runtime.exports['./primereact'], runtime.exports['./vite']]) {
             expect(existsSync(entry.import)).toBe(true);
             expect(existsSync(entry.types)).toBe(true);
         }
         expect(readFileSync(runtime.exports['./styles.css'], 'utf8').length).toBeGreaterThan(0);
         expect(readFileSync(runtime.exports['.'].import, 'utf8')).toMatch(/import ['"]\.\/app\.css['"]/);
+    });
+
+    it('does not auto-install PrimeReact peers for a default application', () => {
+        for (const name of Object.keys(runtime.peerDependencies).filter(name => /prime/i.test(name))) {
+            const meta = runtime.peerDependenciesMeta as Record<string, { optional?: boolean } | undefined>;
+            expect(meta[name]?.optional, name).toBe(true);
+        }
+    });
+
+    it('has no static or dynamic PrimeReact or theme import reachable from the root entry', () => {
+        const visited = new Set<string>();
+        function inspect(filename: string) {
+            if (visited.has(filename) || !filename.endsWith('.js')) return;
+            visited.add(filename);
+            const source = ts.createSourceFile(filename, readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+            function visit(node: ts.Node) {
+                const specifier = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier :
+                    ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword ? node.arguments[0] : undefined;
+                if (specifier && ts.isStringLiteral(specifier)) {
+                    const reference = specifier.text;
+                    expect(reference, filename).not.toMatch(/prime|stageTheme/i);
+                    if (reference.startsWith('.')) inspect(resolve(dirname(filename), reference));
+                }
+                ts.forEachChild(node, visit);
+            }
+            visit(source);
+        }
+        inspect(resolve(runtime.exports['.'].import));
     });
 
     it('has one installed instance of React, Arc and each Scene registry peer throughout the workspace tree', () => {

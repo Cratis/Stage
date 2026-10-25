@@ -426,7 +426,7 @@ public class when_comparing_projection_property_name_admission
 
     [Theory]
     [MemberData(nameof(NestedEventMembers))]
-    public async Task should_reject_cross_slice_events_referenced_only_below_the_root(string scope, string propertyName)
+    public async Task should_run_what_the_renderer_refuses_for_cross_slice_events_referenced_only_below_the_root(string scope, string propertyName)
     {
         var source = """
             type ProjectNote
@@ -523,8 +523,9 @@ public class when_comparing_projection_property_name_admission
                 diagnostic.Artifact == plan.Projections.Values.Single().Id);
         }
 
-        // Child/nested execution is not admitted even when its generated C# compiles.
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
+        // The run emits its own event types, so it does not depend on the generated C# names the renderer refuses; it runs the specification either way.
+        // Nested records are still not run; child collections are.
+        Assert.Equal(scope == "nested" ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed, executed.Outcome);
 
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(
@@ -594,8 +595,7 @@ public class when_comparing_projection_property_name_admission
         var specification = plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var executed = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
 
-        // Child projections are renderable, but per-run execution currently admits only scalar read models.
-        // The renderer's generated child-id integration spec exercises the actual Chronicle projection.
+        // A child Id is not the root document key: both independent consumers must admit it.
         Assert.True(rendered.Success, string.Join("; ", rendered.Diagnostics));
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(
@@ -609,9 +609,10 @@ public class when_comparing_projection_property_name_admission
             : SemanticStateViewArtifactRenderer.Render(slice, context))
             .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context)));
         Assert.Empty(RenderedOutput.Errors(files));
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, executed.Outcome);
-        Assert.Equal(StageExecutionCapability.Projection, executed.Unsupported?.Capability);
-        Assert.Contains("scalar read model", executed.Unsupported?.Details ?? "", StringComparison.Ordinal);
+        var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
+        Assert.True(reference.Passed, string.Join("; ", reference.Failures));
+        Assert.True(executed.Outcome == SemanticSpecificationOutcome.Passed, $"Actual: {executed.Outcome}({executed.Unsupported?.Capability}): {executed.Unsupported?.Details}");
+        Assert.Null(executed.Unsupported);
     }
 
     static ExecutableSemanticModel Compile(string source)

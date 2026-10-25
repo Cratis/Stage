@@ -14,18 +14,19 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    const string FrozenDigest = "5ac84d61ab52f46dc731cacadabd4fef780daed276acc5c26d95ab93b17c424a";
+    // Re-frozen for #437: only the Matching package pin and host reference are added.
+    const string FrozenDigest = "8a2ff497b626c46a26773cb8cb46b15c710cbc4edb940bfdd6a9f83e157b1475";
 
-    const string FrozenRepositoryRootDigest = "1fe8c906e8cdf414c2315262e42d4067eeb217591c072174cba0cc2415e8d2d8";
+    const string FrozenRepositoryRootDigest = "f2705e16c09f84106134dfb4564d3b1d830eb1f10fe4e0648efd129f209ef244";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("792820aa673de20e699ced66d143c826441aa2bfa8002fb2d14c4530cfb5aa78");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("19ce148c0d3128edae958d34b45dbfb68dd4d19cfe45277ca24d273dd8cf2779");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("73f6cd581aa5ede6351071c7e16dc463eb5bbfaa1cad5d48a6a203b80eafa12b");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8100938a3df827b3da55c7fbf560eff871ccee2333e3c2aeca253902e9ccea5a");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false)
     {

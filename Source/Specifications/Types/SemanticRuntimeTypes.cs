@@ -7,7 +7,9 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
+using Cratis.Stage.Specifications.Comparison;
 
 namespace Cratis.Stage.Specifications.Types;
 
@@ -32,6 +34,8 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _events = [];
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
+    readonly Dictionary<SemanticId, Type> _composites = [];
+    readonly HashSet<SemanticId> _resolving = [];
 
     internal static object? ConvertValue(SemanticValue value, Type target) =>
         ConvertUnderlying(value, Nullable.GetUnderlyingType(target) ?? target);
@@ -49,6 +53,8 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         _ => throw new UnsupportedSemanticMapping()
     };
 
+    internal static string ProductMember(SemanticProjectionProduct product) => char.ToLowerInvariant(product.Name[0]) + product.Name[1..];
+
     internal Type ForCommand(SemanticCommand command)
     {
         if (!_commands.TryGetValue(command.Id, out var type))
@@ -64,7 +70,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     {
         if (!_readModels.TryGetValue(readModel.Id, out var type))
         {
-            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
             _readModels.Add(readModel.Id, type);
         }
 
@@ -79,13 +85,54 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         foreach (var value in fact.Values)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
-            var converted = property.Type.Kind == SemanticTypeReferenceKind.CompositeType
-                ? JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(value.Value, property.Type, new SemanticApplicationContext(plan)))
-                : ConvertValue(value.Value, Resolve(property.Type));
+            var converted = ReadModelValue(value.Value, property.Type);
             type.GetProperty(property.Name)!.SetValue(instance, converted);
         }
 
+        // Chronicle's Add and Subtract read one stored event property, so a product the projections add is carried by the event itself.
+        foreach (var product in Products(contract))
+        {
+            if (fact.Values.SingleOrDefault(value => value.TargetProperty == product.Left.Id)?.Value is not SemanticNumberValue left ||
+                fact.Values.SingleOrDefault(value => value.TargetProperty == product.Right.Id)?.Value is not SemanticNumberValue right)
+            {
+                continue;
+            }
+
+            if (product.Primitive == SemanticPrimitiveType.DecimalNumber)
+            {
+                type.GetProperty(ProductMember(product))!.SetValue(instance, left.Value * right.Value);
+            }
+            else
+            {
+                type.GetProperty(ProductMember(product))!.SetValue(instance, checked(decimal.ToInt64(left.Value) * decimal.ToInt64(right.Value)));
+            }
+        }
+
         return instance;
+    }
+
+    internal IReadOnlyList<SemanticProjectionProduct> Products(SemanticEventContract contract) =>
+        SemanticProjectionProducts.For(contract, new SemanticApplicationContext(plan));
+
+    /// <summary>
+    /// Materializes every event contract that has a runtime type; one holding a recursive composite is left out, and a run that needs it is refused on resolving it.
+    /// </summary>
+    /// <returns>The runtime event types.</returns>
+    internal Type[] MaterializableEvents()
+    {
+        var types = new List<Type>();
+        foreach (var eventContract in plan.Events.Keys)
+        {
+            try
+            {
+                types.Add(For(eventContract));
+            }
+            catch (SemanticProjectionLoweringRefused)
+            {
+            }
+        }
+
+        return [.. types];
     }
 
     internal Type For(SemanticId eventContract)
@@ -96,13 +143,47 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
         }
 
         var contract = plan.Events[eventContract];
-        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => Resolve(property.Type)));
+        var type = _factory.CreateEventType("Stage.Semantic.Events", $"Event_{_events.Count}", contract.ContractId.ToString(), contract.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type))
+            .Concat(Products(contract).Select(product => KeyValuePair.Create(ProductMember(product), product.Primitive == SemanticPrimitiveType.DecimalNumber ? typeof(decimal) : typeof(long))))
+            .ToDictionary());
         _events.Add(eventContract, type);
+        return type;
+    }
+
+    internal object? ReadModelValue(SemanticValue value, SemanticTypeReference reference) =>
+        reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType
+            ? JsonSerializer.Deserialize(SemanticRunContext.Canonical(value, reference, new SemanticApplicationContext(plan)), ResolveReadModel(reference))
+            : ConvertValue(value, ResolveReadModel(reference));
+
+    internal Type ResolveReadModel(SemanticTypeReference reference)
+    {
+        if (reference.IsCollection) return ResolveReadModel(reference with { IsCollection = false, IsOptional = false }).MakeArrayType();
+        if (reference.Kind != SemanticTypeReferenceKind.CompositeType) return Resolve(reference);
+        if (!_composites.TryGetValue(reference.Target, out var type))
+        {
+            if (!_resolving.Add(reference.Target))
+            {
+                throw new SemanticProjectionLoweringRefused(new NotSupportedException("A recursive composite type cannot be materialized as a runtime type."));
+            }
+
+            var composite = plan.Model.Application.Types.Single(composite => composite.Id == reference.Target);
+            try
+            {
+                type = _factory.CreateReadModelType("Stage.Semantic.Composites", $"Composite_{_composites.Count}", composite.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            }
+            finally
+            {
+                _resolving.Remove(reference.Target);
+            }
+
+            _composites.Add(reference.Target, type);
+        }
         return type;
     }
 
     Type Resolve(SemanticTypeReference reference)
     {
+        if (reference.IsCollection || reference.Kind == SemanticTypeReferenceKind.CompositeType) return typeof(JsonElement);
         var primitive = reference.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == reference.Target).Primitive
             : reference.Primitive;

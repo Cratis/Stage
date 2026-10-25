@@ -17,7 +17,7 @@ namespace Cratis.Stage.Semantics;
 /// Maintains the isolated semantic world for one Stage session.
 /// </summary>
 [IgnoreConvention]
-internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRuntimeStatus, IDisposable
+internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForeignFacts, ISemanticRuntimeStatus, IDisposable
 {
     static readonly TimeSpan _appendTimeout = TimeSpan.FromSeconds(15);
     readonly IAppendSemanticFacts _appender;
@@ -78,6 +78,30 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticRunti
             var decision = Prepare(command, payload, principal, occurrence);
 
             return validateOnly ? decision(_world) : await Commit(decision, occurrence);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task Receive(SemanticFact fact, SemanticCommandOccurrence occurrence)
+    {
+        await _gate.WaitAsync();
+        try
+        {
+            InitializeWorld();
+            if (FaultReason is not null)
+            {
+                throw new InvalidOperationException(FaultReason);
+            }
+
+            var result = await Commit(world => _evaluator.ExtendWorld(Plan, world, [fact]), occurrence);
+            if (result is not SemanticAccepted)
+            {
+                throw new InvalidOperationException($"A foreign event could not be settled: {result}");
+            }
         }
         finally
         {

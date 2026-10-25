@@ -126,7 +126,7 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
 
         // A published public event leaves through the outbox: Chronicle refuses it in the event log, and the outbox is what other applications subscribe to.
         var published = facts.Where(fact => SemanticPublicEvents.IsPublished(plan.Events[fact.EventContract])).ToArray();
-        var privateFacts = facts.Where(fact => !SemanticPublicEvents.IsPublished(plan.Events[fact.EventContract])).ToArray();
+        var privateFacts = facts.Where(fact => !SemanticPublicEvents.IsPublished(plan.Events[fact.EventContract]) && !SemanticPublicEvents.IsForeign(plan.Events[fact.EventContract])).ToArray();
 
         // The event log decides first: its tail guard is what a concurrent writer trips, and nothing may be published for facts that were never appended.
         if (privateFacts.Length > 0 || scope is not null)

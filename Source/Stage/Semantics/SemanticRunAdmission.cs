@@ -66,7 +66,7 @@ public static class SemanticRunAdmission
 
     /// <summary>
     /// Says how the live runtime runs a public-event or translation construct without an external integration: public events
-    /// are appended to the application's own outbox, and foreign events arrive through seeds.
+    /// are appended to the application's own outbox, and foreign events arrive through seeds or its inbox.
     /// </summary>
     /// <param name="application">The application the feature belongs to.</param>
     /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
@@ -80,7 +80,7 @@ public static class SemanticRunAdmission
 
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
         {
-            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation is not executed in the sandbox: foreign events arrive only through seeds; captures do not poll external sources.";
+            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources.";
         }
 
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&

@@ -163,9 +163,11 @@ and `source events` captures (`STAGE-ESM-033`), directed Translate slices and ca
 as `renderedAround` entries on `/stage/semantic/admission`, with a startup warning for each artifact. They do
 not block unrelated local commands or queries. Public events are **published to the outbox**: a local public event is registered as public and appended to the
 application's own outbox, never to its event log, including supported outbound event projections. Another
-application receives it through its inbox only when the two run against the same Chronicle kernel. Inbound
-translation is not executed: foreign events arrive only through seeds, and captures do not poll external
-sources. Unsupported public-projection shapes still refuse the affected command without appending facts.
+application receives it through its inbox when the two run against the same Chronicle kernel. Foreign
+events are registered with the store they come from, and the application's store is subscribed to that store's
+outbox: what arrives in the inbox joins the world, sets off its captures and reactions, and what they append reaches
+the event log. Foreign events also still arrive through seeds, and captures do not poll external sources. A restart
+does not replay the inbox into the world, so start a fresh session after restarting a running host. Unsupported public-projection shapes still refuse the affected command without appending facts.
 Because the event log holds no publication, a restart over a log is rebuilt without the former `World rebuild refused` stop for local publications.
 The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters
 (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity

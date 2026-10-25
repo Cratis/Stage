@@ -21,6 +21,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         "Directory.Build.targets",
         "Directory.Packages.props",
         "GeneratedPolicyRegistration.cs",
+        "GlobalUsings.cs",
         "MyApp.csproj",
         "MyApp.slnx",
         "Program.cs",
@@ -31,7 +32,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
 
     [Fact] void should_create_the_exact_backend_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_expectedPaths).ShouldBeTrue();
     [Fact] void should_not_emit_repository_files() => _first.Select(PathOf).Any(path => path.StartsWith(".github/", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
+    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "3").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_hashes() => _second.Select(input => input.Sha256).SequenceEqual(_first.Select(input => input.Sha256)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_bytes() => _second.Zip(_first).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
@@ -45,12 +46,13 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");
     [Fact] void should_enable_isolated_central_package_management_and_transitive_pins() => CentralPackageManagement().ShouldBeTrue();
     [Fact] void should_leave_all_package_references_unversioned() => UnversionedReferences().ShouldBeTrue();
-    [Fact] void should_pin_the_profile_contract_and_target_framework() => $"{_profile.Version}|{_profile.TargetFramework}".ShouldEqual("2|net10.0");
+    [Fact] void should_pin_the_profile_contract_and_target_framework() => $"{_profile.Version}|{_profile.TargetFramework}".ShouldEqual("3|net10.0");
     [Fact] void should_expose_only_the_verified_current_profile_as_public_static_surface() => PublicStaticProfileMethods().ShouldContainOnly("get_Current");
     [Fact] void should_emit_the_solution_without_a_guid() => SolutionSemantics().ShouldEqual("MyApp.csproj|False");
     [Fact] void should_emit_only_the_exact_package_versions() => PackageVersions().ShouldEqual(ExpectedPackageVersions());
     [Fact] void should_reference_all_specification_packages_only_in_debug() => TestingPackagesAreDebugOnly().ShouldBeTrue();
     [Fact] void should_not_emit_a_separate_specifications_project() => _first.Select(PathOf).Count(path => path.EndsWith(".csproj", StringComparison.Ordinal)).ShouldEqual(1);
+    [Fact] void should_emit_only_the_required_application_globals() => Content("GlobalUsings.cs").ShouldEqual("global using Cratis.Chronicle.Keys;\nglobal using System.Collections.Immutable;\nglobal using System.Reactive.Subjects;\n");
     [Fact] void should_keep_the_host_active_in_debug() => Content("Program.cs").ShouldNotContain("#if");
     [Fact] void should_disable_reverse_extraction_of_the_authoritative_source_model_in_every_project() => XDocument.Parse(Content("Directory.Build.props")).Root!.Element("PropertyGroup")!.Element("CratisEmbeddedScreenplayEnabled")!.Value.ShouldEqual("false");
     [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");

@@ -9,6 +9,8 @@ Keep your adapters and styling separate from generated slice code by putting the
 Scaffold files, including `Program.cs`, the project files, `Directory.Packages.props`, and the frontend shell,
 belong to you after first run. Subsequent scoped plans exclude them. An application-scope plan includes them
 again, so check your publisher's overwrite policy before applying one to an existing application.
+`GlobalUsings.cs` follows the same policy: application plans supply its original Chronicle keys, immutable collections,
+and reactive subjects imports even after edits or deletion; scoped plans leave it alone.
 
 When the caller plans with `RepositoryRoot = true`, the scaffold also includes `.github/workflows/build.yml` and
 `.github/dependabot.yml`. They are scaffold files like the rest: edit them freely, and exclude the scaffold from later

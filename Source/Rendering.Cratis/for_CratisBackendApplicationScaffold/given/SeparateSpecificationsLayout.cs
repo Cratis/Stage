@@ -17,7 +17,7 @@ internal static class SeparateSpecificationsLayout
 
     internal static ImmutableArray<ArtifactRenderInput> Restore(ImmutableArray<ArtifactRenderInput> inputs, string project, string? rootNamespace = null)
     {
-        var restored = inputs.Select(input => Restore(input, project)).ToList();
+        var restored = inputs.Where(input => input.Name != Prefix + "GlobalUsings.cs").Select(input => Restore(input, project)).ToList();
         var version = inputs[0].Version;
         restored.Add(CratisArtifactRenderInput.CreateText($"{project}.Specs/{project}.Specs.csproj", version, SpecificationsProject(project, rootNamespace ?? project)));
         return [.. restored.OrderBy(input => input.Name, StringComparer.Ordinal)];
@@ -26,7 +26,7 @@ internal static class SeparateSpecificationsLayout
     // Restores both the separate specifications project and the former license header in planned output.
     internal static IEnumerable<PlannedArtifact> RestoreWithLicenseHeader(IEnumerable<PlannedArtifact> artifacts, string project, string rootNamespace)
     {
-        var restored = artifacts.Select(artifact =>
+        var restored = artifacts.Where(artifact => artifact.RelativePath != "GlobalUsings.cs").Select(artifact =>
         {
             if (artifact.Kind != PlannedArtifactKind.Text) return artifact;
             var input = CratisArtifactRenderInput.CreateText(artifact.RelativePath, "1", Encoding.UTF8.GetString(artifact.Bytes.AsSpan()));

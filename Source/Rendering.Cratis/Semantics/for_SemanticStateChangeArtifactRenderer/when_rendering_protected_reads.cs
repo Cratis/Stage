@@ -13,8 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateChangeArtifac
 
 public class when_rendering_protected_reads : Specification
 {
-    // OneOf.OneOf is named like its namespace, so the resolver keeps it qualified.
-    const string Union = "global::OneOf.OneOf<EventForEventSourceId, ValidationResult>";
+    // OneOf.OneOf is named like its namespace; with type arguments the name cannot bind to the namespace, so it is short.
+    const string Union = "OneOf<EventForEventSourceId, ValidationResult>";
     string _code = null!;
 
     void Because()
@@ -33,6 +33,7 @@ public class when_rendering_protected_reads : Specification
     [Fact] void should_map_the_read_path_into_the_event() => _code.ShouldContain("new Taken(current.Value)");
     [Fact] void should_move_the_requirement_out_of_the_validator() => _code.ShouldNotContain("RuleFor(_ => _).Must(command => ");
     [Fact] void should_commit_nothing_for_a_decision_without_an_outcome() => _code.ShouldContain(".FromT0([])");
+    [Fact] void should_import_the_union_namespace() => _code.ShouldContain("using OneOf;");
 
     string Declaration(string command)
     {

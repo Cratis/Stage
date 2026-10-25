@@ -1,6 +1,6 @@
 {
   "corpusVersion": "4.244.0",
-  "minimumVectorCount": 75,
+  "minimumVectorCount": 77,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "ScreenCompositionCorpus": "Scene and screen-composition vectors, not executable semantic models; for_ScreenCompositionCorpus covers them.",
@@ -134,7 +134,6 @@
         { "code": "STAGE-IMPL-002", "kind": "command", "artifact": "sem1:dbb213aa0c263cef8ee054fb7a54e397661cd18000c82044ab3ef6d4ca94d3f2", "issue": 316 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-005", "artifact": "sem1:e31dac28a86ad050420600ae02c96075e9fc2762b192e835b9e21771ed9e6105", "issue": 409 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:dbb213aa0c263cef8ee054fb7a54e397661cd18000c82044ab3ef6d4ca94d3f2", "issue": 629 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:9ada5c512a67039ee2f8b307ab90b96a7e1031e0e84b1b0eff16ad88367ed9fb", "issue": 409 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:b39ec6dfec6fb22472a570691afbf9ea24452a45ffd57decfd8573c82cfd55e1", "issue": 409 },
         { "code": "STAGE-IMPL-002", "artifact": "sem1:dbb213aa0c263cef8ee054fb7a54e397661cd18000c82044ab3ef6d4ca94d3f2", "issue": 316 } ] }
@@ -388,7 +387,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 501 },
@@ -442,7 +440,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V12": {
       "loader": { "outcome": "supported" },
@@ -511,7 +510,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 501 },
@@ -565,7 +563,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V13": {
       "loader": { "outcome": "supported" },
@@ -634,7 +633,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005b", "issue": 501 },
@@ -688,7 +686,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V14": {
       "loader": { "outcome": "supported" },
@@ -758,7 +757,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -813,7 +811,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V15": {
       "loader": { "outcome": "supported" },
@@ -884,7 +883,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -939,7 +937,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V16": {
       "loader": { "outcome": "supported" },
@@ -1010,7 +1009,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1065,7 +1063,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V17": {
       "loader": { "outcome": "supported" },
@@ -1137,7 +1136,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1193,7 +1191,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V18": {
       "loader": { "outcome": "supported" },
@@ -1267,7 +1266,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000029f4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
@@ -1324,7 +1322,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V19": {
       "loader": { "outcome": "supported" },
@@ -1396,7 +1395,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1452,7 +1450,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V2": {
       "loader": { "outcome": "supported" },
@@ -1569,7 +1568,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1625,7 +1623,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V21": {
       "loader": { "outcome": "supported" },
@@ -1697,7 +1696,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1754,7 +1752,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V22": {
       "loader": { "outcome": "supported" },
@@ -1826,7 +1825,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -1883,7 +1881,8 @@
         { "code": "STAGE-ESM-026", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000032", "issue": 204 },
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
-        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 } ] }
+        { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" } ] }
     },
     "EsmGoldenVectors.V23": {
       "loader": { "outcome": "supported" },
@@ -1956,8 +1955,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -2015,6 +2012,7 @@
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" },
         { "code": "STAGE-IMPL-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 316 } ] }
     },
     "EsmGoldenVectors.V24": {
@@ -2088,8 +2086,6 @@
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000000b", "issue": 514 },
         { "code": "STAGE-ESM-005", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000003c", "issue": 513 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "issue": 629 },
-        { "code": "STAGE-ESM-006", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 629 },
         { "code": "STAGE-ESM-007", "artifact": "sem1:00000000000000000000000000000000000000000000000000000000000028b4", "issue": 58 },
         { "code": "STAGE-ESM-009", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000000050", "issue": 117 },
         { "code": "STAGE-ESM-010", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000005a", "issue": 501 },
@@ -2147,6 +2143,7 @@
         { "code": "STAGE-ESM-030", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000232c", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-030", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002333", "byDesign": "Chronicle reserves the stored name; frozen golden vector, Screenplay#893 PLAY0802 forbids it in current models; Stage refuses by decision on Stage#536" },
         { "code": "STAGE-ESM-032", "artifact": "sem1:0000000000000000000000000000000000000000000000000000000000002530", "issue": 212 },
+        { "code": "STAGE-ESM-053", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000000277e", "byDesign": "Stage does not allocate event-source identities for a destination-less production (Stage#511)" },
         { "code": "STAGE-IMPL-002", "artifact": "sem1:000000000000000000000000000000000000000000000000000000000001e07b", "issue": 316 } ] }
     },
     "EsmGoldenVectors.V25": {

@@ -30,12 +30,10 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
-                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
-                ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
-                ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
+                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "5.0.0"),
+                ("Cratis.Specifications.XUnit.v3", profile.CratisSpecificationsXUnitV3PackageVersion, "5.0.0"),
                 ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
-                ("xunit", profile.XunitPackageVersion, "2.9.3"),
-                ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
+                ("xunit.v3", profile.XunitV3PackageVersion, "3.2.2")
             ];
             foreach (var pin in pins)
             {

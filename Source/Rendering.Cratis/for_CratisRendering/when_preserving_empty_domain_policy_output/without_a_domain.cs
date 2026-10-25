@@ -23,10 +23,11 @@ public class without_a_domain : given.a_domain_policy_plan
 
         var qualified = QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices"));
 
-        // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
-        // These assertions confine the updated pins below to that one generated declaration change.
-        Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("8C7B38ABBD21DED65A68BAAEF4E69595AFBF11C21D573E5C1BAB31EA8A1A1292");
-        Digest(BeforeInitializerRename(qualified)).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+        // #767 moves the single generated fact into its owning for_* folder without changing its body.
+        // The complete previous pins are reproduced by reversing that path move. Restoring the initializer
+        // identifier still confines the difference between the pins below to that declaration change.
+        Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("A7BD9B9A620030222634B471B265EC96257A6A36E9F3E14D41FB099E70765AFC");
+        Digest(BeforeInitializerRename(qualified)).ShouldEqual("02656945C6DCB9DF26FEB6CF87FF07EE3A42AC617699E4B99CC65FD824040E57");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
     }
@@ -51,7 +52,7 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("F72648610254219C75E6EFCA82EEBB9030253CFFACE8DE14F2A4B344D3DD6BD2");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7C6DAA248974BA7DE0DD8F373CEF6D2C13C6C817B8C671117340E622BF45901D");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("1873F1E74FB67B6A54E2FDB40CB938A67C11A744F55DD4E18805DC5873C9989B");
 }
 #endif

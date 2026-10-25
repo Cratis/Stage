@@ -13,6 +13,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+// These facts change the carrier type and reset the publication history.
+[PerFactSpecificationLifecycle]
 public class when_publishing_translated_events : given.a_translation_application
 {
     const string First = "3fa85f64-5717-4562-b3fc-2c963f66afa6";

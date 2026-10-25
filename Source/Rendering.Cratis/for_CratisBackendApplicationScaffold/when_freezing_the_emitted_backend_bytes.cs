@@ -14,19 +14,20 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
 public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
-    // Re-frozen for #437: only the Matching package pin and host reference are added.
-    const string FrozenDigest = "8a2ff497b626c46a26773cb8cb46b15c710cbc4edb940bfdd6a9f83e157b1475";
+    // #767: inline Debug specs replace the separate project; native v3 dispatch, Release exclusions,
+    // dependencies and documented/CI invocation change together. Other scaffold bytes are unchanged.
+    const string FrozenDigest = "d5f47d777dd4f46db8c5f0f2bd548ed16425dcd17b4356dfd00bd5427cfe35c4";
 
-    const string FrozenRepositoryRootDigest = "f2705e16c09f84106134dfb4564d3b1d830eb1f10fe4e0648efd129f209ef244";
+    const string FrozenRepositoryRootDigest = "4860d17213bdb062913babddfb55be032843dc0babcfce249941e314242b4a9d";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("19ce148c0d3128edae958d34b45dbfb68dd4d19cfe45277ca24d273dd8cf2779");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(_first, beforePlacement: true).ShouldEqual("ad717f2c8a189b24a8de3271da1b0a44b2c72de380556957aed2441af3c76891");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("8100938a3df827b3da55c7fbf560eff871ccee2333e3c2aeca253902e9ccea5a");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(_first, previousPins: true).ShouldEqual("37bdfe9fd09edac8b33bcf4776073e249558a6867da88238455db3eaeef5185f");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false)
     {

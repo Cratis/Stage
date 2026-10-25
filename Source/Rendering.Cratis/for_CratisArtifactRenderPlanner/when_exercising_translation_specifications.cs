@@ -9,6 +9,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+// Each fact mutates the model before rendering and executing its own scenario.
+[PerFactSpecificationLifecycle]
 public class when_exercising_translation_specifications : given.a_translation_specification_application
 {
     const string OtherKey = "9fa85f64-5717-4562-b3fc-2c963f66afa9";
@@ -76,6 +78,22 @@ public class when_exercising_translation_specifications : given.a_translation_sp
             })]
         });
         await AssertionFails("when_publishing_a_packed_order");
+    }
+
+    [Fact]
+    async Task should_fail_when_the_emitted_event_source_does_not_match_the_expectation()
+    {
+        _model = Transform(_model, slice => slice.Name == "TrackShipments" ? slice with
+        {
+            Specifications = [.. slice.Specifications.Select(specification => specification with
+            {
+                ThenEvents = [.. specification.ThenEvents.Select(expected => expected with
+                {
+                    EventSource = expected.EventSource! with { Value = new SemanticTextValue("11111111-1111-1111-1111-111111111111") }
+                })]
+            })]
+        } : slice);
+        await AssertionFails("when_receiving_a_shipment");
     }
 
     [Fact]

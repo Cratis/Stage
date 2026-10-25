@@ -270,7 +270,7 @@ public class when_executing_performed_queries
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
-        Assert.Contains("throw new global::System.NotImplementedException(", rendered, StringComparison.Ordinal);
+        Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
     }

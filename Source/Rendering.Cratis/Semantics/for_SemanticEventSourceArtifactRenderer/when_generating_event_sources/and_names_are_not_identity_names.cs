@@ -19,17 +19,16 @@ public class and_names_are_not_identity_names : a_routed_command
     }
 
     [Fact] void should_preserve_the_existing_definition_bytes() => _definition.ShouldEqual("""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+        using Cratis.Chronicle.EventSources;
 
         namespace InvoiceApp.EventSources;
 
         /// <summary>
         /// Defines the account event source.
         /// </summary>
-        [global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute("stored-transactions")]
-        public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource;
+        [EventSource("Account")]
+        [EventStream("stored-transactions")]
+        public class AccountEventSource : IEventSource;
 
         """);
     [Fact] void should_preserve_the_literal_command_route() => _code.Contains("AccountEventSource>(\"stored-transactions\")", StringComparison.Ordinal).ShouldBeTrue();

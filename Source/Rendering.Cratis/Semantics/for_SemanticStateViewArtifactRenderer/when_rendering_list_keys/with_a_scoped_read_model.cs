@@ -27,5 +27,5 @@ public class with_a_scoped_read_model : for_SemanticCratisAdmission.given.a_quer
         _source = SemanticStateViewArtifactRenderer.Render(_context.Slice(_slice.Id), _context).Content;
     }
 
-    [Fact] void should_keep_the_list_filter_out_of_the_instance_key() => _source.ShouldNotContain("Cratis.Chronicle.Keys.KeyAttribute");
+    [Fact] void should_keep_the_list_filter_out_of_the_instance_key() => _source.ShouldNotContain("[Key]");
 }

@@ -17,5 +17,5 @@ public class when_the_arity_differs : given.a_framework_catalog
     void Because() => _result = ImportResolver.Resolve(Request(_scenario), _catalog);
 
     [Fact] void should_spell_the_generic_type_short() => _result.Spell(_scenario).ShouldEqual("EventScenario");
-    [Fact] void should_import_its_namespace() => string.Join(' ', _result.Usings).ShouldEqual("Cratis.Chronicle.Testing");
+    [Fact] void should_import_its_namespace() => string.Join(' ', _result.TopLevelUsings).ShouldEqual("Cratis.Chronicle.Testing");
 }

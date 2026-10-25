@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -20,6 +21,14 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 /// </remarks>
 internal static class RenderedOutput
 {
+    static readonly ImmutableArray<MetadataReference> _references =
+    [
+        .. ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(assembly => MetadataReference.CreateFromFile(assembly))
+    ];
+    static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
+
     /// <summary>
     /// The implicit usings the scaffolded project enables (<c language="csharp">ImplicitUsings</c> in the Cratis template), together
     /// with the global usings the <c language="csharp">Cratis</c> package itself contributes through its <c language="csharp">Cratis.props</c>, mirrored
@@ -30,48 +39,14 @@ internal static class RenderedOutput
     /// <c language="csharp">FluentValidation</c> is missing, and with it a short type name that is unambiguous on its own becomes
     /// ambiguous — <c language="csharp">IIdentityProvider</c> is declared by both <c language="csharp">Cratis.Arc.Identity</c> and
     /// <c language="csharp">Cratis.Chronicle.Identities</c>. A compilation that omits them sees neither.
+    /// The resolver decides short names against exactly the catalog's set, so the compilation reads it from there. A
+    /// namespace whose assembly the test host does not load (Orleans, for one) cannot hold a type the rendered code names,
+    /// so it is left out.
     /// </remarks>
-    const string ImplicitUsings = """
-        global using System;
-        global using System.Collections.Generic;
-        global using System.IO;
-        global using System.Linq;
-        global using System.Net.Http;
-        global using System.Threading;
-        global using System.Threading.Tasks;
-        global using Cratis.Arc;
-        global using Cratis.Arc.Authentication;
-        global using Cratis.Arc.Authorization;
-        global using Cratis.Arc.Chronicle.Aggregates;
-        global using Cratis.Arc.Commands;
-        global using Cratis.Arc.Commands.ModelBound;
-        global using Cratis.Arc.Identity;
-        global using Cratis.Arc.Queries;
-        global using Cratis.Arc.Queries.ModelBound;
-        global using Cratis.Arc.Swagger;
-        global using Cratis.Arc.Validation;
-        global using Cratis.Chronicle;
-        global using Cratis.Chronicle.Events;
-        global using Cratis.Chronicle.Events.Constraints;
-        global using Cratis.Chronicle.EventSequences;
-        global using Cratis.Chronicle.Observation;
-        global using Cratis.Chronicle.Projections;
-        global using Cratis.Chronicle.Projections.ModelBound;
-        global using Cratis.Chronicle.Reactors;
-        global using Cratis.Chronicle.ReadModels;
-        global using Cratis.Chronicle.Reducers;
-        global using Cratis.Chronicle.Transactions;
-        global using Cratis.Concepts;
-        global using FluentValidation;
-        """;
+    static readonly string ImplicitUsings = string.Concat(FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application)
+        .Where(Resolves)
+        .Select(@namespace => $"global using {@namespace};\n"));
 
-    static readonly ImmutableArray<MetadataReference> _references =
-    [
-        .. ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(assembly => MetadataReference.CreateFromFile(assembly))
-    ];
-    static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
     static readonly CSharpCompilation _template = CSharpCompilation.Create(
         "RenderedApplication",
         [CSharpSyntaxTree.ParseText(ImplicitUsings, _parseOptions, path: "GlobalUsings.g.cs")],
@@ -104,17 +79,13 @@ internal static class RenderedOutput
         var compilation = CreateCompilation(files);
         if (clientOnly)
         {
-            var clientReferences = _references.Select(reference => Path.GetFileName(reference.Display) == "Cratis.Chronicle.dll"
-                ? reference.WithAliases(["global", "ChronicleClient"])
-                : reference);
-            var clientFiles = files.Select(file => file with
-            {
-                Content = "extern alias ChronicleClient;\n" + file.Content
-                    .Replace("global::Cratis.Chronicle.EventSequences.IEventSequence", "ChronicleClient::Cratis.Chronicle.EventSequences.IEventSequence", StringComparison.Ordinal)
-                    .Replace("global::Cratis.Chronicle.EventSequences.AppendResult", "ChronicleClient::Cratis.Chronicle.EventSequences.AppendResult", StringComparison.Ordinal)
-            });
-            compilation = CreateCompilation(clientFiles).WithReferences(clientReferences);
+            // The test host also loads the kernel, which declares client SDK types such as IEventSequence in the same
+            // namespaces; keeping the kernel out of the global alias leaves only the client SDK visible to the output.
+            compilation = compilation.WithReferences(_references.Select(reference => Path.GetFileName(reference.Display) == "Cratis.Chronicle.Core.dll"
+                ? reference.WithAliases(["ChronicleKernel"])
+                : reference));
         }
+
         using var assembly = new MemoryStream();
         var result = compilation.Emit(assembly);
         if (!result.Success)
@@ -124,6 +95,12 @@ internal static class RenderedOutput
 
         assembly.Position = 0;
         return AssemblyLoadContext.Default.LoadFromStream(assembly);
+    }
+
+    static bool Resolves(string @namespace)
+    {
+        var probe = CSharpCompilation.Create("Probe", [CSharpSyntaxTree.ParseText($"using {@namespace};", _parseOptions)], _references, new(OutputKind.DynamicallyLinkedLibrary));
+        return !probe.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
     }
 
     internal static CSharpCompilation CreateCompilation(IEnumerable<RenderedFile> files)

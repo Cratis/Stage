@@ -383,8 +383,49 @@ plans alike. `CratisRenderingOptions.FileHeader` sets it for `CratisRendering.Pl
 `CreateProfile(...)`. Pass the same lines to every planning call; a caller profile that already
 carries a header combined with a non-empty `FileHeader` option is refused with `STAGE-CRATIS-001`.
 
-Scene composition, bindings, and screen runtime artifacts require the whole model and
-come only from an application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
+### User interface option
+
+A host that generates an application feature by feature needs a working frontend after every
+generation, not only after a whole-application render. The application's shared UI is four files:
+`scene.json` (the Scene composition), `src/bindings.ts` (which imports the generated Arc proxies),
+`src/stage-scene.json` and `src/stage.ts` (what the emitted Stage runtime renders). The bindings import
+a proxy from the folder of the slice that declares it, and Arc only generates that proxy when the
+slice's backend code is built. Composing the shared UI over the whole model before every slice is
+generated would import proxies that do not exist, and the frontend would not compile.
+
+Set `UserInterface` to the slices whose generated code is already present in the application:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    UserInterface = new([PlanSelectionEntry.Feature("Catalog", "Products")])
+};
+var plan = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Slice("Ordering", "Checkout", "PlaceOrder")]), options);
+```
+
+The scoped plan then also emits the four shared UI files, composed over exactly those slices and the
+plan's own selection. Entries use the same module, feature and slice paths as the selection; an
+unknown entry is refused with the selection diagnostic, prefixed `User interface selection:`. An
+empty `new([])` composes over the plan's own selection only. The default, `null`, keeps scoped plans
+free of shared UI and reports `STAGE-SCREEN-006` when screen partitions are carried.
+
+What the files contain depends on the profile:
+
+- With authored screens carried as screen partitions, `scene.json` holds the authored screens declared
+  by the present slices.
+- Without an authored Scene, Stage composes the default screen over the present slices' commands and
+  queries, the same way an application-scope plan composes it over every slice.
+- An authored Scene that is not partitioned is the caller's whole composition and is carried as is.
+
+When every slice of the model is present, the four files are byte-identical to the ones an
+application-scope plan emits. The set is written to the profile as the hashed
+`cratis-render:user-interface` input (a canonical JSON array of slice identities), so it contributes
+to the plan digest. Pass the set that matches the application's state to each generation; a caller
+profile that already carries the input combined with the option is refused with `STAGE-CRATIS-001`.
+Scaffold files are not affected: scoped plans still exclude them.
+
+Without this option, Scene composition, bindings, and screen runtime artifacts come only from an
+application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
 A scaffold profile carrying a Scene emits no Scene artifacts and reports the
 `STAGE-PLAN-031` information diagnostic. This mode does not compose a default Scene.
 

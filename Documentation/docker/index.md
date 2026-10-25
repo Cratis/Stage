@@ -161,12 +161,12 @@ in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` re
 The semantic sandbox reports public events and public-event projections (`STAGE-ESM-032`), foreign events
 and `source events` captures (`STAGE-ESM-033`), directed Translate slices and captures (`STAGE-ESM-024`)
 as `renderedAround` entries on `/stage/semantic/admission`, with a startup warning for each artifact. They do
-not block unrelated local commands or queries. Public events are **published locally only**, into the sandbox's
-own event log, including supported outbound event projections; there is no external publication. Inbound
+not block unrelated local commands or queries. Public events are **published to the outbox**: a local public event is registered as public and appended to the
+application's own outbox, never to its event log, including supported outbound event projections. Another
+application receives it through its inbox only when the two run against the same Chronicle kernel. Inbound
 translation is not executed: foreign events arrive only through seeds, and captures do not poll external
 sources. Unsupported public-projection shapes still refuse the affected command without appending facts.
-Published events are not yet rebuilt after a restart: a host that restarts over a Chronicle log holding a local
-publication reports `World rebuild refused` on `/stage/status`; start a fresh session instead (see [Cratis/Screenplay#1008](https://github.com/Cratis/Screenplay/issues/1008)).
+Because the event log holds no publication, a restart over a log is rebuilt without the former `World rebuild refused` stop for local publications.
 The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters
 (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
 (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Semantic rendering supports reaction filters; neither that support nor the renderer's narrowed `034` refusal for claim-reading or opaque gates changes these legacy-engine refusals.

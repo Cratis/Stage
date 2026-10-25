@@ -48,6 +48,8 @@ internal static class SemanticChronicleRegistration
                 Schema = schema,
                 Owner = ChronicleEvents.EventTypeOwner.Client,
                 Source = ChronicleEvents.EventTypeSource.Code,
+                Visibility = SemanticPublicEvents.IsPublished(@event) ? ChronicleEvents.EventTypeVisibility.Public : ChronicleEvents.EventTypeVisibility.Private,
+                EventStore = SemanticPublicEvents.IsForeign(@event) ? @event.Origin! : string.Empty,
                 Generations = [new ChronicleEvents.EventTypeGenerationDefinition { Generation = 1, Schema = schema }]
             };
         }).ToArray();

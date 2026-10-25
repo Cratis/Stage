@@ -55,7 +55,7 @@ public static class SemanticRunAdmission
 
     /// <summary>
     /// Says how the live runtime runs a public-event or translation construct without an external integration: public events
-    /// are appended to the application's own event log, and foreign events arrive through seeds.
+    /// are appended to the application's own outbox, and foreign events arrive through seeds.
     /// </summary>
     /// <param name="application">The application the feature belongs to.</param>
     /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
@@ -64,7 +64,7 @@ public static class SemanticRunAdmission
     {
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
         {
-            return $"{SemanticVersionFeatures.PublicEvents}: Published locally only: the sandbox appends the public event to its own event log; no external publication occurs. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
+            return $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
         }
 
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))

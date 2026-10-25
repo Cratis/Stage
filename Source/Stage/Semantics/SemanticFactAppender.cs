@@ -123,11 +123,47 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
         var store = await client.GetEventStore(eventStore.Value);
         await store.Connection.Connect();
         var accessor = (IChronicleServicesAccessor)store.Connection;
-        var response = await accessor.Services.Sequences.AppendManyForEventSources(new ChronicleSequences.AppendManyForEventSourcesRequest
+
+        // A published public event leaves through the outbox: Chronicle refuses it in the event log, and the outbox is what other applications subscribe to.
+        var published = facts.Where(fact => SemanticPublicEvents.IsPublished(plan.Events[fact.EventContract])).ToArray();
+        var privateFacts = facts.Where(fact => !SemanticPublicEvents.IsPublished(plan.Events[fact.EventContract])).ToArray();
+
+        // The event log decides first: its tail guard is what a concurrent writer trips, and nothing may be published for facts that were never appended.
+        if (privateFacts.Length > 0 || scope is not null)
         {
-            EventStore = store.Name,
+            var response = await accessor.Services.Sequences.AppendManyForEventSources(Request(store.Name, EventSequenceId.Log, privateFacts, occurrence, scope));
+            response.EnsureSuccess();
+            var violation = response.Response.ConcurrencyViolations.FirstOrDefault();
+            if (violation is not null)
+            {
+                // Chronicle rejected the entire batch before appending anything; the outcome is known.
+                throw new SemanticFactTailChanged(violation.ActualSequenceNumber);
+            }
+
+            var rejection = ProducedEventAppender.Rejection(response.Response);
+            if (rejection is not null)
+            {
+                throw ProducedEventAppender.ExceptionFor(rejection);
+            }
+        }
+
+        if (published.Length > 0)
+        {
+            var outbox = await accessor.Services.Sequences.AppendManyForEventSources(Request(store.Name, EventSequenceId.Outbox, published, occurrence, null));
+            outbox.EnsureSuccess();
+            if (ProducedEventAppender.Rejection(outbox.Response) is { } outboxRejection)
+            {
+                throw ProducedEventAppender.ExceptionFor(outboxRejection);
+            }
+        }
+    }
+
+    ChronicleSequences.AppendManyForEventSourcesRequest Request(string storeName, EventSequenceId sequence, IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ChronicleSequences.EventSourceConcurrencyScope? scope) =>
+        new ChronicleSequences.AppendManyForEventSourcesRequest
+        {
+            EventStore = storeName,
             Namespace = EventStoreNamespaceName.Default,
-            EventSequenceId = EventSequenceId.Log,
+            EventSequenceId = sequence,
             ConcurrencyScopes = scope is null ? null : [scope],
             CausedBy = new ChronicleSequences.Identity
             {
@@ -147,19 +183,5 @@ internal sealed class SemanticFactAppender(IChronicleClient client, StageEventSt
                 Tags = fact.Tags,
                 Occurred = (Cratis.Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurrence.Occurred ?? new(),
             })]
-        });
-        response.EnsureSuccess();
-        var violation = response.Response.ConcurrencyViolations.FirstOrDefault();
-        if (violation is not null)
-        {
-            // Chronicle rejected the entire batch before appending anything; the outcome is known.
-            throw new SemanticFactTailChanged(violation.ActualSequenceNumber);
-        }
-
-        var rejection = ProducedEventAppender.Rejection(response.Response);
-        if (rejection is not null)
-        {
-            throw ProducedEventAppender.ExceptionFor(rejection);
-        }
-    }
+        };
 }

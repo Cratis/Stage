@@ -1,5 +1,5 @@
 {
-  "corpusVersion": "4.241.0",
+  "corpusVersion": "4.244.0",
   "minimumVectorCount": 75,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
@@ -2268,6 +2268,16 @@
         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:1a074f48cbb6c4d75e1811aacbce10340f07ba2479a8f60fb0870596bac970ae", "issue": 213 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:dff39633d79db6a242955ab9b29b2b79b07e913394f3736ea5138e6ffcdafbbe", "issue": 79 } ] }
+    },
+    "EsmGoldenVectors.V33": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:31799d70400a3946e07678be557b1c6789bb1029e8426907fe31a26068dc3918", "issue": 213 },
+        { "code": "STAGE-ESM-033", "kind": "capture", "artifact": "sem1:046d5ff6801752fba5b4750524f564034885a2a576809feb02fb911c9389aea9", "issue": 213 },
+        { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:1a074f48cbb6c4d75e1811aacbce10340f07ba2479a8f60fb0870596bac970ae", "issue": 213 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-011", "artifact": "sem1:450a348c26380bd109150021f55c569605dbaef3cf4c29735bbc8d17391bc396", "issue": 14 } ] }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },

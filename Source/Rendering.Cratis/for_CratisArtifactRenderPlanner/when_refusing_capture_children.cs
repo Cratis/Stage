@@ -39,8 +39,8 @@ public class when_refusing_capture_children : given.a_translation_source
     void Establish() => _model = Compile(Source);
     void Because() => _plan = Plan(_model);
 
-    [Fact] void should_refuse_instead_of_silently_dropping_the_child_appends() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_incomplete_capture() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_refuse_instead_of_silently_dropping_the_child_appends() => given.rendering_refusals.Rejected(_plan, "STAGE-ESM-033");
+    [Fact] void should_emit_no_incomplete_capture() => given.rendering_refusals.OmittedParts(_plan);
     [Fact] void should_identify_the_refused_capture() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-033" && diagnostic.Message.Contains("Demand", StringComparison.Ordinal));
     [Fact] void should_report_the_unsupported_translation_shape() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024");
 }

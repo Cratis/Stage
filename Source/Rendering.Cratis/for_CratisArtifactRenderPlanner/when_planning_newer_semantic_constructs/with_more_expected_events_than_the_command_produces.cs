@@ -14,6 +14,6 @@ public class with_more_expected_events_than_the_command_produces : an_invoice_mo
         "then InvoiceIssued\n          description = \"First payload\"\n        then InvoiceIssued\n          description = \"First payload\"",
         StringComparison.Ordinal));
 
-    [Fact] void should_reject_the_impossible_event_count() => ErrorCodes.ShouldContain("STAGE-ESM-011");
-    [Fact] void should_not_emit_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_the_impossible_event_count() => RefusalCodes.ShouldContain("STAGE-ESM-011");
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

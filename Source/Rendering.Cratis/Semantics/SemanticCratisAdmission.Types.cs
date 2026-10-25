@@ -25,7 +25,9 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(Error("STAGE-ESM-012", $"Concept '{concept.Name}' has members that collide in generated C#.", concept.Id));
             }
 
+            ValidateGenerationStrategy(concept, diagnostics);
             ValidateGenerationBody(context, concept, diagnostics);
+            RememberGenerationRefusals(context, concept, diagnostics);
 
             foreach (var rule in concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
             {
@@ -64,6 +66,22 @@ internal static partial class SemanticCratisAdmission
             _ when unsupportedRule is not null => $"Concept '{concept.Name}' has validation '{unsupportedRule.Name ?? unsupportedRule.Kind.ToString()}' that Stage cannot render.",
             _ => null
         };
+    }
+
+    static void RememberGenerationRefusals(SemanticApplicationContext context, SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics.Where(diagnostic => diagnostic.Artifact == concept.Id && SemanticGenerationRendering.IsGenerationFailure(context, diagnostic)))
+        {
+            context.GenerationFailures[concept.Id] = diagnostic.Message;
+        }
+    }
+
+    static void ValidateGenerationStrategy(SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (SemanticGenerationRendering.Rejection(concept.Generation) is { } rejection)
+        {
+            diagnostics.Add(Error("STAGE-ESM-012", rejection, concept.Id));
+        }
     }
 
     static void ValidateGenerationBody(SemanticApplicationContext context, SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)

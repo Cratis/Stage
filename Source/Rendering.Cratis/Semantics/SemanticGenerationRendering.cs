@@ -16,6 +16,21 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static class SemanticGenerationRendering
 {
+    internal static bool IsGenerationFailure(SemanticApplicationContext context, ArtifactRenderDiagnostic diagnostic)
+    {
+        var concept = context.Application.Concepts.FirstOrDefault(concept => concept.Id == diagnostic.Artifact && concept.Generation is not null);
+        return concept is not null &&
+            (IsGenerationBodyFailure(diagnostic.Code) || string.Equals(Rejection(concept.Generation), diagnostic.Message, StringComparison.Ordinal));
+    }
+
+    internal static string? Rejection(SemanticGeneration? generation) => generation switch
+    {
+        null => null,
+        { Kind: "bytes", Encoding: not ("hex" or "base32" or "base64url" or null) } => $"Byte encoding '{generation.Encoding}' is not admitted.",
+        { Kind: "uuid" or "uuidv7" or "ulid" or "typeid" or "nanoid" or "bytes" or "random" or "pattern" or "implementation" } => null,
+        _ => $"Generation strategy '{generation.Kind}' is not admitted."
+    };
+
     internal static bool IsTimeOrdered(SemanticGeneration? generation) =>
         string.Equals(generation?.Kind, "uuidv7", StringComparison.Ordinal) ||
         string.Equals(generation?.Kind, "ulid", StringComparison.Ordinal) ||
@@ -58,6 +73,12 @@ internal static class SemanticGenerationRendering
 
         return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.WholeNumber ? value : Text(generation, value);
     }
+
+    static bool IsGenerationBodyFailure(string code) =>
+        string.Equals(code, "STAGE-ESM-019", StringComparison.Ordinal) ||
+        string.Equals(code, "STAGE-ESM-020", StringComparison.Ordinal) ||
+        string.Equals(code, "STAGE-ESM-021", StringComparison.Ordinal) ||
+        string.Equals(code, "STAGE-ESM-022", StringComparison.Ordinal);
 
     static string Strategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
     {

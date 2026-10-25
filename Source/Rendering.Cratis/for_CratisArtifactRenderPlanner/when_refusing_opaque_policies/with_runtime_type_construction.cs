@@ -23,7 +23,7 @@ public class with_runtime_type_construction
     {
         var plan = opaque_policy_model.Plan(opaque_policy_model.Source(body));
 
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-015");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" && diagnostic.Message.Contains("runtime context type", StringComparison.Ordinal));
     }
 }

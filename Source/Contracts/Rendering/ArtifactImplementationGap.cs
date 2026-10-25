@@ -34,6 +34,11 @@ public sealed record ArtifactImplementationGap(
     /// </summary>
     public const uint ContractVersion = 1;
 
+    /// <summary>
+    /// Gets the kind of work needed to close the gap. Existing payload gaps retain their original kind.
+    /// </summary>
+    public ArtifactImplementationGapKind Kind { get; init; } = ArtifactImplementationGapKind.Implementation;
+
     internal ArtifactImplementationGap Normalize()
     {
         if (!HasValidMetadata() || !HasValidCollections())
@@ -52,11 +57,11 @@ public sealed record ArtifactImplementationGap(
         return this with { Stubs = stubs };
     }
 
-    bool HasValidMetadata() => HasKnownRoleAndOrigin() && HasIdentity() && HasV1Contracts();
+    bool HasValidMetadata() => Enum.IsDefined(Kind) && HasKnownRoleAndOrigin() && HasIdentity() && HasV1Contracts();
     bool HasKnownRoleAndOrigin() => Origin is ArtifactImplementationGapOrigin.Described or ArtifactImplementationGapOrigin.Unverified && Enum.IsDefined(Role);
     bool HasIdentity() => !string.IsNullOrWhiteSpace(RequirementId) && !string.IsNullOrWhiteSpace(Owner);
     bool HasV1Contracts() => ContextVersion == 1 && ResultVersion == 1;
     bool HasValidCollections() => HasValidHints() && HasValidStubs();
     bool HasValidHints() => !Hints.IsDefault && !Hints.Any(string.IsNullOrWhiteSpace);
-    bool HasValidStubs() => !Stubs.IsDefaultOrEmpty && Stubs.All(stub => stub is not null);
+    bool HasValidStubs() => !Stubs.IsDefault && (Kind == ArtifactImplementationGapKind.Rendering || !Stubs.IsEmpty) && Stubs.All(stub => stub is not null);
 }

@@ -15,7 +15,7 @@ public class with_a_body_that_does_not_compile : Specification
 
     void Because() => _plan = opaque_policy_model.Plan(opaque_policy_model.Source("return context.Occurred;"));
 
-    [Fact] void should_render_nothing() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_render_nothing() => rendering_refusals.Rejected(_plan, "STAGE-ESM-019");
     [Fact] void should_name_the_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("CS0029", StringComparison.Ordinal));
 }
 #endif

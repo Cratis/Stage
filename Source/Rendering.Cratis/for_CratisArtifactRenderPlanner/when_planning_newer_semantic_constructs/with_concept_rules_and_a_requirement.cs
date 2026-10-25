@@ -12,6 +12,6 @@ public class with_concept_rules_and_a_requirement : given.an_invoice_model
         .Replace("        produces InvoiceIssued\n", "        display Display\n        validate\n          require description != \"draft\"\n        produces InvoiceIssued\n", StringComparison.Ordinal)
         .Replace("          streamReference = ", "          display = \"xy\"\n          streamReference = ", StringComparison.Ordinal));
 
-    [Fact] void should_reject_the_unreproducible_failure_order() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
-    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_the_unreproducible_failure_order() => RefusalCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

@@ -211,7 +211,9 @@ explicitly null filters. An omitted optional filter remains distinct from a supp
 
 A query a `performer` answers is an opaque read: the executable model leaves it out of the slice's queries and carries its shape - the read model, cardinality, delivery, `by` key and filters, and who may call it (`SemanticPerformedQueryShape.Authorization`, Screenplay 4.236) - on the `QueryPerformer` implementation requirement. Stage renders it as the query that shape states: the read model record, the query method with its route, parameters (filters in declaration order, optional ones defaulted) and the `[Authorize]` policy the model names, and a read model such a query returns needs no projection or reducer. When a verified inline `csharp` or file body is attached, Stage embeds it in a compile-checked helper. The body returns a read-model instance (or null) for a single query, or `IEnumerable<ReadModel>` for a collection. `readModels` is the current read-model collection; caller arguments are available both as their camelCase parameter names and as PascalCase properties on `context.Arguments`. The application-local context also supplies `Tenant` (string), `Identity` (`ClaimsPrincipal`), and `ReceivedAt` (`DateTimeOffset` captured by Arc at query receipt). It deliberately has no command causation, `CausedBy`, or event `Occurred` member. Snapshot queries load instances once. The body is synchronous C#, not a pure reducer sandbox. Observable/live performers have no body-owned stream and render as explicit gaps rather than applying a body to read-model emissions. A non-C# body, missing attachment, changed or hash-invalid body, or body compile error also becomes a gap. Both planning and direct shape rendering produce the same compilable method boundary, throwing `NotImplementedException` with `Query '<name>' (requirement <id>) is not runnable: <reason>`. Planning reports one `STAGE-IMPL-006` Warning per such query ("performer rendered as a gap"), preserving the original reason, compiler diagnostic and body source location when available. The generated artifacts remain available.
 
-Each gap has `ArtifactImplementationGapOrigin.Unverified`, an additive public contract member with minor-version intent, the compiler requirement identity, and the generated stub's signature, body locator and unrealized typed-context metadata. `STAGE-NOT-RUNNABLE.md` lists every gap in the plan. Any non-empty `ImplementationGaps` makes `Outcome` `Partial`; `Success` still means no Error diagnostics, so a partial gap plan can be successful without being fully runnable. Verified synchronous bodies remain unchanged, with `Outcome` `Complete` and no marker when no gaps exist. `STAGE-ESM-019`, `STAGE-ESM-020` and `STAGE-IMPL-005` keep their Error meanings for cases that still refuse; they are not reused as warnings. The semantic runtime continues to list the read model but not the opaque query. A policy implemented by code, a composite `by` key, an unresolved argument type, an observable single result or a required argument after an optional one refuse the read model with `STAGE-ESM-007`, naming the query and why. Explicit `scoped to` clauses remain refused by Screenplay (`PLAY0268`); Stage does not silently drop them.
+Each gap has `ArtifactImplementationGapOrigin.Unverified`, an additive public contract member with minor-version intent, the compiler requirement identity, and the generated stub's signature, body locator and unrealized typed-context metadata. `STAGE-NOT-RUNNABLE.md` lists every gap in the plan. Any non-empty `ImplementationGaps` makes `Outcome` `Partial`; `Success` still means no Error diagnostics, so a partial gap plan can be successful without being fully runnable. Verified synchronous bodies remain unchanged, with `Outcome` `Complete` and no marker when no gaps exist. `STAGE-ESM-019`, `STAGE-ESM-020` and `STAGE-IMPL-005` remain Error diagnostics for cases that still refuse the plan. The semantic runtime continues to list the read model but not the opaque query. A policy implemented by code, a composite `by` key, an unresolved argument type, an observable single result or a required argument after an optional one refuse the read model with `STAGE-ESM-007`, naming the query and why. Explicit `scoped to` clauses remain refused by Screenplay (`PLAY0268`); Stage does not silently drop them.
+
+Rendering gaps use `ArtifactImplementationGapKind.Rendering`; existing payload gaps default to `Implementation`. A rendering gap can have an empty `Stubs` collection when its owner is omitted. Its `Owner` and `Hints` identify what could not be generated; `Role`, context versions and result versions retain their payload-contract meanings for implementation gaps. Path collisions (`STAGE-CRATIS-004`) and artifacts targeting the reserved top-level `Customizations/` directory (`STAGE-CRATIS-005`) produce Warning diagnostics and rendering gaps before the strict plan contract is created. Every file in a colliding path group is omitted, including case-insensitive collisions; Stage does not choose a winner. Other artifacts remain in the plan, and `STAGE-NOT-RUNNABLE.md` lists the gaps.
 
 ESM v18 adds query-only `then error` specifications. For empty fixtures, Stage generates an Arc
 `QueryScenario` call that asserts validation failure and the expected message, when supplied.
@@ -234,17 +236,33 @@ A rename without a pin still orphans stored events: a renderer cannot distinguis
 
 ## Render around refused specifications
 
-By default, any render error refuses the whole plan and emits no artifacts. To render the
-application while omitting supported specification gaps, set `CratisPlanOptions.Refusals` to
-`ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in the
-profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
+Rendering-owner gaps are independent of the specification-refusal opt-in. An unrenderable
+slice-owned part omits its entire slice; a shared concept or composite type is its own
+removable owner. Module and feature owners omit their contained parts. These omissions
+retain the original diagnostic code and message as a Warning and a rendering gap.
+A diagnostic owned by the application itself, such as an uncovered implementation body,
+also becomes a Warning and a rendering gap while independent parts keep rendering. Unknown
+ownership, an unaudited version, an invalid profile, an inconsistent render request or a
+missing embedded generation reference still refuses the whole plan with Error diagnostics
+and no artifacts.
+
+Omission closes over both semantic ownership and generated C# dependencies. A missing
+shared concept can remove a composite type, then a consumer's whole slice including
+sibling artifacts. Each removal rechecks ownership and transitive type or namespace
+dependencies until no further artifact is removed; independent slices and projects survive.
+A specification file removed this way is a gap for that specification only; the slice it
+verifies keeps rendering.
+Path omissions use the same dependency closure. Dependency warnings inherit an actual
+omission's code and message, never an unrelated warning such as a performer's non-C# language.
+
+To render while omitting supported specification refusals, set `CratisPlanOptions.Refusals`
+to `ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in
+the profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
 `Refuse` is the other valid value; absence means `Refuse`. The input is hashed with the profile.
 
-This opt-in applies only when **every** Error is `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` and names
-a specification in the model. Stage omits only those specification files, never commands,
-events, policies, or other application contracts. Any other error still refuses the entire
-plan, including evolved events (`STAGE-ESM-026`), implementation-envelope errors, and
-`STAGE-ESM-024` attached to a reaction, trigger, capture, or slice.
+This opt-in applies to `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` Errors naming a
+specification in the model. It omits only those specification files; rendering-owner gaps
+still use the separate rules above.
 
 A partial plan retains the original errors, so `Success` remains false. Inspect `Outcome`
 (`Complete`, `Partial`, or `Refused`) and `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult`.

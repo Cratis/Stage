@@ -4,6 +4,7 @@
 #if DEBUG
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -62,15 +63,23 @@ public class when_refusing_reducer_migration
     public async Task should_refuse_a_reserved_member_on_the_migrated_model()
     {
         var loaded = await when_rendering_a_pure_reducer.Load(when_migrating_a_classic_reducer.Source.Replace("query ById", "query Reduce", StringComparison.Ordinal));
-        AssertRefused(Plan(loaded, Profile([when_migrating_a_classic_reducer.Evidence(loaded)], canRemoveFiles: true)), "STAGE-ESM-019");
+        var plan = Plan(loaded, Profile([when_migrating_a_classic_reducer.Evidence(loaded)], canRemoveFiles: true));
+        AssertRefused(plan, "STAGE-ESM-019");
+        rendering_refusals.Omitted(plan, when_migrating_a_classic_reducer.ReadModel(loaded, "Total"));
+        rendering_refusals.Compiles(plan);
     }
 
     static void AssertRefused(ArtifactRenderPlan plan, string code)
     {
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Partial(plan);
         Assert.Empty(plan.RequiredRemovals);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code);
+        var diagnostics = plan.Diagnostics.Where(diagnostic => diagnostic.Code == code &&
+            !diagnostic.Message.StartsWith("Generated artifact '", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(diagnostics);
+        foreach (var diagnostic in diagnostics)
+        {
+            rendering_refusals.Warning(plan, code, diagnostic.Artifact, diagnostic.Message);
+        }
     }
 
     static ArtifactRenderProfile Profile(ReducerMigrationEvidence[] evidence, bool canRemoveFiles) =>

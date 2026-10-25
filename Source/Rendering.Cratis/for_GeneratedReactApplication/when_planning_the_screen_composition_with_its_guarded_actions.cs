@@ -15,8 +15,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication;
 /// evaluate - compared with another field instead of a literal.
 /// </summary>
 /// <remarks>
-/// A guard the runtime cannot evaluate must not reach a generated application, and a refused plan must leave
-/// nothing behind: no partial application a caller could publish.
+/// A guard the runtime cannot evaluate is omitted while the surrounding application remains renderable
+/// and the partial plan reports the missing affordance.
 /// </remarks>
 public class when_planning_the_screen_composition_with_its_guarded_actions : a_screen_composition_render
 {
@@ -31,6 +31,8 @@ public class when_planning_the_screen_composition_with_its_guarded_actions : a_s
 
     [Fact] void should_change_the_authored_close_guard() => _authored.ShouldContain("\"right\":\"open\"");
     [Fact] void should_report_the_guarded_screen_action() => _plan.Diagnostics.Select(_ => _.Code).ShouldContainOnly(UnsupportedGuardedScreenAction.DiagnosticCode);
-    [Fact] void should_not_succeed() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_plan_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_be_partial() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_keep_surrounding_artifacts() => _plan.Artifacts.ShouldNotBeEmpty();
+    [Fact] void should_report_a_gap() => _plan.ImplementationGaps.Single().Kind.ShouldEqual(ArtifactImplementationGapKind.Rendering);
+    [Fact] void should_not_emit_the_unevaluable_guard() => SceneGuards.HasUnevaluableGuard(System.Text.Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath == SceneCompositionInput.RelativePath).Bytes.AsSpan())).ShouldBeFalse();
 }

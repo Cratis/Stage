@@ -41,10 +41,21 @@ public class when_refusing_guarded_scene_inputs : given.a_register_project_rende
 
     static void AssertRefused(ArtifactRenderPlan plan)
     {
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Success.ShouldBeTrue();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+        plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/RegisterProject.cs", StringComparison.Ordinal)).ShouldBeTrue();
+        plan.Artifacts.Any(artifact => artifact.RelativePath == "STAGE-NOT-RUNNABLE.md").ShouldBeTrue();
+        plan.ImplementationGaps.Single().Kind.ShouldEqual(ArtifactImplementationGapKind.Rendering);
+        foreach (var artifact in plan.Artifacts.Where(artifact => artifact.RelativePath == SceneCompositionInput.RelativePath || artifact.RelativePath.EndsWith(".scene.json", StringComparison.Ordinal)))
+        {
+            SceneGuards.HasUnevaluableGuard(System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())).ShouldBeFalse();
+        }
         var diagnostic = Assert.Single(plan.Diagnostics);
         diagnostic.Code.ShouldEqual(UnsupportedGuardedScreenAction.DiagnosticCode);
+        diagnostic.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
+#if DEBUG
+        given.opaque_policy_model.Compile(plan).GetTypes().Length.ShouldBeGreaterThan(0);
+#endif
         diagnostic.Message.ShouldContain("https://github.com/Cratis/Scene/issues/68");
     }
 }

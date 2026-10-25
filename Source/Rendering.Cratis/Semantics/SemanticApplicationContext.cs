@@ -26,7 +26,8 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     /// <param name="request">The immutable artifact render request.</param>
     /// <param name="options">The explicit options admitted by the complete package-profile validation.</param>
-    public SemanticApplicationContext(ArtifactRenderRequest request, CratisRenderingOptions options)
+    /// <param name="omitted">Artifacts excluded from regenerated Scene bindings.</param>
+    public SemanticApplicationContext(ArtifactRenderRequest request, CratisRenderingOptions options, IReadOnlySet<SemanticId>? omitted = null)
     {
         Request = request;
         var performed = SemanticPerformedQueries.Lift(request);
@@ -52,11 +53,11 @@ internal sealed class SemanticApplicationContext
         }
 
         Events = _slices.Values.SelectMany(_ => _.Slice.Events).ToDictionary(_ => _.Id);
-        Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).ToDictionary(_ => _.Id);
-        ReadModels = _slices.Values.SelectMany(_ => _.Slice.ReadModels).ToDictionary(_ => _.Id);
+        Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).Where(command => omitted?.Contains(command.Id) != true).ToDictionary(_ => _.Id);
+        ReadModels = _slices.Values.SelectMany(_ => _.Slice.ReadModels).Where(model => omitted?.Contains(model.Id) != true).ToDictionary(_ => _.Id);
         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
         Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
-        Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
+        Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).Where(query => omitted?.Contains(query.Id) != true && omitted?.Contains(query.ReadModel) != true).ToDictionary(_ => _.Id);
         MemberNames = new(Commands.Values, ReadModels.Values, Queries.Values);
         Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
         IdentifierConcepts = FindIdentifierConcepts();
@@ -147,6 +148,9 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    /// <summary>Gets generation owners whose factories must be explicit throwing stubs.</summary>
+    internal Dictionary<SemanticId, string> GenerationFailures { get; } = [];
 
     /// <summary>
     /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.

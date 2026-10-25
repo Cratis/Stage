@@ -174,7 +174,7 @@ public class when_rendering_a_pure_reducer
         var unrelated = source + "\nmodule TypedContexts\n  feature Other\n    slice StateChange Unrelated\n      event TenantChanged\n        tenant TenantId\n";
         var plan = Plan(await Load(unrelated));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("TypedContexts", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public class when_rendering_a_pure_reducer
 
         var plan = Plan(await Load(source.Replace(originalBody, conflictingBody, StringComparison.Ordinal)));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("OrderPlaced", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Theory]
@@ -234,7 +234,7 @@ public class when_rendering_a_pure_reducer
             .Replace(originalBody, body, StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(peer, StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public class when_rendering_a_pure_reducer
             .Replace(originalBody, body, StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Projects", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class when_rendering_a_pure_reducer
             .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "Int32 count = 1; return new Total(context.Event.Id, count);", StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Int32", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
 
         var baseline = Plan(await Load(Source.Replace(
             "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
@@ -284,7 +284,7 @@ public class when_rendering_a_pure_reducer
             .Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "return new Total(context.Event.Id, Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
         var plan = Plan(await Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Theory]
@@ -318,15 +318,12 @@ public class when_rendering_a_pure_reducer
             .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal)
             .Replace("context.Event.Amount);", "Math.Abs(context.Event.Amount));", StringComparison.Ordinal);
         var plan = Plan(await Load(source));
-        if (plan.Success)
-        {
-            var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
-                .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
-            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics().Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
-            Assert.Fail($"Admitted a namespace shadow; rendered compilation: {string.Join("; ", errors)}");
-        }
-
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("Math", StringComparison.Ordinal));
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-022" &&
+            diagnostic.Message.Contains("Math", StringComparison.Ordinal)));
+        rendering_refusals.Warning(plan, diagnostic.Code, diagnostic.Artifact, diagnostic.Message);
+        rendering_refusals.Omitted(plan, diagnostic.Artifact);
+        rendering_refusals.Partial(plan);
+        rendering_refusals.Compiles(plan);
     }
 
     [Fact]

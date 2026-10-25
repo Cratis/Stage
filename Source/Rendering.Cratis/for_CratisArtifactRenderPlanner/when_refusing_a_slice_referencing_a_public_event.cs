@@ -52,8 +52,7 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         {
             plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
         }
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.OmittedParts(plan);
     }
 
     [Fact]
@@ -70,6 +69,6 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Shipments");
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == model.Application.Modules.Single().Features.Single().Slices.SelectMany(candidate => candidate.Events).Single(@event => @event.Name == "OrderShipped").Id);
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-032");
     }
 }

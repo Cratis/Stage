@@ -12,14 +12,12 @@ static class SemanticRefusalScope
         SemanticApplicationContext context,
         IEnumerable<ArtifactRenderDiagnostic> diagnostics)
     {
-        var errors = diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ToArray();
-
-        // Only specification execution gaps are safe to omit: neither code permits dropping application contracts.
-        if (errors.Length == 0 || errors.Any(error =>
-            error.Code is not ("STAGE-ESM-011" or "STAGE-ESM-024" or SemanticSpecificationAdmission.SourcelessGivenCode) || !context.Specifications.ContainsKey(error.Artifact)))
-        {
-            return [];
-        }
+        // Specification refusals remain distinct from rendering gaps, including in mixed plans.
+        var errors = diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
+            (string.Equals(diagnostic.Code, "STAGE-ESM-011", StringComparison.Ordinal) ||
+                string.Equals(diagnostic.Code, "STAGE-ESM-024", StringComparison.Ordinal) ||
+                string.Equals(diagnostic.Code, SemanticSpecificationAdmission.SourcelessGivenCode, StringComparison.Ordinal)) &&
+            context.Specifications.ContainsKey(diagnostic.Artifact)).ToArray();
 
         return [.. errors.GroupBy(error => error.Artifact).OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
             .Select(group => new ArtifactRenderRefusal(group.Key, "specification", [.. group.Select(error => error.Code).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)]))];

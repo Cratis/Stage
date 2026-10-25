@@ -12,7 +12,7 @@ public class with_disagreeing_event_sources : given.an_invoice_model
         .Replace("when IssueInvoice\n          description = \"First payload\"", "when IssueInvoice\n          for \"invoice-one\"\n          description = \"First payload\"", StringComparison.Ordinal)
         .Replace(FirstExpectation, "then InvoiceIssued\n          for \"invoice-stated\"\n          description = \"First payload\"", StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_reject_the_specification() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-011"]);
-    [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_record_partial_admission() => _plan.Outcome.ShouldEqual(global::Cratis.Stage.Contracts.Rendering.ArtifactRenderOutcome.Partial);
+    [Fact] void should_reject_the_specification() => RefusalCodes.ShouldContainOnly(["STAGE-ESM-011"]);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

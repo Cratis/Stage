@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -25,7 +26,7 @@ public class when_admitting_the_v21_golden_vector : Specification
 
     [Fact] void should_read_the_full_v21_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V21);
     [Fact] void should_not_refuse_the_audited_version() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_refused_reactions_and_compile_retained_parts() => rendering_refusals.Rejected(_plan, "STAGE-ESM-024");
     [Fact] void should_no_longer_refuse_rule_generation_as_unsupported() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-028" && diagnostic.Artifact == _model.Application.Concepts.Single(concept => concept.Name == "TenantOrderId").Id);
     [Fact] void should_admit_checksum_validation() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-042");
 }

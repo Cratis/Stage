@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -37,8 +38,8 @@ public class when_refusing_the_canonical_v6_corpus : Specification
         .SelectMany(slice => slice.Reactions).Where(reaction => reaction.Triggers.Any(trigger => trigger.Kind != SemanticReactionTriggerKind.Event || trigger.RequirementId is not null)).All(reaction => _plan.Diagnostics.Any(diagnostic => diagnostic.Artifact == reaction.Id)).ShouldBeTrue();
     [Fact] void should_not_refuse_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
     [Fact] void should_name_unsupported_translation_constructs() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).Any(slice => slice.Kind == SemanticSliceKind.Translate && slice.Id == diagnostic.Artifact));
-    [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_record_partial_admission() => rendering_refusals.Partial(_plan);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
     [Fact]
     void should_refuse_through_semantic_admission_as_well()
     {

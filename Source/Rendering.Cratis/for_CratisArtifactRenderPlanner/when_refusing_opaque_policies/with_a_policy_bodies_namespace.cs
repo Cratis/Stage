@@ -20,7 +20,7 @@ public class with_a_policy_bodies_namespace : Specification
         .Replace("module Billing", "module GeneratedPolicies", StringComparison.Ordinal)
         .Replace("feature Invoicing", "feature PolicyBodies", StringComparison.Ordinal));
 
-    [Fact] void should_render_nothing() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_render_nothing() => rendering_refusals.Rejected(_plan, "STAGE-ESM-012");
     [Fact] void should_name_the_collision() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("PolicyBodies", StringComparison.Ordinal));
 }
 #endif

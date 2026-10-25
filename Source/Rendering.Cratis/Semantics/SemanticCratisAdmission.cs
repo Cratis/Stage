@@ -194,19 +194,24 @@ internal static partial class SemanticCratisAdmission
         var declarations = GeneratedDeclarations(context, slices).ToArray();
         var collisions = GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), declarations)
             .Concat(SemanticCaptureDeclarationCollisions.Find(slices, declarations)).Distinct();
-        foreach (var (artifact, kind, name) in collisions)
+        foreach (var collision in collisions)
         {
+            var (_, kind, name) = collision;
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."
                 : $"{kind} '{name}' collides with another generated C# type in the same namespace.";
-            diagnostics.Add(Error("STAGE-ESM-012", message, artifact));
+            foreach (var owner in SemanticGeneratedNamespaceOwners.For(slices, declarations, context.Application.Id, collision))
+            {
+                diagnostics.Add(Error("STAGE-ESM-012", message, owner));
+            }
         }
     }
 
     static int ValidateSlice(SemanticApplicationContext context, LocatedSemanticSlice located, List<ArtifactRenderDiagnostic> diagnostics)
     {
         foreach (var @event in located.Slice.Events.Where(@event =>
-            !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name))))
+            !GeneratedPascalCase.EventMembersAreUnique(@event.Name, @event.Properties.Select(property => property.Name)) ||
+            @event.Properties.Any(property => !Microsoft.CodeAnalysis.CSharp.SyntaxFacts.IsValidIdentifier(Identifiers.ToPascalCase(property.Name)))))
         {
             diagnostics.Add(Error("STAGE-ESM-012", $"Event '{@event.Name}' has property names that collide in generated C#.", @event.Id));
         }

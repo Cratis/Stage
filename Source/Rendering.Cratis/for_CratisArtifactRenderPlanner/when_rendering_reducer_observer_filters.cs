@@ -86,8 +86,7 @@ public class when_rendering_reducer_observer_filters
         });
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with { EventSources = [.. sources] });
         var plan = when_rendering_a_pure_reducer.Plan(loaded with { Model = model, Plan = SemanticExecutionPlan.Compile(model).Plan! });
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.OmittedParts(plan);
 
         // The rebuilt model has a new revision, so its compiler-issued typed contexts no longer match and the
         // planner refuses them first. Screenplay does not let callers re-stamp them, so check admission directly.

@@ -9,8 +9,6 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
-using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
-using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -63,21 +61,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                     request.Model.Application.Id)]);
         }
 
-        var diagnostics = new List<ArtifactRenderDiagnostic>();
-        try
-        {
-            return PlanAdmitted(request, options, diagnostics);
-        }
-        catch (InvalidTypedContext exception)
-        {
-            diagnostics.Add(Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id));
-        }
-        catch (UnsupportedSemanticRendering exception)
-        {
-            diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
-        }
-
-        return CreatePlan(request, [], diagnostics);
+        return PlanAdmitted(request, options, []);
     }
 
     static ArtifactRenderPlan PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options, List<ArtifactRenderDiagnostic> diagnostics)
@@ -112,46 +96,31 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
-        var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
-            .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
-            .ToHashSet();
-        foreach (var descriptor in descriptors)
-        {
-            try
-            {
-                var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);
-                if (descriptor.OperationId is { } operation && selectedReducers.Contains((descriptor.RequirementId, operation)))
-                {
-                    artifacts.Add(Artifact(wrapper));
-                }
-            }
-            catch (InvalidTypedContext exception)
-            {
-                diagnostics.Add(Error("STAGE-ESM-021", exception.Message, descriptor.OperationId!.Value));
-            }
-            catch (UnsupportedSemanticRendering exception)
-            {
-                diagnostics.Add(Error(exception.Code, exception.Message, descriptor.OperationId!.Value));
-            }
-        }
-
+        var parts = new RenderingPartAdmission(context, diagnostics);
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var sceneJson = AdmittedScene(request, partitions, diagnostics);
         var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];
-        if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
-        {
-            return CreatePlan(request, [], diagnostics);
-        }
+        parts.AdmitDiagnostics(refusals, removals);
+        if (parts.HasUncontainedErrors) return CreatePlan(request, [], diagnostics);
         context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
 
-        var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
+        var selectedReducers = slices.SelectMany(located => located.Slice.Reducers)
+            .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
+            .ToHashSet();
+        artifacts.AddRange(RenderTypedContexts(context, parts, descriptors, selectedReducers));
+
+        var validations = SemanticValidationContextRuntime.Selected(context, slices)
+            .Where(descriptor => !parts.IsOmitted(descriptor.OperationId ?? context.Application.Id))
+            .ToArray();
         foreach (var descriptor in validations)
         {
-            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));
+            artifacts.AddRange(parts.Render(
+                descriptor.OperationId ?? context.Application.Id,
+                () => [SemanticValidationContextRuntime.RenderWrapper(context, descriptor)]).Select(Artifact));
         }
         if (validations.Length > 0)
         {
-            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderBodies(context, validations.Select(descriptor =>
+            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderBodies(context, validations.Where(descriptor => !parts.IsOmitted(descriptor.OperationId ?? context.Application.Id)).Select(descriptor =>
                 (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
@@ -176,6 +145,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace)));
         }
 
+        artifacts.AddRange(parts.RenderModelParts(slices).Select(Artifact));
         AddScaffold(request, context, artifacts, sceneJson);
 
         if (partitions is not null)
@@ -199,7 +169,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             // screen. Either way the binding module accompanies it, because it is what the payload refers to.
             var composed = SceneCompositionInput.IsCarriedBy(request.Profile)
                 ? null
-                : DefaultSceneComposition.Create(context);
+                : DefaultSceneComposition.Create(parts.SceneContext(options));
             if (composed is not null)
             {
                 artifacts.Add(PlannedArtifact.CreateText(
@@ -230,35 +200,29 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             }
         }
 
-        var shared = request.Scope.Kind == ArtifactRenderScopeKind.Application
-            ? (context.Application.Concepts, context.Application.Types)
-            : SemanticSharedReferences.Collect(context, slices);
-        artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
-        artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
-        artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
-        if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
-            slice.Slice.Queries.Any(query => query.Authorization is not null)))
-        {
-            artifacts.AddRange(SemanticPolicyArtifactRenderer.Render(context, slices).Select(Artifact));
-            artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
-        }
+        return CreatePlan(request, artifacts, diagnostics, parts);
+    }
 
-        foreach (var located in slices)
+    static ImmutableArray<PlannedArtifact> RenderTypedContexts(
+        SemanticApplicationContext context,
+        RenderingPartAdmission parts,
+        ImmutableArray<SemanticTypedContextDescriptor> descriptors,
+        HashSet<(string RequirementId, SemanticId ReadModel)> selectedReducers)
+    {
+        var artifacts = new List<PlannedArtifact>();
+        foreach (var descriptor in descriptors)
         {
-            var renderer = SemanticSliceArtifactRenderers.Ordered.FirstOrDefault(_ => _.Handles(located)) ??
-                throw UnsupportedSemanticRendering.For(nameof(SemanticSliceKind), located.Slice.Kind);
-            artifacts.AddRange(renderer.Render(located, context).Select(Artifact));
+            var owner = descriptor.OperationId ?? context.Application.Id;
+            var wrappers = parts.Render(owner, () => [SemanticTypedContextRenderer.Render(descriptor, context)]);
+            if (selectedReducers.Contains((descriptor.RequirementId, owner))) artifacts.AddRange(wrappers.Select(Artifact));
         }
-
-        artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
-            .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
-        return CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        return [.. artifacts];
     }
 
     static (List<PlannedArtifact> Artifacts, ImmutableArray<ArtifactImplementationGap> Gaps) AddPerformerGaps(ArtifactRenderRequest request, IEnumerable<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var planned = artifacts.ToList();
-        if (planned.Count == 0 || !diagnostics.Exists(diagnostic => diagnostic.Code == SemanticImplementationAdmission.PerformerGapCode)) return (planned, []);
+        if (planned.Count == 0 || !diagnostics.Exists(SemanticImplementationAdmission.IsPerformerGap)) return (planned, []);
         if (!CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _)) return (planned, []);
         var gaps = PerformerGaps(new(request, options), planned, diagnostics);
         if (gaps.IsEmpty) return (planned, gaps);
@@ -273,7 +237,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static ImmutableArray<ArtifactImplementationGap> PerformerGaps(SemanticApplicationContext context, List<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var gaps = ImmutableArray.CreateBuilder<ArtifactImplementationGap>();
-        foreach (var diagnostic in diagnostics.Where(diagnostic => diagnostic.Code == SemanticImplementationAdmission.PerformerGapCode))
+        foreach (var diagnostic in diagnostics.Where(SemanticImplementationAdmission.IsPerformerGap))
         {
             if (!context.Queries.TryGetValue(diagnostic.Artifact, out var query)) continue;
 
@@ -323,21 +287,41 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(sceneJson))
         {
             var refusal = new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", Screenplay.Diagnostics.SourceLocation.Start);
-            diagnostics.Add(Error(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, refusal.Message, request.Model.Application.Id));
+            diagnostics.Add(new(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, ArtifactRenderDiagnosticSeverity.Warning, refusal.Message, request.Model.Application.Id));
+            sceneJson = SceneGuardGaps.WithoutUnevaluableGuards(sceneJson);
         }
 
         return sceneJson;
+    }
+
+    static void DeduplicateRequirementDiagnostics(List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        // Envelope verification and use-site admission report the same rejected requirement.
+        // Retain the envelope owner's diagnostic, after both owners have been omitted.
+        var reported = new HashSet<string>(StringComparer.Ordinal);
+        diagnostics.RemoveAll(diagnostic => string.Equals(diagnostic.Code, "STAGE-ESM-020", StringComparison.Ordinal) && !reported.Add(diagnostic.Message));
     }
 
     static ArtifactRenderPlan CreatePlan(
         ArtifactRenderRequest request,
         IEnumerable<PlannedArtifact> artifacts,
         List<ArtifactRenderDiagnostic> diagnostics,
-        ImmutableArray<ArtifactRenderRefusal> refusals = default,
-        ImmutableArray<ArtifactRemoval> removals = default)
+        RenderingPartAdmission? parts = null)
     {
-        if (refusals.IsDefault) refusals = [];
-        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
+        if (parts is null) return ArtifactRenderPlan.Create(request, [.. artifacts], [.. diagnostics]);
+        var refusals = parts.Refusals;
+        var removals = parts.Removals;
+        var original = artifacts.ToList();
+        var admitted = parts.Retained(ArtifactPathAdmission.Admit(original, request.Model.Application.Id, diagnostics));
+        original.AddRange(parts.MissingDeclarations());
+        admitted = new ArtifactDependencyAdmission(request.Model.Application, diagnostics, parts).Admit(original, admitted);
+        DeduplicateRequirementDiagnostics(diagnostics);
+        OmittedSceneArtifacts.Repair(request, original, admitted);
+        var (planned, gaps) = AddPerformerGaps(request, admitted, diagnostics);
+        var renderingGaps = RenderingGapReports.FromDiagnostics(diagnostics.Where(diagnostic =>
+            RenderingGapReports.IsPathDiagnostic(diagnostic) || parts.IsGap(diagnostic)));
+        gaps = gaps.AddRange(renderingGaps);
+        if (!renderingGaps.IsEmpty) RenderingGapReports.AddMarker(planned, gaps, request.Model.Application.Id);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))
@@ -345,35 +329,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             diagnostics = [.. diagnostics.DistinctBy(diagnostic => (diagnostic.Code, diagnostic.Artifact, diagnostic.Message))];
         }
 
-        var unique = new List<PlannedArtifact>();
-        foreach (var group in planned.GroupBy(_ => _.RelativePath, StringComparer.OrdinalIgnoreCase))
-        {
-            unique.Add(group.OrderBy(_ => _.RelativePath, StringComparer.Ordinal).First());
-            if (group.Count() > 1)
-            {
-                diagnostics.Add(Error(
-                    "STAGE-CRATIS-004",
-                    $"Generated artifact path '{group.Key}' collides with another scaffold or semantic artifact.",
-                    request.Model.Application.Id));
-            }
-        }
-
-        if (unique.Exists(artifact => artifact.RelativePath.StartsWith("Customizations/", StringComparison.OrdinalIgnoreCase)))
-        {
-            diagnostics.Add(Error(
-                "STAGE-CRATIS-005",
-                "The top-level Customizations directory is reserved for user-owned files. Rename the modeled module or feature that would render into it.",
-                request.Model.Application.Id));
-            return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
-        }
-
         if (!refusals.IsEmpty)
         {
-            if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
-                !refusals.Any(refusal => refusal.Artifact == diagnostic.Artifact && refusal.Codes.Contains(diagnostic.Code))))
-            {
-                return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
-            }
             diagnostics.Add(new(
                 "STAGE-PLAN-007",
                 ArtifactRenderDiagnosticSeverity.Information,
@@ -382,8 +339,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
-        var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        var required = parts.AdmittedRemovals(admitted);
+        return ArtifactRenderPlan.Create(request, [.. planned], [.. diagnostics], gaps, refusals, required);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

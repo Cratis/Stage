@@ -45,7 +45,7 @@ public class when_refusing_protected_projection_member_identities
         var request = new ArtifactRenderRequest(model, execution, CratisRendering.CreateProfile(application.Name, options), new(ArtifactRenderScopeKind.Application, application.Id));
         var result = new CratisArtifactRenderPlanner().Plan(request);
         result.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-040");
-        result.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(result, "STAGE-ESM-040");
     }
 
     static SemanticSlice WithProtectedJoin(SemanticSlice slice) => slice with

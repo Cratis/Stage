@@ -26,9 +26,7 @@ public class with_a_compared_datetime_concept_input : Specification
     void should_refuse_concept_member_access_on_the_raw_bound_input()
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(Source("return context.Artifact.At.Value.Year >= 2026;")));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");
+        rendering_refusals.Rejected(plan, "STAGE-ESM-019");
     }
 
     static string Source(string body) => $$"""

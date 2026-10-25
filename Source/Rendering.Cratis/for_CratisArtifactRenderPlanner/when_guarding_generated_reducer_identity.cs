@@ -134,7 +134,7 @@ public class when_guarding_generated_reducer_identity
             .Replace("      query ById => Total?\n        by id Uuid", $"      query ById => Total?\n        by id {type}", StringComparison.Ordinal);
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("identifier", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-019");
     }
 
     [Theory]
@@ -147,7 +147,7 @@ public class when_guarding_generated_reducer_identity
             .Replace(Body, "return context.State;", StringComparison.Ordinal);
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("identifier", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-019");
     }
 
     [Fact]

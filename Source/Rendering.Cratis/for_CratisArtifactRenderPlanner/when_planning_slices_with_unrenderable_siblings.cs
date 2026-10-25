@@ -108,8 +108,28 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
     [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).ShouldBeEmpty();
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.TrueForAll(plan => !plan.Refused.Success).ShouldBeTrue();
+    [Fact] void should_record_a_partial_plan_for_the_offending_slice_in_every_model()
+    {
+        foreach (var plan in _plans) rendering_refusals.Partial(plan.Refused);
+    }
     [Fact] void should_report_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
     [Fact] void should_not_blanket_refuse_scalar_absence() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
-    [Fact] void should_emit_no_partial_artifacts_for_the_offending_slice() => _plans.SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_owners_and_compile_the_remaining_artifacts()
+    {
+        foreach (var plan in _plans)
+        {
+            rendering_refusals.Rejected(plan.Refused, plan.Code);
+            rendering_refusals.Omitted(plan.Refused, plan.Artifact);
+        }
+    }
+
+    [Fact] void should_keep_the_independent_command_in_application_scope()
+    {
+        foreach (var item in _cases)
+        {
+            var plan = CratisRendering.Plan(item.Model, item.ExecutionPlan, new(ArtifactRenderScopeKind.Application, item.Model.Application.Id), _options);
+            rendering_refusals.Rejected(plan, item.Code);
+            rendering_refusals.Retained(plan, _registerProject.Commands.Single().Id);
+        }
+    }
 }

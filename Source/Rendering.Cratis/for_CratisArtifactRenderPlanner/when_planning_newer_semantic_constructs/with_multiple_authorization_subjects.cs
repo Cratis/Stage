@@ -28,6 +28,6 @@ public class with_multiple_authorization_subjects : given.an_invoice_model
         _plan = invoice_model.Plan(_model);
     }
 
-    [Fact] void should_reject_an_ambiguous_subject() => ErrorCodes.ShouldContain("STAGE-ESM-015");
-    [Fact] void should_plan_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_an_ambiguous_subject() => RefusalCodes.ShouldContain("STAGE-ESM-015");
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

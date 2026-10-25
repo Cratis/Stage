@@ -3,7 +3,6 @@
 
 using System.Reflection;
 using Cratis.Screenplay.Semantics;
-using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
@@ -31,8 +30,7 @@ public class when_planning_an_unknown_validation_rule : given.a_register_project
         // Bypass Screenplay's constructor validation to model an unaudited dependency enum value.
         typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, application);
         var plan = _planner.Plan(_request);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Artifact == owner && diagnostic.Message.Contains("999", StringComparison.Ordinal) && diagnostic.Message.Contains(name, StringComparison.Ordinal));
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-005");
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Artifact == owner && diagnostic.Message.Contains("999", StringComparison.Ordinal) && diagnostic.Message.Contains(name, StringComparison.Ordinal));
     }
 }

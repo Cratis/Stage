@@ -24,16 +24,18 @@ public class and_a_source_has_streams : a_routed_command
     }
 
     [Fact] void should_use_explicit_stored_names_in_ordinal_order() => _definition.ShouldEqual("""
+        using Cratis.Chronicle.EventSources;
+
         namespace InvoiceApp.EventSources;
 
         /// <summary>
         /// Defines the account event source.
         /// </summary>
-        [global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Notes)]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Statements)]
-        [global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::InvoiceApp.EventSources.AccountEventSource.Transactions)]
-        public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource
+        [EventSource("Account")]
+        [EventStream(AccountEventSource.Notes)]
+        [EventStream(AccountEventSource.Statements)]
+        [EventStream(AccountEventSource.Transactions)]
+        public class AccountEventSource : IEventSource
         {
             /// <summary>
             /// Identifies the notes stream.

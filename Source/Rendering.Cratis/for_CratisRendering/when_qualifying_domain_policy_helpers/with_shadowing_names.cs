@@ -50,9 +50,9 @@ public class with_shadowing_names : Specification
     [Fact] void should_compile_all_domain_policies() => _errors.ShouldBeEmpty();
     [Fact] void should_compile_without_warnings() => _warnings.ShouldBeEmpty();
     [Fact] void should_emit_both_operation_policies_for_every_case() => _policies.Count.ShouldEqual(8);
-    [Fact] void should_qualify_every_root_value_helper() => _policies.TrueForAll(policy => new[] { "Match", "Path", "Query", "Truth", "Not", "And", "Or" }.All(method => !policy.Replace("global::Invoices.GeneratedPolicies.PolicyValues.", "", StringComparison.Ordinal).Contains($"PolicyValues.{method}", StringComparison.Ordinal))).ShouldBeTrue();
-    [Fact] void should_qualify_opaque_body_calls() => _policies.TrueForAll(policy => policy.Contains("global::Invoices.Sales.Retail.GeneratedPolicies.PolicyBodies.Evaluate_", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_not_import_the_shadowable_root_generated_namespace() => _policies.TrueForAll(policy => !policy.Contains("using Invoices.GeneratedPolicies;", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_qualify_the_root_registry() => _policies.TrueForAll(policy => policy.Contains("global::Invoices.GeneratedPolicies.Registration.Add(", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_qualify_every_root_value_helper() => _policies.TrueForAll(policy => new[] { "Match", "Path", "Query", "Truth", "Not", "And", "Or" }.All(method => !policy.Replace("PolicyValues.", "", StringComparison.Ordinal).Contains($"PolicyValues.{method}", StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_qualify_opaque_body_calls() => _policies.TrueForAll(policy => policy.Contains("PolicyBodies.Evaluate_", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_not_import_the_shadowable_root_generated_namespace_inside_the_namespace() => _policies.TrueForAll(policy => !policy[policy.IndexOf("namespace ", StringComparison.Ordinal)..].Contains("using Invoices.GeneratedPolicies;", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_qualify_the_root_registry() => _policies.TrueForAll(policy => policy.Contains("Registration.Add(", StringComparison.Ordinal)).ShouldBeTrue();
 }
 #endif

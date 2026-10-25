@@ -58,7 +58,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_mark_the_application_as_a_test_project_only_in_debug() => DebugProperty("IsTestProject").ShouldEqual("true");
     [Fact] void should_keep_the_application_entry_point_in_debug() => DebugProperty("GenerateProgramFile").ShouldEqual("false");
     [Fact] void should_remove_specifications_from_release_builds() => ReleaseCompileRemove().ShouldEqual("**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**");
-    [Fact] void should_place_generated_type_imports_inside_the_namespace() => Content(".editorconfig").ShouldContain("csharp_using_directive_placement = inside_namespace");
+    [Fact] void should_place_using_directives_above_the_namespace() => Content(".editorconfig").ShouldContain("csharp_using_directive_placement = outside_namespace");
     [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
     [Fact] void should_disable_ancestor_editor_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverEditorConfigFiles").Single().Value.ShouldEqual("false");
     [Fact] void should_disable_ancestor_global_analyzer_configuration_discovery() => XDocument.Parse(Content("Directory.Build.props")).Descendants("DiscoverGlobalAnalyzerConfigFiles").Single().Value.ShouldEqual("false");

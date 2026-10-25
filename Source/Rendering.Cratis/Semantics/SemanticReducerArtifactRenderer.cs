@@ -20,7 +20,7 @@ internal static class SemanticReducerArtifactRenderer
         var model = context.ReadModels[reducer.ReadModel];
         var modelType = $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(model.Id).Path)}.{Identifiers.ToPascalCase(model.Name)}";
         var name = Identifiers.ToPascalCase(reducer.Name);
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.ReducerBindings(located, reducer).Configure(builder);
         if (reducer.From is { } filter)
         {

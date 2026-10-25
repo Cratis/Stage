@@ -21,14 +21,14 @@ public class when_rendering_unpinned_time_ordered_values : Specification
     public void should_fix_the_clock_before_setup_and_assert_the_receipt_time(string name, string prefix)
     {
         var source = Render(name);
-        source.ShouldContain("void Establish()\n    {\n        _scenario.Clock(new global::System.DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, global::System.TimeSpan.Zero));");
+        source.ShouldContain("void Establish()\n    {\n        _scenario.Clock(new DateTimeOffset(2026, 1, 2, 3, 4, 5, 678, TimeSpan.Zero));");
         source.ShouldContain($"should_generate_{Naming.Identifiers.ToSnakeCase(name)}_at_the_receipt_time()");
-        source.ShouldContain($"StartsWith(\"{prefix}\", global::System.StringComparison.Ordinal).ShouldBeTrue()");
+        source.ShouldContain($"StartsWith(\"{prefix}\", StringComparison.Ordinal).ShouldBeTrue()");
         source.ShouldContain("_scenario.AllowGeneration();");
     }
 
     // Pinned fixtures retain their generated values without enabling receipt-time generation.
-    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("eb7be52c24ee78b347c72c9aefe82a25115a6ebf453ca4e4b13f12e2ca83fb0e");
+    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("64ab39685560b89102e45d789b2e1969ed5d614bb9b986cad6f790f5ead1b54c");
     [Fact] void should_leave_pinned_specifications_without_clock_setup() => Render(null).ShouldNotContain("_scenario.Clock(");
     [Fact] void should_leave_pinned_specifications_without_receipt_time_facts() => Render(null).ShouldNotContain("_at_the_receipt_time()");
     [Fact] void should_leave_non_time_ordered_generation_without_clock_setup() => Render("receipt").ShouldNotContain("_scenario.Clock(");
@@ -37,7 +37,7 @@ public class when_rendering_unpinned_time_ordered_values : Specification
     {
         const string clock = "2027-03-04T10:00:00.1230000Z";
         var source = Render("sortableId", clock);
-        source.ShouldContain("_scenario.Clock(new global::System.DateTimeOffset(639397512001230000L, global::System.TimeSpan.Zero));");
+        source.ShouldContain("_scenario.Clock(new DateTimeOffset(639397512001230000L, TimeSpan.Zero));");
         source.ShouldContain($"StartsWith(\"{SemanticGenerationTime.Prefix(a_generation_model.Model().Application.Concepts.Single(concept => concept.Name == "SortableId"), DateTimeOffset.Parse(clock, System.Globalization.CultureInfo.InvariantCulture))}\"");
         source.ShouldNotContain("01kdyak3se");
     }

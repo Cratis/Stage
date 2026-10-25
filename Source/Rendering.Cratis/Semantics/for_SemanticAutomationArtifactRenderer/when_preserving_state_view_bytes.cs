@@ -28,25 +28,20 @@ public class when_preserving_state_view_bytes : given.an_automation
         SetContext(Compile(Source + "\n" + View));
         var model = _context.ReadModels.Values.Single();
         var parameters = string.Join(", ", model.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
-            .Select(property => property.Name == "id" ? "[global::Cratis.Chronicle.Keys.KeyAttribute] string Id" : "decimal Amount"));
+            .Select(property => property.Name == "id" ? "[Key] string Id" : "decimal Amount"));
         _expected = $$"""
-            using Cratis.Arc.Authorization;
-            using Cratis.Arc.Queries.ModelBound;
-            using Cratis.Chronicle.Events;
             using Cratis.Chronicle.Keys;
-            using Cratis.Chronicle.Projections.ModelBound;
-            using Cratis.Chronicle.ReadModels;
             using Reactions.Work.Processing.Start;
 
             namespace Reactions.Work.Processing.Summary;
 
-            [global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<global::Reactions.Work.Processing.Start.Started>]
-            [global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute]
+            [FromEvent<Started>]
+            [ReadModel]
             public record Summary({{parameters}})
             {
 
-                [global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
-                public static async global::System.Threading.Tasks.Task<Summary?> ById(global::Cratis.Chronicle.ReadModels.IReadModels readModels, global::Cratis.Chronicle.Events.EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
+                [AllowAnonymous]
+                public static async Task<Summary?> ById(IReadModels readModels, EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
             }
             """ + Environment.NewLine;
     }

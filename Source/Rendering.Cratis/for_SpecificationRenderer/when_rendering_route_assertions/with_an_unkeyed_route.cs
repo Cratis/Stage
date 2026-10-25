@@ -22,7 +22,7 @@ public class with_an_unkeyed_route : Specification
         _plan = routed_specifications.Plan(routed_specifications.Compile(source));
     }
 
-    [Fact] void should_assert_the_default_identity_without_losing_the_route() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventStreamId == global::Cratis.Chronicle.Events.EventStreamId.Default");
+    [Fact] void should_assert_the_default_identity_without_losing_the_route() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventStreamId == EventStreamId.Default");
     [Fact] void should_keep_the_stored_source() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventSourceType == \"stored-account\"");
     [Fact] void should_not_emit_an_unused_identity_codec() => _plan.Artifacts.Any(artifact => artifact.RelativePath == "GeneratedEventSources/StreamIds.cs").ShouldBeFalse();
 }

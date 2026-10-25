@@ -157,7 +157,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
         {
-            artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
         if (GeneratedTypeNames.UsesProtectedReads(slices.SelectMany(located => located.Slice.Commands)))
@@ -167,13 +167,13 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (GeneratedTypeNames.UsesStreamIds(slices.Select(slice => slice.Slice)))
         {
-            artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
         if (selectedReducers.Count > 0)
         {
             artifacts.Add(Artifact(SemanticReducerContextRuntime.Render(context)));
-            artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
         AddScaffold(request, context, artifacts, sceneJson);

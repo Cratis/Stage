@@ -27,7 +27,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
 
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
             .Using("System.Security.Claims")
             .Using("Cratis.Arc.Authorization")
@@ -81,10 +81,10 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         Write(builder, Assertions(specification, expected, readModelName, context, types));
         RenderDispose(builder, routedReplay);
         builder.EndBlock();
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);

@@ -29,7 +29,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
     // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    const string Digest = "173b478e7398ffdd0ac0def745f67794642c4a4768dad82596b03849490a6e09";
+    const string Digest = "9da10c0f900edf5143e6bb93a8ef31fdbb88256a775ed22461fdd40dbd5af972";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -138,7 +138,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9dc204a0cec035fca7840156d42462bca6556c27f03eb16de007033962663413");
+            plan.Diagnostics).ShouldEqual("b4a77291ec09b2bade1d3ae9b0decc1c7f056869caf72449413dc2aae397a2a0");
     }
 
     [Theory]

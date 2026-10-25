@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 /// </summary>
 public class with_authored_screen_partitions : a_partitioned_screen_plan
 {
-    const string Before = "e13c46b8555c465a45fb1bc9ad7ae011e73c92c5283e35e1f48ceff7c123fe83";
+    const string Before = "b766676efb34075c88198808fb129014349aaba05e9ae36079e1aa46841298bf";
 
     void Because() => _application = AppPlan(_profile);
 

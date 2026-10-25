@@ -14,6 +14,6 @@ public class when_rendering_commands_and_events : given.an_automation
 
     [Fact] void should_include_the_slice_command() => _source.ShouldContain("public record CompleteWork(string Id, decimal Amount, string? Note)");
     [Fact] void should_include_its_event() => _source.ShouldContain("public record Completed(decimal Amount);");
-    [Fact] void should_include_the_reaction_production_event() => _source.ShouldContain("public record Acknowledged(global::System.DateTimeOffset ScheduledAt);");
+    [Fact] void should_include_the_reaction_production_event() => _source.ShouldContain("public record Acknowledged(DateTimeOffset ScheduledAt);");
     [Fact] void should_not_paste_reactors_into_the_slice_file() => _source.ShouldNotContain("IReactor");
 }

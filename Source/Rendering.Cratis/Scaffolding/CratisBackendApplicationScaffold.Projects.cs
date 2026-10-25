@@ -6,8 +6,8 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 public sealed partial class CratisBackendApplicationScaffold
 {
     // All specification renderers emit slice-local when_*.cs files, including query/projection companions.
-    // They emit no separate given helpers or shared specification support files.
-    const string SpecificationGlob = "**/when_*.cs";
+    // Hand-written specifications follow the same convention in when_*, for_* and given folders.
+    const string SpecificationGlobs = "**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**";
 
     static string DirectoryBuildProps(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
@@ -64,10 +64,11 @@ public sealed partial class CratisBackendApplicationScaffold
         $$"""
         <Solution>
           <Project Path="{{request.ProjectName}}.csproj" />
-          <Project Path="{{request.ProjectName}}.Specs/{{request.ProjectName}}.Specs.csproj" />
         </Solution>
         """;
 
+    // Specifications live beside the slices they specify and compile into the application in Debug only, so
+    // "dotnet test" runs them from the application project and a Release build needs no test packages.
     static string Project(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -80,12 +81,17 @@ public sealed partial class CratisBackendApplicationScaffold
             <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
             <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
           </PropertyGroup>
+          <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+            <IsTestProject>true</IsTestProject>
+            <!-- Program.cs is the entry point; the test SDK must not generate another one. -->
+            <GenerateProgramFile>false</GenerateProgramFile>
+          </PropertyGroup>
           <ItemGroup>
-            <InternalsVisibleTo Include="{{request.ProjectName}}.Specs" />
-            <Compile Remove="{{SpecificationGlob}};{{request.ProjectName}}.Specs/**" />
-            <Content Remove="package.json;{{request.ProjectName}}.Specs/**" />
-            <None Remove="package.json;{{request.ProjectName}}.Specs/**" />
-            <EmbeddedResource Remove="{{request.ProjectName}}.Specs/**" />
+            <Content Remove="package.json" />
+            <None Remove="package.json" />
+          </ItemGroup>
+          <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+            <Compile Remove="{{SpecificationGlobs}}" />
           </ItemGroup>
           <ItemGroup>
             <PackageReference Include="Cratis.Screenplay.Matching" />
@@ -94,23 +100,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
           </ItemGroup>
-          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
-        </Project>
-        """;
-
-    static string SpecificationsProject(CratisBackendApplicationScaffoldRequest request) =>
-        $$"""
-        <Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <RootNamespace>{{request.RootNamespace}}.Specs</RootNamespace>
-            <IsTestProject>true</IsTestProject>
-            <IsPackable>false</IsPackable>
-          </PropertyGroup>
-          <ItemGroup>
-            <ProjectReference Include="../{{request.ProjectName}}.csproj" />
-            <Compile Include="../{{SpecificationGlob}}" Exclude="../{{request.ProjectName}}.Specs/**;../**/bin/**;../**/obj/**;../node_modules/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
-          </ItemGroup>
-          <ItemGroup>
+          <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
             <PackageReference Include="Cratis.Chronicle.Testing" />
             <PackageReference Include="Cratis.Specifications" />
@@ -123,6 +113,7 @@ public sealed partial class CratisBackendApplicationScaffold
               <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             </PackageReference>
           </ItemGroup>
+          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
         </Project>
         """;
 }

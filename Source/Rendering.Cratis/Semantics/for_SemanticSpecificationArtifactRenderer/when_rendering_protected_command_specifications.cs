@@ -27,7 +27,7 @@ public class when_rendering_protected_command_specifications : Specification
 
     // Screenplay 4.246 (decision 0115) states the reaction in its own Workflow slice as an append: no command cascade is left to split.
     [Fact] void should_render_the_reaction_as_one_append_specification() => _plan.Artifacts.Count(artifact => artifact.RelativePath.EndsWith("/when_reaction_invokes_protected_read.cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith("/when_reaction_invokes_protected_read_trigger.cs", StringComparison.Ordinal)).ShouldEqual(1);
-    [Fact] void should_execute_the_invoked_command_after_the_reactor_returns_it() => Source("/when_reaction_invokes_protected_read.cs").ShouldContain("_reactor.Produced.OfType<global::ProtectedReads.Storage.Decisions.Use.Consume>()");
+    [Fact] void should_execute_the_invoked_command_after_the_reactor_returns_it() => Source("/when_reaction_invokes_protected_read.cs").ShouldContain("_reactor.Produced.OfType<Consume>()");
     [Fact] void should_decide_the_command_another_slice_owns() => Source("/when_reaction_invokes_protected_read.cs").ShouldContain("void should_succeed() => _result.ShouldBeSuccessful();");
     [Fact] void should_not_assert_the_facts_of_the_command_another_slice_owns() => Source("/when_reaction_invokes_protected_read.cs").ShouldNotContain("should_append");
 

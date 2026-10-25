@@ -28,7 +28,7 @@ internal static class SemanticProtectedReadAdmissionRenderer
         var types = new SemanticTypeSystem(context);
         var protectedTypes = commands.Where(command => !command.Reads.IsDefaultOrEmpty)
             .Select(command => $"typeof({types.SliceType(command.Id, command.Name)})");
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedCommands.when_admitting_protected_reads")
+        var builder = context.SpecificationBuilder().Namespace($"{context.RootNamespace}.GeneratedCommands.when_admitting_protected_reads")
             .Summary("Proves that Chronicle admits the decision reads of every protected command.")
             .OpenBlock("public class when_admitting_protected_reads : global::Cratis.Specifications.Specification")
             .Line($"[global::Xunit.FactAttribute] void should_admit_the_decision_reads() => global::Cratis.Arc.Chronicle.Testing.Commands.DecisionReadAdmissions.ShouldAdmitDecisionReadsOf({string.Join(", ", protectedTypes)});")

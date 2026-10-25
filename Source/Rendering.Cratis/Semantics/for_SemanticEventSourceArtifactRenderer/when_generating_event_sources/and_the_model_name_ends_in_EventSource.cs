@@ -19,5 +19,5 @@ public class and_the_model_name_ends_in_EventSource : a_routed_command
     }
 
     [Fact] void should_append_the_suffix_even_if_the_model_has_it() => _definition.ShouldContain("class AccountEventSourceEventSource");
-    [Fact] void should_reference_the_recoverable_class() => _code.ShouldContain("AccountEventSourceEventSource>(global::InvoiceApp.EventSources.AccountEventSourceEventSource.Transactions)");
+    [Fact] void should_reference_the_recoverable_class() => _code.ShouldContain("AccountEventSourceEventSource>(AccountEventSourceEventSource.Transactions)");
 }

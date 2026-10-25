@@ -55,8 +55,12 @@ public static partial class CratisRendering
     static string? DestinationConvention(ArtifactRenderPlan plan, Func<string, string?> readExistingFile) =>
         plan.Scope.Kind != ArtifactRenderScopeKind.Application && WritesReducers(plan) ? readExistingFile(ReducerConventionInput.RelativePath) : null;
 
+    // Generated files name Chronicle reducer types by their short names where that binds, so a reducer is recognized by
+    // the classic interface, the reducer attribute or a qualified reference.
     static bool WritesReducers(ArtifactRenderPlan plan) =>
-        plan.Artifacts.Any(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("Cratis.Chronicle.Reducers.", StringComparison.Ordinal));
+        plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))
+            .Any(text => text.Contains("Cratis.Chronicle.Reducers.", StringComparison.Ordinal) || text.Contains("IReducerFor<", StringComparison.Ordinal) ||
+                text.Contains("[Reducer", StringComparison.Ordinal));
 
     static string Sha256Of(string relativePath, string content) => PlannedArtifact.CreateText(relativePath, content).Sha256;
 

@@ -53,6 +53,7 @@ sealed record ScaffoldedProject(
             Metadata(item, "Identity"),
             Metadata(item, "Alias"),
             Metadata(item, "DefiningProjectName"))).ToArray();
+
         // Compare real paths: a scaffold under a symbolic link (macOS /tmp is /private/tmp) would otherwise make the
         // project's own files look like package files and add the application's own declarations to the catalog.
         var projectDirectory = RealPath(directory) + Path.DirectorySeparatorChar;

@@ -40,19 +40,27 @@ internal static class SceneBindingsRenderer
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <returns>The generated module text.</returns>
+    public static string Render(SemanticApplicationContext context) => Render(context, context.AllSlices);
+
+    /// <summary>
+    /// Renders the binding registration module for the slices whose user interface is present.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="slices">The slices whose generated proxies are present, in model order; only their commands and queries are imported.</param>
+    /// <returns>The generated module text.</returns>
     /// <remarks>
     /// The proxy generator writes a proxy beside the source it was generated from, so a proxy is imported from
     /// the slice folder that declares it rather than from the project root. Each of those folders carries an
     /// index that re-exports it, which is what makes the folder itself the import.
     /// </remarks>
-    public static string Render(SemanticApplicationContext context)
+    public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = context.Commands.Values
+        var commands = slices.SelectMany(slice => slice.Slice.Commands)
             .Select(_ => (_.Name, Module: Module(context, _.Id)))
             .DistinctBy(_ => _.Name, StringComparer.Ordinal)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
-        var queries = context.Queries.Values
+        var queries = slices.SelectMany(slice => slice.Slice.Queries).Select(query => context.Queries[query.Id])
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ThenBy(_ => _.Id.ToString(), StringComparer.Ordinal)
             .Select((query, index) => (query.Name, Identity: query.Id.ToString(),

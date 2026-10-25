@@ -34,7 +34,7 @@ public class when_planning_names_beside_generated_declarations
             .Replace("module Billing", "module GeneratedPolicies", StringComparison.Ordinal)
             .Replace("feature Invoicing", "feature Registration", StringComparison.Ordinal)));
 
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("Registration", StringComparison.Ordinal));
     }
 
@@ -45,7 +45,7 @@ public class when_planning_names_beside_generated_declarations
             .Replace("module Billing", "module GeneratedPolicies", StringComparison.Ordinal)
             .Replace("feature Invoicing", "feature Registration", StringComparison.Ordinal)));
 
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("Registration", StringComparison.Ordinal));
     }
 
@@ -91,7 +91,7 @@ public class when_planning_names_beside_generated_declarations
             .Replace("module Billing", "module GeneratedPolicies", StringComparison.Ordinal)
             .Replace("feature Invoicing", "feature PolicyValues", StringComparison.Ordinal)));
 
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("PolicyValues", StringComparison.Ordinal));
     }
 
@@ -104,9 +104,8 @@ public class when_planning_names_beside_generated_declarations
             .Replace("module Billing", "module GeneratedCommands", StringComparison.Ordinal)
             .Replace("feature Invoicing", $"feature {feature}", StringComparison.Ordinal)));
 
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains(feature, StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
     }
 
     [Theory]

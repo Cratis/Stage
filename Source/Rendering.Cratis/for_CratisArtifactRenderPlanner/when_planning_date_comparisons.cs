@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_planning_date_comparisons : Specification
 {
-    const string Marker = "[property: global::Cratis.Arc.Commands.ExplicitOffset] global::System.DateTimeOffset";
+    const string Marker = "[property: ExplicitOffset] DateTimeOffset";
 
     [Theory]
     [InlineData("single")]
@@ -31,8 +31,8 @@ public class when_planning_date_comparisons : Specification
         Text(plan, "Keep/Keep.cs").ShouldContain("public record KeepWindow(string Id, " + Marker + " From, " + Marker + " To)");
         Text(plan, "Keep/Keep.cs").ShouldContain("(command.To.CompareTo(command.From) >= 0)");
         Text(plan, "Compare/Compare.cs").ShouldContain("public record CompareInstant(string Id, " + Marker + " At)");
-        Text(plan, "Compare/Compare.cs").ShouldContain("RuleFor(_ => _.At).Must(value => value.CompareTo(new global::System.DateTimeOffset(639028224000000000L, global::System.TimeSpan.Zero)) == 0)");
-        Text(plan, "Calendar/Calendar.cs").ShouldContain("(Day.CompareTo(new global::System.DateOnly(2026, 1, 1)) > 0)");
+        Text(plan, "Compare/Compare.cs").ShouldContain("RuleFor(_ => _.At).Must(value => value.CompareTo(new DateTimeOffset(639028224000000000L, TimeSpan.Zero)) == 0)");
+        Text(plan, "Calendar/Calendar.cs").ShouldContain("(Day.CompareTo(new DateOnly(2026, 1, 1)) > 0)");
         Text(plan, "Calendar/Calendar.cs").ShouldNotContain("ExplicitOffset");
     }
 

@@ -15,7 +15,7 @@ internal static class SemanticConstraintArtifactRenderer
     internal static RenderedFile Render(SemanticSlice slice, SemanticConstraint constraint, SemanticApplicationContext context)
     {
         var location = context.Slice(slice.Id);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.CodeBuilder()
             .Namespace(SliceNaming.Namespace(context.RootNamespace, location.Path))
             .Using("Cratis.Chronicle.Events.Constraints");
         var className = Identifiers.ToPascalCase(constraint.Name);
@@ -70,7 +70,7 @@ internal static class SemanticConstraintArtifactRenderer
         return new(Path.Combine([.. SliceNaming.FolderPath(location.Path), $"{className}.cs"]), builder.ToString())
         {
             // Constraints have no SemanticId in ESM v1; attribute the artifact to its owning slice and target events.
-            Sources = [slice.Id, .. constraint.Targets.Select(_ => _.EventContract)]
+            Sources = [slice.Id, .. constraint.Targets.Select(_ => _.EventContract), .. constraint.ReleasedBy]
         };
     }
 

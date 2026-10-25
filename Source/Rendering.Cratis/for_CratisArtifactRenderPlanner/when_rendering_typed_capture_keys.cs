@@ -43,7 +43,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
     [Theory]
     [InlineData(SemanticPrimitiveType.Text, "@event.OrderId")]
     [InlineData(SemanticPrimitiveType.Uuid, "@event.OrderId")]
-    [InlineData(SemanticPrimitiveType.WholeNumber, "new global::Cratis.Chronicle.Events.EventSourceId((@event.OrderId).ToString())")]
+    [InlineData(SemanticPrimitiveType.WholeNumber, "new EventSourceId((@event.OrderId).ToString())")]
     public void should_compile_supported_primitive_identities(SemanticPrimitiveType primitive, string expression)
     {
         var key = SemanticTypeReference.ForPrimitive(primitive);
@@ -72,8 +72,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
         var key = SemanticTypeReference.ForPrimitive(primitive);
         SetTypes(key, key);
         var plan = Plan(_model);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-052");
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-052");
     }
 
     [Theory]

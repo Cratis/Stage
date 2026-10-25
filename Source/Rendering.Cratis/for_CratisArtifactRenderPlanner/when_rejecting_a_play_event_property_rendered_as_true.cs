@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -56,8 +57,8 @@ public class when_rejecting_a_play_event_property_rendered_as_true
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
 
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Partial(plan);
+        rendering_refusals.OmittedParts(plan);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Message.Contains("Chronicle expression", StringComparison.Ordinal));
     }
 }

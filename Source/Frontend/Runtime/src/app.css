@@ -41,7 +41,7 @@ button { font: inherit; }
 .stage-empty { color: var(--layout-text-muted, #6b7280); font-style: italic; }
 .stage-note { color: var(--layout-text-muted, #6b7280); margin: 0 0 0.5rem; }
 .stage-note--error { color: #dc2626; }
-.stage-action { display: grid; gap: 0.75rem; justify-items: start; }
+.stage-action { display: inline-grid; gap: 0.75rem; justify-items: start; margin: 0 0.5rem 0.5rem 0; vertical-align: top; }
 .stage-command-form__layout { display: grid; gap: var(--layout-gap, 1rem); min-width: 0; width: 100%; }
 .stage-command-form__field { display: block; min-width: 0; }
 /* One line is always reserved under the control, so a message that fits it never shifts the fields below; a longer one grows in flow and pushes them down instead of covering the control. */

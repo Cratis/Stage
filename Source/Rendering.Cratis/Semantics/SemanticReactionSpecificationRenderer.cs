@@ -112,7 +112,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Xunit");
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
@@ -123,7 +123,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderProductionExpectations(builder, specification, prelude, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)

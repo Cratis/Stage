@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -9,14 +9,16 @@ import { ArcContext } from '@cratis/arc.react';
 import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
+import { Button } from '@cratis/components/Common';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
 import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
-import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import { asCommandValue, createsEntity, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
+import { withReferenceField } from './StageReferenceField';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -37,6 +39,9 @@ interface NativeFormProperties {
 
 interface StageCommandFormProps {
     element: ExternalComponent;
+
+    /** Offers a Cancel button beside the submit when the dialog around the form has none of its own. */
+    cancellable?: boolean;
 }
 
 interface StageCommandContent {
@@ -44,13 +49,14 @@ interface StageCommandContent {
 }
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
-export function StageCommandForm({ element }: StageCommandFormProps) {
+export function StageCommandForm({ element, cancellable = false }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
-    const schema = useMemo(() => schemaProperties(element), [element]);
-    const hasSchemaMetadata = typeof element.properties.schema === 'string';
+    const schemaText = commandSchema(element, data, form);
+    const schema = useMemo(() => schemaPropertiesOf(schemaText), [schemaText]);
+    const hasSchemaMetadata = schemaText !== '';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
@@ -59,11 +65,16 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
-    const rowAction = element.properties.rowAction === true;
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
-    const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
+    // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
+    const { creates, rowAction } = actionIntent(element, schemaText);
+    const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates, rowAction), [creates, data.selections, data.queries, rowAction]);
+    const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
+    const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
+    const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
+    const identifiers = useMemo(() => sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), [fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
+    const currentValues = useCurrentValues({ ...identifiers, ...suppliedReferences }, argumentValues);
+    const initialValues = useMemo(() => ({ ...populated, ...identifiers, ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, identifiers, data.parameters, suppliedReferences]);
+    const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
@@ -83,7 +94,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
-                currentValues={argumentValues}
+                currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
@@ -103,10 +114,22 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
+                <div className='stage-command-form__actions'>
+                    <Button type='submit'>{text(element, 'submitLabel') || form.label}</Button>
+                    {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
+                </div>
             </NativeCommandForm>
         </section>
     );
+}
+
+function commandSchema(element: ExternalComponent, data: StageDataState, form: NativeFormProperties | undefined): string {
+    return text(element, 'schema') || data.routes?.commandSchemas?.[form?.command ?? ''] || '';
+}
+
+function actionIntent(element: ExternalComponent, schemaText: string) {
+    const creates = element.properties.createsEntity === true || createsEntity(schemaText);
+    return { creates, rowAction: !creates && element.properties.rowAction === true };
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {
@@ -124,7 +147,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
     const fields = Array.isArray(element.properties.fields) ? element.properties.fields.filter(isRecord) as unknown as FormField[] : [];
     return {
         command,
-        label: text(element, 'label', command),
+        label: text(element, 'label') || humanize(command),
         fields,
         generationMode: generationModeFor(element.properties.generationMode),
         layout: layoutFor(element.properties.layout),
@@ -169,7 +192,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const title = field.label ?? field.name;
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
-    const fieldElement = (() => {
+    const fieldElement = withReferenceField(descriptor, { value: accessor, fieldName: property, title, required }, (() => {
         if (descriptor?.options) {
             const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
             return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
@@ -180,10 +203,10 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
-            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
+            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon isNonModal showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
-    })();
+    })());
 
     const style = placementStyle(placement);
     return (
@@ -275,6 +298,30 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     return values;
 }
 
+/** Follow only externally supplied members; losing a source clears that member without erasing unrelated edits. */
+function useCurrentValues(supplied: StageCommandContent, arguments_: StageCommandContent | undefined) {
+    const previous = useRef<string[]>([]);
+    const key = JSON.stringify(supplied);
+    return useMemo(() => {
+        const values: StageCommandContent = {};
+        for (const name of previous.current) if (!Object.hasOwn(supplied, name)) values[name] = undefined;
+        Object.assign(values, supplied, arguments_);
+        previous.current = Object.keys(supplied);
+        return values;
+    }, [key, arguments_]);
+}
+
+function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[]): StageCommandContent {
+    return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
+        const value = (parameters[property.name] || selectedReference(property, selectedRows)) ?? (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        return value === undefined ? [] : [[property.name, value]];
+    }));
+}
+
+function referenceFieldsToAsk(fields: FormField[], supplied: StageCommandContent): FormField[] {
+    return fields.filter(field => !Object.hasOwn(supplied, field.sourceProperty ?? field.name));
+}
+
 /**
  * Whether a task dialog leaves an identifier out of what it asks: the identifier the command acts on (`x-identity`) - the shopper's basket,
  * which the session supplies or creates - or one the address or the session already supplies. Every other identifier is a reference to
@@ -317,6 +364,13 @@ export function selectedIdentifier(property: SchemaProperty, selectedRows: Recor
     return values.size === 1 ? [...values][0] : undefined;
 }
 
+/** Reference values retain their modeled primitive type, including zero. */
+function selectedReference(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | number | undefined {
+    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string | number =>
+        typeof value === 'string' && value !== '' || typeof value === 'number' && Number.isFinite(value)));
+    return values.size === 1 ? [...values][0] : undefined;
+}
+
 /** Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. */
 export function carriedBy(property: SchemaProperty, rows: Record<string, unknown>[]): boolean {
     return rows.some(row => Object.hasOwn(row, property.name));
@@ -339,15 +393,31 @@ function entityRowsOf(queries: StageDataState['queries']): [Record<string, unkno
     return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
 }
 
+/** Creating an entity is about no selected row, even when the person selected one on the screen. */
+function selectedRowsFor(selections: StageDataState['selections'], queries: StageDataState['queries'], creates: boolean, currentOnly: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectedRowsOf(selections, queries, currentOnly);
+}
+
+/** Creating an entity is about no row, so it does not borrow identifiers or selection requirements from a list. */
+export function selectableRowsFor(queries: StageDataState['queries'], creates: boolean): Record<string, unknown>[] {
+    return creates ? [] : selectableRowsOf(queries);
+}
+
 /** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */
 export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
     return entityRowsOf(queries).map(([, row]) => row);
 }
 
-/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
-export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+/**
+ * The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. With `currentOnly`, a table's
+ * selection counts only while the table still shows that row; a selection a component publishes itself (a board's selected card) has no table
+ * query to check and is cleared by its publisher.
+ */
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries'], currentOnly = false): Record<string, unknown>[] {
     const keyed = new Map(entityRowsOf(queries));
-    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
+    const current = ([key, row]: [string, Record<string, unknown>]) => !currentOnly || !Object.hasOwn(queries, key) || queries[key].rows.includes(row);
+    return Object.entries(selections).filter((entry): entry is [string, Record<string, unknown>] => entry[1] !== undefined && current(entry as [string, Record<string, unknown>]))
+        .map(([, row]) => keyed.get(row) ?? row);
 }
 
 /**

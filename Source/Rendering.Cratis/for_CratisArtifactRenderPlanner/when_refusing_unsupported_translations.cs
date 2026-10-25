@@ -45,8 +45,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     public void should_refuse_an_expression_guard_by_name()
     {
         var plan = Plan(Guarded(new(SemanticCaptureConditionKind.Expression, []) { Expression = "orderId != null" }));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-024");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("expression guard 'orderId != null'", StringComparison.Ordinal));
     }
 
@@ -54,7 +53,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     public void should_refuse_a_guard_path_the_reference_evaluator_cannot_traverse()
     {
         var plan = Plan(Guarded(new(SemanticCaptureConditionKind.AnyChanged, ["order.id"])));
-        plan.Success.ShouldBeFalse();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-024");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("'order.id'", StringComparison.Ordinal));
     }
 
@@ -62,7 +61,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     public void should_refuse_a_transition_over_a_value_whose_text_differs_from_the_model()
     {
         var plan = Plan(Guarded(new(SemanticCaptureConditionKind.Transition, ["orderId"]) { From = "a", To = "b" }));
-        plan.Success.ShouldBeFalse();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-024");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Message.Contains("transition guard field 'orderId'", StringComparison.Ordinal));
     }
 
@@ -90,23 +89,21 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
             diagnostic.Message.Contains("ShipmentDispatched.orderId", StringComparison.Ordinal) &&
             diagnostic.Message.Contains("OrderDispatched.orderId", StringComparison.Ordinal) &&
             diagnostic.Message.Contains("different types", StringComparison.Ordinal));
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-024");
     }
 
     [Fact]
     public void should_refuse_an_external_system_capture()
     {
         var plan = Plan(Transform(_model, slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = null })] }));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.OmittedParts(plan);
     }
 
     [Fact]
     public void should_not_admit_an_orphan_public_contract()
     {
         var plan = Plan(Transform(_model, slice => slice.Kind == SemanticSliceKind.Translate && slice.Direction == SemanticTranslationDirection.Outbound ? slice with { Projections = [] } : slice));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-032");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032");
     }
 
@@ -131,8 +128,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
     public void should_refuse_a_publication_name_that_collides_with_its_comparison_member()
     {
         var plan = Plan(Transform(_model, slice => slice with { Projections = [.. slice.Projections.Select(projection => projection with { Name = "SamePublicValue" })] }));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("SamePublicValue", StringComparison.Ordinal));
     }
 
@@ -143,8 +139,7 @@ public class when_refusing_unsupported_translations : given.a_translation_applic
         {
             Reducers = [new("OtherPublication", slice.Projections.Single().ReadModel, [new(slice.Projections.Single().Scope!.From[0].EventContract, "other-publication")]) { Target = SemanticProjectionTargetKind.Event }]
         }));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-032");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Message.Contains("OtherPublication", StringComparison.Ordinal));
     }
 

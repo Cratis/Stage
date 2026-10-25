@@ -26,6 +26,6 @@ public class when_planning_a_model_with_slice_local_plan_issues : Specification
 
     [Fact] void should_render_the_supported_slice() => Assert.True(_supported.Success, string.Join("; ", _supported.Diagnostics.Select(diagnostic => diagnostic.Message)));
     [Fact] void should_emit_the_supported_command() => _supported.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("RegisterProject.cs", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_refuse_the_query_slice() => _refused.Success.ShouldBeFalse();
+    [Fact] void should_refuse_the_query_slice() => given.rendering_refusals.Rejected(_refused, "STAGE-ESM-010");
     [Fact] void should_identify_the_required_query_refusal() => Assert.Contains(_refused.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-010" && diagnostic.Artifact == _loaded.Plan.Queries.Keys.Single());
 }

@@ -93,10 +93,10 @@ public class when_executing_generated_composite_read_model_keys : a_generated_ap
     {
         try
         {
-            var projection = string.Concat(GeneratedFiles("*.cs").Where(path => !path.Contains("Specs", StringComparison.Ordinal) && !path.Contains("obj", StringComparison.Ordinal)).Select(ReadGeneratedFile));
+            var projection = string.Concat(GeneratedFiles("*.cs").Where(path => !path.Contains("for_GeneratedApplication", StringComparison.Ordinal) && !path.Contains("obj", StringComparison.Ordinal)).Select(ReadGeneratedFile));
             Assert.Contains("UsingCompositeKey<PaymentTotalsKey>", projection, StringComparison.Ordinal);
             Assert.Contains("public record PaymentTotalsKey(", projection, StringComparison.Ordinal);
-            Assert.Contains("[global::Cratis.Chronicle.Keys.KeyAttribute] PaymentTotalsKey Id", projection, StringComparison.Ordinal);
+            Assert.Contains("[Key] PaymentTotalsKey Id", projection, StringComparison.Ordinal);
             AddGeneratedSpecification("CompositeKeys.cs", CompositeKeySpecification);
             var build = await Run("composite-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));

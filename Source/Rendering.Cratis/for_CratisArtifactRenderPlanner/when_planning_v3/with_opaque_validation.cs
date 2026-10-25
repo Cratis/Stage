@@ -47,6 +47,9 @@ public class with_opaque_validation : Specification
     [Fact] void should_reject_rule_predicate_without_an_envelope() => Rejected(_predicate).ShouldBeTrue();
     [Fact] void should_reject_concept_code_validation_without_an_envelope() => Rejected(_concept).ShouldBeTrue();
 
-    static bool Rejected(ArtifactRenderPlan plan) => !plan.Success && plan.Artifacts.IsEmpty &&
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("no verified requirement/body", StringComparison.Ordinal));
+    static bool Rejected(ArtifactRenderPlan plan)
+    {
+        rendering_refusals.Rejected(plan, "STAGE-ESM-020");
+        return plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains("no verified requirement/body", StringComparison.Ordinal));
+    }
 }

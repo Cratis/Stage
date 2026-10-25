@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -254,27 +255,33 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.ImplementationContents,
             _loaded.AttachmentDiagnostics,
             [unknown]);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
-            diagnostic.Message.Contains("UnsupportedToken", StringComparison.Ordinal));
-        plan.Artifacts.ShouldBeEmpty();
+        var owner = descriptor.OperationId!.Value;
+        rendering_refusals.Warning(
+            plan,
+            "STAGE-ESM-021",
+            owner,
+            $"Validation '{descriptor.RequirementId}' has no unique wrapper-ready typed context with matching members and sources.");
+        rendering_refusals.Omitted(plan, owner);
+        rendering_refusals.Partial(plan);
+        rendering_refusals.Compiles(plan);
     }
 
     [Fact]
     void should_reject_the_missing_body_with_its_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
-        var plan = Render(_loaded.ImplementationContents.Remove(requirement.RequirementId));
-        plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-020").Message.ShouldContain(requirement.RequirementId);
+        AssertRejectedRequirement(
+            Render(_loaded.ImplementationContents.Remove(requirement.RequirementId)),
+            $"Implementation requirement '{requirement.RequirementId}' has no resolved body.");
     }
 
     [Fact]
     void should_reject_a_stale_body_with_its_requirement_identity()
     {
         var requirement = _loaded.ImplementationRequirements.Single();
-        var plan = Render(_loaded.ImplementationContents.SetItem(requirement.RequirementId, "return true;"));
-        plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-020").Message.ShouldContain(requirement.RequirementId);
+        AssertRejectedRequirement(
+            Render(_loaded.ImplementationContents.SetItem(requirement.RequirementId, "return true;")),
+            $"Implementation requirement '{requirement.RequirementId}' has a body whose SHA-256 differs from ContentHash.");
     }
 
     [Fact]
@@ -306,7 +313,7 @@ public class when_verifying_implementation_attachments : Specification
         var plan = CratisRendering.Plan(_loaded.Model, _loaded.Plan, Scope(_loaded), new("Orders", "Orders"), [], []);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" &&
             diagnostic.Message.Contains(_loaded.ImplementationRequirements.Single().RequirementId, StringComparison.Ordinal));
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
     }
 
     [Fact]
@@ -463,6 +470,14 @@ public class when_verifying_implementation_attachments : Specification
             loaded.ImplementationRequirements,
             contents ?? loaded.ImplementationContents,
             loaded.AttachmentDiagnostics);
+
+    void AssertRejectedRequirement(ArtifactRenderPlan plan, string message)
+    {
+        var owner = _loaded.ImplementationRequirements.Single().Source.SemanticId;
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+        plan.Diagnostics.Single(diagnostic => string.Equals(diagnostic.Code, "STAGE-ESM-020", StringComparison.Ordinal) && string.Equals(diagnostic.Message, message, StringComparison.Ordinal)).Artifact.ShouldEqual(owner);
+        plan.ImplementationGaps.Count(gap => string.Equals(gap.Owner, owner.ToString(), StringComparison.Ordinal)).ShouldEqual(1);
+    }
 
     ArtifactRenderPlan Render(ImmutableDictionary<string, string> contents) =>
         CratisRendering.Plan(

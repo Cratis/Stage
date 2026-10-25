@@ -15,7 +15,7 @@ public class with_aggregate_opaque_bodies_and_contexts : given.a_policy_plan
         _existing["GeneratedPolicies/PolicyBodies.cs"] = Text(_application.Artifacts.First(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)));
 
         // Before #211, use-site wrappers accompanied the shared identity runtime in this file.
-        _existing["TypedContexts/PolicyContext.cs"] = Text(_application.Artifacts.Single(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs")) + "\npublic sealed record TypedContext_issue(string Subject, Identity Identity, global::System.DateTimeOffset Occurred);\n";
+        _existing["TypedContexts/PolicyContext.cs"] = Text(_application.Artifacts.Single(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs")) + "\npublic sealed record TypedContext_issue(string Subject, Identity Identity, DateTimeOffset Occurred);\n";
     }
 
     void Because() => _check = CratisRendering.CheckPublication(_plan, Read);

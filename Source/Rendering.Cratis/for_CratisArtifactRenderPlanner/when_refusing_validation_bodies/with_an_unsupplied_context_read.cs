@@ -16,8 +16,7 @@ public class with_an_unsupplied_context_read
     public void should_refuse_the_read_by_member_name(string member)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.Command($"return context.{member} == default;")));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-015");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" && diagnostic.Message.Contains(member, StringComparison.Ordinal));
     }
 }

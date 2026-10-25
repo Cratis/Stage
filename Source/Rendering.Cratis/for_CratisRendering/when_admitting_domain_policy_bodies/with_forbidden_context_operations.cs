@@ -24,12 +24,13 @@ public class with_forbidden_context_operations
     [InlineData("var copy = context; copy = new(null!, \"\", context.Identity, null!, context.Occurred); return copy.Subject == \"\";")]
     [InlineData("var copy = context with { Subject = \"forged\" }; return copy.Subject == \"forged\";")]
     [InlineData("var copy = context; copy = default!; return copy.Subject == \"\";")]
-    public void should_refuse_the_body_without_artifacts(string body)
+    public void should_refuse_the_body_and_omit_its_owners(string body)
     {
         var loaded = opaque_policy_model.Load(opaque_policy_model.Source(body));
         var plan = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Module("Billing")]), new("InvoiceModel", "InvoiceApp", "Invoices") { Domain = "Sales/Retail" });
 
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Plan.ShouldNotBeNull();
+        rendering_refusals.Rejected(plan.Plan!, "STAGE-ESM-015");
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-015");
     }
 }

@@ -130,7 +130,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
         code.ShouldNotContain("join.Set(model => model.Label)");
         code.ShouldNotContain("every.Set(model => model.Label)");
         code.ShouldNotContain("from.Set(model => model.Label).ToValue(\"local\")");
-        code.ShouldContain("children.RemovedWithJoin<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemovedViaJoin>");
+        code.ShouldContain("children.RemovedWithJoin<ProjectNoteRemovedViaJoin>");
     }
 }
 #endif

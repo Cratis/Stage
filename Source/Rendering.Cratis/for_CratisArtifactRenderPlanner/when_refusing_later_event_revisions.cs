@@ -22,6 +22,6 @@ public class when_refusing_later_event_revisions : Specification
     }
 
     [Fact] void should_refuse_every_non_initial_revision() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-026");
-    [Fact] void should_name_revision_three() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Message.ShouldEqual("Event 'InvoiceIssued' has evolved to revision 3; Stage does not render event migrations yet.");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_name_revision_three() => rendering_refusals.Original(_plan, "STAGE-ESM-026").Message.ShouldEqual("Event 'InvoiceIssued' has evolved to revision 3; Stage does not render event migrations yet.");
+    [Fact] void should_omit_the_refused_owners_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
 }

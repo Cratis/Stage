@@ -63,17 +63,17 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
         var reaction = _located.Slice.Reactions.Single();
         var source = SemanticReactorArtifactRenderer.Render(_located, reaction, _context).Content;
         source.ShouldContain("Invoke.Command(new");
-        source.ShouldContain($".OnRefused(global::Cratis.Arc.Chronicle.Reactors.Refused.{expected}, refusal =>");
-        source.ShouldContain(".Acknowledge(global::Cratis.Arc.Chronicle.Reactors.Refused.Any)");
+        source.ShouldContain($".OnRefused(Refused.{expected}, refusal =>");
+        source.ShouldContain(".Acknowledge(Refused.Any)");
         source.ShouldContain("CommandRefusalKind.Validation => \"validation\"");
         source.ShouldContain("CommandRefusalKind.Constraint => \"constraint\"");
         source.ShouldContain("CommandRefusalKind.Authorization => \"authorization\"");
         source.ShouldContain("refusal.Message");
         source.ShouldNotContain("ToString()");
         source.ShouldContain("throw new WorkerRefusalKindIsUnknown()");
-        source.ShouldContain("class WorkerRefusalKindIsUnknown() : global::System.Exception");
-        source.ShouldNotContain("System.InvalidOperationException");
-        source.ShouldContain("ExecuteCommandsAsSystemAttribute(\"Automation\")");
+        source.ShouldContain("class WorkerRefusalKindIsUnknown() : Exception");
+        source.ShouldNotContain("InvalidOperationException");
+        source.ShouldContain("ExecuteCommandsAsSystem(\"Automation\")");
         if (selector.Contains("constraint", StringComparison.Ordinal)) source.ShouldContain("refusal.ConstraintName");
         source.ShouldNotContain("ConstraintName ??");
     }

@@ -63,8 +63,7 @@ public class when_checking_reducer_layout_purity
     {
         var source = when_rendering_a_pure_reducer.Source.Replace("return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);", "_ = Total.ById(null!, context.Event.Id); return context.State;", StringComparison.Ordinal);
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: self);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.OmittedParts(plan);
         Assert.Contains(plan.Diagnostics, diagnostic => string.Equals(diagnostic.Code, "STAGE-ESM-019", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-ESM-022", StringComparison.Ordinal));
     }
 }

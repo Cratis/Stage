@@ -7,28 +7,47 @@ using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 /// <summary>
-/// Restores only the two authorized output changes so the previous frozen bytes remain an independent confinement gate.
+/// Restores the output Stage rendered before it resolved imports, so the previous frozen bytes remain an independent
+/// gate proving that resolving imports and moving the using placement changed nothing else.
 /// </summary>
 internal static class QualifiedCommonOutput
 {
-    internal const string Placement = "csharp_using_directive_placement = inside_namespace\n";
+    internal const string Placement = "csharp_using_directive_placement = outside_namespace\n";
 
-    internal static ImmutableArray<PlannedArtifact> Restore(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options)
+    // Restores an application-scoped plan the way the request-less planners make it, in the fully qualified spelling.
+    internal static ImmutableArray<PlannedArtifact> Restore(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options) =>
+        Restore(plan, () => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options));
+
+    // Restores the output as Stage rendered it before imports were resolved: the plan made again in the fully qualified
+    // spelling, so a frozen digest of the old output proves that resolving imports changed spelling alone.
+    internal static ImmutableArray<PlannedArtifact> Restore(ArtifactRenderPlan plan, Func<ArtifactRenderPlan> replan)
     {
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
-        var context = new SemanticApplicationContext(request, options);
-        var common = model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true))
-            .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context, qualified: true)))
-            .ToDictionary(file => file.RelativePath, StringComparer.Ordinal);
-        return [.. plan.Artifacts.Select(artifact => common.TryGetValue(artifact.RelativePath, out var file)
-            ? PlannedArtifact.CreateText(artifact.RelativePath, file.Content, artifact.Sources)
+        ArtifactRenderPlan qualified;
+        using (QualifiedSpelling.Begin())
+        {
+            qualified = replan();
+        }
+
+        var files = qualified.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+            .ToDictionary(artifact => artifact.RelativePath, StringComparer.Ordinal);
+        return [.. plan.Artifacts.Select(artifact => files.TryGetValue(artifact.RelativePath, out var file)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, BeforeReflectionImport(artifact.RelativePath, Encoding.UTF8.GetString(file.Bytes.AsSpan())), artifact.Sources)
             : WithoutPlacement(artifact))];
+    }
+
+    // The policy runtime has imported System.Reflection since #424; the fully qualified spelling never needed it.
+    internal static string BeforeReflectionImport(string path, string text)
+    {
+        const string import = "using System.Reflection;\n";
+        if (!path.EndsWith("GeneratedPolicies/Policies.cs", StringComparison.Ordinal)) return text;
+        if (text.StartsWith($"{import}\n", StringComparison.Ordinal)) return text[(import.Length + 1)..];
+        return text.Replace(import, string.Empty, StringComparison.Ordinal);
     }
 
     static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig"

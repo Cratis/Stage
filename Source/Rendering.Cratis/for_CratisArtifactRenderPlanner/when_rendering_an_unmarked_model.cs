@@ -27,11 +27,12 @@ public class when_rendering_an_unmarked_model : Specification
         _model = a_concept_compliance_model.Compile(form, false);
     }
 
+    // Compared in the fully qualified spelling, where the compliance attributes bring no using directives of their own.
     void Because()
     {
         _unmarked = invoice_model.Plan(_model);
-        var markedArtifacts = QualifiedCommonOutput.Restore(_markedModel, _marked, new("InvoiceApp", "Invoices"));
-        foreach (var artifact in QualifiedCommonOutput.Restore(_model, _unmarked, new("InvoiceApp", "Invoices")))
+        var markedArtifacts = QualifiedCommonOutput.Restore(_marked, () => invoice_model.Plan(_markedModel));
+        foreach (var artifact in QualifiedCommonOutput.Restore(_unmarked, () => invoice_model.Plan(_model)))
         {
             var marked = markedArtifacts.Single(candidate => candidate.RelativePath == artifact.RelativePath);
             var expected = string.Join('\n', Encoding.UTF8.GetString(marked.Bytes.AsSpan()).Replace("[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] ", string.Empty, StringComparison.Ordinal).Split('\n').Where(line => !line.Contains("PIIAttribute]", StringComparison.Ordinal) && !line.Contains("EncryptedAttribute(", StringComparison.Ordinal) && !line.Contains("NotAuditedAttribute]", StringComparison.Ordinal)));

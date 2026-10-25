@@ -232,8 +232,13 @@ internal static partial class PureTransitionAdmission
         var descriptors = self
             ? context.Request.TypedContextDescriptors.Where(candidate => candidate.OperationId == readModel.Id)
             : [descriptor];
-        var wrapper = string.Join('\n', descriptors.Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content
-            .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}"));
+        string wrapper;
+        using (CodeGeneration.QualifiedSpelling.Begin())
+        {
+            wrapper = string.Join('\n', descriptors.Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content
+                .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}"));
+        }
+
         var modelType = $"global::{modelNs}.{Identifiers.ToPascalCase(readModel.Name)}";
         var wrapperType = $"global::{context.TypedContextsNamespace}.TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
         var tenant = $"namespace {context.RootNamespace}.TypedContexts {{ public record TenantId(string Value) {{ public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\"); public static readonly TenantId NotSet = new(\"\"); }} }}";

@@ -86,9 +86,7 @@ public class when_rendering_reaction_observer_filters
         });
         model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with { EventSources = [.. sources] });
         var plan = Plan(model);
-        Assert.False(plan.Success);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-030");
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-030");
     }
 
     static ArtifactRenderPlan Plan(string source, bool scoped = false)

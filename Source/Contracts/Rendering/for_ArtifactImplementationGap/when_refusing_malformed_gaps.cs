@@ -15,6 +15,9 @@ public class when_refusing_malformed_gaps : given.a_gap
     Exception _nullRequirement = null!;
     Exception _blankOwner = null!;
     Exception _unknownOrigin = null!;
+    Exception _unknownKind = null!;
+    Exception _renderingDefaultStubs = null!;
+    Exception _renderingNullStub = null!;
     Exception _unknownRole = null!;
     Exception _defaultHints = null!;
     Exception _nullHint = null!;
@@ -33,6 +36,9 @@ public class when_refusing_malformed_gaps : given.a_gap
         _nullRequirement = Refuse(_gap with { RequirementId = null! });
         _blankOwner = Refuse(_gap with { Owner = " " });
         _unknownOrigin = Refuse(_gap with { Origin = ArtifactImplementationGapOrigin.Unknown });
+        _unknownKind = Refuse(_gap with { Kind = (ArtifactImplementationGapKind)999 });
+        _renderingDefaultStubs = Refuse(_gap with { Kind = ArtifactImplementationGapKind.Rendering, Stubs = default });
+        _renderingNullStub = Refuse(_gap with { Kind = ArtifactImplementationGapKind.Rendering, Stubs = [null!] });
         _unknownRole = Refuse(_gap with { Role = (SemanticImplementationRole)999 });
         _defaultHints = Refuse(_gap with { Hints = default });
         _nullHint = Refuse(_gap with { Hints = [null!] });
@@ -50,6 +56,9 @@ public class when_refusing_malformed_gaps : given.a_gap
     [Fact] void should_refuse_null_requirement_ids() => _nullRequirement.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_blank_owners() => _blankOwner.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_unknown_origins() => _unknownOrigin.ShouldBeOfExactType<InvalidArtifactRenderContract>();
+    [Fact] void should_refuse_unknown_kinds() => _unknownKind.ShouldBeOfExactType<InvalidArtifactRenderContract>();
+    [Fact] void should_refuse_default_rendering_stub_collections() => _renderingDefaultStubs.ShouldBeOfExactType<InvalidArtifactRenderContract>();
+    [Fact] void should_refuse_null_rendering_stubs() => _renderingNullStub.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_unknown_roles() => _unknownRole.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_default_hints() => _defaultHints.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_null_hints() => _nullHint.ShouldBeOfExactType<InvalidArtifactRenderContract>();

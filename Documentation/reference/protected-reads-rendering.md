@@ -25,17 +25,25 @@ command Consume
 the renderer emits:
 
 ```csharp
-[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.On)]
-[global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.Error)]
-public record Consume(string SourceId, string Id) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId
+using OneOf;
+using ProtectedReads.Storage.Decisions.State;
+
+namespace ProtectedReads.Storage.Decisions.Use;
+
+[Command]
+[ReadProtection(ReadProtectionMode.On)]
+[BlockOnValidationSeverity(ValidationResultSeverity.Error)]
+[AllowAnonymous]
+public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
 {
-    public global::OneOf.OneOf<global::Cratis.Chronicle.EventSequences.EventForEventSourceId, global::Cratis.Arc.Validation.ValidationResult> Handle(
-        [global::Cratis.Arc.Commands.LookUpByAttribute(nameof(Consume.SourceId))] global::ProtectedReads.Storage.Decisions.State.Current? current)
+    /// <inheritdoc/>
+    public EventSourceId GetEventSourceId() => Id;
+
+    public OneOf<EventForEventSourceId, ValidationResult> Handle([LookUpBy(nameof(Consume.SourceId))] Current? current)
     {
-        if (current is null) return /* ValidationResult.Error("Current '" + SourceId + "' does not exist.") */;
-        if (!(!global::System.Object.Equals(current.Value, ""))) return /* ValidationResult.Error("The stored value must not be empty.") */;
-        return /* the Taken event, with Value = current.Value */;
+        if (current is null) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("Current '" + SourceId + "' does not exist."));
+        if (!(!object.Equals(current.Value, ""))) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("The stored value must not be empty."));
+        return OneOf<EventForEventSourceId, ValidationResult>.FromT0(new EventForEventSourceId(Id, new Taken(current.Value)));
     }
 }
 ```

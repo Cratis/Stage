@@ -25,7 +25,7 @@ public class when_rendering_routed_generated_freshness : Specification
         _specification = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/when_uuid_cross_stream_reuse.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_return_atomic_scopes_for_the_generated_destination() => _command.ShouldContain("EventSequences.EventsWithConcurrencyScopes Handle(");
+    [Fact] void should_return_atomic_scopes_for_the_generated_destination() => _command.ShouldContain("EventsWithConcurrencyScopes Handle(");
     [Fact] void should_use_the_generated_identifier_for_the_freshness_scope() => _command.ShouldContain("EventSequenceNumber.BeforeFirst, EventSourceId: source");
     [Fact] void should_seed_the_other_stream() => _specification.ShouldContain("another-stream");
 }

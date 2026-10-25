@@ -15,8 +15,8 @@ public class with_a_production_guard : given.an_invoice_model
         StringComparison.Ordinal));
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_render_the_text_condition() => Slice.ShouldContain("!global::System.Object.Equals(Description, \"skip\")");
-    [Fact] void should_return_a_typed_collection() => Slice.ShouldContain("IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId> Handle()");
+    [Fact] void should_render_the_text_condition() => Slice.ShouldContain("!object.Equals(Description, \"skip\")");
+    [Fact] void should_return_a_typed_collection() => Slice.ShouldContain("IEnumerable<EventForEventSourceId> Handle()");
     [Fact] void should_guard_the_append() => Slice.ShouldContain("if (stageProduces0)");
 
     string Slice => System.Text.Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Issue.cs", StringComparison.Ordinal)).Bytes.AsSpan());

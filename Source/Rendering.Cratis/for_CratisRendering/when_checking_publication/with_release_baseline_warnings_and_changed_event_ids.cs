@@ -12,7 +12,7 @@ public class with_release_baseline_warnings_and_changed_event_ids : a_release_ba
 {
     CratisPublicationCheck _check = null!;
     void Establish() => _plan = _planner.Plan(WithBaseline(_assessment));
-    void Because() => _check = CratisRendering.CheckPublication(_plan, path => _plan.Artifacts.FirstOrDefault(artifact => artifact.RelativePath == path) is { } artifact ? Text(artifact).Replace("[global::Cratis.Chronicle.Events.EventTypeAttribute]", "[global::Cratis.Chronicle.Events.EventTypeAttribute(\"PreviousStoredName\")]", StringComparison.Ordinal) : null);
+    void Because() => _check = CratisRendering.CheckPublication(_plan, path => _plan.Artifacts.FirstOrDefault(artifact => artifact.RelativePath == path) is { } artifact ? Text(artifact).Replace("[EventType]", "[EventType(\"PreviousStoredName\")]", StringComparison.Ordinal) : null);
     [Fact] void should_still_refuse_publication() => _check.ShouldBeOfExactType<CratisPublicationCheck.ChangesEventTypeIds>();
     [Fact] void should_preserve_the_event_id_error() => ((CratisPublicationCheck.ChangesEventTypeIds)_check).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-EVENT-002");
 }

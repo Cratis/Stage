@@ -215,6 +215,8 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
 
     internal string SpecificationContent(string content) => SpecificationValues?.Render(content) ?? content;
 
+    internal string SpecificationContent(CSharpCodeBuilder builder) => SpecificationValues is { } values ? builder.ToString(values.Render) : builder.ToString();
+
     // An enum concept renders as a C# enum, so its literal is a member rather than a wrapped primitive.
     static string EnumMember(string type, SemanticConcept concept, SemanticValue value) =>
         value is SemanticTextValue text && concept.Values.Contains(text.Value, StringComparer.Ordinal)

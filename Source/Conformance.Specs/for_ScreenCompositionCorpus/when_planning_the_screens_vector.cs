@@ -25,11 +25,55 @@ namespace Cratis.Stage.Conformance.Specs.for_ScreenCompositionCorpus;
 /// </remarks>
 public class when_planning_the_screens_vector : given.the_planned_screen_composition_corpus
 {
-    // Re-frozen for #704/#705/#706 (enum column options, yarn pin); earlier: #656: only scene.json and src/stage-scene.json lose the synthetic layout and defer to the blueprint.
-    // Re-frozen for Cratis/Stage#707: React Aria is the default, so .frontend/main.tsx, .frontend/vite.config.ts and package.json no longer carry
-    // the PrimeReact provider/theme/licence, styledPrimeReact, primeicons or the Prime dependencies, and pin Scene 4.80.2 and Components 4.34.0.
-    // Re-frozen for #437: only the Matching package pin and host reference are added.
-    const string Digest = "173b478e7398ffdd0ac0def745f67794642c4a4768dad82596b03849490a6e09";
+    // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
+    // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
+    const string Digest = "19bfae7f737fde0c53dfb85dc380e1117c27de3f4636096ad2a79da7237b313d";
+
+    const string Manifest = """
+        .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
+        .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
+        .frontend/index.html 4b88419fe62ae4b9ef8582d1fc203dd9084959d875964031018175ed24cc856a 329
+        .frontend/main.tsx 257ace67a590a8f34d1dd3ee6cf9dded7a5ed824cca27347bcd8ebd771e7ed4b 2107
+        .frontend/tsconfig.json b9167d1994863900fb2d66de275f33c37580839d752e802765b429d0bfb95469 982
+        .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
+        .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
+        .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
+        .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
+        .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
+        Common/CommentId.cs 57e703a97b83c6715cf6bbe082a6987bfecde236fa550cd589f38d4ab1cfda73 382
+        Common/WorkItemId.cs 10002af59d1071f61a44e7d32c6b04abe03ec6cb7cbb96a9c0b65a5844c5bd5e 389
+        Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
+        Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
+        Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
+        Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
+        GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
+        Program.cs f148d2954e15bdf675f63ed1472c70b1f6396db6a826f7644c4cedad3ca5dd56 847
+        README.md 7217ef0b3fb886c022bd062ad77bbf730a262d0d9c9b05958fe1efcb1c5d9ffd 1819
+        Workspaces.csproj be51b9ca9e3e9b812562cdff2805f005d25cd3cc4a64ff8633f85ad9e8ad4e83 2175
+        Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
+        Workspaces/Tracking/AddComment/AddComment.cs 61d1be7adb16c8720965320ec9d5f0a57957a5e2bcfff37557c4343d03a77edb 513
+        Workspaces/Tracking/AddComment/when_adding_a_comment.cs 7fde109bec5d420e1abc797e0fae200abd0b1e46d85edd6cd976743d9ca4eef5 1442
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs b43f6729024fb4a0a7bcf3993e70db54dd9292d14815c908ec59ef551224fedc 477
+        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 517855c688172ce7542747386a1035b3e3c0f2606b5f9661a2c48435a44eb966 1309
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 70471d7eddb22194d44c42e69f81cbfd3b70571ce6b69efcb8b5af13dffcb9e0 529
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 4a0cc504bb25cf0a05d7cea13c5a849dd67063b677c7af9a646d96a0a337ccc9 1394
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 5d7080b6fdd423c625d5b3c122dcf20c6bae565982e63b5b55ebcb37340b39e6 479
+        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 5fa0a9440faf0fa2a32922c3b2e253ff04b0ae697fbde3944240d7aebc759dc4 1381
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 1c1863c1cc29e81dcd92540c043e37cf7f20ed12b066fb22e4e37fe06c551d72 1395
+        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 598a7e484bdc0109942398fbc17646d0cfa5d7809fc036d914bc31a188dfff7a 1913
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs f694a593f3d9ab31da4e9aac65caedd6bc93cd6412e1c1320dbbf53a6bf463ac 2059
+        Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs a1d3b07ad309cd796f9862a567ac6a5c8127c60cc5083d520c17322f94a716e4 1690
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs e2090ab9800a5116bf13126a22b5155e48db1aec33ed2833d2bcde793ab035b2 2234
+        Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
+        appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
+        docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
+        package.json 6eb19e79f8836f665353688575a6bf74694f7df6c4142f915455abdc6bacf697 1194
+        scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
+        src/bindings.ts 26c5414114643e1a95d6cae0ac550193813053efead2fc81624791a290a001f7 2173
+        src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
+        src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
+        tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
+        """;
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -78,11 +122,6 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
 
-    static readonly string Manifest = QualifiedManifest
-        .Replace(".editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689", ".editorconfig 4cf0d1389cef373e18920c4fddb10948553e3c171badb2de66399717f870df76 741", StringComparison.Ordinal)
-        .Replace("Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726", "Common/CommentId.cs 090339b5965d73ed60cb7e6b62bd8bfb9addfdc778f49ecb129d294a63c0b119 662", StringComparison.Ordinal)
-        .Replace("Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733", "Common/WorkItemId.cs 59ca162d48ce6b922cdf7176b53d85e5c5bac0e61b65da86d5f03858bb103cef 669", StringComparison.Ordinal);
-
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];
 
     [Theory]
@@ -91,7 +130,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     {
         var source = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(source.Documents, source.IdentityCatalogBytes.AsSpan(), carryScene: false);
-        var restored = QualifiedCommonOutput.Restore(planned.Model, planned.Plan, new(ApplicationName, ApplicationName));
+        var restored = Legacy(QualifiedCommonOutput.Restore(planned.Plan, () => PlanOf(form)));
         var actual = restored.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
         var expected = QualifiedManifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim()).ToArray();
         Assert.True(actual.SequenceEqual(expected), string.Join('\n', actual.Except(expected)));
@@ -106,9 +145,12 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     public void should_plan_exactly_the_pinned_ordered_artifacts(string form)
     {
         var actual = PlanOf(form).Artifacts.Select(FrozenScaffoldPins.Normalize).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}").ToArray();
-        Assert.True(actual.SequenceEqual(Pinned()), string.Join(Environment.NewLine, actual.Except(Pinned())));
+        Assert.True(actual.SequenceEqual(Pinned(Manifest)), string.Join(Environment.NewLine, actual.Except(Pinned(Manifest))));
     }
 
+    // The intermediate pins from before #424, when Common files carried globally rooted imports inside the namespace,
+    // are gone: that spelling no longer exists. should_confine_changes_to_common_files_and_using_placement proves the
+    // stronger property, that the fully qualified spelling still reproduces the earlier frozen manifest byte for byte.
     [Theory]
     [MemberData(nameof(Forms))]
     public void should_plan_the_pinned_digest(string form) => FrozenScaffoldPins.Digest(PlanOf(form)).ShouldEqual(Digest);
@@ -132,7 +174,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
             plan.Renderer,
             plan.RendererVersion,
             plan.ApplicationName,
-            [.. QualifiedCommonOutput.Restore(planned.Model, plan, new(ApplicationName, ApplicationName)).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+            [.. Legacy(QualifiedCommonOutput.Restore(plan, () => PlanOf(form))).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
                 ? PlannedArtifact.CreateText(
                     PreviousNames(artifact.RelativePath),
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
@@ -157,7 +199,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .Replace("_a_work_item", "_awork_item", StringComparison.Ordinal)
         .Replace("adding_a_comment", "adding_acomment", StringComparison.Ordinal);
 
-    static string[] Pinned() => [.. Manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
+    static string[] Pinned(string manifest) => [.. manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
+
+    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName);
 
     static ArtifactRenderPlan PlanOf(string name)
     {

@@ -27,6 +27,6 @@ public class when_rejecting_unauthenticated_caller_identity
         var plan = invoice_model.Plan(model);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == fixture.Id &&
             diagnostic.Message.Contains("An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
     }
 }

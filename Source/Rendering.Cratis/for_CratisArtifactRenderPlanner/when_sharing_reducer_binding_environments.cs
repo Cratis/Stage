@@ -72,8 +72,7 @@ public class when_sharing_reducer_binding_environments
         await AssertParity(source, self);
         var impure = source.Replace(Body, "_ = Total.All(null!); return context.State;", StringComparison.Ordinal);
         var refused = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(impure), self: self);
-        Assert.False(refused.Success);
-        Assert.Empty(refused.Artifacts);
+        given.rendering_refusals.OmittedParts(refused);
         Assert.DoesNotContain(refused.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
@@ -115,11 +114,15 @@ public class when_sharing_reducer_binding_environments
         var realErrors = RenderedOutput.Errors(planted);
         Assert.Equal(self, realErrors.Count > 0);
         var refused = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source.Replace("RegisterAdjustment", "OrderPlaced", StringComparison.Ordinal)), self: self);
-        Assert.Equal(!self, refused.Success);
         if (self)
         {
-            Assert.Empty(refused.Artifacts);
+            given.rendering_refusals.OmittedParts(refused);
             Assert.Contains(refused.Diagnostics, diagnostic => (diagnostic.Code == "STAGE-ESM-022" || diagnostic.Code == "STAGE-ESM-019") && diagnostic.Message.Contains("OrderPlaced", StringComparison.Ordinal));
+        }
+        else
+        {
+            Assert.True(refused.Success);
+            Assert.Empty(RenderedOutput.Errors(when_selecting_self_reducing_rendering.Files(refused)));
         }
     }
 
@@ -134,28 +137,25 @@ public class when_sharing_reducer_binding_environments
         var descriptor = loaded.TypedContextDescriptors.Single(candidate => candidate.OperationId == loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Totals").ReadModels.Single(model => model.Name == "Total").Id);
         var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
         var wrapper = SemanticTypedContextRenderer.Suffix(descriptor);
-        const string modelType = "global::Projects.Orders.Ordering.Totals.Total";
-        var expected = $$"""
-            // Copyright (c) Cratis. All rights reserved.
-            // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+        const string modelType = "Total";
 
-            using Cratis.Chronicle.Events;
-            using Cratis.Chronicle.Reducers;
+        // The reducer wrappers are not in the generated type inventory, so they keep their qualified names.
+        var expected = $$"""
             using Projects.Orders.Ordering.PlaceOrder;
             using Projects.Orders.Ordering.Totals;
             using Projects.TypedContexts;
 
             namespace Projects.Orders.Ordering.Totals;
 
-            public class Fold : global::Cratis.Chronicle.Reducers.IReducerFor<{{modelType}}>
+            public class Fold : IReducerFor<{{modelType}}>
             {
-                public {{modelType}}? On(global::Projects.Orders.Ordering.PlaceOrder.OrderPlaced @event, {{modelType}}? current, global::Cratis.Chronicle.Events.EventContext eventContext)
+                public {{modelType}}? On(OrderPlaced @event, {{modelType}}? current, EventContext eventContext)
                 {
                     var originalSourceId = eventContext.EventSourceId.Value;
-                    var result = Transition_{{suffix}}(new global::Projects.TypedContexts.TypedContext_{{wrapper}}(current, @event, originalSourceId, global::Projects.TypedContexts.TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
-                    if (result is not null && (!global::System.String.Equals(result.Id.ToString(), originalSourceId, global::System.StringComparison.Ordinal)))
+                    var result = Transition_{{suffix}}(new global::Projects.TypedContexts.TypedContext_{{wrapper}}(current, @event, originalSourceId, TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
+                    if (result is not null && (!string.Equals(result.Id.ToString(), originalSourceId, StringComparison.Ordinal)))
                     {
-                        throw new global::System.InvalidOperationException("Reducer returned a read model with an identifier different from the event source.");
+                        throw new InvalidOperationException("Reducer returned a read model with an identifier different from the event source.");
                     }
                     return result;
                 }

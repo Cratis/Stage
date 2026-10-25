@@ -38,6 +38,12 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
     /// </summary>
     public bool RepositoryRoot { get; init; }
+
+    /// <summary>
+    /// Gets the plain-text lines every generated code file starts with, carried by the hashed profile. Empty, the
+    /// default, writes no header at all. See <see cref="CratisPlanOptions.FileHeader"/>.
+    /// </summary>
+    public ImmutableArray<string> FileHeader { get; init; } = [];
 }
 
 /// <summary>
@@ -352,6 +358,11 @@ public static partial class CratisRendering
             throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
         }
 
+        if (!FileHeaderInput.IsValid(options.FileHeader))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks.");
+        }
+
         if (scene is not null)
         {
             var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
@@ -407,11 +418,13 @@ public static partial class CratisRendering
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 
-        return ArtifactRenderProfile.Create(
-            TargetId,
-            TargetVersion,
-            RendererId,
-            RendererVersion,
-            inputs);
+        return FileHeaderInput.With(
+            ArtifactRenderProfile.Create(
+                TargetId,
+                TargetVersion,
+                RendererId,
+                RendererVersion,
+                inputs),
+            options.FileHeader);
     }
 }

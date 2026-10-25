@@ -26,8 +26,7 @@ public class when_rendering_all_with_unmapped_properties : Specification
     void should_refuse_a_property_chronicle_would_default(string property)
     {
         var plan = Plan(property);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-017");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" &&
             diagnostic.Message.Contains("neither mapped by all nor optional", StringComparison.Ordinal));
     }

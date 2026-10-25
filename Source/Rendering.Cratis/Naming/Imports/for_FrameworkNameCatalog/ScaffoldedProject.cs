@@ -53,9 +53,13 @@ sealed record ScaffoldedProject(
             Metadata(item, "Identity"),
             Metadata(item, "Alias"),
             Metadata(item, "DefiningProjectName"))).ToArray();
+
+        // Compare real paths: a scaffold under a symbolic link (macOS /tmp is /private/tmp) would otherwise make the
+        // project's own files look like package files and add the application's own declarations to the catalog.
+        var projectDirectory = RealPath(directory) + Path.DirectorySeparatorChar;
         var packageSources = root.GetProperty("Compile").EnumerateArray()
             .Select(item => Path.GetFullPath(Metadata(item, "FullPath")))
-            .Where(path => !path.StartsWith(Path.GetFullPath(directory), StringComparison.Ordinal))
+            .Where(path => !RealPath(path).StartsWith(projectDirectory, StringComparison.Ordinal))
             .Select(path => (Package: PackageOf(path), Path: path))
             .ToArray();
         var generated = System.IO.Directory.Exists(generatedSources)
@@ -82,6 +86,20 @@ sealed record ScaffoldedProject(
         var segments = path.Split(Path.DirectorySeparatorChar);
         var index = Array.FindLastIndex(segments, segment => segment == "packages");
         return index >= 0 && index + 1 < segments.Length ? segments[index + 1] : Path.GetFileName(path);
+    }
+
+    static string RealPath(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var current = Path.GetPathRoot(full)!;
+        foreach (var segment in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, segment);
+            var target = new FileInfo(current).ResolveLinkTarget(returnFinalTarget: true);
+            if (target is not null) current = Path.GetFullPath(target.FullName);
+        }
+
+        return current;
     }
 
     static IReadOnlyList<(string Id, string Version)> Assets(string path)

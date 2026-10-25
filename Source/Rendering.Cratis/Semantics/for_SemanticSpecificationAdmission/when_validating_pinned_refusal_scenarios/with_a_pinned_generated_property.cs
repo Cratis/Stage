@@ -60,7 +60,7 @@ public class with_a_pinned_generated_property : given.a_specification_in_a_slice
 
     [Fact] void should_render_the_specification() => _diagnostics.ShouldBeEmpty();
     [Fact] void should_pin_the_generated_value_before_the_command_runs() => _source.ShouldContain("_scenario.PinGeneratedValue(\"ticket\"");
-    [Fact] void should_run_the_scenario_typed_by_the_invoked_command() => _source.ShouldContain("CommandScenario<global::Reactions.Work.Processing.FollowUp.Complete> _scenario");
+    [Fact] void should_run_the_scenario_typed_by_the_invoked_command() => _source.ShouldContain("CommandScenario<Complete> _scenario");
     [Fact] void should_not_run_an_untyped_scenario() => _source.ShouldNotContain("CommandScenario<object>");
     [Fact] void should_read_the_appended_events_from_the_event_log() => _source.ShouldContain("_facts = [.. persisted.Skip(initial)];");
 }

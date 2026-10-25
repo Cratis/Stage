@@ -22,7 +22,7 @@ internal static class SemanticStateChangeArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);

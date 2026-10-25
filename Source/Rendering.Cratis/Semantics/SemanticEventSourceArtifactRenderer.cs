@@ -31,7 +31,7 @@ internal static class SemanticEventSourceArtifactRenderer
 
     internal static RenderedFile Render(SemanticEventSource source, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(Namespace(context))
+        var builder = context.CodeBuilder().Namespace(Namespace(context))
             .Summary($"Defines the {Identifiers.ToWords(source.Name)} event source.")
             .Attribute($"global::Cratis.Chronicle.EventSources.EventSourceAttribute({CSharpCodeBuilder.StringLiteral(source.SourceKind)})");
         foreach (var stream in source.Streams.OrderBy(stream => stream.StreamKind, StringComparer.Ordinal))

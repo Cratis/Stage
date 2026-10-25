@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { registeredQuery } from './queryExecutor';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -11,8 +11,10 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
-import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsFor, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { actionVariant } from './humanize';
+import { readableValue } from './readableValue';
+import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -60,7 +62,7 @@ function tableValue(value: unknown, options?: readonly string[], optionValues?: 
     const member = typeof value === 'number' && Number.isInteger(value)
         ? (optionValues && optionValues.length === options?.length ? options?.[optionValues.indexOf(value)] : options?.[value])
         : value;
-    return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
+    return typeof member === 'string' && options?.includes(member) ? humanize(member) : readableValue(value) ?? String(value ?? '');
 }
 
 interface QueryArguments {
@@ -235,30 +237,63 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 }
 
 function StageCommandAction({ element, interactions }: RegisteredProps) {
-    const label = text(element, 'label', text(element, 'command'));
-    const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
+    const { routes, parameters, queries, selections } = useStageData();
+    const name = text(element, 'command');
+    const label = text(element, 'label') || humanize(name);
+    const command = registeredCommand(name, text(element, 'typeName'), text(element, 'route'));
+    const schema = text(element, 'schema') || routes?.commandSchemas?.[name];
+    const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
+    // A command that creates its entity (`x-creates`) is about no row: it neither waits for a selection nor takes a row's identifiers.
+    const creates = element.properties.createsEntity === true || createsEntity(schema ?? '');
+    const selectableRows = useMemo(() => selectableRowsFor(queries, creates), [creates, queries]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries, true), [selections, queries]);
+    const carried = properties.filter(property => property.identifier && property.required && carriedBy(property, selectableRows));
+    const awaiting = carried.filter(property => !parameters[property.name]).filter(property => selectedIdentifier(property, selectedRows) === undefined);
+    const awaitingRows = !creates && awaitingTableRows(element, properties, parameters, selectableRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    return <StageCommandDialog element={element} label={label} />;
+    if (awaitingRows || awaiting.length > 0) {
+        return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+    }
+
+    const dialogElement = creates ? { ...element, properties: { ...element.properties, createsEntity: true } } : rowActionElement(element, schema, properties, carried);
+    return <StageCommandDialog element={dialogElement} label={label} />;
+}
+
+/** A scene-declared row action still waits when its table is empty, before carried identifiers can be inferred from rows. */
+function awaitingTableRows(element: ExternalComponent, properties: SchemaProperty[], parameters: Record<string, string>, selectableRows: Record<string, unknown>[]): boolean {
+    return element.properties.rowAction === true && selectableRows.length === 0 && properties.some(property => property.identifier && property.required && !parameters[property.name]);
+}
+
+function rowActionElement(element: ExternalComponent, schema: string | undefined, properties: SchemaProperty[], carried: SchemaProperty[]): ExternalComponent {
+    if (carried.length === 0) return element;
+    const fields = Array.isArray(element.properties.fields) ? element.properties.fields : properties.map(property => ({ name: property.name, label: humanize(property.name) }));
+    return {
+        ...element,
+        properties: { ...element.properties, schema, rowAction: true, fields: fields.filter(field => !carried.some(property => property.name === (field.sourceProperty ?? field.name))) },
+    };
 }
 
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    const [followsAction, setFollowsAction] = useState(false);
+    const host = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => setFollowsAction(host.current?.previousElementSibling?.classList.contains('stage-action') ?? false));
     const close = useCallback(() => {
         setVisible(false);
         setGeneration(current => current + 1);
     }, []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} cancellable /></StageDialogContext.Provider>;
 
     return (
-        <div className='stage-action' data-scene-id={element.id}>
-            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
-            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
+        <div className='stage-action' data-scene-id={element.id} ref={host}>
+            <Button type='button' variant={actionVariant(text(element, 'emphasis'), followsAction)} onClick={() => setVisible(true)}>{label}</Button>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );
 }
@@ -276,7 +311,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const { routes, parameters, queries, selections } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
-    const title = text(element, 'title') || opened?.title || command;
+    const title = text(element, 'title') || opened?.title || humanize(command);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
@@ -347,6 +382,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
+ * A command that creates an entity (`x-creates`) is about no row: it neither waits for selection nor takes a selected row's identifiers.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
@@ -356,12 +392,14 @@ function StageToolbarCommand(props: RegisteredProps) {
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const creates = createsEntity(schema ?? '');
+    const selectableRows = useMemo(() => selectableRowsFor(queries, creates), [creates, queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const intent = creates ? { createsEntity: true } : {};
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...intent, ...askedFields } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

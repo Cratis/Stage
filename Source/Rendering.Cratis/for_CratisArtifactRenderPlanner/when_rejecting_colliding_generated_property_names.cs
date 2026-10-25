@@ -115,8 +115,7 @@ public class when_rejecting_colliding_generated_property_names
         var view = changed.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var plan = CratisRendering.Plan(changedModel, execution.Plan!, new(ArtifactRenderScopeKind.Slice, view.Id), new("Projects", "Projects"));
 
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("references an event", StringComparison.Ordinal));
     }
 
@@ -140,8 +139,7 @@ public class when_rejecting_colliding_generated_property_names
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
         var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == changed.Id);
     }
 
@@ -157,8 +155,7 @@ public class when_rejecting_colliding_generated_property_names
     static void AssertRejected(ExecutableSemanticModel model, string kind)
     {
         var plan = Plan(model);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" &&
             diagnostic.Message.Contains(kind, StringComparison.OrdinalIgnoreCase) &&
             diagnostic.Message.Contains("generated C#", StringComparison.Ordinal));

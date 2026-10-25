@@ -54,8 +54,7 @@ public class when_rendering_generated_concept_rules : Specification
             Concepts = [concept with { Validations = [concept.Validations.Single() with { Operand = new SemanticTextValue("^(?<portable>cus_[0-7][0-9a-hjkmnp-tv-z]{25})$") }] }]
         });
         var plan = Render(model);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(plan, "STAGE-ESM-038");
         var specification = SemanticExecutionPlan.Compile(model).Plan!.Specifications.Values.Single();
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-038" && diagnostic.Artifact == specification.Id);
         var module = model.Application.Modules.Single();
@@ -87,8 +86,7 @@ public class when_rendering_generated_concept_rules : Specification
         typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(concept, ImmutableArray.Create(concept.Validations.Single() with { Operand = new SemanticTextValue("^impossible$") }));
         var plan = CratisRendering.Plan(model, execution, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("RuleApp", "RuleApp"));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(plan, "STAGE-ESM-038");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-038" && diagnostic.Message.Contains("pinned", StringComparison.Ordinal));
     }
 
@@ -112,8 +110,7 @@ public class when_rendering_generated_concept_rules : Specification
                     then error "Generated fixture 'code' fails concept 'Code' rules"
             """);
         var plan = Render(model);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("fails concept 'Code' rules", StringComparison.Ordinal));
     }
 

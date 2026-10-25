@@ -14,13 +14,14 @@ encryption without erasure.
 ## Executable semantic models
 
 Stage admits exact ESM v1–v16 language/semantic pairs from Screenplay 4.154.0. The semantic planner maps
-`SemanticConcept.Compliance` using fully qualified attribute names:
+`SemanticConcept.Compliance` to these attributes, written by their short names with the `using` directives they need
+(`Cratis.Chronicle.Compliance.GDPR`, `Cratis.Chronicle.ProtectedValues`, `Cratis.Arc.Chronicle.Commands`):
 
 | Concept classification | Generated attributes |
 | --- | --- |
-| `pii` or `personal` | `[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute]` |
-| `secret`, unspecified or subject scope | `[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute]` + `[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]` |
-| `secret scope namespace` or `global` | `[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute(global::Cratis.Chronicle.ProtectedValues.EncryptionScope.Namespace)]` (or `.Global`) + `[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]` |
+| `pii` or `personal` | `[PII]` |
+| `secret`, unspecified or subject scope | `[Encrypted]` + `[NotAudited]` |
+| `secret scope namespace` or `global` | `[Encrypted(EncryptionScope.Namespace)]` (or `.Global`) + `[NotAudited]` |
 | `pii secret` | `[PII]` only; personal classification takes precedence. |
 
 The semantic path never emits `[ComplianceDetails]`. GDPR special-category and criminal qualifiers
@@ -35,7 +36,7 @@ protection only.
 
 On the semantic path, each command input that transitively contains any compliance-marked concept
 (`pii`, `secret`, or both) also gets
-`[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This uniform rule includes
+`[property: NotAudited]`. This uniform rule includes
 scalar inputs, optional inputs, collections, and nested composites. Arc omits the entire input from
 causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
 attributes remain in place, and they protect different things: `[Encrypted]` protects the value in stored

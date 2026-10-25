@@ -16,7 +16,7 @@ internal static class SemanticTypedContextRenderer
     {
         var suffix = Suffix(descriptor);
         var name = $"TypedContext_{suffix}";
-        var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace);
+        var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace);
         var definitions = descriptor.Types.ToDictionary(definition => definition.Id);
         foreach (var definition in definitions.Values)
         {

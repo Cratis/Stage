@@ -10,14 +10,16 @@ The Cratis semantic planner admits Screenplay ESM v8 event-source routes. A gene
 An `Account` source with a `Transactions` stream produces `EventSources/AccountEventSource.cs` in `{Root}.EventSources`:
 
 ```csharp
+using Cratis.Chronicle.EventSources;
+
 namespace Banking.EventSources;
 
 /// <summary>
 /// Defines the account event source.
 /// </summary>
-[global::Cratis.Chronicle.EventSources.EventSourceAttribute("Account")]
-[global::Cratis.Chronicle.EventSources.EventStreamAttribute(global::Banking.EventSources.AccountEventSource.Transactions)]
-public class AccountEventSource : global::Cratis.Chronicle.EventSources.IEventSource
+[EventSource("Account")]
+[EventStream(AccountEventSource.Transactions)]
+public class AccountEventSource : IEventSource
 {
     /// <summary>
     /// Identifies the transactions stream.
@@ -46,8 +48,8 @@ An ESM v10 reducer or reaction's `from` clause filters the facts delivered to it
 
 | Filter | Generated class attribute |
 |---|---|
-| Source only | `global::Cratis.Chronicle.Events.EventSourceTypeAttribute("<stored source name>")` |
-| Source and stream | `global::Cratis.Chronicle.EventSources.FromEventSourceAttribute<global::Banking.EventSources.AccountEventSource>(global::Banking.EventSources.AccountEventSource.Transactions)` |
+| Source only | `[EventSourceType("<stored source name>")]` from `Cratis.Chronicle.Events` |
+| Source and stream | `[FromEventSource<AccountEventSource>(AccountEventSource.Transactions)]` from `Cratis.Chronicle.EventSources` |
 
 `TSource` is the generated event-source definition. The stream filter references the model-named constant, whose value is the stored stream name, or uses a stored-name literal for a non-identity name. Filters do not select stream identities. Unrouted facts never match a filtered observer. A source-only filter accepts every stream of that source; a source-and-stream filter accepts only that pair. Reserved stored names fail planning with `STAGE-ESM-030`.
 

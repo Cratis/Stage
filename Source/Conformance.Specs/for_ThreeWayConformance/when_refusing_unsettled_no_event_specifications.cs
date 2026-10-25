@@ -7,6 +7,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
@@ -19,7 +20,7 @@ public class when_refusing_unsettled_no_event_specifications : Specification
     [InlineData("cascade", "deeper reaction cascades")]
     [InlineData("command", "do not settle reactions")]
     [InlineData("invocation", "production-only")]
-    public void should_refuse_without_partial_artifacts(string form, string reason)
+    public void should_refuse_and_omit_the_unsettled_specification(string form, string reason)
     {
         var observed = form == "no-observer" ? "Finished" : "Started";
         var effect = form == "invocation" ? "invokes Complete\n            id = id" : "produces Followed\n            for id\n            id = id";
@@ -71,8 +72,7 @@ public class when_refusing_unsettled_no_event_specifications : Specification
                     then no events
             """);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Recovery", "Recovery"));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
         plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal)).ShouldBeTrue();
     }
 }

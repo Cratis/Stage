@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifactRenderer.given;
 using Xunit;
 
@@ -55,7 +56,7 @@ public class with_non_event_reaction_sources : Specification
 
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code && diagnostic.Artifact == reaction.Id);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Artifact == model.Application.Id);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(plan, code);
+        rendering_refusals.Omitted(plan, reaction.Id);
     }
 }

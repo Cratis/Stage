@@ -17,5 +17,5 @@ public class when_refusing_unpinned_production_conditions : Specification
         .Replace("          generated receipt = \"ABCDEFGHIJKLMNOPQRSTU\"\n", string.Empty, StringComparison.Ordinal)));
 
     [Fact] void should_refuse_unknown_production_selection() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-038");
-    [Fact] void should_not_emit_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unpinned_production() => rendering_refusals.Rejected(_plan, "STAGE-ESM-038");
 }

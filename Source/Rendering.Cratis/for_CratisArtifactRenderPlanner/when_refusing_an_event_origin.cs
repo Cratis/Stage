@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -26,5 +27,5 @@ public class when_refusing_an_event_origin : Specification
     void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Foreign", "Foreign"));
 
     [Fact] void should_refuse_the_foreign_event_without_a_translate_slice() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-033" && diagnostic.Artifact == _model.Application.Modules.Single().Features.Single().Slices.Single().Events.Single().Id);
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_owners_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
 }

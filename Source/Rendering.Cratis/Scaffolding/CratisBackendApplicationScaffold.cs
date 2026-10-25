@@ -32,7 +32,6 @@ public sealed partial class CratisBackendApplicationScaffold
             ("Directory.Build.targets", DirectoryBuildTargets()),
             ("Directory.Packages.props", DirectoryPackagesProps(profile)),
             ($"{request.ProjectName}.csproj", Project(request)),
-            ($"{request.ProjectName}.Specs/{request.ProjectName}.Specs.csproj", SpecificationsProject(request)),
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
@@ -62,9 +61,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string Program(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Cratis.Arc.MongoDB;
 
         var builder = WebApplication.CreateBuilder(args);
@@ -95,9 +91,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string PolicyRegistration(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Microsoft.Extensions.DependencyInjection;
 
         namespace {{request.RootNamespace}}.GeneratedPolicies;

@@ -26,7 +26,6 @@ public class when_creating_a_zoo_project : Specification
             "GeneratedPolicyRegistration.cs",
             "Program.cs",
             "README.md",
-            "Zoo.Specs/Zoo.Specs.csproj",
             "Zoo.csproj",
             "Zoo.slnx",
             "appsettings.json",

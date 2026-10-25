@@ -40,8 +40,8 @@ public class when_rejecting_a_collection_query_comparison : Specification
                 ? $"{line}\n{new string(' ', line.Length - line.TrimStart().Length)}labels = {(line.Contains('"') ? "[\"a\"]" : "labels")}" : line));
         source = source.Replace("          name = \"\"\n", "          name = \"\"\n          labels = [\"a\"]\n", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).Select(diagnostic => diagnostic.Code)
+        plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)
             .ShouldContainOnly(["STAGE-ESM-011"]);
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.OmittedParts(plan);
     }
 }

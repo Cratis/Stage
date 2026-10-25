@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -34,11 +33,15 @@ public class when_checking_checksum_fixtures
                     then returns "{{pin}}"
             """);
         var plan = invoice_model.Plan(model);
-        plan.Success.ShouldEqual(valid);
-        if (!valid)
+        if (valid)
         {
-            plan.Artifacts.ShouldBeEmpty();
-            plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("fails concept 'Reference' rules", StringComparison.Ordinal));
+            Assert.True(plan.Success);
+            Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011");
+        }
+        else
+        {
+            rendering_refusals.Rejected(plan, "STAGE-ESM-011");
+            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("fails concept 'Reference' rules", StringComparison.Ordinal));
         }
     }
 }

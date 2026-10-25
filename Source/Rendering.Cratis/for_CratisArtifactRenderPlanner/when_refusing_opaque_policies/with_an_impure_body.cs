@@ -18,7 +18,7 @@ public class with_an_impure_body : Specification
 
     void Because() => _plan = opaque_policy_model.Plan(opaque_policy_model.Source("return DateTimeOffset.UtcNow.Year == 2027;"));
 
-    [Fact] void should_render_nothing() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_render_nothing() => rendering_refusals.Rejected(_plan, "STAGE-ESM-022");
     [Fact] void should_name_the_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("UtcNow", StringComparison.Ordinal));
 }
 #endif

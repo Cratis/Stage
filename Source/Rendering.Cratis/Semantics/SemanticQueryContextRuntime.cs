@@ -80,7 +80,10 @@ internal static class SemanticQueryContextRuntime
             new(body.OpenBraceToken.Span.End, body.CloseBraceToken.SpanStart - body.OpenBraceToken.Span.End),
             typedContext,
             []);
-        return new(ArtifactImplementationGapOrigin.Unverified, requirement.RequirementId, query.Id.ToString(), SemanticImplementationRole.QueryPerformer, [reason], 1, 1, [stub]);
+        return new(ArtifactImplementationGapOrigin.Unverified, requirement.RequirementId, query.Id.ToString(), SemanticImplementationRole.QueryPerformer, [reason], 1, 1, [stub])
+        {
+            Kind = SemanticCratisAdmission.IsCSharpImplementation(requirement) ? ArtifactImplementationGapKind.Implementation : ArtifactImplementationGapKind.Language
+        };
     }
 
     internal static string ReturnType(SemanticKeyedQuery query, string model) => query switch

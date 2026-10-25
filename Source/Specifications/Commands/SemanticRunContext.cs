@@ -9,6 +9,7 @@ using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -45,6 +46,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }
     internal bool HandlerBodyReached { get; set; }
+    internal SemanticProjectionLoweringRefused? ProjectionLoweringRefusal { get; set; }
 
     // An absent authored fixture must stay absent in semantic reactions, regardless of the injectable storage clock.
     internal static DateTimeOffset? OccurrenceOf(SemanticSpecification fixture) =>
@@ -102,11 +104,18 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
         Append(fact, destination, AuthoredOccurrence, cancellationToken);
 
-    internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
+    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        return Append(Prepare(fact, destination, occurred), cancellationToken);
+        try
+        {
+            await Append(Prepare(fact, destination, occurred), cancellationToken);
+        }
+        catch (SemanticProjectionLoweringRefused exception)
+        {
+            ProjectionLoweringRefusal = exception;
+            throw;
+        }
     }
 
     internal SemanticPreparedFact Prepare(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred)

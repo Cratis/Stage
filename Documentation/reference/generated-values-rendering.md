@@ -31,27 +31,33 @@ module Storefront
         then returns "11111111-1111-1111-1111-111111111111"
 ```
 
-Stage renders the identifier concept and the command with its event. These are excerpts: license headers, usings and doc comments are omitted.
+Stage renders the identifier concept and the command with its event. These are excerpts with doc comments omitted. Types use their short names; a namespace the project's global usings already import needs no `using` directive.
 
 ```csharp title="Common/ProjectId.cs (excerpt)"
-public record ProjectId(global::System.Guid Value) : global::Cratis.Chronicle.Events.EventSourceId<global::System.Guid>(Value), global::Cratis.Concepts.IGeneratable<ProjectId>
+namespace Acme.Shop.Common;
+
+public record ProjectId(Guid Value) : EventSourceId<Guid>(Value), IGeneratable<ProjectId>
 {
-    public static readonly ProjectId NotSet = new(global::System.Guid.Empty);
+    public static readonly ProjectId NotSet = new(Guid.Empty);
 
-    public static ProjectId New() => new(global::Cratis.Concepts.GenerateValue.Uuid());
+    public static ProjectId New() => new(GenerateValue.Uuid());
 
-    public static implicit operator ProjectId(global::System.Guid value) => new(value);
+    public static implicit operator ProjectId(Guid value) => new(value);
 }
 ```
 
 ```csharp title="Storefront/Projects/Register/Register.cs (excerpt)"
-[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
+using Acme.Shop.Common;
+
+namespace Acme.Shop.Storefront.Projects.Register;
+
+[Command]
+[AllowAnonymous]
 public record RegisterProject(string Name)
 {
-    public (global::Acme.Shop.Common.ProjectId, global::Cratis.Chronicle.EventSequences.EventForEventSourceId) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("projectId")] global::Acme.Shop.Common.ProjectId projectId)
+    public (ProjectId, EventForEventSourceId) Handle([GeneratedValue("projectId", Freshness = GeneratedValueFreshness.Unguarded)] ProjectId projectId)
     {
-        return (projectId, new global::Cratis.Chronicle.EventSequences.EventForEventSourceId(projectId, new global::Acme.Shop.Storefront.Projects.Register.ProjectRegistered(Name)));
+        return (projectId, new EventForEventSourceId(projectId, new ProjectRegistered(Name)));
     }
 }
 ```
@@ -74,7 +80,7 @@ The Host samples pattern and random values through the Fundamentals release pinn
 
 ### Rule generation
 
-A String concept's `generate rule` body renders as a private static String method, called by `New(global::Cratis.Concepts.GenerationContext context)` through `IGeneratableInContext<T>`. Arc supplies the command receipt time as `context.Now` and the operation's tenant as `context.Tenant`. Bodies may use BCL APIs such as `Guid.NewGuid()` and Fundamentals APIs such as `GenerateValue.Ulid(context)`; the latter binds to the Cratis C# target's context type.
+A String concept's `generate rule` body renders as a private static String method, called by `New(GenerationContext context)` through `IGeneratableInContext<T>`. Arc supplies the command receipt time as `context.Now` and the operation's tenant as `context.Tenant`. Bodies may use BCL APIs such as `Guid.NewGuid()` and Fundamentals APIs such as `GenerateValue.Ulid(context)`; the latter binds to the Cratis C# target's context type.
 
 Pass the implementation requirements, resolved contents and typed-context descriptors from the same Screenplay compilation to the renderer; ESM bytes alone do not carry the factory body. Stage verifies the attachment's content hash and typed-context envelope, parses one complete C# statement block, and compile-checks it against embedded BCL and Fundamentals metadata references. The pinned Fundamentals DLL is a build-only input embedded in the renderer, not a runtime or package dependency. It does not run the body while rendering or apply the reducer/policy purity gate. Compilation errors and warnings report `STAGE-ESM-019` at the body location, because the generated application treats warnings as errors; namespace or type shadowing reports `STAGE-ESM-022`. Missing or unresolved attachments fail `STAGE-ESM-020`; rendering does not replace them with stubs.
 
@@ -82,7 +88,7 @@ Any concept rule makes rule generation Unproven, so rendered specifications need
 
 ### Checksum rules
 
-Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksum mod97` on a String concept. The rendered validator calls `global::Cratis.Concepts.GenerateValue.HasValidChecksum(value, global::Cratis.Concepts.Checksum.Luhn)` (or `Mod11` / `Mod97`), retaining the authored message and severity.
+Declare `validate checksum luhn`, `validate checksum mod11` or `validate checksum mod97` on a String concept. The rendered validator calls `GenerateValue.HasValidChecksum(value, Checksum.Luhn)` (or `Mod11` / `Mod97`), retaining the authored message and severity.
 
 The final one digit (Luhn/Mod11) or two digits (Mod97) must exactly match the checksum of the preceding ASCII digits. Printable non-digits in the payload, including lowercase letters and spaces, are ignored; they are not converted to numbers. Control characters and non-ASCII characters anywhere in the value fail validation. Empty values and non-digit suffixes fail too. Mod11 payloads whose check digit would be 10 have no valid one-digit suffix. For example, `79927398713` passes Luhn, `abc98` passes Mod97, and `79927398714` fails Luhn. A checksum is not a length or format constraint; declare those separately.
 
@@ -212,10 +218,15 @@ A generated concept named `New` keeps its name: its factory implements `IGenerat
 
 A specification's `when ... for <uuid>` pins a generated identifier. `generated receipt = "<uuid>"` pins a generated non-identifier property. Stage emits `PinGeneratedValue` before executing the scenario, using the concept type rather than a raw `Guid`.
 
-For the model above, the generated setup contains this line, taken from `when_registering_with_apin.cs`:
+For the model above, the generated specification `when_registering_with_a_pin.cs` declares the pinned value and pins it before executing the command:
 
 ```csharp
-_scenario.PinGeneratedValue("projectId", new global::Acme.Shop.Common.ProjectId(global::System.Guid.Parse("11111111-1111-1111-1111-111111111111")));
+static readonly ProjectId _projectId = new ProjectId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+
+void Establish()
+{
+    _scenario.PinGeneratedValue("projectId", _projectId);
+}
 ```
 
 Pinned event and `then returns` assertions compare the authored values. A named return expectation can assert a subset of the response fields.
@@ -259,12 +270,13 @@ Commands with generated properties can validate and require request values. Requ
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
-| `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
+| `STAGE-ESM-006` | Unsupported production destinations, mappings, tags, types, or conditions, including enum operands and nonnumeric ordering. Described handlers own payload and destination and retain `STAGE-IMPL-002` instead of this code for those two checks |
+| `STAGE-ESM-053` | A declarative command production with neither its own nor the command's destination. Stage does not yet render event-source identity allocation for it ([Stage#629](https://github.com/Cratis/Stage/issues/629)); the message names the command and event |
 | `STAGE-ESM-038` | Command rules or requirements that read a generated property; collection responses, responses from a source that is not a command property of the same type, or response fields whose C# members collide; the message names the reason |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
-The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
+The last case retains `STAGE-ESM-038`, before destination admission, and is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
 
 Time-ordered factories (`uuidv7`, `ulid`, `typeid`) follow Arc's `ReceivedAt`, with no wall-clock fallback in the rendered app. Missing receipt times fail generation. Pins bypass the factory and need not encode the receipt time. Values reveal the receipt time and are not monotonic within a millisecond. Screenplay `given clock` is supported on otherwise admitted command specifications from ESM v6. Fixed `$context.occurred` payload assertions use that instant; a wrong expected instant fails rather than changing the clock. The executor also uses the authored instant for stored occurrence metadata, while retaining deterministic generated fixtures. Authored clocks with reactions, `when clock` and `sequence` remain unsupported. The executor can run pinned `rule` values without executing bodies. The Host interpreter refuses commands generating them; rendered applications execute the verified bodies through the context factory.
 

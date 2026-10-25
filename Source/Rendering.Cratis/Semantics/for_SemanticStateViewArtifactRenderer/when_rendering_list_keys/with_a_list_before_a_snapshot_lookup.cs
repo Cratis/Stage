@@ -46,6 +46,6 @@ public class with_a_list_before_a_snapshot_lookup : for_SemanticCratisAdmission.
         _source = SemanticStateViewArtifactRenderer.Render(_context.Slice(_slice.Id), _context).Content;
     }
 
-    [Fact] void should_select_the_lookup_key_even_after_a_list() => _source.Split("Cratis.Chronicle.Keys.KeyAttribute").Length.ShouldEqual(2);
-    [Fact] void should_mark_the_identifier_instead_of_the_filter() => _source.ShouldContain("[global::Cratis.Chronicle.Keys.KeyAttribute] string ProjectId");
+    [Fact] void should_select_the_lookup_key_even_after_a_list() => _source.Split("[Key]").Length.ShouldEqual(2);
+    [Fact] void should_mark_the_identifier_instead_of_the_filter() => _source.ShouldContain("[Key] string ProjectId");
 }

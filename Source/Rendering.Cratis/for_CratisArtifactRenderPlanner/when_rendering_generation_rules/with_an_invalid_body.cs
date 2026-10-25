@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -18,11 +19,19 @@ public class with_an_invalid_body
     [InlineData("string? missing = null; return missing;", "STAGE-ESM-019")]
     [InlineData("var unused = 42; return \"ok\";", "STAGE-ESM-019")]
     [InlineData("#if true\nreturn \"ok\";\n#endif", "STAGE-ESM-022")]
-    public void should_refuse_the_body_without_emitting_artifacts(string body, string code)
+    public void should_replace_the_body_with_a_compiling_throwing_stub(string body, string code)
     {
-        var plan = opaque_policy_model.Plan(generation_rule_model.Load(body));
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code);
+        var loaded = opaque_policy_model.Load(generation_rule_model.Source(body) + a_render_with_an_invalid_typed_context.Independent);
+        var owner = loaded.Model.Application.Concepts.Single(concept => concept.Generation?.Kind == "implementation").Id;
+        var plan = opaque_policy_model.Plan(loaded);
+        Assert.Equal(ArtifactRenderOutcome.Partial, plan.Outcome);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Artifact == owner && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.Contains(plan.ImplementationGaps, gap => gap.Owner == owner.ToString() && gap.Kind == ArtifactImplementationGapKind.Rendering);
+        Assert.Contains(plan.Artifacts, artifact => artifact.RelativePath.EndsWith("/Ping.cs", StringComparison.Ordinal));
+        var assembly = opaque_policy_model.Compile(plan);
+        var factory = assembly.GetTypes().Single(type => type.Name == "TenantOrderId").GetMethod("New")!;
+        var failure = Assert.Throws<System.Reflection.TargetInvocationException>(() => factory.Invoke(null, [null]));
+        Assert.IsType<NotImplementedException>(failure.InnerException);
     }
 
     [Fact]

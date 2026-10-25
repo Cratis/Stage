@@ -22,7 +22,7 @@ internal static class SemanticStateViewArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
         RenderDeclaredEvents(builder, located, context);
@@ -135,12 +135,12 @@ internal static class SemanticStateViewArtifactRenderer
             builder.EndBlock();
             if (SemanticVersionFeatures.HasCompositeKey(readModel))
             {
-                builder.BlankLine().Raw(CompositeKeyRecord(readModel, types));
+                builder.BlankLine().Fragment(CompositeKeyRecord(readModel, types));
             }
 
             if (projection?.Scope is { } scope)
             {
-                builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
+                builder.BlankLine().Fragment(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
         }
     }

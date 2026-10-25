@@ -33,7 +33,7 @@ internal static class SemanticPolicyArtifactRenderer
             }
 
             var (properties, isCommand, argument, subject) = operation.Inputs();
-            var builder = new CSharpCodeBuilder()
+            var builder = context.CodeBuilder()
                 .Namespace(context.PoliciesNamespace)
                 .Using("Cratis.Arc.Authorization");
             var expression = Authorization(operation.Authorization, context, properties, isCommand, argument, subject, operation.Id);
@@ -80,7 +80,9 @@ internal static class SemanticPolicyArtifactRenderer
     /// <returns>The shared runtime file.</returns>
     public static RenderedFile RenderShared(SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies");
+        // Every reflection call below is an instance member of Type, PropertyInfo or MethodInfo, which C# prefers over the
+        // extension members System.Reflection also declares, so importing it cannot change what those calls bind to.
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies").Using("System.Reflection");
         builder.Summary("Registers every generated authorization policy with Arc.")
             .OpenBlock("public static partial class Registration")
             .Line("static readonly global::System.Collections.Generic.List<(string Name, global::System.Action<global::Microsoft.Extensions.DependencyInjection.IServiceCollection> Apply)> _policies = [];")

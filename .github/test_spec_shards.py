@@ -183,7 +183,7 @@ class SpecShardsTests(unittest.TestCase):
                      "live-custom-packages", "generated-react", "generated-react-blueprint-templates", "build"):
             self.assertRegex(jobs[name], r"needs: (?:\[[^\]\n]*)?preflight\b")
         aggregate = jobs["build"]
-        self.assertIn("if: always()", aggregate)
+        self.assertIn("&& always()", aggregate)
         gated = (("PREFLIGHT_RESULT", "preflight"), ("BUILD_RESULT", "dotnet-build"), ("SPECS_RESULT", "specs"),
                  ("STANDALONE_RESULT", "standalone-generated-application"))
         for variable, job in gated:

@@ -29,9 +29,6 @@ public class when_rendering_an_unpinned_v15_event : Specification
 
     [Fact] void should_use_the_v15_model() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V15);
     [Fact] void should_preserve_the_previous_event_bytes() => _code.ShouldEqual("""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         /// <summary>
         /// The event that occurs when unrelated.
         /// </summary>

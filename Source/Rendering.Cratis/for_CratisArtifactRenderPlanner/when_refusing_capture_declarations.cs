@@ -21,9 +21,8 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
     {
         var model = Transform(_model, slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
         var plan = Plan(model);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("not a C# identifier", StringComparison.Ordinal));
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-004");
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-004" && diagnostic.Message.Contains("not a C# identifier", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -38,8 +37,7 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
         var selected = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
         foreach (var plan in new[] { application, selected })
         {
-            Assert.False(plan.Success);
-            Assert.Empty(plan.Artifacts);
+            given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
             Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Artifact == slice.Captures.Single().Id && diagnostic.Code == "STAGE-ESM-012");
         }
     }
@@ -69,8 +67,7 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
     {
         var probe = InternalCaptureProbe(sameNamespace: false);
         var plan = Plan(probe.Context.Request.Model);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("Chronicle event type id", StringComparison.Ordinal));
     }
 
@@ -87,8 +84,7 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
             Modules = [module with { Features = [feature with { Features = [child], Slices = [.. feature.Slices.Select(candidate => candidate with { Captures = [.. candidate.Captures.Select(capture => capture with { Name = "@Nested" })] })] }] }]
         });
         var plan = Plan(model);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("namespace", StringComparison.Ordinal));
     }
 }

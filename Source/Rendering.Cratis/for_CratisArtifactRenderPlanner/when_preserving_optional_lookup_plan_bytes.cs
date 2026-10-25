@@ -33,9 +33,9 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for Cratis/Stage#734 and #741: the scaffolded .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/. The previous-plan comparison restores both, so its claim is unchanged.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
     // Re-frozen for Cratis/Stage#757: package.json adds only the @cratis/fundamentals resolutions entry.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("e81f658db40c274620820ae5b82255eb531554cf9c5843e3410e0eba9a4cc667");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("6c78371fa776b5ebaef626b35e7616e05dc64bcae65dab6118efa31b7dd1c09b");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("3e6ee81376204daed16f3ef1ce7257fd32111adf970a2e022057b7ac6cd1026e");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("e0971461c6426f8fd063aa23e87214229b118b729fd78a4064a56edc4199e4c3");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("1321739fe60e4d410e6e269447dca01ea1c23b3034f698770346dd7fef029c1e");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

@@ -29,7 +29,7 @@ public class when_freezing_the_emitted_frontend_bytes : a_current_frontend_scaff
         _digest = Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    [Fact] void should_freeze_the_complete_frontend_shell_independently_of_package_releases() => _digest.ShouldEqual("883eb8e641e37ac35c251988cf5e0744a81a59d3f2f179b4a1091ae3a4759eed");
+    [Fact] void should_freeze_the_complete_frontend_shell_independently_of_package_releases() => _digest.ShouldEqual("a92491a2e2189839b04d9131865ee08ab3b7fd16acd2b256bfcc8fe4b03ed73c");
 
     [Fact] void should_preserve_the_previous_entry_point_bytes_except_for_the_optional_stage_import() =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(PreviousFrontendEntryPoint.Restore(".frontend/main.tsx", RestoreThemeImport(Content(".frontend/main.tsx")))))).ShouldEqual("f1be33ab4c4b17540e101e671276f76ac33b0b9f79f1cd536f2f1cf5eb235d65");

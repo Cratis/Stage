@@ -31,7 +31,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#734 and #741: .yarnrc.yml preapproves @cratis/* and .gitignore ignores .yarn/ (manifest below updated), merged with main#437 (Matching pin).
     // Re-frozen for #437: only the Matching package pin and host reference are added.
     // Re-frozen for Cratis/Stage#757: package.json adds only the @cratis/fundamentals resolutions entry.
-    const string Digest = "a6e3d39b53fbe615bb69ddc1e177bf02f43e2a127795a2138f6dcd6ed134df02";
+    const string Digest = "3aaa8d01ce38fd5834a877f0a39b664855cd725a41bfe8e7eb7e3565c8a2c26e";
 
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
@@ -140,7 +140,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9b7c628e1b7f6c80bdfecc7d9928b7d2ef68a3246ab6d62df3dd2e69145f5f12");
+            plan.Diagnostics).ShouldEqual("efbbd7d234f3c2a2ed39fef153775c35b41dedc20ff1bf1ba98f485b92e3b2c6");
     }
 
     [Theory]

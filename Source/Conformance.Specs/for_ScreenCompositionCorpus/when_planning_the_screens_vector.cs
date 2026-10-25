@@ -27,7 +27,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 {
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    const string Digest = "a11b43dc2b0cc3582ee8547419577b3a21eb28480197ce16b5623943c3b693c6";
+    const string Digest = "9da10c0f900edf5143e6bb93a8ef31fdbb88256a775ed22461fdd40dbd5af972";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -181,7 +181,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9dc204a0cec035fca7840156d42462bca6556c27f03eb16de007033962663413");
+            plan.Diagnostics).ShouldEqual("b4a77291ec09b2bade1d3ae9b0decc1c7f056869caf72449413dc2aae397a2a0");
     }
 
     [Theory]

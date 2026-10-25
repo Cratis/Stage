@@ -13,6 +13,6 @@ public class with_an_unsupported_command_occurrence_mapping : given.an_invoice_m
 {
     void Because() => Plan(Invoices.Replace("          description = description\n", "          description = $context.causedBy.name\n", StringComparison.Ordinal));
 
-    [Fact] void should_report_the_unsupported_context() => ErrorCodes.ShouldContain("STAGE-ESM-013");
-    [Fact] void should_not_generate_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_report_the_unsupported_context() => RefusalCodes.ShouldContain("STAGE-ESM-013");
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

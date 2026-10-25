@@ -21,9 +21,7 @@ public class with_an_unsafe_iterator : Specification
     void should_keep_the_closed_pure_gate(string body)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorCommand(body)));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
     }
 
     [Theory]
@@ -32,9 +30,7 @@ public class with_an_unsafe_iterator : Specification
     void should_refuse_bodies_that_do_not_compile_with_the_emitted_nonnullable_signature_and_rewrite(string body)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorCommand(body)));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");
+        rendering_refusals.Rejected(plan, "STAGE-ESM-019");
     }
 
     [Theory]
@@ -44,8 +40,7 @@ public class with_an_unsafe_iterator : Specification
     void should_refuse_unsupplied_metadata_by_member_name(string member)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorCommand($"yield return $\"{{context.{member}}}\";")));
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-015");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" && diagnostic.Message.Contains(member, StringComparison.Ordinal));
     }
 }

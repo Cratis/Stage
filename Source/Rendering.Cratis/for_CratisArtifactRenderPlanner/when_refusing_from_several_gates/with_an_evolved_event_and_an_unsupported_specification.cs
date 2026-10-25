@@ -64,5 +64,5 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
 
     [Fact] void should_report_the_event_revision() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-026" && diagnostic.Artifact == _event);
     [Fact] void should_also_report_specification_admission() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _specification);
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_refused_parts_and_compile_retained_artifacts() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.OmittedParts(_plan);
 }

@@ -72,8 +72,7 @@ public class when_sharing_reducer_binding_environments
         await AssertParity(source, self);
         var impure = source.Replace(Body, "_ = Total.All(null!); return context.State;", StringComparison.Ordinal);
         var refused = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(impure), self: self);
-        Assert.False(refused.Success);
-        Assert.Empty(refused.Artifacts);
+        given.rendering_refusals.OmittedParts(refused);
         Assert.DoesNotContain(refused.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
@@ -115,11 +114,15 @@ public class when_sharing_reducer_binding_environments
         var realErrors = RenderedOutput.Errors(planted);
         Assert.Equal(self, realErrors.Count > 0);
         var refused = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source.Replace("RegisterAdjustment", "OrderPlaced", StringComparison.Ordinal)), self: self);
-        Assert.Equal(!self, refused.Success);
         if (self)
         {
-            Assert.Empty(refused.Artifacts);
+            given.rendering_refusals.OmittedParts(refused);
             Assert.Contains(refused.Diagnostics, diagnostic => (diagnostic.Code == "STAGE-ESM-022" || diagnostic.Code == "STAGE-ESM-019") && diagnostic.Message.Contains("OrderPlaced", StringComparison.Ordinal));
+        }
+        else
+        {
+            Assert.True(refused.Success);
+            Assert.Empty(RenderedOutput.Errors(when_selecting_self_reducing_rendering.Files(refused)));
         }
     }
 

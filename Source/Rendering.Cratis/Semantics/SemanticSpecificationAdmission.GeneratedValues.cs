@@ -16,7 +16,15 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in specifications)
         {
-            if (UnsupportedGeneratedRule(context, specification) is { } refusal)
+            if (RefusedGeneratedOwner(context, specification) is { } owner)
+            {
+                diagnostics.Add(new(
+                    "STAGE-ESM-011",
+                    ArtifactRenderDiagnosticSeverity.Error,
+                    $"Specification '{specification.Name}' depends on refused generation for concept '{owner.Name}'.",
+                    specification.Id));
+            }
+            else if (UnsupportedGeneratedRule(context, specification) is { } refusal)
             {
                 diagnostics.Add(refusal);
             }
@@ -45,6 +53,15 @@ internal static partial class SemanticSpecificationAdmission
                 yield return specification;
             }
         }
+    }
+
+    static SemanticConcept? RefusedGeneratedOwner(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        if (specification.When is not { } action || !context.Commands.TryGetValue(action.Command, out var command)) return null;
+        return command.Properties.Where(property => property.IsGenerated)
+            .Select(property => context.Concepts.GetValueOrDefault(property.Type.Target))
+            .FirstOrDefault(concept => concept is not null &&
+                (context.GenerationFailures.ContainsKey(concept.Id) || SemanticGenerationRendering.Rejection(concept.Generation) is not null));
     }
 
     static string PinReason(SemanticCommand command) => command.Produces.Any(produced => produced.When is not null)

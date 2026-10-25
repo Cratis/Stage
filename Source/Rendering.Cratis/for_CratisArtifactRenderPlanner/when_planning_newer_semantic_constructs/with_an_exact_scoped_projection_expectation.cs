@@ -21,5 +21,5 @@ public class with_an_exact_scoped_projection_expectation : Specification
 
     [Fact] void should_reject_unobservable_absent_properties() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-011");
     [Fact] void should_explain_the_exact_comparison_gap() => _plan.Diagnostics.Any(_ => _.Message.Contains("unset properties", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
 }

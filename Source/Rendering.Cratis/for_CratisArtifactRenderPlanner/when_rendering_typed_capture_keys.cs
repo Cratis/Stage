@@ -72,8 +72,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
         var key = SemanticTypeReference.ForPrimitive(primitive);
         SetTypes(key, key);
         var plan = Plan(_model);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-052");
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-052");
     }
 
     [Theory]

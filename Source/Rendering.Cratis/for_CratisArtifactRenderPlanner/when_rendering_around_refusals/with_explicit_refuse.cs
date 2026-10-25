@@ -33,5 +33,5 @@ public class with_explicit_refuse : given.a_refused_specification
 
     [Fact] void should_preserve_the_default_output_digest() => _plan.Digest.ShouldEqual(_default.Digest);
     [Fact] void should_preserve_the_default_diagnostics() => _plan.Diagnostics.SequenceEqual(_default.Diagnostics).ShouldBeTrue();
-    [Fact] void should_remain_refused() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
+    [Fact] void should_omit_refused_parts_by_default() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.OmittedParts(_plan);
 }

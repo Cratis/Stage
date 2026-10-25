@@ -13,6 +13,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticImplementationAdmission
 {
     internal const string PerformerGapCode = "STAGE-IMPL-006";
+    internal const string PerformerLanguageCode = "STAGE-ESM-019";
+
+    internal static bool IsPerformerGap(ArtifactRenderDiagnostic diagnostic) =>
+        string.Equals(diagnostic.Code, PerformerGapCode, StringComparison.Ordinal) ||
+        string.Equals(diagnostic.Code, PerformerLanguageCode, StringComparison.Ordinal);
 
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request)
     {
@@ -60,13 +65,13 @@ internal static class SemanticImplementationAdmission
         var requirement = requirements.IsDefault ? null : requirements.FirstOrDefault(candidate =>
             candidate is { Role: SemanticImplementationRole.QueryPerformer } && candidate.Source?.SemanticId == query.Id);
         if (requirement is null) return new(null, null, "The performer requirement is missing.");
+        if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
+        {
+            return new(requirement, null, PerformerLanguageFailure(requirement));
+        }
         if (query.Delivery == SemanticQueryDelivery.Live)
         {
             return new(requirement, null, "An observable performer has no body-owned stream; live performer bodies are not supported.");
-        }
-        if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
-        {
-            return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
         }
 
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
@@ -97,6 +102,12 @@ internal static class SemanticImplementationAdmission
         return TryGetVerifiedBody(request, byId, requirementId, owner, diagnostics, out body);
     }
 
+    static string PerformerLanguageFailure(SemanticImplementationRequirement requirement)
+    {
+        var language = requirement.Language ?? Path.GetExtension(requirement.File)?.TrimStart('.') ?? string.Empty;
+        return $"The performer language '{language}' is not supported; the Cratis target only realizes C# bodies.";
+    }
+
     static Dictionary<string, SemanticImplementationRequirement> IndexRequirements(ArtifactRenderRequest request, ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics)
     {
         var byId = new Dictionary<string, SemanticImplementationRequirement>(StringComparer.Ordinal);
@@ -118,7 +129,7 @@ internal static class SemanticImplementationAdmission
             var admission = AdmitPerformer(context, query);
             if (admission.Reason is not { } reason) continue;
             yield return new(
-                PerformerGapCode,
+                admission.Requirement is { } requirement && !SemanticCratisAdmission.IsCSharpImplementation(requirement) ? PerformerLanguageCode : PerformerGapCode,
                 ArtifactRenderDiagnosticSeverity.Warning,
                 $"Query '{query.Name}' (requirement {admission.Requirement?.RequirementId}) performer rendered as a gap: {reason}",
                 query.Id);

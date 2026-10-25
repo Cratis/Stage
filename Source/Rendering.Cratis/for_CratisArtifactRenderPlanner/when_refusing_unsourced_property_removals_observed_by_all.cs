@@ -36,9 +36,9 @@ public class when_refusing_unsourced_property_removals_observed_by_all : Specifi
         _plan = invoice_model.Plan(invoice_model.Compile(source + "\n" + AllObserver));
     }
 
-    [Fact] void should_refuse_the_observable_invented_source() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_refuse_the_observable_invented_source() => rendering_refusals.Rejected(_plan, "STAGE-ESM-051");
     [Fact] void should_report_a_typed_specification_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'InvoiceRemoved' has no event source", StringComparison.Ordinal));
     [Fact] void should_admit_the_same_observers_with_an_explicit_source() => Assert.True(_sourcedPlan.Success, string.Join(Environment.NewLine, _sourcedPlan.Diagnostics));
-    [Fact] void should_not_emit_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unprovable_specification() => rendering_refusals.OmittedParts(_plan);
 }
 #endif

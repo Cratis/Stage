@@ -15,7 +15,7 @@ public class when_a_validation_context_cannot_be_rendered : a_render_with_an_inv
     void Because() => _plan = opaque_policy_model.Plan(_loaded);
 
     [Fact] void should_record_the_owner_gap() => _plan.ImplementationGaps.Any(gap => gap.Kind == ArtifactImplementationGapKind.Rendering && string.Equals(gap.Owner, _owner.ToString(), StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_preserve_the_existing_code_and_message() => _plan.Diagnostics.Any(diagnostic => string.Equals(diagnostic.Code, "STAGE-ESM-021", StringComparison.Ordinal) && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Message.Contains("UnsupportedToken", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_preserve_the_existing_code_and_message() => rendering_refusals.Warning(_plan, "STAGE-ESM-021", _owner, "Validation 'Positive' has no unique wrapper-ready typed context with matching members and sources.").Artifact.ShouldEqual(_owner);
     [Fact] void should_omit_the_rejected_owner() => _plan.Artifacts.Any(artifact => artifact.Sources.Contains(_owner)).ShouldBeFalse();
     [Fact] void should_keep_independent_output() => _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/Ping.cs", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_be_partial() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);

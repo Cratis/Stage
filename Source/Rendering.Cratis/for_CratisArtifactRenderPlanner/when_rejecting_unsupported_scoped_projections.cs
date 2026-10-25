@@ -325,9 +325,8 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
             var blocked = CratisRendering.Plan(model, changedExecution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
-            Assert.False(blocked.Success);
-            Assert.Empty(blocked.Artifacts);
-            Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
+            rendering_refusals.Warning(blocked, diagnostic.Code, diagnostic.Artifact, diagnostic.Message);
+            rendering_refusals.Rejected(blocked, "STAGE-ESM-017");
         }
     }
 

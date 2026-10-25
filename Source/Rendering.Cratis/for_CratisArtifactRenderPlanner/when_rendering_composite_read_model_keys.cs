@@ -30,11 +30,16 @@ public class when_rendering_composite_read_model_keys : Specification
     [Fact] void should_not_throw() => _error.ShouldBeNull();
     [Fact] void should_admit_the_version() => _application.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
     [Fact] void should_render_the_composite_keyed_read_model() => _application.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-048");
-    [Fact] void should_refuse_the_query_by_parts() => Refuses(_application, "STAGE-ESM-047", _slice.Queries.Single(query => query.Name == "Total").Id, "Total").ShouldBeTrue();
+    [Fact]
+    void should_refuse_the_query_by_parts()
+    {
+        Refuses(_application, "STAGE-ESM-047", _slice.Queries.Single(query => query.Name == "Total").Id, "Total").ShouldBeTrue();
+        given.rendering_refusals.Rejected(_application, "STAGE-ESM-047");
+    }
     [Fact] void should_not_refuse_the_list_queries() => _application.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-047").ShouldEqual(1);
 
     static bool Refuses(ArtifactRenderPlan plan, string code, SemanticId artifact, string name) =>
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
+        plan.Diagnostics.Any(diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning &&
             diagnostic.Artifact == artifact && diagnostic.Message.Contains($"'{name}'", StringComparison.Ordinal));
 
     ArtifactRenderPlan Plan(ArtifactRenderScope scope) =>

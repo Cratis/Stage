@@ -54,8 +54,12 @@ public class when_refusing_protected_reaction_destinations
         var scope = scoped ? new ArtifactRenderScope(ArtifactRenderScopeKind.Slice, start.Id) : null;
         var plan = invoice_model.Plan(model, scope);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-040"]);
-        plan.Diagnostics.Single().Message.ShouldContain("reaction destination 'Complete'");
-        plan.Artifacts.ShouldBeEmpty();
+        var owner = application.Concepts.Single(concept => concept.Name == "ReactionDestination").Id;
+        rendering_refusals.Warning(plan, "STAGE-ESM-040", owner).Message.ShouldContain("reaction destination 'Complete'");
+        rendering_refusals.Omitted(plan, owner);
+#if DEBUG
+        rendering_refusals.Compiles(plan);
+#endif
     }
 
     static void Set(ExecutableSemanticModel model, string property, object value) =>

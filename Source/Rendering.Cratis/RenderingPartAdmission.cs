@@ -13,12 +13,16 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 sealed class RenderingPartAdmission(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
 {
+    readonly SemanticOwnerIndex _owners = new(context.Application);
     readonly HashSet<SemanticId> _omitted = [];
-    readonly HashSet<string> _codes = new(StringComparer.Ordinal);
+    readonly HashSet<(SemanticId Artifact, string Code)> _gaps = [];
 
     internal ImmutableArray<ArtifactRenderRefusal> Refusals { get; private set; } = [];
 
     internal ImmutableArray<ArtifactRemoval> Removals { get; private set; } = [];
+
+    internal bool HasUncontainedErrors => diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
+        (!_owners.Contains(diagnostic.Artifact) || !Refusals.Any(refusal => refusal.Artifact == diagnostic.Artifact && refusal.Codes.Contains(diagnostic.Code))));
 
     internal List<RenderedFile> RenderModelParts(IReadOnlyList<LocatedSemanticSlice> slices)
     {
@@ -29,7 +33,7 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
             var policies = slices.SelectMany(located => Render(
                 located.Slice.Id,
                 () => SemanticPolicyArtifactRenderer.Render(context, [located]).Concat(SemanticPolicyArtifactRenderer.RenderOpaque(context, [located]))));
-            files.AddRange(policies.DistinctBy(file => (file.RelativePath, file.Content)));
+            files.AddRange(policies.Select(AdmittedPolicySources).DistinctBy(file => (file.RelativePath, file.Content)));
         }
         foreach (var located in slices)
         {
@@ -54,7 +58,7 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
     }
 
     internal bool IsGap(ArtifactRenderDiagnostic diagnostic) =>
-        diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && _codes.Contains(diagnostic.Code);
+        diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && _gaps.Contains((diagnostic.Artifact, diagnostic.Code));
 
     internal List<RenderedFile> Render(SemanticId owner, Func<IEnumerable<RenderedFile>> render)
     {
@@ -83,10 +87,19 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
         for (var index = 0; index < diagnostics.Count; index++)
         {
             var diagnostic = diagnostics[index];
-            if (diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Error || covered.Contains((diagnostic.Artifact, diagnostic.Code))) continue;
+            if (covered.Contains((diagnostic.Artifact, diagnostic.Code))) continue;
+            if (!CanAdmit(diagnostic)) continue;
             diagnostics[index] = diagnostic with { Severity = ArtifactRenderDiagnosticSeverity.Warning };
-            Omit(diagnostics[index]);
+            AdmitGap(diagnostics[index]);
         }
+    }
+
+    internal ImmutableArray<ArtifactRemoval> AdmittedRemovals(IEnumerable<PlannedArtifact> artifacts)
+    {
+        if (Removals.IsDefault) return [];
+        if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error)) return [];
+        var realized = artifacts.SelectMany(artifact => artifact.Sources).ToHashSet();
+        return [.. Removals.Where(removal => realized.Contains(removal.Model) && !IsOmitted(removal.Model))];
     }
 
     internal List<PlannedArtifact> Retained(List<PlannedArtifact> artifacts) =>
@@ -96,7 +109,7 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
     {
         // These dependency-analysis inputs are never published. They let the existing closure find
         // consumers even when the rejected producer could not emit a single file.
-        var declarations = SemanticCratisAdmission.GeneratedDeclarations(context, context.SelectedSlices())
+        var declarations = SemanticCratisAdmission.GeneratedDeclarations(context, context.AllSlices)
             .Where(declaration => _omitted.Contains(declaration.Artifact))
             .Select(declaration => (declaration.Artifact, Namespace: string.Join('.', new[] { context.RootNamespace, declaration.Namespace }.Where(part => part.Length > 0)), declaration.Name))
             .Concat(context.Request.TypedContextDescriptors.Where(descriptor => descriptor.OperationId is { } owner && _omitted.Contains(owner))
@@ -106,6 +119,35 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
             $".stage-omitted/{index}.cs",
             $"namespace {declaration.Namespace} {{ public class {declaration.Name} {{ }} }}",
             [declaration.Artifact]))];
+    }
+
+    bool CanAdmit(ArtifactRenderDiagnostic diagnostic) => _owners.Contains(diagnostic.Artifact) &&
+        (diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error ||
+            string.Equals(diagnostic.Code, Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, StringComparison.Ordinal));
+
+    void AdmitGap(ArtifactRenderDiagnostic diagnostic)
+    {
+        if (string.Equals(diagnostic.Code, Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, StringComparison.Ordinal))
+        {
+            _gaps.Add((diagnostic.Artifact, diagnostic.Code));
+        }
+        else if (SemanticGenerationRendering.IsGenerationFailure(context, diagnostic))
+        {
+            _gaps.Add((diagnostic.Artifact, diagnostic.Code));
+            context.GenerationFailures[diagnostic.Artifact] = diagnostic.Message;
+        }
+        else
+        {
+            Omit(diagnostic);
+        }
+    }
+
+    RenderedFile AdmittedPolicySources(RenderedFile file)
+    {
+        // Shared policy bytes and names stay selection-independent. Refused operations must not
+        // evict a shared policy still realized by an admitted operation.
+        var admitted = file.Sources.Where(owner => !IsOmitted(owner)).ToImmutableArray();
+        return admitted.IsEmpty ? file : file with { Sources = admitted };
     }
 
     bool IsOmittedType(SemanticTypeReference type) => type.Kind != SemanticTypeReferenceKind.Primitive && IsOmitted(type.Target);
@@ -144,21 +186,18 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
 
     void Reject(ArtifactRenderDiagnostic diagnostic)
     {
+        if (!_owners.Contains(diagnostic.Artifact))
+        {
+            diagnostics.Add(diagnostic with { Severity = ArtifactRenderDiagnosticSeverity.Error });
+            return;
+        }
         diagnostics.Add(diagnostic);
         Omit(diagnostic);
     }
 
     void Omit(ArtifactRenderDiagnostic diagnostic)
     {
-        _codes.Add(diagnostic.Code);
-        _omitted.Add(diagnostic.Artifact);
-        foreach (var located in context.SelectedSlices().Where(located => located.Slice.Id == diagnostic.Artifact || located.Declares(diagnostic.Artifact)))
-        {
-            _omitted.Add(located.Slice.Id);
-            var slice = located.Slice;
-            _omitted.UnionWith(slice.Commands.Select(command => command.Id).Concat(slice.Events.Select(@event => @event.Id))
-                .Concat(slice.ReadModels.Select(model => model.Id)).Concat(slice.Queries.Select(query => query.Id))
-                .Concat(slice.Projections.Select(projection => projection.Id)).Concat(slice.Specifications.Select(specification => specification.Id)));
-        }
+        _gaps.Add((diagnostic.Artifact, diagnostic.Code));
+        _omitted.UnionWith(_owners.Omissions(diagnostic.Artifact));
     }
 }

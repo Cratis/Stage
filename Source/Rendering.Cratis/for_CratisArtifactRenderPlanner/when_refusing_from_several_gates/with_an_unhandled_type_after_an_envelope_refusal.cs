@@ -28,5 +28,5 @@ public class with_an_unhandled_type_after_an_envelope_refusal : given.a_collecti
     [Fact] void should_preserve_the_collected_refusal() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-020");
     [Fact] void should_report_the_thrown_semantic_variant() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("999", StringComparison.Ordinal));
     [Fact] void should_continue_to_independent_admission() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-SCENE-ACTION-001");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_refused_parts_and_compile_retained_artifacts() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.OmittedParts(_plan);
 }

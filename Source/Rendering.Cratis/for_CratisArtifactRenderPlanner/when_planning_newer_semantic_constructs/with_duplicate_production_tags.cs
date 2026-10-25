@@ -15,6 +15,6 @@ public class with_duplicate_production_tags : given.an_invoice_model
         .Replace("          for streamReference\n", "          for streamReference\n          tag \"billing\"\n", StringComparison.Ordinal)
         .Replace("      event InvoiceIssued\n", "      event InvoiceIssued\n        tag \"billing\"\n", StringComparison.Ordinal));
 
-    [Fact] void should_reject_the_duplicate_tag() => ErrorCodes.ShouldContain("STAGE-ESM-006");
-    [Fact] void should_not_generate_degraded_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_the_duplicate_tag() => RefusalCodes.ShouldContain("STAGE-ESM-006");
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

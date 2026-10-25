@@ -69,8 +69,9 @@ public class when_refusing_composite_key_shapes
     {
         var plan = invoice_model.Plan(invoice_model.Compile(source));
 
+        rendering_refusals.Rejected(plan, "STAGE-ESM-048");
         Assert.True(
-            plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-048" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains(reason, StringComparison.Ordinal)),
+            plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-048" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Message.Contains(reason, StringComparison.Ordinal)),
             $"{shape}: artifacts={plan.Artifacts.Length} refusals={string.Join(',', plan.Refusals.SelectMany(r => r.Codes))} gaps={plan.ImplementationGaps.Length} {string.Join(" | ", plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Message}"))}");
     }
 

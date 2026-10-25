@@ -39,5 +39,5 @@ public class when_refusing_seeded_composite_removal_without_an_event_source : Sp
     [Fact] void should_refuse_the_unsourced_append_explicitly() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'PaymentRemoved' has no event source", StringComparison.Ordinal));
     [Fact] void should_not_hide_it_in_a_generic_refusal() => Assert.DoesNotContain(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-011");
     [Fact] void should_not_admit_composite_absence() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-027");
-    [Fact] void should_not_publish_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unprovable_specification() => given.rendering_refusals.Rejected(_plan, "STAGE-ESM-051");
 }

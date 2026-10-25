@@ -11,8 +11,8 @@ public class without_opting_in : given.a_refused_specification
 {
     void Because() => _plan = _planner.Plan(_original);
 
-    [Fact] void should_refuse_the_entire_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_report_partial_rendering() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_omit_refused_parts_and_compile_retained_artifacts() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.OmittedParts(_plan);
     [Fact] void should_not_list_omissions() => _plan.Refusals.ShouldBeEmpty();
-    [Fact] void should_preserve_the_digest_without_refusal_metadata() => _plan.Digest.ShouldEqual(ArtifactRenderPlan.ComputeDigest(_plan.Target, _plan.TargetVersion, _plan.Renderer, _plan.RendererVersion, _plan.ApplicationName, _plan.Artifacts, _plan.Diagnostics));
+    [Fact] void should_include_the_partial_plan_metadata_in_the_digest() => _plan.Digest.ShouldEqual(ArtifactRenderPlan.ComputeDigest(_plan.Target, _plan.TargetVersion, _plan.Renderer, _plan.RendererVersion, _plan.ApplicationName, _plan.Artifacts, _plan.Diagnostics, _plan.ImplementationGaps, _plan.Refusals, _plan.RequiredRemovals));
 }

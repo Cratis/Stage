@@ -34,6 +34,8 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
         """;
 
     ArtifactRenderPlan _plan = null!;
+    SemanticId _refusedSlice;
+    SemanticId _refusedEvent;
 
     void Because()
     {
@@ -47,6 +49,9 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
         var model = compilation.Value!.Model;
+        var refused = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Kind == SemanticSliceKind.StateChange);
+        _refusedSlice = refused.Id;
+        _refusedEvent = refused.Events.Single().Id;
         var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
         var request = new ArtifactRenderRequest(
             model,
@@ -56,10 +61,12 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
         _plan = _planner.Plan(request);
     }
 
-    [Fact] void should_not_be_publishable() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_not_be_publishable() => Assert.Equal(ArtifactRenderOutcome.Partial, _plan.Outcome);
+    [Fact] void should_omit_the_destination_slice() => rendering_refusals.Omitted(_plan, _refusedSlice);
+    [Fact] void should_omit_the_event_in_the_destination_slice() => rendering_refusals.Omitted(_plan, _refusedEvent);
     [Fact] void should_report_the_unsupported_destination() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-006");
 
-    // The projection is keyed by a payload property, which renders through the scope; only the destination is refused.
+    // Payload-keyed projection syntax is supported; its event belongs to the refused destination slice.
     [Fact] void should_not_refuse_the_payload_keyed_projection() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-009");
-    [Fact] void should_emit_no_candidate_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_destination_and_compile_the_retained_artifacts() => rendering_refusals.Rejected(_plan, "STAGE-ESM-006");
 }

@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -254,9 +255,15 @@ public class when_verifying_implementation_attachments : Specification
             _loaded.ImplementationContents,
             _loaded.AttachmentDiagnostics,
             [unknown]);
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
-            diagnostic.Message.Contains("UnsupportedToken", StringComparison.Ordinal));
-        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+        var owner = descriptor.OperationId!.Value;
+        rendering_refusals.Warning(
+            plan,
+            "STAGE-ESM-021",
+            owner,
+            $"Validation '{descriptor.RequirementId}' has no unique wrapper-ready typed context with matching members and sources.");
+        rendering_refusals.Omitted(plan, owner);
+        rendering_refusals.Partial(plan);
+        rendering_refusals.Compiles(plan);
     }
 
     [Fact]

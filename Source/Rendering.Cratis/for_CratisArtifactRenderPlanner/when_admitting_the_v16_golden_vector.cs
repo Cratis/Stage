@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -27,5 +28,5 @@ public class when_admitting_the_v16_golden_vector : Specification
     [Fact] void should_read_the_full_v16_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V16);
     [Fact] void should_preserve_existing_construct_refusals() => _plan.Diagnostics.ShouldNotBeEmpty();
     [Fact] void should_not_refuse_the_audited_version() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_refused_reactions_and_compile_retained_parts() => rendering_refusals.Rejected(_plan, "STAGE-ESM-024");
 }

@@ -149,6 +149,9 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
 
+    /// <summary>Gets generation owners whose factories must be explicit throwing stubs.</summary>
+    internal Dictionary<SemanticId, string> GenerationFailures { get; } = [];
+
     /// <summary>
     /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.
     /// </summary>

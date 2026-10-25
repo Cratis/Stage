@@ -17,5 +17,5 @@ public class when_refusing_projectionless_query_views : Specification
     void Because() => _plan = invoice_model.Plan(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan()));
 
     [Fact] void should_require_a_projection_even_for_empty_query_specifications() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-007");
-    [Fact] void should_emit_no_partial_application() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_owners_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
 }

@@ -13,6 +13,6 @@ public class with_a_localized_validation_message : given.an_invoice_model
         "        validate\n          description not empty message $strings.invoice.descriptionRequired\n        produces InvoiceIssued\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_reject_the_unresolved_string_key() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
+    [Fact] void should_reject_the_unresolved_string_key() => RefusalCodes.ShouldContainOnly(["STAGE-ESM-005"]);
 }

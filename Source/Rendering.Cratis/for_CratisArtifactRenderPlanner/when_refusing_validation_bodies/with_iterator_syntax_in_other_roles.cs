@@ -17,7 +17,7 @@ public class with_iterator_syntax_in_other_roles : Specification
     void should_not_widen_boolean_rule_admission(string body)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.Command(body)));
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
     }
 

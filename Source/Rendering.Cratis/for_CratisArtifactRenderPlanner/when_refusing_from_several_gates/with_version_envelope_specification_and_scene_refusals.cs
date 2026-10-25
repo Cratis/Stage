@@ -34,6 +34,6 @@ public class with_version_envelope_specification_and_scene_refusals : given.a_co
     [Fact] void should_list_the_specification_refusal() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _specification);
     [Fact] void should_list_the_scene_guard() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == UnsupportedGuardedScreenAction.DiagnosticCode);
     [Fact] void should_list_each_refusal_once() => _plan.Diagnostics.Select(diagnostic => (diagnostic.Code, diagnostic.Artifact, diagnostic.Message)).Distinct().Count().ShouldEqual(_plan.Diagnostics.Length);
-    [Fact] void should_report_failure() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_report_partial_rendering() => Assert.Equal(Contracts.Rendering.ArtifactRenderOutcome.Partial, _plan.Outcome);
+    [Fact] void should_omit_refused_parts_and_compile_retained_artifacts() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.OmittedParts(_plan);
 }

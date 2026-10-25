@@ -20,7 +20,7 @@ public class when_rejecting_constraint_and_role_mismatches
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-014" && diagnostic.Message.Contains("multiple claims", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-014");
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class when_rejecting_constraint_and_role_mismatches
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Given events violate", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
     }
 
     [Theory]
@@ -58,7 +58,7 @@ public class when_rejecting_constraint_and_role_mismatches
         var source = when_rendering_portable_authorization.Source.Replace("claim \"department\" matches \"Sales\"", $"claim \"{uri}\" matches \"Sales\"", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-015" && diagnostic.Message.Contains("role claim URI", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-015");
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class when_rejecting_constraint_and_role_mismatches
             StringComparison.Ordinal).Replace("\n      slice StateView Lookup", "\n    slice StateView Lookup", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("role claim URI", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-011");
     }
 
     static string ConstrainedInvoice() => invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)

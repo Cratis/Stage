@@ -30,6 +30,14 @@ public class an_invoice_model : Specification
     protected string Artifact(string fileName) =>
         Encoding.UTF8.GetString(_plan.Artifacts.Single(_ => _.RelativePath.EndsWith(fileName, StringComparison.Ordinal)).Bytes.AsSpan());
 
+    protected void AssertOmittedParts() => rendering_refusals.OmittedParts(_plan);
+
+    protected IEnumerable<string> RefusalCodes =>
+        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning &&
+            _plan.ImplementationGaps.Any(gap => gap.Kind == ArtifactImplementationGapKind.Rendering &&
+                string.Equals(gap.Owner, diagnostic.Artifact.ToString(), StringComparison.Ordinal) && gap.Hints.Contains(diagnostic.Message)))
+            .Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal);
+
     protected IEnumerable<string> ErrorCodes =>
         _plan.Diagnostics.Where(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error).Select(_ => _.Code);
 }

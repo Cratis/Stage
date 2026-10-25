@@ -6,7 +6,7 @@ import { queryResult } from './testing/queries';
 import { fireEvent, render as renderWithoutProvider, screen, waitFor, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, chai, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
@@ -825,6 +825,41 @@ describe('a native command form', () => {
             body: JSON.stringify({ orderNumber: 'O-1' }),
         }));
         expect((await screen.findAllByText('Order number is required')).length).toBeGreaterThan(0);
+    });
+});
+
+describe('a row action with a scalar reference key', () => {
+    it.each([42, 0, '42', '0'])('should enable and submit the selected key without changing its type (%s)', async value => {
+        chai.should();
+        const fetched = vi.fn(async (_input: unknown, init?: RequestInit) => init?.method === 'POST'
+            ? { ok: true, json: async () => commandResult() }
+            : { ok: true, json: async () => queryResult({ data: [{ organisationId: value, name: 'Selected organisation' }] }) });
+        vi.stubGlobal('fetch', fetched);
+        const table = element('organisations', 'core:table', { query: 'AllInvoices', route: '/api/sales/invoices/all-invoices', dataKey: 'organisationId' }, {
+            columns: [element('organisation-name', 'core:column', { property: 'name', label: 'Organisation' })],
+        });
+        const action = element('rename-organisation', 'core:action', {
+            command: 'RenameScalarOrganisation', route: '/commands/rename-scalar-organisation', label: 'Rename organisation', rowAction: true,
+            schema: JSON.stringify({ type: 'object', required: ['organisationId', 'name'], properties: {
+                organisationId: { type: typeof value === 'number' ? 'integer' : 'string', 'x-concept': 'OrganisationKey', 'x-identity': true,
+                    'x-reference': { query: 'AllInvoices', value: 'organisationId', label: 'name' } },
+                name: { type: 'string' },
+            } }),
+        });
+        renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
+        const row = await screen.findByText('Selected organisation');
+        await waitFor(() => (screen.getByRole('button', { name: 'Rename organisation' }) as HTMLButtonElement).disabled.should.equal(true));
+        fireEvent.click(row.closest('tr')!);
+        await waitFor(() => (screen.getByRole('button', { name: 'Rename organisation' }) as HTMLButtonElement).disabled.should.equal(false));
+        fireEvent.click(screen.getByRole('button', { name: 'Rename organisation' }));
+        const dialog = await screen.findByRole('dialog');
+        within(dialog).queryAllByLabelText(/organisation id/i).length.should.equal(0);
+        fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Renamed organisation' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Rename organisation' }));
+        await waitFor(() => fetched.mock.calls.some(([, init]) => init?.method === 'POST').should.equal(true));
+        const posted = fetched.mock.calls.find(([, init]) => init?.method === 'POST')!;
+        JSON.parse(String(posted[1]?.body)).should.deep.equal({ organisationId: value, name: 'Renamed organisation' });
+        await waitFor(() => (screen.queryByRole('dialog') === null).should.equal(true));
     });
 });
 

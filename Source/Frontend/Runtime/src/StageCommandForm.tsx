@@ -19,6 +19,7 @@ import { asCommandValue, createsEntity, humanize, missingMember, schemaPropertie
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { withReferenceField } from './StageReferenceField';
+import { referenceIdentityOf } from './referenceIdentityOf';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -286,12 +287,12 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
         if (rowAction && carriedBy(property, selectableRows)) {
             const rowValue = parameters[property.name] || selectedIdentifier(property, selectedRows);
-            if (rowValue) values[property.name] = rowValue;
+            if (rowValue !== undefined) values[property.name] = rowValue;
             continue;
         }
 
-        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || heldSessionIdentity(property.identifier)
-            || (property.identity || (!marked && !carriedBy(property, selectableRows)) ? sessionIdentity(property.identifier) : undefined);
+        const value = (parameters[property.name] || undefined) ?? selectedIdentifier(property, selectedRows) ?? heldSessionIdentity(property.identifier)
+            ?? (property.identity || (!marked && !carriedBy(property, selectableRows)) ? sessionIdentity(property.identifier) : undefined);
         if (value !== undefined) values[property.name] = value;
     }
 
@@ -358,16 +359,13 @@ export function suppliedIdentifier(property: SchemaProperty, parameters: Record<
  * @param selectedRows The rows currently selected on the screen.
  * @returns The selected row's value, or nothing when no selected row (or more than one, differently) carries one.
  */
-export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | undefined {
-    if (!property.identifier) return undefined;
-    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
-    return values.size === 1 ? [...values][0] : undefined;
+export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | number | undefined {
+    return property.identifier ? selectedReference(property, selectedRows) : undefined;
 }
 
 /** Reference values retain their modeled primitive type, including zero. */
 function selectedReference(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | number | undefined {
-    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string | number =>
-        typeof value === 'string' && value !== '' || typeof value === 'number' && Number.isFinite(value)));
+    const values = new Set(selectedRows.map(row => referenceIdentityOf(row[property.name])).filter(value => value !== undefined));
     return values.size === 1 ? [...values][0] : undefined;
 }
 
@@ -382,8 +380,8 @@ export function carriedBy(property: SchemaProperty, rows: Record<string, unknown
  * the row that is its entity. A row that already carries a property of that name keeps it.
  */
 function withEntityKeys(row: Record<string, unknown>, query: StageDataState['queries'][string]): Record<string, unknown> {
-    const key = row.id;
-    if (typeof key !== 'string' || key === '') return row;
+    const key = referenceIdentityOf(row.id);
+    if (key === undefined) return row;
     const words = `${query.alias ?? ''} ${query.name ?? ''}`.match(/[A-Z][a-z0-9]+/g) ?? [];
     const aliases = Object.fromEntries(words.map(word => `${word.charAt(0).toLowerCase()}${word.slice(1)}Id`).filter(name => !Object.hasOwn(row, name)).map(name => [name, key]));
     return Object.keys(aliases).length === 0 ? row : { ...aliases, ...row };

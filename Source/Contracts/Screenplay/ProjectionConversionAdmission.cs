@@ -30,11 +30,6 @@ internal sealed class ProjectionConversionAdmission(ConversionDiagnostics diagno
                 Block(block);
                 break;
 
-            // 'add total by unitPrice * quantity' (ESM v29): Chronicle's Add/Subtract take one event property, so converting the sum of one
-            // factor would change the meaning. Name it instead.
-            case AddMappingSyntax { Factor: not null } or SubtractMappingSyntax { Factor: not null }:
-                Report(ProjectionConverter.MappingDiagnosticCode, $"projection arithmetic by a product on '{((MappingSyntax)node).Property}'", node);
-                break;
             case MappingSyntax mapping when mapping is not (SetMappingSyntax or ClearMappingSyntax or AddMappingSyntax or SubtractMappingSyntax or IncrementMappingSyntax or DecrementMappingSyntax or CountMappingSyntax):
                 Report(ProjectionConverter.MappingDiagnosticCode, $"projection mapping {mapping.GetType().Name} on '{mapping.Property}'", mapping);
                 break;

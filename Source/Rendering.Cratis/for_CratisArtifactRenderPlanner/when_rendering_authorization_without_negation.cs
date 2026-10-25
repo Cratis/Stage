@@ -21,7 +21,7 @@ public class when_rendering_authorization_without_negation : Specification
     void Because()
     {
         _plan = invoice_model.Plan(invoice_model.Compile(when_rendering_portable_authorization.Source));
-        _policies = string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/StagePolicy_", StringComparison.Ordinal)).Select(Text));
+        _policies = string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)).Select(Text));
     }
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();

@@ -41,7 +41,10 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_mount_the_runtime_over_the_planned_content() => Text(_first, ".frontend/main.tsx").ShouldContain("<StageSourceProvider source={source}>");
     [Fact] void should_eagerly_load_the_real_stage_export() => Text(_first, ".frontend/main.tsx").ShouldContain("import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' })");
     [Fact] void should_preserve_the_real_scene_module_bytes() => _first.Artifacts.Single(artifact => artifact.RelativePath == "src/stage.ts").Sha256.ShouldEqual("3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe");
-    [Fact] void should_load_the_icon_font() => Text(_first, ".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");
+
+    // React Aria is the default (Cratis/Stage#707): the PrimeReact icon font is loaded only when the ui profile lists PrimeReact.
+    [Fact] void should_not_load_the_icon_font_by_default() => Text(_first, ".frontend/main.tsx").ShouldNotContain("primeicons");
+    [Fact] void should_load_the_icon_font_when_the_application_lists_PrimeReact() => Text(PlanWithPrimeReact(), ".frontend/main.tsx").ShouldContain("import 'primeicons/primeicons.css';");
     [Fact] void should_carry_the_application_shell() => Names("layouts").ShouldContainOnly("AppShell");
     [Fact] void should_carry_the_screen_template() => Names("screenTemplates").ShouldContainOnly("MasterDetail");
     [Fact] void should_carry_the_dialog_template() => Names("dialogTemplates").ShouldContainOnly("EditDialog");

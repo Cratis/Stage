@@ -87,6 +87,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             {
                 results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Authorization, specification.Id.ToString(), exception.Message)));
             }
+            catch (SemanticProjectionLoweringRefused exception)
+            {
+                results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Projection, exception.Projection.ToString(), exception.Message)));
+            }
             catch (UnsupportedSemanticMapping exception)
             {
                 results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));
@@ -128,7 +132,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var runtimeType = command is null ? typeof(DynamicCommand) : runtimeTypes.ForCommand(command);
         var instance = command is null ? null : Materialize(runtimeType, command, when!, plan);
 
-        var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
+        // An event that cannot be materialized stays out of the eager set; a run that needs it is refused when it is resolved.
+        var eventTypes = runtimeTypes.MaterializableEvents();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
         var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);
@@ -379,7 +384,6 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
         foreach (var assertion in specification.ThenQueries)
         {
             if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
@@ -392,8 +396,16 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             }
         }
         var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
-        failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
-        failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        IReadOnlyList<SemanticRunProjections.Projected> projected = [];
+        var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
+
+        // Expected rejection/denial is settled without calling the projection executor, even when the command accepts.
+        if (!expectsRejection)
+        {
+            projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+            failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
+            failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        }
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),

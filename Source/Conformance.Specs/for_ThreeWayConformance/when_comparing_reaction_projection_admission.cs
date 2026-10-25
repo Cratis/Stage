@@ -23,12 +23,11 @@ public class when_comparing_reaction_projection_admission : a_projected_reaction
     }
 
     [Fact]
-    public async Task should_never_falsely_pass_absence_for_a_mismatched_payload_key()
+    public async Task should_fail_like_the_reference_for_a_mismatched_payload_key()
     {
         CompileProjected("\"two\"", "then no readmodel Marker for \"two\"");
         await Execute();
         Assert.False(_reference.Passed);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, _result.Outcome);
-        Assert.Equal(StageExecutionCapability.Projection, _result.Unsupported!.Capability);
+        Assert.Equal(SemanticSpecificationOutcome.Failed, _result.Outcome);
     }
 }

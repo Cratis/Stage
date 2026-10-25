@@ -95,6 +95,21 @@ public class a_screen_composition_render : Specification
     }
 
     /// <summary>
+    /// Plans the application from the authored Scene whose ui profile also lists <c language="text">PrimeReact</c>, the opt-in component library (Cratis/Stage#707).
+    /// </summary>
+    /// <returns>The plan.</returns>
+    protected ArtifactRenderPlan PlanWithPrimeReact()
+    {
+        var scene = _scene with { UiProfiles = [.. _scene.UiProfiles.Select(profile => profile with { Packages = [.. profile.Packages, "PrimeReact"] })] };
+        var profile = CratisRendering.CreateProfile(_model.Application.Name, _options, scene, null, null, null);
+        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(
+            _model,
+            _executionPlan,
+            profile,
+            new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
+    }
+
+    /// <summary>
     /// Gets the text of one planned artifact.
     /// </summary>
     /// <param name="plan">The plan.</param>

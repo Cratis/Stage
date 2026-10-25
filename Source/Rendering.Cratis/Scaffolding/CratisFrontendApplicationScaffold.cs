@@ -47,11 +47,11 @@ public sealed class CratisFrontendApplicationScaffold
         {
             (".frontend/index.css", IndexCss()),
             (".frontend/index.html", IndexHtml(request)),
-            (".frontend/main.tsx", MainModule(!approved.IsEmpty)),
+            (".frontend/main.tsx", MainModule(!approved.IsEmpty, request.UsesPrimeReact)),
             (".frontend/tsconfig.json", FrontendTsConfig()),
             (".frontend/tsconfig.node.json", NodeTsConfig()),
             (".frontend/vite-env.d.ts", ViteEnvironment()),
-            (".frontend/vite.config.ts", ViteConfig()),
+            (".frontend/vite.config.ts", ViteConfig(request.UsesPrimeReact)),
             (".gitignore", GitIgnore()),
             (".yarnrc.yml", "nodeLinker: node-modules"),
             ("package.json", PackageJson(request)),
@@ -73,7 +73,7 @@ public sealed class CratisFrontendApplicationScaffold
     }
 
     internal static IReadOnlyList<string> ShippedNpmPackages(CratisFrontendPackageSet frontend) =>
-        [.. Dependencies(frontend).Select(_ => _.Name), .. DevDependencies(frontend).Select(_ => _.Name)];
+        [.. Dependencies(frontend, true).Select(_ => _.Name), .. DevDependencies(frontend).Select(_ => _.Name)];
 
     static ArtifactRenderInput Input(string relativePath, string version, string content)
     {
@@ -81,8 +81,9 @@ public sealed class CratisFrontendApplicationScaffold
         return CratisArtifactRenderInput.CreateText(relativePath, version, withSingleTrailingLineFeed);
     }
 
-    static (string Name, string Version)[] Dependencies(CratisFrontendPackageSet frontend) =>
-    [
+    static (string Name, string Version)[] Dependencies(CratisFrontendPackageSet frontend, bool usesPrimeReact) =>
+        [.. new (string Name, string Version)[]
+    {
         ("@cratis/arc", frontend.ArcPackageVersion),
         ("@cratis/arc.react", frontend.ArcReactPackageVersion),
         ("@cratis/components", frontend.ComponentsPackageVersion),
@@ -110,7 +111,14 @@ public sealed class CratisFrontendApplicationScaffold
         ("reflect-metadata", frontend.ReflectMetadataPackageVersion),
         ("rxjs", frontend.RxjsPackageVersion),
         ("tsyringe", frontend.TsyringePackageVersion)
-    ];
+    }.Where(package => usesPrimeReact || !IsPrimeReactPackage(package.Name))];
+
+    static bool IsPrimeReactPackage(string name) =>
+        name.StartsWith("@primereact/", StringComparison.Ordinal) ||
+        name.StartsWith("@primeuix/", StringComparison.Ordinal) ||
+        string.Equals(name, "@cratis/scene.primereact", StringComparison.Ordinal) ||
+        string.Equals(name, "primereact", StringComparison.Ordinal) ||
+        string.Equals(name, "primeicons", StringComparison.Ordinal);
 
     static (string Name, string Version)[] DevDependencies(CratisFrontendPackageSet frontend) =>
     [
@@ -126,7 +134,7 @@ public sealed class CratisFrontendApplicationScaffold
     static string PackageJson(CratisBackendApplicationScaffoldRequest request)
     {
         var frontend = request.Profile.FrontendPackageSet;
-        var dependencies = Dependencies(frontend)
+        var dependencies = Dependencies(frontend, request.UsesPrimeReact)
             .Concat(request.ApprovedPackages.Packages.Select(package => (Name: package.Module.Npm, package.Module.Version)))
             .OrderBy(_ => _.Name, StringComparer.Ordinal);
         return $$"""
@@ -202,9 +210,9 @@ public sealed class CratisFrontendApplicationScaffold
         </html>
         """;
 
-    static string MainModule(bool withApprovedPackages)
+    static string MainModule(bool withApprovedPackages, bool usesPrimeReact)
     {
-        var main = MainModuleSource();
+        var main = MainModuleSource(usesPrimeReact);
         return withApprovedPackages ? ApprovedMainModule(main) : main;
     }
 
@@ -225,7 +233,58 @@ public sealed class CratisFrontendApplicationScaffold
             "<App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />",
             StringComparison.Ordinal);
 
-    static string MainModuleSource() =>
+    static string MainModuleSource(bool usesPrimeReact) => usesPrimeReact ? PrimeReactMainModuleSource() : DefaultMainModuleSource();
+
+    static string DefaultMainModuleSource() =>
+        """
+        import 'reflect-metadata';
+        import './index.css';
+        import React from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Arc } from '@cratis/arc.react';
+        import { CratisComponentsProvider } from '@cratis/components';
+        // The runtime entry: the components, their descriptors and the manifest, without the designers, property
+        // editors and design-time actions a running application never loads.
+        import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
+        import {
+            App,
+            StageSourceProvider,
+            staticStageSource,
+            type StageStaticContent,
+        } from '@cratis/stage.runtime';
+
+        // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
+        // with, the routes its generated proxies registered and its strings, and `@cratis/stage.runtime` is the same
+        // runtime a live Stage renders that Scene with. Editing this file to add a screen would put it outside the
+        // composition the backend was generated from.
+        // A first-run scaffold has no Scene module yet. An eager glob keeps that frontend buildable and loads
+        // the real module, including its bindings and proxy routes, as soon as an application render emits it.
+        const stages = import.meta.glob<StageStaticContent>('../src/stage.ts', { eager: true, import: 'stage' });
+        const stage = stages['../src/stage.ts'] ?? {
+            scene: { layouts: [], screenTemplates: [], screens: [] },
+            routes: { commands: {}, queries: {} },
+            strings: {},
+        };
+        const source = staticStageSource(stage);
+
+        // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
+        const customStyles = import.meta.glob('../Customizations/styles.css');
+        await Object.values(customStyles)[0]?.();
+
+        ReactDOM.createRoot(document.getElementById('root')!).render(
+            <React.StrictMode>
+                <CratisComponentsProvider>
+                    <Arc>
+                        <StageSourceProvider source={source}>
+                            <App components={cratisComponentsRuntimePackage.components} />
+                        </StageSourceProvider>
+                    </Arc>
+                </CratisComponentsProvider>
+            </React.StrictMode>
+        );
+        """;
+
+    static string PrimeReactMainModuleSource() =>
         """
         import 'reflect-metadata';
         import './index.css';
@@ -242,10 +301,11 @@ public sealed class CratisFrontendApplicationScaffold
         import {
             App,
             StageSourceProvider,
+            registerStageLibrary,
             staticStageSource,
-            stageTheme,
             type StageStaticContent,
         } from '@cratis/stage.runtime';
+        import { primeReactLibrary, stageTheme } from '@cratis/stage.runtime/primereact';
 
         // The screens are composed, not written here: `src/stage` holds the Scene this application was rendered
         // with, the routes its generated proxies registered and its strings, and `@cratis/stage.runtime` is the same
@@ -268,6 +328,8 @@ public sealed class CratisFrontendApplicationScaffold
         // A lazy CSS import orders user-owned tokens after the managed styles, before React renders.
         const customStyles = import.meta.glob('../Customizations/styles.css');
         await Object.values(customStyles)[0]?.();
+
+        registerStageLibrary('PrimeReact', primeReactLibrary);
 
         ReactDOM.createRoot(document.getElementById('root')!).render(
             <React.StrictMode>
@@ -372,7 +434,54 @@ public sealed class CratisFrontendApplicationScaffold
         }
         """;
 
-    static string ViteConfig() =>
+    static string ViteConfig(bool usesPrimeReact) => usesPrimeReact ? PrimeReactViteConfig() : DefaultViteConfig();
+
+    static string DefaultViteConfig() =>
+        """
+        import { defineConfig, type PluginOption } from 'vite';
+        import react from '@vitejs/plugin-react';
+        import { fileURLToPath } from 'node:url';
+        import { EmitMetadataPlugin } from '@cratis/arc.vite';
+
+        export default defineConfig({
+            root: fileURLToPath(new URL('./', import.meta.url)),
+            envPrefix: 'STAGE_',
+            optimizeDeps: {
+                exclude: ['tslib'],
+            },
+            build: {
+                outDir: '../wwwroot',
+                modulePreload: false,
+                target: 'esnext',
+                minify: false,
+                cssCodeSplit: false,
+            },
+            plugins: [
+                react(),
+                EmitMetadataPlugin({ tsconfigPath: fileURLToPath(new URL('./tsconfig.json', import.meta.url)) }) as PluginOption,
+            ],
+            server: {
+                port: 9000,
+                open: true,
+                proxy: {
+                    '/.cratis': {
+                        target: 'http://localhost:5000',
+                        ws: true
+                    },
+                    '/api': {
+                        target: 'http://localhost:5000',
+                        ws: true
+                    },
+                    '/swagger': {
+                        target: 'http://localhost:5000',
+                        ws: true
+                    }
+                }
+            }
+        });
+        """;
+
+    static string PrimeReactViteConfig() =>
         """
         import { defineConfig, type PluginOption } from 'vite';
         import react from '@vitejs/plugin-react';

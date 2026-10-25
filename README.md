@@ -334,6 +334,8 @@ at an existing checkout elsewhere:
 CHRONICLE_SOURCE_ROOT=/path/to/Chronicle bash .github/scripts/run-specifications.sh Source/Rendering.Cratis/Rendering.Cratis.csproj --no-build
 ```
 
+Generated applications retain Specifications 4 and xUnit v2: Debug compiles inline specs in the application project and runs them with `dotnet test`; Release excludes their sources and test dependencies. This is separate from Stage's own Specifications 5 / xUnit v3 executable runner.
+
 The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
 each test project (Rendering.Cratis and Conformance.Specs count separately) runs one of those processes at a time,
 locally and in CI, and caps each `dotnet build` or `dotnet test` at three MSBuild nodes. Set

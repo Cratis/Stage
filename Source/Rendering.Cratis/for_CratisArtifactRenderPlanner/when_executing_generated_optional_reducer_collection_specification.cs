@@ -24,7 +24,7 @@ public class when_executing_generated_optional_reducer_collection_specification 
             var build = await Run("optional-reducer-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("optional-reducer-collection-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            test.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }
         finally
         {

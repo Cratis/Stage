@@ -54,7 +54,7 @@ public class when_building_an_authorized_application(when_building_an_authorized
                         var accessor = new CurrentPrincipalAccessor(request);
                         using var scope = accessor.BeginScope(new ClaimsPrincipal(new ClaimsIdentity(
                             [new(ClaimTypes.Role, "Staff"), new("owner", "victim"), new("region", "North")], "fixture")));
-                        var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), "North"), cancellationToken: TestContext.Current.CancellationToken);
+                        var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one"), "North"));
                         _authorized = result.IsAuthorized;
                         _appended = scenario.AppendedEvents.Count;
                     }

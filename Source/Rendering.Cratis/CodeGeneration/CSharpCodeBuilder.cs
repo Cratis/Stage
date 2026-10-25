@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Text;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
@@ -16,6 +17,7 @@ public class CSharpCodeBuilder
 {
     readonly HashSet<string> _usings = new(StringComparer.Ordinal);
     readonly StringBuilder _body = new();
+    readonly List<TextSpan> _authored = [];
     readonly CSharpImports? _imports;
     string? _namespace;
     int _indent;
@@ -27,7 +29,21 @@ public class CSharpCodeBuilder
     {
     }
 
-    internal CSharpCodeBuilder(ImportRequest imports) => _imports = new(imports);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CSharpCodeBuilder"/> class that spells the fully qualified types it
+    /// is given by their short names wherever that provably binds the same, and decides the file's using directives.
+    /// </summary>
+    /// <param name="project">The project the file compiles into.</param>
+    /// <param name="generated">The complete renderer-owned declaration inventory.</param>
+    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated)
+    {
+        if (!QualifiedSpelling.IsActive) _imports = new(project, generated);
+    }
+
+    internal CSharpCodeBuilder(ImportRequest imports)
+        : this(imports.Project, imports.GeneratedTypes)
+    {
+    }
 
     internal IReadOnlyCollection<string> UsingNamespaces => _usings;
 
@@ -180,6 +196,21 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder Raw(string text)
     {
+        var start = _body.Length;
+        Fragment(text);
+        _authored.Add(TextSpan.FromBounds(start, _body.Length));
+        return this;
+    }
+
+    /// <summary>
+    /// Embeds generated, multiline source text, indenting every line to the current block level while preserving each
+    /// line's own relative indentation. Unlike <see cref="Raw"/>, the text is the renderer's own, so its types are
+    /// spelled like every other generated line.
+    /// </summary>
+    /// <param name="text">The generated source text to embed.</param>
+    /// <returns>The builder, for chaining.</returns>
+    public CSharpCodeBuilder Fragment(string text)
+    {
         foreach (var line in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
             Line(line);
@@ -195,6 +226,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder RawVerbatim(string text)
     {
+        _authored.Add(new(_body.Length, text.Length));
         _body.Append(text);
         if (!text.EndsWith('\n'))
         {
@@ -238,47 +270,47 @@ public class CSharpCodeBuilder
     }
 
     /// <inheritdoc/>
-    public override string ToString()
+    public override string ToString() => ToString(body => body);
+
+    /// <summary>
+    /// Builds the source text, letting the caller finish the generated body before its types are spelled, such as by
+    /// replacing placeholder tokens with the expressions they stand for.
+    /// </summary>
+    /// <param name="finish">Finishes the generated body.</param>
+    /// <returns>The source text.</returns>
+    public string ToString(Func<string, string> finish)
     {
-        var body = _body.ToString();
-        IEnumerable<string> innerUsings = [];
-        IEnumerable<string> topUsings = _usings;
-        if (_imports is not null)
+        var original = _body.ToString();
+        var body = finish(original);
+        var unit = new StringBuilder();
+        if (_namespace is not null)
         {
-            var resolved = _imports.Resolve(body, _usings, _namespace);
-            body = resolved.Body;
-            innerUsings = resolved.Resolution.Usings;
-            topUsings = resolved.Resolution.TopLevelUsings;
+            unit.AppendLine($"namespace {_namespace};").AppendLine();
         }
 
-        var result = new StringBuilder()
-            .AppendLine("// Copyright (c) Cratis. All rights reserved.")
-            .AppendLine("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
-            .AppendLine();
+        var offset = unit.Length;
+        unit.Append(body);
+        if (_imports is not null)
+        {
+            // A finished body can move authored text, whose spans are then no longer known: such a file keeps every name qualified.
+            if (!string.Equals(body, original, StringComparison.Ordinal) && _authored.Count > 0) _imports.Unknown();
 
-        foreach (var @using in topUsings.Order(StringComparer.Ordinal))
+            // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
+            return _imports.Rewrite(unit.ToString(), [.. _authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
+        }
+
+        var result = new StringBuilder();
+        foreach (var @using in _usings.Order(StringComparer.Ordinal))
         {
             result.AppendLine($"using {@using};");
         }
 
-        if (_usings.Count > 0)
+        if (result.Length > 0)
         {
             result.AppendLine();
         }
 
-        if (_namespace is not null)
-        {
-            result.AppendLine($"namespace {_namespace};").AppendLine();
-        }
-
-        foreach (var @using in innerUsings)
-        {
-            result.AppendLine($"using global::{@using};");
-        }
-
-        if (innerUsings.Any()) result.AppendLine();
-        result.Append(body);
-        return result.ToString();
+        return result.Append(unit).ToString();
     }
 
     internal static string NormalizeDocumentation(string text) => string.Join(
@@ -287,7 +319,7 @@ public class CSharpCodeBuilder
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
-    internal string Type(TypeReference reference) => _imports?.Type(reference) ?? reference.Qualified;
+    internal string Type(TypeReference reference) => reference.Qualified;
 
     internal void Scope(IEnumerable<string> types, IEnumerable<string> values) => _imports?.Scope(types, values);
     internal void Pin(params string[] names) => _imports?.Pin(names);

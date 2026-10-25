@@ -13,13 +13,13 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-// These facts change the carrier type and reset the publication history.
 [PerFactSpecificationLifecycle]
 public class when_publishing_translated_events : given.a_translation_application
 {
     const string First = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
     const string Second = "4fa85f64-5717-4562-b3fc-2c963f66afa7";
     readonly List<AppendedEvent> _published = [];
+    bool _refuse;
     readonly IEventStore _store = Substitute.For<IEventStore>();
     readonly IEventSequence _outbox = Substitute.For<IEventSequence>();
 
@@ -32,6 +32,7 @@ public class when_publishing_translated_events : given.a_translation_application
             Task.FromResult<IImmutableList<AppendedEvent>>([.. _published.Where(fact => fact.Context.EventSourceId == call.Arg<EventSourceId>())]));
         _outbox.Append(Arg.Any<EventSourceId>(), Arg.Any<object>()).Returns(call =>
         {
+            if (_refuse) return Task.FromResult(new AppendResult { Errors = [new AppendError("Refused")] });
             _published.Add(new(EventContext.EmptyWithEventSourceId(call.Arg<EventSourceId>()) with { SequenceNumber = new((ulong)_published.Count) }, call.Arg<object>()));
             return Task.FromResult(new AppendResult());
         });
@@ -55,13 +56,8 @@ public class when_publishing_translated_events : given.a_translation_application
     [Fact]
     public async Task should_propagate_an_outbox_refusal()
     {
-        var store = Substitute.For<IEventStore>();
-        var outbox = Substitute.For<IEventSequence>();
-        store.GetEventSequence(EventSequenceId.Outbox).Returns(outbox);
-        store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
-        outbox.GetForEventSourceIdAndEventTypes(Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(Task.FromResult<IImmutableList<AppendedEvent>>([]));
-        outbox.Append(Arg.Any<EventSourceId>(), Arg.Any<object>()).Returns(Task.FromResult(new AppendResult { Errors = [new AppendError("Refused")] }));
-        var exception = await Assert.ThrowsAnyAsync<Exception>(() => Publish(First, "Other", store));
+        _refuse = true;
+        var exception = await Assert.ThrowsAnyAsync<Exception>(() => Publish(First, "Other"));
         exception.GetType().Name.ShouldEqual("PublicationAppendFailed");
         exception.Message.ShouldEqual("The public event could not be appended to the outbox.");
     }
@@ -102,10 +98,10 @@ public class when_publishing_translated_events : given.a_translation_application
         _published.Clear();
     }
 
-    async Task Publish(string key, object carrier, IEventStore? store = null)
+    async Task Publish(string key, object carrier)
     {
         var type = Generated("PublishOrderShipped", "OrderShippedPublisher");
-        var reactor = Activator.CreateInstance(type, store ?? _store)!;
+        var reactor = Activator.CreateInstance(type, _store)!;
         var source = Activator.CreateInstance(Generated("PackOrder", "OrderPacked"), carrier)!;
         await (Task)type.GetMethod("OnOrderPacked")!.Invoke(reactor, [source, EventContext.EmptyWithEventSourceId(key)])!;
     }

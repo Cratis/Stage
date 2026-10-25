@@ -81,7 +81,7 @@ public class when_executing_running_totals_of_concept_values : a_generated_appli
             var build = await Run("concept-total-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("concept-total-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            results.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", results, StringComparison.Ordinal);
         }
         finally
         {

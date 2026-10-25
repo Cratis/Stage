@@ -36,10 +36,10 @@ public class when_compiling_generated_members
         var source = $"public record Sample(string {generated});";
         var compilation = CSharpCompilation.Create(
             "Probe",
-            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            [CSharpSyntaxTree.ParseText(source)],
             References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        var errors = compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         var admitted = GeneratedPascalCase.EventMembersAreUnique("Sample", [member]);
         Assert.True(admitted == (errors.Length == 0), $"{member}: admitted={admitted}; {string.Join("; ", errors.Select(error => error.ToString()))}");
     }
@@ -62,10 +62,10 @@ public class when_compiling_generated_members
         var source = $"public record Sample(string Id) {{ public static string {generated}(string id) => id; }}";
         var compilation = CSharpCompilation.Create(
             "Probe",
-            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            [CSharpSyntaxTree.ParseText(source)],
             References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-        var errors = compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
+        var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         var admitted = GeneratedPascalCase.ReadModelMembersAreUnique("Sample", ["Id"], [query]);
         Assert.True(admitted == (errors.Length == 0), $"{query}: admitted={admitted}; {string.Join("; ", errors.Select(error => error.ToString()))}");
     }

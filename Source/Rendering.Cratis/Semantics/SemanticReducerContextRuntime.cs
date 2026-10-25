@@ -10,7 +10,7 @@ internal static class SemanticReducerContextRuntime
 {
     internal static RenderedFile Render(SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts")
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts")
             .OpenBlock("public record TenantId(string Value)")
             .Line("public static readonly TenantId Default = new(\"00000000-0000-0000-0000-000000000000\");")
             .Line("public static readonly TenantId NotSet = new(string.Empty);")

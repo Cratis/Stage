@@ -29,7 +29,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var generated = new SemanticGeneratedCommandSpecification(specification, command, types, context);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace(ownNamespace)
             .Using("Cratis.Arc.Commands")
             .Using("Cratis.Arc.Testing.Commands")
@@ -56,16 +56,15 @@ internal static partial class SemanticCommandSpecificationRenderer
             SemanticReactionSpecificationRenderer.RenderDispose(builder);
         }
         builder.EndBlock();
-        var subject = Identifiers.ToPascalCase(reaction?.Selection.Reaction.Name ?? command.Name);
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{subject}", $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
         // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting
         // it regardless leaves a using nobody uses in every generated specification.
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(path, content);

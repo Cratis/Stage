@@ -92,7 +92,7 @@ public class when_verifying_reducer_filters_against_mongo : a_generated_applicat
             var build = await Run("reducer-filters-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var test = await Run("reducer-filters-probe.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~FilterProbe.should_apply_only_matching_routes", "--nologo");
-            test.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }
         finally
         {

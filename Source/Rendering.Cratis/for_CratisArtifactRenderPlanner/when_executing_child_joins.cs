@@ -120,7 +120,7 @@ public class when_executing_child_joins : a_generated_application
             var build = await Run("child-join-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("child-join-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            results.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", results, StringComparison.Ordinal);
         }
         finally
         {

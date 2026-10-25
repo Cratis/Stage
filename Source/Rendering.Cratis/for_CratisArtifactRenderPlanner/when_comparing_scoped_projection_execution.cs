@@ -82,7 +82,7 @@ public class when_comparing_scoped_projection_execution : a_generated_applicatio
         _testOutput = await Run("differential-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldHavePassedSpecifications();
+    [Fact] void should_match_all_reference_snapshots() => _testOutput.ShouldContain("Passed!");
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
     [Fact] void should_materialize_an_unrelated_source_in_the_reference() => _allExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { projectId = First, lastSeen = First }, new { projectId = Second, lastSeen = Second } }));
 

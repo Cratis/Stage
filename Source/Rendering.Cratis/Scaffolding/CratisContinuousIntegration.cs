@@ -58,9 +58,10 @@ static class CratisContinuousIntegration
                   - name: Build Debug
                     run: dotnet build {{{project}}}.slnx -c Debug --no-restore
                   - name: Run specifications
-                    run: dotnet run --project {{{project}}}.csproj -c Debug --no-build -- --specifications
+                    run: dotnet test {{{project}}}.csproj -c Debug --no-build
+                  # Release references no test packages, so it restores its own package set.
                   - name: Build Release
-                    run: dotnet build {{{project}}}.slnx -c Release --no-restore
+                    run: dotnet build {{{project}}}.slnx -c Release
 
               frontend:
                 name: Frontend build

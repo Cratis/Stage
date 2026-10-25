@@ -30,7 +30,7 @@ public class when_executing_an_authored_clock : a_generated_application
                 using var scenario = new CommandScenario<IssueInvoice>();
                 var instant = new DateTimeOffset(2027, 3, 4, 10, 0, 0, 123, TimeSpan.Zero);
                 scenario.Clock(instant);
-                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one")), cancellationToken: TestContext.Current.CancellationToken);
+                var result = await scenario.Execute(new IssueInvoice(new InvoiceId("invoice-one")));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 Assert.Equal(instant, Assert.IsType<InvoiceIssued>(stored.Content).IssuedAt);
@@ -55,7 +55,7 @@ public class when_executing_an_authored_clock : a_generated_application
     [Fact] void should_execute_the_fixed_occurrence_and_metadata_assertions()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
-        _tests.ShouldHavePassedSpecifications();
+        _tests.ShouldContain("Passed!");
     }
 }
 #endif

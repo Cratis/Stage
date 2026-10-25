@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 
-public partial class when_creating_for_a_repository_root : a_current_scaffold
+public class when_creating_for_a_repository_root : a_current_scaffold
 {
     ImmutableArray<ArtifactRenderInput> _root;
     ImmutableArray<ArtifactRenderInput> _rootAgain;
@@ -38,16 +38,16 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
     [Fact] void should_use_line_feeds_only() => _root.All(input => !input.Bytes.Contains((byte)'\r')).ShouldBeTrue();
     [Fact] void should_end_the_workflow_with_exactly_one_line_feed() => (_workflow.EndsWith('\n') && !_workflow.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_bytes() => _rootAgain.Zip(_root).All(pair => pair.First.Name == pair.Second.Name && pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
-    [Fact] void should_pin_every_action_to_a_full_commit_hash_with_a_release_comment() => WorkflowUses.Matches(_workflow).All(match => ActionReference.IsMatch(match.Groups["action"].Value) && ReleaseComment.IsMatch(match.Groups["release"].Value)).ShouldBeTrue();
-    [Fact] void should_use_an_action_in_every_job() => Uses.Count(_workflow).ShouldEqual(5);
-    [Fact] void should_limit_every_job_with_a_timeout() => Timeout.Count(_workflow).ShouldEqual(2);
+    [Fact] void should_pin_every_action_to_a_full_commit_hash_with_a_release_comment() => Regex.Matches(_workflow, @"uses: (\S+)(.*)").All(match => Regex.IsMatch(match.Groups[1].Value, "^[a-z-]+/[a-z-]+@[0-9a-f]{40}$") && Regex.IsMatch(match.Groups[2].Value, @"^ # v\d+\.\d+\.\d+$")).ShouldBeTrue();
+    [Fact] void should_use_an_action_in_every_job() => Regex.Matches(_workflow, "uses:").Count.ShouldEqual(5);
+    [Fact] void should_limit_every_job_with_a_timeout() => Regex.Matches(_workflow, "timeout-minutes: 30").Count.ShouldEqual(2);
     [Fact] void should_grant_read_only_contents_permission() => _workflow.ShouldContain("permissions:\n  contents: read\n");
     [Fact] void should_cancel_superseded_runs() => _workflow.ShouldContain("group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true");
     [Fact] void should_run_on_main_pushes_pull_requests_and_manual_dispatch() => _workflow.ShouldContain("on:\n  push:\n    branches: [main]\n  pull_request:\n  workflow_dispatch:\n");
     [Fact] void should_not_run_on_a_schedule() => _workflow.ShouldNotContain("schedule");
     [Fact] void should_not_use_secrets() => _workflow.ShouldNotContain("secrets.");
-    [Fact] void should_build_the_solution_for_debug_and_release() => (_workflow.Contains("dotnet build MyApp.slnx -c Debug --no-restore") && _workflow.Contains("dotnet build MyApp.slnx -c Release --no-restore")).ShouldBeTrue();
-    [Fact] void should_run_inline_specifications_without_rebuilding() => _workflow.ShouldContain("dotnet run --project MyApp.csproj -c Debug --no-build -- --specifications");
+    [Fact] void should_build_the_solution_for_debug_and_release() => (_workflow.Contains("dotnet build MyApp.slnx -c Debug --no-restore") && _workflow.Contains("dotnet build MyApp.slnx -c Release\n")).ShouldBeTrue();
+    [Fact] void should_run_the_specifications_from_the_application_without_rebuilding() => _workflow.ShouldContain("dotnet test MyApp.csproj -c Debug --no-build");
     [Fact] void should_derive_the_sdk_version_from_the_target_framework() => _workflow.ShouldContain("dotnet-version: 10.0.x");
     [Fact] void should_generate_the_proxies_before_building_the_frontend() => _workflow.IndexOf("dotnet build MyApp.csproj", StringComparison.Ordinal).ShouldBeLessThan(_workflow.IndexOf("npm run build", StringComparison.Ordinal));
     [Fact] void should_install_the_frontend_with_npm() => _workflow.ShouldContain("npm install --no-audit --no-fund");
@@ -56,19 +56,4 @@ public partial class when_creating_for_a_repository_root : a_current_scaffold
     [Fact] void should_not_name_yarn_in_the_readme() => _readme.ShouldNotContain("yarn");
 
     ArtifactRenderInput Input(string path) => _root.Single(input => PathOf(input) == path);
-
-    [GeneratedRegex(@"uses: (?<action>\S+)(?<release>.*)", RegexOptions.ExplicitCapture, 1000)]
-    private static partial Regex WorkflowUses { get; }
-
-    [GeneratedRegex("^[a-z-]+/[a-z-]+@[0-9a-f]{40}$", RegexOptions.None, 1000)]
-    private static partial Regex ActionReference { get; }
-
-    [GeneratedRegex(@"^ # v\d+\.\d+\.\d+$", RegexOptions.None, 1000)]
-    private static partial Regex ReleaseComment { get; }
-
-    [GeneratedRegex("uses:", RegexOptions.None, 1000)]
-    private static partial Regex Uses { get; }
-
-    [GeneratedRegex("timeout-minutes: 30", RegexOptions.None, 1000)]
-    private static partial Regex Timeout { get; }
 }

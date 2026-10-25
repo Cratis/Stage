@@ -22,7 +22,7 @@ internal static class SemanticCaptureArtifactRenderer
         var plan = context.CaptureMembers(capture);
         var name = plan.TypeName;
         var sources = capture.EventsSource!.Events.Select(id => context.Events[id]).ToArray();
-        var builder = new CSharpCodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(capture.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(sources[0].Origin!)})")
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(capture.Id.ToString())})")

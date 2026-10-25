@@ -86,11 +86,6 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public string CratisPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c language="csharp">Cratis.Fundamentals</c> backend package version.
-    /// </summary>
-    public string CratisFundamentalsPackageVersion => ScaffoldPackageVersions.Fundamentals;
-
-    /// <summary>
     /// Gets the exact <c language="csharp">Cratis.Arc.MongoDB</c> package version.
     /// </summary>
     public string CratisArcMongoDBPackageVersion { get; }
@@ -111,11 +106,6 @@ public sealed class CratisBackendApplicationScaffoldProfile
     public string CratisSpecificationsXUnitPackageVersion { get; }
 
     /// <summary>
-    /// Gets the exact <c language="csharp">Cratis.Specifications.XUnit.v3</c> package version.
-    /// </summary>
-    public string CratisSpecificationsXUnitV3PackageVersion => ScaffoldPackageVersions.SpecificationsXUnitV3;
-
-    /// <summary>
     /// Gets the exact <c language="csharp">Microsoft.NET.Test.Sdk</c> package version.
     /// </summary>
     public string MicrosoftNetTestSdkPackageVersion { get; }
@@ -129,11 +119,6 @@ public sealed class CratisBackendApplicationScaffoldProfile
     /// Gets the exact <c language="csharp">xunit</c> package version.
     /// </summary>
     public string XunitPackageVersion { get; }
-
-    /// <summary>
-    /// Gets the exact <c language="csharp">xunit.v3</c> package version.
-    /// </summary>
-    public string XunitV3PackageVersion => ScaffoldPackageVersions.XunitV3;
 
     /// <summary>
     /// Gets the exact <c language="csharp">xunit.runner.visualstudio</c> package version.

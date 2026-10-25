@@ -14,7 +14,7 @@ public class with_a_then_route : Specification
     void Because() => _plan = routed_specifications.Plan(routed_specifications.Compile());
     [Fact] void should_admit_routed_specifications() => _plan.Success.ShouldBeTrue();
     [Fact] void should_assert_the_stored_source() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventSourceType == \"stored-account\"");
-    [Fact] void should_assert_the_stored_stream() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventStreamType == global::Routed.EventSources.AccountEventSource.Transactions");
+    [Fact] void should_assert_the_stored_stream() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventStreamType == AccountEventSource.Transactions");
     [Fact] void should_assert_the_stream_identity() => routed_specifications.Code(_plan).ShouldContain("Event.Context.EventStreamId == \"2026-10\"");
     [Fact] void should_not_register_event_sources_by_hand() => routed_specifications.Code(_plan).Contains("IEventSources", StringComparison.Ordinal).ShouldBeFalse();
 }

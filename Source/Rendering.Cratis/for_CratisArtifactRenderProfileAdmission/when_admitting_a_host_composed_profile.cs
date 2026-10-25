@@ -30,8 +30,8 @@ public class when_admitting_a_host_composed_profile : Specification
     [Fact] void should_admit_the_prime_profile() => CratisArtifactRenderProfileAdmission.MatchesScaffold(_prime, "App", out _, out _).ShouldBeTrue();
     [Fact] void should_refuse_a_prime_scene_over_the_default_scaffold() => CratisArtifactRenderProfileAdmission.MatchesScaffold(_mismatched, "App", out _, out _).ShouldBeFalse();
     [Fact] void should_emit_the_prime_scaffold_when_chosen() => Vite(_library).ShouldNotEqual(Vite(_aria));
-    [Fact] void should_emit_the_prime_main_module_when_chosen() => MainModule(_library).ShouldContain("PrimeReactProvider");
-    [Fact] void should_emit_the_default_main_module_when_not_chosen() => MainModule(_aria).ShouldNotContain("PrimeReactProvider");
+    [Fact] void should_emit_the_prime_main_module_when_chosen() => Main(_library).ShouldContain("PrimeReactProvider");
+    [Fact] void should_emit_the_default_main_module_when_not_chosen() => Main(_aria).ShouldNotContain("PrimeReactProvider");
     [Fact] void should_match_the_scene_derived_scaffold_for_prime() => Vite(_library).ShouldEqual(Vite(CratisRendering.CreateProfile("App", new("App", "App"), SceneWith(["PrimeReact"]))));
     [Fact] void should_match_the_scene_derived_scaffold_for_default() => Vite(_aria).ShouldEqual(Vite(CratisRendering.CreateProfile("App", new("App", "App"), SceneWith([]))));
 
@@ -53,5 +53,5 @@ public class when_admitting_a_host_composed_profile : Specification
 
     static string Vite(ArtifactRenderProfile profile) => Text(profile, ".frontend/vite.config.ts");
 
-    static string MainModule(ArtifactRenderProfile profile) => Text(profile, ".frontend/main.tsx");
+    static string Main(ArtifactRenderProfile profile) => Text(profile, ".frontend/main.tsx");
 }

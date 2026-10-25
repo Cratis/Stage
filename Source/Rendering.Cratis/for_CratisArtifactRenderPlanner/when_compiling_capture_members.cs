@@ -60,10 +60,10 @@ public class when_compiling_capture_members : given.a_translation_application
     [InlineData("E\u0301", "E\u0301")]
     public void should_match_compiler_symbol_identity_without_case_or_unicode_normalization(string spelling, string identity)
     {
-        var tree = CSharpSyntaxTree.ParseText($"class {spelling} {{ }}", cancellationToken: TestContext.Current.CancellationToken);
+        var tree = CSharpSyntaxTree.ParseText($"class {spelling} {{ }}");
         var compilation = CSharpCompilation.Create("Identifier", [tree], [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)], new(OutputKind.DynamicallyLinkedLibrary));
-        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
-        var symbol = compilation.GetSemanticModel(tree).GetDeclaredSymbol(tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<ClassDeclarationSyntax>().Single(), TestContext.Current.CancellationToken);
+        Assert.Empty(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+        var symbol = compilation.GetSemanticModel(tree).GetDeclaredSymbol(tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single());
         Assert.Equal(identity, symbol!.Name);
         Assert.True(SemanticCaptureIdentifier.TryDecode(spelling, out var decoded));
         Assert.Equal(symbol.Name, decoded);

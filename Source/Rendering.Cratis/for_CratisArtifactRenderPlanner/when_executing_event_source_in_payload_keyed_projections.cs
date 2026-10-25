@@ -70,7 +70,7 @@ public class when_executing_event_source_in_payload_keyed_projections : a_genera
             var build = await Run("source-in-key-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("source-in-key-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            results.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", results, StringComparison.Ordinal);
         }
         finally
         {

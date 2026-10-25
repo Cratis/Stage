@@ -69,7 +69,7 @@ public class when_generating_command_response_proxies(when_generating_command_re
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application, artifact.RelativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

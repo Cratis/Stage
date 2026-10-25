@@ -115,11 +115,13 @@ public class when_executing_generated_reducer_event_collection_specifications : 
             var build = await Run("reducer-event-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var passing = await Run("reducer-event-collection-passing.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~when_good_", "--nologo");
-            passing.ShouldHavePassedSpecifications(12);
+            Assert.Contains("Passed!", passing, StringComparison.Ordinal);
+            Assert.Contains("Passed:    12", passing, StringComparison.Ordinal);
             foreach (var name in new[] { "wrong_ordered", "wrong_unordered" })
             {
                 var failing = await Run($"reducer-event-collection-{name}.log", true, "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~when_{name}", "--nologo");
-                failing.ShouldHaveFailedSpecifications(1);
+                Assert.Contains("Failed!", failing, StringComparison.Ordinal);
+                Assert.Contains("Failed:     1", failing, StringComparison.Ordinal);
                 Assert.Contains(name == "wrong_ordered" ? "should_have_appended_order_placed_at_position_1" : "should_append_the_expected_event_multiset", failing, StringComparison.Ordinal);
             }
         }

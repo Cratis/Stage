@@ -43,7 +43,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
     [Theory]
     [InlineData(SemanticPrimitiveType.Text, "@event.OrderId")]
     [InlineData(SemanticPrimitiveType.Uuid, "@event.OrderId")]
-    [InlineData(SemanticPrimitiveType.WholeNumber, "new global::Cratis.Chronicle.Events.EventSourceId((@event.OrderId).ToString())")]
+    [InlineData(SemanticPrimitiveType.WholeNumber, "new EventSourceId((@event.OrderId).ToString())")]
     public void should_compile_supported_primitive_identities(SemanticPrimitiveType primitive, string expression)
     {
         var key = SemanticTypeReference.ForPrimitive(primitive);
@@ -61,7 +61,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
         var slice = SemanticVersionFeatures.Slices(_model.Application).Single();
         var capture = slice.Captures.Single();
         capture = capture with { Appends = [capture.Appends.Single() with { EventSourceType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) }] };
-        SemanticCaptureIdentitySupport.Check(capture, _model, slice.Events.ToDictionary(contract => contract.Id)).ShouldContain("will not coerce");
+        SemanticCaptureIdentitySupport.Check(capture, _model, slice.Events.ToDictionary(contract => contract.Id))!.ShouldContain("will not coerce");
     }
 
     [Theory]
@@ -88,7 +88,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
         {
             Properties = [.. contract.Properties.Select(property => property with { Type = key })]
         }).ToDictionary(contract => contract.Id);
-        SemanticCaptureIdentitySupport.Check(capture, _model, events).ShouldContain("one required scalar");
+        SemanticCaptureIdentitySupport.Check(capture, _model, events)!.ShouldContain("one required scalar");
     }
 
     void SetTypes(SemanticTypeReference key, SemanticTypeReference destination)

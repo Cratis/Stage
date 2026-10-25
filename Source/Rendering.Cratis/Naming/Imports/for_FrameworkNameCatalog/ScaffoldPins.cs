@@ -23,15 +23,16 @@ static class ScaffoldPins
             ["TargetFramework"] = profile.TargetFramework,
             ["TargetingPackVersion"] = CatalogScaffold.ReferencePackVersion,
             ["Cratis"] = profile.CratisPackageVersion,
-            ["Cratis.Fundamentals"] = profile.CratisFundamentalsPackageVersion,
             ["Cratis.Arc.Chronicle.Testing"] = profile.CratisArcChronicleTestingPackageVersion,
             ["Cratis.Arc.MongoDB"] = profile.CratisArcMongoDBPackageVersion,
             ["Cratis.Chronicle"] = profile.CratisChroniclePackageVersion,
             ["Cratis.Chronicle.AspNetCore"] = profile.CratisChroniclePackageVersion,
             ["Cratis.Chronicle.Testing"] = profile.CratisChroniclePackageVersion,
             ["Cratis.Specifications"] = profile.CratisSpecificationsPackageVersion,
-            ["Cratis.Specifications.XUnit.v3"] = profile.CratisSpecificationsXUnitV3PackageVersion,
+            ["Cratis.Specifications.XUnit"] = profile.CratisSpecificationsXUnitPackageVersion,
+            ["Microsoft.NET.Test.Sdk"] = profile.MicrosoftNetTestSdkPackageVersion,
             ["NSubstitute"] = profile.NSubstitutePackageVersion,
-            ["xunit.v3"] = profile.XunitV3PackageVersion
+            ["xunit"] = profile.XunitPackageVersion,
+            ["xunit.runner.visualstudio"] = profile.XunitRunnerVisualStudioPackageVersion
         }.ToImmutableSortedDictionary(StringComparer.Ordinal);
 }

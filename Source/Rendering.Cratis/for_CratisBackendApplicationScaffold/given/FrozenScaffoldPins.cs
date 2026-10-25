@@ -24,16 +24,17 @@ internal static class FrozenScaffoldPins
             (string Id, string Current, string Baseline)[] pins =
             [
                 ("Cratis", profile.CratisPackageVersion, previous ? "22.87.0" : TargetVersion),
-                ("Cratis.Fundamentals", profile.CratisFundamentalsPackageVersion, "7.25.1"),
                 ("Cratis.Arc.MongoDB", profile.CratisArcMongoDBPackageVersion, previous ? "22.87.0" : TargetVersion),
                 ("Cratis.Arc.Chronicle.Testing", profile.CratisArcChronicleTestingPackageVersion, previous ? "22.87.0" : TargetVersion),
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
-                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "5.0.0"),
-                ("Cratis.Specifications.XUnit.v3", profile.CratisSpecificationsXUnitV3PackageVersion, "5.0.0"),
+                ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
+                ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
+                ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
                 ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
-                ("xunit.v3", profile.XunitV3PackageVersion, "3.2.2")
+                ("xunit", profile.XunitPackageVersion, "2.9.3"),
+                ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
             ];
             foreach (var pin in pins)
             {

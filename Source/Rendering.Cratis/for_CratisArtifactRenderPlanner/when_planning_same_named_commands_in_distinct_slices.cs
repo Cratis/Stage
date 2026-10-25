@@ -45,7 +45,7 @@ public class when_planning_same_named_commands_in_distinct_slices : a_register_p
         var execution = SemanticExecutionPlan.Compile(_model);
         execution.Success.ShouldBeTrue();
         execution.Plan.ShouldNotBeNull();
-        _executionPlan = execution.Plan;
+        _executionPlan = execution.Plan!;
 
         var feature = _model.Application.Modules.Single().Features.Single();
         var originalSlice = feature.Slices.Single(_ => _.Name == "RegisterProject");
@@ -77,8 +77,8 @@ public class when_planning_same_named_commands_in_distinct_slices : a_register_p
     [Fact] void should_render_the_additional_slice() => _plan.Artifacts.Any(_ => _.RelativePath == AdditionalPath).ShouldBeTrue();
     [Fact] void should_keep_the_original_slice_namespace() => Content(OriginalPath).ShouldContain("namespace Projects.Projects.Registration.RegisterProject;");
     [Fact] void should_use_a_distinct_namespace_for_the_additional_slice() => Content(AdditionalPath).ShouldContain("namespace Projects.Projects.Registration.RegisterAgain;");
-    [Fact] void should_render_the_same_command_name_in_the_original_slice() => Content(OriginalPath).ShouldContain("public record RegisterProject(global::Projects.Common.ProjectId ProjectId, global::Projects.Common.ProjectName Name)");
-    [Fact] void should_render_the_same_command_name_in_the_additional_slice() => Content(AdditionalPath).ShouldContain("public record RegisterProject(global::Projects.Common.ProjectId ProjectId, global::Projects.Common.ProjectName Name)");
+    [Fact] void should_render_the_same_command_name_in_the_original_slice() => Content(OriginalPath).ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name)");
+    [Fact] void should_render_the_same_command_name_in_the_additional_slice() => Content(AdditionalPath).ShouldContain("public record RegisterProject(ProjectId ProjectId, ProjectName Name)");
     [Fact] void should_produce_nonempty_generated_sources() => _sources.ShouldNotBeEmpty();
     [Fact] void should_compile_the_generated_backend_and_specifications() => string.Join(Environment.NewLine, RenderedOutput.Errors(_sources)).ShouldEqual(string.Empty);
 

@@ -52,7 +52,7 @@ public class when_executing_generated_primitive_reducer_specification : a_genera
             var build = await Run("primitive-reducer-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "-p:NoWarn=CS7022", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("primitive-reducer-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            test.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }
         finally
         {

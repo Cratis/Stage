@@ -53,6 +53,8 @@ public sealed record ReducerMigrationEvidence
 
     /// <summary>
     /// Gets the read model type the reducer implements the classic reducer interface for, without a global alias qualifier.
+    /// A type the file writes by its short name is recorded as the full names it can bind to, separated by a vertical bar: the
+    /// file's own namespace first, then each namespace the file imports.
     /// </summary>
     public string ReadModelType { get; internal init; }
 
@@ -95,7 +97,20 @@ public sealed record ReducerMigrationEvidence
         }
 
         var (observerId, refusal) = ObserverIdOf(declaration, artifact.RelativePath);
-        return new(readModel, artifact.RelativePath, artifact.Sha256, observerId, target!, refusal);
+        var readModelType = target!.Contains('.', StringComparison.Ordinal) ? target : string.Join('|', ShortNameCandidates(root, declaration, target).Distinct(StringComparer.Ordinal));
+        return new(readModel, artifact.RelativePath, artifact.Sha256, observerId, readModelType, refusal);
+    }
+
+    // A short name binds first in the file's namespace and then through its imports.
+    static IEnumerable<string> ShortNameCandidates(CompilationUnitSyntax root, ClassDeclarationSyntax declaration, string name)
+    {
+        var @namespace = string.Join('.', declaration.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(space => space.Name.ToString()));
+        yield return @namespace.Length == 0 ? name : $"{@namespace}.{name}";
+        foreach (var import in root.Usings.Concat(declaration.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().SelectMany(space => space.Usings))
+            .Where(directive => directive.Alias is null && directive.StaticKeyword.IsKind(SyntaxKind.None) && directive.Name is not null))
+        {
+            yield return $"{Unqualified(import.Name!.ToString())}.{name}";
+        }
     }
 
     static string? ReducerTarget(ClassDeclarationSyntax declaration) =>

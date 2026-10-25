@@ -64,9 +64,9 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
                 WebApplication? app = null;
                 try
                 {
-                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120));
                     if (startup == running) await running;
-                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120));
                     using var scope = app.Services.CreateScope();
                     var store = scope.ServiceProvider.GetRequiredService<IEventStore>();
                     var registration = await store.WaitForRegistration(TimeSpan.FromSeconds(90));
@@ -184,8 +184,8 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
                     app ??= Program.ProbeApplication;
                     if (app is not null)
                     {
-                        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-                        await running.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(30));
+                        await running.WaitAsync(TimeSpan.FromSeconds(30));
                         await app.DisposeAsync();
                     }
                 }
@@ -272,7 +272,7 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
             var build = await Run("reactions-build.log", "build", "Reactions.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var output = await Run("reactions-probe.log", "test", "Reactions.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~ReactionProbe.should_settle_event_reactions", "--nologo");
-            output.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", output, StringComparison.Ordinal);
         }
         finally
         {

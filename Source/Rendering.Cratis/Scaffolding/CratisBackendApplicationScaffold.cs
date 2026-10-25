@@ -61,17 +61,7 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string Program(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Cratis.Arc.MongoDB;
-
-        #if DEBUG
-        if (args.Length > 0 && args[0] == "--specifications")
-        {
-            return await Xunit.Runner.InProc.SystemConsole.ConsoleRunner.Run(args[1..]);
-        }
-        #endif
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
@@ -90,7 +80,6 @@ public sealed partial class CratisBackendApplicationScaffold
         ConfigureApplication(app);
 
         await app.RunAsync();
-        return 0;
 
         // Optional partial methods disappear when Customizations/Program.cs supplies no implementation.
         public partial class Program
@@ -102,9 +91,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string PolicyRegistration(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Microsoft.Extensions.DependencyInjection;
 
         namespace {{request.RootNamespace}}.GeneratedPolicies;

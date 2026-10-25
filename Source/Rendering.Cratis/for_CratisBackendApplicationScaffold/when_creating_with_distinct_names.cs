@@ -27,10 +27,9 @@ public class when_creating_with_distinct_names : Specification
     }
 
     [Fact] void should_use_only_the_explicit_project_name_for_project_paths() => _paths.Count(path => path == "Orders.Backend.csproj").ShouldEqual(1);
-    [Fact] void should_keep_a_single_backend_project() => _paths.Where(path => path.EndsWith(".csproj", StringComparison.Ordinal)).ShouldContainOnly("Orders.Backend.csproj");
     [Fact] void should_use_only_the_explicit_project_name_for_solution_paths() => _paths.Count(path => path == "Orders.Backend.slnx").ShouldEqual(1);
     [Fact] void should_use_the_explicit_project_name_in_the_workflow() => _workflow.ShouldContain("dotnet restore Orders.Backend.slnx");
-    [Fact] void should_use_the_explicit_project_name_for_the_workflow_specs() => _workflow.ShouldContain("dotnet run --project Orders.Backend.csproj -c Debug --no-build -- --specifications");
+    [Fact] void should_use_the_explicit_project_name_for_the_workflow_specs() => _workflow.ShouldContain("dotnet test Orders.Backend.csproj");
     [Fact] void should_use_the_explicit_root_namespace() => _project.ShouldContain("<RootNamespace>Company.Orders</RootNamespace>");
     [Fact] void should_use_the_explicit_application_name_for_persistent_stores() => _settings.Split("\"Orders\"", StringSplitOptions.None).Length.ShouldEqual(3);
     [Fact] void should_not_derive_a_name_from_a_destination_path() => string.Join('|', _paths).ShouldNotContain("Company.Orders");

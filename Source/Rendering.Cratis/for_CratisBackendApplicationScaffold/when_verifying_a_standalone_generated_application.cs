@@ -22,7 +22,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     ProcessResult _debugBuild = null!;
     ProcessResult _debugTest = null!;
     ProcessResult _releaseBuild = null!;
-    ProcessResult _releaseCompile = null!;
+    string _releaseAssets = null!;
     ProcessResult _specCompile = null!;
     ProcessResult _webCompile = null!;
     string[] _specSources = null!;
@@ -56,14 +56,12 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     {
         _debugBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Debug", "-m:3", "--nologo");
         _debugTest = _debugBuild.ExitCode == 0
-            ? await Run("dotnet", "run", "--project", "Projects.csproj", "-c", "Debug", "--no-build", "--", "--specifications", "-result-trx", Path.Combine(_application.FullName, "generated.trx"), "-maxThreads", "3")
+            ? await Run("dotnet", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
             : new(-1, "Debug tests were not run because the Debug build failed.");
         _specCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-p:Configuration=Debug", "-getItem:Compile");
         _webCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-p:Configuration=Release", "-getItem:Compile");
         _releaseBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Release", "-m:3", "--nologo");
-        _releaseCompile = _releaseBuild.ExitCode == 0
-            ? await Run("dotnet", "msbuild", "Projects.csproj", "-p:Configuration=Release", "-getItem:PackageReference")
-            : new(-1, "Release references were not inspected because the Release build failed.");
+        _releaseAssets = _releaseBuild.ExitCode == 0 ? await File.ReadAllTextAsync(Path.Combine(_application.FullName, "obj", "project.assets.json")) : string.Empty;
 
         var docker = await Run("docker", "version", "--format", "{{.Server.Version}}");
         _dockerAvailable = docker.ExitCode == 0;
@@ -97,18 +95,16 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         }
     }
 
-    [Fact] void should_build_the_debug_host_and_inline_generated_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
-    [Fact] void should_run_the_generated_specifications_from_the_debug_host() => _debugTest.ExitCode.ShouldEqual(0);
+    [Fact] void should_build_the_debug_application_with_its_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
+    [Fact] void should_run_the_generated_specifications_from_the_application_project() => _debugTest.ExitCode.ShouldEqual(0);
     [Fact] void should_execute_a_nonempty_set_of_generated_specifications() => ExecutedSpecifications().ShouldBeGreaterThan(0);
-    [Fact] void should_compile_every_generated_specification_in_the_debug_host() => CompileSources(_specCompile).Intersect(_specSources).ShouldContainOnly(_specSources);
-    [Fact] void should_compile_no_generated_specifications_in_the_release_host() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
+    [Fact] void should_pass_every_generated_specification() => PassedSpecifications("generated.trx").ShouldEqual(ExecutedSpecifications());
+    [Fact] void should_compile_every_generated_specification_in_debug() => CompileSources(_specCompile).Intersect(_specSources).ShouldContainOnly(_specSources);
+    [Fact] void should_compile_no_generated_specifications_in_release() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
     [Fact] void should_cover_a_nonempty_set_of_emitted_specification_files() => _specSources.ShouldNotBeEmpty();
-    [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
-    [Fact] void should_inspect_the_release_references() => _releaseCompile.ExitCode.ShouldEqual(0);
-    [Fact] void should_exclude_the_specification_framework_from_release() => ReleaseReferences().ShouldNotContain("Cratis.Specifications.XUnit.v3");
-    [Fact] void should_exclude_the_test_runner_from_release() => ReleaseReferences().ShouldNotContain("xunit.v3");
-    [Fact] void should_pass_every_debug_specification() => PassedSpecifications("generated.trx").ShouldEqual(ExecutedSpecifications());
-    [Fact] void should_accept_the_long_match_and_reject_the_near_miss_in_debug() => AssertLongMatchPassed("generated.trx");
+    [Fact] void should_build_the_release_application_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
+    [Fact] void should_reference_no_test_packages_in_release() => _releaseAssets.Contains("\"xunit/", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_accept_the_long_match_and_reject_the_near_miss() => AssertLongMatchPassed("generated.trx");
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
@@ -130,14 +126,6 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
                 element.Attribute("testName")!.Value.EndsWith($".{name}", StringComparison.Ordinal));
             result.Attribute("outcome")!.Value.ShouldEqual("Passed");
         }
-    }
-
-    string[] ReleaseReferences()
-    {
-        _releaseCompile.ExitCode.ShouldEqual(0);
-        using var document = System.Text.Json.JsonDocument.Parse(_releaseCompile.Output);
-        return [.. document.RootElement.GetProperty("Items").GetProperty("PackageReference").EnumerateArray()
-            .Select(item => item.GetProperty("Identity").GetString()!)];
     }
 
     string[] CompileSources(ProcessResult result)

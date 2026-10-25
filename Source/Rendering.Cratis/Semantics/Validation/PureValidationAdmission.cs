@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -63,7 +64,14 @@ internal static class PureValidationAdmission
     // Keep original-body purity and source locations, then compile the exact invariant rewrite that will be emitted.
     static PureTransitionAdmission.Verdict? VerifyRenderedBody(CSharpCompilation compilation, SyntaxTree original, SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string body)
     {
-        var rendered = CSharpSyntaxTree.ParseText(SemanticValidationContextRuntime.RenderBodies(context, [(descriptor, body)]).Content, (CSharpParseOptions)original.Options);
+        // The analysis compilation has none of the application's global usings, so it compiles the qualified spelling.
+        string content;
+        using (QualifiedSpelling.Begin())
+        {
+            content = SemanticValidationContextRuntime.RenderBodies(context, [(descriptor, body)]).Content;
+        }
+
+        var rendered = CSharpSyntaxTree.ParseText(content, (CSharpParseOptions)original.Options);
         var error = compilation.ReplaceSyntaxTree(original, rendered).GetDiagnostics().FirstOrDefault(diagnostic =>
             diagnostic.Severity == DiagnosticSeverity.Error || (diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed));
         return error is null ? null : Reject("STAGE-ESM-019", $"Rendered validation body does not compile after invariant interpolation: {error.Id}: {error.GetMessage(CultureInfo.InvariantCulture)}");

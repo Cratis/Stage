@@ -81,7 +81,8 @@ static class BindingSites
             model.GetSymbolInfo(node).Symbol is not INamespaceSymbol &&
             node.Parent is not AliasQualifiedNameSyntax { Alias.Identifier.ValueText: "global" });
 
-    static IEnumerable<SyntaxNode> Sites(SyntaxNode root) => root.DescendantNodes().Where(node => node is SimpleNameSyntax or InvocationExpressionSyntax
+    // A predefined type keyword is a binding site too, so string and global::System.String compare as the same type.
+    static IEnumerable<SyntaxNode> Sites(SyntaxNode root) => root.DescendantNodes().Where(node => node is SimpleNameSyntax or PredefinedTypeSyntax or InvocationExpressionSyntax
         or BaseObjectCreationExpressionSyntax or AttributeSyntax or AwaitExpressionSyntax or ForEachStatementSyntax);
 
     // A node inside a replaced span, such as a removed qualifier or an old using directive, has no counterpart.

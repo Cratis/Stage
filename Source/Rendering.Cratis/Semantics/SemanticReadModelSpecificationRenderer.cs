@@ -164,14 +164,14 @@ internal static class SemanticReadModelSpecificationRenderer
         {
             builder.Using(context.CommonNamespace);
         }
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{Identifiers.ToPascalCase(readModel.Name)}", $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(path, content);
@@ -183,7 +183,7 @@ internal static class SemanticReadModelSpecificationRenderer
         SemanticReadModel readModel,
         SemanticApplicationContext context)
     {
-        return new CSharpCodeBuilder()
+        return context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Testing.ReadModels")
             .Using("Cratis.Specifications")

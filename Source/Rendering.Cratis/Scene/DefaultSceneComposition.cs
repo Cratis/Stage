@@ -44,15 +44,24 @@ internal static class DefaultSceneComposition
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <returns>The composed Scene application, or <c language="csharp">null</c> when there is nothing to compose.</returns>
-    public static SceneApplication? Create(SemanticApplicationContext context)
+    public static SceneApplication? Create(SemanticApplicationContext context) => Create(context, context.AllSlices);
+
+    /// <summary>
+    /// Composes the default screen over the commands and queries a set of slices declare.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="slices">The slices whose user interface is present, in model order.</param>
+    /// <returns>The composed Scene application, or <c language="csharp">null</c> when there is nothing to compose.</returns>
+    public static SceneApplication? Create(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(slices);
 
-        var commands = context.Commands.Values
+        var commands = slices.SelectMany(slice => slice.Slice.Commands)
             .DistinctBy(_ => _.Name, StringComparer.Ordinal)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
-        var queries = context.Queries.Values
+        var queries = slices.SelectMany(slice => slice.Slice.Queries).Select(query => context.Queries[query.Id])
             .GroupBy(_ => _.Name, StringComparer.Ordinal)
             .Where(_ => _.Count() == 1)
             .Select(_ => _.Single())

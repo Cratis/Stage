@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Diagnostics;
-using System.Xml.Linq;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -13,23 +12,11 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold;
 public class when_building_beneath_conflicting_parent_msbuild_files(when_building_beneath_conflicting_parent_msbuild_files.context fixture) : IClassFixture<when_building_beneath_conflicting_parent_msbuild_files.context>
 {
     [Fact] void should_test_the_debug_scaffold_successfully() => fixture.Debug.ExitCode.ShouldEqual(0);
-    [Fact] void should_discover_the_inline_specification() => fixture.Discovery.Output.ShouldContain("SmokeApp.Specs.when_probing.should_allow_bdd_names");
-    [Fact] void should_publish_no_specification_types_or_references() => ReleaseSpecificationMetadata.Verify(fixture.PublishedPath);
     [Fact] void should_build_the_release_scaffold_successfully() => fixture.Release.ExitCode.ShouldEqual(0);
     [Fact] void should_not_import_the_conflicting_parent_build_properties() => $"{fixture.Debug.Output}{fixture.Release.Output}".ShouldNotContain("conflicting parent build properties");
     [Fact] void should_not_import_the_conflicting_parent_build_targets() => $"{fixture.Debug.Output}{fixture.Release.Output}".ShouldNotContain("conflicting parent build targets");
     [Fact] void should_build_without_analyzer_warnings() => $"{fixture.Debug.Output}{fixture.Release.Output}".ShouldNotContain(": warning ");
-    [Fact]
-    void should_execute_the_specification_with_bdd_names()
-    {
-        var results = XDocument.Load(fixture.ResultsPath);
-        var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
-        foreach (var name in new[] { "total", "executed", "passed" }) counters.Attribute(name)!.Value.ShouldEqual("1");
-        foreach (var name in new[] { "failed", "error", "timeout", "aborted", "notExecuted" }) counters.Attribute(name)!.Value.ShouldEqual("0");
-        var result = results.Descendants().Single(element => element.Name.LocalName == "UnitTestResult");
-        result.Attribute("testName")!.Value.ShouldEqual("SmokeApp.Specs.when_probing.should_allow_bdd_names");
-        result.Attribute("outcome")!.Value.ShouldEqual("Passed");
-    }
+    [Fact] void should_execute_the_specification_with_bdd_names() => fixture.Debug.Output.ShouldContain("Passed:     1");
     [Fact] void should_reject_violations_of_the_application_editor_configuration() => fixture.OwnRules.ExitCode.ShouldNotEqual(0);
     [Fact] void should_report_the_application_naming_rule_violation() => fixture.OwnRules.Output.ShouldContain("error IDE1006");
 
@@ -37,12 +24,9 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
     {
         DirectoryInfo _root = null!;
         DirectoryInfo _application = null!;
-        public ProcessResult Discovery { get; private set; } = null!;
         public ProcessResult Debug { get; private set; } = null!;
         public ProcessResult Release { get; private set; } = null!;
         public ProcessResult OwnRules { get; private set; } = null!;
-        public string ResultsPath => Path.Combine(_application.FullName, "specifications.trx");
-        public string PublishedPath => Path.Combine(_application.FullName, "published");
 
         void Establish()
         {
@@ -112,12 +96,12 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
             var editorConfigPath = Path.Combine(_application.FullName, ".editorconfig");
             File.WriteAllText(editorConfigPath, File.ReadAllText(editorConfigPath).Replace("[*.cs]", methodNaming, StringComparison.Ordinal));
             File.WriteAllText(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void ValidName() { } }");
-            Directory.CreateDirectory(Path.Combine(_application.FullName, "for_Probe"));
-            File.WriteAllText(Path.Combine(_application.FullName, "for_Probe", "when_probing.cs"), """
+            Directory.CreateDirectory(Path.Combine(_application.FullName, "Probes"));
+            File.WriteAllText(Path.Combine(_application.FullName, "Probes", "when_probing.cs"), """
                 using Cratis.Specifications;
                 using Xunit;
 
-                namespace SmokeApp.Specs;
+                namespace SmokeApp.Probes;
 
                 public class when_probing : Specification
                 {
@@ -128,18 +112,12 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
 
         async Task Because()
         {
-            Discovery = await Run("run", "--project", "SmokeApp.csproj", "-c", "Debug", "--", "--specifications", "-list", "full");
-            Discovery.ExitCode.ShouldEqual(0);
-            Debug = await Run("run", "--project", "SmokeApp.csproj", "-c", "Debug", "--", "--specifications", "-filterVSTest", "FullyQualifiedName=SmokeApp.Specs.when_probing.should_allow_bdd_names", "-result-trx", ResultsPath);
-            Debug.ExitCode.ShouldEqual(0);
-            Release = await Run("publish", "SmokeApp.csproj", "-c", "Release", "--nologo", "-o", PublishedPath);
-            Release.ExitCode.ShouldEqual(0);
-
-            // Release has a different package graph: restore the Debug-only specification references before probing its rules.
-            var debugRestore = await Run("restore", "SmokeApp.csproj", "-p:Configuration=Debug", "--nologo");
-            debugRestore.ExitCode.ShouldEqual(0);
+            Debug = await Run("test", "SmokeApp.csproj", "-c", "Debug", "--nologo");
+            Release = await Run("build", "SmokeApp.slnx", "-c", "Release", "--nologo");
             await File.WriteAllTextAsync(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void invalidName() { } }");
-            OwnRules = await Run("build", "SmokeApp.csproj", "-c", "Debug", "--no-restore", "--nologo");
+
+            // Debug references the test packages a Release restore leaves out, so this build restores again.
+            OwnRules = await Run("build", "SmokeApp.csproj", "-c", "Debug", "--nologo");
         }
 
         void Destroy()

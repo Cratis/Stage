@@ -8,14 +8,15 @@ pin	Cratis.Arc.MongoDB	22.131.0
 pin	Cratis.Chronicle	19.99.1
 pin	Cratis.Chronicle.AspNetCore	19.99.1
 pin	Cratis.Chronicle.Testing	19.99.1
-pin	Cratis.Fundamentals	7.26.1
 pin	Cratis.Screenplay.Matching	4.241.0
-pin	Cratis.Specifications	5.0.1
-pin	Cratis.Specifications.XUnit.v3	5.0.1
+pin	Cratis.Specifications	4.1.1
+pin	Cratis.Specifications.XUnit	4.1.1
+pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
 pin	TargetingPackVersion	10.0.12
-pin	xunit.v3	4.0.2
+pin	xunit	2.9.3
+pin	xunit.runner.visualstudio	4.0.1
 package	AS	Castle.Core	5.2.1
 package	AS	Cratis	22.131.0
 package	AS	Cratis.Arc	22.131.0
@@ -34,7 +35,7 @@ package	AS	Cratis.Chronicle.AspNetCore	19.99.1
 package	AS	Cratis.Chronicle.CodeAnalysis	19.99.1
 package	AS	Cratis.Chronicle.Connections	19.99.1
 package	AS	Cratis.Chronicle.Testing	19.99.1
-package	AS	Cratis.Fundamentals	7.26.1
+package	AS	Cratis.Fundamentals	7.25.0
 package	AS	Cratis.Metrics.Roslyn	7.25.0
 package	AS	Cratis.Orleans	1.23.4
 package	AS	Cratis.Orleans.Storage	1.23.4
@@ -42,8 +43,8 @@ package	AS	Cratis.Orleans.Storage.MongoDB	1.23.4
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
 package	AS	Cratis.Screenplay.Matching	4.241.0
-package	AS	Cratis.Specifications	5.0.1
-package	AS	Cratis.Specifications.XUnit.v3	5.0.1
+package	AS	Cratis.Specifications	4.1.1
+package	AS	Cratis.Specifications.XUnit	4.1.1
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -104,13 +105,12 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
-package	AS	Microsoft.ApplicationInsights	2.23.0
-package	AS	Microsoft.Bcl.AsyncInterfaces	6.0.0
 package	AS	Microsoft.Build.Framework	18.9.6
 package	AS	Microsoft.Build.Utilities.Core	18.9.6
 package	AS	Microsoft.CodeAnalysis.Analyzers	5.9.0-1.26328.17
 package	AS	Microsoft.CodeAnalysis.Common	5.9.0
 package	AS	Microsoft.CodeAnalysis.Workspaces.Common	5.9.0
+package	AS	Microsoft.CodeCoverage	18.11.0
 package	AS	Microsoft.Extensions.AmbientMetadata.Application	10.10.0
 package	AS	Microsoft.Extensions.ApiDescription.Server	10.0.0
 package	AS	Microsoft.Extensions.Compliance.Abstractions	10.10.0
@@ -121,6 +121,7 @@ package	AS	Microsoft.Extensions.Resilience	10.10.0
 package	AS	Microsoft.Extensions.Telemetry	10.10.0
 package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.10.0
 package	AS	Microsoft.NET.StringTools	18.9.6
+package	AS	Microsoft.NET.Test.Sdk	18.11.0
 package	AS	Microsoft.OpenApi	2.12.2
 package	AS	Microsoft.Orleans.Analyzers	10.3.1
 package	AS	Microsoft.Orleans.CodeGenerator	10.3.1
@@ -134,11 +135,8 @@ package	AS	Microsoft.Orleans.Serialization	10.3.1
 package	AS	Microsoft.Orleans.Serialization.Abstractions	10.3.1
 package	AS	Microsoft.Orleans.Serialization.SystemTextJson	10.3.1
 package	AS	Microsoft.Orleans.Server	10.3.1
-package	AS	Microsoft.Testing.Extensions.Telemetry	2.5.1
-package	AS	Microsoft.Testing.Extensions.TrxReport.Abstractions	2.5.1
-package	AS	Microsoft.Testing.Platform	2.5.1
-package	AS	Microsoft.Testing.Platform.MSBuild	2.5.1
-package	AS	Microsoft.Win32.Registry	5.0.0
+package	AS	Microsoft.TestPlatform.ObjectModel	18.11.0
+package	AS	Microsoft.TestPlatform.TestHost	18.11.0
 package	AS	MongoDB.Bson	3.12.0
 package	AS	MongoDB.Driver	3.12.0
 package	AS	NSubstitute	6.2.0
@@ -170,7 +168,6 @@ package	AS	System.IO.Hashing	10.0.3
 package	AS	System.Memory.Data	10.0.3
 package	AS	System.Reactive	7.0.0
 package	AS	System.Reflection.MetadataLoadContext	10.0.13
-package	AS	System.Security.AccessControl	6.0.1
 package	AS	System.Security.Cryptography.ProtectedData	10.0.8
 package	AS	ZstdSharp.Port	0.7.3
 package	AS	protobuf-net	3.2.56
@@ -178,15 +175,14 @@ package	AS	protobuf-net.Core	3.2.56
 package	AS	protobuf-net.Grpc	1.3.14
 package	AS	protobuf-net.Grpc.Reflection	1.3.14
 package	AS	protobuf-net.Reflection	3.2.52
-package	AS	xunit.analyzers	2.2.0
-package	AS	xunit.v3	4.0.2
-package	AS	xunit.v3.assert	4.0.2
-package	AS	xunit.v3.common	4.0.2
-package	AS	xunit.v3.core.mtp-v2	4.0.2
-package	AS	xunit.v3.extensibility.core	4.0.2
-package	AS	xunit.v3.mtp-v2	4.0.2
-package	AS	xunit.v3.runner.common	4.0.2
-package	AS	xunit.v3.runner.inproc.console	4.0.2
+package	AS	xunit	2.9.3
+package	AS	xunit.abstractions	2.0.3
+package	AS	xunit.analyzers	1.18.0
+package	AS	xunit.assert	2.9.3
+package	AS	xunit.core	2.9.3
+package	AS	xunit.extensibility.core	2.9.3
+package	AS	xunit.extensibility.execution	2.9.3
+package	AS	xunit.runner.visualstudio	4.0.1
 framework	AS	Microsoft.AspNetCore.App	net10.0
 framework	AS	Microsoft.NETCore.App	net10.0
 using	AS	namespace	Cratis.Arc		cratis
@@ -258,6 +254,7 @@ scope	Cratis
 scope	FluentValidation
 scope	MongoDB
 scope	NSubstitute
+scope	OneOf
 scope	System
 scope	Xunit
 namespace	AS	Castle
@@ -688,7 +685,6 @@ namespace	AS	Cratis.Screenplay.Validation
 namespace	AS	Cratis.Screenplay.Workspaces
 namespace	AS	Cratis.Serialization
 namespace	AS	Cratis.Specifications
-namespace	AS	Cratis.Specifications.Resources
 namespace	AS	Cratis.Strings
 namespace	AS	Cratis.Tasks
 namespace	AS	Cratis.Timers
@@ -713,8 +709,6 @@ namespace	AS	FxResources
 namespace	AS	FxResources.Microsoft
 namespace	AS	FxResources.Microsoft.Extensions
 namespace	AS	FxResources.Microsoft.Extensions.DependencyModel
-namespace	AS	FxResources.Microsoft.Win32
-namespace	AS	FxResources.Microsoft.Win32.Registry
 namespace	AS	FxResources.System
 namespace	AS	FxResources.System.Composition
 namespace	AS	FxResources.System.Composition.Convention
@@ -725,8 +719,6 @@ namespace	AS	FxResources.System.IO
 namespace	AS	FxResources.System.IO.Hashing
 namespace	AS	FxResources.System.Memory
 namespace	AS	FxResources.System.Memory.Data
-namespace	AS	FxResources.System.Security
-namespace	AS	FxResources.System.Security.AccessControl
 namespace	AS	Google
 namespace	AS	Google.Protobuf
 namespace	AS	Google.Protobuf.Reflection
@@ -778,36 +770,10 @@ namespace	AS	HandlebarsDotNet.ValueProviders
 namespace	AS	Humanizer
 namespace	AS	JsonCons
 namespace	AS	JsonCons.JmesPath
+namespace	AS	Jsonite
 namespace	AS	MessagePack
 namespace	AS	MessagePack.Internal
 namespace	AS	Microsoft
-namespace	AS	Microsoft.ApplicationInsights
-namespace	AS	Microsoft.ApplicationInsights.Channel
-namespace	AS	Microsoft.ApplicationInsights.Common
-namespace	AS	Microsoft.ApplicationInsights.Common.Extensions
-namespace	AS	Microsoft.ApplicationInsights.DataContracts
-namespace	AS	Microsoft.ApplicationInsights.Extensibility
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.ApplicationId
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Authentication
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.ConfigString
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Endpoints
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Experimental
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.External
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Metrics
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Platform
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Sampling
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing.DiagnosticsModule
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing.FileDiagnosticsModule
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.Implementation.Tracing.SelfDiagnostics
-namespace	AS	Microsoft.ApplicationInsights.Extensibility.W3C
-namespace	AS	Microsoft.ApplicationInsights.Metrics
-namespace	AS	Microsoft.ApplicationInsights.Metrics.ConcurrentDatastructures
-namespace	AS	Microsoft.ApplicationInsights.Metrics.Extensibility
-namespace	AS	Microsoft.ApplicationInsights.Shared
-namespace	AS	Microsoft.ApplicationInsights.Shared.Extensibility
-namespace	AS	Microsoft.ApplicationInsights.Shared.Extensibility.Implementation
 namespace	AS	Microsoft.AspNetCore
 namespace	AS	Microsoft.AspNetCore.Analyzers
 namespace	AS	Microsoft.AspNetCore.Analyzers.Infrastructure
@@ -1047,7 +1013,6 @@ namespace	AS	Microsoft.AspNetCore.WriteStream
 namespace	AS	Microsoft.CSharp
 namespace	AS	Microsoft.CSharp.RuntimeBinder
 namespace	AS	Microsoft.Cci
-namespace	AS	Microsoft.Cci.Pdb
 namespace	AS	Microsoft.CodeAnalysis
 namespace	AS	Microsoft.CodeAnalysis.AddImport
 namespace	AS	Microsoft.CodeAnalysis.CSharp
@@ -1283,61 +1248,100 @@ namespace	AS	Microsoft.Shared.Diagnostics
 namespace	AS	Microsoft.Shared.Memoization
 namespace	AS	Microsoft.Shared.Pools
 namespace	AS	Microsoft.Shared.Text
+namespace	AS	Microsoft.TestPlatform
+namespace	AS	Microsoft.TestPlatform.PlatformAbstractions
 namespace	AS	Microsoft.Testing
-namespace	AS	Microsoft.Testing.Extensions
-namespace	AS	Microsoft.Testing.Extensions.MSBuild
-namespace	AS	Microsoft.Testing.Extensions.MSBuild.Resources
-namespace	AS	Microsoft.Testing.Extensions.MSBuild.Serializers
-namespace	AS	Microsoft.Testing.Extensions.Telemetry
-namespace	AS	Microsoft.Testing.Extensions.Telemetry.Resources
-namespace	AS	Microsoft.Testing.Extensions.TrxReport
-namespace	AS	Microsoft.Testing.Extensions.TrxReport.Abstractions
-namespace	AS	Microsoft.Testing.Internal
-namespace	AS	Microsoft.Testing.Internal.Framework
 namespace	AS	Microsoft.Testing.Platform
-namespace	AS	Microsoft.Testing.Platform.AI
-namespace	AS	Microsoft.Testing.Platform.Builder
-namespace	AS	Microsoft.Testing.Platform.Capabilities
-namespace	AS	Microsoft.Testing.Platform.Capabilities.TestFramework
-namespace	AS	Microsoft.Testing.Platform.CommandLine
-namespace	AS	Microsoft.Testing.Platform.Configurations
-namespace	AS	Microsoft.Testing.Platform.DynamicExtensions
-namespace	AS	Microsoft.Testing.Platform.Extensions
-namespace	AS	Microsoft.Testing.Platform.Extensions.ArtifactPostProcessing
-namespace	AS	Microsoft.Testing.Platform.Extensions.CommandLine
-namespace	AS	Microsoft.Testing.Platform.Extensions.Messages
-namespace	AS	Microsoft.Testing.Platform.Extensions.OutputDevice
-namespace	AS	Microsoft.Testing.Platform.Extensions.TestFramework
-namespace	AS	Microsoft.Testing.Platform.Extensions.TestHost
-namespace	AS	Microsoft.Testing.Platform.Extensions.TestHostControllers
-namespace	AS	Microsoft.Testing.Platform.Extensions.TestHostOrchestrator
-namespace	AS	Microsoft.Testing.Platform.Helpers
-namespace	AS	Microsoft.Testing.Platform.Hosts
-namespace	AS	Microsoft.Testing.Platform.IPC
-namespace	AS	Microsoft.Testing.Platform.IPC.Models
-namespace	AS	Microsoft.Testing.Platform.IPC.Serializers
-namespace	AS	Microsoft.Testing.Platform.Logging
-namespace	AS	Microsoft.Testing.Platform.MSBuild
-namespace	AS	Microsoft.Testing.Platform.Messages
-namespace	AS	Microsoft.Testing.Platform.OutputDevice
-namespace	AS	Microsoft.Testing.Platform.OutputDevice.Terminal
-namespace	AS	Microsoft.Testing.Platform.Requests
-namespace	AS	Microsoft.Testing.Platform.Resources
 namespace	AS	Microsoft.Testing.Platform.ServerMode
-namespace	AS	Microsoft.Testing.Platform.ServerMode.Json
-namespace	AS	Microsoft.Testing.Platform.Services
-namespace	AS	Microsoft.Testing.Platform.Telemetry
-namespace	AS	Microsoft.Testing.Platform.TestHost
-namespace	AS	Microsoft.Testing.Platform.TestHostControllers
-namespace	AS	Microsoft.Testing.Platform.TestHostOrchestrator
-namespace	AS	Microsoft.Testing.Platform.Tools
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Extensions
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Extensions.Messages
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Helpers
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Logging
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Messages
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Polyfills
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.Resources
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.ServerMode
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.ServerMode.Json
+namespace	AS	Microsoft.Testing.Platform.ServerMode.Client.Protocol.TestHost
 namespace	AS	Microsoft.VisualBasic
 namespace	AS	Microsoft.VisualBasic.CompilerServices
 namespace	AS	Microsoft.VisualBasic.FileIO
 namespace	AS	Microsoft.VisualStudio
+namespace	AS	Microsoft.VisualStudio.CodeCoverage
 namespace	AS	Microsoft.VisualStudio.TestPlatform
 namespace	AS	Microsoft.VisualStudio.TestPlatform.Common
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.DataCollection
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.DataCollector
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.DataCollector.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Exceptions
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.ExtensionDecorators
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.ExtensionFramework
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.ExtensionFramework.Utilities
 namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Filtering
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Hosting
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Logging
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Resources
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.SettingsProvider
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Telemetry
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Common.Utilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.DataCollection
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.DataCollection.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.EventHandlers
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.ObjectModel
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Resources
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Serialization
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities.Extensions
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities.Helpers
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities.Resources
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities.Tracing
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CoreUtilities.Tracing.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Adapter
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.ArtifactProcessing
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Client
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Client.MTP
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Client.Parallel
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.DataCollection
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.DataCollection.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Discovery
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.EventHandlers
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Execution
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Helpers
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Helpers.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Resources
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.TestRunAttachmentsProcessing
+namespace	AS	Microsoft.VisualStudio.TestPlatform.CrossPlatEngine.Utilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Execution
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Adapter
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Client
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Client.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCollector
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Engine
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Engine.ClientProtocol
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Engine.TesthostProtocol
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Host
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.InProcDataCollector
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Navigation
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Resources
+namespace	AS	Microsoft.VisualStudio.TestPlatform.ObjectModel.Utilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.PlatformAbstractions
+namespace	AS	Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.TestExecutor
+namespace	AS	Microsoft.VisualStudio.TestPlatform.TestHost
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Utilities
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Utilities.Helpers
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Utilities.Helpers.Interfaces
+namespace	AS	Microsoft.VisualStudio.TestPlatform.Utilities.Resources
 namespace	AS	Microsoft.Win32
 namespace	AS	Microsoft.Win32.SafeHandles
 namespace	AS	MongoDB
@@ -1410,20 +1414,6 @@ namespace	AS	MongoDB.Driver.Linq.Linq3Implementation.Translators.ExpressionToSet
 namespace	AS	MongoDB.Driver.Search
 namespace	AS	MongoDB.Driver.Support
 namespace	AS	MongoDB.Shared
-namespace	AS	Mono
-namespace	AS	Mono.Cecil
-namespace	AS	Mono.Cecil.Cil
-namespace	AS	Mono.Cecil.Mdb
-namespace	AS	Mono.Cecil.Metadata
-namespace	AS	Mono.Cecil.PE
-namespace	AS	Mono.Cecil.Pdb
-namespace	AS	Mono.Cecil.Rocks
-namespace	AS	Mono.Collections
-namespace	AS	Mono.Collections.Generic
-namespace	AS	Mono.CompilerServices
-namespace	AS	Mono.CompilerServices.SymbolWriter
-namespace	AS	Mono.Security
-namespace	AS	Mono.Security.Cryptography
 namespace	AS	N
 namespace	AS	N.SourceGenerators
 namespace	AS	N.SourceGenerators.UnionTypes
@@ -1457,6 +1447,9 @@ namespace	AS	Newtonsoft.Json.Linq.JsonPath
 namespace	AS	Newtonsoft.Json.Schema
 namespace	AS	Newtonsoft.Json.Serialization
 namespace	AS	Newtonsoft.Json.Utilities
+namespace	AS	NuGetClone
+namespace	AS	NuGetClone.Frameworks
+namespace	AS	NuGetClone.Shared
 namespace	AS	OneOf
 namespace	AS	OneOf.Types
 namespace	AS	OpenTelemetry
@@ -1814,6 +1807,7 @@ namespace	AS	SharpCompress.Writers.GZip
 namespace	AS	SharpCompress.Writers.SevenZip
 namespace	AS	SharpCompress.Writers.Tar
 namespace	AS	SharpCompress.Writers.Zip
+namespace	AS	SimpleJSON
 namespace	AS	Snappier
 namespace	AS	Snappier.Internal
 namespace	AS	Swashbuckle
@@ -1996,14 +1990,11 @@ namespace	AS	Windows.Win32.Networking.WinSock
 namespace	AS	Windows.Win32.Security
 namespace	AS	Windows.Win32.Security.Authorization
 namespace	AS	Xunit
+namespace	AS	Xunit.Abstractions
+namespace	AS	Xunit.Extensions
 namespace	AS	Xunit.Internal
-namespace	AS	Xunit.MicrosoftTestingPlatform
-namespace	AS	Xunit.Runner
-namespace	AS	Xunit.Runner.Common
-namespace	AS	Xunit.Runner.InProc
-namespace	AS	Xunit.Runner.InProc.SystemConsole
 namespace	AS	Xunit.Sdk
-namespace	AS	Xunit.v3
+namespace	AS	Xunit.Serialization
 namespace	AS	Zomp
 namespace	AS	Zomp.SyncMethodGenerator
 namespace	AS	ZstdSharp
@@ -2012,6 +2003,8 @@ namespace	AS	grpc
 namespace	AS	grpc.reflection
 namespace	AS	grpc.reflection.v1alpha
 type	AS		ExceptionExtensions	static
+type	AS		ReflectionAbstractionExtensions	static
+type	AS		TestFrameworkOptionsReadExtensions	static
 type	AS		TimedLogging	static
 type	AS	Cratis.Arc	ApiEndpointOptions	class
 type	AS	Cratis.Arc	ArcApplication	class
@@ -5175,40 +5168,24 @@ type	AS	Cratis.Serialization	MissingTargetTypeForDerivedType	class
 type	AS	Cratis.Serialization	NamespacedNamingPolicy	class
 type	AS	Cratis.Serialization	NamingPolicy	class
 type	AS	Cratis.Serialization	TargetTypeMismatchForDerivedType	class
-type	AS	Cratis.Specifications	AmbiguousLifecycleMethod	class
-type	AS	Cratis.Specifications	AssertionFailureRegistration	static
 type	AS	Cratis.Specifications	Catch	static
-type	AS	Cratis.Specifications	PerFactSpecificationLifecycleAttribute	attribute
-type	AS	Cratis.Specifications	ReadableSpecificationNamesAttribute	attribute
 type	AS	Cratis.Specifications	ShouldCollectionExtensions	static
 type	AS	Cratis.Specifications	ShouldComparableExtensions	static
 type	AS	Cratis.Specifications	ShouldEqualityExtensions	static
 type	AS	Cratis.Specifications	ShouldStringExtensions	static
 type	AS	Cratis.Specifications	ShouldTypeExtensions	static
 type	AS	Cratis.Specifications	Specification	class
-type	AS	Cratis.Specifications	SpecificationAssertionException	class
 type	AS	Cratis.Specifications	SpecificationCancelledException	class
-type	AS	Cratis.Specifications	SpecificationDisplayNames	static
 type	AS	Cratis.Specifications	SpecificationMethods`2	static
-type	AS	Cratis.Specifications	SpecificationSessionHook	static
 type	AS	Cratis.Specifications	SpecificationTestAssemblyRunner	class
-type	AS	Cratis.Specifications	SpecificationTestCase	class
 type	AS	Cratis.Specifications	SpecificationTestCaseRunner	class
 type	AS	Cratis.Specifications	SpecificationTestClassRunner	class
 type	AS	Cratis.Specifications	SpecificationTestCollectionRunner	class
 type	AS	Cratis.Specifications	SpecificationTestFramework	class
-type	AS	Cratis.Specifications	SpecificationTestFrameworkDiscoverer	class
 type	AS	Cratis.Specifications	SpecificationTestFrameworkExecutor	class
+type	AS	Cratis.Specifications	SpecificationTestInvoker	class
 type	AS	Cratis.Specifications	SpecificationTestMethodRunner	class
 type	AS	Cratis.Specifications	SpecificationTestRunner	class
-type	AS	Cratis.Specifications	SpecificationTheoryTestCase	class
-type	AS	Cratis.Specifications.Resources	ISpecificationResource	interface
-type	AS	Cratis.Specifications.Resources	ISpecificationResource`1	interface
-type	AS	Cratis.Specifications.Resources	SpecificationLeaseContext	class
-type	AS	Cratis.Specifications.Resources	SpecificationResourceAttribute	attribute
-type	AS	Cratis.Specifications.Resources	SpecificationResourceOrderException	class
-type	AS	Cratis.Specifications.Resources	SpecificationResources	static
-type	AS	Cratis.Specifications.Resources	SpecificationResourcesHook	static
 type	AS	Cratis.Strings	StringExtensions	static
 type	AS	Cratis.Tasks	AsyncManualResetEvent	class
 type	AS	Cratis.Tasks	AwaitableHelpers	static
@@ -7280,6 +7257,55 @@ type	AS	NSubstitute.Routing.Handlers	ReturnFromCustomHandlers	class
 type	AS	NSubstitute.Routing.Handlers	ReturnResultForTypeHandler	class
 type	AS	NSubstitute.Routing.Handlers	SetActionForCallHandler	class
 type	AS	NSubstitute.Routing.Handlers	TrackLastCallHandler	class
+type	AS	OneOf	GenerateOneOfAttribute	class
+type	AS	OneOf	IOneOf	interface
+type	AS	OneOf	OneOfBase`1	class
+type	AS	OneOf	OneOfBase`2	class
+type	AS	OneOf	OneOfBase`3	class
+type	AS	OneOf	OneOfBase`4	class
+type	AS	OneOf	OneOfBase`5	class
+type	AS	OneOf	OneOfBase`6	class
+type	AS	OneOf	OneOfBase`7	class
+type	AS	OneOf	OneOfBase`8	class
+type	AS	OneOf	OneOfBase`9	class
+type	AS	OneOf	OneOf`1	struct
+type	AS	OneOf	OneOf`2	struct
+type	AS	OneOf	OneOf`3	struct
+type	AS	OneOf	OneOf`4	struct
+type	AS	OneOf	OneOf`5	struct
+type	AS	OneOf	OneOf`6	struct
+type	AS	OneOf	OneOf`7	struct
+type	AS	OneOf	OneOf`8	struct
+type	AS	OneOf	OneOf`9	struct
+type	AS	OneOf.Types	All	struct
+type	AS	OneOf.Types	Error	struct
+type	AS	OneOf.Types	Error`1	struct
+type	AS	OneOf.Types	False	struct
+type	AS	OneOf.Types	Maybe	struct
+type	AS	OneOf.Types	No	struct
+type	AS	OneOf.Types	None	struct
+type	AS	OneOf.Types	NotFound	struct
+type	AS	OneOf.Types	Result`1	struct
+type	AS	OneOf.Types	Some	struct
+type	AS	OneOf.Types	Success	struct
+type	AS	OneOf.Types	Success`1	struct
+type	AS	OneOf.Types	True	struct
+type	AS	OneOf.Types	TrueFalseOrNull	class
+type	AS	OneOf.Types	TrueFalseOrNull+False	class
+type	AS	OneOf.Types	TrueFalseOrNull+Null	class
+type	AS	OneOf.Types	TrueFalseOrNull+True	class
+type	AS	OneOf.Types	TrueOrFalse	class
+type	AS	OneOf.Types	TrueOrFalse+False	class
+type	AS	OneOf.Types	TrueOrFalse+True	class
+type	AS	OneOf.Types	Unknown	struct
+type	AS	OneOf.Types	Yes	struct
+type	AS	OneOf.Types	YesNoOrMaybe	class
+type	AS	OneOf.Types	YesNoOrMaybe+Maybe	class
+type	AS	OneOf.Types	YesNoOrMaybe+No	class
+type	AS	OneOf.Types	YesNoOrMaybe+Yes	class
+type	AS	OneOf.Types	YesOrNo	class
+type	AS	OneOf.Types	YesOrNo+No	class
+type	AS	OneOf.Types	YesOrNo+Yes	class
 type	AS	Orleans	AliasAttribute	attribute
 type	AS	Orleans	ApplicationPartAttribute	attribute
 type	AS	Orleans	AsyncSerialExecutor	class
@@ -11727,106 +11753,31 @@ type	AS	System.Xml.Xsl	XsltException	class
 type	AS	System.Xml.Xsl	XsltMessageEncounteredEventArgs	class
 type	AS	System.Xml.Xsl	XsltMessageEncounteredEventHandler	delegate
 type	AS	System.Xml.Xsl	XsltSettings	class
-type	AS	Xunit	AssemblyFixtureAttribute	attribute
-type	AS	Xunit	AssemblyFixtureAttribute`1	attribute
-type	AS	Xunit	AssemblyUtility	static
+type	AS	Xunit	AssemblyTraitAttribute	attribute
 type	AS	Xunit	Assert	class
 type	AS	Xunit	Assert+RaisedEvent`1	class
-type	AS	Xunit	AssertEquivalenceComparer	class
-type	AS	Xunit	AssertEquivalenceComparer`1	class
-type	AS	Xunit	CaptureConsoleAttribute	attribute
-type	AS	Xunit	CaptureTraceAttribute	attribute
 type	AS	Xunit	ClassDataAttribute	attribute
-type	AS	Xunit	ClassDataAttribute`1	attribute
 type	AS	Xunit	CollectionAttribute	attribute
-type	AS	Xunit	CollectionAttribute`1	attribute
 type	AS	Xunit	CollectionBehavior	enum
 type	AS	Xunit	CollectionBehaviorAttribute	attribute
-type	AS	Xunit	CollectionBehaviorAttribute`1	attribute
 type	AS	Xunit	CollectionDefinitionAttribute	attribute
-type	AS	Xunit	CulturedFactAttribute	attribute
-type	AS	Xunit	CulturedFactAttributeDiscoverer	class
-type	AS	Xunit	CulturedTheoryAttribute	attribute
-type	AS	Xunit	CulturedTheoryAttributeDiscoverer	class
 type	AS	Xunit	FactAttribute	attribute
-type	AS	Xunit	FrontControllerFindAndRunSettings	class
-type	AS	Xunit	FrontControllerFindSettings	class
-type	AS	Xunit	FrontControllerLaunchOptions	class
-type	AS	Xunit	FrontControllerRunSettings	class
-type	AS	Xunit	FrontControllerSettingsBase	class
 type	AS	Xunit	IAsyncLifetime	interface
 type	AS	Xunit	IClassFixture`1	interface
 type	AS	Xunit	ICollectionFixture`1	interface
-type	AS	Xunit	IFrontController	interface
-type	AS	Xunit	IFrontControllerDiscoverer	interface
-type	AS	Xunit	ITestContext	interface
-type	AS	Xunit	ITestContextAccessor	interface
-type	AS	Xunit	ITestContextExtensions	static
-type	AS	Xunit	ITestOutputHelper	interface
-type	AS	Xunit	ITheoryDataRow	interface
+type	AS	Xunit	ITestCollectionOrderer	interface
 type	AS	Xunit	InlineDataAttribute	attribute
-type	AS	Xunit	MatrixTheoryData`10	class
-type	AS	Xunit	MatrixTheoryData`11	class
-type	AS	Xunit	MatrixTheoryData`12	class
-type	AS	Xunit	MatrixTheoryData`13	class
-type	AS	Xunit	MatrixTheoryData`14	class
-type	AS	Xunit	MatrixTheoryData`15	class
-type	AS	Xunit	MatrixTheoryData`2	class
-type	AS	Xunit	MatrixTheoryData`3	class
-type	AS	Xunit	MatrixTheoryData`4	class
-type	AS	Xunit	MatrixTheoryData`5	class
-type	AS	Xunit	MatrixTheoryData`6	class
-type	AS	Xunit	MatrixTheoryData`7	class
-type	AS	Xunit	MatrixTheoryData`8	class
-type	AS	Xunit	MatrixTheoryData`9	class
-type	AS	Xunit	MediaTypeUtility	static
+type	AS	Xunit	LongLivedMarshalByRefObject	class
 type	AS	Xunit	MemberDataAttribute	attribute
-type	AS	Xunit	Record	static
+type	AS	Xunit	MemberDataAttributeBase	attribute
+type	AS	Xunit	Record	class
 type	AS	Xunit	TestCaseOrdererAttribute	attribute
-type	AS	Xunit	TestCaseOrdererAttribute`1	attribute
-type	AS	Xunit	TestClassAttribute	attribute
-type	AS	Xunit	TestClassOrdererAttribute	attribute
-type	AS	Xunit	TestClassOrdererAttribute`1	attribute
 type	AS	Xunit	TestCollectionOrdererAttribute	attribute
-type	AS	Xunit	TestCollectionOrdererAttribute`1	attribute
-type	AS	Xunit	TestContext	class
-type	AS	Xunit	TestContextExtensions	static
-type	AS	Xunit	TestEngineStatus	enum
 type	AS	Xunit	TestFrameworkAttribute	attribute
-type	AS	Xunit	TestFrameworkAttribute`1	attribute
-type	AS	Xunit	TestMethodOrdererAttribute	attribute
-type	AS	Xunit	TestMethodOrdererAttribute`1	attribute
-type	AS	Xunit	TestPipelineStage	enum
-type	AS	Xunit	TestResult	enum
-type	AS	Xunit	TestResultState	class
 type	AS	Xunit	TheoryAttribute	attribute
 type	AS	Xunit	TheoryData	class
-type	AS	Xunit	TheoryDataBase`2	class
-type	AS	Xunit	TheoryDataRow	class
-type	AS	Xunit	TheoryDataRowBase	class
-type	AS	Xunit	TheoryDataRowBaseExtensions	static
-type	AS	Xunit	TheoryDataRow`1	class
-type	AS	Xunit	TheoryDataRow`10	class
-type	AS	Xunit	TheoryDataRow`11	class
-type	AS	Xunit	TheoryDataRow`12	class
-type	AS	Xunit	TheoryDataRow`13	class
-type	AS	Xunit	TheoryDataRow`14	class
-type	AS	Xunit	TheoryDataRow`15	class
-type	AS	Xunit	TheoryDataRow`2	class
-type	AS	Xunit	TheoryDataRow`3	class
-type	AS	Xunit	TheoryDataRow`4	class
-type	AS	Xunit	TheoryDataRow`5	class
-type	AS	Xunit	TheoryDataRow`6	class
-type	AS	Xunit	TheoryDataRow`7	class
-type	AS	Xunit	TheoryDataRow`8	class
-type	AS	Xunit	TheoryDataRow`9	class
 type	AS	Xunit	TheoryData`1	class
 type	AS	Xunit	TheoryData`10	class
-type	AS	Xunit	TheoryData`11	class
-type	AS	Xunit	TheoryData`12	class
-type	AS	Xunit	TheoryData`13	class
-type	AS	Xunit	TheoryData`14	class
-type	AS	Xunit	TheoryData`15	class
 type	AS	Xunit	TheoryData`2	class
 type	AS	Xunit	TheoryData`3	class
 type	AS	Xunit	TheoryData`4	class
@@ -11836,236 +11787,109 @@ type	AS	Xunit	TheoryData`7	class
 type	AS	Xunit	TheoryData`8	class
 type	AS	Xunit	TheoryData`9	class
 type	AS	Xunit	TraitAttribute	attribute
-type	AS	Xunit.Internal	ArchitectureExtensions	static
-type	AS	Xunit.Internal	AssemblyExtensions	static
-type	AS	Xunit.Internal	AssertHelper	static
-type	AS	Xunit.Internal	CommandLineGroup	enum
-type	AS	Xunit.Internal	CommandLineParserBase	class
-type	AS	Xunit.Internal	ConsoleCaptureTestOutputWriter	class
-type	AS	Xunit.Internal	DictionaryExtensions	static
-type	AS	Xunit.Internal	EnumUtility	static
-type	AS	Xunit.Internal	EnumerableExtensions	static
-type	AS	Xunit.Internal	ExceptionExtensions	static
-type	AS	Xunit.Internal	FileSystem	class
-type	AS	Xunit.Internal	FilterAssembly	class
-type	AS	Xunit.Internal	FilterClassFullName	class
-type	AS	Xunit.Internal	FilterClassSimpleName	class
-type	AS	Xunit.Internal	FilterDisplayName	class
-type	AS	Xunit.Internal	FilterFail	class
-type	AS	Xunit.Internal	FilterLogicalAnd	class
-type	AS	Xunit.Internal	FilterLogicalNot	class
-type	AS	Xunit.Internal	FilterLogicalOr	class
-type	AS	Xunit.Internal	FilterMethodFullName	class
-type	AS	Xunit.Internal	FilterMethodSimpleName	class
-type	AS	Xunit.Internal	FilterNamespace	class
-type	AS	Xunit.Internal	FilterPass	class
-type	AS	Xunit.Internal	FilterTrait	class
-type	AS	Xunit.Internal	FixtureMappingManagerExtensions	static
-type	AS	Xunit.Internal	Guard	static
-type	AS	Xunit.Internal	IFileSystem	interface
-type	AS	Xunit.Internal	ILegacyConsoleResultWriter	interface
-type	AS	Xunit.Internal	MarkupResultWriterMessageHandlerBase	class
-type	AS	Xunit.Internal	MessageBus	class
-type	AS	Xunit.Internal	ObjectExtensions	static
-type	AS	Xunit.Internal	PreserveWorkingFolder	class
-type	AS	Xunit.Internal	ResultMetadataBase	class
-type	AS	Xunit.Internal	ResultMetadataMessageHandlerBase`1	class
-type	AS	Xunit.Internal	StringExtensions	static
-type	AS	Xunit.Internal	SynchronousMessageBus	class
-type	AS	Xunit.Internal	TestContextInternal	class
-type	AS	Xunit.Internal	TestEventSource	class
-type	AS	Xunit.Internal	TimeAndDateExtensions	static
-type	AS	Xunit.Internal	TraceAssertOverrideListener	class
-type	AS	Xunit.Internal	TraceCaptureTestOutputWriter	class
-type	AS	Xunit.Internal	XunitXmlResultWriterMessageHandlerBase`1	class
-type	AS	Xunit.MicrosoftTestingPlatform	CommandLineOptionsProvider	class
-type	AS	Xunit.MicrosoftTestingPlatform	ExtensionBase	class
-type	AS	Xunit.MicrosoftTestingPlatform	LoggerDiagnosticMessageSink	class
-type	AS	Xunit.MicrosoftTestingPlatform	LoggerRunnerLogger	class
-type	AS	Xunit.MicrosoftTestingPlatform	OutputDeviceDataProducerBase	class
-type	AS	Xunit.MicrosoftTestingPlatform	OutputDeviceDiagnosticMessageSink	class
-type	AS	Xunit.MicrosoftTestingPlatform	OutputDeviceRunnerLogger	class
-type	AS	Xunit.MicrosoftTestingPlatform	TestConfig	static
-type	AS	Xunit.MicrosoftTestingPlatform	TestConfig+Keys	static
-type	AS	Xunit.MicrosoftTestingPlatform	TestPlatformDiscoveryMessageSink	class
-type	AS	Xunit.MicrosoftTestingPlatform	TestPlatformExecutionMessageSink	class
-type	AS	Xunit.MicrosoftTestingPlatform	TestPlatformTestFramework	class
-type	AS	Xunit.MicrosoftTestingPlatform	XunitException	class
-type	AS	Xunit.MicrosoftTestingPlatform	XunitTrxCapability	class
-type	AS	Xunit.Runner.Common	AfterTestFinished	class
-type	AS	Xunit.Runner.Common	AfterTestStarting	class
-type	AS	Xunit.Runner.Common	AggregateMessageSink	class
-type	AS	Xunit.Runner.Common	AppDomainOption	enum
-type	AS	Xunit.Runner.Common	AppDomainSupport	enum
-type	AS	Xunit.Runner.Common	AppDomainSupportExtensions	static
-type	AS	Xunit.Runner.Common	AppVeyorReporter	class
-type	AS	Xunit.Runner.Common	AppVeyorReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	AssemblyMetadata	class
-type	AS	Xunit.Runner.Common	BeforeTestFinished	class
-type	AS	Xunit.Runner.Common	BeforeTestStarting	class
-type	AS	Xunit.Runner.Common	ConfigReader_Json	static
-type	AS	Xunit.Runner.Common	ConfigUtility	static
-type	AS	Xunit.Runner.Common	ConsoleDiagnosticMessageSink	class
-type	AS	Xunit.Runner.Common	ConsoleHelper	class
-type	AS	Xunit.Runner.Common	ConsoleProjectLister	static
-type	AS	Xunit.Runner.Common	ConsoleRunnerLogger	class
-type	AS	Xunit.Runner.Common	CtrfResultWriter	class
-type	AS	Xunit.Runner.Common	CtrfResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	CtrfResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	DecodingRunnerLogger	class
-type	AS	Xunit.Runner.Common	DefaultRunnerReporter	class
-type	AS	Xunit.Runner.Common	DefaultRunnerReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	DiagnosticEventSink	class
-type	AS	Xunit.Runner.Common	DiagnosticMessage	class
-type	AS	Xunit.Runner.Common	DiscoveryComplete	class
-type	AS	Xunit.Runner.Common	DiscoveryEventSink	class
-type	AS	Xunit.Runner.Common	DiscoveryStarting	class
-type	AS	Xunit.Runner.Common	ErrorMessage	class
-type	AS	Xunit.Runner.Common	ExecutionEventSink	class
-type	AS	Xunit.Runner.Common	ExecutionSink	class
-type	AS	Xunit.Runner.Common	ExecutionSinkOptions	class
-type	AS	Xunit.Runner.Common	ExecutionSummary	class
-type	AS	Xunit.Runner.Common	HtmlResultWriter	class
-type	AS	Xunit.Runner.Common	HtmlResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	IConsoleResultWriter	interface
-type	AS	Xunit.Runner.Common	IMicrosoftTestingPlatformResultWriter	interface
-type	AS	Xunit.Runner.Common	IRegisterConsoleResultWriterAttribute	interface
-type	AS	Xunit.Runner.Common	IRegisterMicrosoftTestingPlatformResultWriterAttribute	interface
-type	AS	Xunit.Runner.Common	IRegisterResultWriterAttribute	interface
-type	AS	Xunit.Runner.Common	IRegisterRunnerReporterAttribute	interface
-type	AS	Xunit.Runner.Common	IResultWriter	interface
-type	AS	Xunit.Runner.Common	IResultWriterMessageHandler	interface
-type	AS	Xunit.Runner.Common	IRunnerLogger	interface
-type	AS	Xunit.Runner.Common	IRunnerLoggerExtensions	static
-type	AS	Xunit.Runner.Common	IRunnerReporter	interface
-type	AS	Xunit.Runner.Common	IRunnerReporterMessageHandler	interface
-type	AS	Xunit.Runner.Common	ISourceInformationProvider	interface
-type	AS	Xunit.Runner.Common	ITestCaseFilter	interface
-type	AS	Xunit.Runner.Common	InternalDiagnosticMessage	class
-type	AS	Xunit.Runner.Common	JUnitResultWriter	class
-type	AS	Xunit.Runner.Common	JUnitResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	JUnitResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	JsonReporter	class
-type	AS	Xunit.Runner.Common	JsonReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	ListFormat	enum
-type	AS	Xunit.Runner.Common	ListOption	enum
-type	AS	Xunit.Runner.Common	ListOptionExtensions	static
-type	AS	Xunit.Runner.Common	LongRunningTestsSummary	class
-type	AS	Xunit.Runner.Common	MarkdownResultWriter	class
-type	AS	Xunit.Runner.Common	MarkdownResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	MessageHandlerArgs	class
-type	AS	Xunit.Runner.Common	MessageHandlerArgs`1	class
-type	AS	Xunit.Runner.Common	MessageHandler`1	delegate
-type	AS	Xunit.Runner.Common	MessageMetadataCache	class
-type	AS	Xunit.Runner.Common	MessageSinkMessage	class
-type	AS	Xunit.Runner.Common	MessageSinkMessageDeserializer	static
-type	AS	Xunit.Runner.Common	NUnitResultWriter	class
-type	AS	Xunit.Runner.Common	NUnitResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	NUnitResultWriterMessageHandler+ElementWithExtraCounts	class
-type	AS	Xunit.Runner.Common	NUnitResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	NullSourceInformationProvider	class
-type	AS	Xunit.Runner.Common	ParallelismOption	enum
-type	AS	Xunit.Runner.Common	QueryFilterParser	static
-type	AS	Xunit.Runner.Common	QuietReporter	class
-type	AS	Xunit.Runner.Common	QuietReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	RegisterConsoleResultWriterAttribute	attribute
-type	AS	Xunit.Runner.Common	RegisterConsoleResultWriterAttribute`1	attribute
-type	AS	Xunit.Runner.Common	RegisterMicrosoftTestingPlatformResultWriterAttribute	attribute
-type	AS	Xunit.Runner.Common	RegisterMicrosoftTestingPlatformResultWriterAttribute`1	attribute
-type	AS	Xunit.Runner.Common	RegisterResultWriterAttribute	attribute
-type	AS	Xunit.Runner.Common	RegisterResultWriterAttribute`1	attribute
-type	AS	Xunit.Runner.Common	RegisterRunnerReporterAttribute	attribute
-type	AS	Xunit.Runner.Common	RegisterRunnerReporterAttribute`1	attribute
-type	AS	Xunit.Runner.Common	RegisteredRunnerConfig	static
-type	AS	Xunit.Runner.Common	RegisteredRunnerReporters	static
-type	AS	Xunit.Runner.Common	RunnerEventSink	class
-type	AS	Xunit.Runner.Common	SilentReporter	class
-type	AS	Xunit.Runner.Common	SilentReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	SourceInformation	struct
-type	AS	Xunit.Runner.Common	StackFrameInfo	struct
-type	AS	Xunit.Runner.Common	StackFrameTransformer	static
-type	AS	Xunit.Runner.Common	TargetFrameworkIdentifier	enum
-type	AS	Xunit.Runner.Common	TeamCityReporter	class
-type	AS	Xunit.Runner.Common	TeamCityReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	TestAssemblyCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestAssemblyConfiguration	class
-type	AS	Xunit.Runner.Common	TestAssemblyDiscoveryFinished	class
-type	AS	Xunit.Runner.Common	TestAssemblyDiscoveryStarting	class
-type	AS	Xunit.Runner.Common	TestAssemblyExecutionFinished	class
-type	AS	Xunit.Runner.Common	TestAssemblyExecutionStarting	class
-type	AS	Xunit.Runner.Common	TestAssemblyFinished	class
-type	AS	Xunit.Runner.Common	TestAssemblyInfo	class
-type	AS	Xunit.Runner.Common	TestAssemblyMessage	class
-type	AS	Xunit.Runner.Common	TestAssemblyStarting	class
-type	AS	Xunit.Runner.Common	TestCaseCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestCaseDiscovered	class
-type	AS	Xunit.Runner.Common	TestCaseFinished	class
-type	AS	Xunit.Runner.Common	TestCaseMessage	class
-type	AS	Xunit.Runner.Common	TestCaseStarting	class
-type	AS	Xunit.Runner.Common	TestClassCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestClassConstructionFinished	class
-type	AS	Xunit.Runner.Common	TestClassConstructionStarting	class
-type	AS	Xunit.Runner.Common	TestClassDisposeFinished	class
-type	AS	Xunit.Runner.Common	TestClassDisposeStarting	class
-type	AS	Xunit.Runner.Common	TestClassFinished	class
-type	AS	Xunit.Runner.Common	TestClassMessage	class
-type	AS	Xunit.Runner.Common	TestClassStarting	class
-type	AS	Xunit.Runner.Common	TestCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestCollectionCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestCollectionFinished	class
-type	AS	Xunit.Runner.Common	TestCollectionMessage	class
-type	AS	Xunit.Runner.Common	TestCollectionStarting	class
-type	AS	Xunit.Runner.Common	TestDiscoverySink	class
-type	AS	Xunit.Runner.Common	TestExecutionSummaries	class
-type	AS	Xunit.Runner.Common	TestFailed	class
-type	AS	Xunit.Runner.Common	TestFinished	class
-type	AS	Xunit.Runner.Common	TestFrameworkOptions	class
-type	AS	Xunit.Runner.Common	TestMessage	class
-type	AS	Xunit.Runner.Common	TestMessageSink	class
-type	AS	Xunit.Runner.Common	TestMethodCleanupFailure	class
-type	AS	Xunit.Runner.Common	TestMethodFinished	class
-type	AS	Xunit.Runner.Common	TestMethodMessage	class
-type	AS	Xunit.Runner.Common	TestMethodStarting	class
-type	AS	Xunit.Runner.Common	TestNotRun	class
-type	AS	Xunit.Runner.Common	TestOutput	class
-type	AS	Xunit.Runner.Common	TestPassed	class
-type	AS	Xunit.Runner.Common	TestProjectConfiguration	class
-type	AS	Xunit.Runner.Common	TestResultMessage	class
-type	AS	Xunit.Runner.Common	TestSkipped	class
-type	AS	Xunit.Runner.Common	TestStarting	class
-type	AS	Xunit.Runner.Common	Transform	class
-type	AS	Xunit.Runner.Common	TransformFactory	static
-type	AS	Xunit.Runner.Common	TrxResultWriter	class
-type	AS	Xunit.Runner.Common	TrxResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	TrxResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	VerboseReporter	class
-type	AS	Xunit.Runner.Common	VerboseReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	VstsReporter	class
-type	AS	Xunit.Runner.Common	VstsReporterMessageHandler	class
-type	AS	Xunit.Runner.Common	XmlV1ResultWriter	class
-type	AS	Xunit.Runner.Common	XmlV1ResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	XmlV1ResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	XmlV2ResultWriter	class
-type	AS	Xunit.Runner.Common	XmlV2ResultWriterMessageHandler	class
-type	AS	Xunit.Runner.Common	XmlV2ResultWriterMessageHandler+ResultMetadata	class
-type	AS	Xunit.Runner.Common	XunitFilters	class
-type	AS	Xunit.Runner.Common	XunitProject	class
-type	AS	Xunit.Runner.Common	XunitProjectAssembly	class
-type	AS	Xunit.Runner.InProc.SystemConsole	AutomatedMode	enum
-type	AS	Xunit.Runner.InProc.SystemConsole	CommandLine	class
-type	AS	Xunit.Runner.InProc.SystemConsole	ConsoleRunner	class
-type	AS	Xunit.Runner.InProc.SystemConsole	ConsoleRunnerInProcess	static
-type	AS	Xunit.Runner.InProc.SystemConsole	ProjectAssemblyRunner	class
+type	AS	Xunit.Abstractions	IAfterTestFinished	interface
+type	AS	Xunit.Abstractions	IAfterTestStarting	interface
+type	AS	Xunit.Abstractions	IAssemblyInfo	interface
+type	AS	Xunit.Abstractions	IAttributeInfo	interface
+type	AS	Xunit.Abstractions	IBeforeTestFinished	interface
+type	AS	Xunit.Abstractions	IBeforeTestStarting	interface
+type	AS	Xunit.Abstractions	IDiagnosticMessage	interface
+type	AS	Xunit.Abstractions	IDiscoveryCompleteMessage	interface
+type	AS	Xunit.Abstractions	IErrorMessage	interface
+type	AS	Xunit.Abstractions	IExecutionMessage	interface
+type	AS	Xunit.Abstractions	IFailureInformation	interface
+type	AS	Xunit.Abstractions	IFinishedMessage	interface
+type	AS	Xunit.Abstractions	IMessageSink	interface
+type	AS	Xunit.Abstractions	IMessageSinkMessage	interface
+type	AS	Xunit.Abstractions	IMethodInfo	interface
+type	AS	Xunit.Abstractions	IParameterInfo	interface
+type	AS	Xunit.Abstractions	IReflectionAssemblyInfo	interface
+type	AS	Xunit.Abstractions	IReflectionAttributeInfo	interface
+type	AS	Xunit.Abstractions	IReflectionMethodInfo	interface
+type	AS	Xunit.Abstractions	IReflectionParameterInfo	interface
+type	AS	Xunit.Abstractions	IReflectionTypeInfo	interface
+type	AS	Xunit.Abstractions	ISourceInformation	interface
+type	AS	Xunit.Abstractions	ISourceInformationProvider	interface
+type	AS	Xunit.Abstractions	ITest	interface
+type	AS	Xunit.Abstractions	ITestAssembly	interface
+type	AS	Xunit.Abstractions	ITestAssemblyCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestAssemblyFinished	interface
+type	AS	Xunit.Abstractions	ITestAssemblyMessage	interface
+type	AS	Xunit.Abstractions	ITestAssemblyStarting	interface
+type	AS	Xunit.Abstractions	ITestCase	interface
+type	AS	Xunit.Abstractions	ITestCaseCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestCaseDiscoveryMessage	interface
+type	AS	Xunit.Abstractions	ITestCaseFinished	interface
+type	AS	Xunit.Abstractions	ITestCaseMessage	interface
+type	AS	Xunit.Abstractions	ITestCaseStarting	interface
+type	AS	Xunit.Abstractions	ITestClass	interface
+type	AS	Xunit.Abstractions	ITestClassCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestClassConstructionFinished	interface
+type	AS	Xunit.Abstractions	ITestClassConstructionStarting	interface
+type	AS	Xunit.Abstractions	ITestClassDisposeFinished	interface
+type	AS	Xunit.Abstractions	ITestClassDisposeStarting	interface
+type	AS	Xunit.Abstractions	ITestClassFinished	interface
+type	AS	Xunit.Abstractions	ITestClassMessage	interface
+type	AS	Xunit.Abstractions	ITestClassStarting	interface
+type	AS	Xunit.Abstractions	ITestCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestCollection	interface
+type	AS	Xunit.Abstractions	ITestCollectionCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestCollectionFinished	interface
+type	AS	Xunit.Abstractions	ITestCollectionMessage	interface
+type	AS	Xunit.Abstractions	ITestCollectionStarting	interface
+type	AS	Xunit.Abstractions	ITestFailed	interface
+type	AS	Xunit.Abstractions	ITestFinished	interface
+type	AS	Xunit.Abstractions	ITestFramework	interface
+type	AS	Xunit.Abstractions	ITestFrameworkDiscoverer	interface
+type	AS	Xunit.Abstractions	ITestFrameworkDiscoveryOptions	interface
+type	AS	Xunit.Abstractions	ITestFrameworkExecutionOptions	interface
+type	AS	Xunit.Abstractions	ITestFrameworkExecutor	interface
+type	AS	Xunit.Abstractions	ITestFrameworkOptions	interface
+type	AS	Xunit.Abstractions	ITestMessage	interface
+type	AS	Xunit.Abstractions	ITestMethod	interface
+type	AS	Xunit.Abstractions	ITestMethodCleanupFailure	interface
+type	AS	Xunit.Abstractions	ITestMethodFinished	interface
+type	AS	Xunit.Abstractions	ITestMethodMessage	interface
+type	AS	Xunit.Abstractions	ITestMethodStarting	interface
+type	AS	Xunit.Abstractions	ITestOutput	interface
+type	AS	Xunit.Abstractions	ITestOutputHelper	interface
+type	AS	Xunit.Abstractions	ITestPassed	interface
+type	AS	Xunit.Abstractions	ITestResultMessage	interface
+type	AS	Xunit.Abstractions	ITestSkipped	interface
+type	AS	Xunit.Abstractions	ITestStarting	interface
+type	AS	Xunit.Abstractions	ITypeInfo	interface
+type	AS	Xunit.Abstractions	IXunitSerializable	interface
+type	AS	Xunit.Abstractions	IXunitSerializationInfo	interface
+type	AS	Xunit.Extensions	PropertyDataAttribute	attribute
+type	AS	Xunit.Sdk	AfterTestFinished	class
+type	AS	Xunit.Sdk	AfterTestStarting	class
 type	AS	Xunit.Sdk	AllException	class
-type	AS	Xunit.Sdk	AnsiUtility	static
 type	AS	Xunit.Sdk	ArgumentFormatter	static
-type	AS	Xunit.Sdk	AssertEqualityResult	class
+type	AS	Xunit.Sdk	AssemblyTraitDiscoverer	class
+type	AS	Xunit.Sdk	AsyncTestSyncContext	class
 type	AS	Xunit.Sdk	AsyncUtility	static
+type	AS	Xunit.Sdk	BeforeAfterTestAttribute	attribute
+type	AS	Xunit.Sdk	BeforeTestFinished	class
+type	AS	Xunit.Sdk	BeforeTestStarting	class
 type	AS	Xunit.Sdk	CollectionException	class
+type	AS	Xunit.Sdk	CollectionPerAssemblyTestCollectionFactory	class
+type	AS	Xunit.Sdk	CollectionPerClassTestCollectionFactory	class
 type	AS	Xunit.Sdk	CollectionTracker	class
 type	AS	Xunit.Sdk	CollectionTrackerExtensions	static
 type	AS	Xunit.Sdk	CollectionTracker`1	class
 type	AS	Xunit.Sdk	ContainsException	class
+type	AS	Xunit.Sdk	DataAttribute	attribute
+type	AS	Xunit.Sdk	DataDiscoverer	class
+type	AS	Xunit.Sdk	DataDiscovererAttribute	attribute
+type	AS	Xunit.Sdk	DefaultTestCaseOrderer	class
+type	AS	Xunit.Sdk	DefaultTestCollectionOrderer	class
+type	AS	Xunit.Sdk	DelegatingMessageBus	class
+type	AS	Xunit.Sdk	DelegatingMessageBus`1	class
+type	AS	Xunit.Sdk	DelegatingMessageSink	class
+type	AS	Xunit.Sdk	DelegatingMessageSink`1	class
+type	AS	Xunit.Sdk	DiagnosticMessage	class
+type	AS	Xunit.Sdk	DiscoveryCompleteMessage	class
+type	AS	Xunit.Sdk	DisplayNameFormatter	class
 type	AS	Xunit.Sdk	DisposalTracker	class
 type	AS	Xunit.Sdk	DistinctException	class
 type	AS	Xunit.Sdk	DoesNotContainException	class
@@ -12074,381 +11898,162 @@ type	AS	Xunit.Sdk	EmptyException	class
 type	AS	Xunit.Sdk	EndsWithException	class
 type	AS	Xunit.Sdk	EqualException	class
 type	AS	Xunit.Sdk	EquivalentException	class
+type	AS	Xunit.Sdk	ErrorMessage	class
+type	AS	Xunit.Sdk	ExceptionAggregator	class
 type	AS	Xunit.Sdk	ExceptionUtility	static
-type	AS	Xunit.Sdk	ExplicitOption	enum
-type	AS	Xunit.Sdk	ExplicitOptionExtensions	static
+type	AS	Xunit.Sdk	ExecutionErrorTestCase	class
+type	AS	Xunit.Sdk	ExecutionErrorTestCaseRunner	class
+type	AS	Xunit.Sdk	ExecutionTimer	class
+type	AS	Xunit.Sdk	ExtensibilityPointFactory	static
+type	AS	Xunit.Sdk	FactDiscoverer	class
 type	AS	Xunit.Sdk	FailException	class
-type	AS	Xunit.Sdk	FailureCause	enum
 type	AS	Xunit.Sdk	FalseException	class
-type	AS	Xunit.Sdk	IAfterTestFinished	interface
-type	AS	Xunit.Sdk	IAfterTestStarting	interface
-type	AS	Xunit.Sdk	IAssemblyMetadata	interface
-type	AS	Xunit.Sdk	IAssemblyMetadataExtensions	static
-type	AS	Xunit.Sdk	IAssertEqualityComparerExtensions	static
-type	AS	Xunit.Sdk	IAssertEqualityComparer`1	interface
+type	AS	Xunit.Sdk	GeneralDigest	class
 type	AS	Xunit.Sdk	IAssertionException	interface
-type	AS	Xunit.Sdk	IBeforeTestFinished	interface
-type	AS	Xunit.Sdk	IBeforeTestStarting	interface
-type	AS	Xunit.Sdk	IDiagnosticMessage	interface
-type	AS	Xunit.Sdk	IDiscoveryComplete	interface
-type	AS	Xunit.Sdk	IDiscoveryStarting	interface
-type	AS	Xunit.Sdk	IErrorMessage	interface
-type	AS	Xunit.Sdk	IErrorMetadata	interface
-type	AS	Xunit.Sdk	IExecutionMetadata	interface
-type	AS	Xunit.Sdk	IExecutionSummaryMetadata	interface
-type	AS	Xunit.Sdk	IFinishedMessage	interface
-type	AS	Xunit.Sdk	IInternalDiagnosticMessage	interface
-type	AS	Xunit.Sdk	IJsonDeserializable	interface
-type	AS	Xunit.Sdk	IJsonSerializable	interface
-type	AS	Xunit.Sdk	IMessageSink	interface
-type	AS	Xunit.Sdk	IMessageSinkMessage	interface
-type	AS	Xunit.Sdk	IRegisterXunitSerializerAttribute	interface
-type	AS	Xunit.Sdk	IStartingMessage	interface
-type	AS	Xunit.Sdk	ITest	interface
-type	AS	Xunit.Sdk	ITestAssembly	interface
-type	AS	Xunit.Sdk	ITestAssemblyCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestAssemblyFinished	interface
-type	AS	Xunit.Sdk	ITestAssemblyMessage	interface
-type	AS	Xunit.Sdk	ITestAssemblyStarting	interface
-type	AS	Xunit.Sdk	ITestCase	interface
-type	AS	Xunit.Sdk	ITestCaseCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestCaseDiscovered	interface
-type	AS	Xunit.Sdk	ITestCaseFinished	interface
-type	AS	Xunit.Sdk	ITestCaseMessage	interface
-type	AS	Xunit.Sdk	ITestCaseMetadata	interface
-type	AS	Xunit.Sdk	ITestCaseStarting	interface
-type	AS	Xunit.Sdk	ITestClass	interface
-type	AS	Xunit.Sdk	ITestClassCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestClassConstructionFinished	interface
-type	AS	Xunit.Sdk	ITestClassConstructionStarting	interface
-type	AS	Xunit.Sdk	ITestClassDisposeFinished	interface
-type	AS	Xunit.Sdk	ITestClassDisposeStarting	interface
-type	AS	Xunit.Sdk	ITestClassFinished	interface
-type	AS	Xunit.Sdk	ITestClassMessage	interface
-type	AS	Xunit.Sdk	ITestClassMetadata	interface
-type	AS	Xunit.Sdk	ITestClassStarting	interface
-type	AS	Xunit.Sdk	ITestCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestCollection	interface
-type	AS	Xunit.Sdk	ITestCollectionCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestCollectionFinished	interface
-type	AS	Xunit.Sdk	ITestCollectionMessage	interface
-type	AS	Xunit.Sdk	ITestCollectionMetadata	interface
-type	AS	Xunit.Sdk	ITestCollectionStarting	interface
-type	AS	Xunit.Sdk	ITestFailed	interface
-type	AS	Xunit.Sdk	ITestFinished	interface
-type	AS	Xunit.Sdk	ITestFrameworkDiscoveryOptions	interface
-type	AS	Xunit.Sdk	ITestFrameworkExecutionOptions	interface
-type	AS	Xunit.Sdk	ITestFrameworkOptions	interface
-type	AS	Xunit.Sdk	ITestMessage	interface
-type	AS	Xunit.Sdk	ITestMetadata	interface
-type	AS	Xunit.Sdk	ITestMethod	interface
-type	AS	Xunit.Sdk	ITestMethodCleanupFailure	interface
-type	AS	Xunit.Sdk	ITestMethodFinished	interface
-type	AS	Xunit.Sdk	ITestMethodMessage	interface
-type	AS	Xunit.Sdk	ITestMethodMetadata	interface
-type	AS	Xunit.Sdk	ITestMethodStarting	interface
-type	AS	Xunit.Sdk	ITestNotRun	interface
-type	AS	Xunit.Sdk	ITestOutput	interface
-type	AS	Xunit.Sdk	ITestPassed	interface
-type	AS	Xunit.Sdk	ITestResultMessage	interface
-type	AS	Xunit.Sdk	ITestSkipped	interface
-type	AS	Xunit.Sdk	ITestStarting	interface
-type	AS	Xunit.Sdk	IXunitSerializable	interface
-type	AS	Xunit.Sdk	IXunitSerializationInfo	interface
-type	AS	Xunit.Sdk	IXunitSerializer	interface
+type	AS	Xunit.Sdk	IDataDiscoverer	interface
+type	AS	Xunit.Sdk	IMessageBus	interface
+type	AS	Xunit.Sdk	ITestCaseOrderer	interface
+type	AS	Xunit.Sdk	ITestFrameworkAttribute	interface
+type	AS	Xunit.Sdk	ITestFrameworkTypeDiscoverer	interface
+type	AS	Xunit.Sdk	ITraitAttribute	interface
+type	AS	Xunit.Sdk	ITraitDiscoverer	interface
+type	AS	Xunit.Sdk	IXunitTestCase	interface
+type	AS	Xunit.Sdk	IXunitTestCaseDiscoverer	interface
+type	AS	Xunit.Sdk	IXunitTestCollectionFactory	interface
 type	AS	Xunit.Sdk	InRangeException	class
+type	AS	Xunit.Sdk	InlineDataDiscoverer	class
 type	AS	Xunit.Sdk	IsAssignableFromException	class
 type	AS	Xunit.Sdk	IsNotAssignableFromException	class
 type	AS	Xunit.Sdk	IsNotTypeException	class
 type	AS	Xunit.Sdk	IsTypeException	class
-type	AS	Xunit.Sdk	JsonArraySerializer	class
-type	AS	Xunit.Sdk	JsonDeserializer	static
-type	AS	Xunit.Sdk	JsonObjectSerializer	class
-type	AS	Xunit.Sdk	JsonSerializerBase	class
-type	AS	Xunit.Sdk	JsonSerializerExtensions	static
-type	AS	Xunit.Sdk	JsonTypeIDAttribute	attribute
 type	AS	Xunit.Sdk	MatchesException	class
-type	AS	Xunit.Sdk	MessageSinkMessageExtensions	static
+type	AS	Xunit.Sdk	MaxConcurrencySyncContext	class
+type	AS	Xunit.Sdk	MemberDataDiscoverer	class
+type	AS	Xunit.Sdk	MessageBus	class
 type	AS	Xunit.Sdk	MultipleException	class
 type	AS	Xunit.Sdk	NotEmptyException	class
 type	AS	Xunit.Sdk	NotEqualException	class
 type	AS	Xunit.Sdk	NotInRangeException	class
 type	AS	Xunit.Sdk	NotNullException	class
-type	AS	Xunit.Sdk	NotRaisesException	class
 type	AS	Xunit.Sdk	NotSameException	class
 type	AS	Xunit.Sdk	NotStrictEqualException	class
 type	AS	Xunit.Sdk	NullException	class
 type	AS	Xunit.Sdk	NullMessageSink	class
 type	AS	Xunit.Sdk	ParallelAlgorithm	enum
-type	AS	Xunit.Sdk	ParallelAlgorithmExtensions	static
-type	AS	Xunit.Sdk	ParallelMode	enum
-type	AS	Xunit.Sdk	ParallelModeExtensions	static
+type	AS	Xunit.Sdk	PlatformSpecificAssemblyAttribute	attribute
 type	AS	Xunit.Sdk	ProperSubsetException	class
 type	AS	Xunit.Sdk	ProperSupersetException	class
 type	AS	Xunit.Sdk	PropertyChangedException	class
 type	AS	Xunit.Sdk	RaisesAnyException	class
 type	AS	Xunit.Sdk	RaisesException	class
-type	AS	Xunit.Sdk	Randomizer	static
-type	AS	Xunit.Sdk	ReflectionExtensions	static
-type	AS	Xunit.Sdk	RegisterXunitSerializerAttribute	attribute
+type	AS	Xunit.Sdk	ReflectionAssemblyInfo	class
+type	AS	Xunit.Sdk	ReflectionAttributeInfo	class
+type	AS	Xunit.Sdk	ReflectionMethodInfo	class
+type	AS	Xunit.Sdk	ReflectionParameterInfo	class
+type	AS	Xunit.Sdk	ReflectionTypeInfo	class
+type	AS	Xunit.Sdk	Reflector	static
+type	AS	Xunit.Sdk	RunSummary	class
 type	AS	Xunit.Sdk	SameException	class
-type	AS	Xunit.Sdk	SerializationHelper	class
+type	AS	Xunit.Sdk	SerializationHelper	static
+type	AS	Xunit.Sdk	Sha1Digest	class
 type	AS	Xunit.Sdk	SingleException	class
 type	AS	Xunit.Sdk	SkipException	class
+type	AS	Xunit.Sdk	SourceInformation	class
 type	AS	Xunit.Sdk	StartsWithException	class
 type	AS	Xunit.Sdk	StrictEqualException	class
-type	AS	Xunit.Sdk	StringAssertEqualityComparer	static
 type	AS	Xunit.Sdk	SubsetException	class
 type	AS	Xunit.Sdk	SupersetException	class
-type	AS	Xunit.Sdk	TestAttachment	class
-type	AS	Xunit.Sdk	TestAttachmentType	enum
-type	AS	Xunit.Sdk	TestFrameworkOptionsReadExtensions	static
-type	AS	Xunit.Sdk	TestFrameworkOptionsReadWriteExtensions	static
+type	AS	Xunit.Sdk	SynchronousMessageBus	class
+type	AS	Xunit.Sdk	TestAssembly	class
+type	AS	Xunit.Sdk	TestAssemblyCleanupFailure	class
+type	AS	Xunit.Sdk	TestAssemblyFinished	class
+type	AS	Xunit.Sdk	TestAssemblyMessage	class
+type	AS	Xunit.Sdk	TestAssemblyRunner`1	class
+type	AS	Xunit.Sdk	TestAssemblyStarting	class
+type	AS	Xunit.Sdk	TestCaseBulkDeserializer	class
+type	AS	Xunit.Sdk	TestCaseCleanupFailure	class
+type	AS	Xunit.Sdk	TestCaseDescriptorFactory	class
+type	AS	Xunit.Sdk	TestCaseDiscoveryMessage	class
+type	AS	Xunit.Sdk	TestCaseFinished	class
+type	AS	Xunit.Sdk	TestCaseMessage	class
+type	AS	Xunit.Sdk	TestCaseRunner`1	class
+type	AS	Xunit.Sdk	TestCaseStarting	class
+type	AS	Xunit.Sdk	TestClass	class
+type	AS	Xunit.Sdk	TestClassCleanupFailure	class
+type	AS	Xunit.Sdk	TestClassComparer	class
+type	AS	Xunit.Sdk	TestClassConstructionFinished	class
+type	AS	Xunit.Sdk	TestClassConstructionStarting	class
+type	AS	Xunit.Sdk	TestClassDisposeFinished	class
+type	AS	Xunit.Sdk	TestClassDisposeStarting	class
+type	AS	Xunit.Sdk	TestClassException	class
+type	AS	Xunit.Sdk	TestClassFinished	class
+type	AS	Xunit.Sdk	TestClassMessage	class
+type	AS	Xunit.Sdk	TestClassRunner`1	class
+type	AS	Xunit.Sdk	TestClassStarting	class
+type	AS	Xunit.Sdk	TestCleanupFailure	class
+type	AS	Xunit.Sdk	TestCollection	class
+type	AS	Xunit.Sdk	TestCollectionCleanupFailure	class
+type	AS	Xunit.Sdk	TestCollectionComparer	class
+type	AS	Xunit.Sdk	TestCollectionFactoryHelper	static
+type	AS	Xunit.Sdk	TestCollectionFinished	class
+type	AS	Xunit.Sdk	TestCollectionMessage	class
+type	AS	Xunit.Sdk	TestCollectionRunner`1	class
+type	AS	Xunit.Sdk	TestCollectionStarting	class
+type	AS	Xunit.Sdk	TestFailed	class
+type	AS	Xunit.Sdk	TestFinished	class
+type	AS	Xunit.Sdk	TestFramework	class
+type	AS	Xunit.Sdk	TestFrameworkDiscoverer	class
+type	AS	Xunit.Sdk	TestFrameworkDiscovererAttribute	attribute
+type	AS	Xunit.Sdk	TestFrameworkExecutor`1	class
+type	AS	Xunit.Sdk	TestFrameworkProxy	class
+type	AS	Xunit.Sdk	TestFrameworkProxy+MessageSinkWrapper	class
+type	AS	Xunit.Sdk	TestFrameworkTypeDiscoverer	class
+type	AS	Xunit.Sdk	TestInvoker`1	class
+type	AS	Xunit.Sdk	TestMessage	class
+type	AS	Xunit.Sdk	TestMethod	class
+type	AS	Xunit.Sdk	TestMethodCleanupFailure	class
+type	AS	Xunit.Sdk	TestMethodComparer	class
 type	AS	Xunit.Sdk	TestMethodDisplay	enum
-type	AS	Xunit.Sdk	TestMethodDisplayExtensions	static
 type	AS	Xunit.Sdk	TestMethodDisplayOptions	enum
-type	AS	Xunit.Sdk	TestMethodDisplayOptionsExtensions	static
-type	AS	Xunit.Sdk	TestOptionsNames	static
-type	AS	Xunit.Sdk	TestOptionsNames+Discovery	static
-type	AS	Xunit.Sdk	TestOptionsNames+Execution	static
-type	AS	Xunit.Sdk	TestPipelineException	class
+type	AS	Xunit.Sdk	TestMethodFinished	class
+type	AS	Xunit.Sdk	TestMethodMessage	class
+type	AS	Xunit.Sdk	TestMethodRunner`1	class
+type	AS	Xunit.Sdk	TestMethodStarting	class
+type	AS	Xunit.Sdk	TestMethodTestCase	class
+type	AS	Xunit.Sdk	TestOutput	class
+type	AS	Xunit.Sdk	TestOutputHelper	class
+type	AS	Xunit.Sdk	TestPassed	class
+type	AS	Xunit.Sdk	TestResultMessage	class
+type	AS	Xunit.Sdk	TestRunner`1	class
+type	AS	Xunit.Sdk	TestSkipped	class
+type	AS	Xunit.Sdk	TestStarting	class
 type	AS	Xunit.Sdk	TestTimeoutException	class
+type	AS	Xunit.Sdk	TheoryDiscoverer	class
 type	AS	Xunit.Sdk	ThrowsAnyException	class
 type	AS	Xunit.Sdk	ThrowsException	class
-type	AS	Xunit.Sdk	TraceAssertException	class
+type	AS	Xunit.Sdk	TraitDiscoverer	class
+type	AS	Xunit.Sdk	TraitDiscovererAttribute	attribute
+type	AS	Xunit.Sdk	TraitHelper	static
 type	AS	Xunit.Sdk	TrueException	class
-type	AS	Xunit.Sdk	TypeHelper	static
-type	AS	Xunit.Sdk	UniqueIDGenerator	class
-type	AS	Xunit.Sdk	UnsetPropertiesException	class
-type	AS	Xunit.Sdk	UnsetPropertyException	class
+type	AS	Xunit.Sdk	TypeUtility	static
 type	AS	Xunit.Sdk	XunitException	class
-type	AS	Xunit.Sdk	XunitSerializationInfo	class
-type	AS	Xunit.Sdk	XunitSerializationInfoExtensions	static
-type	AS	Xunit.Sdk	XunitSerializer`1	class
-type	AS	Xunit.v3	AfterTestFinished	class
-type	AS	Xunit.v3	AfterTestStarting	class
-type	AS	Xunit.v3	BeforeAfterTestAttribute	attribute
-type	AS	Xunit.v3	BeforeTestFinished	class
-type	AS	Xunit.v3	BeforeTestStarting	class
-type	AS	Xunit.v3	CollectionPerAssemblyTestCollectionFactory	class
-type	AS	Xunit.v3	CollectionPerClassTestCollectionFactory	class
-type	AS	Xunit.v3	ContextBase	class
-type	AS	Xunit.v3	CoreTestAssemblyRunnerContext`3	class
-type	AS	Xunit.v3	CoreTestAssemblyRunner`4	class
-type	AS	Xunit.v3	CoreTestCaseRunnerContext`2	class
-type	AS	Xunit.v3	CoreTestCaseRunner`3	class
-type	AS	Xunit.v3	CoreTestClassCreationResult	class
-type	AS	Xunit.v3	CoreTestClassRunnerContext`3	class
-type	AS	Xunit.v3	CoreTestClassRunner`4	class
-type	AS	Xunit.v3	CoreTestCollectionRunnerContext`3	class
-type	AS	Xunit.v3	CoreTestCollectionRunner`4	class
-type	AS	Xunit.v3	CoreTestFrameworkDiscoverer`1	class
-type	AS	Xunit.v3	CoreTestFrameworkExecutor`1	class
-type	AS	Xunit.v3	CoreTestMethodRunnerContext`2	class
-type	AS	Xunit.v3	CoreTestMethodRunner`3	class
-type	AS	Xunit.v3	CoreTestRunnerContext`2	class
-type	AS	Xunit.v3	CoreTestRunner`3	class
-type	AS	Xunit.v3	CulturedXunitDelayEnumeratedTheoryTestCase	class
-type	AS	Xunit.v3	CulturedXunitTestCase	class
-type	AS	Xunit.v3	DataAttribute	attribute
-type	AS	Xunit.v3	DefaultTestCaseOrderer	class
-type	AS	Xunit.v3	DefaultTestClassOrderer	class
-type	AS	Xunit.v3	DefaultTestCollectionOrderer	class
-type	AS	Xunit.v3	DefaultTestMethodOrderer	class
-type	AS	Xunit.v3	DelegatingMessageBus	class
-type	AS	Xunit.v3	DelegatingMessageBus`1	class
-type	AS	Xunit.v3	DelegatingMessageSink	class
-type	AS	Xunit.v3	DelegatingMessageSink`1	class
-type	AS	Xunit.v3	DiagnosticMessage	class
-type	AS	Xunit.v3	DiscoveryComplete	class
-type	AS	Xunit.v3	DiscoveryStarting	class
-type	AS	Xunit.v3	DisplayNameFormatter	class
-type	AS	Xunit.v3	DynamicSkipToken	static
-type	AS	Xunit.v3	ErrorMessage	class
-type	AS	Xunit.v3	ExceptionAggregator	struct
-type	AS	Xunit.v3	ExecutionErrorTestCase	class
-type	AS	Xunit.v3	ExecutionScheduler	class
-type	AS	Xunit.v3	ExecutionTimer	static
-type	AS	Xunit.v3	ExtensibilityPointFactory	static
-type	AS	Xunit.v3	FactDiscoverer	class
-type	AS	Xunit.v3	FixtureMappingManager	class
-type	AS	Xunit.v3	IAssemblyFixtureAttribute	interface
-type	AS	Xunit.v3	IBeforeAfterTestAttribute	interface
-type	AS	Xunit.v3	ICollectionAttribute	interface
-type	AS	Xunit.v3	ICollectionBehaviorAttribute	interface
-type	AS	Xunit.v3	ICoreTest	interface
-type	AS	Xunit.v3	ICoreTestAssembly	interface
-type	AS	Xunit.v3	ICoreTestCase	interface
-type	AS	Xunit.v3	ICoreTestClass	interface
-type	AS	Xunit.v3	ICoreTestCollection	interface
-type	AS	Xunit.v3	ICoreTestMethod	interface
-type	AS	Xunit.v3	IDataAttribute	interface
-type	AS	Xunit.v3	IFactAttribute	interface
-type	AS	Xunit.v3	IMessageBus	interface
-type	AS	Xunit.v3	INotifyLifecycle	interface
-type	AS	Xunit.v3	INotifyTestAssemblyLifecycle	interface
-type	AS	Xunit.v3	INotifyTestAssemblyLifecycleAsync	interface
-type	AS	Xunit.v3	INotifyTestCaseLifecycle	interface
-type	AS	Xunit.v3	INotifyTestCaseLifecycleAsync	interface
-type	AS	Xunit.v3	INotifyTestClassLifecycle	interface
-type	AS	Xunit.v3	INotifyTestClassLifecycleAsync	interface
-type	AS	Xunit.v3	INotifyTestCollectionLifecycle	interface
-type	AS	Xunit.v3	INotifyTestCollectionLifecycleAsync	interface
-type	AS	Xunit.v3	INotifyTestLifecycle	interface
-type	AS	Xunit.v3	INotifyTestLifecycleAsync	interface
-type	AS	Xunit.v3	INotifyTestMethodLifecycle	interface
-type	AS	Xunit.v3	INotifyTestMethodLifecycleAsync	interface
-type	AS	Xunit.v3	IParallelizationAttribute	interface
-type	AS	Xunit.v3	ISelfExecutingXunitTestCase	interface
-type	AS	Xunit.v3	ITestCaseOrderer	interface
-type	AS	Xunit.v3	ITestCaseOrdererAttribute	interface
-type	AS	Xunit.v3	ITestClassAttribute	interface
-type	AS	Xunit.v3	ITestClassOrderer	interface
-type	AS	Xunit.v3	ITestClassOrdererAttribute	interface
-type	AS	Xunit.v3	ITestCollectionOrderer	interface
-type	AS	Xunit.v3	ITestCollectionOrdererAttribute	interface
-type	AS	Xunit.v3	ITestFramework	interface
-type	AS	Xunit.v3	ITestFrameworkAttribute	interface
-type	AS	Xunit.v3	ITestFrameworkDiscoverer	interface
-type	AS	Xunit.v3	ITestFrameworkExecutor	interface
-type	AS	Xunit.v3	ITestMethodOrderer	interface
-type	AS	Xunit.v3	ITestMethodOrdererAttribute	interface
-type	AS	Xunit.v3	ITestOrdererAttribute	interface
-type	AS	Xunit.v3	ITestPipelineStartup	interface
-type	AS	Xunit.v3	ITestPipelineStartupAttribute	interface
-type	AS	Xunit.v3	ITestTimeoutException	interface
-type	AS	Xunit.v3	ITheoryAttribute	interface
-type	AS	Xunit.v3	ITraitAttribute	interface
-type	AS	Xunit.v3	ITypeActivator	interface
-type	AS	Xunit.v3	ITypeActivatorExtensions	static
-type	AS	Xunit.v3	ITypeAwareDataAttribute	interface
-type	AS	Xunit.v3	IXunitDelayEnumeratedTestCase	interface
-type	AS	Xunit.v3	IXunitTest	interface
-type	AS	Xunit.v3	IXunitTestAssembly	interface
-type	AS	Xunit.v3	IXunitTestCase	interface
-type	AS	Xunit.v3	IXunitTestCaseDiscoverer	interface
-type	AS	Xunit.v3	IXunitTestCaseDiscovererAttribute	interface
-type	AS	Xunit.v3	IXunitTestClass	interface
-type	AS	Xunit.v3	IXunitTestCollection	interface
-type	AS	Xunit.v3	IXunitTestCollectionFactory	interface
-type	AS	Xunit.v3	IXunitTestMethod	interface
-type	AS	Xunit.v3	InProcessFrontController	class
-type	AS	Xunit.v3	InternalDiagnosticMessage	class
-type	AS	Xunit.v3	MaxConcurrencySyncContext	class
-type	AS	Xunit.v3	MemberDataAttributeBase	attribute
-type	AS	Xunit.v3	MessageSinkMessage	class
-type	AS	Xunit.v3	ParallelizationAttribute	attribute
-type	AS	Xunit.v3	RegisteredEngineConfig	static
-type	AS	Xunit.v3	RunSummary	struct
-type	AS	Xunit.v3	TestAssemblyCleanupFailure	class
-type	AS	Xunit.v3	TestAssemblyFinished	class
-type	AS	Xunit.v3	TestAssemblyMessage	class
-type	AS	Xunit.v3	TestAssemblyRunnerContext`2	class
-type	AS	Xunit.v3	TestAssemblyRunner`4	class
-type	AS	Xunit.v3	TestAssemblyStarting	class
-type	AS	Xunit.v3	TestCaseCleanupFailure	class
-type	AS	Xunit.v3	TestCaseDiscovered	class
-type	AS	Xunit.v3	TestCaseFinished	class
-type	AS	Xunit.v3	TestCaseMessage	class
-type	AS	Xunit.v3	TestCaseRunnerBaseContext`1	class
-type	AS	Xunit.v3	TestCaseRunnerBase`2	class
-type	AS	Xunit.v3	TestCaseRunnerContext`2	class
-type	AS	Xunit.v3	TestCaseRunner`3	class
-type	AS	Xunit.v3	TestCaseStarting	class
-type	AS	Xunit.v3	TestClassCleanupFailure	class
-type	AS	Xunit.v3	TestClassComparer	class
-type	AS	Xunit.v3	TestClassComparer`1	class
-type	AS	Xunit.v3	TestClassConstructionFinished	class
-type	AS	Xunit.v3	TestClassConstructionStarting	class
-type	AS	Xunit.v3	TestClassDisposeFinished	class
-type	AS	Xunit.v3	TestClassDisposeStarting	class
-type	AS	Xunit.v3	TestClassFinished	class
-type	AS	Xunit.v3	TestClassMessage	class
-type	AS	Xunit.v3	TestClassRunnerContext`2	class
-type	AS	Xunit.v3	TestClassRunner`4	class
-type	AS	Xunit.v3	TestClassStarting	class
-type	AS	Xunit.v3	TestCleanupFailure	class
-type	AS	Xunit.v3	TestCollectionCleanupFailure	class
-type	AS	Xunit.v3	TestCollectionComparer`1	class
-type	AS	Xunit.v3	TestCollectionFactoryBase	class
-type	AS	Xunit.v3	TestCollectionFinished	class
-type	AS	Xunit.v3	TestCollectionMessage	class
-type	AS	Xunit.v3	TestCollectionRunnerContext`2	class
-type	AS	Xunit.v3	TestCollectionRunner`4	class
-type	AS	Xunit.v3	TestCollectionStarting	class
-type	AS	Xunit.v3	TestContextAccessor	class
-type	AS	Xunit.v3	TestFailed	class
-type	AS	Xunit.v3	TestFinished	class
-type	AS	Xunit.v3	TestFramework	class
-type	AS	Xunit.v3	TestFrameworkDiscoverer`1	class
-type	AS	Xunit.v3	TestFrameworkExecutor`1	class
-type	AS	Xunit.v3	TestIntrospectionHelper	static
-type	AS	Xunit.v3	TestMessage	class
-type	AS	Xunit.v3	TestMethodCleanupFailure	class
-type	AS	Xunit.v3	TestMethodComparer	class
-type	AS	Xunit.v3	TestMethodComparer`1	class
-type	AS	Xunit.v3	TestMethodFinished	class
-type	AS	Xunit.v3	TestMethodMessage	class
-type	AS	Xunit.v3	TestMethodRunnerContext`2	class
-type	AS	Xunit.v3	TestMethodRunner`3	class
-type	AS	Xunit.v3	TestMethodStarting	class
-type	AS	Xunit.v3	TestNotRun	class
-type	AS	Xunit.v3	TestOutput	class
-type	AS	Xunit.v3	TestOutputHelper	class
-type	AS	Xunit.v3	TestPassed	class
-type	AS	Xunit.v3	TestPipelineStartupAttribute	attribute
-type	AS	Xunit.v3	TestPipelineStartupAttribute`1	attribute
-type	AS	Xunit.v3	TestResultMessage	class
-type	AS	Xunit.v3	TestRunnerBaseContext`1	class
-type	AS	Xunit.v3	TestRunnerBase`2	class
-type	AS	Xunit.v3	TestRunnerContext`1	class
-type	AS	Xunit.v3	TestRunner`2	class
-type	AS	Xunit.v3	TestSkipped	class
-type	AS	Xunit.v3	TestStarting	class
-type	AS	Xunit.v3	TheoryDiscoverer	class
-type	AS	Xunit.v3	TypeActivator	static
-type	AS	Xunit.v3	UnorderedTestCaseOrderer	class
-type	AS	Xunit.v3	UnorderedTestClassOrderer	class
-type	AS	Xunit.v3	UnorderedTestCollectionOrderer	class
-type	AS	Xunit.v3	UnorderedTestMethodOrderer	class
-type	AS	Xunit.v3	XunitDelayEnumeratedTheoryTestCase	class
-type	AS	Xunit.v3	XunitRunnerHelper	static
-type	AS	Xunit.v3	XunitTest	class
-type	AS	Xunit.v3	XunitTestAssembly	class
-type	AS	Xunit.v3	XunitTestAssemblyRunner	class
-type	AS	Xunit.v3	XunitTestAssemblyRunnerBaseContext`3	class
-type	AS	Xunit.v3	XunitTestAssemblyRunnerBase`4	class
-type	AS	Xunit.v3	XunitTestAssemblyRunnerContext	class
-type	AS	Xunit.v3	XunitTestCase	class
-type	AS	Xunit.v3	XunitTestCaseDiscovererAttribute	attribute
-type	AS	Xunit.v3	XunitTestCaseDiscovererAttribute`1	attribute
-type	AS	Xunit.v3	XunitTestCaseRunner	class
-type	AS	Xunit.v3	XunitTestCaseRunnerBaseContext`2	class
-type	AS	Xunit.v3	XunitTestCaseRunnerBase`3	class
-type	AS	Xunit.v3	XunitTestCaseRunnerContext	class
-type	AS	Xunit.v3	XunitTestClass	class
-type	AS	Xunit.v3	XunitTestClassRunner	class
-type	AS	Xunit.v3	XunitTestClassRunnerBaseContext`3	class
-type	AS	Xunit.v3	XunitTestClassRunnerBase`4	class
-type	AS	Xunit.v3	XunitTestClassRunnerContext	class
-type	AS	Xunit.v3	XunitTestCollection	class
-type	AS	Xunit.v3	XunitTestCollectionRunner	class
-type	AS	Xunit.v3	XunitTestCollectionRunnerBaseContext`3	class
-type	AS	Xunit.v3	XunitTestCollectionRunnerBase`4	class
-type	AS	Xunit.v3	XunitTestCollectionRunnerContext	class
-type	AS	Xunit.v3	XunitTestFramework	class
-type	AS	Xunit.v3	XunitTestFrameworkDiscoverer	class
-type	AS	Xunit.v3	XunitTestFrameworkExecutor	class
-type	AS	Xunit.v3	XunitTestMethod	class
-type	AS	Xunit.v3	XunitTestMethodRunner	class
-type	AS	Xunit.v3	XunitTestMethodRunnerBaseContext`2	class
-type	AS	Xunit.v3	XunitTestMethodRunnerBase`3	class
-type	AS	Xunit.v3	XunitTestMethodRunnerContext	class
-type	AS	Xunit.v3	XunitTestRunner	class
-type	AS	Xunit.v3	XunitTestRunnerBaseContext`1	class
-type	AS	Xunit.v3	XunitTestRunnerBase`2	class
-type	AS	Xunit.v3	XunitTestRunnerContext	class
-extensions	AS		GetAllMessages
+type	AS	Xunit.Sdk	XunitSkippedDataRowTestCase	class
+type	AS	Xunit.Sdk	XunitTest	class
+type	AS	Xunit.Sdk	XunitTestAssemblyRunner	class
+type	AS	Xunit.Sdk	XunitTestCase	class
+type	AS	Xunit.Sdk	XunitTestCaseDiscovererAttribute	attribute
+type	AS	Xunit.Sdk	XunitTestCaseRunner	class
+type	AS	Xunit.Sdk	XunitTestClassRunner	class
+type	AS	Xunit.Sdk	XunitTestCollectionRunner	class
+type	AS	Xunit.Sdk	XunitTestFramework	class
+type	AS	Xunit.Sdk	XunitTestFrameworkDiscoverer	class
+type	AS	Xunit.Sdk	XunitTestFrameworkExecutor	class
+type	AS	Xunit.Sdk	XunitTestInvoker	class
+type	AS	Xunit.Sdk	XunitTestMethodRunner	class
+type	AS	Xunit.Sdk	XunitTestRunner	class
+type	AS	Xunit.Sdk	XunitTheoryTestCase	class
+type	AS	Xunit.Sdk	XunitTheoryTestCaseRunner	class
+extensions	AS		CreateTestClass DiagnosticMessages DiagnosticMessagesOrDefault DisableParallelization DisableParallelizationOrDefault DisposeTestClass GetAllMessages GetCustomAttributes GetMatchingMethods MaxParallelThreads MaxParallelThreadsOrDefault MethodDisplay MethodDisplayOptions MethodDisplayOptionsOrDefault MethodDisplayOrDefault ParallelAlgorithm ParallelAlgorithmOrDefault PreEnumerateTheories PreEnumerateTheoriesOrDefault ShowLiveOutput ShowLiveOutputOrDefault StopOnTestFail StopOnTestFailOrDefault SynchronousMessageReporting SynchronousMessageReportingOrDefault ToRuntimeMethod ToRuntimeType
 extensions	AS	Cratis.Arc	AddCratisArc AddCratisArcActivitySource AddCratisArcCore AddCratisArcMeter ConfigureArcDefaults ConvertTo MapFallbackToFile MapGet MapPost RunAsync SanitizeUrl ToKebabCase UseCratisArc UsePathBase UseStaticFiles WithChronicle WithoutControllers
 extensions	AS	Cratis.Arc.Authorization	AddArcAnonymousAspNetAuthorizationPolicy AddArcAuthorizationPolicy IsAnonymousAllowed
 extensions	AS	Cratis.Arc.Chronicle.Aggregates	GetEventStreamType
@@ -12521,7 +12126,7 @@ extensions	AS	Cratis.Orleans.Tenancy	AddTenancy
 extensions	AS	Cratis.Reactive	CompletedBy InvokeAndWrapWithSubject InvokeAndWrapWithTransformSubject
 extensions	AS	Cratis.Reflection	AllBaseAndImplementingTypes CallGenericMethod GetActualReturnType GetAsyncEnumerableElementType GetDefaultConstructor GetEnumerableElementType GetFieldInfo GetInstance GetKeyType GetKeyValuePairs GetMemberExpression GetMethodArguments GetMethodInfo GetNonDefaultConstructor GetNonDefaultConstructorWithGreatestNumberOfParameters GetNullableType GetPropertyInfo GetSettableProperties GetTypeInfoDetails GetTypeString GetValueType HasAttribute HasDefaultConstructor HasInterface HasNonDefaultConstructor HasVisibleProperties Implements ImplementsOpenGeneric Is IsAPrimitiveType IsAsync IsBoolean IsComparable IsDate IsDateOnly IsDateTimeOffset IsDelegate IsDerivedFromOpenGeneric IsDictionary IsEnumerable IsGuid IsNullable IsNullableContext IsNullableReferenceType IsNumericType IsRecord IsString IsTimeOnly IsTimeSpan Unwrap
 extensions	AS	Cratis.Screenplay.Semantics	GetAffectedInstances Keyword
-extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldContainSingleMatching ShouldEachConformTo ShouldEqual ShouldEqualInAnyOrder ShouldEqualInOrder ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
+extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldEachConformTo ShouldEqual ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
 extensions	AS	Cratis.Strings	ToCamelCase ToPascalCase
 extensions	AS	FluentValidation	Cascade ChildRules Configurable Configure CreditCard Custom CustomAsync EmailAddress Empty Equal ExclusiveBetween ForEach GreaterThan GreaterThanOrEqualTo InclusiveBetween IsEnumName IsInEnum Length LessThan LessThanOrEqualTo Matches MaximumLength MinimumLength Must MustAsync NotEmpty NotEqual NotNull Null OverrideIndexer OverridePropertyName PrecisionScale SetAsyncValidator SetInheritanceValidator SetValidator Unless UnlessAsync Validate ValidateAndThrow ValidateAndThrowAsync ValidateAsync When WhenAsync Where WhereAsync WithErrorCode WithMessage WithName WithSeverity WithState
 extensions	AS	FluentValidation.Internal	GetMember
@@ -12599,11 +12204,7 @@ extensions	AS	System.Threading.Tasks.Dataflow	AsObservable AsObserver Choose Enc
 extensions	AS	System.Xml.Linq	Ancestors AncestorsAndSelf Attributes DescendantNodes DescendantNodesAndSelf Descendants DescendantsAndSelf Elements InDocumentOrder Nodes Remove
 extensions	AS	System.Xml.Schema	GetSchemaInfo Validate
 extensions	AS	System.Xml.XPath	CreateNavigator ToXPathNavigable XPathEvaluate XPathSelectElement XPathSelectElements
-extensions	AS	Xunit	GetFixture MicrosoftTestingPlatformSession WithExplicit WithSkip WithTestDisplayName WithTimeout WithTrait
-extensions	AS	Xunit.Internal	Add AddOrGet AddRange AsValueTask CastOrToArray CastOrToList CastOrToReadOnlyCollection CastOrToReadOnlyList Contains ContainsIgnoreCase ContainsOrdinal ForEach FormatTestCaseIndex GetFixtureCache GetLocalCodeBase GetSafeCodeBase GetSafeLocation GetTargetFramework Indent IndexOfOrdinal Quoted QuotedWithTrim ReplaceOrdinal SelectArray SelectArrayNotNull SelectList SelectListNotNull SelectNotNull SelectReadOnlyCollection SelectReadOnlyCollectionNotNull SplitAtOuterCommas ToDisplayName ToReadOnly ToReadWrite ToRtf ToRtfUtc ToTimespanRtf TryAdd Unwrap ValidateNullablePropertyValue WhereNotNull WhereNotNullOrWhitespace
-extensions	AS	Xunit.Runner.Common	IsValid LogError LogImportantMessage LogMessage LogRaw LogWarning ValidValues WriteMessageJson
-extensions	AS	Xunit.Sdk	AddValue AsTracker AssertEquivalentMaxDepth Culture DiagnosticMessages DiagnosticMessagesOrDefault DisableParallelization DisableParallelizationOrDefault DispatchWhen Ellipsis Equals EscapeString ExplicitOption ExplicitOptionOrDefault FailSkips FailSkipsOrDefault FailTestsWithWarnings FailTestsWithWarningsOrDefault Format FormatTypeName GetArity GetAssertEquivalentMaxDepth GetCulture GetDefaultValue GetDiagnosticMessages GetDiagnosticMessagesOrDefault GetDisableParallelization GetDisableParallelizationOrDefault GetDisplayNameWithArguments GetEnumerator GetExplicitOption GetExplicitOptionOrDefault GetFailSkips GetFailSkipsOrDefault GetFailTestsWithWarnings GetFailTestsWithWarningsOrDefault GetIncludeSourceInformation GetIncludeSourceInformationOrDefault GetInternalDiagnosticMessages GetInternalDiagnosticMessagesOrDefault GetMatchingCustomAttributes GetMaxParallelThreads GetMaxParallelThreadsOrDefault GetMethodDisplay GetMethodDisplayOptions GetMethodDisplayOptionsOrDefault GetMethodDisplayOrDefault GetParallelAlgorithm GetParallelAlgorithmOrDefault GetParallelMode GetParallelModeOrDefault GetPreEnumerateTheories GetPreEnumerateTheoriesOrDefault GetPrintMaxEnumerableLength GetPrintMaxObjectDepth GetPrintMaxObjectMemberCount GetPrintMaxStringLength GetSeed GetShowLiveOutput GetShowLiveOutputOrDefault GetStopOnTestFail GetStopOnTestFailOrDefault GetSynchronousMessageReporting GetSynchronousMessageReportingOrDefault GetValue Implements IncludeSourceInformation IncludeSourceInformationOrDefault IsFromLocalAssembly IsNullable IsNullableEnum IsStatic IsValid MaxEnumerableLength MaxObjectDepth MaxObjectMemberCount MaxParallelThreads MaxParallelThreadsOrDefault MaxStringLength MethodDisplay MethodDisplayOptions MethodDisplayOptionsOrDefault MethodDisplayOrDefault ParallelAlgorithm ParallelAlgorithmOrDefault ParallelMode ParallelModeOrDefault PreEnumerateTheories PreEnumerateTheoriesOrDefault PrintMaxEnumerableLength PrintMaxObjectDepth PrintMaxObjectMemberCount PrintMaxStringLength ResolveGenericTypes ResolveMethodArguments SafeName Seed SerializeIntArray SerializeStringArray SerializeTraits SetAssertEquivalentMaxDepth SetCulture SetDiagnosticMessages SetDisableParallelization SetExplicitOption SetFailSkips SetFailTestsWithWarnings SetIncludeSourceInformation SetInternalDiagnosticMessages SetMaxParallelThreads SetMethodDisplay SetMethodDisplayOptions SetParallelAlgorithm SetParallelMode SetPreEnumerateTheories SetPrintMaxEnumerableLength SetPrintMaxObjectDepth SetPrintMaxObjectMemberCount SetPrintMaxStringLength SetSeed SetShowLiveOutput SetStopOnTestFail SetSynchronousMessageReporting ShowLiveOutput ShowLiveOutputOrDefault SimpleAssemblyName StopOnTestFail StopOnTestFailOrDefault SynchronousMessageReporting SynchronousMessageReportingOrDefault ToCommaSeparatedList ToDisplayName ToSimpleName ToTestCaseDiscovered ToVSTestTypeName UnwrapNullable ValidValues WithOverrides WithSourceInfo
-extensions	AS	Xunit.v3	CreateInstance
+extensions	AS	Xunit.Sdk	AsTracker ConvertToSimpleTypeName Ellipsis EscapeString Format FormatTypeName GetDisplayNameWithArguments GetEnumerator ResolveGenericType ResolveGenericTypes ResolveMethodArguments
 base	AS	Cratis.Arc.ApiEndpointOptions	System.Object	EnableQueryHttpMethod IncludeCommandNameInRoute IncludeQueryNameInRoute RoutePrefix SegmentsToSkipForRoute	-
 base	AS	Cratis.Arc.ArcApplication	System.Object	CreateBuilder Dispose DisposeAsync Options Services StartAsync StopAsync	-
 base	AS	Cratis.Arc.ArcApplicationBuilder	System.Object	Build Configuration ConfigureContainer Environment Logging Metrics Properties Services	-
@@ -14255,26 +13856,23 @@ base	AS	Cratis.Serialization.DefaultNamingPolicy	Cratis.Serialization.NamingPoli
 base	AS	Cratis.Serialization.DerivedTypeId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers id	-
 base	AS	Cratis.Serialization.DerivedTypeJsonConverterFactory	System.Text.Json.Serialization.JsonConverterFactory	CanConvert CreateConverter	-
 base	AS	Cratis.Serialization.DerivedTypeJsonConverter`1	System.Text.Json.Serialization.JsonConverter`1	DerivedTypeIdProperty Read Write	-
-base	AS	Cratis.Serialization.DerivedTypes	System.Object	For GetDerivedTypeFor GetTargetTypeFor HasDerivatives Instance IsDerivedType TypesWithDerivatives	-
+base	AS	Cratis.Serialization.DerivedTypes	System.Object	GetDerivedTypeFor GetTargetTypeFor HasDerivatives Instance IsDerivedType TypesWithDerivatives	-
 base	AS	Cratis.Serialization.MissingDerivedTypeForTargetType	System.Exception	-	-
 base	AS	Cratis.Serialization.MissingTargetTypeForDerivedType	System.Exception	-	-
 base	AS	Cratis.Serialization.NamespacedNamingPolicy	Cratis.Serialization.NamingPolicy	GetPropertyNameImplementation GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.NamingPolicy	System.Object	GetPropertyName GetPropertyNameImplementation GetReadModelName GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.TargetTypeMismatchForDerivedType	System.Exception	-	-
-base	AS	Cratis.Specifications.AmbiguousLifecycleMethod	System.Exception	-	-
 base	AS	Cratis.Specifications.Specification	System.Object	DisposeAsync InitializeAsync	-
 base	AS	Cratis.Specifications.SpecificationCancelledException	System.Exception	-	-
-base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.v3.XunitTestAssemblyRunner	Instance OnTestAssemblyFinished RunTestCollection	-
-base	AS	Cratis.Specifications.SpecificationTestCase	Xunit.v3.XunitTestCase	-	-
-base	AS	Cratis.Specifications.SpecificationTestCaseRunner	Xunit.v3.XunitTestCaseRunner	RunTest	-
-base	AS	Cratis.Specifications.SpecificationTestClassRunner	Xunit.v3.XunitTestClassRunner	OnTestClassFinished OnTestClassStarting RunTestMethod	-
-base	AS	Cratis.Specifications.SpecificationTestCollectionRunner	Xunit.v3.XunitTestCollectionRunner	Instance RunTestClass	-
-base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.v3.XunitTestFramework	CreateDiscoverer CreateExecutor	-
-base	AS	Cratis.Specifications.SpecificationTestFrameworkDiscoverer	Xunit.v3.XunitTestFrameworkDiscoverer	FindTestsForMethod	-
-base	AS	Cratis.Specifications.SpecificationTestFrameworkExecutor	Xunit.v3.XunitTestFrameworkExecutor	RunTestCases	-
-base	AS	Cratis.Specifications.SpecificationTestMethodRunner	Xunit.v3.XunitTestMethodRunner	RunTestCase	-
-base	AS	Cratis.Specifications.SpecificationTestRunner	Xunit.v3.XunitTestRunner	CreateTestClassInstance IsTestClassDisposable	-
-base	AS	Cratis.Specifications.SpecificationTheoryTestCase	Xunit.v3.XunitDelayEnumeratedTheoryTestCase	-	-
+base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.Sdk.XunitTestAssemblyRunner	Dispose RunTestCollectionAsync	-
+base	AS	Cratis.Specifications.SpecificationTestCaseRunner	Xunit.Sdk.XunitTestCaseRunner	CreateTestRunner	-
+base	AS	Cratis.Specifications.SpecificationTestClassRunner	Xunit.Sdk.XunitTestClassRunner	AfterTestClassStartingAsync BeforeTestClassFinishedAsync RunTestMethodAsync	-
+base	AS	Cratis.Specifications.SpecificationTestCollectionRunner	Xunit.Sdk.XunitTestCollectionRunner	RunTestClassAsync	-
+base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.Sdk.XunitTestFramework	CreateExecutor	-
+base	AS	Cratis.Specifications.SpecificationTestFrameworkExecutor	Xunit.Sdk.XunitTestFrameworkExecutor	RunTestCases	-
+base	AS	Cratis.Specifications.SpecificationTestInvoker	Xunit.Sdk.XunitTestInvoker	CreateTestClass	-
+base	AS	Cratis.Specifications.SpecificationTestMethodRunner	Xunit.Sdk.XunitTestMethodRunner	RunTestCaseAsync	-
+base	AS	Cratis.Specifications.SpecificationTestRunner	Xunit.Sdk.XunitTestRunner	InvokeTestMethodAsync	-
 base	AS	Cratis.Tasks.TaskFactory	System.Object	Delay Run	-
 base	AS	Cratis.Timers.Timer	System.Object	Dispose	-
 base	AS	Cratis.Timers.TimerFactory	System.Object	Create	-
@@ -15056,6 +14654,29 @@ base	AS	NSubstitute.Routing.Handlers.SetActionForCallHandler	System.Object	Handl
 base	AS	NSubstitute.Routing.Handlers.TrackLastCallHandler	System.Object	Handle	-
 base	AS	NSubstitute.Routing.Route	System.Object	Handle Handlers	-
 base	AS	NSubstitute.Routing.RouteFactory	System.Object	CallBase CallQuery CheckReceivedCalls DoNotCallBase DoWhenCalled RaiseEvent RecordCallSpecification RecordReplay	-
+base	AS	OneOf.OneOfBase`1	System.Object	AsT0 Equals GetHashCode Index IsT0 Match Switch ToString Value	-
+base	AS	OneOf.OneOfBase`2	System.Object	AsT0 AsT1 Equals GetHashCode Index IsT0 IsT1 Match Switch ToString TryPickT0 TryPickT1 Value	-
+base	AS	OneOf.OneOfBase`3	System.Object	AsT0 AsT1 AsT2 Equals GetHashCode Index IsT0 IsT1 IsT2 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 Value	-
+base	AS	OneOf.OneOfBase`4	System.Object	AsT0 AsT1 AsT2 AsT3 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 Value	-
+base	AS	OneOf.OneOfBase`5	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 Value	-
+base	AS	OneOf.OneOfBase`6	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 Value	-
+base	AS	OneOf.OneOfBase`7	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 Value	-
+base	AS	OneOf.OneOfBase`8	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 AsT7 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 IsT7 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 TryPickT7 Value	-
+base	AS	OneOf.OneOfBase`9	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 AsT7 AsT8 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 IsT7 IsT8 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 TryPickT7 TryPickT8 Value	-
+base	AS	OneOf.Types.TrueFalseOrNull	OneOf.OneOfBase`3	-	False Null True
+base	AS	OneOf.Types.TrueFalseOrNull+False	System.Object	-	-
+base	AS	OneOf.Types.TrueFalseOrNull+Null	System.Object	-	-
+base	AS	OneOf.Types.TrueFalseOrNull+True	System.Object	-	-
+base	AS	OneOf.Types.TrueOrFalse	OneOf.OneOfBase`2	-	False True
+base	AS	OneOf.Types.TrueOrFalse+False	System.Object	-	-
+base	AS	OneOf.Types.TrueOrFalse+True	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe	OneOf.OneOfBase`3	-	Maybe No Yes
+base	AS	OneOf.Types.YesNoOrMaybe+Maybe	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe+No	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe+Yes	System.Object	-	-
+base	AS	OneOf.Types.YesOrNo	OneOf.OneOfBase`2	-	No Yes
+base	AS	OneOf.Types.YesOrNo+No	System.Object	-	-
+base	AS	OneOf.Types.YesOrNo+Yes	System.Object	-	-
 base	AS	Orleans.AsyncSerialExecutor	System.Object	AddNext	-
 base	AS	Orleans.AsyncSerialExecutor`1	System.Object	AddNext	-
 base	AS	Orleans.BatchWorker	System.Object	CancellationToken IsIdle Notify NotifyAndWaitForWorkToBeServiced WaitForCurrentWorkToBeServiced Work	-
@@ -16533,305 +16154,184 @@ base	AS	System.Xml.Xsl.XsltCompileException	System.Xml.Xsl.XsltException	GetObje
 base	AS	System.Xml.Xsl.XsltContext	System.Xml.XmlNamespaceManager	CompareDocument PreserveWhitespace ResolveFunction ResolveVariable Whitespace	-
 base	AS	System.Xml.Xsl.XsltException	System.SystemException	GetObjectData LineNumber LinePosition Message SourceUri	-
 base	AS	System.Xml.Xsl.XsltMessageEncounteredEventArgs	System.EventArgs	Message	-
-base	AS	Xunit.AssemblyFixtureAttribute	System.Attribute	AssemblyFixtureType	-
-base	AS	Xunit.Assert	System.Object	All AllAsync Collection CollectionAsync Contains Distinct DoesNotContain DoesNotMatch Empty EndsWith Equal Equals Equivalent EquivalentWithExclusions Fail False InRange IsAssignableFrom IsNotAssignableFrom IsNotType IsType Matches Multiple MultipleAsync NotEmpty NotEqual NotInRange NotNull NotRaisedAny NotRaisedAnyAsync NotSame NotStrictEqual Null OverrideMaxEnumerableLength OverrideMaxObjectDepth OverrideMaxObjectMemberCount OverrideMaxStringLength ProperSubset ProperSuperset PropertyChanged PropertyChangedAsync Raises RaisesAny RaisesAnyAsync RaisesAsync RecordException RecordExceptionAsync ReferenceEquals Same Single Skip SkipUnless SkipWhen StartsWith StrictEqual Subset Superset Throws ThrowsAny ThrowsAnyAsync ThrowsAsync True	RaisedEvent
+base	AS	Xunit.Assert	System.Object	All AllAsync Collection CollectionAsync Contains Distinct DoesNotContain DoesNotMatch Empty EndsWith Equal Equals Equivalent Fail False InRange IsAssignableFrom IsNotAssignableFrom IsNotType IsType Matches Multiple NotEmpty NotEqual NotInRange NotNull NotSame NotStrictEqual Null ProperSubset ProperSuperset PropertyChanged PropertyChangedAsync Raises RaisesAny RaisesAnyAsync RaisesAsync RecordException RecordExceptionAsync ReferenceEquals Same Single StartsWith StrictEqual Subset Superset Throws ThrowsAny ThrowsAnyAsync ThrowsAsync True	RaisedEvent
 base	AS	Xunit.Assert+RaisedEvent`1	System.Object	Arguments Sender	-
-base	AS	Xunit.AssertEquivalenceComparer	System.Object	Equals GetHashCode	-
-base	AS	Xunit.AssertEquivalenceComparer`1	System.Object	Equals GetHashCode	-
-base	AS	Xunit.ClassDataAttribute	Xunit.v3.DataAttribute	Class ConvertDataRow GetData SupportsDiscoveryEnumeration	-
-base	AS	Xunit.CulturedFactAttribute	Xunit.FactAttribute	Cultures	-
-base	AS	Xunit.CulturedFactAttributeDiscoverer	System.Object	Discover	-
-base	AS	Xunit.CulturedTheoryAttribute	Xunit.TheoryAttribute	Cultures	-
-base	AS	Xunit.CulturedTheoryAttributeDiscoverer	Xunit.v3.TheoryDiscoverer	CreateTestCasesForDataRow CreateTestCasesForTheory	-
-base	AS	Xunit.FactAttribute	System.Attribute	DisableParallelization DisplayName Explicit Skip SkipExceptions SkipType SkipUnless SkipWhen SourceFilePath SourceLineNumber Timeout	-
-base	AS	Xunit.FrontControllerFindAndRunSettings	Xunit.FrontControllerSettingsBase	DiscoveryOptions ExecutionOptions Filters	-
-base	AS	Xunit.FrontControllerFindSettings	Xunit.FrontControllerSettingsBase	Filters Options	-
-base	AS	Xunit.FrontControllerLaunchOptions	System.Object	WaitForDebugger	-
-base	AS	Xunit.FrontControllerRunSettings	Xunit.FrontControllerSettingsBase	Options SerializedTestCases TestCaseIDsToRun WithSerializedTestCases WithSerializedTestCasesAndTestCaseIDs WithTestCaseIDs	-
-base	AS	Xunit.FrontControllerSettingsBase	System.Object	LaunchOptions	-
-base	AS	Xunit.Internal.CommandLineParserBase	System.Object	AddHiddenParser AddParser Args ConsoleHelper FileExists GetFullPath GuardNoOptionValue HelpRequested IsConfigFile OnAssertEquivalentMaxDepth OnDisplayName OnDisplayNameMinus OnParallel OnPause OnWait ParseInternal ParseWarnings PrintUsage Project ResultWriters RunnerReporters	-
-base	AS	Xunit.Internal.ConsoleCaptureTestOutputWriter	System.IO.TextWriter	Dispose Encoding Write	-
-base	AS	Xunit.Internal.FileSystem	System.Object	CreateDirectory Exists Instance ReadAllBytes ReadAllText WriteAllBytes WriteAllText	-
-base	AS	Xunit.Internal.MarkupResultWriterMessageHandlerBase	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync OnMessage	-
-base	AS	Xunit.Internal.MessageBus	System.Object	Dispose QueueMessage	-
-base	AS	Xunit.Internal.PreserveWorkingFolder	System.Object	Dispose	-
-base	AS	Xunit.Internal.ResultMetadataBase	System.Object	-	-
-base	AS	Xunit.Internal.ResultMetadataMessageHandlerBase`1	System.Object	OnMessage	-
-base	AS	Xunit.Internal.SynchronousMessageBus	System.Object	Dispose QueueMessage	-
-base	AS	Xunit.Internal.TraceAssertOverrideListener	System.Diagnostics.TraceListener	Dispose Fail Write WriteLine	-
-base	AS	Xunit.Internal.XunitXmlResultWriterMessageHandlerBase`1	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync	-
-base	AS	Xunit.MatrixTheoryData`10	Xunit.TheoryData`10	-	-
-base	AS	Xunit.MatrixTheoryData`11	Xunit.TheoryData`11	-	-
-base	AS	Xunit.MatrixTheoryData`12	Xunit.TheoryData`12	-	-
-base	AS	Xunit.MatrixTheoryData`13	Xunit.TheoryData`13	-	-
-base	AS	Xunit.MatrixTheoryData`14	Xunit.TheoryData`14	-	-
-base	AS	Xunit.MatrixTheoryData`15	Xunit.TheoryData`15	-	-
-base	AS	Xunit.MatrixTheoryData`2	Xunit.TheoryData`2	-	-
-base	AS	Xunit.MatrixTheoryData`3	Xunit.TheoryData`3	-	-
-base	AS	Xunit.MatrixTheoryData`4	Xunit.TheoryData`4	-	-
-base	AS	Xunit.MatrixTheoryData`5	Xunit.TheoryData`5	-	-
-base	AS	Xunit.MatrixTheoryData`6	Xunit.TheoryData`6	-	-
-base	AS	Xunit.MatrixTheoryData`7	Xunit.TheoryData`7	-	-
-base	AS	Xunit.MatrixTheoryData`8	Xunit.TheoryData`8	-	-
-base	AS	Xunit.MatrixTheoryData`9	Xunit.TheoryData`9	-	-
-base	AS	Xunit.MicrosoftTestingPlatform.ExtensionBase	System.Object	Description DisplayName IsEnabledAsync Uid Version	-
-base	AS	Xunit.MicrosoftTestingPlatform.OutputDeviceDataProducerBase	Xunit.MicrosoftTestingPlatform.ExtensionBase	ToMessageWithColor	-
-base	AS	Xunit.MicrosoftTestingPlatform.TestPlatformDiscoveryMessageSink	Xunit.MicrosoftTestingPlatform.ExtensionBase	DataTypesProduced OnMessage	-
-base	AS	Xunit.MicrosoftTestingPlatform.TestPlatformExecutionMessageSink	Xunit.MicrosoftTestingPlatform.OutputDeviceDataProducerBase	DataTypesProduced OnMessage	-
-base	AS	Xunit.MicrosoftTestingPlatform.TestPlatformTestFramework	Xunit.MicrosoftTestingPlatform.OutputDeviceDataProducerBase	CloseTestSession CreateTestSession DataTypesProduced InvokePipelineStartup OnDiscover OnExecute RunAsync	-
-base	AS	Xunit.Runner.Common.AggregateMessageSink	System.Object	AggregatedSinks DisposeAsync GetOrCreateAggregatedSink OnMessage	-
-base	AS	Xunit.Runner.Common.AppVeyorReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.AppVeyorReporterMessageHandler	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	DisposeAsync HandleTestAssemblyFinished HandleTestAssemblyStarting HandleTestFailed HandleTestPassed HandleTestSkipped HandleTestStarting	-
-base	AS	Xunit.Runner.Common.AssemblyMetadata	System.Object	TargetFrameworkIdentifier TargetFrameworkVersion XunitVersion	-
-base	AS	Xunit.Runner.Common.ConsoleDiagnosticMessageSink	System.Object	OnMessage TryCreate	-
-base	AS	Xunit.Runner.Common.ConsoleHelper	System.Object	LockObject ReadLine ResetColor SetBackgroundColor SetForegroundColor UseAnsiColor Write WriteLine	-
-base	AS	Xunit.Runner.Common.ConsoleRunnerLogger	System.Object	LockObject LogError LogImportantMessage LogMessage LogRaw LogWarning WaitForAcknowledgment WriteLine	-
-base	AS	Xunit.Runner.Common.CtrfResultWriterMessageHandler	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync OnDisposed OnMessage	ResultMetadata
-base	AS	Xunit.Runner.Common.DecodingRunnerLogger	System.Object	LockObject LogError LogImportantMessage LogMessage LogRaw LogWarning WaitForAcknowledgment	-
-base	AS	Xunit.Runner.Common.DefaultRunnerReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	Xunit.Runner.Common.TestMessageSink	EnvVar_HidePassingOutput Escape EscapeMultiLineIndent GetAssemblyDisplayName GetExecutionOptions HandleErrorMessage HandleTestAssemblyCleanupFailure HandleTestAssemblyDiscoveryFinished HandleTestAssemblyDiscoveryStarting HandleTestAssemblyExecutionFinished HandleTestAssemblyExecutionStarting HandleTestAssemblyFinished HandleTestAssemblyStarting HandleTestCaseCleanupFailure HandleTestCaseFinished HandleTestCaseStarting HandleTestClassCleanupFailure HandleTestClassFinished HandleTestClassStarting HandleTestCleanupFailure HandleTestCollectionCleanupFailure HandleTestCollectionFinished HandleTestCollectionStarting HandleTestExecutionSummaries HandleTestFailed HandleTestFinished HandleTestMethodCleanupFailure HandleTestMethodFinished HandleTestMethodStarting HandleTestOutput HandleTestPassed HandleTestSkipped HandleTestStarting LogError LogOutput LogStackTrace LogWarnings Logger MetadataCache WriteDefaultSummary	-
-base	AS	Xunit.Runner.Common.DiagnosticEventSink	System.Object	DiagnosticMessageEvent ErrorMessageEvent InternalDiagnosticMessageEvent OnMessage	-
-base	AS	Xunit.Runner.Common.DiscoveryEventSink	System.Object	DiscoveryCompleteEvent DiscoveryStartingEvent OnMessage TestCaseDiscoveredEvent	-
-base	AS	Xunit.Runner.Common.ExecutionEventSink	System.Object	AfterTestFinishedEvent AfterTestStartingEvent BeforeTestFinishedEvent BeforeTestStartingEvent OnMessage TestAssemblyCleanupFailureEvent TestAssemblyFinishedEvent TestAssemblyStartingEvent TestCaseCleanupFailureEvent TestCaseFinishedEvent TestCaseStartingEvent TestClassCleanupFailureEvent TestClassConstructionFinishedEvent TestClassConstructionStartingEvent TestClassDisposeFinishedEvent TestClassDisposeStartingEvent TestClassFinishedEvent TestClassStartingEvent TestCleanupFailureEvent TestCollectionCleanupFailureEvent TestCollectionFinishedEvent TestCollectionStartingEvent TestFailedEvent TestFinishedEvent TestMethodCleanupFailureEvent TestMethodFinishedEvent TestMethodStartingEvent TestNotRunEvent TestOutputEvent TestPassedEvent TestSkippedEvent TestStartingEvent	-
-base	AS	Xunit.Runner.Common.ExecutionSink	System.Object	Dispose ExecutionSummary Finished OnMessage UtcNow WaitForStopEvent	-
-base	AS	Xunit.Runner.Common.ExecutionSinkOptions	System.Object	AssemblyElement CancelThunk DiagnosticMessageSink FailSkips FailWarn FinishedCallback LongRunningTestCallback LongRunningTestTime ResultWriterMessageHandlers	-
-base	AS	Xunit.Runner.Common.ExecutionSummary	System.Object	Errors Failed NotRun Passed Skipped Time Total	-
-base	AS	Xunit.Runner.Common.HtmlResultWriterMessageHandler	Xunit.Internal.MarkupResultWriterMessageHandlerBase	DisposeAsync	-
-base	AS	Xunit.Runner.Common.JUnitResultWriterMessageHandler	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync OnMessage	ResultMetadata
-base	AS	Xunit.Runner.Common.JUnitResultWriterMessageHandler+ResultMetadata	Xunit.Internal.ResultMetadataBase	-	-
-base	AS	Xunit.Runner.Common.JsonReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.JsonReporterMessageHandler	System.Object	DisposeAsync OnMessage	-
-base	AS	Xunit.Runner.Common.LongRunningTestsSummary	System.Object	ConfiguredLongRunningTime TestCases	-
-base	AS	Xunit.Runner.Common.MarkdownResultWriterMessageHandler	Xunit.Internal.MarkupResultWriterMessageHandlerBase	DisposeAsync OnDisposed	-
-base	AS	Xunit.Runner.Common.MessageHandlerArgs	System.Object	IsStopped Stop	-
-base	AS	Xunit.Runner.Common.MessageHandlerArgs`1	Xunit.Runner.Common.MessageHandlerArgs	Message	-
-base	AS	Xunit.Runner.Common.MessageMetadataCache	System.Object	Set TryGetAssemblyMetadata TryGetClassMetadata TryGetCollectionMetadata TryGetMethodMetadata TryGetTestCaseMetadata TryGetTestMetadata TryRemove	-
-base	AS	Xunit.Runner.Common.MessageSinkMessage	System.Object	Deserialize EmptyTraits FromJson Serialize ToDisplayString ToJson UnsetStringPropertyValue	-
-base	AS	Xunit.Runner.Common.NUnitResultWriterMessageHandler	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync OnMessage	ElementWithExtraCounts ResultMetadata
-base	AS	Xunit.Runner.Common.QuietReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.QuietReporterMessageHandler	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	-	-
-base	AS	Xunit.Runner.Common.RunnerEventSink	System.Object	OnMessage TestAssemblyDiscoveryFinishedEvent TestAssemblyDiscoveryStartingEvent TestAssemblyExecutionFinishedEvent TestAssemblyExecutionStartingEvent TestExecutionSummariesEvent	-
-base	AS	Xunit.Runner.Common.SilentReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.TeamCityReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.TeamCityReporterMessageHandler	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	HandleErrorMessage HandleTestAssemblyCleanupFailure HandleTestAssemblyFinished HandleTestAssemblyStarting HandleTestCaseCleanupFailure HandleTestCaseFinished HandleTestCaseStarting HandleTestClassCleanupFailure HandleTestClassFinished HandleTestClassStarting HandleTestCleanupFailure HandleTestCollectionCleanupFailure HandleTestCollectionFinished HandleTestCollectionStarting HandleTestFailed HandleTestFinished HandleTestMethodCleanupFailure HandleTestMethodFinished HandleTestMethodStarting HandleTestSkipped HandleTestStarting TeamCityEscape UtcNow	-
-base	AS	Xunit.Runner.Common.TestAssemblyConfiguration	System.Object	AppDomain AppDomainOrDefault AssertEquivalentMaxDepth Culture DiagnosticMessages DiagnosticMessagesOrDefault ExplicitOption ExplicitOptionOrDefault FailSkips FailSkipsOrDefault FailTestsWithWarnings FailTestsWithWarningsOrDefault Filters IncludeSourceInformation IncludeSourceInformationOrDefault InternalDiagnosticMessages InternalDiagnosticMessagesOrDefault LongRunningTestSeconds LongRunningTestSecondsOrDefault MaxParallelThreads MaxParallelThreadsOrDefault MethodDisplay MethodDisplayOptions MethodDisplayOptionsOrDefault MethodDisplayOrDefault ParallelAlgorithm ParallelAlgorithmOrDefault ParallelMode ParallelModeOrDefault ParallelizeAssembly ParallelizeAssemblyOrDefault ParallelizeTestCollections ParallelizeTestCollectionsOrDefault PreEnumerateTheories PrintMaxEnumerableLength PrintMaxObjectDepth PrintMaxObjectMemberCount PrintMaxStringLength Seed ShadowCopy ShadowCopyFolder ShadowCopyOrDefault ShowLiveOutput ShowLiveOutputOrDefault ShutdownForegroundThreadWaitSeconds ShutdownForegroundThreadWaitSecondsOrDefault StopOnFail StopOnFailOrDefault SynchronousMessageReporting SynchronousMessageReportingOrDefault	-
-base	AS	Xunit.Runner.Common.TestAssemblyDiscoveryFinished	System.Object	Assembly DiscoveryOptions TestCasesToRun ToJson UniqueID	-
-base	AS	Xunit.Runner.Common.TestAssemblyDiscoveryStarting	System.Object	AppDomain Assembly DiscoveryOptions ShadowCopy ToJson UniqueID	-
-base	AS	Xunit.Runner.Common.TestAssemblyExecutionFinished	System.Object	Assembly ExecutionOptions ExecutionSummary ToJson UniqueID	-
-base	AS	Xunit.Runner.Common.TestAssemblyExecutionStarting	System.Object	Assembly ExecutionOptions Seed ToJson UniqueID	-
-base	AS	Xunit.Runner.Common.TestAssemblyInfo	System.Object	ArchOS ArchProcess CoreFramework CoreFrameworkInformational FromJson MaxParallelThreads ParallelAlgorithm ParallelMode PointerSize RuntimeFramework TargetFramework TestFramework ToJson	-
-base	AS	Xunit.Runner.Common.TestAssemblyMessage	Xunit.Runner.Common.MessageSinkMessage	AssemblyUniqueID Deserialize Serialize ToString	-
-base	AS	Xunit.Runner.Common.TestCaseMessage	Xunit.Runner.Common.TestMethodMessage	Deserialize Serialize TestCaseUniqueID ToString	-
-base	AS	Xunit.Runner.Common.TestClassMessage	Xunit.Runner.Common.TestCollectionMessage	Deserialize Serialize TestClassUniqueID ToString	-
-base	AS	Xunit.Runner.Common.TestCollectionMessage	Xunit.Runner.Common.TestAssemblyMessage	Deserialize Serialize TestCollectionUniqueID ToString	-
-base	AS	Xunit.Runner.Common.TestDiscoverySink	System.Object	DiscoverySink Dispose Finished OnMessage TestCases	-
-base	AS	Xunit.Runner.Common.TestExecutionSummaries	System.Object	Add ElapsedClockTime SummariesByAssemblyUniqueID ToJson	-
-base	AS	Xunit.Runner.Common.TestFrameworkOptions	System.Object	Empty ForDiscovery ForDiscoveryFromSerialization ForExecution ForExecutionFromSerialization GetValue SetValue ToJson	-
-base	AS	Xunit.Runner.Common.TestMessage	Xunit.Runner.Common.TestCaseMessage	Deserialize Serialize TestUniqueID ToString	-
-base	AS	Xunit.Runner.Common.TestMessageSink	Xunit.Runner.Common.AggregateMessageSink	Diagnostics Discovery Execution Runner	-
-base	AS	Xunit.Runner.Common.TestMethodMessage	Xunit.Runner.Common.TestClassMessage	Deserialize Serialize TestMethodUniqueID ToString	-
-base	AS	Xunit.Runner.Common.TestProjectConfiguration	System.Object	AssemblyInfo AssemblyInfoOrDefault CrashDetectionSinkTimeout CrashDetectionSinkTimeoutOrDefault Debug DebugOrDefault EnvNameNoColor IgnoreFailures IgnoreFailuresOrDefault List NoAutoReporters NoAutoReportersOrDefault NoColor NoColorOrDefault NoLogo NoLogoOrDefault Output Pause PauseOrDefault UseAnsiColor UseAnsiColorOrDefault Wait WaitForDebugger WaitForDebuggerOrDefault WaitOrDefault	-
-base	AS	Xunit.Runner.Common.TestResultMessage	Xunit.Runner.Common.TestMessage	Deserialize ExecutionTime FinishTime Output Serialize ToString Warnings	-
-base	AS	Xunit.Runner.Common.Transform	System.Object	Description ID MTPDescription MTPFileExtension MTPFileNameDescription OutputHandler	-
-base	AS	Xunit.Runner.Common.TrxResultWriterMessageHandler	Xunit.Internal.ResultMetadataMessageHandlerBase`1	DisposeAsync OnMessage	ResultMetadata
-base	AS	Xunit.Runner.Common.VerboseReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.VerboseReporterMessageHandler	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	-	-
-base	AS	Xunit.Runner.Common.VstsReporter	System.Object	CanBeEnvironmentallyEnabled CreateMessageHandler Description ForceNoLogo IsEnvironmentallyEnabled RunnerSwitch	-
-base	AS	Xunit.Runner.Common.VstsReporterMessageHandler	Xunit.Runner.Common.DefaultRunnerReporterMessageHandler	DisposeAsync HandleTestAssemblyFinished HandleTestAssemblyStarting HandleTestFailed HandleTestPassed HandleTestSkipped HandleTestStarting	-
-base	AS	Xunit.Runner.Common.XmlV1ResultWriterMessageHandler	Xunit.Internal.XunitXmlResultWriterMessageHandlerBase`1	OnMessage	ResultMetadata
-base	AS	Xunit.Runner.Common.XmlV2ResultWriterMessageHandler	Xunit.Internal.XunitXmlResultWriterMessageHandlerBase`1	OnMessage	ResultMetadata
-base	AS	Xunit.Runner.Common.XunitFilters	System.Object	AddExcludedClassFilter AddExcludedDisplayNameFilter AddExcludedMethodFilter AddExcludedNamespaceFilter AddExcludedTraitFilter AddIncludedClassFilter AddIncludedDisplayNameFilter AddIncludedMethodFilter AddIncludedNamespaceFilter AddIncludedTraitFilter AddQueryFilter Empty Filter SetVSTestFilter ToXunit3Arguments	-
-base	AS	Xunit.Runner.Common.XunitProject	System.Object	Add Assemblies Configuration HasRunnerReporter RunnerReporter WithLaunchOptions	-
-base	AS	Xunit.Runner.Common.XunitProjectAssembly	System.Object	Assembly AssemblyDisplayName AssemblyFileName AssemblyMetadata AutoEnableExplicit ConfigFileName Configuration Identifier Project TestCaseIDsToRun TestCasesToRun WithSettings	-
-base	AS	Xunit.Runner.InProc.SystemConsole.CommandLine	Xunit.Internal.CommandLineParserBase	AutomatedRequested Parse	-
-base	AS	Xunit.Runner.InProc.SystemConsole.ConsoleRunner	System.Object	Cancel Dispose EntryPoint Run SetOutputEncoding	-
-base	AS	Xunit.Sdk.AllException	Xunit.Sdk.XunitException	ForEmptyCollection ForFailures	-
-base	AS	Xunit.Sdk.AssertEqualityResult	System.Object	Equal Equals Exception ForMismatch ForResult GetHashCode InnerResult MismatchIndexX MismatchIndexY X Y	-
+base	AS	Xunit.ClassDataAttribute	Xunit.Sdk.DataAttribute	Class GetData	-
+base	AS	Xunit.FactAttribute	System.Attribute	DisplayName Skip Timeout	-
+base	AS	Xunit.LongLivedMarshalByRefObject	System.Object	DisconnectAll	-
+base	AS	Xunit.MemberDataAttributeBase	Xunit.Sdk.DataAttribute	ConvertDataItem DisableDiscoveryEnumeration GetData MemberName MemberType Parameters	-
+base	AS	Xunit.Record	System.Object	Exception ExceptionAsync	-
+base	AS	Xunit.Sdk.AfterTestFinished	Xunit.Sdk.TestMessage	AttributeName	-
+base	AS	Xunit.Sdk.AfterTestStarting	Xunit.Sdk.TestMessage	AttributeName	-
+base	AS	Xunit.Sdk.AllException	Xunit.Sdk.XunitException	ForFailures	-
+base	AS	Xunit.Sdk.AssemblyTraitDiscoverer	System.Object	GetTraits	-
+base	AS	Xunit.Sdk.AsyncTestSyncContext	System.Threading.SynchronizationContext	OperationCompleted OperationStarted Post Send WaitForCompletionAsync	-
+base	AS	Xunit.Sdk.BeforeAfterTestAttribute	System.Attribute	After Before	-
+base	AS	Xunit.Sdk.BeforeTestFinished	Xunit.Sdk.TestMessage	AttributeName	-
+base	AS	Xunit.Sdk.BeforeTestStarting	Xunit.Sdk.TestMessage	AttributeName	-
 base	AS	Xunit.Sdk.CollectionException	Xunit.Sdk.XunitException	ForMismatchedItem ForMismatchedItemCount	-
+base	AS	Xunit.Sdk.CollectionPerAssemblyTestCollectionFactory	System.Object	DisplayName Get	-
+base	AS	Xunit.Sdk.CollectionPerClassTestCollectionFactory	System.Object	DisplayName Get	-
 base	AS	Xunit.Sdk.CollectionTracker	System.Object	AreCollectionsEqual Dispose FormatIndexedMismatch FormatStart GetMismatchExtents GetSafeEnumerator InnerEnumerable TypeAt Wrap	-
 base	AS	Xunit.Sdk.ContainsException	Xunit.Sdk.XunitException	ForCollectionFilterNotMatched ForCollectionItemNotFound ForKeyNotFound ForSetItemNotFound ForSubMemoryNotFound ForSubSpanNotFound ForSubStringNotFound	-
-base	AS	Xunit.Sdk.DisposalTracker	System.Object	Add AddAction AddAsyncAction AddRange Clear DisposeAsync TrackedObjects	-
+base	AS	Xunit.Sdk.DataAttribute	System.Attribute	GetData Skip	-
+base	AS	Xunit.Sdk.DataDiscoverer	System.Object	GetData SupportsDiscoveryEnumeration	-
+base	AS	Xunit.Sdk.DefaultTestCaseOrderer	System.Object	OrderTestCases	-
+base	AS	Xunit.Sdk.DefaultTestCollectionOrderer	System.Object	OrderTestCollections	-
+base	AS	Xunit.Sdk.DelegatingMessageBus	System.Object	Dispose QueueMessage	-
+base	AS	Xunit.Sdk.DelegatingMessageBus`1	Xunit.Sdk.DelegatingMessageBus	FinalMessage Finished QueueMessage	-
+base	AS	Xunit.Sdk.DelegatingMessageSink	Xunit.LongLivedMarshalByRefObject	Dispose OnMessage	-
+base	AS	Xunit.Sdk.DelegatingMessageSink`1	Xunit.Sdk.DelegatingMessageSink	FinalMessage Finished OnMessage	-
+base	AS	Xunit.Sdk.DiagnosticMessage	Xunit.LongLivedMarshalByRefObject	InterfaceTypes Message ToString	-
+base	AS	Xunit.Sdk.DiscoveryCompleteMessage	Xunit.LongLivedMarshalByRefObject	-	-
+base	AS	Xunit.Sdk.DisplayNameFormatter	System.Object	Format	-
+base	AS	Xunit.Sdk.DisposalTracker	System.Object	Add Dispose	-
 base	AS	Xunit.Sdk.DistinctException	Xunit.Sdk.XunitException	ForDuplicateItem	-
 base	AS	Xunit.Sdk.DoesNotContainException	Xunit.Sdk.XunitException	ForCollectionFilterMatched ForCollectionItemFound ForKeyFound ForSetItemFound ForSubMemoryFound ForSubSpanFound ForSubStringFound	-
 base	AS	Xunit.Sdk.DoesNotMatchException	Xunit.Sdk.XunitException	ForMatch	-
 base	AS	Xunit.Sdk.EmptyException	Xunit.Sdk.XunitException	ForNonEmptyCollection ForNonEmptyString	-
 base	AS	Xunit.Sdk.EndsWithException	Xunit.Sdk.XunitException	ForStringNotFound	-
-base	AS	Xunit.Sdk.EqualException	Xunit.Sdk.XunitException	ForMismatchedCollections ForMismatchedCollectionsWithError ForMismatchedSets ForMismatchedStrings ForMismatchedStringsWithHeader ForMismatchedValues ForMismatchedValuesWithError	-
+base	AS	Xunit.Sdk.EqualException	Xunit.Sdk.XunitException	ForMismatchedCollections ForMismatchedCollectionsWithError ForMismatchedStrings ForMismatchedValues ForMismatchedValuesWithError	-
 base	AS	Xunit.Sdk.EquivalentException	Xunit.Sdk.XunitException	ForCircularReference ForExceededDepth ForExtraCollectionValue ForGroupingWithMismatchedValues ForMemberListMismatch ForMemberValueMismatch ForMismatchedTypes ForMissingCollectionValue	-
+base	AS	Xunit.Sdk.ErrorMessage	Xunit.LongLivedMarshalByRefObject	ExceptionParentIndices ExceptionTypes Messages StackTraces TestCases	-
+base	AS	Xunit.Sdk.ExceptionAggregator	System.Object	Add Aggregate Clear HasExceptions Run RunAsync ToException	-
+base	AS	Xunit.Sdk.ExecutionErrorTestCase	Xunit.Sdk.XunitTestCase	Deserialize ErrorMessage RunAsync Serialize	-
+base	AS	Xunit.Sdk.ExecutionErrorTestCaseRunner	Xunit.Sdk.TestCaseRunner`1	RunTestAsync	-
+base	AS	Xunit.Sdk.ExecutionTimer	System.Object	Aggregate AggregateAsync Total	-
+base	AS	Xunit.Sdk.FactDiscoverer	System.Object	CreateTestCase DiagnosticMessageSink Discover	-
 base	AS	Xunit.Sdk.FailException	Xunit.Sdk.XunitException	ForFailure	-
 base	AS	Xunit.Sdk.FalseException	Xunit.Sdk.XunitException	ForNonFalseValue	-
+base	AS	Xunit.Sdk.GeneralDigest	System.Object	AlgorithmName BlockUpdate CopyIn DoFinal Finish GetByteLength GetDigestSize Reset Update	-
 base	AS	Xunit.Sdk.InRangeException	Xunit.Sdk.XunitException	ForValueNotInRange	-
+base	AS	Xunit.Sdk.InlineDataDiscoverer	System.Object	GetData SupportsDiscoveryEnumeration	-
 base	AS	Xunit.Sdk.IsAssignableFromException	Xunit.Sdk.XunitException	ForIncompatibleType	-
 base	AS	Xunit.Sdk.IsNotAssignableFromException	Xunit.Sdk.XunitException	ForCompatibleType	-
 base	AS	Xunit.Sdk.IsNotTypeException	Xunit.Sdk.XunitException	ForCompatibleType ForExactType	-
 base	AS	Xunit.Sdk.IsTypeException	Xunit.Sdk.XunitException	ForIncompatibleType ForMismatchedType	-
-base	AS	Xunit.Sdk.JsonSerializerBase	System.Object	Buffer Dispose WriteSeparator WriteValue	-
 base	AS	Xunit.Sdk.MatchesException	Xunit.Sdk.XunitException	ForMatchNotFound	-
-base	AS	Xunit.Sdk.MultipleException	Xunit.Sdk.XunitException	ForFailures ForFailuresAsync InnerExceptions StackTrace	-
+base	AS	Xunit.Sdk.MaxConcurrencySyncContext	System.Threading.SynchronizationContext	Dispose IsSupported Post Send	-
+base	AS	Xunit.Sdk.MemberDataDiscoverer	Xunit.Sdk.DataDiscoverer	SupportsDiscoveryEnumeration	-
+base	AS	Xunit.Sdk.MessageBus	System.Object	Dispose QueueMessage	-
+base	AS	Xunit.Sdk.MultipleException	Xunit.Sdk.XunitException	ForFailures InnerExceptions StackTrace	-
 base	AS	Xunit.Sdk.NotEmptyException	Xunit.Sdk.XunitException	ForNonEmptyCollection	-
-base	AS	Xunit.Sdk.NotEqualException	Xunit.Sdk.XunitException	ForEqualCollections ForEqualCollectionsWithError ForEqualSets ForEqualValues ForEqualValuesWithError	-
+base	AS	Xunit.Sdk.NotEqualException	Xunit.Sdk.XunitException	ForEqualCollections ForEqualCollectionsWithError ForEqualValues ForEqualValuesWithError	-
 base	AS	Xunit.Sdk.NotInRangeException	Xunit.Sdk.XunitException	ForValueInRange	-
-base	AS	Xunit.Sdk.NotNullException	Xunit.Sdk.XunitException	ForNullPointer ForNullStruct ForNullValue	-
-base	AS	Xunit.Sdk.NotRaisesException	Xunit.Sdk.XunitException	ForUnexpectedEvent	-
+base	AS	Xunit.Sdk.NotNullException	Xunit.Sdk.XunitException	ForNullStruct ForNullValue	-
 base	AS	Xunit.Sdk.NotSameException	Xunit.Sdk.XunitException	ForSameValues	-
 base	AS	Xunit.Sdk.NotStrictEqualException	Xunit.Sdk.XunitException	ForEqualValues	-
-base	AS	Xunit.Sdk.NullException	Xunit.Sdk.XunitException	ForNonNullPointer ForNonNullStruct ForNonNullValue	-
-base	AS	Xunit.Sdk.NullMessageSink	System.Object	Instance OnMessage	-
+base	AS	Xunit.Sdk.NullException	Xunit.Sdk.XunitException	ForNonNullStruct ForNonNullValue	-
+base	AS	Xunit.Sdk.NullMessageSink	Xunit.LongLivedMarshalByRefObject	Dispose OnMessage OnMessageWithTypes	-
 base	AS	Xunit.Sdk.ProperSubsetException	Xunit.Sdk.XunitException	ForFailure	-
 base	AS	Xunit.Sdk.ProperSupersetException	Xunit.Sdk.XunitException	ForFailure	-
 base	AS	Xunit.Sdk.PropertyChangedException	Xunit.Sdk.XunitException	ForUnsetProperty	-
 base	AS	Xunit.Sdk.RaisesAnyException	Xunit.Sdk.XunitException	ForNoEvent	-
 base	AS	Xunit.Sdk.RaisesException	Xunit.Sdk.XunitException	ForIncorrectType ForNoEvent	-
+base	AS	Xunit.Sdk.ReflectionAssemblyInfo	Xunit.LongLivedMarshalByRefObject	Assembly AssemblyPath GetCustomAttributes GetType GetTypes Name ToString	-
+base	AS	Xunit.Sdk.ReflectionAttributeInfo	Xunit.LongLivedMarshalByRefObject	Attribute AttributeData GetConstructorArguments GetCustomAttributes GetNamedArgument ToString	-
+base	AS	Xunit.Sdk.ReflectionMethodInfo	Xunit.LongLivedMarshalByRefObject	GetCustomAttributes GetGenericArguments GetParameters IsAbstract IsGenericMethodDefinition IsPublic IsStatic MakeGenericMethod MethodInfo Name ReturnType ToString Type	-
+base	AS	Xunit.Sdk.ReflectionParameterInfo	Xunit.LongLivedMarshalByRefObject	Name ParameterInfo ParameterType	-
+base	AS	Xunit.Sdk.ReflectionTypeInfo	Xunit.LongLivedMarshalByRefObject	Assembly BaseType GetCustomAttributes GetGenericArguments GetMethod GetMethods Interfaces IsAbstract IsGenericParameter IsGenericType IsSealed IsValueType Name ToString Type	-
+base	AS	Xunit.Sdk.RunSummary	System.Object	Aggregate Failed Skipped Time Total	-
 base	AS	Xunit.Sdk.SameException	Xunit.Sdk.XunitException	ForFailure	-
-base	AS	Xunit.Sdk.SerializationHelper	System.Object	AddRegisteredSerializers AddSerializers Deserialize FindXunitSerializer Instance IsSerializable ResetInstance Serialize SerializedTypeNameToType TypeToSerializedTypeName	-
+base	AS	Xunit.Sdk.Sha1Digest	Xunit.Sdk.GeneralDigest	AlgorithmName DoFinal GetDigestSize Reset	-
 base	AS	Xunit.Sdk.SingleException	Xunit.Sdk.XunitException	Empty MoreThanOne	-
 base	AS	Xunit.Sdk.SkipException	Xunit.Sdk.XunitException	ForSkip	-
+base	AS	Xunit.Sdk.SourceInformation	Xunit.LongLivedMarshalByRefObject	Deserialize FileName LineNumber Serialize	-
 base	AS	Xunit.Sdk.StartsWithException	Xunit.Sdk.XunitException	ForStringNotFound	-
 base	AS	Xunit.Sdk.StrictEqualException	Xunit.Sdk.XunitException	ForEqualValues	-
 base	AS	Xunit.Sdk.SubsetException	Xunit.Sdk.XunitException	ForFailure	-
 base	AS	Xunit.Sdk.SupersetException	Xunit.Sdk.XunitException	ForFailure	-
-base	AS	Xunit.Sdk.TestAttachment	System.Object	AsByteArray AsString AttachmentType Create Parse ToString	-
-base	AS	Xunit.Sdk.TestPipelineException	System.Exception	-	-
-base	AS	Xunit.Sdk.TestTimeoutException	System.Exception	ForTimedOutTest	-
-base	AS	Xunit.Sdk.ThrowsAnyException	Xunit.Sdk.XunitException	ForIncorrectExceptionType ForInspectorFailure ForNoException	-
-base	AS	Xunit.Sdk.ThrowsException	Xunit.Sdk.XunitException	ForIncorrectExceptionType ForIncorrectParameterName ForInspectorFailure ForNoException	-
-base	AS	Xunit.Sdk.TraceAssertException	System.Exception	ForAssertFailure	-
+base	AS	Xunit.Sdk.SynchronousMessageBus	System.Object	Dispose QueueMessage	-
+base	AS	Xunit.Sdk.TestAssembly	Xunit.LongLivedMarshalByRefObject	Assembly ConfigFileName Deserialize Serialize Version	-
+base	AS	Xunit.Sdk.TestAssemblyCleanupFailure	Xunit.Sdk.TestAssemblyMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestAssemblyFinished	Xunit.Sdk.TestAssemblyMessage	ExecutionTime TestsFailed TestsRun TestsSkipped	-
+base	AS	Xunit.Sdk.TestAssemblyMessage	Xunit.LongLivedMarshalByRefObject	TestAssembly TestCases	-
+base	AS	Xunit.Sdk.TestAssemblyRunner`1	System.Object	AfterTestAssemblyStartingAsync Aggregator BeforeTestAssemblyFinishedAsync CreateMessageBus DiagnosticMessageSink Dispose ExecutionMessageSink ExecutionOptions GetTestFrameworkDisplayName GetTestFrameworkEnvironment OrderTestCollections RunAsync RunTestCollectionAsync RunTestCollectionsAsync TestAssembly TestCaseOrderer TestCases TestCollectionOrderer	-
+base	AS	Xunit.Sdk.TestAssemblyStarting	Xunit.Sdk.TestAssemblyMessage	StartTime TestEnvironment TestFrameworkDisplayName	-
+base	AS	Xunit.Sdk.TestCaseBulkDeserializer	Xunit.LongLivedMarshalByRefObject	-	-
+base	AS	Xunit.Sdk.TestCaseCleanupFailure	Xunit.Sdk.TestCaseMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestCaseDescriptorFactory	Xunit.LongLivedMarshalByRefObject	-	-
+base	AS	Xunit.Sdk.TestCaseDiscoveryMessage	Xunit.Sdk.TestCaseMessage	-	-
+base	AS	Xunit.Sdk.TestCaseFinished	Xunit.Sdk.TestCaseMessage	ExecutionTime TestsFailed TestsRun TestsSkipped	-
+base	AS	Xunit.Sdk.TestCaseMessage	Xunit.Sdk.TestMethodMessage	TestCase	-
+base	AS	Xunit.Sdk.TestCaseRunner`1	System.Object	AfterTestCaseStartingAsync Aggregator BeforeTestCaseFinishedAsync CancellationTokenSource MessageBus RunAsync RunTestAsync TestCase	-
+base	AS	Xunit.Sdk.TestCaseStarting	Xunit.Sdk.TestCaseMessage	-	-
+base	AS	Xunit.Sdk.TestClass	Xunit.LongLivedMarshalByRefObject	Class Deserialize Serialize TestCollection	-
+base	AS	Xunit.Sdk.TestClassCleanupFailure	Xunit.Sdk.TestClassMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestClassComparer	System.Object	Equals GetHashCode Instance	-
+base	AS	Xunit.Sdk.TestClassConstructionFinished	Xunit.Sdk.TestMessage	-	-
+base	AS	Xunit.Sdk.TestClassConstructionStarting	Xunit.Sdk.TestMessage	-	-
+base	AS	Xunit.Sdk.TestClassDisposeFinished	Xunit.Sdk.TestMessage	-	-
+base	AS	Xunit.Sdk.TestClassDisposeStarting	Xunit.Sdk.TestMessage	-	-
+base	AS	Xunit.Sdk.TestClassException	System.Exception	-	-
+base	AS	Xunit.Sdk.TestClassFinished	Xunit.Sdk.TestClassMessage	ExecutionTime TestsFailed TestsRun TestsSkipped	-
+base	AS	Xunit.Sdk.TestClassMessage	Xunit.Sdk.TestCollectionMessage	TestClass	-
+base	AS	Xunit.Sdk.TestClassRunner`1	System.Object	AfterTestClassStartingAsync Aggregator BeforeTestClassFinishedAsync CancellationTokenSource Class CreateTestClassConstructorArguments DiagnosticMessageSink FormatConstructorArgsMissingMessage MessageBus RunAsync RunTestMethodAsync RunTestMethodsAsync SelectTestClassConstructor TestCaseOrderer TestCases TestClass TryGetConstructorArgument	-
+base	AS	Xunit.Sdk.TestClassStarting	Xunit.Sdk.TestClassMessage	-	-
+base	AS	Xunit.Sdk.TestCleanupFailure	Xunit.Sdk.TestMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestCollection	Xunit.LongLivedMarshalByRefObject	CollectionDefinition Deserialize DisplayName Serialize TestAssembly UniqueID	-
+base	AS	Xunit.Sdk.TestCollectionCleanupFailure	Xunit.Sdk.TestCollectionMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestCollectionComparer	System.Object	Equals GetHashCode Instance	-
+base	AS	Xunit.Sdk.TestCollectionFinished	Xunit.Sdk.TestCollectionMessage	ExecutionTime TestsFailed TestsRun TestsSkipped	-
+base	AS	Xunit.Sdk.TestCollectionMessage	Xunit.Sdk.TestAssemblyMessage	TestCollection	-
+base	AS	Xunit.Sdk.TestCollectionRunner`1	System.Object	AfterTestCollectionStartingAsync Aggregator BeforeTestCollectionFinishedAsync CancellationTokenSource MessageBus RunAsync RunTestClassAsync RunTestClassesAsync TestCaseOrderer TestCases TestCollection	-
+base	AS	Xunit.Sdk.TestCollectionStarting	Xunit.Sdk.TestCollectionMessage	-	-
+base	AS	Xunit.Sdk.TestFailed	Xunit.Sdk.TestResultMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestFinished	Xunit.Sdk.TestMessage	ExecutionTime Output	-
+base	AS	Xunit.Sdk.TestFramework	Xunit.LongLivedMarshalByRefObject	CreateDiscoverer CreateExecutor DiagnosticMessageSink DisposalTracker Dispose GetDiscoverer GetExecutor SourceInformationProvider	-
+base	AS	Xunit.Sdk.TestFrameworkDiscoverer	Xunit.LongLivedMarshalByRefObject	AssemblyInfo CreateTestClass DiagnosticMessageSink DisposalTracker Dispose Find FindTestsForType IsValidTestClass ReportDiscoveredTestCase Serialize SourceProvider TargetFramework TestFrameworkDisplayName	-
+base	AS	Xunit.Sdk.TestFrameworkExecutor`1	Xunit.LongLivedMarshalByRefObject	AssemblyInfo CreateDiscoverer Deserialize DiagnosticMessageSink DisposalTracker Dispose RunAll RunTestCases RunTests SourceInformationProvider	-
+base	AS	Xunit.Sdk.TestFrameworkProxy	Xunit.LongLivedMarshalByRefObject	Dispose GetDiscoverer GetExecutor InnerTestFramework SourceInformationProvider	MessageSinkWrapper
+base	AS	Xunit.Sdk.TestFrameworkProxy+MessageSinkWrapper	Xunit.LongLivedMarshalByRefObject	InnerSink OnMessage	-
+base	AS	Xunit.Sdk.TestFrameworkTypeDiscoverer	System.Object	GetTestFrameworkType	-
+base	AS	Xunit.Sdk.TestInvoker`1	System.Object	AfterTestMethodInvokedAsync Aggregator BeforeTestMethodInvokedAsync CallTestMethod CancellationTokenSource ConstructorArguments CreateTestClass DisplayName GetTaskFromResult InvokeTestMethodAsync MessageBus RunAsync Test TestCase TestClass TestMethod TestMethodArguments Timer	-
+base	AS	Xunit.Sdk.TestMessage	Xunit.Sdk.TestCaseMessage	Test	-
+base	AS	Xunit.Sdk.TestMethod	Xunit.LongLivedMarshalByRefObject	Deserialize Method Serialize TestClass	-
+base	AS	Xunit.Sdk.TestMethodCleanupFailure	Xunit.Sdk.TestMethodMessage	ExceptionParentIndices ExceptionTypes Messages StackTraces	-
+base	AS	Xunit.Sdk.TestMethodComparer	System.Object	Equals GetHashCode Instance	-
+base	AS	Xunit.Sdk.TestMethodFinished	Xunit.Sdk.TestMethodMessage	ExecutionTime TestsFailed TestsRun TestsSkipped	-
+base	AS	Xunit.Sdk.TestMethodMessage	Xunit.Sdk.TestClassMessage	TestMethod	-
+base	AS	Xunit.Sdk.TestMethodRunner`1	System.Object	AfterTestMethodStarting Aggregator BeforeTestMethodFinished CancellationTokenSource Class MessageBus Method RunAsync RunTestCaseAsync RunTestCasesAsync TestCases TestMethod	-
+base	AS	Xunit.Sdk.TestMethodStarting	Xunit.Sdk.TestMethodMessage	-	-
+base	AS	Xunit.Sdk.TestMethodTestCase	Xunit.LongLivedMarshalByRefObject	BaseDisplayName DefaultMethodDisplay DefaultMethodDisplayOptions Deserialize DisplayName Dispose EnsureInitialized GetUniqueID InitializationException Initialize Method MethodGenericTypes Serialize SkipReason SourceInformation TestMethod TestMethodArguments Traits UniqueID	-
+base	AS	Xunit.Sdk.TestOutput	Xunit.Sdk.TestMessage	Output	-
+base	AS	Xunit.Sdk.TestOutputHelper	System.Object	Initialize Output Uninitialize WriteLine	-
+base	AS	Xunit.Sdk.TestPassed	Xunit.Sdk.TestResultMessage	-	-
+base	AS	Xunit.Sdk.TestResultMessage	Xunit.Sdk.TestMessage	ExecutionTime Output	-
+base	AS	Xunit.Sdk.TestRunner`1	System.Object	AfterTestStarting Aggregator BeforeTestFinished CancellationTokenSource ConstructorArguments DisplayName InvokeTestAsync MessageBus RunAsync SkipReason Test TestCase TestClass TestMethod TestMethodArguments	-
+base	AS	Xunit.Sdk.TestSkipped	Xunit.Sdk.TestResultMessage	Reason	-
+base	AS	Xunit.Sdk.TestStarting	Xunit.Sdk.TestMessage	-	-
+base	AS	Xunit.Sdk.TestTimeoutException	System.Exception	-	-
+base	AS	Xunit.Sdk.TheoryDiscoverer	System.Object	CreateTestCaseForDataRow CreateTestCaseForSkip CreateTestCaseForSkippedDataRow CreateTestCaseForTheory CreateTestCasesForDataRow CreateTestCasesForSkip CreateTestCasesForSkippedDataRow CreateTestCasesForTheory DiagnosticMessageSink Discover	-
+base	AS	Xunit.Sdk.ThrowsAnyException	Xunit.Sdk.XunitException	ForIncorrectExceptionType ForNoException	-
+base	AS	Xunit.Sdk.ThrowsException	Xunit.Sdk.XunitException	ForIncorrectExceptionType ForIncorrectParameterName ForNoException	-
+base	AS	Xunit.Sdk.TraitDiscoverer	System.Object	GetTraits	-
 base	AS	Xunit.Sdk.TrueException	Xunit.Sdk.XunitException	ForNonTrueValue	-
-base	AS	Xunit.Sdk.UnsetPropertiesException	System.InvalidOperationException	Message PropertyNames TypeName	-
-base	AS	Xunit.Sdk.UnsetPropertyException	System.InvalidOperationException	Message PropertyName TypeName	-
 base	AS	Xunit.Sdk.XunitException	System.Exception	ToString	-
-base	AS	Xunit.Sdk.XunitSerializationInfo	System.Object	AddValue GetValue ToSerializedString	-
-base	AS	Xunit.Sdk.XunitSerializer`1	System.Object	Deserialize IsSerializable Serialize TypeIncompatibleDeserialization TypeIncompatibleSerialization	-
-base	AS	Xunit.TestResultState	System.Object	ExceptionMessages ExceptionParentIndices ExceptionStackTraces ExceptionTypes ExecutionTime FailureCause ForNotRun ForPassed ForSkipped FromException FromTestResult Result	-
-base	AS	Xunit.TheoryAttribute	Xunit.FactAttribute	DisableDiscoveryEnumeration IncludeTestCaseIndex SkipTestWithoutData	-
-base	AS	Xunit.TheoryData	Xunit.TheoryDataBase`2	Convert	-
-base	AS	Xunit.TheoryDataBase`2	System.Object	Add AddRange Convert Count GetEnumerator	-
-base	AS	Xunit.TheoryDataRow	Xunit.TheoryDataRowBase	Data GetData	-
-base	AS	Xunit.TheoryDataRowBase	System.Object	DisableParallelization Explicit GetData Label Skip SkipType SkipUnless SkipWhen TestDisplayName Timeout Traits	-
-base	AS	Xunit.TheoryData`1	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`10	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`11	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`12	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`13	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`14	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`15	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`2	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`3	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`4	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`5	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`6	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`7	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`8	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TheoryData`9	Xunit.TheoryDataBase`2	Add Convert	-
-base	AS	Xunit.TraitAttribute	System.Attribute	GetTraits Name Value	-
-base	AS	Xunit.v3.BeforeAfterTestAttribute	System.Attribute	After Before	-
-base	AS	Xunit.v3.CollectionPerAssemblyTestCollectionFactory	Xunit.v3.TestCollectionFactoryBase	DisplayName GetDefaultTestCollection	-
-base	AS	Xunit.v3.CollectionPerClassTestCollectionFactory	Xunit.v3.TestCollectionFactoryBase	DisplayName GetDefaultTestCollection	-
-base	AS	Xunit.v3.ContextBase	System.Object	Aggregator CancellationTokenSource DisposeAsync ExplicitOption InitializeAsync MessageBus	-
-base	AS	Xunit.v3.CoreTestAssemblyRunnerContext`3	Xunit.v3.TestAssemblyRunnerContext`2	CreateScheduler DisposeAsync ExplicitOption GetTestCollectionFactoryDisplayName MaxParallelThreads ParallelAlgorithm ParallelMode RunTestCollection Scheduler TargetFramework TestEnvironment	-
-base	AS	Xunit.v3.CoreTestAssemblyRunner`4	Xunit.v3.TestAssemblyRunner`4	OrderTestCollections RunTestCollection RunTestCollections	-
-base	AS	Xunit.v3.CoreTestCaseRunnerContext`2	Xunit.v3.TestCaseRunnerContext`2	DisplayName ParallelMode RunTest Scheduler SkipReason Tests	-
-base	AS	Xunit.v3.CoreTestCaseRunner`3	Xunit.v3.TestCaseRunner`3	RunTest RunTestCase RunTestCaseInner	-
-base	AS	Xunit.v3.CoreTestClassCreationResult	System.Object	ExecutionContext Instance SynchronizationContext	-
-base	AS	Xunit.v3.CoreTestClassRunnerContext`3	Xunit.v3.TestClassRunnerContext`2	ParallelMode RunTestMethod Scheduler	-
-base	AS	Xunit.v3.CoreTestClassRunner`4	Xunit.v3.TestClassRunner`4	OrderTestMethods RunTestMethod RunTestMethods	-
-base	AS	Xunit.v3.CoreTestCollectionRunnerContext`3	Xunit.v3.TestCollectionRunnerContext`2	ParallelMode RunTestClass Scheduler	-
-base	AS	Xunit.v3.CoreTestCollectionRunner`4	Xunit.v3.TestCollectionRunner`4	OrderTestClasses RunTestClass RunTestClasses	-
-base	AS	Xunit.v3.CoreTestFrameworkDiscoverer`1	Xunit.v3.TestFrameworkDiscoverer`1	Find	-
-base	AS	Xunit.v3.CoreTestFrameworkExecutor`1	Xunit.v3.TestFrameworkExecutor`1	-	-
-base	AS	Xunit.v3.CoreTestMethodRunnerContext`2	Xunit.v3.TestMethodRunnerContext`2	ParallelMode RunTestCase Scheduler	-
-base	AS	Xunit.v3.CoreTestMethodRunner`3	Xunit.v3.TestMethodRunner`3	OrderTestCases RunTestCase RunTestCases	-
-base	AS	Xunit.v3.CoreTestRunnerContext`2	Xunit.v3.TestRunnerContext`1	BeforeAfterTestAttributes GetRuntimeSkipReason GetSkipReason InvokeTest ParallelMode RunAfter RunAfterAttributes RunBefore RunBeforeAttributes Scheduler	-
-base	AS	Xunit.v3.CoreTestRunner`3	Xunit.v3.TestRunner`2	GetAttachments GetTestOutput GetWarnings InvokeTest OnTestStarting PostInvoke PreInvoke RunTest ShouldTestRun	-
-base	AS	Xunit.v3.CulturedXunitDelayEnumeratedTheoryTestCase	Xunit.v3.XunitDelayEnumeratedTheoryTestCase	Culture Deserialize PostInvoke PreInvoke Serialize	-
-base	AS	Xunit.v3.DataAttribute	System.Attribute	ConvertDataRow DisableParallelization Explicit ExplicitAsNullable GetData Label Skip SkipType SkipUnless SkipWhen SupportsDiscoveryEnumeration TestDisplayName Timeout TimeoutAsNullable Traits	-
-base	AS	Xunit.v3.DefaultTestCaseOrderer	System.Object	Instance OrderTestCases	-
-base	AS	Xunit.v3.DefaultTestClassOrderer	System.Object	Instance OrderTestClasses	-
-base	AS	Xunit.v3.DefaultTestCollectionOrderer	System.Object	Instance OrderTestCollections	-
-base	AS	Xunit.v3.DefaultTestMethodOrderer	System.Object	Instance OrderTestMethods	-
-base	AS	Xunit.v3.DelegatingMessageBus	System.Object	Dispose QueueMessage	-
-base	AS	Xunit.v3.DelegatingMessageBus`1	Xunit.v3.DelegatingMessageBus	FinalMessage Finished QueueMessage	-
-base	AS	Xunit.v3.DelegatingMessageSink	System.Object	OnMessage	-
-base	AS	Xunit.v3.DelegatingMessageSink`1	Xunit.v3.DelegatingMessageSink	FinalMessage Finished OnMessage	-
-base	AS	Xunit.v3.DisplayNameFormatter	System.Object	Format	-
-base	AS	Xunit.v3.ExecutionErrorTestCase	Xunit.v3.XunitTestCase	CreateTests Deserialize ErrorMessage Serialize	-
-base	AS	Xunit.v3.ExecutionScheduler	System.Object	Create CreateAggressive CreateConservative CreateUnlimited DisposeAsync EnsureParallel RunParallelTask RunSequentialTask ThrowIfDisposed	-
-base	AS	Xunit.v3.FactDiscoverer	System.Object	CreateTestCase Discover	-
-base	AS	Xunit.v3.FixtureMappingManager	System.Object	DisposeAsync ForNotification GetFixture GlobalFixtureTypes InitializeAsync LocalFixtureTypes TryGetFixture TryGetFixtureArgument TypeActivator	-
-base	AS	Xunit.v3.InProcessFrontController	System.Object	Find FindAndRun MaxParallelThreads ParallelAlgorithm ParallelMode Run TestAssemblyUniqueID TestFrameworkDisplayName	-
-base	AS	Xunit.v3.MaxConcurrencySyncContext	System.Threading.SynchronizationContext	Dispose Post Send	-
-base	AS	Xunit.v3.MemberDataAttributeBase	Xunit.v3.DataAttribute	Arguments ConvertDataRow DisableDiscoveryEnumeration GetData MemberName MemberType SupportsDiscoveryEnumeration	-
-base	AS	Xunit.v3.MessageSinkMessage	System.Object	Serialize ToDisplayString ToJson ValidateObjectState ValidatePropertyIsNotNull	-
-base	AS	Xunit.v3.TestAssemblyMessage	Xunit.v3.MessageSinkMessage	AssemblyUniqueID Serialize ToString ValidateObjectState	-
-base	AS	Xunit.v3.TestAssemblyRunnerContext`2	System.Object	Aggregator CancellationTokenSource CreateMessageBus DisposeAsync ExecutionMessageSink ExecutionOptions InitializeAsync MessageBus TargetFramework TestAssembly TestCases TestEnvironment	-
-base	AS	Xunit.v3.TestAssemblyRunner`4	System.Object	FailTestCollection GetTestFrameworkDisplayName OnError OnTestAssemblyCleanupFailure OnTestAssemblyFinished OnTestAssemblyStarting OrderTestCollections Run RunTestCollection RunTestCollections SetTestContext	-
-base	AS	Xunit.v3.TestCaseMessage	Xunit.v3.TestMethodMessage	Serialize TestCaseUniqueID ToString ValidateObjectState	-
-base	AS	Xunit.v3.TestCaseRunnerBaseContext`1	Xunit.v3.ContextBase	TestCase	-
-base	AS	Xunit.v3.TestCaseRunnerBase`2	System.Object	OnError OnTestCaseCleanupFailure OnTestCaseFinished OnTestCaseStarting Run RunTestCase SetTestContext	-
-base	AS	Xunit.v3.TestCaseRunnerContext`2	Xunit.v3.TestCaseRunnerBaseContext`1	Tests	-
-base	AS	Xunit.v3.TestCaseRunner`3	Xunit.v3.TestCaseRunnerBase`2	FailTest RunTest RunTestCase	-
-base	AS	Xunit.v3.TestClassComparer	Xunit.v3.TestClassComparer`1	-	-
-base	AS	Xunit.v3.TestClassComparer`1	System.Object	Compare Equals GetHashCode Instance	-
-base	AS	Xunit.v3.TestClassMessage	Xunit.v3.TestCollectionMessage	Serialize TestClassUniqueID ToString	-
-base	AS	Xunit.v3.TestClassRunnerContext`2	Xunit.v3.ContextBase	TestCases TestClass	-
-base	AS	Xunit.v3.TestClassRunner`4	System.Object	CreateTestClassConstructorArguments FailTestMethod OnError OnTestClassCleanupFailure OnTestClassFinished OnTestClassStarting OrderTestCases OrderTestMethods Run RunTestMethod RunTestMethods SetTestContext	-
-base	AS	Xunit.v3.TestCollectionComparer`1	System.Object	Compare Equals GetHashCode Instance	-
-base	AS	Xunit.v3.TestCollectionFactoryBase	System.Object	DisplayName Get GetDefaultTestCollection TestAssembly	-
-base	AS	Xunit.v3.TestCollectionMessage	Xunit.v3.TestAssemblyMessage	Serialize TestCollectionUniqueID ToString ValidateObjectState	-
-base	AS	Xunit.v3.TestCollectionRunnerContext`2	Xunit.v3.ContextBase	TestCases TestCollection	-
-base	AS	Xunit.v3.TestCollectionRunner`4	System.Object	FailTestClass OnError OnTestCollectionCleanupFailure OnTestCollectionFinished OnTestCollectionStarting OrderTestClasses Run RunTestClass RunTestClasses SetTestContext	-
-base	AS	Xunit.v3.TestContextAccessor	System.Object	Current Instance	-
-base	AS	Xunit.v3.TestFramework	System.Object	CreateDiscoverer CreateExecutor DisposalTracker DisposeAsync GetDiscoverer GetExecutor SetTestPipelineStartup TestFrameworkDisplayName TestPipelineStartup	-
-base	AS	Xunit.v3.TestFrameworkDiscoverer`1	System.Object	CreateTestClass DisposalTracker DisposeAsync Find FindTestsForType GetExportedTypes IsValidTestClass TestAssembly	-
-base	AS	Xunit.v3.TestFrameworkExecutor`1	System.Object	CreateDiscoverer DisposalTracker DisposeAsync RunTestCases TestAssembly	-
-base	AS	Xunit.v3.TestMessage	Xunit.v3.TestCaseMessage	Serialize TestUniqueID ToString ValidateObjectState	-
-base	AS	Xunit.v3.TestMethodComparer	Xunit.v3.TestMethodComparer`1	-	-
-base	AS	Xunit.v3.TestMethodComparer`1	System.Object	Compare Equals GetHashCode Instance	-
-base	AS	Xunit.v3.TestMethodMessage	Xunit.v3.TestClassMessage	Serialize TestMethodUniqueID ToString	-
-base	AS	Xunit.v3.TestMethodRunnerContext`2	Xunit.v3.ContextBase	TestCases TestMethod	-
-base	AS	Xunit.v3.TestMethodRunner`3	System.Object	FailTestCase OnError OnTestMethodCleanupFailure OnTestMethodFinished OnTestMethodStarting OrderTestCases Run RunTestCase RunTestCases SetTestContext	-
-base	AS	Xunit.v3.TestOutputHelper	System.Object	Initialize Output Uninitialize Write WriteLine	-
-base	AS	Xunit.v3.TestResultMessage	Xunit.v3.TestMessage	ExecutionTime FinishTime Output Serialize ToString ValidateObjectState Warnings	-
-base	AS	Xunit.v3.TestRunnerBaseContext`1	Xunit.v3.ContextBase	GetSkipReason Test	-
-base	AS	Xunit.v3.TestRunnerBase`2	System.Object	GetAttachments GetTestOutput GetWarnings OnError OnTestCleanupFailure OnTestFailed OnTestFinished OnTestNotRun OnTestPassed OnTestSkipped OnTestStarting Run RunTest SetTestContext ShouldTestRun UpdateTestContext	-
-base	AS	Xunit.v3.TestRunnerContext`1	Xunit.v3.TestRunnerBaseContext`1	-	-
-base	AS	Xunit.v3.TestRunner`2	Xunit.v3.TestRunnerBase`2	CreateTestClassInstance DisposeTestClassInstance InvokeTest InvokeTestMethod IsTestClassCreatable IsTestClassDisposable OnTestClassConstructionFinished OnTestClassConstructionStarting OnTestClassDisposeFinished OnTestClassDisposeStarting PostInvoke PreInvoke RunTest	-
-base	AS	Xunit.v3.TheoryDiscoverer	System.Object	CreateTestCasesForDataRow CreateTestCasesForTheory Discover	-
-base	AS	Xunit.v3.UnorderedTestCaseOrderer	System.Object	Instance OrderTestCases	-
-base	AS	Xunit.v3.UnorderedTestClassOrderer	System.Object	Instance OrderTestClasses	-
-base	AS	Xunit.v3.UnorderedTestCollectionOrderer	System.Object	Instance OrderTestCollections	-
-base	AS	Xunit.v3.UnorderedTestMethodOrderer	System.Object	Instance OrderTestMethods	-
-base	AS	Xunit.v3.XunitDelayEnumeratedTheoryTestCase	Xunit.v3.XunitTestCase	CreateTests Deserialize Serialize SkipTestWithoutData	-
-base	AS	Xunit.v3.XunitTest	System.Object	DisableParallelization Explicit SkipReason SkipType SkipUnless SkipWhen TestCase TestDisplayName TestLabel TestMethod TestMethodArguments Timeout Traits UniqueID	-
-base	AS	Xunit.v3.XunitTestAssembly	System.Object	Assembly AssemblyFixtureTypes AssemblyName AssemblyPath BeforeAfterTestAttributes CollectionBehavior CollectionDefinitions ConfigFilePath Deserialize MaxParallelThreads ModuleVersionID ParallelAlgorithm ParallelMode Serialize TargetFramework TestCaseOrderer TestClassOrderer TestCollectionOrderer TestMethodOrderer Traits UniqueID Version	-
-base	AS	Xunit.v3.XunitTestAssemblyRunner	Xunit.v3.XunitTestAssemblyRunnerBase`4	Instance Run	-
-base	AS	Xunit.v3.XunitTestAssemblyRunnerBaseContext`3	Xunit.v3.CoreTestAssemblyRunnerContext`3	AssemblyFixtureMappings DisableParallelization GetTestCollectionFactoryDisplayName RunTestCollection SetupParallelism	-
-base	AS	Xunit.v3.XunitTestAssemblyRunnerBase`4	Xunit.v3.CoreTestAssemblyRunner`4	GetTestFrameworkDisplayName OnTestAssemblyFinished OnTestAssemblyStarting RunTestCollections	-
-base	AS	Xunit.v3.XunitTestAssemblyRunnerContext	Xunit.v3.XunitTestAssemblyRunnerBaseContext`3	-	-
-base	AS	Xunit.v3.XunitTestCase	System.Object	CreateTests Deserialize DisableParallelization DisposalTracker DisposeAsync Explicit PostInvoke PreInvoke ResolveTestMethodArguments Serialize SkipExceptions SkipReason SkipType SkipUnless SkipWhen SourceFilePath SourceLineNumber TestCaseDisplayName TestClass TestClassMetadataToken TestClassName TestClassNamespace TestClassSimpleName TestCollection TestLabel TestMethod TestMethodArguments TestMethodArity TestMethodMetadataToken TestMethodName TestMethodParameterTypesVSTest TestMethodReturnTypeVSTest Timeout Traits UniqueID	-
-base	AS	Xunit.v3.XunitTestCaseRunner	Xunit.v3.XunitTestCaseRunnerBase`3	Instance Run	-
-base	AS	Xunit.v3.XunitTestCaseRunnerBaseContext`2	Xunit.v3.CoreTestCaseRunnerContext`2	BeforeAfterTestAttributes CaseFixtureMappings ConstructorArguments RunTest	-
-base	AS	Xunit.v3.XunitTestCaseRunnerBase`3	Xunit.v3.CoreTestCaseRunner`3	RunTestCaseInner	-
-base	AS	Xunit.v3.XunitTestCaseRunnerContext	Xunit.v3.XunitTestCaseRunnerBaseContext`2	-	-
-base	AS	Xunit.v3.XunitTestClass	System.Object	BeforeAfterTestAttributes Class ClassFixtureTypes Constructors Deserialize DisableParallelization MetadataToken Methods Serialize TestCaseOrderer TestClassName TestClassNamespace TestClassSimpleName TestCollection TestMethodOrderer Traits UniqueID	-
-base	AS	Xunit.v3.XunitTestClassRunner	Xunit.v3.XunitTestClassRunnerBase`4	Instance Run	-
-base	AS	Xunit.v3.XunitTestClassRunnerBaseContext`3	Xunit.v3.CoreTestClassRunnerContext`3	ClassFixtureMappings ConstructorArguments RunTestMethod TestCaseOrderer	-
-base	AS	Xunit.v3.XunitTestClassRunnerBase`4	Xunit.v3.CoreTestClassRunner`4	CreateTestClassConstructorArguments GetConstructorArgument OnTestClassFinished OnTestClassStarting RunTestMethods SelectTestClassConstructor SetTestContext	-
-base	AS	Xunit.v3.XunitTestClassRunnerContext	Xunit.v3.XunitTestClassRunnerBaseContext`3	-	-
-base	AS	Xunit.v3.XunitTestCollection	System.Object	BeforeAfterTestAttributes ClassFixtureTypes CollectionDefinition CollectionFixtureTypes Deserialize DisableParallelization Serialize TestAssembly TestCaseOrderer TestClassOrderer TestCollectionClassName TestCollectionDisplayName TestMethodOrderer Traits UniqueID	-
-base	AS	Xunit.v3.XunitTestCollectionRunner	Xunit.v3.XunitTestCollectionRunnerBase`4	Instance Run	-
-base	AS	Xunit.v3.XunitTestCollectionRunnerBaseContext`3	Xunit.v3.CoreTestCollectionRunnerContext`3	CollectionFixtureMappings TestCaseOrderer	-
-base	AS	Xunit.v3.XunitTestCollectionRunnerBase`4	Xunit.v3.CoreTestCollectionRunner`4	GetTestCaseOrderer OnTestCollectionFinished OnTestCollectionStarting RunTestClasses	-
-base	AS	Xunit.v3.XunitTestCollectionRunnerContext	Xunit.v3.XunitTestCollectionRunnerBaseContext`3	RunTestClass	-
-base	AS	Xunit.v3.XunitTestFramework	Xunit.v3.TestFramework	CreateDiscoverer CreateExecutor TestFrameworkDisplayName	-
-base	AS	Xunit.v3.XunitTestFrameworkDiscoverer	Xunit.v3.TestFrameworkDiscoverer`1	CreateTestClass DiscovererTypeCache FindTestsForMethod FindTestsForType GetDiscoverer GetExportedTypes TestAssembly TestCollectionFactory	-
-base	AS	Xunit.v3.XunitTestFrameworkExecutor	Xunit.v3.CoreTestFrameworkExecutor`1	RunTestCases TestAssembly	-
-base	AS	Xunit.v3.XunitTestMethod	System.Object	BeforeAfterTestAttributes DataAttributes Deserialize DisableParallelization FactAttributes GetDisplayName IsGenericMethodDefinition MakeGenericMethod MetadataToken Method MethodArity MethodName Parameters ResolveGenericTypes ResolveMethodArguments ReturnType Serialize TestCaseOrderer TestClass TestMethodArguments Traits UniqueID	-
-base	AS	Xunit.v3.XunitTestMethodRunner	Xunit.v3.XunitTestMethodRunnerBase`3	Instance Run	-
-base	AS	Xunit.v3.XunitTestMethodRunnerBaseContext`2	Xunit.v3.CoreTestMethodRunnerContext`2	ConstructorArguments MethodFixtureMappings RunTestCase	-
-base	AS	Xunit.v3.XunitTestMethodRunnerBase`3	Xunit.v3.CoreTestMethodRunner`3	RunTestCases	-
-base	AS	Xunit.v3.XunitTestMethodRunnerContext	Xunit.v3.XunitTestMethodRunnerBaseContext`2	-	-
-base	AS	Xunit.v3.XunitTestRunner	Xunit.v3.XunitTestRunnerBase`2	Instance Run	-
-base	AS	Xunit.v3.XunitTestRunnerBaseContext`1	Xunit.v3.CoreTestRunnerContext`2	BeforeAfterTestAttributes ConstructorArguments GetRuntimeSkipReason InvokeTest InvokeTestMethod Method MethodArguments RunAfter RunBefore TestFixtureMappings	-
-base	AS	Xunit.v3.XunitTestRunnerBase`2	Xunit.v3.CoreTestRunner`3	CreateTestClassInstance InvokeTest IsTestClassCreatable RunTest	-
-base	AS	Xunit.v3.XunitTestRunnerContext	Xunit.v3.XunitTestRunnerBaseContext`1	-	-
+base	AS	Xunit.Sdk.XunitSkippedDataRowTestCase	Xunit.Sdk.XunitTestCase	Deserialize GetSkipReason Serialize	-
+base	AS	Xunit.Sdk.XunitTest	Xunit.LongLivedMarshalByRefObject	DisplayName TestCase	-
+base	AS	Xunit.Sdk.XunitTestAssemblyRunner	Xunit.Sdk.TestAssemblyRunner`1	AfterTestAssemblyStartingAsync BeforeTestAssemblyFinishedAsync Dispose GetTestFrameworkDisplayName GetTestFrameworkEnvironment Initialize RunTestCollectionAsync RunTestCollectionsAsync SetupSyncContext	-
+base	AS	Xunit.Sdk.XunitTestCase	Xunit.Sdk.TestMethodTestCase	Deserialize DiagnosticMessageSink GetDisplayName GetSkipReason GetTimeout Initialize RunAsync Serialize Timeout	-
+base	AS	Xunit.Sdk.XunitTestCaseRunner	Xunit.Sdk.TestCaseRunner`1	BeforeAfterAttributes ConstructorArguments CreateTest CreateTestRunner DisplayName GetBeforeAfterTestAttributes RunTestAsync SkipReason TestClass TestMethod TestMethodArguments	-
+base	AS	Xunit.Sdk.XunitTestClassRunner	Xunit.Sdk.TestClassRunner`1	AfterTestClassStartingAsync BeforeTestClassFinishedAsync ClassFixtureMappings CreateClassFixture FormatConstructorArgsMissingMessage InitializedAsyncFixtures RunTestMethodAsync SelectTestClassConstructor TryGetConstructorArgument	-
+base	AS	Xunit.Sdk.XunitTestCollectionRunner	Xunit.Sdk.TestCollectionRunner`1	AfterTestCollectionStartingAsync BeforeTestCollectionFinishedAsync CollectionFixtureMappings CreateCollectionFixture DiagnosticMessageSink GetTestCaseOrderer RunTestClassAsync	-
+base	AS	Xunit.Sdk.XunitTestFramework	Xunit.Sdk.TestFramework	CreateDiscoverer CreateExecutor	-
+base	AS	Xunit.Sdk.XunitTestFrameworkDiscoverer	Xunit.Sdk.TestFrameworkDiscoverer	CreateTestClass DiscovererTypeCache DisplayName FindTestsForMethod FindTestsForType GetDiscoverer Serialize TestCollectionFactory	-
+base	AS	Xunit.Sdk.XunitTestFrameworkExecutor	Xunit.Sdk.TestFrameworkExecutor`1	CreateDiscoverer Deserialize RunTestCases TestAssembly	-
+base	AS	Xunit.Sdk.XunitTestInvoker	Xunit.Sdk.TestInvoker`1	AfterTestMethodInvokedAsync BeforeAfterAttributes BeforeTestMethodInvokedAsync InvokeTestMethodAsync	-
+base	AS	Xunit.Sdk.XunitTestMethodRunner	Xunit.Sdk.TestMethodRunner`1	RunTestCaseAsync	-
+base	AS	Xunit.Sdk.XunitTestRunner	Xunit.Sdk.TestRunner`1	BeforeAfterAttributes InvokeTestAsync InvokeTestMethodAsync	-
+base	AS	Xunit.Sdk.XunitTheoryTestCase	Xunit.Sdk.XunitTestCase	RunAsync	-
+base	AS	Xunit.Sdk.XunitTheoryTestCaseRunner	Xunit.Sdk.XunitTestCaseRunner	AfterTestCaseStartingAsync BeforeTestCaseFinishedAsync DiagnosticMessageSink RunTestAsync	-
+base	AS	Xunit.TheoryAttribute	Xunit.FactAttribute	-	-
+base	AS	Xunit.TheoryData	System.Object	AddRow AddRows Count Data GetEnumerator	-
+base	AS	Xunit.TheoryData`1	Xunit.TheoryData	Add AddRange GetEnumerator	-
+base	AS	Xunit.TheoryData`10	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`2	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`3	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`4	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`5	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`6	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`7	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`8	Xunit.TheoryData	Add	-
+base	AS	Xunit.TheoryData`9	Xunit.TheoryData	Add	-

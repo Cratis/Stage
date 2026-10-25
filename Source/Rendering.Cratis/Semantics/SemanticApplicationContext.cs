@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
@@ -216,6 +217,19 @@ internal sealed class SemanticApplicationContext
     /// <returns>The located slice.</returns>
     public LocatedSemanticSlice DeclaringSlice(SemanticId artifact) =>
         _slices.Values.Single(_ => _.Declares(artifact));
+
+    /// <summary>
+    /// Creates a builder for a generated application file, which spells the qualified types it is given by their short
+    /// names wherever that provably binds the same and decides the file's using directives.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes);
+
+    /// <summary>
+    /// Creates a builder for a generated specification file.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    internal CSharpCodeBuilder SpecificationBuilder() => new(GeneratedProjects.Specifications, GeneratedTypes);
 
     internal SemanticCaptureMemberPlan CaptureMembers(SemanticCapture capture)
     {

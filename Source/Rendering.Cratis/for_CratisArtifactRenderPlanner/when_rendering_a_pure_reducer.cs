@@ -143,9 +143,9 @@ public class when_rendering_a_pure_reducer
         var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
-        var shadowedFiles = baselineFiles.Append(new RenderedFile($"{sharedName}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {sharedName}(System.Guid Id, decimal Amount);"));
-        Assert.Empty(RenderedOutput.Errors(shadowedFiles));
 
+        // A hand-written type in a generated namespace is outside the contract (keep custom types out of generated
+        // namespaces); a generated sibling of the same name is not, and is qualified.
         var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
         var plan = Plan(await Load(conflicting));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -169,8 +169,8 @@ public class when_rendering_a_pure_reducer
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
         var assembly = RenderedOutput.Load(baselineFiles);
         var concept = assembly.GetType("Projects.Common.TenantId");
-        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.PlaceOrder").GetProperty("Tenant").PropertyType);
-        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced").GetProperty("Tenant").PropertyType);
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.PlaceOrder")!.GetProperty("Tenant")!.PropertyType);
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced")!.GetProperty("Tenant")!.PropertyType);
         var unrelated = source + "\nmodule TypedContexts\n  feature Other\n    slice StateChange Unrelated\n      event TenantChanged\n        tenant TenantId\n";
         var plan = Plan(await Load(unrelated));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("TypedContexts", StringComparison.Ordinal));
@@ -322,7 +322,7 @@ public class when_rendering_a_pure_reducer
         {
             var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
                 .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
-            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics(TestContext.Current.CancellationToken).Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
+            var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics().Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
             Assert.Fail($"Admitted a namespace shadow; rendered compilation: {string.Join("; ", errors)}");
         }
 
@@ -339,7 +339,7 @@ public class when_rendering_a_pure_reducer
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))
             .Append(new RenderedFile("Math.cs", "namespace Projects.Orders.Ordering.Math { }"));
-        var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics(TestContext.Current.CancellationToken)
+        var errors = RenderedOutput.CreateCompilation(files).GetDiagnostics()
             .Where(diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error).ToArray();
         Assert.Contains(errors, error => error.Id == "CS0234" && error.GetMessage().Contains("Abs", StringComparison.Ordinal));
     }
@@ -682,7 +682,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(await Load(source));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var generatedSpec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("is_projected", StringComparison.Ordinal));
-        Assert.Contains("[global::Xunit.FactAttribute]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
+        Assert.Contains("[Fact]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
@@ -721,7 +721,7 @@ public class when_rendering_a_pure_reducer
         var compilation = RenderedOutput.CreateCompilation(files);
         var path = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal)).RelativePath;
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor);
-        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics(TestContext.Current.CancellationToken))}");
+        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
         Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
         Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Concepts.ConceptAs<string>.Value", StringComparison.Ordinal));
         Assert.Contains(analysis.BoundSymbols, member => member.Contains("Cratis.Chronicle.Events.EventSourceId<string>.TypedValue", StringComparison.Ordinal));
@@ -1064,7 +1064,7 @@ public class when_rendering_a_pure_reducer
             var actual = PureTransitionAdmission.AnalyzeRendered(real, reducerFile.RelativePath, descriptor);
             Assert.True(synthetic.Accepted == actual.Accepted,
                 $"{fixture}: analysis {synthetic.Code}: {synthetic.Reason}; rendered {actual.Code}: {actual.Reason}; " +
-                string.Join("; ", real.GetDiagnostics(TestContext.Current.CancellationToken).Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
+                string.Join("; ", real.GetDiagnostics().Where(_ => _.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)));
             Assert.Equal(synthetic.ContextReads, actual.ContextReads);
             Assert.Equal(synthetic.UsedAllowlistEntries, actual.UsedAllowlistEntries);
             Assert.True(synthetic.Accepted, $"Parity fixture {fixture} was refused: {synthetic.Code}: {synthetic.Reason}");

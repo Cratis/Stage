@@ -37,7 +37,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
             {
                 using var scenario = new CommandScenario<RecordInformation>();
                 var id = new InvoiceId(Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
-                var result = await scenario.Execute(new RecordInformation(id, new HealthInformation("well"), new ApiKey("scalar-secret-value-345"), new PersonalSecret("private"), InvoiceStatus.Draft), cancellationToken: TestContext.Current.CancellationToken);
+                var result = await scenario.Execute(new RecordInformation(id, new HealthInformation("well"), new ApiKey("scalar-secret-value-345"), new PersonalSecret("private"), InvoiceStatus.Draft));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<InformationRecorded>(appended.Content);
@@ -65,7 +65,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                 var date = new DateOnly(2026, 10, 21);
                 var time = new DateTimeOffset(2026, 10, 21, 12, 30, 0, TimeSpan.Zero);
                 var uuid = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
-                var result = await scenario.Execute(new RecordSecrets(id, new SecretNumber(37), new SecretFlag(true), new SecretAmount(37.25m), new SecretDate(date), new SecretTime(time), new SecretUuid(uuid)), cancellationToken: TestContext.Current.CancellationToken);
+                var result = await scenario.Execute(new RecordSecrets(id, new SecretNumber(37), new SecretFlag(true), new SecretAmount(37.25m), new SecretDate(date), new SecretTime(time), new SecretUuid(uuid)));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<SecretsRecorded>(appended.Content);
@@ -94,7 +94,7 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
                     new[] { new HealthInformation("nested-pii-only-value-345") },
                     new HealthInformation("optional-pii-only-value-345"));
                 var result = await scenario.Execute(new RecordCredentials(id, new[] { new ApiKey("collection-secret-value-345") }, credentials, credentials,
-                    new[] { new HealthInformation("collection-pii-only-value-345") }, healthDetails, healthDetails, "auditable-value-345"), cancellationToken: TestContext.Current.CancellationToken);
+                    new[] { new HealthInformation("collection-pii-only-value-345") }, healthDetails, healthDetails, "auditable-value-345"));
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 var appended = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                 var payload = Assert.IsType<CredentialsRecorded>(appended.Content);
@@ -163,6 +163,6 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
     }
 
     [Fact] void should_build_with_the_chronicle_identity_analyzers() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_round_trip_and_project_values_without_leaking_causation() => _tests.ShouldHavePassedSpecifications();
+    [Fact] void should_round_trip_and_project_values_without_leaking_causation() => _tests.ShouldContain("Passed!");
 }
 #endif

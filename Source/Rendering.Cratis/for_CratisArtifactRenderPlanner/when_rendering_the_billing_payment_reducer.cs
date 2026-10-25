@@ -117,7 +117,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
         var compilation = RenderedOutput.CreateCompilation(files);
         var reducerFile = plan.Artifacts.Single(_ => _.RelativePath.EndsWith("PaymentSummaryReducer.cs", StringComparison.Ordinal));
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, reducerFile.RelativePath, descriptor);
-        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics(TestContext.Current.CancellationToken))}");
+        Assert.True(analysis.Accepted && rendered.Accepted, $"analysis: {analysis.Reason}; rendered: {rendered.Reason}; {string.Join("; ", compilation.GetDiagnostics())}");
         Assert.Equal(analysis.ContextReads, rendered.ContextReads);
         Assert.Equal(analysis.UsedAllowlistEntries, rendered.UsedAllowlistEntries);
         Assert.Equal(analysis.BoundSymbols.ToArray(), rendered.BoundSymbols.ToArray());
@@ -132,7 +132,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
             var build = await Run("billing-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("billing-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            test.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }
         finally
         {

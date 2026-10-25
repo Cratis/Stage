@@ -21,13 +21,15 @@ public class without_a_domain : given.a_domain_policy_plan
         var result = Plan(string.Empty);
         result.Success.ShouldBeTrue();
 
-        var qualified = QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices"));
+        var qualified = QualifiedCommonOutput.Restore(result.Plan!, () => Plan(string.Empty).Plan!);
 
-        // These pins include #767's owning for_* folder for the single generated fact.
-        // Restoring the initializer identifier confines the difference between the pins below
-        // and the current-output pins to that declaration change.
-        Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("A7BD9B9A620030222634B471B265EC96257A6A36E9F3E14D41FB099E70765AFC");
-        Digest(BeforeInitializerRename(qualified)).ShouldEqual("02656945C6DCB9DF26FEB6CF87FF07EE3A42AC617699E4B99CC65FD824040E57");
+        // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
+        // These assertions confine the updated pins below to that one generated declaration change.
+        // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
+        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(qualified))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+
+        // Restoring the former license header must reproduce the pins from before headers became optional.
+        Digest(LegacyLicenseHeader.Restore(qualified)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
     }
@@ -52,7 +54,8 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7C6DAA248974BA7DE0DD8F373CEF6D2C13C6C817B8C671117340E622BF45901D");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("1873F1E74FB67B6A54E2FDB40CB938A67C11A744F55DD4E18805DC5873C9989B");
+    // Re-frozen for #424: generated C# uses short type names and using directives.
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("2FAB07125C8F373F3BA852F53E4758E6565620719D4001F2F7153C162A86E975");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("05777F401D263E5BC39126494FB4912F7096AA91C5F3F5E22AE41AA55D20D689");
 }
 #endif

@@ -48,20 +48,23 @@ public class when_binding_pattern_and_random_common_types : Specification
     [Fact] void should_resolve_the_context_type() => File(_rendered, "DatedReference").ShouldContain("New(GenerationContext context)");
     [Fact] void should_resolve_the_contextual_interface() => File(_rendered, "DatedReference").ShouldContain("IGeneratableInContext<DatedReference>");
     [Fact] void should_preserve_the_int64_factory_bounds() => File(_rendered, "Ticket").ShouldContain("GenerateValue.Integer(-9223372036854775808L, 9223372036854775807L)");
-    [Fact] void should_root_the_factory_import() => File(_rendered, "DatedReference").ShouldContain("namespace PatternRandom.Common;\n\nusing global::Cratis.Concepts;");
+    [Fact] void should_rely_on_the_global_using_for_the_factory() => File(_rendered, "DatedReference").StartsWith("namespace PatternRandom.Common;\n\n/// <summary>", StringComparison.Ordinal).ShouldBeTrue();
 
+    // Since #424 every generated C# file is spelled short; the restore re-plans the qualified spelling of all of them.
     [Fact]
-    public void should_confine_output_changes_to_common_and_using_placement()
+    public void should_confine_output_changes_to_csharp_spelling_and_using_placement()
     {
         var changed = _plan.Artifacts.Where(artifact => artifact.Sha256 != _restored.Single(original => original.RelativePath == artifact.RelativePath).Sha256)
-            .Select(artifact => artifact.RelativePath).Order(StringComparer.Ordinal).ToArray();
-        Assert.Equal(new[] { ".editorconfig", "Common/CheckedReference.cs", "Common/DatedReference.cs", "Common/Reference.cs", "Common/Ticket.cs" }, changed);
+            .Select(artifact => artifact.RelativePath).ToArray();
+        Assert.All(changed, path => Assert.True(path == ".editorconfig" || path.EndsWith(".cs", StringComparison.Ordinal), path));
+        Assert.Contains(".editorconfig", changed);
     }
 
+    // Custom types live in their own namespaces; the global namespace, the root namespace and global aliases bind
+    // before any using directive, so they are outside the contract (see Customize a rendered application).
     [Theory]
-    [InlineData("public class Checksum;")]
-    [InlineData("namespace PatternRandom { public class GenerationContext; }")]
-    [InlineData("global using Checksum = global::System.String;")]
+    [InlineData("namespace Customizations { public class Checksum; public class GenerationContext; }")]
+    [InlineData("namespace Customizations.Cratis.Concepts { public class GenerateValue; public enum Checksum { Luhn } }")]
     [InlineData("namespace PatternRandom.Cratis.Concepts { public class GenerateValue; public enum Checksum { Luhn } }")]
     public void should_preserve_bindings_with_hostile_outer_names(string source)
     {

@@ -76,7 +76,7 @@ public class when_composing_slice_artifacts : given.an_automation
         Plan();
         _plan.Success.ShouldBeTrue();
         RenderedOutput.Errors(Files()).ShouldBeEmpty();
-        Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/FollowUp.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("FromEventAttribute<global::Reactions.Work.Processing.Start.Started>");
+        Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/FollowUp.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("FromEvent<Started>");
     }
 
     RenderedFile[] Files() => [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")

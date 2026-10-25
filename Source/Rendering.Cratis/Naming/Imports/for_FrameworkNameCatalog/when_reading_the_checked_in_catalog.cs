@@ -20,10 +20,11 @@ public class when_reading_the_checked_in_catalog : Specification
             !_catalog.Content.Packages.Any(package => package.Id == pin.Key && package.Version == pin.Value)).ShouldBeEmpty();
     [Fact] void should_import_the_cratis_package_global_usings_in_both_projects() =>
         _catalog.GlobalUsings(GeneratedProjects.Specifications).ShouldContain("Cratis.Chronicle.Events");
-    [Fact]
-    void should_import_the_web_sdk_usings_in_both_logical_contexts() =>
+    [Fact] void should_import_the_web_sdk_usings_in_specifications_compiled_into_the_application() =>
         (_catalog.GlobalUsings(GeneratedProjects.Application).Contains("Microsoft.AspNetCore.Http") &&
-         _catalog.GlobalUsings(GeneratedProjects.Specifications).Contains("Microsoft.AspNetCore.Http")).ShouldBeTrue();
+            _catalog.GlobalUsings(GeneratedProjects.Specifications).Contains("Microsoft.AspNetCore.Http")).ShouldBeTrue();
+    [Fact] void should_import_the_test_package_usings_in_the_application_debug_build() =>
+        _catalog.GlobalUsings(GeneratedProjects.Application).ShouldContain("Orleans");
     [Fact] void should_know_both_identity_providers() =>
         (_catalog.TypesNamed("Cratis.Arc.Identity", "IIdentityProvider", 0, GeneratedProjects.Application).Any() &&
             _catalog.TypesNamed("Cratis.Chronicle.Identities", "IIdentityProvider", 0, GeneratedProjects.Application).Any()).ShouldBeTrue();

@@ -145,9 +145,9 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                 WebApplication? app = null;
                 try
                 {
-                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+                    var startup = await Task.WhenAny(Program.Started.Task, running).WaitAsync(TimeSpan.FromSeconds(120));
                     if (startup == running) await running;
-                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120), TestContext.Current.CancellationToken);
+                    app = await Program.Started.Task.WaitAsync(TimeSpan.FromSeconds(120));
                     using var scope = app.Services.CreateScope();
                     var services = scope.ServiceProvider;
                     var store = services.GetRequiredService<IEventStore>();
@@ -192,8 +192,8 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                     app ??= Program.ProbeApplication;
                     if (app is not null)
                     {
-                        await app.StopAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
-                        await running.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+                        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(30));
+                        await running.WaitAsync(TimeSpan.FromSeconds(30));
                         await app.DisposeAsync();
                     }
                 }
@@ -237,7 +237,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
             var build = await Run("routes-build.log", "build", "Routes.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var output = await Run("routes-probe.log", "test", "Routes.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~RouteProbe.{fact}", "--nologo");
-            output.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", output, StringComparison.Ordinal);
         }
         finally
         {

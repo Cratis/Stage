@@ -96,7 +96,7 @@ public class when_comparing_validated_query_keys(when_comparing_validated_query_
                     [Fact]
                     public async Task should_preserve_all_four_query_answers()
                     {
-                        var results = await QueryKeys.Execute(Xunit.TestContext.Current.CancellationToken);
+                        var results = await QueryKeys.Execute();
                         Assert.False(results[1].IsValid);
                         Assert.False(results[3].IsValid);
                         Assert.NotEmpty(results[1].ValidationResults);

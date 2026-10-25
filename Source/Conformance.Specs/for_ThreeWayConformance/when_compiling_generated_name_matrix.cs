@@ -653,6 +653,24 @@ public class when_compiling_generated_name_matrix
             $"crossnamespace/{kind}/{name}");
     }
 
+    // A concept named like a type a global using imports, carried by a member of the same name: the short name is
+    // ambiguous above the namespace, so its namespace is imported inside it, while the handler writes the member name.
+    [Theory]
+    [InlineData("Subject")]
+    [InlineData("Task")]
+    [InlineData("TaskStatus")]
+    public Task concepts_named_like_imported_types_on_same_named_members_match_the_emitted_compilation(string name)
+    {
+        var member = Identifiers.ToCamelCase(name);
+        var source = Source.Replace("concept Badge : String", $"concept Badge : String\nconcept {name} : String", StringComparison.Ordinal)
+            .Replace("                projectId String identifier\n", $"                projectId String identifier\n                {member} {name}\n", StringComparison.Ordinal)
+            .Replace("                  for projectId\n", $"                  for projectId\n                  {member} = {member}\n", StringComparison.Ordinal)
+            .Replace("              event ProjectRegistered\n                projectId String\n", $"              event ProjectRegistered\n                projectId String\n                {member} {name}\n", StringComparison.Ordinal)
+            .Replace("                when RegisterProject\n                  projectId = \"project-1\"\n", $"                when RegisterProject\n                  projectId = \"project-1\"\n                  {member} = \"x\"\n", StringComparison.Ordinal)
+            .Replace("                then ProjectRegistered\n                  projectId = \"project-1\"\n", $"                then ProjectRegistered\n                  projectId = \"project-1\"\n                  {member} = \"x\"\n", StringComparison.Ordinal);
+        return Verify(Compile(source), $"samenamedmember/{name}");
+    }
+
     [Fact]
     public Task a_flat_read_model_member_cannot_shadow_its_source_event_in_nameof()
     {
@@ -718,8 +736,12 @@ public class when_compiling_generated_name_matrix
         Assert.Empty(RenderedOutput.Errors(files));
         var command = files.Single(file => file.RelativePath.EndsWith("/RegisterProject.cs", StringComparison.Ordinal));
         var receipt = files.Single(file => file.RelativePath == "GeneratedCommands/CommandReceiptTime.cs");
-        Assert.Contains("global::Projects.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation)", command.Content, StringComparison.Ordinal);
-        Assert.Contains("global::System.DateTimeOffset.FromUnixTimeMilliseconds(receivedAt.ToUnixTimeMilliseconds())", receipt.Content, StringComparison.Ordinal);
+
+        // The command's DateTimeOffset member shadows the framework type, so references to that type stay qualified there;
+        // the generated receipt helper is shadowed by nothing and is spelled short.
+        Assert.Contains("CommandReceiptTime.OccurredAtReceipt(operation)", command.Content, StringComparison.Ordinal);
+        Assert.DoesNotContain(" DateTimeOffset.", command.Content, StringComparison.Ordinal);
+        Assert.Contains("DateTimeOffset.FromUnixTimeMilliseconds(receivedAt.ToUnixTimeMilliseconds())", receipt.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("DateTimeOffset.UtcNow", command.Content, StringComparison.Ordinal);
     }
 
@@ -877,8 +899,29 @@ public class when_compiling_generated_name_matrix
             plan,
             CratisRendering.CreateProfile("Projects", options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
+
+        // The matrix proves the import resolver against the fully qualified spelling. The renderer's own resolved output
+        // is compared with that oracle too, binding for binding, wherever the qualified output compiles.
+        RenderedFile[] files;
+        using (QualifiedSpelling.Begin())
+        {
+            files = Render(model, row, rootNamespace, request, options);
+        }
+
+        var resolved = Render(model, row, rootNamespace, request, options);
+        if (QualifiedOutputProof.CompilationErrors(files).Count == 0)
+        {
+            var proof = QualifiedOutputProof.VerifyRendered(files, resolved);
+            Assert.True(proof.Failures.Count == 0, $"{row}: the resolved renderer output binds differently: {string.Join(Environment.NewLine, proof.Failures)}");
+        }
+
+        return new(row, model, plan, options, request, files);
+    }
+
+    static RenderedFile[] Render(ExecutableSemanticModel model, string row, string rootNamespace, ArtifactRenderRequest request, CratisRenderingOptions options)
+    {
         var context = new SemanticApplicationContext(request, options);
-        var files = context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
+        return [.. context.SelectedSlices().Select(slice => slice.Slice.Kind == SemanticSliceKind.StateChange
             ? SemanticStateChangeArtifactRenderer.Render(slice, context)
             : SemanticStateViewArtifactRenderer.Render(slice, context))
             .Concat((row.StartsWith("member/", StringComparison.Ordinal) && !row.StartsWith("member/type/", StringComparison.Ordinal)) ||
@@ -897,9 +940,7 @@ public class when_compiling_generated_name_matrix
                     .SelectMany(slice => slice.Specifications)
                     .SelectMany(specification => new[] { SemanticCommandSpecificationRenderer.Render(specification, context) }
                         .Concat(specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(specification, expected, context))))
-                : [])
-            .ToArray();
-        return new(row, model, plan, options, request, files);
+                : [])];
     }
 
     static async Task Verify(MatrixRow entry, IReadOnlyList<string>? compiledErrors = null, bool? serializedFailure = null)

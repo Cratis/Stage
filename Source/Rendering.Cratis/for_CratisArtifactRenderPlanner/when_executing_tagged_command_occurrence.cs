@@ -35,7 +35,7 @@ public class when_executing_tagged_command_occurrence : a_generated_application
             public async Task should_preserve_tags_and_payload_occurrence()
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
-                await scenario.Execute(new IssueInvoice("First", "invoice-one"), cancellationToken: TestContext.Current.CancellationToken);
+                await scenario.Execute(new IssueInvoice("First", "invoice-one"));
                 var appended = Assert.Single(scenario.AppendedEvents);
                 Assert.True(appended.Result.IsSuccess);
                 var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
@@ -75,8 +75,8 @@ public class when_executing_tagged_command_occurrence : a_generated_application
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);
-        _tests.ShouldHavePassedSpecifications();
-        ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs").ShouldContain("var occurred = global::Invoices.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);");
+        _tests.ShouldContain("Passed!");
+        ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs").ShouldContain("var occurred = CommandReceiptTime.OccurredAtReceipt(operation);");
     }
 }
 #endif

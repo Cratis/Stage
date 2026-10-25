@@ -48,7 +48,7 @@ public class when_resolving_escaped_members_across_runtime_consumers : a_generat
     async Task Because()
     {
         BuildWarnings(await Run("escaped-build.log", "build", "-c", "Debug", "-warnaserror")).ShouldEqual(string.Empty);
-        (await Run("escaped-tests.log", "test", "Escapes.csproj", "-c", "Debug", "--no-build")).ShouldHavePassedSpecifications();
+        (await Run("escaped-tests.log", "test", "Escapes.csproj", "-c", "Debug", "--no-build")).ShouldContain("Passed!");
     }
 
     [Fact]

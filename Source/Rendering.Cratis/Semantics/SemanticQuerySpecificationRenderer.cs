@@ -44,7 +44,7 @@ internal static class SemanticQuerySpecificationRenderer
         }
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Specifications")
@@ -116,14 +116,14 @@ internal static class SemanticQuerySpecificationRenderer
             builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         }
 
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Query_{Identifiers.ToPascalCase(readModel.Name)}_{Identifiers.ToPascalCase(query.Name)}", $"{behavior}.cs"]);
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
         // Decided from the rendered content, as the non-semantic renderer does: only a culture-invariant
         // parse needs the namespace, and emitting it regardless leaves an unused using in every file.
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(path, content);
@@ -152,7 +152,7 @@ internal static class SemanticQuerySpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Testing.ReadModels")
@@ -182,11 +182,11 @@ internal static class SemanticQuerySpecificationRenderer
             .Line("[global::Xunit.FactAttribute] void should_return_the_seeded_read_model() => (_result is not null).ShouldBeTrue();");
         RenderProperties(builder, result.Values, readModel, types, context);
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
-        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_Query_{Identifiers.ToPascalCase(readModel.Name)}_{Identifiers.ToPascalCase(query.Name)}", $"{behavior}.cs"]);
-        var content = types.SpecificationContent(builder.ToString());
+        var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(path, content);

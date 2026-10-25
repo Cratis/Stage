@@ -19,7 +19,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         // One invoked command runs in a scenario typed by it: that is what lets Arc read the decision state a protected command asks for. Several run in an untyped one.
         var typed = invoked.Length == 1 ? CommandType(invoked[0], types) : null;
         var decision = invoked.Length == 1 && !invoked[0].Reads.IsDefaultOrEmpty;
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands").Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
@@ -80,7 +80,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderRefusalOutcome(builder, specification, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"for_{Identifiers.ToPascalCase(prelude.Selection.Reaction.Name)}", $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static void RenderRefusalOutcome(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types)

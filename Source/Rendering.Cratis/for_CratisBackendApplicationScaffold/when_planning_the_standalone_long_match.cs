@@ -25,10 +25,10 @@ public class when_planning_the_standalone_long_match : Specification
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         plan.Success.ShouldBeTrue();
         Text(plan, "Common/LongMatchValue.cs").ShouldContain("PortableMatcher.Compile(\"^(a{2996}b)+$\")");
-        var accepted = Text(plan, "LongMatch/Checking/Check/for_CheckLongMatch/when_accepting_a_long_match.cs");
+        var accepted = Text(plan, "LongMatch/Checking/Check/when_accepting_a_long_match.cs");
         accepted.ShouldContain("await _scenario.Execute(");
         accepted.ShouldContain("should_return_the_expected_response");
-        var rejected = Text(plan, "LongMatch/Checking/Check/for_CheckLongMatch/when_rejecting_a_long_match.cs");
+        var rejected = Text(plan, "LongMatch/Checking/Check/when_rejecting_a_long_match.cs");
         rejected.ShouldContain("await _scenario.Execute(");
         rejected.ShouldContain("_result.ValidationResults.First().Message.ShouldEqual(\"Long match rejected\")");
     }

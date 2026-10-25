@@ -71,7 +71,7 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
             var build = await Run("billing-mongo-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("billing-mongo-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~when_reading_a_reduced_payment_from_mongo", "--nologo");
-            test.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", test, StringComparison.Ordinal);
         }
         finally
         {

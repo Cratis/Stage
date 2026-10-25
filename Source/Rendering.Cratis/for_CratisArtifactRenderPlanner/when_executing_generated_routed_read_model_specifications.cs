@@ -127,9 +127,10 @@ public class when_executing_generated_routed_read_model_specifications : a_gener
             var build = await Run("routed-read-model-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var passing = await Run("routed-read-model-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName!~Projects.WrongStream", "--nologo");
-            passing.ShouldHavePassedSpecifications();
+            Assert.Contains("Passed!", passing, StringComparison.Ordinal);
             var failing = await Run("routed-read-model-wrong-stream.log", true, "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~Projects.WrongStream", "--nologo");
-            failing.ShouldHaveFailedSpecifications(1);
+            Assert.Contains("Failed!", failing, StringComparison.Ordinal);
+            Assert.Contains("Failed:     1", failing, StringComparison.Ordinal);
         }
         finally
         {

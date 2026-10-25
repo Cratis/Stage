@@ -71,7 +71,7 @@
     <!-- Testing & Specifications -->
     <PackageVersion Include="Cratis.Specifications" Version="5.0.1" />
     <PackageVersion Include="Cratis.Specifications.XUnit" Version="4.1.1" />
-    <!-- Executable inline specs use v3; retain the legacy profile's v2 version getters. -->
+    <!-- Stage's own specs use v3; generated applications retain Specifications 4 / xUnit v2. -->
     <PackageVersion Include="Cratis.Specifications.XUnit.v3" Version="5.0.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit" Version="2.9.3" />

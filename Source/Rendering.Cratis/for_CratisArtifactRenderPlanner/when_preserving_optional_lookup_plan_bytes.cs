@@ -31,11 +31,16 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
     // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
-    // #767: only the inline Debug/native v3 scaffold replaces the separate specs project.
-    // Restoring the main scaffold reproduces all three previous complete-plan pins.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("58503e71fa0643a3a8b4983f67ebf977bc6f81cdff83b2e712e2259a0416b239");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("ae9dfc042f5efec562c30bd8df6adee423a6b659cbd7ec6c382b209d399bde13");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7e8b5b8398503296b1f177fb987e87051f48330264e5153aed5bde4b14181ef8");
+    // Re-frozen for #437: only the Matching package pin and host reference are added.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("7e97ff3fe232bf415147ff69b7d624aef2bad70e494fff33556b2cb3e0d56508");
+
+    // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("ea15eacb39128df043bb77b8f820fc219206b7277a74fb7df6f8bbe1ea794e5b");
+
+    // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
+    // Re-frozen for #424: generated C# uses short type names and using directives.
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("b89323ff2f1ec84c8f67674038f1a96888021acd3dd03b2bb9c16d67f3208bff");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,
@@ -45,13 +50,15 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan.Renderer,
         _plan.RendererVersion,
         _plan.ApplicationName,
-        [.. QualifiedCommonOutput.Restore(_model, _plan, new("InvoiceApp", "Invoices")).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+        [.. Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model))).Where(artifact => !artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => artifact.Kind == PlannedArtifactKind.Text
             ? PlannedArtifact.CreateText(
                 artifact.RelativePath,
                 PreviousRealization(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
                 previous_slice_sources.Of(artifact, _model))
             : artifact)],
         _plan.Diagnostics);
+
+    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, "InvoiceApp", "Invoices");
 
     // CPM keeps the backend Arc pins in Directory.Packages.props; frontend files may use the same version independently.
     static string PreviousRealization(string relativePath, string text)

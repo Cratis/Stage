@@ -9,7 +9,6 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-// Each fact mutates the model before rendering and executing its own scenario.
 [PerFactSpecificationLifecycle]
 public class when_exercising_translation_specifications : given.a_translation_specification_application
 {

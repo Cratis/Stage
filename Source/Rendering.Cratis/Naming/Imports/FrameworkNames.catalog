@@ -209,47 +209,47 @@ using	AS	namespace	Cratis.Chronicle.Reducers		cratis
 using	AS	namespace	Cratis.Chronicle.Transactions		cratis
 using	AS	namespace	Cratis.Concepts		cratis
 using	AS	namespace	FluentValidation		cratis
-using	AS	namespace	Microsoft.AspNetCore.Builder		NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Builder		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Builder		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Hosting		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Http		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Http		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Routing		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Routing		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Configuration		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Routing		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Configuration		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.DependencyInjection		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.Configuration		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.DependencyInjection		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.DependencyInjection		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Hosting		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Logging		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Logging		Sdk.Server
+using	AS	namespace	Microsoft.Extensions.Logging		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans		Microsoft.Orleans.Core
 using	AS	namespace	Orleans		Microsoft.Orleans.Core.Abstractions
 using	AS	namespace	Orleans		Microsoft.Orleans.Sdk
-using	AS	namespace	Orleans		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans.Hosting		Microsoft.Orleans.Core
-using	AS	namespace	Orleans.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans.Runtime		Microsoft.Orleans.Core
 using	AS	namespace	Orleans.Runtime		Microsoft.Orleans.Core.Abstractions
-using	AS	namespace	Orleans.Runtime		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans.Runtime		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Collections.Generic		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Collections.Generic		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Collections.Generic		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.IO		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.IO		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.IO		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Linq		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Linq		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Linq		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Net.Http		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Net.Http		NameCatalogApp.GlobalUsings.g.cs
-using	AS	namespace	System.Net.Http.Json		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Net.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Net.Http.Json		Sdk.Server
+using	AS	namespace	System.Net.Http.Json		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Threading		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Threading		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Threading		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Threading.Tasks		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Threading.Tasks		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Threading.Tasks		compile:NameCatalogApp.GlobalUsings.g.cs
 scope	Cratis
 scope	FluentValidation
 scope	MongoDB
@@ -2002,7 +2002,6 @@ namespace	AS	grpc
 namespace	AS	grpc.reflection
 namespace	AS	grpc.reflection.v1alpha
 type	AS		ExceptionExtensions	static
-type	AS		Program	class
 type	AS		ReflectionAbstractionExtensions	static
 type	AS		TestFrameworkOptionsReadExtensions	static
 type	AS		TimedLogging	static

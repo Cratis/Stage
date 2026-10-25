@@ -41,6 +41,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_end_every_input_with_exactly_one_line_feed_byte() => _first.All(EndsWithExactlyOneLineFeed).ShouldBeTrue();
     [Fact] void should_stop_inheriting_parent_build_properties() => Content("Directory.Build.props").ShouldNotContain("<Import");
     [Fact] void should_configure_the_shared_build_policy() => BuildProperties().ShouldEqual("net10.0|latest|enable|enable|true|true");
+    [Fact] void should_enable_read_protection_exactly_once_in_the_shared_build_properties() => XDocument.Parse(Content("Directory.Build.props")).Descendants("CratisReadProtection").Single().Value.ShouldEqual("On");
     [Fact] void should_keep_only_environment_dependent_restore_diagnostics_as_warnings() => XDocument.Parse(Content("Directory.Build.props")).Descendants("WarningsNotAsErrors").Single().Value.ShouldEqual("$(WarningsNotAsErrors);NU1507;NU1900;NU1901;NU1902;NU1903;NU1904");
     [Fact] void should_not_hide_restore_diagnostics() => XDocument.Parse(Content("Directory.Build.props")).Descendants("NoWarn").ShouldBeEmpty();
     [Fact] void should_stop_inheriting_parent_build_targets() => Content("Directory.Build.targets").ShouldEqual("<Project />\n");

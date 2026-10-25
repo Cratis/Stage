@@ -33,7 +33,7 @@
     <PackageVersion Include="Cratis.Screenplay" Version="4.240.2" />
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
     <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.240.2" />
-    <PackageVersion Include="Cratis.Templates" Version="1.7.4" />
+    <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
     <!-- Microsoft -->
     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
     <PackageVersion Include="Microsoft.NETCore.App.Ref" Version="$(PureTransitionReferencePackVersion)" />

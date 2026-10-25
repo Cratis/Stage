@@ -17,7 +17,6 @@ public sealed partial class CratisBackendApplicationScaffold
             <LangVersion>latest</LangVersion>
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
-            <CratisReadProtection>On</CratisReadProtection>
             <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
             <!-- Source mapping and audit availability/advisories depend on the restore environment; keep them visible as warnings. -->
             <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1507;NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>

@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Xml.Linq;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Specs;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
@@ -33,8 +32,6 @@ public class when_scaffolding_a_new_project : Specification
     [Fact] void should_report_progress() => _output.ShouldContain("Scaffolding complete.");
     [Fact] void should_generate_a_project_file_named_after_the_project() =>
         File.Exists(Path.Combine(_target.FullName, "AcmeBilling.csproj")).ShouldBeTrue();
-    [Fact] void should_enable_read_protection_in_the_generated_project() =>
-        XDocument.Load(Path.Combine(_target.FullName, "AcmeBilling.csproj")).Descendants("CratisReadProtection").Single().Value.ShouldEqual("On");
     [Fact] void should_substitute_the_target_framework() =>
         File.ReadAllText(Path.Combine(_target.FullName, "AcmeBilling.csproj")).ShouldNotContain("TARGET_FRAMEWORK");
     [Fact] void should_substitute_the_root_namespace() =>

@@ -42,6 +42,8 @@ static class CatalogScaffold
             await File.WriteAllBytesAsync(path, [.. input.Bytes]);
         }
 
+        await WriteMembershipProbes(directory);
+
         // A newer SDK can substitute framework ref assemblies for package lib assemblies of the same version.
         // Their public APIs agree, but implementation-only namespaces still participate in C# namespace lookup.
         // Pin both packs so this scaffold's compiler references are stable. Namespace generation also unions
@@ -63,6 +65,21 @@ static class CatalogScaffold
         return (
             await Read(GeneratedProjects.Application, directory.FullName, $"{ProjectName}.csproj"),
             await Read(GeneratedProjects.Specifications, specifications, $"{ProjectName}.Specs.csproj"));
+    }
+
+    static async Task WriteMembershipProbes(DirectoryInfo directory)
+    {
+        foreach (var path in new[] { "for_Helper/Helper.cs", "given_Helper/Helper.cs", "Feature.Specs.cs" })
+        {
+            var fullPath = Path.Combine(directory.FullName, path);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            var name = Path.GetFileNameWithoutExtension(path).Replace('.', '_');
+            var @namespace = Path.GetDirectoryName(path)?.Replace('/', '_');
+            await File.WriteAllTextAsync(fullPath, $"namespace CatalogMembership.{(@namespace?.Length > 0 ? @namespace : "Root")}; public class {name} {{ public ImmutableArray<int> Values => []; }}");
+        }
+
+        await File.WriteAllTextAsync(Path.Combine(directory.FullName, "when_probe.cs"),
+            "namespace CatalogMembership; public class when_probe : Specification { [Fact] public void should_use_testing_globals() { var value = Substitute.For<System.IDisposable>(); value.Dispose(); } }");
     }
 
     static async Task<ScaffoldedProject> Read(GeneratedProjects project, string directory, string file)

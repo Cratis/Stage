@@ -48,7 +48,7 @@ public class when_binding_pattern_and_random_common_types : Specification
     [Fact] void should_resolve_the_context_type() => File(_rendered, "DatedReference").ShouldContain("New(GenerationContext context)");
     [Fact] void should_resolve_the_contextual_interface() => File(_rendered, "DatedReference").ShouldContain("IGeneratableInContext<DatedReference>");
     [Fact] void should_preserve_the_int64_factory_bounds() => File(_rendered, "Ticket").ShouldContain("GenerateValue.Integer(-9223372036854775808L, 9223372036854775807L)");
-    [Fact] void should_root_the_factory_import() => File(_rendered, "DatedReference").ShouldContain("namespace PatternRandom.Common;\n\nusing global::Cratis.Concepts;");
+    [Fact] void should_root_the_factory_import() => File(_rendered, "DatedReference").ShouldContain("using global::Cratis.Concepts;\n\nnamespace PatternRandom.Common;");
 
     [Fact]
     public void should_confine_output_changes_to_common_and_using_placement()

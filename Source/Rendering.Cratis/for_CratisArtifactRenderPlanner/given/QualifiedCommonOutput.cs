@@ -13,11 +13,11 @@ using Cratis.Stage.Rendering.Cratis.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 /// <summary>
-/// Restores only the two authorized output changes so the previous frozen bytes remain an independent confinement gate.
+/// Restores common-type spelling and scaffold import changes so previous frozen bytes remain an independent confinement gate.
 /// </summary>
 internal static class QualifiedCommonOutput
 {
-    internal const string Placement = "csharp_using_directive_placement = inside_namespace\n";
+    internal const string Placement = "csharp_using_directive_placement = outside_namespace\n";
 
     internal static ImmutableArray<PlannedArtifact> Restore(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options)
     {
@@ -26,16 +26,21 @@ internal static class QualifiedCommonOutput
         var common = model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true))
             .Concat(model.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context, qualified: true)))
             .ToDictionary(file => file.RelativePath, StringComparer.Ordinal);
-        return [.. plan.Artifacts.Select(artifact => common.TryGetValue(artifact.RelativePath, out var file)
+        return [.. plan.Artifacts.Where(artifact => !IsGlobals(artifact.RelativePath)).Select(artifact => common.TryGetValue(artifact.RelativePath, out var file)
             ? PlannedArtifact.CreateText(artifact.RelativePath, file.Content, artifact.Sources)
             : WithoutPlacement(artifact))];
     }
 
-    static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig"
+    static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig" || artifact.RelativePath.EndsWith(".csproj", StringComparison.Ordinal)
         ? PlannedArtifact.CreateText(artifact.RelativePath, BeforePlacement(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)
         : artifact;
 
-    internal static string BeforePlacement(string text) => text.Replace(Placement, string.Empty, StringComparison.Ordinal);
+    internal static bool IsGlobals(string path) => string.Equals(Path.GetFileName(path), "GlobalUsings.cs", StringComparison.Ordinal) ||
+        string.Equals(Path.GetFileName(path), "GlobalUsings.Specs.cs", StringComparison.Ordinal);
+
+    internal static string BeforePlacement(string text) => text.Replace(Placement, string.Empty, StringComparison.Ordinal)
+        .Replace(";GlobalUsings.Specs.cs", string.Empty, StringComparison.Ordinal)
+        .Replace("    <Compile Include=\"../GlobalUsings.cs;../GlobalUsings.Specs.cs\" Link=\"%(Filename)%(Extension)\" />\n", string.Empty, StringComparison.Ordinal);
 
     internal static string Digest(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options) =>
         FrozenScaffoldPins.Digest(plan, Restore(model, plan, options));

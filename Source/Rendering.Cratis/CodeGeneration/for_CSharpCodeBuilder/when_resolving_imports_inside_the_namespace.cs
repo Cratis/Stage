@@ -21,8 +21,13 @@ public class when_resolving_imports_inside_the_namespace : Specification
 
     void Because() => _result = _builder.ToString();
 
-    [Fact] void should_retain_the_extension_import_at_the_top() => _result.ShouldContain("using FluentValidation;\n\nnamespace Shop.Common;");
-    [Fact] void should_place_the_type_import_inside_the_namespace() => _result.ShouldContain("namespace Shop.Common;\n\nusing global::System.Text.RegularExpressions;\n\npublic record Item(Regex Id);");
+    [Fact]
+    void should_reuse_the_global_extension_import()
+    {
+        FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).ShouldContain("FluentValidation");
+        _result.ShouldNotContain("using FluentValidation;");
+    }
+    [Fact] void should_place_the_type_import_before_the_namespace() => _result.ShouldContain("using global::System.Text.RegularExpressions;\n\nnamespace Shop.Common;\n\npublic record Item(Regex Id);");
     [Fact] void should_not_leave_a_placeholder() => _result.Contains('\u0001', StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_resolve_without_mutating_the_builder() => _builder.ToString().ShouldEqual(_result);
 }

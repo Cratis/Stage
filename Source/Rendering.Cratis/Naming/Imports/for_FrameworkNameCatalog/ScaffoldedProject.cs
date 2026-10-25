@@ -53,9 +53,10 @@ sealed record ScaffoldedProject(
             Metadata(item, "Identity"),
             Metadata(item, "Alias"),
             Metadata(item, "DefiningProjectName"))).ToArray();
+        var sourceRoot = project == GeneratedProjects.Specifications ? System.IO.Directory.GetParent(directory)!.FullName : directory;
         var packageSources = root.GetProperty("Compile").EnumerateArray()
             .Select(item => Path.GetFullPath(Metadata(item, "FullPath")))
-            .Where(path => !path.StartsWith(Path.GetFullPath(directory), StringComparison.Ordinal))
+            .Where(path => !path.StartsWith(Path.GetFullPath(sourceRoot) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
             .Select(path => (Package: PackageOf(path), Path: path))
             .ToArray();
         var generated = System.IO.Directory.Exists(generatedSources)

@@ -100,7 +100,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     [Fact] void should_build_the_debug_host_and_separate_generated_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
     [Fact] void should_run_the_generated_specifications_from_the_specs_project() => _debugTest.ExitCode.ShouldEqual(0);
     [Fact] void should_execute_a_nonempty_set_of_generated_specifications() => ExecutedSpecifications().ShouldBeGreaterThan(0);
-    [Fact] void should_compile_every_generated_specification_in_the_specs_project() => CompileSources(_specCompile).Where(source => !IsPackageGlobalUsings(source)).ShouldContainOnly(_specSources);
+    [Fact] void should_compile_every_generated_specification_in_the_specs_project() => CompileSources(_specCompile).Where(source => !IsPackageGlobalUsings(source)).ShouldContainOnly([.. _specSources, "GlobalUsings.cs", "GlobalUsings.Specs.cs"]);
     [Fact] void should_compile_no_generated_specifications_in_the_web_host() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
     [Fact] void should_cover_a_nonempty_set_of_emitted_specification_files() => _specSources.ShouldNotBeEmpty();
     [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);

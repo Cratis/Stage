@@ -80,6 +80,17 @@ internal sealed class FrameworkNameCatalog
         Content.Usings.Any(@using => @using.Kind != CatalogUsingKind.Namespace && Sees(@using.Projects, project));
 
     /// <summary>
+    /// Checks the effective import inventory of a customized compilation against the restored scaffold. Sources and
+    /// duplicate directives do not change lookup; namespace, static and alias imports all do.
+    /// </summary>
+    /// <param name="project">The compilation being resolved.</param>
+    /// <param name="effective">All global imports in that compilation, including implicit and package imports.</param>
+    /// <returns>Whether the effective imports match the catalog exactly.</returns>
+    public bool MatchesGlobalUsings(GeneratedProjects project, IEnumerable<CatalogUsing> effective) =>
+        Content.Usings.Where(@using => Sees(@using.Projects, project)).Select(ImportIdentity).ToHashSet()
+            .SetEquals(effective.Where(@using => Sees(@using.Projects, project)).Select(ImportIdentity));
+
+    /// <summary>
     /// Gets a value indicating whether the catalog records every type of a namespace.
     /// </summary>
     /// <param name="namespace">The namespace, empty for the global namespace.</param>
@@ -147,6 +158,9 @@ internal sealed class FrameworkNameCatalog
 
         return new(members.ToImmutable(), nested.ToImmutable());
     }
+
+    static (CatalogUsingKind Kind, string Target, string Alias) ImportIdentity(CatalogUsing @using) =>
+        (@using.Kind, @using.Target, @using.Alias);
 
     static bool Sees(GeneratedProjects projects, GeneratedProjects project) => (projects & project) != GeneratedProjects.None;
 

@@ -40,11 +40,18 @@ internal static class ImportResolver
     /// <param name="request">The file to resolve.</param>
     /// <param name="catalog">The framework names in scope.</param>
     /// <returns>The using directives and spellings.</returns>
+    /// <exception cref="InvalidOperationException">The effective global imports differ from the restored scaffold catalog.</exception>
     public static ImportResolution Resolve(ImportRequest request, FrameworkNameCatalog catalog)
     {
+        if (request.EffectiveGlobalUsings is not null && !catalog.MatchesGlobalUsings(request.Project, request.EffectiveGlobalUsings))
+        {
+            throw new InvalidOperationException("The effective global usings do not match the restored scaffold catalog.");
+        }
+
         var references = request.References.Distinct().ToArray();
-        var required = request.RequiredImports.Distinct(StringComparer.Ordinal).ToArray();
-        if (request.HasUnknownScope)
+        var globals = catalog.GlobalUsings(request.Project).ToHashSet(StringComparer.Ordinal);
+        var required = request.RequiredImports.Where(@namespace => !globals.Contains(@namespace)).Distinct(StringComparer.Ordinal).ToArray();
+        if (request.HasUnknownScope || catalog.HasUnmodeledUsings(request.Project))
         {
             return new([], references.ToImmutableDictionary(reference => reference, reference => reference.Qualified))
             {
@@ -53,7 +60,7 @@ internal static class ImportResolver
         }
 
         var scope = new NameScope(request, catalog);
-        var imported = new HashSet<string>(StringComparer.Ordinal);
+        var imported = globals.Concat(required).ToHashSet(StringComparer.Ordinal);
         var unspelled = request.PinnedNames.Concat(_contextualNames).ToHashSet(StringComparer.Ordinal);
         var accessed = request.MemberAccessNames.Concat(_patternMembers).ToHashSet(StringComparer.Ordinal);
         var chosen = references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal)

@@ -5,8 +5,8 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 /// <summary>
 /// Models how C# binds a simple name at the top level of a generated file's file-scoped namespace: hidden first by
-/// type parameters and nested types, then members of the file namespace and imports declared inside it. A short name
-/// must bind at that innermost level; enclosing namespaces and global usings cannot establish a safe short spelling.
+/// type parameters and nested types, then members of each enclosing namespace, and finally compilation-unit imports,
+/// including global usings. Imports emitted before the namespace cannot override a name in an enclosing namespace.
 /// </summary>
 internal sealed class NameScope
 {
@@ -68,7 +68,7 @@ internal sealed class NameScope
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <returns><see langword="true"/> when the file is in the namespace or one nested in it.</returns>
-    public bool Encloses(string @namespace) => FileNamespace == @namespace;
+    public bool Encloses(string @namespace) => FileNamespace == @namespace || FileNamespace.StartsWith($"{@namespace}.", StringComparison.Ordinal);
 
     /// <summary>
     /// Determines whether a globally rooted directive's first segment is hidden by a global type.
@@ -97,16 +97,19 @@ internal sealed class NameScope
     /// </summary>
     /// <param name="name">The simple name.</param>
     /// <param name="arity">The number of type arguments written with it.</param>
-    /// <param name="imports">The namespaces imported inside the file-scoped namespace.</param>
+    /// <param name="imports">The effective compilation-unit imports, including global usings.</param>
     /// <param name="target">The type the name is meant to bind to.</param>
     /// <returns>What the name binds to.</returns>
     public NameLookup Find(string name, int arity, IReadOnlyCollection<string> imports, TypeReference target)
     {
         if (_typeNames.Contains(name)) return NameLookup.Other;
-        if (arity == 0 && IsNamespace(CatalogNames.Qualify(FileNamespace, name))) return NameLookup.Other;
-        if (!Knows(FileNamespace) && FileNamespace.Length > 0) return NameLookup.Unknown;
-        var found = Count(FileNamespace, name, arity);
-        if (found > 0) return found == 1 && Is(target, FileNamespace, name, arity) ? NameLookup.Target : NameLookup.Other;
+        foreach (var @namespace in CatalogNames.SelfAndContaining(FileNamespace))
+        {
+            if (arity == 0 && IsNamespace(CatalogNames.Qualify(@namespace, name))) return NameLookup.Other;
+            if (!Knows(@namespace) && @namespace.Length > 0) return NameLookup.Unknown;
+            var found = Count(@namespace, name, arity);
+            if (found > 0) return found == 1 && Is(target, @namespace, name, arity) ? NameLookup.Target : NameLookup.Other;
+        }
 
         return Imported(name, arity, imports, target);
     }

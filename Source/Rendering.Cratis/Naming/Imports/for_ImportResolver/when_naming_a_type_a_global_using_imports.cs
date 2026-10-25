@@ -11,8 +11,9 @@ public class when_naming_a_type_a_global_using_imports : given.a_framework_catal
     readonly TypeReference _guid = new("System", "Guid", 0, ReferenceContext.Type);
     ImportResolution _result = null!;
 
-    void Because() => _result = ImportResolver.Resolve(Request(_guid), _catalog);
+    void Because() => _result = ImportResolver.Resolve(Request(_guid) with { RequiredImports = ["System"] }, _catalog);
 
     [Fact] void should_spell_it_by_its_short_name() => _result.Spell(_guid).ShouldEqual("Guid");
-    [Fact] void should_import_it_at_the_innermost_level() => _result.Usings.ShouldContain("System");
+    [Fact] void should_not_repeat_the_global_import() => _result.Usings.ShouldBeEmpty();
+    [Fact] void should_not_retain_a_redundant_explicit_namespace_import() => _result.TopLevelUsings.ShouldBeEmpty();
 }

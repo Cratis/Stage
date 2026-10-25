@@ -249,6 +249,7 @@ using	AS	namespace	Cratis.Arc		cratis
 using	AS	namespace	Cratis.Arc.Authentication		cratis
 using	AS	namespace	Cratis.Arc.Authorization		cratis
 using	AS	namespace	Cratis.Arc.Chronicle.Aggregates		cratis
+using	AS	namespace	Cratis.Arc.Chronicle.ReadModels		compile:GlobalUsings.cs
 using	AS	namespace	Cratis.Arc.Commands		cratis
 using	AS	namespace	Cratis.Arc.Commands.ModelBound		cratis
 using	AS	namespace	Cratis.Arc.Identity		cratis
@@ -260,6 +261,7 @@ using	AS	namespace	Cratis.Chronicle		cratis
 using	AS	namespace	Cratis.Chronicle.EventSequences		cratis
 using	AS	namespace	Cratis.Chronicle.Events		cratis
 using	AS	namespace	Cratis.Chronicle.Events.Constraints		cratis
+using	AS	namespace	Cratis.Chronicle.Keys		compile:GlobalUsings.cs
 using	AS	namespace	Cratis.Chronicle.Observation		cratis
 using	AS	namespace	Cratis.Chronicle.Projections		cratis
 using	AS	namespace	Cratis.Chronicle.Projections.ModelBound		cratis
@@ -271,11 +273,15 @@ using	AS	namespace	Cratis.Concepts		cratis
 using	AS	namespace	FluentValidation		cratis
 using	AS	namespace	System		Microsoft.NET.Sdk.CSharp
 using	AS	namespace	System.Collections.Generic		Microsoft.NET.Sdk.CSharp
+using	AS	namespace	System.Collections.Immutable		compile:GlobalUsings.cs
 using	AS	namespace	System.IO		Microsoft.NET.Sdk.CSharp
 using	AS	namespace	System.Linq		Microsoft.NET.Sdk.CSharp
 using	AS	namespace	System.Net.Http		Microsoft.NET.Sdk.CSharp
+using	AS	namespace	System.Reactive.Subjects		compile:GlobalUsings.cs
 using	AS	namespace	System.Threading		Microsoft.NET.Sdk.CSharp
 using	AS	namespace	System.Threading.Tasks		Microsoft.NET.Sdk.CSharp
+using	S	namespace	Cratis.Specifications		compile:GlobalUsings.Specs.cs
+using	S	namespace	NSubstitute		compile:GlobalUsings.Specs.cs
 using	S	namespace	Orleans		Microsoft.Orleans.Core
 using	S	namespace	Orleans		Microsoft.Orleans.Core.Abstractions
 using	S	namespace	Orleans		Microsoft.Orleans.Sdk
@@ -292,6 +298,7 @@ using	S	namespace	System.Linq		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 using	S	namespace	System.Net.Http		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 using	S	namespace	System.Threading		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
 using	S	namespace	System.Threading.Tasks		compile:NameCatalogApp.Specs.GlobalUsings.g.cs
+using	S	namespace	Xunit		compile:GlobalUsings.Specs.cs
 scope	Cratis
 scope	FluentValidation
 scope	MongoDB

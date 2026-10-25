@@ -82,7 +82,7 @@ public sealed partial class CratisBackendApplicationScaffold
           </PropertyGroup>
           <ItemGroup>
             <InternalsVisibleTo Include="{{request.ProjectName}}.Specs" />
-            <Compile Remove="{{SpecificationGlob}};{{request.ProjectName}}.Specs/**" />
+            <Compile Remove="{{SpecificationGlob}};GlobalUsings.Specs.cs;{{request.ProjectName}}.Specs/**" />
             <Content Remove="package.json;{{request.ProjectName}}.Specs/**" />
             <None Remove="package.json;{{request.ProjectName}}.Specs/**" />
             <EmbeddedResource Remove="{{request.ProjectName}}.Specs/**" />
@@ -108,6 +108,7 @@ public sealed partial class CratisBackendApplicationScaffold
           </PropertyGroup>
           <ItemGroup>
             <ProjectReference Include="../{{request.ProjectName}}.csproj" />
+            <Compile Include="../GlobalUsings.cs;../GlobalUsings.Specs.cs" Link="%(Filename)%(Extension)" />
             <Compile Include="../{{SpecificationGlob}}" Exclude="../{{request.ProjectName}}.Specs/**;../**/bin/**;../**/obj/**;../node_modules/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
           </ItemGroup>
           <ItemGroup>

@@ -24,6 +24,12 @@ internal sealed record ImportRequest(
     public IEnumerable<string> RequiredImports { get; init; } = [];
 
     /// <summary>
+    /// Gets the full effective global import inventory, if a caller supplies a customized compilation. A mismatch with
+    /// the restored scaffold is rejected rather than assuming the additional imports cannot affect authored bindings.
+    /// </summary>
+    public IReadOnlyList<CatalogUsing>? EffectiveGlobalUsings { get; init; }
+
+    /// <summary>
     /// Gets the type parameter and nested type names in scope in the file's types, including nested types inherited
     /// from base classes. They hide a type of the same name everywhere.
     /// </summary>

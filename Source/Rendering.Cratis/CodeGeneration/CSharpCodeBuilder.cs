@@ -256,27 +256,20 @@ public class CSharpCodeBuilder
             .AppendLine("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
             .AppendLine();
 
-        foreach (var @using in topUsings.Order(StringComparer.Ordinal))
+        var directives = topUsings.Concat(innerUsings.Select(@namespace => $"global::{@namespace}"))
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        foreach (var @using in directives)
         {
             result.AppendLine($"using {@using};");
         }
 
-        if (_usings.Count > 0)
-        {
-            result.AppendLine();
-        }
+        if (directives.Length > 0) result.AppendLine();
 
         if (_namespace is not null)
         {
             result.AppendLine($"namespace {_namespace};").AppendLine();
         }
 
-        foreach (var @using in innerUsings)
-        {
-            result.AppendLine($"using global::{@using};");
-        }
-
-        if (innerUsings.Any()) result.AppendLine();
         result.Append(body);
         return result.ToString();
     }

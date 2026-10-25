@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -67,7 +67,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
+    const identifiers = useMemo(() => sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), [fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
+    const currentValues = useCurrentValues({ ...identifiers, ...suppliedReferences }, argumentValues);
+    const initialValues = useMemo(() => ({ ...populated, ...identifiers, ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, identifiers, data.parameters, suppliedReferences]);
     const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -88,7 +90,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
-                currentValues={argumentValues}
+                currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
@@ -278,6 +280,19 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     }
 
     return values;
+}
+
+/** Follow only externally supplied members; losing a source clears that member without erasing unrelated edits. */
+function useCurrentValues(supplied: StageCommandContent, arguments_: StageCommandContent | undefined) {
+    const previous = useRef<string[]>([]);
+    const key = JSON.stringify(supplied);
+    return useMemo(() => {
+        const values: StageCommandContent = {};
+        for (const name of previous.current) if (!Object.hasOwn(supplied, name)) values[name] = undefined;
+        Object.assign(values, supplied, arguments_);
+        previous.current = Object.keys(supplied);
+        return values;
+    }, [key, arguments_]);
 }
 
 function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[]): StageCommandContent {

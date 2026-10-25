@@ -103,7 +103,7 @@ public class when_executing_flat_projections_keyed_by_a_payload_property : a_gen
             var build = await Run("flat-payload-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("flat-payload-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
         }
         finally
         {

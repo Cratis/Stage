@@ -110,7 +110,7 @@ public class when_executing_optional_running_totals : a_generated_application
             var build = await Run("optional-total-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("optional-total-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
         }
         finally
         {

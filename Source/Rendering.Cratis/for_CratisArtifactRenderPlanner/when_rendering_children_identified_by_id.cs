@@ -73,7 +73,7 @@ public class when_rendering_children_identified_by_id : a_generated_application
         _tests = await Run("child-id-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_run_the_generated_child_projection() => _tests.ShouldContain("Passed!");
+    [Fact] void should_run_the_generated_child_projection() => _tests.ShouldHavePassedSpecifications();
     [Fact] void should_render_id_as_a_child_member() => ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.Id)");
 }
 #endif

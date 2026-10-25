@@ -17,7 +17,7 @@ public class when_rendering_scoped_projections(when_rendering_scoped_projections
 {
     [Fact] void should_build_debug_warning_free() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_warning_free() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
-    [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => fixture.Specifications.ShouldContain("Passed!");
+    [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => fixture.Specifications.ShouldHavePassedSpecifications();
     [Fact] void should_emit_scoped_projection_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("ReadModelScenario<global::Projects.Projects.Registration.ProjectLookup.ProjectSummary>");
     [Fact] void should_emit_a_seeded_query_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new global::Projects.Projects.Registration.ProjectLookup.ProjectDetails");
     [Fact] void should_emit_two_from_events_and_a_join() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<global::Projects.Projects.Registration.RegisterProject.ProjectRenamed>");

@@ -101,7 +101,7 @@ public class when_executing_generated_composite_read_model_keys : a_generated_ap
             var build = await Run("composite-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var tests = await Run("composite-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", tests, StringComparison.Ordinal);
+            tests.ShouldHavePassedSpecifications();
             Assert.DoesNotContain("Failed!", tests, StringComparison.Ordinal);
         }
         finally

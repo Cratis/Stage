@@ -23,7 +23,7 @@ public class when_executing_protected_routed_live_list_specifications : a_genera
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_pass_the_keyed_routed_row_expectation() => _tests.ShouldContain("Passed!");
+    [Fact] void should_pass_the_keyed_routed_row_expectation() => _tests.ShouldHavePassedSpecifications();
     [Fact] void should_pin_the_routed_instances() => ReadGeneratedFile("Billing/Invoicing/Lookup/when_listing_routed_invoices_is_queried.cs").ShouldContain("_scenario.Given.ForEventSource(instance.Key).ReadModel(instance.Value)");
 }
 #endif

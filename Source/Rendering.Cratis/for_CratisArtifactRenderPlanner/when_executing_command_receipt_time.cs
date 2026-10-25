@@ -123,7 +123,7 @@ public class when_executing_command_receipt_time : a_generated_application
     [Fact] void should_execute_the_receipt_time_contract()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
-        _tests.ShouldContain("Passed!");
+        _tests.ShouldHavePassedSpecifications();
         ReadGeneratedFile("Billing/Invoicing/Issue/Issue.cs").ShouldNotContain("UtcNow");
     }
 }

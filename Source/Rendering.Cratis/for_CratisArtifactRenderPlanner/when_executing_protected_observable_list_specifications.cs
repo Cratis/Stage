@@ -33,7 +33,7 @@ public class when_executing_protected_observable_list_specifications : a_generat
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_pass_filtered_and_unfiltered_row_expectations() => _tests.ShouldContain("Passed!");
+    [Fact] void should_pass_filtered_and_unfiltered_row_expectations() => _tests.ShouldHavePassedSpecifications();
     [Fact] void should_use_the_default_query_scenario_store() => ReadGeneratedFile("Billing/Invoicing/Lookup/when_filtering_invoices_is_queried.cs").ShouldNotContain("Substitute");
 }
 #endif

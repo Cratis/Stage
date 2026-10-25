@@ -55,7 +55,7 @@ public class when_executing_an_authored_clock : a_generated_application
     [Fact] void should_execute_the_fixed_occurrence_and_metadata_assertions()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
-        _tests.ShouldContain("Passed!");
+        _tests.ShouldHavePassedSpecifications();
     }
 }
 #endif

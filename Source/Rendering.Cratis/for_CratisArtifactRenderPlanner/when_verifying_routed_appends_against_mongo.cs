@@ -237,7 +237,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
             var build = await Run("routes-build.log", "build", "Routes.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var output = await Run("routes-probe.log", "test", "Routes.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~RouteProbe.{fact}", "--nologo");
-            Assert.Contains("Passed!", output, StringComparison.Ordinal);
+            output.ShouldHavePassedSpecifications();
         }
         finally
         {

@@ -73,7 +73,7 @@ public class when_executing_commands_for_several_event_sources : a_generated_app
             var build = await Run("several-sources-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("several-sources-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
         }
         finally
         {

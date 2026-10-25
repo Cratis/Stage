@@ -23,6 +23,6 @@ public class when_executing_generated_values_and_responses : a_generated_applica
     }
 
     [Fact] void should_compile_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_execute_pinned_scalar_record_and_unpinned_relational_specifications() => _test.ShouldContain("Passed!");
+    [Fact] void should_execute_pinned_scalar_record_and_unpinned_relational_specifications() => _test.ShouldHavePassedSpecifications();
 }
 #endif

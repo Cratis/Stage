@@ -113,7 +113,7 @@ public class when_executing_time_ordered_generation : a_generated_application
     [Fact] void should_execute_the_time_ordered_generation_contract()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
-        _tests.ShouldContain("Passed!");
+        _tests.ShouldHavePassedSpecifications();
         ReadGeneratedFile("Common/OrderId.cs").ShouldNotContain("UtcNow");
         ReadGeneratedFile("Common/ReceiptId.cs").ShouldNotContain("UtcNow");
     }

@@ -29,7 +29,7 @@ public class when_executing_generated_case_table_specifications : a_generated_ap
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_execute_all_three_case_specifications() => _test.ShouldContain("Passed!");
+    [Fact] void should_execute_all_three_case_specifications() => _test.ShouldHavePassedSpecifications();
     [Fact] void should_discover_each_case() => _cases.ShouldContainOnly("when_registering_small", "when_registering_medium", "when_registering_large");
 }
 #endif

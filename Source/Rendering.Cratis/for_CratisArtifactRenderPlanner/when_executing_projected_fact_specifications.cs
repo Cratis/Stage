@@ -179,7 +179,7 @@ public class when_executing_projected_fact_specifications : a_generated_applicat
             var build = await Run("projected-facts-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("projected-facts-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
             Assert.Contains("ReadModelScenario", ReadGeneratedFile("Sales/Leads/LeadList/when_listing_the_registered_lead_is_projected.cs"), StringComparison.Ordinal);
             var appended = ReadGeneratedFile("Sales/Leads/LeadList/when_renaming_a_lead_is_projected.cs");
             Assert.Contains("LeadRenamed(", appended, StringComparison.Ordinal);

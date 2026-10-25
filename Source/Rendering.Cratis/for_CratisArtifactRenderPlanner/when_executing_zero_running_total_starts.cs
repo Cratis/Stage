@@ -105,7 +105,7 @@ public class when_executing_zero_running_total_starts : a_generated_application
             var build = await Run("zero-total-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("zero-total-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
         }
         finally
         {

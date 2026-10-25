@@ -105,7 +105,7 @@ public class when_executing_a_product_total : a_generated_application
             var build = await Run("product-total-build.log", "build", "Projects.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var results = await Run("product-total-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", results, StringComparison.Ordinal);
+            results.ShouldHavePassedSpecifications();
             Assert.DoesNotContain("Failed!", results, StringComparison.Ordinal);
         }
         finally

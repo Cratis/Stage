@@ -63,7 +63,7 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
         var build = await Run($"reducer-migration-{phase}-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "-p:NoWarn=CS7022", "--nologo");
         Assert.Equal(string.Empty, BuildWarnings(build));
         var test = await Run($"reducer-migration-{phase}-probe.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", $"FullyQualifiedName~{probe}", "--nologo");
-        Assert.Contains("Passed!", test, StringComparison.Ordinal);
+        test.ShouldHavePassedSpecifications();
     }
 
     string? ReadExisting(string relativePath) => GeneratedFileExists(relativePath) ? ReadGeneratedFile(relativePath) : null;

@@ -59,6 +59,6 @@ public class when_executing_generated_numbered_enumeration_storage : a_generated
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_store_sparse_and_negative_numbers() => _tests.ShouldContain("Passed!");
+    [Fact] void should_store_sparse_and_negative_numbers() => _tests.ShouldHavePassedSpecifications();
 }
 #endif

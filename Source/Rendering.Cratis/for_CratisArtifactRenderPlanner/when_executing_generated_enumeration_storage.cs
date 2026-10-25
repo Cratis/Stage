@@ -76,6 +76,6 @@ public class when_executing_generated_enumeration_storage : a_generated_applicat
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_confirm_the_generated_applications_numeric_storage_contract() => _tests.ShouldContain("Passed!");
+    [Fact] void should_confirm_the_generated_applications_numeric_storage_contract() => _tests.ShouldHavePassedSpecifications();
 }
 #endif

@@ -272,7 +272,7 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
             var build = await Run("reactions-build.log", "build", "Reactions.csproj", "-c", "Debug", "-warnaserror", "--nologo");
             Assert.Equal(string.Empty, BuildWarnings(build));
             var output = await Run("reactions-probe.log", "test", "Reactions.csproj", "-c", "Debug", "--no-build", "--no-restore", "--filter", "FullyQualifiedName~ReactionProbe.should_settle_event_reactions", "--nologo");
-            Assert.Contains("Passed!", output, StringComparison.Ordinal);
+            output.ShouldHavePassedSpecifications();
         }
         finally
         {

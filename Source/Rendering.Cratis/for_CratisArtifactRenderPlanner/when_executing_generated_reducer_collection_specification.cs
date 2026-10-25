@@ -56,7 +56,7 @@ public class when_executing_generated_reducer_collection_specification : a_gener
             var build = await Run("reducer-collection-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("reducer-collection-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", test, StringComparison.Ordinal);
+            test.ShouldHavePassedSpecifications();
         }
         finally
         {

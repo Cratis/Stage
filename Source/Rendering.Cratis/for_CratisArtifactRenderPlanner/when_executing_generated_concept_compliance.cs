@@ -163,6 +163,6 @@ public class when_executing_generated_concept_compliance : a_generated_applicati
     }
 
     [Fact] void should_build_with_the_chronicle_identity_analyzers() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_round_trip_and_project_values_without_leaking_causation() => _tests.ShouldContain("Passed!");
+    [Fact] void should_round_trip_and_project_values_without_leaking_causation() => _tests.ShouldHavePassedSpecifications();
 }
 #endif

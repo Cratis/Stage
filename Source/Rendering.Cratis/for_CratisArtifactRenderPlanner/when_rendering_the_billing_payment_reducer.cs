@@ -132,7 +132,7 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
             var build = await Run("billing-build.log", "build", "Projects.csproj", "-c", "Debug", "-t:Rebuild", "-warnaserror", "--nologo");
             BuildWarnings(build).ShouldEqual(string.Empty);
             var test = await Run("billing-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-            Assert.Contains("Passed!", test, StringComparison.Ordinal);
+            test.ShouldHavePassedSpecifications();
         }
         finally
         {

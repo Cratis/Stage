@@ -68,7 +68,7 @@ public class when_executing_validation_severity_policy : a_generated_application
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);
-        _tests.ShouldContain("Passed!");
+        _tests.ShouldHavePassedSpecifications();
     }
 }
 #endif

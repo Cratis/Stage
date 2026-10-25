@@ -124,7 +124,7 @@ public class when_executing_re_admitted_scoped_projections : a_generated_applica
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);
-        _tests.ShouldContain("Passed!");
+        _tests.ShouldHavePassedSpecifications();
         var code = ReadGeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs");
         code.ShouldContain("from.Set(model => model.Label).ToValue(\"fixed\")");
         code.ShouldNotContain("join.Set(model => model.Label)");

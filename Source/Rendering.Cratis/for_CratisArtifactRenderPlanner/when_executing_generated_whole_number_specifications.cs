@@ -31,7 +31,7 @@ public class when_executing_generated_whole_number_specifications : a_generated_
     }
 
     [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_round_trip_both_large_whole_numbers_through_command_event_and_read_model() => _test.ShouldContain("Passed!");
+    [Fact] void should_round_trip_both_large_whole_numbers_through_command_event_and_read_model() => _test.ShouldHavePassedSpecifications();
     [Fact] void should_execute_both_authored_cases() => _cases.ShouldContainOnly("when_recording_positive", "when_recording_negative", "when_recording_positive_is_projected", "when_recording_negative_is_projected");
     [Fact] void should_pass_every_generated_assertion() => _outcomes.ShouldContainOnly("Passed");
 }

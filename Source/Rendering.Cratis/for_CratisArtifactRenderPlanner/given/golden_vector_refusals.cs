@@ -39,7 +39,14 @@ internal static class golden_vector_refusals
         Assert.Equal(expectedConstraints, plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-014" && diagnostic.Artifact == creation.Id).Select(diagnostic => diagnostic.Message));
         Assert.Equal("Authorized command 'ValidateEntity' declares no identifier; it needs exactly one identifier to preserve the reference subject.",
             Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-015" && diagnostic.Artifact == validate.Id)).Message);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        if (version == 2)
+        {
+            rendering_refusals.OmittedParts(plan);
+        }
+        else
+        {
+            Assert.False(plan.Success);
+            Assert.Empty(plan.Artifacts);
+        }
     }
 }

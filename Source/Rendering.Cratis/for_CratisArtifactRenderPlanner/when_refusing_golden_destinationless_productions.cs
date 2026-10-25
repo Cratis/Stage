@@ -36,7 +36,6 @@ public class when_refusing_golden_destinationless_productions : Specification
         var diagnostics = plan.Diagnostics.Where(diagnostic => diagnostic.Artifact.ToString() == "sem1:000000000000000000000000000000000000000000000000000000000000277e").ToArray();
         diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-053");
         diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-006");
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-053");
     }
 }

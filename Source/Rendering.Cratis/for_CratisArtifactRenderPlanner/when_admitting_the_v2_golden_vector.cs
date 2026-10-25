@@ -8,5 +8,5 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_admitting_the_v2_golden_vector : Specification
 {
-    [Fact] void should_name_each_owned_refusal_without_partial_output() => given.golden_vector_refusals.AssertNamedRefusals(2);
+    [Fact] void should_name_each_owned_refusal_and_omit_its_owner() => given.golden_vector_refusals.AssertNamedRefusals(2);
 }

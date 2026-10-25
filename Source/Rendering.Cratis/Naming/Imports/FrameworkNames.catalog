@@ -2,13 +2,13 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	2
-pin	Cratis	22.131.0
-pin	Cratis.Arc.Chronicle.Testing	22.131.0
-pin	Cratis.Arc.MongoDB	22.131.0
-pin	Cratis.Chronicle	19.99.1
-pin	Cratis.Chronicle.AspNetCore	19.99.1
-pin	Cratis.Chronicle.Testing	19.99.1
-pin	Cratis.Screenplay.Matching	4.241.0
+pin	Cratis	22.138.3
+pin	Cratis.Arc.Chronicle.Testing	22.138.3
+pin	Cratis.Arc.MongoDB	22.138.3
+pin	Cratis.Chronicle	19.110.1
+pin	Cratis.Chronicle.AspNetCore	19.110.1
+pin	Cratis.Chronicle.Testing	19.110.1
+pin	Cratis.Screenplay.Matching	4.244.0
 pin	Cratis.Specifications	4.1.1
 pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -20,25 +20,25 @@ pin	xunit.runner.visualstudio	4.0.1
 package	A	Polly.Core	8.4.2
 package	A	Polly.Extensions	8.4.2
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.131.0
-package	AS	Cratis.Arc	22.131.0
-package	AS	Cratis.Arc.Chronicle	22.131.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.131.0
-package	AS	Cratis.Arc.Core	22.131.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.131.0
-package	AS	Cratis.Arc.MongoDB	22.131.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.131.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.131.0
-package	AS	Cratis.Arc.Swagger	22.131.0
-package	AS	Cratis.Chronicle	19.99.1
-package	AS	Cratis.Chronicle.AspNetCore	19.99.1
-package	AS	Cratis.Chronicle.CodeAnalysis	19.99.1
-package	AS	Cratis.Chronicle.Connections	19.99.1
-package	AS	Cratis.Fundamentals	7.25.0
-package	AS	Cratis.Metrics.Roslyn	7.25.0
+package	AS	Cratis	22.138.3
+package	AS	Cratis.Arc	22.138.3
+package	AS	Cratis.Arc.Chronicle	22.138.3
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.138.3
+package	AS	Cratis.Arc.Core	22.138.3
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.138.3
+package	AS	Cratis.Arc.MongoDB	22.138.3
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.138.3
+package	AS	Cratis.Arc.Screenplay.Embedded	22.138.3
+package	AS	Cratis.Arc.Swagger	22.138.3
+package	AS	Cratis.Chronicle	19.110.1
+package	AS	Cratis.Chronicle.AspNetCore	19.110.1
+package	AS	Cratis.Chronicle.CodeAnalysis	19.110.1
+package	AS	Cratis.Chronicle.Connections	19.110.1
+package	AS	Cratis.Fundamentals	7.26.1
+package	AS	Cratis.Metrics.Roslyn	7.26.1
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
-package	AS	Cratis.Screenplay.Matching	4.241.0
+package	AS	Cratis.Screenplay.Matching	4.244.0
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -119,7 +119,7 @@ package	AS	OpenTelemetry	1.19.1
 package	AS	OpenTelemetry.Api	1.19.1
 package	AS	OpenTelemetry.Api.ProviderBuilderExtensions	1.19.1
 package	AS	Polly.RateLimiting	8.4.2
-package	AS	SharpCompress	0.50.4
+package	AS	SharpCompress	0.50.7
 package	AS	Snappier	1.3.1
 package	AS	Swashbuckle.AspNetCore	10.2.3
 package	AS	Swashbuckle.AspNetCore.Swagger	10.2.3
@@ -135,17 +135,17 @@ package	AS	protobuf-net.Core	3.2.56
 package	AS	protobuf-net.Grpc	1.3.14
 package	AS	protobuf-net.Grpc.Reflection	1.3.14
 package	AS	protobuf-net.Reflection	3.2.52
-package	S	Cratis.Arc.Chronicle.Testing	22.131.0
-package	S	Cratis.Arc.Testing	22.131.0
-package	S	Cratis.Chronicle.Testing	19.99.1
-package	S	Cratis.Orleans	1.23.4
-package	S	Cratis.Orleans.Storage	1.23.4
-package	S	Cratis.Orleans.Storage.MongoDB	1.23.4
+package	S	Cratis.Arc.Chronicle.Testing	22.138.3
+package	S	Cratis.Arc.Testing	22.138.3
+package	S	Cratis.Chronicle.Testing	19.110.1
+package	S	Cratis.Orleans	1.27.2
+package	S	Cratis.Orleans.Storage	1.27.2
+package	S	Cratis.Orleans.Storage.MongoDB	1.27.2
 package	S	Cratis.Specifications	4.1.1
 package	S	Cratis.Specifications.XUnit	4.1.1
 package	S	JsonCons.JmesPath	1.0.0
 package	S	Microsoft.AspNetCore.Connections.Abstractions	10.0.3
-package	S	Microsoft.CodeAnalysis.Analyzers	5.9.0-1.26328.17
+package	S	Microsoft.CodeAnalysis.Analyzers	5.9.0
 package	S	Microsoft.CodeAnalysis.Common	5.9.0
 package	S	Microsoft.CodeAnalysis.Workspaces.Common	5.9.0
 package	S	Microsoft.CodeCoverage	18.11.0
@@ -180,18 +180,18 @@ package	S	Microsoft.Extensions.Options.ConfigurationExtensions	10.0.13
 package	S	Microsoft.Extensions.Options.DataAnnotations	10.0.13
 package	S	Microsoft.Extensions.Primitives	10.0.13
 package	S	Microsoft.NET.Test.Sdk	18.11.0
-package	S	Microsoft.Orleans.Analyzers	10.3.1
-package	S	Microsoft.Orleans.CodeGenerator	10.3.1
-package	S	Microsoft.Orleans.Core	10.3.1
-package	S	Microsoft.Orleans.Core.Abstractions	10.3.1
-package	S	Microsoft.Orleans.Persistence.Memory	10.3.1
-package	S	Microsoft.Orleans.Reminders	10.3.1
-package	S	Microsoft.Orleans.Runtime	10.3.1
-package	S	Microsoft.Orleans.Sdk	10.3.1
-package	S	Microsoft.Orleans.Serialization	10.3.1
-package	S	Microsoft.Orleans.Serialization.Abstractions	10.3.1
-package	S	Microsoft.Orleans.Serialization.SystemTextJson	10.3.1
-package	S	Microsoft.Orleans.Server	10.3.1
+package	S	Microsoft.Orleans.Analyzers	10.4.0
+package	S	Microsoft.Orleans.CodeGenerator	10.4.0
+package	S	Microsoft.Orleans.Core	10.4.0
+package	S	Microsoft.Orleans.Core.Abstractions	10.4.0
+package	S	Microsoft.Orleans.Persistence.Memory	10.4.0
+package	S	Microsoft.Orleans.Reminders	10.4.0
+package	S	Microsoft.Orleans.Runtime	10.4.0
+package	S	Microsoft.Orleans.Sdk	10.4.0
+package	S	Microsoft.Orleans.Serialization	10.4.0
+package	S	Microsoft.Orleans.Serialization.Abstractions	10.4.0
+package	S	Microsoft.Orleans.Serialization.SystemTextJson	10.4.0
+package	S	Microsoft.Orleans.Server	10.4.0
 package	S	Microsoft.TestPlatform.ObjectModel	18.11.0
 package	S	Microsoft.TestPlatform.TestHost	18.11.0
 package	S	NSubstitute	6.2.0
@@ -323,6 +323,7 @@ namespace	AS	Cratis.Arc.AspNetCore
 namespace	AS	Cratis.Arc.AspNetCore.Http
 namespace	AS	Cratis.Arc.Authentication
 namespace	AS	Cratis.Arc.Authorization
+namespace	AS	Cratis.Arc.Calendar
 namespace	AS	Cratis.Arc.Chronicle
 namespace	AS	Cratis.Arc.Chronicle.Aggregates
 namespace	AS	Cratis.Arc.Chronicle.Commands
@@ -1312,6 +1313,7 @@ namespace	S	Cratis.Chronicle.Compliance.GDPR.Events
 namespace	S	Cratis.Chronicle.Concepts.Alerts
 namespace	S	Cratis.Chronicle.Concepts.Auditing
 namespace	S	Cratis.Chronicle.Concepts.Clients
+namespace	S	Cratis.Chronicle.Concepts.Clustering
 namespace	S	Cratis.Chronicle.Concepts.EventSequences
 namespace	S	Cratis.Chronicle.Concepts.EventSequences.Concurrency
 namespace	S	Cratis.Chronicle.Concepts.EventSources
@@ -1332,6 +1334,9 @@ namespace	S	Cratis.Chronicle.Concepts.Patching
 namespace	S	Cratis.Chronicle.Concepts.PersonalInformation
 namespace	S	Cratis.Chronicle.Concepts.Projections
 namespace	S	Cratis.Chronicle.Concepts.Projections.Definitions
+namespace	S	Cratis.Chronicle.Concepts.Projections.Generations
+namespace	S	Cratis.Chronicle.Concepts.Projections.Generations.Bindings
+namespace	S	Cratis.Chronicle.Concepts.Projections.Generations.Enablement
 namespace	S	Cratis.Chronicle.Concepts.Projections.Json
 namespace	S	Cratis.Chronicle.Concepts.ReadModels
 namespace	S	Cratis.Chronicle.Concepts.Recommendations
@@ -1351,6 +1356,10 @@ namespace	S	Cratis.Chronicle.EventStores
 namespace	S	Cratis.Chronicle.EventTypes
 namespace	S	Cratis.Chronicle.Events.EventSequences
 namespace	S	Cratis.Chronicle.Events.EventSequences.Migrations
+namespace	S	Cratis.Chronicle.Generations
+namespace	S	Cratis.Chronicle.Generations.Admission
+namespace	S	Cratis.Chronicle.Generations.Bindings
+namespace	S	Cratis.Chronicle.Generations.Enablement
 namespace	S	Cratis.Chronicle.Namespaces
 namespace	S	Cratis.Chronicle.Observation.Alerts
 namespace	S	Cratis.Chronicle.Observation.EventStoreSubscriptions
@@ -1363,6 +1372,7 @@ namespace	S	Cratis.Chronicle.Observation.Reducers
 namespace	S	Cratis.Chronicle.Observation.Reducers.Clients
 namespace	S	Cratis.Chronicle.Observation.States
 namespace	S	Cratis.Chronicle.Observation.Webhooks
+namespace	S	Cratis.Chronicle.Observation.Webhooks.Validation
 namespace	S	Cratis.Chronicle.Patches
 namespace	S	Cratis.Chronicle.Patching
 namespace	S	Cratis.Chronicle.ProjectionEditor
@@ -1377,6 +1387,9 @@ namespace	S	Cratis.Chronicle.Projections.Engine.Expressions.Keys
 namespace	S	Cratis.Chronicle.Projections.Engine.Expressions.ReadModelProperties
 namespace	S	Cratis.Chronicle.Projections.Engine.Pipelines
 namespace	S	Cratis.Chronicle.Projections.Engine.Pipelines.Steps
+namespace	S	Cratis.Chronicle.Projections.Generations
+namespace	S	Cratis.Chronicle.Projections.Generations.Deployment
+namespace	S	Cratis.Chronicle.Projections.Generations.Policies
 namespace	S	Cratis.Chronicle.Projections.Kernel
 namespace	S	Cratis.Chronicle.ReadModelDefinitions
 namespace	S	Cratis.Chronicle.ReadModelExplorer
@@ -1423,6 +1436,7 @@ namespace	S	Cratis.Chronicle.Setup
 namespace	S	Cratis.Chronicle.Setup.Authentication
 namespace	S	Cratis.Chronicle.Setup.Execution
 namespace	S	Cratis.Chronicle.Setup.Serialization
+namespace	S	Cratis.Chronicle.SingleWriter
 namespace	S	Cratis.Chronicle.Statistics
 namespace	S	Cratis.Chronicle.Storage
 namespace	S	Cratis.Chronicle.Storage.Alerts
@@ -1435,6 +1449,8 @@ namespace	S	Cratis.Chronicle.Storage.EventTypes
 namespace	S	Cratis.Chronicle.Storage.Events
 namespace	S	Cratis.Chronicle.Storage.Events.Constraints
 namespace	S	Cratis.Chronicle.Storage.ExternalServices
+namespace	S	Cratis.Chronicle.Storage.Generations
+namespace	S	Cratis.Chronicle.Storage.Generations.Bindings
 namespace	S	Cratis.Chronicle.Storage.Identities
 namespace	S	Cratis.Chronicle.Storage.InMemory
 namespace	S	Cratis.Chronicle.Storage.InMemory.Alerts
@@ -1447,6 +1463,8 @@ namespace	S	Cratis.Chronicle.Storage.InMemory.Events
 namespace	S	Cratis.Chronicle.Storage.InMemory.Events.Constraints
 namespace	S	Cratis.Chronicle.Storage.InMemory.Events.EventTypes
 namespace	S	Cratis.Chronicle.Storage.InMemory.ExternalServices
+namespace	S	Cratis.Chronicle.Storage.InMemory.Generations
+namespace	S	Cratis.Chronicle.Storage.InMemory.Generations.Bindings
 namespace	S	Cratis.Chronicle.Storage.InMemory.Identities
 namespace	S	Cratis.Chronicle.Storage.InMemory.Keys
 namespace	S	Cratis.Chronicle.Storage.InMemory.Namespaces
@@ -1482,6 +1500,7 @@ namespace	S	Cratis.Chronicle.Storage.Recommendations
 namespace	S	Cratis.Chronicle.Storage.Security
 namespace	S	Cratis.Chronicle.Storage.Seeding
 namespace	S	Cratis.Chronicle.Storage.SequenceQueries
+namespace	S	Cratis.Chronicle.Storage.SingleWriter
 namespace	S	Cratis.Chronicle.Storage.Sinks
 namespace	S	Cratis.Chronicle.Sys
 namespace	S	Cratis.Chronicle.Testing
@@ -1937,6 +1956,8 @@ namespace	S	OrleansCodeGen.Cratis.Chronicle.Compliance.GDPR
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Observation
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Generations
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.Projections.Generations.Enablement
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Concepts.ReadModels
 namespace	S	OrleansCodeGen.Cratis.Chronicle.DevelopmentTools
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventSequences
@@ -1946,6 +1967,8 @@ namespace	S	OrleansCodeGen.Cratis.Chronicle.EventStores
 namespace	S	OrleansCodeGen.Cratis.Chronicle.EventTypes
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Events
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Events.Constraints
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Generations
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Generations.Enablement
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Namespaces
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Observation.Alerts
@@ -1964,6 +1987,8 @@ namespace	S	OrleansCodeGen.Cratis.Chronicle.Patching
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Patterns
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections.Engine
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections.Generations
+namespace	S	OrleansCodeGen.Cratis.Chronicle.Projections.Generations.Deployment
 namespace	S	OrleansCodeGen.Cratis.Chronicle.ReadModels
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Recommendations
 namespace	S	OrleansCodeGen.Cratis.Chronicle.Security
@@ -2162,6 +2187,20 @@ type	AS	Cratis.Arc.Authorization	InvalidAuthorizationConfiguration	class
 type	AS	Cratis.Arc.Authorization	RolesAttribute	attribute
 type	AS	Cratis.Arc.Authorization	SystemExecution	class
 type	AS	Cratis.Arc.Authorization	SystemPrincipal	static
+type	AS	Cratis.Arc.Calendar	ApplicationCalendar	class
+type	AS	Cratis.Arc.Calendar	CalendarOptions	class
+type	AS	Cratis.Arc.Calendar	CalendarOptionsValidator	class
+type	AS	Cratis.Arc.Calendar	ClockBoundaries	class
+type	AS	Cratis.Arc.Calendar	ClockBoundaryContext	class
+type	AS	Cratis.Arc.Calendar	ClockBoundaryIsNotInTheFuture	class
+type	AS	Cratis.Arc.Calendar	ClockBoundarySubjectExtensions	static
+type	AS	Cratis.Arc.Calendar	ClockEvaluation`1	class
+type	AS	Cratis.Arc.Calendar	ClockReading	class
+type	AS	Cratis.Arc.Calendar	IApplicationCalendar	interface
+type	AS	Cratis.Arc.Calendar	ICanProvideTenantCalendar	interface
+type	AS	Cratis.Arc.Calendar	IClockBoundaries	interface
+type	AS	Cratis.Arc.Calendar	LocalDateChanges	static
+type	AS	Cratis.Arc.Calendar	TimeZoneIsNotAnIanaZone	class
 type	AS	Cratis.Arc.Chronicle.Aggregates	AggregateRoot	class
 type	AS	Cratis.Arc.Chronicle.Aggregates	AggregateRootCommitResult	class
 type	AS	Cratis.Arc.Chronicle.Aggregates	AggregateRootContext	class
@@ -2263,9 +2302,13 @@ type	AS	Cratis.Arc.Chronicle.Reactors	ICommandSideEffectExecutor	interface
 type	AS	Cratis.Arc.Chronicle.Reactors	Invoke	static
 type	AS	Cratis.Arc.Chronicle.Reactors	Refused	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ChronicleReadModelForCommandResolver	class
+type	AS	Cratis.Arc.Chronicle.ReadModels	CommandReadModelKeyProperty	class
+type	AS	Cratis.Arc.Chronicle.ReadModels	CommandReadModelKeys	static
+type	AS	Cratis.Arc.Chronicle.ReadModels	CommandReadModelKeysMissing	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	DecisionReadNotIssuedForInvocation	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	DecisionReadRequiresProtectionProfile	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	DetachedDecisionReadRefused	class
+type	AS	Cratis.Arc.Chronicle.ReadModels	MissingReadModelDispatch	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ProtectedCommandRequiresCommandAwareReader	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ProtectedCommandRequiresIssuedDecisionRead	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ProtectedDecisionAttribute	attribute
@@ -2280,6 +2323,7 @@ type	AS	Cratis.Arc.Chronicle.ReadModels	ProtectedReadModelKeyMember`1	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ProtectedReadModelKeyOptions	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ReadCannotBeProtected	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ReadIncomplete	class
+type	AS	Cratis.Arc.Chronicle.ReadModels	ReadModelDispatch	static
 type	AS	Cratis.Arc.Chronicle.ReadModels	ReadModelInjectedOutsideDecision	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ReadModelInterceptor`1	class
 type	AS	Cratis.Arc.Chronicle.ReadModels	ReadModelStreamNotOnCommandRoute	class
@@ -2428,6 +2472,7 @@ type	AS	Cratis.Arc.Connections	ConnectionResolverAccessToken	class
 type	AS	Cratis.Arc.Connections	ConnectionResolverAccessTokenRequestFailed	class
 type	AS	Cratis.Arc.Connections	ConnectionResolverFactory	class
 type	AS	Cratis.Arc.Connections	ConnectionResolverOptions	class
+type	AS	Cratis.Arc.Connections	ConnectionResolverTokenEndpointMustUseHttps	class
 type	AS	Cratis.Arc.Connections	ConnectionResolverType	enum
 type	AS	Cratis.Arc.Connections	ConnectionResolvers	class
 type	AS	Cratis.Arc.Connections	CustomConnectionResolverNotConfigured	class
@@ -2573,6 +2618,7 @@ type	AS	Cratis.Arc.MongoDB	MongoDBDefaults	static
 type	AS	Cratis.Arc.MongoDB	MongoDBOptions	class
 type	AS	Cratis.Arc.MongoDB	MongoDBReadModelForCommandResolver	class
 type	AS	Cratis.Arc.MongoDB	MongoDBWatcher	class
+type	AS	Cratis.Arc.MongoDB	MongoDBWatcherNotConfigured	class
 type	AS	Cratis.Arc.MongoDB	MongoDatabaseNameResolverNotConfigured	class
 type	AS	Cratis.Arc.MongoDB	MongoServerResolverNotConfigured	class
 type	AS	Cratis.Arc.MongoDB	NamingPolicyNameConvention	class
@@ -3669,6 +3715,7 @@ type	AS	Cratis.Chronicle.Reactors.SideEffects	SubjectValuesProvider	class
 type	AS	Cratis.Chronicle.Reactors.SideEffects	WellKnownReactorContextKeys	static
 type	AS	Cratis.Chronicle.Reactors.Validators	TypeMustImplementReactor	class
 type	AS	Cratis.Chronicle.ReadModels	AmbiguousReadModelBuilder	class
+type	AS	Cratis.Chronicle.ReadModels	CompositeIndexAttribute	attribute
 type	AS	Cratis.Chronicle.ReadModels	DecisionConflict	class
 type	AS	Cratis.Chronicle.ReadModels	DecisionReadAdmission	class
 type	AS	Cratis.Chronicle.ReadModels	DecisionReadAfterCompletion	class
@@ -3698,6 +3745,7 @@ type	AS	Cratis.Chronicle.ReadModels	IndexAttribute	attribute
 type	AS	Cratis.Chronicle.ReadModels	InstanceCount	class
 type	AS	Cratis.Chronicle.ReadModels	InstanceCountToSkip	class
 type	AS	Cratis.Chronicle.ReadModels	InvalidEventStreamReadModel	class
+type	AS	Cratis.Chronicle.ReadModels	InvalidIndexDeclaration	class
 type	AS	Cratis.Chronicle.ReadModels	MaterializedAttribute	attribute
 type	AS	Cratis.Chronicle.ReadModels	MaterializedReadModelChange	class
 type	AS	Cratis.Chronicle.ReadModels	MaterializedReadModelDiffer	class
@@ -3810,6 +3858,7 @@ type	AS	Cratis.Chronicle.Security	BasicAuthorization	class
 type	AS	Cratis.Chronicle.Security	BearerTokenAuthorization	class
 type	AS	Cratis.Chronicle.Security	ClientId	class
 type	AS	Cratis.Chronicle.Security	ClientSecret	class
+type	AS	Cratis.Chronicle.Security	ManagedIdentityAuthorization	class
 type	AS	Cratis.Chronicle.Security	OAuthAuthorization	class
 type	AS	Cratis.Chronicle.Security	Password	class
 type	AS	Cratis.Chronicle.Security	Token	class
@@ -3846,6 +3895,8 @@ type	AS	Cratis.Chronicle.Transactions	EventEnrollmentOptions	class
 type	AS	Cratis.Chronicle.Transactions	EventForEventSourceIdWithSequenceNumber	class
 type	AS	Cratis.Chronicle.Transactions	ExplicitScopeDoesNotCoverReads	class
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWork	interface
+type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkCompletionClaim	interface
+type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkCompletionOwnershipFeature	interface
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkEnrollmentContributor	interface
 type	AS	Cratis.Chronicle.Transactions	IUnitOfWorkManager	interface
 type	AS	Cratis.Chronicle.Transactions	ImmediateAppendRefusal	class
@@ -3870,6 +3921,9 @@ type	AS	Cratis.Chronicle.Transactions	SourceLessReadNotSupported	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWork	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkBatchEnrollmentNotSupported	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkCannotSpanEventSequences	class
+type	AS	Cratis.Chronicle.Transactions	UnitOfWorkCompletionAlreadyClaimed	class
+type	AS	Cratis.Chronicle.Transactions	UnitOfWorkCompletionOutcome	enum
+type	AS	Cratis.Chronicle.Transactions	UnitOfWorkCompletionResult	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEffectReceiptAlreadySet	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEnrollment	class
 type	AS	Cratis.Chronicle.Transactions	UnitOfWorkEnrollmentContributorsNotSupported	class
@@ -5108,6 +5162,7 @@ type	AS	Microsoft.AspNetCore.Builder	ChronicleAspNetCoreOptions	class
 type	AS	Microsoft.AspNetCore.Builder	ChronicleAspNetCoreOptionsExtensions	static
 type	AS	Microsoft.AspNetCore.Builder	ChronicleClientServiceCollectionExtensions	static
 type	AS	Microsoft.AspNetCore.Builder	ChronicleClientWebApplicationBuilderExtensions	static
+type	AS	Microsoft.AspNetCore.Builder	ChronicleUnitOfWorkOptions	class
 type	AS	Microsoft.AspNetCore.Builder	CommandEndpointsExtensions	static
 type	AS	Microsoft.AspNetCore.Builder	ComponentEndpointConventionBuilder	class
 type	AS	Microsoft.AspNetCore.Builder	ComponentEndpointRouteBuilderExtensions	static
@@ -11046,6 +11101,7 @@ type	S	Cratis.Orleans.Jobs	IJobStep	interface
 type	S	Cratis.Orleans.Jobs	IJobStepDrain	interface
 type	S	Cratis.Orleans.Jobs	IJobStepThrottle	interface
 type	S	Cratis.Orleans.Jobs	IJobStep`3	interface
+type	S	Cratis.Orleans.Jobs	IJobStopFinalization	interface
 type	S	Cratis.Orleans.Jobs	IJobTypes	interface
 type	S	Cratis.Orleans.Jobs	IJobTypes+GetClrTypeForError	enum
 type	S	Cratis.Orleans.Jobs	IJobTypes+GetForError	enum
@@ -11074,6 +11130,7 @@ type	S	Cratis.Orleans.Jobs	JobStatusChanged	class
 type	S	Cratis.Orleans.Jobs	JobStepAlreadyHasALiveRun	class
 type	S	Cratis.Orleans.Jobs	JobStepCheckpointDebounce	class
 type	S	Cratis.Orleans.Jobs	JobStepDetails	class
+type	S	Cratis.Orleans.Jobs	JobStepDispatchContext	class
 type	S	Cratis.Orleans.Jobs	JobStepDrainResult	class
 type	S	Cratis.Orleans.Jobs	JobStepError	enum
 type	S	Cratis.Orleans.Jobs	JobStepGrainAndRequest	class
@@ -11087,6 +11144,7 @@ type	S	Cratis.Orleans.Jobs	JobStepName	class
 type	S	Cratis.Orleans.Jobs	JobStepPercentage	class
 type	S	Cratis.Orleans.Jobs	JobStepProgress	class
 type	S	Cratis.Orleans.Jobs	JobStepProgressMessage	class
+type	S	Cratis.Orleans.Jobs	JobStepRequestCannotRoundTrip	class
 type	S	Cratis.Orleans.Jobs	JobStepResult	class
 type	S	Cratis.Orleans.Jobs	JobStepScopes	static
 type	S	Cratis.Orleans.Jobs	JobStepStatus	enum
@@ -11175,6 +11233,7 @@ type	S	Cratis.Orleans.Storage.Jobs	JobStepError	enum
 type	S	Cratis.Orleans.Storage.Jobs	JobStepLease	class
 type	S	Cratis.Orleans.Storage.Jobs	JobStepState	class
 type	S	Cratis.Orleans.Storage.Jobs	JobStepStateType	static
+type	S	Cratis.Orleans.Storage.Jobs	PlannedJobStep	class
 type	S	Cratis.Orleans.Storage.MongoDB	CamelCaseElementNameConvention	class
 type	S	Cratis.Orleans.Storage.MongoDB	ConventionPacks	class
 type	S	Cratis.Orleans.Storage.MongoDB	DatabaseNames	static
@@ -12079,6 +12138,7 @@ type	S	Xunit.Sdk	XunitTheoryTestCaseRunner	class
 extensions	AS		GetAllMessages
 extensions	AS	Cratis.Arc	AddCratisArc AddCratisArcActivitySource AddCratisArcCore AddCratisArcMeter ConfigureArcDefaults ConvertTo MapFallbackToFile MapGet MapPost RunAsync SanitizeUrl ToKebabCase UseCratisArc UsePathBase UseStaticFiles WithChronicle WithoutControllers
 extensions	AS	Cratis.Arc.Authorization	AddArcAnonymousAspNetAuthorizationPolicy AddArcAuthorizationPolicy IsAnonymousAllowed
+extensions	AS	Cratis.Arc.Calendar	ReevaluateAtBoundaries
 extensions	AS	Cratis.Arc.Chronicle.Aggregates	GetEventStreamType
 extensions	AS	Cratis.Arc.Chronicle.Commands	GetEventRoute GetEventSource GetEventSourceId GetEventSourceType GetEventStream GetEventStreamId GetEventStreamType GetEventTags GetSubject HasEventSourceId HasSubject ResolveEventTags ToCommandResult ToValidationResult
 extensions	AS	Cratis.Arc.Commands	Execute GetRefusal GetResolvedKey IsCommand MapCommandEndpoints SetResponseStatusCode Validate
@@ -12206,7 +12266,7 @@ extensions	S	Cratis.Chronicle.Testing	RoundDownTicks
 extensions	S	Cratis.Chronicle.Testing.EventSequences	ShouldBeFailed ShouldBeForEventSource ShouldBeSuccessful ShouldHaveAppendedEvent ShouldHaveConcurrencyViolations ShouldHaveConstraintViolation ShouldHaveConstraintViolationFor ShouldHaveConstraintViolations ShouldHaveErrors ShouldHaveEvent ShouldHaveTailSequenceNumber ShouldNotHaveConcurrencyViolations ShouldNotHaveConstraintViolations ShouldNotHaveErrors
 extensions	S	Cratis.Orleans	AddCompleteSerializer AddCratisOrleansSerializers AddLinqCollectionCopier
 extensions	S	Cratis.Orleans.Hosting	AddCratisOrleans AddCratisOrleansJobsRecovery AddJobAdmission
-extensions	S	Cratis.Orleans.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
+extensions	S	Cratis.Orleans.Jobs	AcquiringJobStepSlot AllStepsNotCompletedSuccessfully AlreadyStopped BeginJobScope BeginJobStepScope BeginJobsManagerScope BeginTestRun CannotResumeJobBecauseAlreadyRunning CannotResumeJobBecauseCompleted CannotResumeUnpreparedJob ChangingStatus CleaningUpDeadJobs CompletedJobStepIsNoLongerTracked DeletingJob ErrorPreparingJobStep ErrorPreparingJobSteps ErrorResumingJob Failed FailedHandlingCompletedJobStep FailedOnCompleted FailedOnCompletedWhileNoJobSteps FailedPerforming FailedPreparing FailedPreparingJobStep FailedReconcilingProgressFromJobSteps FailedRecordingJobStepAsFailed FailedReportJobStepFailure FailedReportJobStepSuccess FailedReportingJobStepCancelled FailedResumingJob FailedStartingJobStep FailedStartingJobStepsInBackground FailedSubscribingToJobStep FailedToDeleteJob FailedToGetJobSteps FailedToGetJobsForCleanup FailedToGetStepCountForJob FailedToRemoveForJob FailedToRemoveJob FailedToRemoveTerminalJob FailedToRemoveTerminalJobSteps FailedToReportFailure FailedToResumeJobSteps FailedToSetTotalSteps FailedToStopJob FailedToWriteState FailedUnexpectedly FailedUpdatingFailedSteps FailedUpdatingStateAfterHandlingCompletion FailedUpdatingStateAfterHandlingJobStepCompletion FailedUpdatingSuccessfulSteps FailedWritingState FailedWritingStatusChange FinalizingJobLeftRunningAfterAllStepsCompleted FinalizingStopAfterItsSiloWentAway FinalizingStoppedJobWithNothingLeftToRun FoundDeadJobs FoundTerminalJobs GetClrTypeForOrThrow GetForOrThrow GetJobsManager GetRequestClrTypeForOrThrow HandleUnexpectedPerformJobStepFailure IgnoringLateStepOutcome JobCannotBeResumed JobCannotBeStoppedIsNotRunning JobCompleted JobCouldNotBeFound JobErrorOccurred JobIsAlreadyBeingRemoved JobIsCompletedAndCannotBeRemovedOrStopped JobIsNotRunning JobNotAdmitted JobStepWasAlreadyStarted NoDeadJobsFound NoJobStepsToStart NotStartingJobStepsForJobThatIsNoLongerPreparing Pausing PerformingWorkFailedPersistState PrepareJobStepsForRunning PreparingJobSteps Rehydrating ReleasingJobStepSlot Removing ReportFailurePerformingWork RestartingStepsStoppedBeforeLastResume Resuming ResumingJob RetryingFailedSteps SkippedTerminalJobRemoval SkippingJobDueToStepCountError StartPrepareFailed Starting StartingJob StepFailed StepStopped StepSuccessfullyCompleted StopIsWaitingForSteps Stopping StoppingJob UnableToGetAllJobs UnableToGetJob UnableToGetJobs UnknownError
 extensions	S	Cratis.Orleans.Jobs.Stages	Current Plan Reconcile StoppedBy
 extensions	S	Cratis.Orleans.Json	DeserializeIfNecessary
 extensions	S	Cratis.Orleans.Serialization	AddConceptSerializer
@@ -12234,7 +12294,7 @@ base	AS	Cratis.Arc.ApiEndpointOptions	System.Object	EnableQueryHttpMethod Includ
 base	AS	Cratis.Arc.ArcApplication	System.Object	CreateBuilder Dispose DisposeAsync Options Services StartAsync StopAsync	-
 base	AS	Cratis.Arc.ArcApplicationBuilder	System.Object	Build Configuration ConfigureContainer Environment Logging Metrics Properties Services	-
 base	AS	Cratis.Arc.ArcBuilder	System.Object	AppBuilder Configuration Deconstruct EqualityContract Equals GetHashCode PrintMembers Services ToString Types	-
-base	AS	Cratis.Arc.ArcOptions	System.Object	AddJsonTypeInfoResolver ConnectionResolution CorrelationId ExposeExceptionDetails GeneratedApis Hosting IdentityDetailsProvider Introspection JsonSerializerOptions Query QueryHealth Tenancy TrustForwardedIdentityHeaders	-
+base	AS	Cratis.Arc.ArcOptions	System.Object	AddJsonTypeInfoResolver Calendar ConnectionResolution CorrelationId ExposeExceptionDetails GeneratedApis Hosting IdentityDetailsProvider Introspection JsonSerializerOptions Query QueryHealth Tenancy TrustForwardedIdentityHeaders	-
 base	AS	Cratis.Arc.ArcStartupFilter	System.Object	Configure	-
 base	AS	Cratis.Arc.AspNetCore.Http.AspNetCoreHttpRequestContext	System.Object	AppendCookie BeginSelectedPrincipal ContentType Cookies GetResponseHeader Headers Host IsHttps Items Method Path Query ReadBodyAsJson RemoveCookie RequestAborted RequestServices SetResponseHeader SetStatusCode StatusCode User WebSockets Write WriteBytes WriteResponseAsJson WriteStream	-
 base	AS	Cratis.Arc.AspNetCore.Http.AspNetCoreWebSocket	System.Object	Close Dispose Receive Send State	-
@@ -12269,6 +12329,14 @@ base	AS	Cratis.Arc.Authorization.AuthorizeAttribute	System.Attribute	Authenticat
 base	AS	Cratis.Arc.Authorization.CurrentPrincipalAccessor	System.Object	BeginScope Current	-
 base	AS	Cratis.Arc.Authorization.InvalidAuthorizationConfiguration	System.Exception	-	-
 base	AS	Cratis.Arc.Authorization.SystemExecution	System.Object	As AsSystem	-
+base	AS	Cratis.Arc.Calendar.ApplicationCalendar	System.Object	Read ResolveZone	-
+base	AS	Cratis.Arc.Calendar.CalendarOptions	System.Object	TimeZone	-
+base	AS	Cratis.Arc.Calendar.CalendarOptionsValidator	System.Object	Validate	-
+base	AS	Cratis.Arc.Calendar.ClockBoundaries	System.Object	Begin	-
+base	AS	Cratis.Arc.Calendar.ClockBoundaryIsNotInTheFuture	System.Exception	Boundary EvaluatedAt	-
+base	AS	Cratis.Arc.Calendar.ClockEvaluation`1	System.Object	Deconstruct EqualityContract Equals GetHashCode NextBoundary PrintMembers Result ToString	-
+base	AS	Cratis.Arc.Calendar.ClockReading	System.Object	DateOf Deconstruct EqualityContract Equals GetHashCode Instant PrintMembers ToString Today Zone	-
+base	AS	Cratis.Arc.Calendar.TimeZoneIsNotAnIanaZone	System.Exception	TimeZoneId	-
 base	AS	Cratis.Arc.Chronicle.Aggregates.AggregateRoot	System.Object	Apply Commit Failed IsNew OnActivate	-
 base	AS	Cratis.Arc.Chronicle.Aggregates.AggregateRootCommitResult	System.Object	ConcurrencyViolations ConstraintViolations CreateFrom Errors Events IsSuccess SequenceNumbers Successful ValidationResults WithErrors	-
 base	AS	Cratis.Arc.Chronicle.Aggregates.AggregateRootContext	System.Object	AggregateRoot EventSequence EventSource EventSourceId EventSourceType EventStream EventStreamId EventStreamType HasEvents NextSequenceNumber TailEventSequenceNumber UnitOfWOrk	-
@@ -12408,6 +12476,7 @@ base	AS	Cratis.Arc.Connections.ConnectionResolverAccessToken	System.Object	Decon
 base	AS	Cratis.Arc.Connections.ConnectionResolverAccessTokenRequestFailed	System.Exception	-	-
 base	AS	Cratis.Arc.Connections.ConnectionResolverFactory	System.Object	Create	-
 base	AS	Cratis.Arc.Connections.ConnectionResolverOptions	System.Object	CustomType Http Resolver Template UseCustom UseDefault UseHttp UseTemplate	-
+base	AS	Cratis.Arc.Connections.ConnectionResolverTokenEndpointMustUseHttps	System.Exception	-	-
 base	AS	Cratis.Arc.Connections.ConnectionResolvers	System.Object	For	-
 base	AS	Cratis.Arc.Connections.CustomConnectionResolverNotConfigured	System.Exception	-	-
 base	AS	Cratis.Arc.Connections.DefaultConnectionResolver	System.Object	Resolve	-
@@ -12492,7 +12561,8 @@ base	AS	Cratis.Arc.MongoDB.MongoDBConnections	System.Object	Resolve	-
 base	AS	Cratis.Arc.MongoDB.MongoDBConventionPackDefinition	System.Object	ConventionPack Deconstruct EqualityContract Equals GetHashCode Name PrintMembers ToString	-
 base	AS	Cratis.Arc.MongoDB.MongoDBOptions	System.Object	ConnectionResolution Database DirectConnection Server	-
 base	AS	Cratis.Arc.MongoDB.MongoDBReadModelForCommandResolver	System.Object	DiscoverReadModelTypes Ownership ReadModelTypes Resolve	-
-base	AS	Cratis.Arc.MongoDB.MongoDBWatcher	System.Object	Dispose Observe	-
+base	AS	Cratis.Arc.MongoDB.MongoDBWatcher	System.Object	Dispose GetChanges Observe	-
+base	AS	Cratis.Arc.MongoDB.MongoDBWatcherNotConfigured	System.Exception	-	-
 base	AS	Cratis.Arc.MongoDB.MongoDatabaseNameResolverNotConfigured	System.Exception	ThrowIfNotConfigured	-
 base	AS	Cratis.Arc.MongoDB.MongoServerResolverNotConfigured	System.Exception	ThrowIfNotConfigured	-
 base	AS	Cratis.Arc.MongoDB.NamingPolicyNameConvention	MongoDB.Bson.Serialization.Conventions.ConventionBase	Apply ConventionName	-
@@ -12810,7 +12880,7 @@ base	AS	Cratis.Chronicle.Discovery.ArtifactIdentityDriftDetected	System.Exceptio
 base	AS	Cratis.Chronicle.Discovery.DiscoveredArtifact	System.Object	ClrType Deconstruct EqualityContract Equals GetHashCode Id Kind PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Discovery.DiscoveryReport	System.Object	Artifacts CountOf Deconstruct EqualityContract Equals GetHashCode HasRun NotRun OfKind PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Dynamic.SegmentValueIsNotCollection	System.Exception	-	-
-base	AS	Cratis.Chronicle.EventSequences.AppendError	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers Unknown	-
+base	AS	Cratis.Chronicle.EventSequences.AppendError	Cratis.Concepts.ConceptAs`1	AppendOutcomeUnknown Deconstruct EqualityContract Equals GetHashCode PrintMembers Unknown	-
 base	AS	Cratis.Chronicle.EventSequences.AppendManyResult	System.Object	AllAlreadyAppended ConcurrencyCheckPerformed ConcurrencyViolations ConstraintViolations CorrelationId EqualityContract Equals Errors EventSequenceId EventStore EventStoreNamespace EventTypes Failed GetHashCode HasConcurrencyViolations HasConstraintViolations HasErrors HasIdempotencyConflicts IdempotencyConflicts IsSuccess Outcomes PrintMembers SequenceNumbers Success TailSequenceNumber ToString	-
 base	AS	Cratis.Chronicle.EventSequences.AppendResult	System.Object	ConcurrencyCheckPerformed ConcurrencyViolation ConstraintViolations CorrelationId EqualityContract Equals Errors EventSequenceId EventStore EventStoreNamespace EventTypes Failed GetHashCode HasConcurrencyViolations HasConstraintViolations HasErrors HasIdempotencyConflicts IdempotencyConflicts IsSuccess Outcome PrintMembers SequenceNumber Success TailSequenceNumber ToString WasAlreadyAppended	-
 base	AS	Cratis.Chronicle.EventSequences.AppendedEventWithResult	System.Object	Deconstruct EqualityContract Equals Event GetHashCode PrintMembers Result ToString	-
@@ -13226,7 +13296,7 @@ base	AS	Cratis.Chronicle.Registrations.TypeBasedArtifactRegistrationNotSupported
 base	AS	Cratis.Chronicle.Schemas.ComplianceSchemaMetadata	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString details metadataType	-
 base	AS	Cratis.Chronicle.Schemas.JsonSchema	System.Object	ActualProperties ActualSchema ActualTypeSchema AdditionalPropertiesSchema AllOf AnyOf Definitions Description Enumeration EnumerationNames ExtensionData Format FromJson FromJsonAsync FromType HasReference InheritedSchema IsArray IsDictionary IsEnumeration Item OneOf Properties Reference Title ToJson Type Validate	-
 base	AS	Cratis.Chronicle.Schemas.JsonSchemaGenerator	System.Object	Generate GenerateForReadModel GenerateLegacyEventType	-
-base	AS	Cratis.Chronicle.Schemas.JsonSchemaProperty	Cratis.Chronicle.Schemas.JsonSchema	ActualSchema HasOneOfSchemaReference Name	-
+base	AS	Cratis.Chronicle.Schemas.JsonSchemaProperty	Cratis.Chronicle.Schemas.JsonSchema	ActualSchema HasOneOfSchemaReference MaxLength Name	-
 base	AS	Cratis.Chronicle.Schemas.JsonSchemaValidationError	System.Object	Deconstruct EqualityContract Equals GetHashCode Kind Message Path PrintMembers ToString	-
 base	AS	Cratis.Chronicle.Schemas.RegistryAwareEventTypeSchemasNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Schemas.SchemaMetadataCategory	Cratis.Concepts.ConceptAs`1	Compliance Deconstruct EqualityContract Equals GetHashCode PrintMembers Security	-
@@ -13239,6 +13309,7 @@ base	AS	Cratis.Chronicle.Security.BasicAuthorization	System.Object	Deconstruct E
 base	AS	Cratis.Chronicle.Security.BearerTokenAuthorization	System.Object	Deconstruct EqualityContract Equals GetHashCode PrintMembers ToString Token	-
 base	AS	Cratis.Chronicle.Security.ClientId	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Chronicle.Security.ClientSecret	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals GetHashCode PrintMembers	-
+base	AS	Cratis.Chronicle.Security.ManagedIdentityAuthorization	System.Object	ClientId Deconstruct EqualityContract Equals GetHashCode PrintMembers Scope ToString	-
 base	AS	Cratis.Chronicle.Security.OAuthAuthorization	System.Object	Authority ClientId ClientSecret Deconstruct EqualityContract Equals GetHashCode PrintMembers Scope ToString	-
 base	AS	Cratis.Chronicle.Security.Password	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Chronicle.Security.Token	Cratis.Concepts.ConceptAs`1	Deconstruct Empty EqualityContract Equals GetHashCode PrintMembers	-
@@ -13286,6 +13357,7 @@ base	AS	Cratis.Chronicle.Transactions.SourceLessReadNotSupported	System.Exceptio
 base	AS	Cratis.Chronicle.Transactions.UnitOfWork	System.Object	AddDecisionRead AddEnrollmentContributor AddEvent AddEventWithNamedTags AddEventWithOptions AddEvents AllowReads ClaimDecisionReadCommitOwnership Commit CommitAsOwner CorrelationId Dispose EffectReceipt EnforceReadProtection EnrolContributedRead GetAppendConditions GetAppendErrors GetConcurrencyViolations GetConstraintViolations GetDecisionConflicts GetEvents HasEnrolledDecisionReads IsCompleted IsEnforcingReadProtection IsSuccess OnCompleted RefuseImmediateAppends Rollback RollbackAsOwner SuspendReadRegions TryGetLastCommittedEventSequenceNumber UseEffectReceipt	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkBatchEnrollmentNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkCannotSpanEventSequences	System.Exception	-	-
+base	AS	Cratis.Chronicle.Transactions.UnitOfWorkCompletionAlreadyClaimed	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEffectReceiptAlreadySet	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEnrollment	System.Object	Deconstruct EqualityContract Equals EventSequenceId EventSourceId Events GetHashCode PrintMembers SuppliedScope ToString	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkEnrollmentContributorsNotSupported	System.Exception	-	-
@@ -13300,11 +13372,11 @@ base	AS	Cratis.Chronicle.Transactions.UnitOfWorkMutatedDuringEnrollment	System.E
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkNamedTagsNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Transactions.UnitOfWorkReadProtectionNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Webhooks.WebhookDefinition	System.Object	Deconstruct EqualityContract Equals EventSequenceId EventTypes GenerationDelivery GetHashCode Identifier IsActive IsReplayable PrintMembers Target ToString	-
-base	AS	Cratis.Chronicle.Webhooks.WebhookDefinitionBuilder	System.Object	Build NotActive NotReplayable OnEventSequence WithBasicAuth WithBearerToken WithEventType WithGenerationDelivery WithHeader WithOAuth	-
+base	AS	Cratis.Chronicle.Webhooks.WebhookDefinitionBuilder	System.Object	Build NotActive NotReplayable OnEventSequence WithBasicAuth WithBearerToken WithEventType WithGenerationDelivery WithHeader WithManagedIdentity WithOAuth	-
 base	AS	Cratis.Chronicle.Webhooks.WebhookGenerationDeliveryNotSupported	System.Exception	-	-
 base	AS	Cratis.Chronicle.Webhooks.WebhookId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers Unspecified	-
 base	AS	Cratis.Chronicle.Webhooks.WebhookState	System.Object	Deconstruct EqualityContract Equals GetHashCode IsSubscribed LastHandledEventSequenceNumber NextEventSequenceNumber PrintMembers RunningState ToString	-
-base	AS	Cratis.Chronicle.Webhooks.WebhookTarget	System.Object	Authorization Deconstruct EqualityContract Equals GetHashCode Headers PrintMembers ToString Url	-
+base	AS	Cratis.Chronicle.Webhooks.WebhookTarget	System.Object	Authorization Deconstruct EqualityContract Equals GetHashCode Headers ManagedIdentity PrintMembers ToString Url	-
 base	AS	Cratis.Chronicle.Webhooks.WebhookTargetUrl	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	AS	Cratis.Chronicle.Webhooks.Webhooks	System.Object	GetAll Register	-
 base	AS	Cratis.Collections.ItemAlreadyAddedToBinaryTree	System.Exception	-	-
@@ -13726,7 +13798,7 @@ base	AS	Cratis.Serialization.DefaultNamingPolicy	Cratis.Serialization.NamingPoli
 base	AS	Cratis.Serialization.DerivedTypeId	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers id	-
 base	AS	Cratis.Serialization.DerivedTypeJsonConverterFactory	System.Text.Json.Serialization.JsonConverterFactory	CanConvert CreateConverter	-
 base	AS	Cratis.Serialization.DerivedTypeJsonConverter`1	System.Text.Json.Serialization.JsonConverter`1	DerivedTypeIdProperty Read Write	-
-base	AS	Cratis.Serialization.DerivedTypes	System.Object	GetDerivedTypeFor GetTargetTypeFor HasDerivatives Instance IsDerivedType TypesWithDerivatives	-
+base	AS	Cratis.Serialization.DerivedTypes	System.Object	For GetDerivedTypeFor GetTargetTypeFor HasDerivatives Instance IsDerivedType TypesWithDerivatives	-
 base	AS	Cratis.Serialization.MissingDerivedTypeForTargetType	System.Exception	-	-
 base	AS	Cratis.Serialization.MissingTargetTypeForDerivedType	System.Exception	-	-
 base	AS	Cratis.Serialization.NamespacedNamingPolicy	Cratis.Serialization.NamingPolicy	GetPropertyNameImplementation GetReadModelNameImplementation JsonPropertyNamingPolicy	-
@@ -13809,7 +13881,8 @@ base	AS	FluentValidation.Validators.StringEnumValidator`1	FluentValidation.Valid
 base	AS	Microsoft.AspNetCore.Builder.ApplicationBuilder	System.Object	ApplicationServices Build New Properties ServerFeatures Use	-
 base	AS	Microsoft.AspNetCore.Builder.AspNetCoreEndpointMapper	System.Object	EndpointExists MapGet MapMethod MapPost	-
 base	AS	Microsoft.AspNetCore.Builder.CausationStartupFilter	System.Object	Configure	-
-base	AS	Microsoft.AspNetCore.Builder.ChronicleAspNetCoreOptions	Cratis.Chronicle.ChronicleClientOptions	NamespaceHttpHeader	-
+base	AS	Microsoft.AspNetCore.Builder.ChronicleAspNetCoreOptions	Cratis.Chronicle.ChronicleClientOptions	NamespaceHttpHeader UnitOfWork UseAutomaticMiddleware	-
+base	AS	Microsoft.AspNetCore.Builder.ChronicleUnitOfWorkOptions	System.Object	ReportFailuresBeforeResponseStarts	-
 base	AS	Microsoft.AspNetCore.Builder.CookiePolicyOptions	System.Object	CheckConsentNeeded ConsentCookie ConsentCookieValue HttpOnly MinimumSameSitePolicy OnAppendCookie OnDeleteCookie Secure	-
 base	AS	Microsoft.AspNetCore.Builder.DefaultFilesOptions	Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptionsBase	DefaultFileNames	-
 base	AS	Microsoft.AspNetCore.Builder.DeveloperExceptionPageOptions	System.Object	FileProvider SourceCodeLineCount	-
@@ -15823,7 +15896,7 @@ base	S	Cratis.Chronicle.Testing.EventSequences.EventScenarioWhenBuilder	System.O
 base	S	Cratis.Chronicle.Testing.EventSequences.EventSequenceAssertionException	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.EventSequences.EventSourceGivenBuilder	System.Object	Events	-
 base	S	Cratis.Chronicle.Testing.EventSequences.EventSourceWhenBuilder	System.Object	Events	-
-base	S	Cratis.Chronicle.Testing.Events.EventStoreForTesting	System.Object	Capabilities Connection Constraints DiscoverAll Dispose EventLog EventSources EventTypes ExternalServices FailedPartitions GetEventSequence GetNamespaces Identities Jobs Name Namespace Observers Occurrences PII Patterns Projections Reactors ReadModelReactors ReadModels Reducers RegisterAll Registration Replies Seeding Subscriptions Time UnitOfWorkManager Webhooks	-
+base	S	Cratis.Chronicle.Testing.Events.EventStoreForTesting	System.Object	Capabilities Connection Constraints DiscoverAll Dispose EventLog EventSources EventTypes ExternalServices FailedPartitions GetEventSequence GetNamespaces Identities Jobs Name Namespace Observers Occurrences PII Patterns Projections Reactors ReadModelReactors ReadModels Reducers RegisterAll Registration Replies Seeding ShareApplicationMetadata ShareSchemaGenerator Subscriptions Time UnitOfWorkManager Webhooks	-
 base	S	Cratis.Chronicle.Testing.GrainNotAvailableInTestScenario	System.Exception	-	-
 base	S	Cratis.Chronicle.Testing.InMemoryClientArtifactsProvider	System.Object	AdditionalEventInformationProviders ClosesStreamEventTypes ComplianceForPropertiesProviders ComplianceForTypesProviders ConstraintTypes EventSeeders EventSources EventTypeMigrators EventTypes ModelBoundProjections OccurrenceHandlers Projections ReactorMiddlewares Reactors ReadModelReactors Reducers RemoveConstraintEventTypes SecurityForPropertiesProviders SecurityForTypesProviders Triggers UniqueConstraints UniqueEventTypeConstraints	-
 base	S	Cratis.Chronicle.Testing.NullLogger	System.Object	BeginScope Instance IsEnabled Log	-
@@ -15869,6 +15942,7 @@ base	S	Cratis.Orleans.Jobs.JobStatusChanged	System.Object	EqualityContract Equal
 base	S	Cratis.Orleans.Jobs.JobStepAlreadyHasALiveRun	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobStepCheckpointDebounce	System.Object	BatchInterval HasPendingCheckpoint Persisted Report	-
 base	S	Cratis.Orleans.Jobs.JobStepDetails	System.Object	Deconstruct EqualityContract Equals GetHashCode Id Key PrintMembers Request ResultType Stage ToString Type	-
+base	S	Cratis.Orleans.Jobs.JobStepDispatchContext	System.Object	Deconstruct EqualityContract Equals GetHashCode InitializationMayBeIncomplete PrintMembers ToString	-
 base	S	Cratis.Orleans.Jobs.JobStepGrainAndRequest	System.Object	Deconstruct EqualityContract Equals GetHashCode Grain PrintMembers Request ToString	-
 base	S	Cratis.Orleans.Jobs.JobStepGrainStorageProvider	System.Object	ClearStateAsync ReadStateAsync WriteStateAsync	-
 base	S	Cratis.Orleans.Jobs.JobStepGrainStorageProviderError	System.Exception	-	-
@@ -15879,6 +15953,7 @@ base	S	Cratis.Orleans.Jobs.JobStepName	Cratis.Concepts.ConceptAs`1	Deconstruct E
 base	S	Cratis.Orleans.Jobs.JobStepPercentage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode PrintMembers	-
 base	S	Cratis.Orleans.Jobs.JobStepProgress	System.Object	EqualityContract Equals GetHashCode Message Percentage PrintMembers ToString	-
 base	S	Cratis.Orleans.Jobs.JobStepProgressMessage	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode None PrintMembers	-
+base	S	Cratis.Orleans.Jobs.JobStepRequestCannotRoundTrip	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobStepResult	System.Object	Failed Succeeded TryGetError TryGetFullResult	-
 base	S	Cratis.Orleans.Jobs.JobStepStatusChanged	System.Object	EqualityContract Equals ExceptionMessages ExceptionStackTrace GetHashCode Occurred PrintMembers Status ToString	-
 base	S	Cratis.Orleans.Jobs.JobStepTestRunWasSuperseded	System.Exception	-	-
@@ -15892,7 +15967,7 @@ base	S	Cratis.Orleans.Jobs.JobTypeMustHaveARequestType	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypeNotAssociatedWithType	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypeReadFailed	System.Exception	-	-
 base	S	Cratis.Orleans.Jobs.JobTypes	System.Object	All GetClrTypeFor GetFor GetRequestClrTypeFor Instance	-
-base	S	Cratis.Orleans.Jobs.Job`2	Orleans.Grain`1	AllStepsCompletedSuccessfully CanResume CanRetryFailedSteps CreateStep GetActiveSilos GetFailureBehaviorFor GetJobDetails GetStepRetryDelay JobId JobKey KeepAfterCompleted KeepAfterCompletedWithFailures MaxActiveSteps OnActivateAsync OnAllStepsCompleted OnBeforeResumingJobSteps OnBeforeStartingJobSteps OnFailedToPrepare OnStepCompletedOrStopped OnStepFailed OnStepStopped OnStepSucceeded OnStopped PrepareSteps Remove Request Resume RetryFailed ShouldRetryStep Start StartStepsInBackground Stop StopAndDrain Storage ThisJob WriteState	-
+base	S	Cratis.Orleans.Jobs.Job`2	Orleans.Grain`1	AllStepsCompletedSuccessfully CanResume CanRetryFailedSteps CreateStep FinalizeStop GetActiveSilos GetFailureBehaviorFor GetJobDetails GetStepRetryDelay JobId JobKey KeepAfterCompleted KeepAfterCompletedWithFailures MaxActiveSteps OnActivateAsync OnAllStepsCompleted OnBeforeDispatchingJobSteps OnBeforeResumingJobSteps OnBeforeStartingJobSteps OnFailedToPrepare OnStepCompletedOrStopped OnStepFailed OnStepStopped OnStepSucceeded OnStopped PrepareSteps Remove Request Resume RetryFailed ShouldRetryStep Start StartStepsInBackground Stop StopAndDrain Storage ThisJob WriteState	-
 base	S	Cratis.Orleans.Jobs.Jobs	System.Object	Delete Start Stop StopAndDrain	-
 base	S	Cratis.Orleans.Jobs.JobsManager	Orleans.Grain	CleanupDeadJobs Delete GetAllJobs GetJobs GetJobsOfType OnActivateAsync OnDeactivateAsync Rehydrate Resume RetryFailedSteps Start Stop	-
 base	S	Cratis.Orleans.Jobs.JobsManagerKey	System.Object	Deconstruct EqualityContract Equals GetHashCode Namespace NotSet Parse PrintMembers Scope ToString	-
@@ -15921,9 +15996,10 @@ base	S	Cratis.Orleans.StateMachines.TransitioningDuringOnLeaveIsNotSupported	Sys
 base	S	Cratis.Orleans.StateMachines.UnknownCurrentState	System.Exception	-	-
 base	S	Cratis.Orleans.StateMachines.UnknownStateTypeInStateMachine	System.Exception	-	-
 base	S	Cratis.Orleans.Storage.InMemoryJobsStorage	System.Object	GetFor Reset	-
-base	S	Cratis.Orleans.Storage.Jobs.JobState	System.Object	Created Details DrainPending Id IsPreparingOrRunning Progress Request Status StatusChanges Type	-
+base	S	Cratis.Orleans.Storage.Jobs.JobState	System.Object	Created Details DrainPending Id IsPreparingOrRunning Progress Request Status StatusChanges StepPlan StopFinalized StoppedStepsCounted Type	-
 base	S	Cratis.Orleans.Storage.Jobs.JobStepLease	System.Object	ActivationId Attempt LastHeartbeat Owner	-
 base	S	Cratis.Orleans.Storage.Jobs.JobStepState	System.Object	Attempt Id IsPrepared Lease Name Progress Stage Status StatusChanges Type	-
+base	S	Cratis.Orleans.Storage.Jobs.PlannedJobStep	System.Object	Deconstruct EqualityContract Equals GetHashCode Id PrintMembers RequestJson RequestType Stage ToString Type	-
 base	S	Cratis.Orleans.Storage.JobsStorage	System.Object	Deconstruct EqualityContract Equals GetHashCode JobSteps Jobs PrintMembers ToString	-
 base	S	Cratis.Orleans.Storage.MongoDB.CamelCaseElementNameConvention	System.Object	Apply Name	-
 base	S	Cratis.Orleans.Storage.MongoDB.ConventionPacks	System.Object	EnsureRegistered Provide	-

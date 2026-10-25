@@ -53,7 +53,7 @@ public class when_comparing_optional_validated_concepts(when_comparing_optional_
                         string? input = {{JsonSerializer.Serialize(text)}};
                         var value = input is null ? null : valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, System.Globalization.CultureInfo.InvariantCulture)]);
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
-                        var result = await scenario.Execute(constructor.Invoke(["one", value]), TestContext.Current.CancellationToken);
+                        var result = await scenario.Execute(constructor.Invoke(["one", value]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
                         Assert.Equal(expected.Select(pair => (pair[0], pair[1])), result.ValidationResults.Select(failure => (failure.Message, failure.Severity.ToString())));

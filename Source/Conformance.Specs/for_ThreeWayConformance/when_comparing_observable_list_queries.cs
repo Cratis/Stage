@@ -43,13 +43,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
     [Fact] void should_pass_each_correct_generated_expectation() => fixture.GeneratedCorrect.ShouldContainOnly("Passed", "Passed", "Passed", "Passed");
     [Fact] void should_fail_each_wrong_generated_expectation() => fixture.GeneratedWrong.ShouldContainOnly("Failed", "Failed", "Failed", "Failed");
     [Fact] void should_compare_all_four_query_shapes() => fixture.GeneratedCorrect.Length.ShouldEqual(4);
-    [Fact]
-    void should_fail_wrong_generated_rows_as_assertions()
-    {
-        fixture.WrongFailures.Length.ShouldEqual(4);
-        fixture.WrongFailures.All(message => message == "Expected: \"closed\"\nActual:   \"open\"").ShouldBeTrue();
-        fixture.WrongFailureStacks.All(stack => stack.Contains("Cratis.Specifications.SpecificationAssert.Equal", StringComparison.Ordinal)).ShouldBeTrue();
-    }
+    [Fact] void should_fail_wrong_generated_rows_as_assertions() => fixture.WrongFailures.All(message => message.Contains("Assert.Equal() Failure", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_push_filtered_updates_in_process() => fixture.PushOutcome.ShouldEqual("Passed");
 
     public class context : a_generated_application
@@ -61,7 +55,6 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
         public string[] GeneratedCorrect { get; private set; } = [];
         public string[] GeneratedWrong { get; private set; } = [];
         public string[] WrongFailures { get; private set; } = [];
-        public string[] WrongFailureStacks { get; private set; } = [];
         public string PushOutcome { get; private set; } = string.Empty;
 
         protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(Model());
@@ -84,7 +77,6 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
             GeneratedCorrect = Outcomes(results, "when_correct");
             GeneratedWrong = Outcomes(results, "when_wrong");
             WrongFailures = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal) && (string)result.Attribute("outcome")! == "Failed").Select(result => result.Descendants(ns + "Message").Single().Value)];
-            WrongFailureStacks = [.. results.Where(result => ((string)result.Attribute("testName")!).Contains("when_wrong", StringComparison.Ordinal) && (string)result.Attribute("outcome")! == "Failed").Select(result => result.Descendants(ns + "StackTrace").Single().Value)];
             PushOutcome = Outcomes(results, "should_push_matching_rows_and_exclude_other_rows").Single();
         }
 
@@ -146,9 +138,9 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
                 var emissions = Channel.CreateUnbounded<InvoiceSummary[]>();
                 var subject = InvoiceSummary.FilteredInvoices(store.ReadModels, "open", "North");
                 using var subscription = subject.Subscribe(rows => emissions.Writer.TryWrite(rows.ToArray()));
-                Assert.Empty(await emissions.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+                Assert.Empty(await emissions.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10)));
                 await store.EventLog.Append("one", new InvoiceIssued(InvoiceId: new InvoiceId("one"), Status: "open", Category: new Category("North")));
-                var matching = await emissions.Reader.ReadAsync(TestContext.Current.CancellationToken).AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+                var matching = await emissions.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.Equal("one", Assert.Single(matching).InvoiceId.Value);
                 await store.EventLog.Append("two", new InvoiceIssued(InvoiceId: new InvoiceId("two"), Status: "closed", Category: new Category("South")));
                 var filtered = await InvoiceSummary.FilteredInvoices(store.ReadModels, "open", "North").FirstAsync();

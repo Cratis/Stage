@@ -50,7 +50,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                         string? member = {{JsonSerializer.Serialize(member)}};
                         var value = member is null ? null : Enum.Parse(enumType, member);
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
-                        var result = await scenario.Execute(constructor.Invoke(["one", value, Enum.Parse(enumType, "InReview")]), TestContext.Current.CancellationToken);
+                        var result = await scenario.Execute(constructor.Invoke(["one", value, Enum.Parse(enumType, "InReview")]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
                         Assert.Equal(expected.Select(pair => (pair[0], pair[1])), result.ValidationResults.Select(failure => (failure.Message, failure.Severity.ToString())));

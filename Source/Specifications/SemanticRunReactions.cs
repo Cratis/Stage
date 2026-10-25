@@ -33,7 +33,7 @@ internal sealed class SemanticRunReactions(
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
     internal static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced, DateTimeOffset? occurred) =>
-        occurred is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
+        occurred is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: not SemanticEventContextValueKind.EventSourceIdentity })
             ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
             : null;
 
@@ -235,13 +235,13 @@ internal sealed class SemanticRunReactions(
     {
         if (cause.Fact is null && produced.Destination is null) throw new InvalidSemanticContract($"Reaction '{reaction.Name}' must say with 'for' which event source it appends to, unless an event sets it off.");
         var contract = plan.Events[produced.EventContract];
-        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, cause.Occurred))).ToArray();
+        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, cause.Occurred, cause.Destination))).ToArray();
         foreach (var value in mapped)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
             SemanticRunReactionExpressions.Validate(plan, value.Value, property.Type, $"event property '{property.Name}'");
         }
-        var destination = produced.Destination is null ? cause.Destination : SemanticRunReactionExpressions.Evaluate(produced.Destination, cause.Values);
+        var destination = produced.Destination is null ? cause.Destination : SemanticRunReactionExpressions.Evaluate(produced.Destination, cause.Values, eventSource: cause.Destination);
         if (produced.Destination is not null) SemanticRunReactionExpressions.Validate(plan, destination, produced.DestinationType!, "reaction event source");
 
         return (new SemanticSpecificationEvent(contract.Id, [.. mapped])
@@ -273,7 +273,7 @@ internal sealed class SemanticRunReactions(
         var mappings = invocation.Mappings.ToDictionary(mapping => mapping.TargetProperty);
         var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(
             property.Id,
-            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, occurred: cause.Occurred) : SemanticValue.Null));
+            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, occurred: cause.Occurred, eventSource: cause.Destination) : SemanticValue.Null));
 
         var generated = command.Properties.Where(property => property.IsGenerated && _pinned.TryGetValue((command.Id, property.Id), out var queue) && queue.Count > 0)
             .Select(property => new SemanticPropertyValue(property.Id, _pinned[(command.Id, property.Id)].Dequeue()));

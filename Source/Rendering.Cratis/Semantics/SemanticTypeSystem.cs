@@ -126,7 +126,7 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
     /// Renders the event source id an event arrived with as a value of a scalar target type.
     /// </summary>
     /// <param name="target">The target type; text, a uuid, or an identifier concept over one of them.</param>
-    /// <returns>The C# expression converting <c>context.EventSourceId</c> to the target.</returns>
+    /// <returns>The C# expression converting <c language="csharp">context.EventSourceId</c> to the target.</returns>
     /// <exception cref="UnsupportedSemanticRendering">The target is not text, a uuid or a concept over one of them.</exception>
     public string EventSourceIdentityValue(SemanticTypeReference target)
     {

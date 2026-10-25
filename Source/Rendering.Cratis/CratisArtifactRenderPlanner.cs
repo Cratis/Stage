@@ -98,8 +98,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
+
         // An unknown UI selection is invalid input, not an owned rendering refusal.
-        if (diagnostics.Any(diagnostic => diagnostic is { Code: "STAGE-SCREEN-007", Severity: ArtifactRenderDiagnosticSeverity.Error }))
+        if (diagnostics.Exists(IsInvalidUserInterfaceSelection))
         {
             return CreatePlan(request, [], diagnostics);
         }
@@ -276,6 +277,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             StageModuleRenderer.Render(context, userInterface),
             [context.Application.Id]));
     }
+
+    static bool IsInvalidUserInterfaceSelection(ArtifactRenderDiagnostic diagnostic) =>
+        string.Equals(diagnostic.Code, "STAGE-SCREEN-007", StringComparison.Ordinal) && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error;
 
     // Application plans carry the UI of every slice. A scoped plan carries shared UI only when the caller names the
     // slices whose UI is present; the plan's own slices are always among them, because this plan generates them.

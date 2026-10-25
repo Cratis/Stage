@@ -28,6 +28,12 @@ internal static class PlanSelectionResolver
         return ([.. scopes.Distinct().OrderBy(scope => scope.Kind).ThenBy(scope => scope.Artifact.ToString(), StringComparer.Ordinal)], [.. diagnostics.Distinct()]);
     }
 
+    internal static IEnumerable<string> Slices(SemanticApplication application, ImmutableArray<ArtifactRenderScope> scopes)
+    {
+        var selected = scopes.Select(scope => scope.Artifact).ToHashSet();
+        return application.Modules.SelectMany(module => module.Features.SelectMany(feature => Slices(feature, selected.Contains(module.Id), selected)));
+    }
+
     static (ArtifactRenderScope? Scope, CratisPlanDiagnostic? Diagnostic) ResolveEntry(SemanticApplication application, PlanSelectionEntry entry)
     {
         var path = entry.Path.IsDefault ? [] : entry.Path;
@@ -54,6 +60,13 @@ internal static class PlanSelectionResolver
         return slice is null
             ? (null, Unknown("STAGE-PLAN-013", path[^1], feature.Slices.Select(candidate => candidate.Name)))
             : (new(ArtifactRenderScopeKind.Slice, slice.Id), null);
+    }
+
+    static IEnumerable<string> Slices(SemanticFeature feature, bool included, HashSet<SemanticId> selected)
+    {
+        var all = included || selected.Contains(feature.Id);
+        return feature.Slices.Where(slice => all || selected.Contains(slice.Id)).Select(slice => slice.Id.ToString())
+            .Concat(feature.Features.SelectMany(child => Slices(child, all, selected)));
     }
 
     static CratisPlanDiagnostic Unknown(string code, string segment, IEnumerable<string> candidates) =>

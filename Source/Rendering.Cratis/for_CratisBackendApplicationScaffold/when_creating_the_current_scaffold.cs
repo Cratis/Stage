@@ -56,7 +56,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_not_duplicate_the_shared_extraction_setting_in_the_host() => Content("MyApp.csproj").ShouldNotContain("CratisEmbeddedScreenplayEnabled");
     [Fact] void should_not_suppress_the_test_entry_point_warning() => Content("MyApp.csproj").ShouldNotContain("NoWarn");
     [Fact] void should_mark_the_application_as_a_test_project_only_in_debug() => DebugProperty("IsTestProject").ShouldEqual("true");
-    [Fact] void should_keep_the_application_entry_point_in_debug() => DebugProperty("GenerateProgramFile").ShouldEqual("false");
+    [Fact] void should_keep_the_application_entry_point_in_every_configuration() => UnconditionalProperty("GenerateProgramFile").ShouldEqual("false");
     [Fact] void should_remove_specifications_from_release_builds() => ReleaseCompileRemove().ShouldEqual("**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**");
     [Fact] void should_place_using_directives_above_the_namespace() => Content(".editorconfig").ShouldContain("csharp_using_directive_placement = outside_namespace");
     [Fact] void should_isolate_editor_configuration_from_parent_rules() => Content(".editorconfig").ShouldContain("root = true");
@@ -161,6 +161,9 @@ public class when_creating_the_current_scaffold : a_current_scaffold
 
     string DebugProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")
         .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' == 'Debug'").Element(name)!.Value;
+
+    string UnconditionalProperty(string name) => XDocument.Parse(Content("MyApp.csproj")).Descendants("PropertyGroup")
+        .Single(group => group.Attribute("Condition") is null).Element(name)!.Value;
 
     string ReleaseCompileRemove() => XDocument.Parse(Content("MyApp.csproj")).Descendants("ItemGroup")
         .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' != 'Debug'").Element("Compile")!.Attribute("Remove")!.Value;

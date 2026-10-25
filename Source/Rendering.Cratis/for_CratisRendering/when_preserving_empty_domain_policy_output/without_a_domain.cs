@@ -21,15 +21,14 @@ public class without_a_domain : given.a_domain_policy_plan
         var result = Plan(string.Empty);
         result.Success.ShouldBeTrue();
 
-        var qualified = QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices"));
+        var qualified = QualifiedCommonOutput.Restore(result.Plan!, () => Plan(string.Empty).Plan!);
 
         // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
         // These assertions confine the updated pins below to that one generated declaration change.
-        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(result.Artifacts))).ShouldEqual("8C7B38ABBD21DED65A68BAAEF4E69595AFBF11C21D573E5C1BAB31EA8A1A1292");
+        // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
         Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(qualified))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
 
         // Restoring the former license header must reproduce the pins from before headers became optional.
-        Digest(LegacyLicenseHeader.Restore(result.Artifacts)).ShouldEqual("F72648610254219C75E6EFCA82EEBB9030253CFFACE8DE14F2A4B344D3DD6BD2");
         Digest(LegacyLicenseHeader.Restore(qualified)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
@@ -55,7 +54,8 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("2F1ED66E09AA59EFA3F6D5A7DA9DBC32004928E85262DE8234BBD2D6A2E3435B");
+    // Re-frozen for #424: generated C# uses short type names and using directives.
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("2FAB07125C8F373F3BA852F53E4758E6565620719D4001F2F7153C162A86E975");
     [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("05777F401D263E5BC39126494FB4912F7096AA91C5F3F5E22AE41AA55D20D689");
 }
 #endif

@@ -209,51 +209,52 @@ using	AS	namespace	Cratis.Chronicle.Reducers		cratis
 using	AS	namespace	Cratis.Chronicle.Transactions		cratis
 using	AS	namespace	Cratis.Concepts		cratis
 using	AS	namespace	FluentValidation		cratis
-using	AS	namespace	Microsoft.AspNetCore.Builder		NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Builder		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Builder		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Hosting		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Http		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Http		Sdk.Server
-using	AS	namespace	Microsoft.AspNetCore.Routing		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.AspNetCore.Routing		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Configuration		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.AspNetCore.Routing		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Configuration		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.DependencyInjection		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.Configuration		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.DependencyInjection		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.DependencyInjection		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Hosting		Sdk.Server
-using	AS	namespace	Microsoft.Extensions.Logging		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Microsoft.Extensions.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Microsoft.Extensions.Logging		Sdk.Server
+using	AS	namespace	Microsoft.Extensions.Logging		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans		Microsoft.Orleans.Core
 using	AS	namespace	Orleans		Microsoft.Orleans.Core.Abstractions
 using	AS	namespace	Orleans		Microsoft.Orleans.Sdk
-using	AS	namespace	Orleans		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans.Hosting		Microsoft.Orleans.Core
-using	AS	namespace	Orleans.Hosting		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans.Hosting		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	Orleans.Runtime		Microsoft.Orleans.Core
 using	AS	namespace	Orleans.Runtime		Microsoft.Orleans.Core.Abstractions
-using	AS	namespace	Orleans.Runtime		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	Orleans.Runtime		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Collections.Generic		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Collections.Generic		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Collections.Generic		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.IO		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.IO		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.IO		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Linq		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Linq		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Linq		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Net.Http		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Net.Http		NameCatalogApp.GlobalUsings.g.cs
-using	AS	namespace	System.Net.Http.Json		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Net.Http		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Net.Http.Json		Sdk.Server
+using	AS	namespace	System.Net.Http.Json		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Threading		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Threading		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Threading		compile:NameCatalogApp.GlobalUsings.g.cs
 using	AS	namespace	System.Threading.Tasks		Microsoft.NET.Sdk.CSharp
-using	AS	namespace	System.Threading.Tasks		NameCatalogApp.GlobalUsings.g.cs
+using	AS	namespace	System.Threading.Tasks		compile:NameCatalogApp.GlobalUsings.g.cs
 scope	Cratis
 scope	FluentValidation
 scope	MongoDB
 scope	NSubstitute
+scope	OneOf
 scope	System
 scope	Xunit
 namespace	AS	Castle
@@ -2002,7 +2003,6 @@ namespace	AS	grpc
 namespace	AS	grpc.reflection
 namespace	AS	grpc.reflection.v1alpha
 type	AS		ExceptionExtensions	static
-type	AS		Program	class
 type	AS		ReflectionAbstractionExtensions	static
 type	AS		TestFrameworkOptionsReadExtensions	static
 type	AS		TimedLogging	static
@@ -7257,6 +7257,55 @@ type	AS	NSubstitute.Routing.Handlers	ReturnFromCustomHandlers	class
 type	AS	NSubstitute.Routing.Handlers	ReturnResultForTypeHandler	class
 type	AS	NSubstitute.Routing.Handlers	SetActionForCallHandler	class
 type	AS	NSubstitute.Routing.Handlers	TrackLastCallHandler	class
+type	AS	OneOf	GenerateOneOfAttribute	class
+type	AS	OneOf	IOneOf	interface
+type	AS	OneOf	OneOfBase`1	class
+type	AS	OneOf	OneOfBase`2	class
+type	AS	OneOf	OneOfBase`3	class
+type	AS	OneOf	OneOfBase`4	class
+type	AS	OneOf	OneOfBase`5	class
+type	AS	OneOf	OneOfBase`6	class
+type	AS	OneOf	OneOfBase`7	class
+type	AS	OneOf	OneOfBase`8	class
+type	AS	OneOf	OneOfBase`9	class
+type	AS	OneOf	OneOf`1	struct
+type	AS	OneOf	OneOf`2	struct
+type	AS	OneOf	OneOf`3	struct
+type	AS	OneOf	OneOf`4	struct
+type	AS	OneOf	OneOf`5	struct
+type	AS	OneOf	OneOf`6	struct
+type	AS	OneOf	OneOf`7	struct
+type	AS	OneOf	OneOf`8	struct
+type	AS	OneOf	OneOf`9	struct
+type	AS	OneOf.Types	All	struct
+type	AS	OneOf.Types	Error	struct
+type	AS	OneOf.Types	Error`1	struct
+type	AS	OneOf.Types	False	struct
+type	AS	OneOf.Types	Maybe	struct
+type	AS	OneOf.Types	No	struct
+type	AS	OneOf.Types	None	struct
+type	AS	OneOf.Types	NotFound	struct
+type	AS	OneOf.Types	Result`1	struct
+type	AS	OneOf.Types	Some	struct
+type	AS	OneOf.Types	Success	struct
+type	AS	OneOf.Types	Success`1	struct
+type	AS	OneOf.Types	True	struct
+type	AS	OneOf.Types	TrueFalseOrNull	class
+type	AS	OneOf.Types	TrueFalseOrNull+False	class
+type	AS	OneOf.Types	TrueFalseOrNull+Null	class
+type	AS	OneOf.Types	TrueFalseOrNull+True	class
+type	AS	OneOf.Types	TrueOrFalse	class
+type	AS	OneOf.Types	TrueOrFalse+False	class
+type	AS	OneOf.Types	TrueOrFalse+True	class
+type	AS	OneOf.Types	Unknown	struct
+type	AS	OneOf.Types	Yes	struct
+type	AS	OneOf.Types	YesNoOrMaybe	class
+type	AS	OneOf.Types	YesNoOrMaybe+Maybe	class
+type	AS	OneOf.Types	YesNoOrMaybe+No	class
+type	AS	OneOf.Types	YesNoOrMaybe+Yes	class
+type	AS	OneOf.Types	YesOrNo	class
+type	AS	OneOf.Types	YesOrNo+No	class
+type	AS	OneOf.Types	YesOrNo+Yes	class
 type	AS	Orleans	AliasAttribute	attribute
 type	AS	Orleans	ApplicationPartAttribute	attribute
 type	AS	Orleans	AsyncSerialExecutor	class
@@ -14605,6 +14654,29 @@ base	AS	NSubstitute.Routing.Handlers.SetActionForCallHandler	System.Object	Handl
 base	AS	NSubstitute.Routing.Handlers.TrackLastCallHandler	System.Object	Handle	-
 base	AS	NSubstitute.Routing.Route	System.Object	Handle Handlers	-
 base	AS	NSubstitute.Routing.RouteFactory	System.Object	CallBase CallQuery CheckReceivedCalls DoNotCallBase DoWhenCalled RaiseEvent RecordCallSpecification RecordReplay	-
+base	AS	OneOf.OneOfBase`1	System.Object	AsT0 Equals GetHashCode Index IsT0 Match Switch ToString Value	-
+base	AS	OneOf.OneOfBase`2	System.Object	AsT0 AsT1 Equals GetHashCode Index IsT0 IsT1 Match Switch ToString TryPickT0 TryPickT1 Value	-
+base	AS	OneOf.OneOfBase`3	System.Object	AsT0 AsT1 AsT2 Equals GetHashCode Index IsT0 IsT1 IsT2 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 Value	-
+base	AS	OneOf.OneOfBase`4	System.Object	AsT0 AsT1 AsT2 AsT3 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 Value	-
+base	AS	OneOf.OneOfBase`5	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 Value	-
+base	AS	OneOf.OneOfBase`6	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 Value	-
+base	AS	OneOf.OneOfBase`7	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 Value	-
+base	AS	OneOf.OneOfBase`8	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 AsT7 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 IsT7 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 TryPickT7 Value	-
+base	AS	OneOf.OneOfBase`9	System.Object	AsT0 AsT1 AsT2 AsT3 AsT4 AsT5 AsT6 AsT7 AsT8 Equals GetHashCode Index IsT0 IsT1 IsT2 IsT3 IsT4 IsT5 IsT6 IsT7 IsT8 Match Switch ToString TryPickT0 TryPickT1 TryPickT2 TryPickT3 TryPickT4 TryPickT5 TryPickT6 TryPickT7 TryPickT8 Value	-
+base	AS	OneOf.Types.TrueFalseOrNull	OneOf.OneOfBase`3	-	False Null True
+base	AS	OneOf.Types.TrueFalseOrNull+False	System.Object	-	-
+base	AS	OneOf.Types.TrueFalseOrNull+Null	System.Object	-	-
+base	AS	OneOf.Types.TrueFalseOrNull+True	System.Object	-	-
+base	AS	OneOf.Types.TrueOrFalse	OneOf.OneOfBase`2	-	False True
+base	AS	OneOf.Types.TrueOrFalse+False	System.Object	-	-
+base	AS	OneOf.Types.TrueOrFalse+True	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe	OneOf.OneOfBase`3	-	Maybe No Yes
+base	AS	OneOf.Types.YesNoOrMaybe+Maybe	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe+No	System.Object	-	-
+base	AS	OneOf.Types.YesNoOrMaybe+Yes	System.Object	-	-
+base	AS	OneOf.Types.YesOrNo	OneOf.OneOfBase`2	-	No Yes
+base	AS	OneOf.Types.YesOrNo+No	System.Object	-	-
+base	AS	OneOf.Types.YesOrNo+Yes	System.Object	-	-
 base	AS	Orleans.AsyncSerialExecutor	System.Object	AddNext	-
 base	AS	Orleans.AsyncSerialExecutor`1	System.Object	AddNext	-
 base	AS	Orleans.BatchWorker	System.Object	CancellationToken IsIdle Notify NotifyAndWaitForWorkToBeServiced WaitForCurrentWorkToBeServiced Work	-

@@ -92,7 +92,7 @@ internal static partial class SemanticCratisAdmission
             _ when !IsLowercaseSha256(evidence.Sha256) => "the file hash is not a lowercase SHA-256.",
             _ when string.IsNullOrWhiteSpace(evidence.ObserverId) || evidence.ObserverId != pinned.ObserverId =>
                 "the reducer file's observer identity differs from the persisted observer identity.",
-            _ when evidence.ReadModelType != modelType => $"the reducer file implements IReducerFor<{evidence.ReadModelType}> instead of IReducerFor<{modelType}>.",
+            _ when evidence.ReadModelType != modelType && !evidence.ReadModelType.Split('|').Contains(modelType, StringComparer.Ordinal) => $"the reducer file implements IReducerFor<{evidence.ReadModelType}> instead of IReducerFor<{modelType}>.",
             _ => null
         };
     }

@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 /// <summary>
@@ -8,11 +10,13 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 internal static class TenantTranslationSource
 {
-    internal static RenderedFile Render(string rootNamespace)
+    internal static RenderedFile Render(string rootNamespace, IEnumerable<GeneratedTypeName>? generated = null)
     {
         var source = Read("PortableTenantValues.cs").Replace("namespace Cratis.Stage.Runtime;", $"namespace {rootNamespace}.GeneratedTenancy;", StringComparison.Ordinal) +
             Read("AmbiguousTenant.cs").Replace("namespace Cratis.Stage.Runtime;", string.Empty, StringComparison.Ordinal);
 
+        // Stage compiles the same source with its own imports, so the copy is respelled for the application.
+        if (generated is not null && !QualifiedSpelling.IsActive) source = new CSharpImports(GeneratedProjects.Application, generated).Rewrite(source, [], []);
         return new(Path.Combine("GeneratedTenancy", "PortableTenantValues.cs"), source);
     }
 

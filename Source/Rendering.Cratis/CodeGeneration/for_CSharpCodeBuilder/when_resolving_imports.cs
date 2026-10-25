@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration.for_CSharpCodeBuilder;
 
-public class when_resolving_imports_inside_the_namespace : Specification
+public class when_resolving_imports : Specification
 {
     CSharpCodeBuilder _builder = null!;
     string _result = null!;
@@ -21,8 +21,8 @@ public class when_resolving_imports_inside_the_namespace : Specification
 
     void Because() => _result = _builder.ToString();
 
-    [Fact] void should_retain_the_extension_import_at_the_top() => _result.ShouldContain("using FluentValidation;\n\nnamespace Shop.Common;");
-    [Fact] void should_place_the_type_import_inside_the_namespace() => _result.ShouldContain("namespace Shop.Common;\n\nusing global::System.Text.RegularExpressions;\n\npublic record Item(Regex Id);");
+    [Fact] void should_drop_the_import_a_global_using_repeats() => _result.Contains("using FluentValidation;", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_import_the_type_namespace_above_the_namespace() => _result.ShouldEqual("using System.Text.RegularExpressions;\n\nnamespace Shop.Common;\n\npublic record Item(Regex Id);\n");
     [Fact] void should_not_leave_a_placeholder() => _result.Contains('\u0001', StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_resolve_without_mutating_the_builder() => _builder.ToString().ShouldEqual(_result);
 }

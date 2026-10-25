@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Cratis.Screenplay.Strings;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 #pragma warning disable MA0110, SA1202 // The current SDK does not generate implementations for these regex members in this project.
@@ -149,7 +150,9 @@ internal static class StringsCatalogInput
 
     internal static string Render(Catalog catalog, string rootNamespace)
     {
-        var builder = new CSharpCodeBuilder().Namespace(rootNamespace).Using("System.Globalization")
+        // The scaffold renders this file before the model's declarations are known; the class it declares is enough to
+        // decide its spellings, because nothing it names is generated.
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, []).Namespace(rootNamespace).Using("System.Globalization")
             .OpenBlock("public static class GeneratedStrings")
             .Line($"const string DefaultLocale = {CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)};")
             .Line("static readonly global::System.Collections.Generic.Dictionary<string, global::System.Collections.Generic.Dictionary<string, string>> Locales = new(global::System.StringComparer.OrdinalIgnoreCase)")

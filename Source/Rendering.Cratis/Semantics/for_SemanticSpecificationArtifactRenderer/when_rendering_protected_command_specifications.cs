@@ -25,7 +25,7 @@ public class when_rendering_protected_command_specifications : Specification
     [Fact] void should_not_use_the_event_scenario_that_decision_mode_disables() => Source("when_missing_after_removal").ShouldNotContain("EventScenario");
     [Fact] void should_not_declare_an_async_establish_without_an_await() => Source("when_missing_after_removal").ShouldContain("void Establish()");
     [Fact] void should_split_a_cascading_specification_into_the_reactor_and_its_trigger() => _plan.Artifacts.Count(artifact => artifact.RelativePath.EndsWith("/when_reaction_invokes_protected_read.cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith("/when_reaction_invokes_protected_read_trigger.cs", StringComparison.Ordinal)).ShouldEqual(2);
-    [Fact] void should_execute_the_invoked_command_after_the_reactor_returns_it() => Source("/when_reaction_invokes_protected_read.cs").ShouldContain("_reactor.Produced.OfType<global::ProtectedReads.Storage.Decisions.Use.Consume>()");
+    [Fact] void should_execute_the_invoked_command_after_the_reactor_returns_it() => Source("/when_reaction_invokes_protected_read.cs").ShouldContain("_reactor.Produced.OfType<Consume>()");
 
     string Source(string name) => string.Concat(_plan.Artifacts.Where(artifact => artifact.RelativePath.Contains(name, StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
 }

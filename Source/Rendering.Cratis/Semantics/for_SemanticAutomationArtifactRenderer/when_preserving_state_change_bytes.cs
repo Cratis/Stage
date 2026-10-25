@@ -9,27 +9,22 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifact
 public class when_preserving_state_change_bytes : given.an_automation
 {
     const string Expected = """
-        using Cratis.Arc.Authorization;
-        using Cratis.Arc.Commands.ModelBound;
-        using Cratis.Arc.Validation;
-        using Cratis.Chronicle.Events;
-
         namespace Reactions.Work.Processing.Start;
 
-        [global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-        [global::Cratis.Arc.Authorization.AllowAnonymousAttribute]
-        public record StartWork(string Id, decimal Amount) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId
+        [Command]
+        [AllowAnonymous]
+        public record StartWork(string Id, decimal Amount) : ICanProvideEventSourceId
         {
             /// <inheritdoc/>
-            public global::Cratis.Chronicle.Events.EventSourceId GetEventSourceId() => Id;
+            public EventSourceId GetEventSourceId() => Id;
 
-            public global::Reactions.Work.Processing.Start.Started Handle() => new(Id, Amount);
+            public Started Handle() => new(Id, Amount);
         }
 
         /// <summary>
         /// The event that occurs when started.
         /// </summary>
-        [global::Cratis.Chronicle.Events.EventTypeAttribute]
+        [EventType]
         public record Started(string Id, decimal Amount);
 
         """;

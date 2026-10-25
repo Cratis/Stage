@@ -24,15 +24,15 @@ public class a_policy_plan : Specification
         namespace Invoices.GeneratedPolicies;
         public static partial class Registration
         {
-            static partial void RegisterGenerated(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+            static partial void RegisterGenerated(IServiceCollection services)
             {
                 services.AddArcAuthorizationPolicy<StagePolicy_issue>("StagePolicy_issue");
             }
         }
-        public sealed class StagePolicy_issue : global::Cratis.Arc.Authorization.IAuthorizationPolicy
+        public sealed class StagePolicy_issue : IAuthorizationPolicy
         {
-            public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)
-                => global::System.Threading.Tasks.ValueTask.FromResult(context.Principal.Identity?.IsAuthenticated == true);
+            public ValueTask<bool> IsAuthorized(AuthorizationPolicyContext context, CancellationToken cancellationToken)
+                => ValueTask.FromResult(context.Principal.Identity?.IsAuthenticated == true);
         }
         """;
 

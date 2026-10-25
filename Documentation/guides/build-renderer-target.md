@@ -18,7 +18,7 @@ flowchart LR
 
 Rendering is the opposite direction from source recovery. A source adapter such as `IDotNetScreenplayAdapter` recovers source into Screenplay; an `IArtifactRenderPlanner` realizes Screenplay as target code. Do not interpret source-adapter facts as renderer inputs.
 
-For where a target lives, which packages each direction may depend on, and how targets are named, see [Organize a render target repository](target-repository-model.md).
+For where renderers and source adapters live, which packages each may depend on, where round trips run, and how targets are named, see [Organize render target and source adapter repositories](target-repository-model.md).
 
 ## Use the public contracts
 

@@ -322,7 +322,7 @@ class AxonWorkflowTests(unittest.TestCase):
         self.assertIn(f'        default: "{node_version}"', AXON_WORKFLOW)
         self.assertIn("node-version: ${{ inputs.node-version }}", AXON_WORKFLOW)
         self.assertIn("runs-on: ubuntu-latest", AXON_WORKFLOW)
-        self.assertIn("timeout-minutes: 40", AXON_WORKFLOW)
+        self.assertIn("timeout-minutes: 55", AXON_WORKFLOW)
         self.assertIn("permissions:\n  contents: read", AXON_WORKFLOW)
         for forbidden in ("services:", "container:", "docker", "concurrency:"):
             self.assertNotIn(forbidden, AXON_WORKFLOW)
@@ -357,6 +357,13 @@ class AxonWorkflowTests(unittest.TestCase):
                         "${{ runner.temp }}/axon-results/**", "${{ runner.temp }}/axon-corpus/**/target/surefire-reports/**"):
             self.assertIn(setting, AXON_WORKFLOW)
 
+    def test_every_action_is_pinned_to_a_commit(self):
+        references = re.findall(r"uses: ([^\s@]+)@(\S+)", AXON_WORKFLOW)
+        self.assertEqual(7, len(references))
+        for action, ref in references:
+            with self.subTest(action=action):
+                self.assertRegex(ref, r"^[0-9a-f]{40}$")
+
     def test_third_party_actions_are_sha_pinned_at_the_callers_major_versions(self):
         actions = re.findall(r"uses: (actions/[\w-]+)@([^\n]+)", AXON_WORKFLOW)
         self.assertEqual(6, len(actions))
@@ -365,7 +372,7 @@ class AxonWorkflowTests(unittest.TestCase):
                 self.assertRegex(version, r"^[0-9a-f]{40} # v4\.\d+\.\d+$")
                 if action != "actions/setup-java":
                     self.assertIn(f"uses: {action}@v4", WORKFLOW)
-        self.assertIn("uses: Cratis/Workflows/.github/actions/dotnet-cache@main\n"
+        self.assertIn("uses: Cratis/Workflows/.github/actions/dotnet-cache@e888941700d2359a8b314f99c18c49b7bee93e3f # main\n"
                       "        with:\n          mode: restore", AXON_WORKFLOW)
 
 

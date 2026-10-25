@@ -21,7 +21,7 @@ env:
 jobs:
   axon-render:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 55
     permissions:
       contents: read
     steps:
@@ -35,7 +35,7 @@ jobs:
 
       - name: Restore package cache
         id: nuget
-        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@e888941700d2359a8b314f99c18c49b7bee93e3f # main
         with:
           mode: restore
 

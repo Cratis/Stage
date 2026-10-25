@@ -31,7 +31,6 @@ using ProtectedReads.Storage.Decisions.State;
 namespace ProtectedReads.Storage.Decisions.Use;
 
 [Command]
-[ReadProtection(ReadProtectionMode.On)]
 [BlockOnValidationSeverity(ValidationResultSeverity.Error)]
 [AllowAnonymous]
 public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
@@ -50,7 +49,7 @@ public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
 
 The shape follows these rules:
 
-- **Read protection is per command.** `ReadProtectionMode.On` is declared only on a command that has `reads`. Commands without reads keep the ordinary scenario and are not affected.
+- **Read protection is project-wide.** The rendered `Directory.Build.props` sets `<CratisReadProtection>On</CratisReadProtection>`, which Arc turns into assembly-level protection. Generated commands do not carry a per-command `ReadProtection` attribute. This does not replace `[ProtectedDecision]` or protected-read admission.
 - **Each read is a nullable read-model parameter on `Handle`**, resolved by `[LookUpBy]` on the command property that names the key. `[LookUpBy]` is always emitted, because Arc's convention (the one command property whose type equals the view's key) is ambiguous for primitive keys: the `Consume` command has two string properties.
 - **Absence is an explicit guard, first.** A missing view returns the reference message, `<View> '<key>' does not exist.`, built by concatenation, as a validation failure. Arc's own refusal of a missing read model is not a validation failure and carries a different message, so the parameter must be nullable.
 - **Every requirement of a protected command runs in `Handle`, in model order, after the absence guards.** They are not rendered in the command validator. Property and concept rules stay in the parameterless validator.
@@ -58,6 +57,8 @@ The shape follows these rules:
 - **A command without an outcome is admitted when it reads.** It returns an empty event list: nothing is committed, and Arc still validates the reads it declared.
 
 The renderer also emits `GeneratedCommands/when_admitting_protected_reads.cs` (Debug only), a specification that asks Chronicle whether it admits the decision reads of every protected command.
+
+Screenplay rejects advisory reads, so the renderer never emits `[Unprotected]`. A hand-authored command customization can opt out of project-level protection with `[Cratis.Arc.Chronicle.ReadModels.Unprotected]`; that opt-out is not a modeled protected decision.
 
 ## When to use it, and when not to
 

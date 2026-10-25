@@ -306,7 +306,7 @@ function useCurrentValues(supplied: StageCommandContent, arguments_: StageComman
 
 function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[]): StageCommandContent {
     return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
-        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        const value = (parameters[property.name] || selectedReference(property, selectedRows)) ?? (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
         return value === undefined ? [] : [[property.name, value]];
     }));
 }
@@ -354,6 +354,13 @@ export function suppliedIdentifier(property: SchemaProperty, parameters: Record<
 export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | undefined {
     if (!property.identifier) return undefined;
     const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
+    return values.size === 1 ? [...values][0] : undefined;
+}
+
+/** Reference values retain their modeled primitive type, including zero. */
+function selectedReference(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | number | undefined {
+    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string | number =>
+        typeof value === 'string' && value !== '' || typeof value === 'number' && Number.isFinite(value)));
     return values.size === 1 ? [...values][0] : undefined;
 }
 

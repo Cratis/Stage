@@ -41,6 +41,16 @@ public class when_synthesizing_reference_fields : Specification
     }
 
     [Fact]
+    public void should_preserve_an_integer_reference_key_and_its_concept()
+    {
+        var application = Application() with { Concepts = [new(ConceptId, "OrganisationId", SemanticPrimitiveType.WholeNumber, [], [])] };
+        var property = Schema(application, [Reference])["properties"][Reference.Name];
+        property["type"].GetValue<string>().ShouldEqual("integer");
+        property["x-concept"].GetValue<string>().ShouldEqual("OrganisationId");
+        property["x-reference"]["value"].GetValue<string>().ShouldEqual("organisationId");
+    }
+
+    [Fact]
     public void should_use_the_key_as_label_if_there_is_no_string_property()
     {
         Schema(Application([Model with { Properties = [Key] }]), [Reference])["properties"]![Reference.Name]!["x-reference"]!["label"]!.GetValue<string>().ShouldEqual(Key.Name);

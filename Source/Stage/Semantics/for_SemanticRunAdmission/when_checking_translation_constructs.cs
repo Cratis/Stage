@@ -23,9 +23,9 @@ public class when_checking_translation_constructs : Specification
         _unrelated = SemanticRunAdmission.RunsAround(null!, Feature("event", "STAGE-ESM-016: Not audited."));
     }
 
-    [Fact] void should_run_a_public_event_by_appending_it_locally() => _publicEvent!.ShouldContain("Published locally only");
-    [Fact] void should_run_a_public_projection_by_appending_locally() => _publicProjection!.ShouldContain("Published locally only");
-    [Fact] void should_run_a_foreign_capture_through_seeds() => _foreignCapture!.ShouldContain("foreign events arrive only through seeds");
+    [Fact] void should_run_a_public_event_by_appending_it_locally() => _publicEvent.ShouldContain("Published locally only");
+    [Fact] void should_run_a_public_projection_by_appending_locally() => _publicProjection.ShouldContain("Published locally only");
+    [Fact] void should_run_a_foreign_capture_through_seeds() => _foreignCapture.ShouldContain("foreign events arrive only through seeds");
     [Fact] void should_not_run_around_a_construct_of_another_kind() => _foreignCommand.ShouldBeNull();
     [Fact] void should_not_run_around_another_refusal() => _unrelated.ShouldBeNull();
 

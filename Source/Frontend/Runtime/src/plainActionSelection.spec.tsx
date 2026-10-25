@@ -58,7 +58,7 @@ async function selectShipmentAndOpen() {
 }
 
 async function execute(dialog: HTMLElement, fetched: ReturnType<typeof renderShipments>) {
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Dispatch' })); });
     await waitFor(() => fetched.mock.calls.some(([, init]) => init?.method === 'POST').should.be.true);
     const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
     return JSON.parse(String(init?.body)) as Record<string, unknown>;

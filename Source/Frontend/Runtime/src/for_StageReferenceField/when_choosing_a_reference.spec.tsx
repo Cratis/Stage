@@ -56,7 +56,7 @@ describe('when choosing a reference', () => {
         view();
         await screen.findByRole('option', { name: 'Nordic' });
         fireEvent.change(screen.getByRole('combobox', { name: 'Organisation id' }), { target: { value: 'o2' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Register' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register' }));
         await waitFor(() => fetched.mock.calls.some(([url]) => String(url).includes('/api/opportunity')).should.equal(true));
         const posted = fetched.mock.calls.find(([url]) => String(url).includes('/api/opportunity'))!;
         JSON.parse(String(posted[1]?.body)).organisationId.should.equal('o2');

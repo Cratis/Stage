@@ -164,7 +164,7 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
                     Assert.False(invalid.IsValid);
                     Assert.True(invalid.IsAuthorized);
                     Assert.False(invalid.HasExceptions, string.Join("; ", invalid.ExceptionMessages));
-                    Assert.Equal("Period", Assert.Single(Assert.Single(invalid.ValidationResults).Members));
+                    Assert.Equal("period", Assert.Single(Assert.Single(invalid.ValidationResults).Members));
                     var appended = await store.EventLog.GetFromSequenceNumber(EventSequenceNumber.First, (EventSourceId)account);
                     Assert.Equal(4, appended.Count);
                     Verify<Routes.Banking.Entries.RecordUuid.UuidRecorded>("UuidEntries", "3fa85f64-5717-4562-b3fc-2c963f66afa6");

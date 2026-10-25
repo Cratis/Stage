@@ -129,8 +129,9 @@ public static class ConceptRenderer
 
         builder.BlankLine()
             .Summary($"Validates {typeName}.")
-            .OpenBlock($"public class {validatorName} : ConceptValidator<{typeName}>")
-            .OpenBlock($"public {validatorName}()");
+            .OpenBlock($"public class {validatorName} : ConceptValidator<{typeName}>");
+        ValidationRuleRenderer.RenderMatchFields(builder, rules.Where(rule => rule.Value is null or LiteralExpressionSyntax), typeName);
+        builder.OpenBlock($"public {validatorName}()");
 
         foreach (var rule in rules)
         {

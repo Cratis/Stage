@@ -53,7 +53,7 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.240.2, admits exact ESM v1–v30
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.241.0, admits exact ESM v1–v30 and v32
 version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
@@ -63,6 +63,7 @@ non-canonical Uuid input is rejected before the requirement runs. The legacy str
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models, and the Cratis renderer emits generated specifications only for command and event scenarios that do not project into them (a specification that projects into one is refused with `STAGE-ESM-011`); the legacy structural runner refuses them with `STAGE-ESM-048`.
+The semantic executor runs per-run projections whose read models hold composite or collection properties, mappings from a member of a composite event value (`city = address.city`), products of two event values (`add total by unitPrice * quantity`, carried on the stored event as a computed member), flat transitions keyed by an event property with literal mappings, captures with child collections, public events published from several source facts, and scoped projections keyed by the property a capture or the event names, including text event sources that hold a Uuid. A DateTime read-model value compares as the same instant and offset, so `Z` and `+00:00` agree; a composite or collection value that authors an explicit null member stays `Unsupported(Projection)`, because the typed per-run models cannot tell it from an absent member.
 At v26 the semantic executor runs chronological Date/DateTime command requirements, conditional productions
 and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
 Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input
@@ -83,11 +84,12 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 4.240.2 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 4.241.0 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
-Scoped projections also run one-level identified child collections: event-property child keys, event-source or required event-property parent keys, child removals and identity joins. Appends preserve first-insertion order; updates and joins do not reorder children. A child event needs an existing parent instance; implicit parent creation is refused by name. Root joins are supported too. A join runs only when every event it reads has an event-source identity of the joined key's value type (text or UUID) and enumeration values; otherwise the specification is refused, because the runner passes identities as text and could not tell a text `"1"` from a number `1`. Join removals, nested scopes, nested child collections, child `every` blocks and read-model fixtures combined with children or joins remain refused.
+Scoped projections also run one-level identified child collections: event-property child keys, event-source or required event-property parent keys, child removals and identity joins. Appends preserve first-insertion order; updates and joins do not reorder children. A child event or child removal whose parent never appears in the run is dropped, as in the reference; a child event that arrives before its parent does is refused by name (existing parent instance required). Root joins are supported too. A join runs only when every event it reads has an event-source identity of the joined key's value type (text or UUID) and enumeration values; otherwise the specification is refused, because the runner passes identities as text and could not tell a text `"1"` from a number `1`. Join removals, nested scopes, nested child collections, child `every` blocks and read-model fixtures combined with children or joins remain refused.
+A product mapping is refused only when the run reaches the `from` block's event; a product block whose event the run never delivers is skipped, and an observed one stays refused.
 The renderer renders protected reads and refuses only the shapes it cannot preserve with `STAGE-ESM-044`
 (see [Protected reads rendering](../reference/protected-reads-rendering.md)). Generated applications do not yet enforce
 the refused-key checks; the six canonical refused-key specifications remain known renderer differences.

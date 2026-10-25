@@ -9,7 +9,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// Describes the portable translation shapes shared by execution and rendering.
 /// Condition rendering is deliberately separate from structural admission.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "MA0182:Unused internal type", Justification = "Compile-linked into Stage and Specifications, which use it; the Translate renderer uses it in this assembly.")]
 internal static class SemanticTranslationSupport
 {
     /// <summary>Determines whether a capture consumes foreign events into local facts.</summary>
@@ -19,19 +18,12 @@ internal static class SemanticTranslationSupport
     internal static bool Capture(SemanticCapture capture, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
         capture.EventsSource is { Events.IsDefaultOrEmpty: false } source &&
         !string.IsNullOrWhiteSpace(capture.Key) &&
-        capture.Map.IsDefaultOrEmpty && capture.Children.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty &&
+        capture.Map.IsDefaultOrEmpty && capture.Nested.IsDefaultOrEmpty &&
         source.Events.All(id => events.TryGetValue(id, out var contract) && contract.Origin is not null && contract.Properties.Any(property => property.Name == capture.Key)) &&
-        capture.Appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
-            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
-            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
+        Appends(capture.Appends, events) &&
+        (capture.Children.IsDefaultOrEmpty || capture.Children.All(children => children.Map.IsDefaultOrEmpty && Appends(children.Appends, events)));
 
-    /// <summary>Determines whether capture guards can be lowered by the renderer.</summary>
-    /// <param name="capture">The capture.</param>
-    /// <returns>Whether every append is unconditional or guarded by first observation.</returns>
-    internal static bool ConditionsRenderable(SemanticCapture capture) =>
-        capture.Appends.All(append => append.When is null or { Kind: SemanticCaptureConditionKind.Added });
-
-    /// <summary>Determines whether a projection publishes a complete public event per source fact.</summary>
+    /// <summary>Determines whether a projection publishes a complete public event across source facts.</summary>
     /// <param name="projection">The projection.</param>
     /// <param name="events">The application's event contracts.</param>
     /// <returns>Whether its event-target structure is supported.</returns>
@@ -47,7 +39,8 @@ internal static class SemanticTranslationSupport
                 (mapping.Source is SemanticProjectionLiteral or SemanticProjectionEventProperty or SemanticProjectionEventSourceIdentity ||
                     (mapping.Source is SemanticProjectionEventContextValue context && context.Path == "eventSourceId")) &&
                 (mapping.Source is not SemanticProjectionEventProperty property || (!property.Path.IsDefaultOrEmpty && source.Properties.Any(candidate => candidate.Id == property.Path[0])))) &&
-            target.Properties.Where(property => !property.Type.IsOptional).All(property => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
+            from.Mappings.All(mapping => target.Properties.Any(property => property.Id == mapping.Target[0]))) &&
+        target.Properties.Where(property => !property.Type.IsOptional).All(property => scope.From.Any(from => from.Mappings.Any(mapping => mapping.Target[0] == property.Id)));
 
     /// <summary>Determines whether a translation slice contains only supported translation structures.</summary>
     /// <param name="slice">The slice.</param>
@@ -69,4 +62,50 @@ internal static class SemanticTranslationSupport
         slices.Any(slice => Slice(slice, events) && (contract.Origin is not null
             ? slice.Captures.Any(capture => capture.EventsSource!.Events.Contains(contract.Id))
             : contract.Visibility == SemanticEventVisibility.Public && slice.Projections.Any(projection => projection.ReadModel == contract.Id && Projection(projection, events))));
+
+    /// <summary>
+    /// Determines whether a supported capture can render without child processing.
+    /// </summary>
+    /// <param name="capture">The capture.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the capture can render.</returns>
+    internal static bool RenderableCapture(SemanticCapture capture, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Capture(capture, events) && capture.Children.IsDefaultOrEmpty;
+
+    /// <summary>
+    /// Determines whether a supported publication supplies every required property per source fact.
+    /// </summary>
+    /// <param name="projection">The projection.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the publication can render.</returns>
+    internal static bool RenderableProjection(SemanticProjection projection, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Projection(projection, events) &&
+        projection.Scope!.From.GroupBy(from => from.EventContract).All(group => events[projection.ReadModel].Properties.Where(property => !property.Type.IsOptional)
+            .All(property => group.SelectMany(from => from.Mappings).Any(mapping => mapping.Target[0] == property.Id)));
+
+    /// <summary>
+    /// Determines whether a supported translation slice contains only renderable structures.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the translation slice can render.</returns>
+    internal static bool RenderableSlice(SemanticSlice slice, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Slice(slice, events) &&
+        (slice.Captures.IsDefaultOrEmpty || slice.Captures.All(capture => RenderableCapture(capture, events))) &&
+        slice.Projections.All(projection => projection.Target != SemanticProjectionTargetKind.Event || RenderableProjection(projection, events));
+
+    /// <summary>
+    /// Determines whether a foreign or public contract participates in a renderable translation.
+    /// </summary>
+    /// <param name="contract">The event contract.</param>
+    /// <param name="slices">The application's slices.</param>
+    /// <param name="events">The application's event contracts.</param>
+    /// <returns>Whether the special event contract can render.</returns>
+    internal static bool RenderableEvent(SemanticEventContract contract, IEnumerable<SemanticSlice> slices, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        Event(contract, slices.Where(slice => RenderableSlice(slice, events)), events);
+
+    static bool Appends(System.Collections.Immutable.ImmutableArray<SemanticCaptureAppend> appends, IReadOnlyDictionary<SemanticId, SemanticEventContract> events) =>
+        appends.All(append => events.TryGetValue(append.EventContract, out var contract) &&
+            contract.Origin is null && contract.Visibility == SemanticEventVisibility.Private &&
+            append.Mappings.All(mapping => mapping.Field is not null || mapping.Value is SemanticValueExpression));
 }

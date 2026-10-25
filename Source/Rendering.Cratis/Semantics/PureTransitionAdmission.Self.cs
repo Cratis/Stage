@@ -29,7 +29,7 @@ internal static partial class PureTransitionAdmission
         builder.EndBlock();
         var root = CSharpSyntaxTree.ParseText(builder.ToString()).GetRoot();
         var queriesSyntax = root.DescendantNodes().OfType<MethodDeclarationSyntax>().Where(method =>
-            !method.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal) && method.Identifier.Text != "Reduce").ToArray();
+            !IsTransitionMethod(method, "Transition_") && method.Identifier.Text != "Reduce").ToArray();
         root = root.ReplaceNodes(queriesSyntax, (original, _) => original
             .WithModifiers(SyntaxFactory.TokenList(original.Modifiers.Where(token => !token.IsKind(SyntaxKind.AsyncKeyword))))
             .WithExpressionBody(null).WithSemicolonToken(default)

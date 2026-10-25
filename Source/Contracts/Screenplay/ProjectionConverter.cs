@@ -199,26 +199,24 @@ public static class ProjectionConverter
 
     static IReadOnlyList<PropertyMapping> Mappings(IEnumerable<MappingSyntax> mappings)
     {
-        var properties = new Dictionary<string, string>();
+        var properties = new Dictionary<string, PropertyMapping>();
         foreach (var mapping in mappings)
         {
             properties[mapping.Property] = mapping switch
             {
-                SetMappingSyntax { Source: LiteralExpressionSyntax { Value: null } } => "$null",
-                SetMappingSyntax set => ProjectionExpression.Value(set.Source),
-                ClearMappingSyntax => "$null",
-                AddMappingSyntax { Factor: not null } add => throw new UnsupportedProjectionConversion($"projection add mapping on '{add.Property}' with factor '{ProjectionExpression.Value(add.Factor)}'"),
-                SubtractMappingSyntax { Factor: not null } subtract => throw new UnsupportedProjectionConversion($"projection subtract mapping on '{subtract.Property}' with factor '{ProjectionExpression.Value(subtract.Factor)}'"),
-                AddMappingSyntax add => $"$add({ProjectionExpression.Value(add.Value)})",
-                SubtractMappingSyntax subtract => $"$subtract({ProjectionExpression.Value(subtract.Value)})",
-                IncrementMappingSyntax => "$increment",
-                DecrementMappingSyntax => "$decrement",
-                CountMappingSyntax => "$count",
+                SetMappingSyntax { Source: LiteralExpressionSyntax { Value: null } } => new(mapping.Property, "$null"),
+                SetMappingSyntax set => new(mapping.Property, ProjectionExpression.Value(set.Source)),
+                ClearMappingSyntax => new(mapping.Property, "$null"),
+                AddMappingSyntax add => new(mapping.Property, $"$add({ProjectionExpression.Value(add.Value)})", add.Factor is null ? null : ProjectionExpression.Value(add.Factor)),
+                SubtractMappingSyntax subtract => new(mapping.Property, $"$subtract({ProjectionExpression.Value(subtract.Value)})", subtract.Factor is null ? null : ProjectionExpression.Value(subtract.Factor)),
+                IncrementMappingSyntax => new(mapping.Property, "$increment"),
+                DecrementMappingSyntax => new(mapping.Property, "$decrement"),
+                CountMappingSyntax => new(mapping.Property, "$count"),
                 _ => throw new UnsupportedProjectionConversion(mapping.GetType().Name)
             };
         }
 
-        return [.. properties.Select(_ => new PropertyMapping(_.Key, _.Value))];
+        return [.. properties.Values];
     }
 
     static ProjectionAutoMap Resolve(AutoMapMode mode, ProjectionAutoMap rootAutoMap) => mode switch

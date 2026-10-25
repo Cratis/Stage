@@ -30,9 +30,11 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
     // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("7e9de004b054829f822776ce55d544433d352177363dfccdad18e54a3ee1264b");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("11f46b691347532b2e83a6ef1a34e2e40a0dca13d20ef3d5cb88f3ce6dd77140");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("a3066bd002529300daa0286ee8bddc8582c407f66e3c95fc3ebd7e7d651b52f8");
+    // Re-frozen for #437: only the Matching package pin and host reference are added.
+    // Re-frozen for Cratis/Stage#757: package.json adds only the @cratis/fundamentals resolutions entry.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("de17fad2b1a9bf09b7b5d268431446110c3625e4f089375f6b33f85aa5e01899");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("c6aa2ee587fb2cf32540157f0054f35e3ded6737f7b4c09fca146a81a7bdd4f5");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("bcc8a2d1d632a7b20e38a7275aba0ff03496dbf7943510e5fc87111abb89e721");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

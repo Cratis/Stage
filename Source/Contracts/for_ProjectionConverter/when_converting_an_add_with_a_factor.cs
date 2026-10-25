@@ -13,7 +13,7 @@ namespace Cratis.Stage.Contracts.for_ProjectionConverter;
 public class when_converting_an_add_with_a_factor : Specification
 {
     ProjectionSyntax _projection = null!;
-    Exception? _error;
+    Stage.Contracts.Projections.ProjectionDefinition _result = null!;
 
     void Establish()
     {
@@ -26,10 +26,11 @@ public class when_converting_an_add_with_a_factor : Specification
         _projection = new ProjectionSyntax("Basket", "Basket", null, AutoMapMode.Inherit, null, [from], location);
     }
 
-    void Because() => _error = Catch.Exception(() => ProjectionConverter.Convert(_projection));
+    void Because() => _result = ProjectionConverter.Convert(_projection);
 
-    [Fact] void should_refuse_instead_of_dropping_the_factor() => _error.ShouldBeOfExactType<UnsupportedProjectionConversion>();
-    [Fact] void should_name_the_operation() => _error!.Message.ShouldContain("add");
-    [Fact] void should_name_the_target() => _error!.Message.ShouldContain("total");
-    [Fact] void should_name_the_factor() => _error!.Message.ShouldContain("factor 'quantity'");
+    Stage.Contracts.Projections.PropertyMapping Mapping => _result.From["LineAdded"].Properties.Single();
+
+    [Fact] void should_keep_the_first_operand() => Mapping.Expression.ShouldEqual("$add(unitPrice)");
+    [Fact] void should_keep_the_factor() => Mapping.Factor.ShouldEqual("quantity");
+    [Fact] void should_name_the_target() => Mapping.Property.ShouldEqual("total");
 }

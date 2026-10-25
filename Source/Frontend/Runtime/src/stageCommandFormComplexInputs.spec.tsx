@@ -91,7 +91,7 @@ describe('a command form for a command with enumeration, record and collection m
         const lines = screen.getByRole('group', { name: 'Lines' });
         fireEvent.change(within(lines).getByLabelText('Sku'), { target: { value: 'ACM-1000' } });
         fireEvent.change(within(lines).getByLabelText('Quantity'), { target: { value: '2' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Check out' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Check out' }));
 
         await waitFor(() => expect(submitted(fetched)).toBeDefined());
         const body = submitted(fetched);
@@ -112,7 +112,7 @@ describe('a command form for a command with enumeration, record and collection m
         const choice = document.querySelector('.stage-command-form__field select') as HTMLSelectElement;
         expect([...choice.options].map(option => option.text)).toEqual(expect.arrayContaining(['Standard', 'Express', 'Pickup']));
         fireEvent.change(choice, { target: { value: [...choice.options].find(option => option.text === 'Express')?.value } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Check out' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Check out' }));
 
         await waitFor(() => expect(submitted(fetched)).toBeDefined());
         expect(submitted(fetched).method).toBe('express');
@@ -135,7 +135,7 @@ describe('a command form for a command with enumeration, record and collection m
         view({ fields: [{ name: 'shipTo', label: 'Deliver to' }], generationMode: FormGenerationMode.Manual });
 
         fireEvent.change(within(screen.getByRole('group', { name: 'Deliver to' })).getByLabelText('Street'), { target: { value: '12 Analytical Way' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Check out' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Check out' }));
 
         expect((await screen.findAllByText('Deliver to: City is required')).length).toBeGreaterThan(0);
         expect(submitted(fetched)).toBeUndefined();
@@ -156,7 +156,7 @@ describe('a command form for a command with enumeration, record and collection m
 
         await waitFor(() => expect((within(screen.getByRole('group', { name: 'Deliver to' })).getByLabelText('Street') as HTMLInputElement).value).toBe('12 Analytical Way'));
         expect(String(fetched.mock.calls.find(([url]) => String(url).includes('draft'))?.[0])).toMatch(/draft\?basketId=[0-9a-f-]{36}/);
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Check out' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Check out' }));
 
         await waitFor(() => expect(submitted(fetched)).toBeDefined());
         const body = submitted(fetched);

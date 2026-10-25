@@ -33,7 +33,7 @@ describe('a Stage command form with camelCase validation members from Arc', () =
         const name = screen.getByLabelText('Customer name');
         fireEvent.change(name, { target: { value: 'Acme' } });
         fireEvent.blur(name);
-        fireEvent.click(screen.getByRole('button', { name: 'Execute RenameCustomer' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Rename customer' }));
 
         await waitFor(() => within(name.closest('[data-field]') as HTMLElement).getByText('Name is not unique', { selector: 'small' }).textContent!.should.equal('Name is not unique'));
         within(name.closest('[data-field]') as HTMLElement).getByText('Name is not unique', { selector: 'small' }).textContent!.should.equal('Name is not unique');

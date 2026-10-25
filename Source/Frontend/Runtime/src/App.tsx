@@ -124,12 +124,22 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     });
 }
 
+/** The screens as the chrome lists them: with the `$strings.` references in their content resolved, so a screen is named in the navigation by the text its title shows. */
+function resolvedScreens(screens: Screen[], dictionary?: Record<string, string>): Screen[] {
+    if (!dictionary) return screens;
+    return screens.map(screen => ({
+        ...screen,
+        slotContent: Object.fromEntries(Object.entries(screen.slotContent ?? {}).map(([slot, content]) => [slot, content.map(child => resolveStringsInElement(child, dictionary))])),
+    }));
+}
+
 /**
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true): CompositionOptions {
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true): CompositionOptions {
     const regions = declaresRegions(scene.navigation);
+    const chromeScreens = resolvedScreens(scene.screens, dictionary);
     const application = scene.navigation?.application.logo ? { title: scene.navigation.application.logo.title, image: scene.navigation.application.logo.image || undefined } : undefined;
     return {
         profile: stageProfile(scene.uiProfiles),
@@ -138,8 +148,8 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         // A template that fits inside another one is composed on its own: a Screenplay screen fills only the template it names (standaloneScreenTemplates).
         blueprintTemplates: standaloneScreenTemplates(blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates),
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
-            ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
-            : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
+            ? { [SlotName.ConfigPanel]: applicationChrome(chromeScreens, screen.name, locales, locale, application, regions, showFooter, showThemeSwitcher)[SlotName.ConfigPanel] }
+            : applicationChrome(chromeScreens, screen.name, locales, locale, application, regions, showFooter, showThemeSwitcher),
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
@@ -245,9 +255,10 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
     const showFooter = shellSettings?.showFooter ?? true;
+    const showThemeSwitcher = shellSettings?.showThemeSwitcher ?? true;
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter),
-        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher),
+        [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.

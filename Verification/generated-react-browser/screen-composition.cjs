@@ -246,14 +246,15 @@ async function selectWorkItem(page, result, path, item) {
 }
 
 // Reach a screen the way a user would: an authored navigation entry first, then browser history. A direct URL is used only
-// when neither exists, and that is recorded so the run shows the screen was not reachable through the UI.
-async function navigateByUi(page, result, path, screen) {
+// when neither exists, and that is recorded so the run shows the screen was not reachable through the UI. `label` is what the
+// navigation shows for the screen: its title, or its humanized name without a trailing Screen, Page or Dialog.
+async function navigateByUi(page, result, path, screen, label) {
     const target = `#/${screen}`;
     const entries = [
-        ['navigation link', page.getByRole('link', { name: screen, exact: true })],
-        ['navigation menu item', page.getByRole('menuitem', { name: screen, exact: true })],
-        ['navigation button', page.getByRole('button', { name: screen, exact: true })],
-        ['navigation text', page.getByRole('navigation').getByText(screen, { exact: true })]
+        ['navigation link', page.getByRole('link', { name: label, exact: true })],
+        ['navigation menu item', page.getByRole('menuitem', { name: label, exact: true })],
+        ['navigation button', page.getByRole('button', { name: label, exact: true })],
+        ['navigation text', page.getByRole('navigation').getByText(label, { exact: true })]
     ];
 
     for (const [method, entry] of entries) {
@@ -569,7 +570,7 @@ async function assertTwoColumnFormGeometry(page, result) {
 }
 
 async function assertInvalidThenValidCreate(page, result, network) {
-    const button = await recordNativeButton(page, result, 'CreateWorkItem', 'browser.native.CreateWorkItem.control');
+    const button = await recordNativeButton(page, result, 'Create work item', 'browser.native.CreateWorkItem.control');
     if (button.state !== 'enabled') return;
 
     await button.button.click();
@@ -641,7 +642,7 @@ async function assertRenameDialog(page, result, network) {
 async function assertAddComment(page, result, network) {
     if (!await selectWorkItem(page, result, 'browser.native.AddComment.selectB', workItemB)) return;
 
-    const button = await recordNativeButton(page, result, 'AddComment', 'browser.native.AddComment.control');
+    const button = await recordNativeButton(page, result, 'Add comment', 'browser.native.AddComment.control');
     if (button.state !== 'enabled') return;
 
     await button.button.click();
@@ -679,7 +680,7 @@ async function assertAddComment(page, result, network) {
 async function assertNavigationAndTheme(page, result) {
     await expectText(page, result, 'browser.navigation.themeLight.label', 'Scene Default Light');
     await expectText(page, result, 'browser.navigation.themeDark.label', 'Scene Default Dark');
-    await expectText(page, result, 'browser.navigation.menu.CommentThread', 'CommentThread');
+    await expectText(page, result, 'browser.navigation.menu.CommentThread', 'Comment thread');
 
     const renderState = await page.evaluate(() => ({
         styleSheetCount: document.styleSheets.length,
@@ -844,7 +845,7 @@ async function runBrowserFlow(result) {
 
         await seedData(result);
         await assertTwoItemSelectionLifecycle(page, result, network);
-        await navigateByUi(page, result, 'browser.navigation.ui.WorkItemList', 'WorkItemList');
+        await navigateByUi(page, result, 'browser.navigation.ui.WorkItemList', 'WorkItemList', 'Work items');
         await assertInvalidThenValidCreate(page, result, network);
         await page.goto(`${baseUrl}/#/WorkItemDetails`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
         await page.waitForTimeout(2_000);

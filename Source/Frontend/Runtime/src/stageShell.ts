@@ -16,6 +16,9 @@ export interface StageShellSettings {
     /** Whether the shell draws its footer; the `showFooter` option, drawn unless it is `false`. */
     showFooter: boolean;
 
+    /** Whether the shell offers the theme switcher: the `showThemeSwitcher` option, unless the profile pins a colour scheme, which leaves nothing to switch. */
+    showThemeSwitcher: boolean;
+
     /** The theme the colour scheme selects, by name. */
     themeName?: string;
 
@@ -33,7 +36,7 @@ export interface StageShellSettings {
 }
 
 /** The shell options the default blueprint's shells expose; any other name is stated as a problem. */
-export const knownShellOptions: readonly string[] = ['navigationMode', 'menuTheme', 'showFooter'];
+export const knownShellOptions: readonly string[] = ['navigationMode', 'menuTheme', 'showFooter', 'showThemeSwitcher'];
 
 const hexColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -51,7 +54,7 @@ const hexColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 export function stageShellSettings(profile: UiProfile | undefined, shell: EffectiveShell, prefersDark = false): StageShellSettings {
     const problems: string[] = [];
     const options = shell.options ?? {};
-    const settings: StageShellSettings = { showFooter: true, followsSystem: false, problems };
+    const settings: StageShellSettings = { showFooter: true, showThemeSwitcher: true, followsSystem: false, problems };
 
     for (const [name, value] of Object.entries(options)) {
         if (!knownShellOptions.includes(name)) {
@@ -68,9 +71,10 @@ export function stageShellSettings(profile: UiProfile | undefined, shell: Effect
             if (menuTheme) settings.menuTheme = menuTheme;
             else problems.push(`Option 'menuTheme' is '${String(value)}'; expected one of ${menuThemes.join(', ')}.`);
         } else if (typeof value === 'boolean') {
-            settings.showFooter = value;
+            if (name === 'showFooter') settings.showFooter = value;
+            else settings.showThemeSwitcher = value;
         } else {
-            problems.push(`Option 'showFooter' is '${String(value)}'; expected true or false.`);
+            problems.push(`Option '${name}' is '${String(value)}'; expected true or false.`);
         }
     }
 
@@ -80,6 +84,7 @@ export function stageShellSettings(profile: UiProfile | undefined, shell: Effect
         const dark = settings.followsSystem ? prefersDark : appearance.colorScheme === ProfileColorScheme.Dark;
         settings.colorScheme = dark ? ColorScheme.Dark : ColorScheme.Light;
         settings.themeName = defaultBlueprintThemes.find(theme => (theme.isDark ?? false) === dark)?.name;
+        if (!settings.followsSystem) settings.showThemeSwitcher = false;
     }
 
     if (appearance?.accent !== undefined) {

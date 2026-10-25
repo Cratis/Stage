@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { registeredQuery } from './queryExecutor';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -12,6 +12,8 @@ import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsFor, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { actionVariant } from './humanize';
+import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -60,7 +62,7 @@ function tableValue(value: unknown, options?: readonly string[], optionValues?: 
     const member = typeof value === 'number' && Number.isInteger(value)
         ? (optionValues && optionValues.length === options?.length ? options?.[optionValues.indexOf(value)] : options?.[value])
         : value;
-    return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
+    return typeof member === 'string' && options?.includes(member) ? humanize(member) : readableValue(value) ?? String(value ?? '');
 }
 
 interface QueryArguments {
@@ -237,7 +239,7 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 function StageCommandAction({ element, interactions }: RegisteredProps) {
     const { routes, parameters, queries, selections } = useStageData();
     const name = text(element, 'command');
-    const label = text(element, 'label', name);
+    const label = text(element, 'label') || humanize(name);
     const command = registeredCommand(name, text(element, 'typeName'), text(element, 'route'));
     const schema = text(element, 'schema') || routes?.commandSchemas?.[name];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
@@ -279,15 +281,18 @@ function rowActionElement(element: ExternalComponent, schema: string | undefined
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    const [followsAction, setFollowsAction] = useState(false);
+    const host = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => setFollowsAction(host.current?.previousElementSibling?.classList.contains('stage-action') ?? false));
     const close = useCallback(() => {
         setVisible(false);
         setGeneration(current => current + 1);
     }, []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} cancellable /></StageDialogContext.Provider>;
 
     return (
-        <div className='stage-action' data-scene-id={element.id}>
-            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
+        <div className='stage-action' data-scene-id={element.id} ref={host}>
+            <Button type='button' variant={actionVariant(text(element, 'emphasis'), followsAction)} onClick={() => setVisible(true)}>{label}</Button>
             <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );
@@ -306,7 +311,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const { routes, parameters, queries, selections } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
-    const title = text(element, 'title') || opened?.title || command;
+    const title = text(element, 'title') || opened?.title || humanize(command);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);

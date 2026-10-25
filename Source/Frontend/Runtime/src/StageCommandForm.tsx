@@ -9,6 +9,7 @@ import { ArcContext } from '@cratis/arc.react';
 import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
+import { Button } from '@cratis/components/Common';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
@@ -38,6 +39,9 @@ interface NativeFormProperties {
 
 interface StageCommandFormProps {
     element: ExternalComponent;
+
+    /** Offers a Cancel button beside the submit when the dialog around the form has none of its own. */
+    cancellable?: boolean;
 }
 
 interface StageCommandContent {
@@ -45,7 +49,7 @@ interface StageCommandContent {
 }
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
-export function StageCommandForm({ element }: StageCommandFormProps) {
+export function StageCommandForm({ element, cancellable = false }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
@@ -108,7 +112,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
+                <div className='stage-command-form__actions'>
+                    <Button type='submit'>{text(element, 'submitLabel') || form.label}</Button>
+                    {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
+                </div>
             </NativeCommandForm>
         </section>
     );
@@ -129,7 +136,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
     const fields = Array.isArray(element.properties.fields) ? element.properties.fields.filter(isRecord) as unknown as FormField[] : [];
     return {
         command,
-        label: text(element, 'label', command),
+        label: text(element, 'label') || humanize(command),
         fields,
         generationMode: generationModeFor(element.properties.generationMode),
         layout: layoutFor(element.properties.layout),

@@ -65,16 +65,17 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
 
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    // Train4 review fixes change creation intent; rederive combined pins after the final merge.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("678501681fc8441c62d9cdc8c14b621e34e6baafad47fb45773e50e2112758ea");
+    // Re-frozen for #734/#741/#757 (Yarn scaffolding), #745 (selection/creation metadata), and #750 (reference schemas).
+    // Creation intent enriches src/stage-scene.json only; the raw Scene and fragments retain their advisory rowAction hints.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("35d3cce1f150fc8dbcaa02f9161d8046124c42dad7628b499be9cc4936296b1b");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("172e7f3f6546b93562c75be6148fd444d61979ad1d2060701962680cc05c05b9");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("0ef3bf883011609544c990788c28ed6c381b46852eed892c5a5b291743eba128");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793
-        Workspaces/Tracking/WorkItemList/Screens.scene.json ebb54a4bc9dc126e98bb1ff94dd6452824637224c57939c33e1215edae93b4e3 6661
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 69068d395013f46e2d1b6a40a47ba8e3d0dec57ff968b213d7b85bddde3c02d3 9827
+        Workspaces/Tracking/WorkItemList/Screens.scene.json e83275bead9558ec7617fc163048fb1e5bd22bcea574e51784e83d2a93560389 6678
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName);

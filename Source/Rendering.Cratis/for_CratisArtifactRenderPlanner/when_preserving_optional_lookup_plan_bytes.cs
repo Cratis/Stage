@@ -32,15 +32,18 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
     // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("7e97ff3fe232bf415147ff69b7d624aef2bad70e494fff33556b2cb3e0d56508");
+    // Re-frozen for #734/#741/#757: only .gitignore, .yarnrc.yml and package.json change; lookup and backend bytes are unchanged.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("3895199a804df03ac592e0732ef2207503742f0968168e662681f61560ccc5af");
 
     // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("ea15eacb39128df043bb77b8f820fc219206b7277a74fb7df6f8bbe1ea794e5b");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan, Legacy(_plan.Artifacts)).ShouldEqual("2065f7e7025f8a25dd89d2cc5ca085f0e331ae33e58e71411bdb1c4cd711a36d");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("b89323ff2f1ec84c8f67674038f1a96888021acd3dd03b2bb9c16d67f3208bff");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("720183ffd679a2a072451f00cfe48b2e971cc29ff3ae534e880aca3099ec0ded");
+
+    // PreviousRealization restores the older Yarn configuration; #757's new fundamentals resolution remains intentional.
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("bcc8a2d1d632a7b20e38a7275aba0ff03496dbf7943510e5fc87111abb89e721");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

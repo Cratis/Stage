@@ -37,6 +37,8 @@ public class when_comparing_protected_command_reads(when_comparing_protected_com
 
         Task Because()
         {
+            AddGeneratedHostSupport("Inspect.cs", unprotected_command_fixture.Command);
+            AddGeneratedSpecification("UnprotectedCommand.cs", unprotected_command_fixture.Specification);
             foreach (var (name, source) in protected_command_read_probes.Files)
             {
                 AddGeneratedSpecification(name, source);

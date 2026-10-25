@@ -20,11 +20,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="locals">The command's shared Handle name allocator.</param>
 internal sealed class SemanticDecisionReadRendering(SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
 {
-    /// <summary>
-    /// The attribute that turns Arc read protection on for one command.
-    /// </summary>
-    internal const string ProtectionAttribute = "global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.On)";
-
     readonly SemanticTypeSystem _types = new(context);
 
     /// <summary>

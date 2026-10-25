@@ -93,6 +93,21 @@ public static partial class CratisRendering
         }
         var resolved = PlanSelectionResolver.Resolve(loaded.Model.Application, selection);
         if (!resolved.Diagnostics.IsEmpty) return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, .. resolved.Diagnostics], loaded.Model.Revision);
+        if (options.UserInterface is { } userInterface)
+        {
+            if (profile.Inputs.Any(input => input.Name == UserInterfaceInput.Name))
+            {
+                return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile must omit the user interface input when the UserInterface option is set.")], loaded.Model.Revision);
+            }
+
+            var present = userInterface.Entries.IsDefaultOrEmpty ? ([], []) : PlanSelectionResolver.Resolve(loaded.Model.Application, userInterface);
+            if (!present.Diagnostics.IsEmpty)
+            {
+                return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, .. present.Diagnostics.Select(diagnostic => diagnostic with { Message = $"User interface selection: {diagnostic.Message}" })], loaded.Model.Revision);
+            }
+
+            profile = UserInterfaceInput.With(profile, PlanSelectionResolver.Slices(loaded.Model.Application, present.Scopes));
+        }
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, resolved.Scopes[0])
         {
             AdditionalScopes = resolved.Scopes.RemoveAt(0),

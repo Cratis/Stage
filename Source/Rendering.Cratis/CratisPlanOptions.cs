@@ -45,6 +45,17 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public ImmutableArray<string> FileHeader { get; init; } = [];
 
     /// <summary>
+    /// Gets the modules, features or slices, beyond the plan's own selection, whose generated code - and with it their
+    /// Arc proxies - is already present in the application, or null, the default, for a plan without shared UI.
+    /// When set, a scoped plan also emits the application's shared UI (scene.json, src/bindings.ts, src/stage-scene.json
+    /// and src/stage.ts) composed over exactly these slices and the plan's own, so
+    /// the application has a working frontend after every generation without importing a proxy that does not exist.
+    /// An empty selection composes over the plan's own slices only. Pass the same set to every plan of the same
+    /// application state; the shared UI is deterministic for a given model and set.
+    /// </summary>
+    public PlanSelection? UserInterface { get; init; }
+
+    /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.

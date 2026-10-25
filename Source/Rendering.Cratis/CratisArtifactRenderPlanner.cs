@@ -314,7 +314,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var original = artifacts.ToList();
         var admitted = parts.Retained(ArtifactPathAdmission.Admit(original, request.Model.Application.Id, diagnostics));
         original.AddRange(parts.MissingDeclarations());
-        admitted = ArtifactDependencyAdmission.Admit(original, admitted, request.Model.Application, diagnostics);
+        admitted = new ArtifactDependencyAdmission(request.Model.Application, diagnostics, parts).Admit(original, admitted);
         DeduplicateRequirementDiagnostics(diagnostics);
         OmittedSceneArtifacts.Repair(request, original, admitted);
         var (planned, gaps) = AddPerformerGaps(request, admitted, diagnostics);

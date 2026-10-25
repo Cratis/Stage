@@ -50,6 +50,17 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
 
     internal bool IsOmitted(SemanticId owner) => _omitted.Contains(owner);
 
+    internal void AdmitDependencyOmission(ArtifactRenderDiagnostic diagnostic, bool omitOwner)
+    {
+        _gaps.Add((diagnostic.Artifact, diagnostic.Code));
+
+        // Application provenance on a dependent file is not a refusal of the application shell.
+        if (omitOwner && diagnostic.Artifact != context.Application.Id && _owners.Contains(diagnostic.Artifact))
+        {
+            _omitted.UnionWith(_owners.Omissions(diagnostic.Artifact));
+        }
+    }
+
     internal SemanticApplicationContext SceneContext(CratisRenderingOptions options)
     {
         var commands = context.Commands.Values.Where(command => command.Properties.Any(property => IsOmittedType(property.Type))).Select(command => command.Id);

@@ -54,7 +54,7 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.0, admits exact ESM v1–v30 and v32–v34
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.3, admits exact ESM v1–v30 and v32–v34
 version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v31 and v35 or later) with `STAGE-ESM-016`.
 At v33 a capture that keys its records by event source is refused with `STAGE-ESM-016` when the specification's slice runs it;
 at v34 `then invokes` is compared as described below. The renderer and the live semantic Host still refuse v33 and v34 models whole.
@@ -87,7 +87,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 4.247.0 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 4.247.3 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.

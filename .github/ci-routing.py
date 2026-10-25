@@ -97,6 +97,11 @@ TEMPLATE_RENDERERS = (
     "Source/Frontend/Runtime/**", "Source/Frontend/package*.json",
     "Verification/generated-react-browser/**",
 ) + RENDERER
+AXON = project_inputs("Source/Rendering.Axon.Verification/Rendering.Axon.Verification.csproj") + (
+    "Source/Rendering.Conformance/**", "Verification/axon-samples/**",
+    "Verification/live-blueprints/models/**", "Verification/live-navigation/model/**",
+    "Verification/blueprint-templates/model/**", "Verification/live-custom-packages/model/**",
+)
 # Both live lanes probe the same published Host image; reducer-mongo runs Host and renderer specs,
 # whose Billing probe reads the Billing sample from disk.
 LANE_PATHS = {
@@ -109,6 +114,7 @@ LANE_PATHS = {
                         "Verification/generated-react-browser/**") + BLUEPRINT_SOURCES + HOST_IMAGE,
     "generated-name-matrix": NAME_MATRIX,
     "generated-react-blueprint-templates": ("Verification/blueprint-templates/**",) + TEMPLATE_RENDERERS,
+    "axon-render": AXON,
 }
 
 
@@ -205,6 +211,8 @@ def dry_run_table():
         ("Source/Frontend only", ["Source/Frontend/src/main.tsx"], "pull_request", []),
         ("Source/Host only", ["Source/Host/Program.cs"], "pull_request", []),
         ("Source/Rendering.Cratis only", ["Source/Rendering.Cratis/Renderers/TypeRenderer.cs"], "pull_request", []),
+        ("Source/Rendering.Axon only", ["Source/Rendering.Axon/AxonRendering.cs"], "pull_request", []),
+        ("Source/Stage only", ["Source/Stage/Runtime/Query.cs"], "pull_request", []),
         ("Directory.Packages.props", ["Directory.Packages.props"], "pull_request", []),
         (".github/workflows only", [".github/workflows/publish.yml"], "pull_request", []),
         ("Verification/blueprint-templates only", ["Verification/blueprint-templates/model/templates.play"], "pull_request", []),

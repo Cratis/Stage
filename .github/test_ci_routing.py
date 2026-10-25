@@ -21,6 +21,7 @@ WORKFLOW = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").re
 SECTIONS = re.split(r"^  ([\w-]+):\n", WORKFLOW.split("jobs:\n", 1)[1], flags=re.MULTILINE)
 JOBS = dict(zip(SECTIONS[1::2], SECTIONS[2::2]))
 DRAFT_GATE = "github.event_name != 'pull_request' || github.event.pull_request.draft == false"
+AXON_WORKFLOW = Path(__file__).with_name("workflows").joinpath("axon-render.yml").read_text()
 
 
 class RoutingTests(unittest.TestCase):
@@ -62,11 +63,24 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
                          self.select("Source/Stage/Runtime/Query.cs"))
 
+    def test_axon_sources_and_corpus_models_select_the_native_lane(self):
+        for path in ("Source/Rendering.Axon/AxonRendering.cs", "Source/Rendering.Axon.Verification/Program.cs",
+                     "Source/Rendering.Conformance/RenderCoverage.cs", "Verification/axon-samples/views/views.play"):
+            with self.subTest(path=path):
+                self.assertEqual({"axon-render"}, self.select(path))
+        for folder in ("live-custom-packages", "live-navigation"):
+            self.assertEqual({"live-custom-packages", "axon-render"},
+                             self.select(f"Verification/{folder}/model/application.play"))
+        for path in ("Source/Stage/Runtime/Query.cs", "Source/Unrelated/Implementation.cs", "Verification/live-blueprints/run.sh",
+                     "Verification/blueprint-templates/run.sh", "Source/Frontend/src/main.tsx", "Source/Host/Program.cs"):
+            with self.subTest(path=path):
+                self.assertNotIn("axon-render", self.select(path))
+
     def test_live_probe_inputs_and_blueprint_pins(self):
         for folder in ("live-custom-packages", "live-navigation"):
             self.assertEqual({"live-custom-packages"}, self.select(f"Verification/{folder}/run.sh"))
-        self.assertEqual({"live-blueprints"}, self.select("Verification/live-blueprints/models/CRM/CRM.play"))
-        self.assertEqual({"live-blueprints", "generated-react-blueprint-templates"},
+        self.assertEqual({"live-blueprints", "axon-render"}, self.select("Verification/live-blueprints/models/CRM/CRM.play"))
+        self.assertEqual({"live-blueprints", "generated-react-blueprint-templates", "axon-render"},
                          self.select("Verification/blueprint-templates/model/templates.play"))
         for path in ("Source/Frontend/package.json", "Source/Frontend/package-lock.json",
                      "Source/Frontend/Runtime/package.json", "Source/Frontend/Runtime/src/blueprint.ts",
@@ -79,7 +93,8 @@ class RoutingTests(unittest.TestCase):
     def test_every_enumerated_name_and_template_pattern_is_selected(self):
         # Exercise every explicit pattern, including hypothetical new siblings in audited folders.
         for lane, patterns in (("generated-name-matrix", CI["NAME_MATRIX"]),
-                               ("generated-react-blueprint-templates", CI["TEMPLATE_RENDERERS"])):
+                               ("generated-react-blueprint-templates", CI["TEMPLATE_RENDERERS"]),
+                               ("axon-render", CI["AXON"])):
             for pattern in patterns:
                 path = pattern.replace("**", "new/subtree").replace("*", "New")
                 with self.subTest(lane=lane, path=path):
@@ -89,7 +104,7 @@ class RoutingTests(unittest.TestCase):
 
     def test_dependency_globs_still_match_real_sources(self):
         root = Path(__file__).resolve().parent.parent
-        for pattern in CI["NAME_MATRIX"] + CI["TEMPLATE_RENDERERS"] + CI["BLUEPRINT_SOURCES"]:
+        for pattern in CI["NAME_MATRIX"] + CI["TEMPLATE_RENDERERS"] + CI["BLUEPRINT_SOURCES"] + CI["AXON"]:
             with self.subTest(pattern=pattern):
                 # Before Python 3.13 a trailing "**" matches only directories, so look one level into them.
                 files = pattern + "/*" if pattern.endswith("**") else pattern
@@ -102,9 +117,9 @@ class RoutingTests(unittest.TestCase):
         for path, expected in (
                 ("Source/Specifications/Commands/SemanticValueShapeAdmission.cs", live | {"generated-name-matrix"}),
                 ("Source/SpecRunner/Program.cs", live),
-                ("Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs", ALL),
-                ("Source/Rendering.Cratis/Semantics/SemanticVersionFeatures.cs", ALL),
-                ("Source/Stage/Runtime/PortableTenantValues.cs", ALL),
+                ("Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs", ALL - {"axon-render"}),
+                ("Source/Rendering.Cratis/Semantics/SemanticVersionFeatures.cs", ALL - {"axon-render"}),
+                ("Source/Stage/Runtime/PortableTenantValues.cs", ALL - {"axon-render"}),
                 ("Samples/Billing/Ledger/Payments/Payments.play", {"reducer-mongo"}),
                 ("Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json",
                  {"live-custom-packages", "live-blueprints"})):
@@ -119,7 +134,8 @@ class RoutingTests(unittest.TestCase):
                      "Source/Stage/Stage.csproj": {"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
                      "Source/Specifications/Specifications.csproj": {"generated-name-matrix", "reducer-mongo", "live-custom-packages"},
                      "Source/SpecRunner/SpecRunner.csproj": {"reducer-mongo", "live-custom-packages", "live-blueprints"},
-                     "Source/Rendering.Cratis/Rendering.Cratis.csproj": {"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"}}
+                     "Source/Rendering.Cratis/Rendering.Cratis.csproj": {"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
+                     "Source/Rendering.Axon.Verification/Rendering.Axon.Verification.csproj": {"axon-render"}}
         for project, lanes in consumers.items():
             folder = Path(project).parent
             for match in link.findall((root / project).read_text()):
@@ -210,7 +226,8 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("paths:", triggers)
         # GitHub does not allow paths-ignore alongside the existing source allowlist.
         self.assertNotIn("paths-ignore:", triggers)
-        for path in ('"Source/**"', '".github/ci-routing.py"', '".github/test_ci_routing.py"', '".github/spec-shards.py"'):
+        for path in ('"Source/**"', '".github/ci-routing.py"', '".github/test_ci_routing.py"', '".github/spec-shards.py"',
+                     '".github/workflows/axon-render.yml"'):
             self.assertIn(path, triggers)
         self.assertNotIn('"Documentation/**"', triggers)
         self.assertEqual(1, triggers.count("- cron:"))
@@ -240,8 +257,10 @@ class RoutingTests(unittest.TestCase):
             self.assertIn(f"    if: always() && ({DRAFT_GATE})\n", JOBS[job])
         self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["routed-checks"])
         for job in ("routing", "reducer-mongo", "generated-name-matrix", "live-custom-packages",
-                    "generated-react", "generated-react-blueprint-templates"):
+                    "generated-react", "generated-react-blueprint-templates", "axon-render"):
             self.assertIn(job, JOBS["routed-checks"].splitlines()[0])
+        for lane in ALL:
+            self.assertIn(f"{lane}: ${{{{ steps.routes.outputs.{lane} }}}}", JOBS["routing"])
         self.assertIn("github.event_name == 'schedule'", JOBS["nightly-red"])
         self.assertIn("needs.build.result != 'success' || needs.routed-checks.result != 'success'", JOBS["nightly-red"])
         self.assertEqual(1, WORKFLOW.count("issues: write"))
@@ -265,7 +284,7 @@ class RoutingTests(unittest.TestCase):
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
-        heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
+        heavy = (ALL - {"live-blueprints", "axon-render"}) | {"generated-react"}
         self.assertEqual(5, len(heavy))
         for job in heavy:
             self.assertTrue(JOBS[job].startswith(gate), job)
@@ -273,15 +292,81 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(
             JOBS["standalone-generated-application"].startswith(standalone_gate + "\n    runs-on:"),
             "standalone-generated-application")
+        # The reusable Axon lane shares the standalone gate, without its explanatory comment.
+        axon_gate = standalone_gate.splitlines()
+        axon_gate = "\n".join([axon_gate[0]] + axon_gate[3:])
+        self.assertTrue(JOBS["axon-render"].startswith(
+            axon_gate + "\n      && needs.routing.outputs.axon-render == 'true'\n"
+            "    uses: ./.github/workflows/axon-render.yml\n"), "axon-render")
         self.assertIn("standalone-generated-application", JOBS["build"].splitlines()[0])
         self.assertIn("STANDALONE_RESULT\" = success", JOBS["build"])
 
     def test_dry_run_table_covers_requested_scenarios(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             CI["dry_run_table"]()
-        self.assertEqual(11, len(output.getvalue().splitlines()))
-        self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
-        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes", output.getvalue())
+        self.assertEqual(13, len(output.getvalue().splitlines()))
+        self.assertIn("ci:full | yes | yes | yes | yes | yes | yes", output.getvalue())
+        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes | no", output.getvalue())
+        self.assertIn("Source/Rendering.Axon only | no | no | no | no | no | yes", output.getvalue())
+        self.assertIn("Source/Stage only | yes | yes | yes | yes | no | no", output.getvalue())
+        self.assertIn("Source/Frontend only | no | yes | yes | no | no | no", output.getvalue())
+        self.assertIn("Verification/blueprint-templates only | no | no | yes | no | yes | yes", output.getvalue())
+
+
+class AxonWorkflowTests(unittest.TestCase):
+    def test_reusable_workflow_defaults_match_the_producer_without_containers(self):
+        self.assertIn("on:\n  workflow_call:", AXON_WORKFLOW)
+        self.assertIn('DOTNET_VERSION: "10.0.x"', WORKFLOW)
+        self.assertIn('DOTNET_VERSION: "10.0.x"', AXON_WORKFLOW)
+        node_version = re.search(r'NODE_VERSION: "([^"]+)"', WORKFLOW).group(1)
+        self.assertIn(f'        default: "{node_version}"', AXON_WORKFLOW)
+        self.assertIn("node-version: ${{ inputs.node-version }}", AXON_WORKFLOW)
+        self.assertIn("runs-on: ubuntu-latest", AXON_WORKFLOW)
+        self.assertIn("timeout-minutes: 40", AXON_WORKFLOW)
+        self.assertIn("permissions:\n  contents: read", AXON_WORKFLOW)
+        for forbidden in ("services:", "container:", "docker", "concurrency:"):
+            self.assertNotIn(forbidden, AXON_WORKFLOW)
+
+    def test_consumes_the_debug_artifact_without_rebuilding_or_duplicating_the_corpus_spec(self):
+        self.assertIn("name: debug-build-output", AXON_WORKFLOW)
+        self.assertIn("run: tar -xzf build-output.tar.gz", AXON_WORKFLOW)
+        self.assertIn("if: steps.nuget.outputs.cache-hit != 'true'\n"
+                      "        run: dotnet restore --verbosity minimal", AXON_WORKFLOW)
+        commands = re.findall(r"dotnet (?:test|run) .*?(?=\n\n)", AXON_WORKFLOW, re.DOTALL)
+        self.assertEqual(3, len(commands))
+        for command in commands:
+            self.assertIn("--configuration Debug --no-build", command)
+            self.assertIn("Source/Rendering.Axon.Verification/Rendering.Axon.Verification.csproj", command)
+        for forbidden in ("dotnet build", "when_rendering_the_verification_corpus", "Rendering.Axon/Rendering.Axon.csproj"):
+            self.assertNotIn(forbidden, AXON_WORKFLOW)
+        self.assertIn("--logger 'trx;LogFileName=axon-verification.trx'", AXON_WORKFLOW)
+        self.assertIn('require-executed "$RUNNER_TEMP/axon-results/harness/axon-verification.trx"', AXON_WORKFLOW)
+        self.assertIn('-- render "$RUNNER_TEMP/axon-corpus"', AXON_WORKFLOW)
+        self.assertIn('-- verify "$RUNNER_TEMP/axon-corpus"', AXON_WORKFLOW)
+
+    def test_native_probes_have_bounded_execution_and_keep_failure_reports(self):
+        for setting in ("distribution: temurin", "java-version: '21'", "cache: maven",
+                        "cache-dependency-path: Source/Rendering.Axon/Emitters/Scaffold/AxonMavenProject.cs"):
+            self.assertIn(setting, AXON_WORKFLOW)
+        self.assertIn("working-directory: ${{ runner.temp }}/axon-corpus\n"
+                      "        timeout-minutes: 15\n        run: sh ./mvnw -B -ntp -fae verify", AXON_WORKFLOW)
+        self.assertIn("timeout-minutes: 20\n        run: node Source/Rendering.Axon.Verification/boot-smoke.mjs", AXON_WORKFLOW)
+        self.assertIn("timeout-minutes: 5\n        run: sh ./mvnw -B -ntp -pl orders "
+                      "-Dtest=PersistentRestartProbe -Dstage.restart=true -Dstage.expectViews=true test", AXON_WORKFLOW)
+        for setting in ("if: always()", "name: axon-native-reports", "if-no-files-found: warn", "retention-days: 7",
+                        "${{ runner.temp }}/axon-results/**", "${{ runner.temp }}/axon-corpus/**/target/surefire-reports/**"):
+            self.assertIn(setting, AXON_WORKFLOW)
+
+    def test_third_party_actions_are_sha_pinned_at_the_callers_major_versions(self):
+        actions = re.findall(r"uses: (actions/[\w-]+)@([^\n]+)", AXON_WORKFLOW)
+        self.assertEqual(6, len(actions))
+        for action, version in actions:
+            with self.subTest(action=action):
+                self.assertRegex(version, r"^[0-9a-f]{40} # v4\.\d+\.\d+$")
+                if action != "actions/setup-java":
+                    self.assertIn(f"uses: {action}@v4", WORKFLOW)
+        self.assertIn("uses: Cratis/Workflows/.github/actions/dotnet-cache@main\n"
+                      "        with:\n          mode: restore", AXON_WORKFLOW)
 
 
 class RequiredChecksTests(unittest.TestCase):

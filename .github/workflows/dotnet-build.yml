@@ -34,6 +34,7 @@ on:
       - "**/[Nn]u[Gg]et.[Cc]onfig"
       - "**/packages.lock.json"
       - ".github/workflows/dotnet-build.yml"
+      - ".github/workflows/axon-render.yml"
       - ".github/spec-shards.py"
       - ".github/spec-shard-timings.json"
       - ".github/test_spec_shards.py"
@@ -55,6 +56,7 @@ jobs:
       live-blueprints: ${{ steps.routes.outputs.live-blueprints }}
       generated-name-matrix: ${{ steps.routes.outputs.generated-name-matrix }}
       generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
+      axon-render: ${{ steps.routes.outputs.axon-render }}
     steps:
       - name: Checkout merge-base history
         uses: actions/checkout@v4
@@ -705,9 +707,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  axon-render:
+    needs: [preflight, routing, dotnet-build]
+    if: >-
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')
+      && needs.routing.outputs.axon-render == 'true'
+    uses: ./.github/workflows/axon-render.yml
+
   # Require this check alongside build: a selected lane/step may not silently skip.
   routed-checks:
-    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]
+    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates, axon-render]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -16,5 +16,10 @@ public enum ArtifactImplementationGapKind
     /// <summary>
     /// A semantic owner cannot be rendered; it may be omitted rather than represented by a payload stub.
     /// </summary>
-    Rendering = 1
+    Rendering = 1,
+
+    /// <summary>
+    /// An implementation body uses a language the target cannot realize.
+    /// </summary>
+    Language = 2
 }

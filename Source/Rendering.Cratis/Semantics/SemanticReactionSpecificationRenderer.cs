@@ -22,7 +22,9 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         if (!selected.Trigger.Invokes.IsEmpty)
         {
-            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude);
+            // Screenplay decision 0115: a command another slice owns is decided, so its refusal still fails, but its facts are not asserted.
+            var decidedOnly = SemanticSpecificationAdmission.InvokesForeignCommand(context, specification, selected);
+            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude with { DecidedOnly = decidedOnly });
         }
 
         return RenderProductions(specification, context, prelude);
@@ -158,4 +160,10 @@ internal static partial class SemanticReactionSpecificationRenderer
 /// <param name="Selection">The statically selected reaction.</param>
 /// <param name="Append">The modeled input fixture.</param>
 /// <param name="Redelivery">The original specification when delivering recorded history.</param>
-internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null);
+internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null)
+{
+    /// <summary>
+    /// Gets a value indicating whether the invoked command belongs to another slice, so it is decided but its facts are not asserted.
+    /// </summary>
+    public bool DecidedOnly { get; init; }
+}

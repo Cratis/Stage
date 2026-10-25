@@ -8,6 +8,16 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 internal static partial class SemanticSpecificationAdmission
 {
+    /// <summary>
+    /// Gets whether the selected trigger invokes exactly one command that a slice other than the specification's declares.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="specification">The specification.</param>
+    /// <param name="selected">The selected reaction trigger.</param>
+    /// <returns>Whether the invoked command is decided only, keeping none of its facts.</returns>
+    internal static bool InvokesForeignCommand(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        selected.Trigger.Invokes.Length == 1 && !context.DeclaringSlice(specification.Id).Declares(selected.Trigger.Invokes[0].Command);
+
     internal static SemanticReactionSpecification SelectReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
         var candidates = ReactionCandidates(context, specification).ToArray();
@@ -48,7 +58,14 @@ internal static partial class SemanticSpecificationAdmission
                 : RefusalScenarioRejection(context, specification, active[0]);
         }
 
-        if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
+        // Screenplay decision 0115: a command another slice owns is decided for its outcome, but its facts are not the specification's.
+        var foreign = InvokesForeignCommand(context, specification, active[0]);
+        if (foreign && !specification.ThenEvents.IsEmpty)
+        {
+            return "A specification keeps only its own slice's facts; the invoked command belongs to another slice, so its events cannot be stated (Screenplay decision 0115).";
+        }
+
+        if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty && !foreign)
         {
             return "No-events append specifications support production-only reactions; invoked commands require a settlement harness.";
         }

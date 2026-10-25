@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 /// </summary>
 public class with_the_default_composition : a_register_project_render_request
 {
-    const string Before = "aaf523cfae80b87b211df85e893177b457ef676fe953467ad12bc1e96bdfc5a9";
+    const string Before = "51da8566666192db720f428f7c6605cad8780ed7ad9cc6abdf8a9e5242d7bd7b";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -11,10 +11,12 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 
 public class with_reachable_unsupported_publication : Specification
 {
+    // Screenplay decision 0115: the outbound publisher belongs to another slice, so even when the capture's output reaches it, it does
+    // not run for this specification and its unsupported shape refuses nothing.
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_follow_capture_outputs_without_refusing_an_unrelated_publisher(bool reachable)
+    public async Task should_follow_capture_outputs_without_refusing_another_slices_publisher(bool reachable)
     {
         var captured = SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.AsSpan());
         var published = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
@@ -43,7 +45,7 @@ public class with_reachable_unsupported_publication : Specification
         var specification = plan.Specifications.Values.Single(candidate => candidate.Name == "FirstArrival");
         var report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new());
         var actual = report.Results.Single();
-        actual.Outcome.ShouldEqual(reachable ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
-        if (reachable) actual.Unsupported!.Details.StartsWith("STAGE-ESM-032:", StringComparison.Ordinal).ShouldBeTrue();
+        actual.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+        actual.Unsupported.ShouldBeNull();
     }
 }

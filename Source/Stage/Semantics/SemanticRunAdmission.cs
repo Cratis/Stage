@@ -29,6 +29,17 @@ public static class SemanticRunAdmission
             : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
 
     /// <summary>
+    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v33 and v34, whose only additions
+    /// are captures keyed by event source (refused per capture) and <c language="text">then invokes</c> expectations (compared).
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>Whether the executor runs the version pair.</returns>
+    public static bool SupportsRun(ExecutableSemanticModel model) =>
+        SemanticVersionFeatures.Supports(model) ||
+        (model.LanguageVersion == LanguageVersion.V33 && model.SemanticVersion == SemanticVersion.V33) ||
+        (model.LanguageVersion == LanguageVersion.V34 && model.SemanticVersion == SemanticVersion.V34);
+
+    /// <summary>
     /// Finds later-version constructs that block live model admission.
     /// </summary>
     /// <param name="application">The application.</param>
@@ -109,7 +120,14 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+        if (!SupportsRun(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+
+        // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
+        if (plan.RunningCaptures.FirstOrDefault(capture => capture.EventsSource is { KeyIsEventSource: true }) is { } keyedBySource)
+        {
+            return Block(StageExecutionCapability.ExternalEffect, keyedBySource.Id, $"STAGE-ESM-016: Capture '{keyedBySource.Name}' keys its records by event source (ESM v33), which Stage does not run yet.");
+        }
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
         if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;

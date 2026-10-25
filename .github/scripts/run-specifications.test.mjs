@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -11,14 +11,18 @@ import { test } from 'node:test';
 const launcher = resolve('.github/scripts/run-specifications.sh');
 const positiveTrx = '<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010"><ResultSummary><Counters total="1" /></ResultSummary></TestRun>';
 
-function run(t, args, { exitCode = 0, trx = positiveTrx } = {}) {
+function run(t, args, { exitCode = 0, trx = positiveTrx, cwd, runnerCwd = '' } = {}) {
     const directory = mkdtempSync(join(tmpdir(), 'stage-specification-launcher-'));
     t.after(() => rmSync(directory, { recursive: true, force: true }));
     const captured = join(directory, 'arguments');
     writeFileSync(join(directory, 'dotnet'), `#!/usr/bin/env bash
 printf '%s\\n' "$@" > "$CAPTURE_ARGUMENTS"
+if [[ -n "$RUNNER_CWD" ]]; then
+    cd "$RUNNER_CWD" || exit 1
+fi
 while (( $# )); do
     if [[ "$1" == "-result-trx" && "$WRITE_TRX" == true ]]; then
+        mkdir -p "$(dirname "$2")"
         printf '%s' "$TRX_CONTENT" > "$2"
         break
     fi
@@ -28,12 +32,14 @@ exit "$RUNNER_EXIT_CODE"
 `, { mode: 0o755 });
     const result = spawnSync('bash', [launcher, ...args], {
         encoding: 'utf8',
+        cwd,
         timeout: 10000,
         env: {
             ...process.env,
             PATH: directory + delimiter + process.env.PATH,
             CAPTURE_ARGUMENTS: captured,
             RUNNER_EXIT_CODE: String(exitCode),
+            RUNNER_CWD: runnerCwd,
             WRITE_TRX: String(trx !== null),
             TRX_CONTENT: trx ?? ''
         }
@@ -74,6 +80,19 @@ test('preserves guarded filters and result paths when running already-built outp
         '--', '-noLogo', '-noColor', '-filterVSTest', filter, '-result-trx', trx
     ]);
 });
+
+for (const suppliedPath of ['TestResults/specs.trx', './Test Results/nested/specs.trx', 'absolute']) {
+    test(`resolves ${suppliedPath} from a nested caller before the Web SDK changes directories`, t => {
+        const cwd = realpathSync(resolve(resultPath(t), '..'));
+        const runnerCwd = resolve(resultPath(t), '..');
+        const trx = suppliedPath === 'absolute' ? join(cwd, 'absolute results.trx') : suppliedPath;
+        const expectedPath = resolve(cwd, trx);
+        const result = run(t, ['Source/Host/Host.csproj', '--no-build', '-result-trx', trx], { cwd, runnerCwd });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.arguments.at(-1), suppliedPath === 'absolute' ? trx : `${cwd}/${trx}`);
+        assert.equal(readFileSync(expectedPath, 'utf8'), positiveTrx);
+    });
+}
 
 for (const project of ['Host', 'SpecRunner']) {
     test(`selects specifications without replacing ${project}'s normal entry point`, t => {

@@ -32,6 +32,10 @@ for (( index=0; index<${#arguments[@]}; index++ )); do
                 exit 2
             fi
             result_path="${arguments[index+1]}"
+            if [[ "$result_path" != /* ]]; then
+                result_path="$PWD/$result_path"
+            fi
+            arguments[index+1]="$result_path"
             index=$((index+1))
             ;;
     esac

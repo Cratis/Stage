@@ -424,6 +424,37 @@ to the plan digest. Pass the set that matches the application's state to each ge
 profile that already carries the input combined with the option is refused with `STAGE-CRATIS-001`.
 Scaffold files are not affected: scoped plans still exclude them.
 
+#### An application generated one domain at a time
+
+The four shared UI files sit at the application root, but a plan places its slices, and with them
+their proxies, under its own `Domain` folder. A host that generates an application one domain at a
+time therefore names where the other domains' slices were generated. Set `UserInterfaceDomains` to
+those domains, each with the slices whose code is present under it, and keep `UserInterface` for the
+slices present under the plan's own domain:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    Domain = "Support",
+    UserInterface = new([]),
+    UserInterfaceDomains = [new("Sales", new([PlanSelectionEntry.Module("Catalog")]))]
+};
+var plan = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Module("Tickets")]), options);
+```
+
+The shared UI then composes the screens of every named domain and imports each proxy from the folder
+it was generated under, here `../Sales/Catalog/...` and `../Support/Tickets/...`. Planning the Sales
+domain against the same state, with Support named in `UserInterfaceDomains`, emits the same four files
+byte for byte, so generating one domain never drops another domain's UI. A slice this plan selects is
+always placed under the plan's own domain.
+
+The domains travel as the hashed `cratis-render:user-interface-domains` input (a canonical JSON object
+of normalized domain paths, each holding its slice identities), which is added only when the option is
+not empty; plans without it are unchanged. The option is refused with `STAGE-PLAN-024` without
+`UserInterface`, `STAGE-PLAN-025` for an invalid or reserved domain, `STAGE-PLAN-026` for the plan's own
+domain or a domain named twice, and `STAGE-PLAN-027` for a slice named under two domains. An unknown
+entry is refused with the selection diagnostic, prefixed `User interface domain '<domain>':`.
+
 Without this option, Scene composition, bindings, and screen runtime artifacts come only from an
 application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
 A scaffold profile carrying a Scene emits no Scene artifacts and reports the
@@ -572,6 +603,10 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-021` | Domain collides with a reserved root path. |
 | `STAGE-PLAN-022` | Domain supplied for scaffold-only mode. |
 | `STAGE-PLAN-023` | A `FileHeader` line is null or contains a line break. |
+| `STAGE-PLAN-024` | `UserInterfaceDomains` is set without `UserInterface`. |
+| `STAGE-PLAN-025` | A user interface domain is invalid or collides with a reserved root path. |
+| `STAGE-PLAN-026` | A user interface domain is the plan's own domain or is named twice. |
+| `STAGE-PLAN-027` | A slice is named under two user interface domains. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
 | `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 

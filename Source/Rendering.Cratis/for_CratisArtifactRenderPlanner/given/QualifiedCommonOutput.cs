@@ -42,11 +42,13 @@ internal static class QualifiedCommonOutput
     }
 
     // The policy runtime has imported System.Reflection since #424; the fully qualified spelling never needed it.
-    internal static string BeforeReflectionImport(string path, string text) => !path.EndsWith("GeneratedPolicies/Policies.cs", StringComparison.Ordinal)
-        ? text
-        : text.StartsWith("using System.Reflection;\n\n", StringComparison.Ordinal)
-            ? text["using System.Reflection;\n\n".Length..]
-            : text.Replace("using System.Reflection;\n", string.Empty, StringComparison.Ordinal);
+    internal static string BeforeReflectionImport(string path, string text)
+    {
+        const string import = "using System.Reflection;\n";
+        if (!path.EndsWith("GeneratedPolicies/Policies.cs", StringComparison.Ordinal)) return text;
+        if (text.StartsWith($"{import}\n", StringComparison.Ordinal)) return text[(import.Length + 1)..];
+        return text.Replace(import, string.Empty, StringComparison.Ordinal);
+    }
 
     static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig"
         ? PlannedArtifact.CreateText(artifact.RelativePath, BeforePlacement(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)

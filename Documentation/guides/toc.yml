@@ -2,5 +2,7 @@
   href: generated-values.md
 - name: Build a renderer target
   href: build-renderer-target.md
+- name: Organize a render target repository
+  href: target-repository-model.md
 - name: Customize a rendered application
   href: customize-rendered-application.md

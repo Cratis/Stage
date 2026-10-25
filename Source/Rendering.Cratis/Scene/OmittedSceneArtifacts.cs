@@ -19,7 +19,7 @@ static class OmittedSceneArtifacts
         var context = new SemanticApplicationContext(request, options);
         var names = Names(context, parts.OmittedOwners);
         var retained = parts.SceneContext(options);
-        var slices = retained.AllSlices.Where(slice => parts.UserInterface?.Contains(slice.Slice.Id) == true).ToArray();
+        var slices = parts.SceneSlices(retained) ?? [];
         for (var index = 0; index < admitted.Count; index++)
         {
             var artifact = admitted[index];

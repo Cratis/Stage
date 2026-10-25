@@ -168,13 +168,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             }
         }
 
-        if (userInterface is not null)
-        {
-            var sceneContext = parts.SceneContext(options);
-            var included = userInterface.Select(slice => slice.Slice.Id).ToHashSet();
-            var sceneSlices = sceneContext.AllSlices.Where(slice => included.Contains(slice.Slice.Id)).ToArray();
-            AddUserInterface(request, sceneContext, sceneSlices, sceneJson, artifacts);
-        }
+        var sceneContext = parts.SceneContext(options);
+        AddUserInterface(request, sceneContext, parts.SceneSlices(sceneContext), sceneJson, artifacts);
 
         return CreatePlan(request, artifacts, diagnostics, parts);
     }
@@ -247,10 +242,12 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static void AddUserInterface(
         ArtifactRenderRequest request,
         SemanticApplicationContext context,
-        IReadOnlyList<LocatedSemanticSlice> userInterface,
+        IReadOnlyList<LocatedSemanticSlice>? userInterface,
         string? sceneJson,
         List<PlannedArtifact> artifacts)
     {
+        if (userInterface is null) return;
+
         // A caller that authored screens carries its own composition in the profile. A caller that did not
         // gets one composed from the model here, so a generated application is usable without a hand-written
         // screen. Either way the binding module accompanies it, because it is what the payload refers to.

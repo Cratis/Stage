@@ -72,6 +72,18 @@ sealed class RenderingPartAdmission(SemanticApplicationContext context, List<Art
         return new(context.Request, options, _omitted.Concat(commands).Concat(queries).ToHashSet());
     }
 
+    internal IReadOnlyList<LocatedSemanticSlice>? SceneSlices(SemanticApplicationContext sceneContext) =>
+        UserInterface is null ? null : [.. sceneContext.AllSlices
+            .Where(slice => UserInterface?.Contains(slice.Slice.Id) == true && !IsOmitted(slice.Slice.Id))
+            .Select(slice => slice with
+            {
+                Slice = slice.Slice with
+                {
+                    Commands = [.. slice.Slice.Commands.Where(command => sceneContext.Commands.ContainsKey(command.Id))],
+                    Queries = [.. slice.Slice.Queries.Where(query => sceneContext.Queries.ContainsKey(query.Id))]
+                }
+            })];
+
     internal bool IsGap(ArtifactRenderDiagnostic diagnostic) =>
         diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && _gaps.Contains((diagnostic.Artifact, diagnostic.Code));
 

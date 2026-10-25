@@ -260,7 +260,7 @@ Commands with generated properties can validate and require request values. Requ
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
 | `STAGE-ESM-006` | Unsupported production destinations, mappings, tags, types, or conditions, including enum operands and nonnumeric ordering. Described handlers own payload and destination and retain `STAGE-IMPL-002` instead of this code for those two checks |
-| `STAGE-ESM-053` | A declarative command production with neither its own nor the command's destination. Stage does not allocate event-source identities ([Stage#511](https://github.com/Cratis/Stage/issues/511)); the message names the command and event |
+| `STAGE-ESM-053` | A declarative command production with neither its own nor the command's destination. Stage does not yet render event-source identity allocation for it ([Stage#629](https://github.com/Cratis/Stage/issues/629)); the message names the command and event |
 | `STAGE-ESM-038` | Command rules or requirements that read a generated property; collection responses, responses from a source that is not a command property of the same type, or response fields whose C# members collide; the message names the reason |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |

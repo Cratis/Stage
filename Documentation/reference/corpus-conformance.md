@@ -59,13 +59,10 @@ The loader rejects legacy cell-level `issue`, `issueRefusals`, and `byDesign` fi
 | --- | --- | --- | --- |
 | `GenerationFixturesCorpus.V21` | `renderer` | `STAGE-ESM-019` | `sem1:25bdf5d2a8f97601c41d6bc30d4da1d2fd4123e1ebf894d79f96b9103b85caf4` |
 | `EsmGoldenVectors.V8`–`EsmGoldenVectors.V24` (inclusive) | `renderer` | `STAGE-ESM-030` | `sem1:000000000000000000000000000000000000000000000000000000000000232c`, `sem1:0000000000000000000000000000000000000000000000000000000000002333` |
-| `EsmGoldenVectors.V11`–`EsmGoldenVectors.V24` (inclusive) | `renderer` | `STAGE-ESM-053` | `sem1:000000000000000000000000000000000000000000000000000000000000277e` |
 
 The first entry is the intentionally invalid `TenantOrderId` generation fixture. The second entry covers exactly 34 refusals: the two listed artifacts on each of the 17 frozen golden vectors. Chronicle reserves their stored names (`All`/`Default`); [Screenplay#893](https://github.com/Cratis/Screenplay/issues/893) added authoring error `PLAY0802` to forbid those names in current models. By the decision on [Stage#536](https://github.com/Cratis/Stage/issues/536), Stage keeps refusing these frozen fixtures rather than mapping their stored names.
 
-The third entry covers exactly 14 destination-less production refusals on the frozen golden vectors. Stage does not allocate event-source identities, by the decision on [Stage#511](https://github.com/Cratis/Stage/issues/511); the exact refusal is `STAGE-ESM-053`, not the generic production-shape code `STAGE-ESM-006`. Described-handler productions retain `STAGE-IMPL-002` without that generic payload/destination refusal. Neither change makes a refused renderer cell supported.
-
-Another artifact, vector, surface, code, or kind reports `unauthorized-by-design`, even if another part of the fingerprint is identical. These entries require an omitted (null) kind. A new refusal on an otherwise allowed golden vector is not automatically exempt. A Stage limitation outside this allow-list still needs an issue.
+Another artifact, vector, surface, code, or kind reports `unauthorized-by-design`, even if another part of the fingerprint is identical. Both entries require an omitted (null) kind. A new refusal on an otherwise allowed golden vector is not automatically exempt. A Stage limitation outside this allow-list still needs an issue.
 
 When an exempt artifact no longer appears, its record becomes stale and must be removed.
 

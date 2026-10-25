@@ -91,7 +91,7 @@ internal static partial class SemanticCratisAdmission
         foreach (var produced in command.Produces.Where(produced => HasUnallocatedDestination(command, produced)))
         {
             var eventName = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Name : produced.EventContract.ToString();
-            diagnostics.Add(Error(UnallocatedDestination, $"Produced event '{eventName}' of command '{command.Name}' has no destination: the model names no event source, and Stage does not allocate event-source identities (Stage#511).", command.Id));
+            diagnostics.Add(Error(UnallocatedDestination, $"Produced event '{eventName}' of command '{command.Name}' has no destination: the model names no event source, and Stage does not yet render event-source identity allocation (Stage#629).", command.Id));
         }
 
         if (command.Produces.Any(produced => !HasUnallocatedDestination(command, produced) && !HasRenderableProductionShape(produced, command, context)))

@@ -255,6 +255,7 @@ internal static class SemanticHost
 
     static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
     {
-        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues));
+        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues))
+            .ExcludeFromDescription();
     }
 }

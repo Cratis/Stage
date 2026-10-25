@@ -56,7 +56,7 @@ public class when_recording_declaring_slice_sources
     {
         { when_rendering_scoped_projections.ScopedSource, "1afbe1461d5cad81bbcecb298f7ef6ef58799ed7398355280bcac48ee91833e9" },
         { QuerySource, "593e95a70877d953aa788243bb021925a7ac07762a4fdaaabc89593f12a5d442" },
-        { DeniedQuerySource(), "eba39398570adb22d2f94070518b196d8310234ea49f1e8020d0c8b85a3c07cb" },
+        { DeniedQuerySource(), "be08c539e9769ae6b0b341606359f2c20670ac32b14dcdab7d18e32ecd090190" },
         { a_reaction_specification.ProductionSource, "a126793aa88e2d18154a56d2f9b639bccbf39ad32c3c4ef68deb0d95ac22a116" },
         { a_redelivery_specification.RedeliverySource, "874c5afa44cd2e0597b983df8fca086b43797312d68967b39ae6651451f0e177" },
         { a_specification_case_table.Source, "eecd08b06586899a7a5f8abc44bcfbdc58471fd61140898e5b98072befdad986" }

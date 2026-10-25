@@ -55,7 +55,7 @@ public class without_a_domain : given.a_domain_policy_plan
     }
 
     // Re-frozen for #424: generated C# uses short type names and using directives.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("EA000913913E0B7D552825AB601B81495407CFCA45F2D4AA6D5852EB060D304A");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("2FAB07125C8F373F3BA852F53E4758E6565620719D4001F2F7153C162A86E975");
     [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("05777F401D263E5BC39126494FB4912F7096AA91C5F3F5E22AE41AA55D20D689");
 }
 #endif

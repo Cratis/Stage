@@ -28,12 +28,11 @@ internal static class StageModuleRenderer
     /// Renders the module.
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
-    /// <param name="slices">The slices whose generated proxies are present, in model order; only their command routes are read.</param>
+    /// <param name="slices">The slices whose generated proxies are present, in model order, each placed under the domain folder its code was generated in; only their command routes are read.</param>
     /// <returns>The generated module text.</returns>
     public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = slices.SelectMany(slice => slice.Slice.Commands)
-            .Select(command => (command.Name, Export: command.Name, Module: Module(context, command.Id)))
+        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Export: command.Name, Module: Module(slice))))
             .DistinctBy(command => command.Name, StringComparer.Ordinal)
             .OrderBy(command => command.Name, StringComparer.Ordinal)
             .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__stageCommand{index}"))
@@ -82,6 +81,6 @@ internal static class StageModuleRenderer
         return $"{{ {string.Join(", ", entries)} }}";
     }
 
-    static string Module(SemanticApplicationContext context, Screenplay.Semantics.SemanticId artifact) =>
-        "../" + string.Join('/', SliceNaming.FolderPath(context.DeclaringSlice(artifact).Path));
+    static string Module(LocatedSemanticSlice slice) =>
+        "../" + string.Join('/', SliceNaming.FolderPath(slice.Path));
 }

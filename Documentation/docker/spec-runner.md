@@ -18,7 +18,8 @@ publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STA
 Translate slices (`STAGE-ESM-024`, naming the direction). Both engines refuse reducer observer filters (`STAGE-ESM-035`).
 The structural engine still refuses every reaction execution identity (`STAGE-ESM-034`) and reaction observer filter (`STAGE-ESM-035`); semantic renderer support for reaction filters and role-only or authenticated-only `runs as` invocations does not relax these structural refusals. Per-production route overrides run on the semantic engine; an override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, is not admitted yet and fails `STAGE-ESM-036`; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
 The semantic engine runs Translate slices. An inbound `source events` capture appends its private event for the capture key, following the Screenplay reference: the first observation of a key counts only as `added`, and field-change and transition conditions compare it with the previous observation. An outbound projection that targets a public event appends that event to the run's own event log when its content changes; publishing to another application's inbox is not part of a run. Translation refusals are scoped to each specification, so an unrelated Translate slice does not block a run. The semantic engine still refuses, with the codes above, captures that use `map`, children or nested values, `given capture` on a `source events` capture, reducers that target a public event, public-event projections with `every`, `clear` or a `from` that leaves a required property unmapped, and reactions or read-model projections declared inside a Translate slice.
-The semantic executor settles event-triggered reactions after each command or direct append, including
+A specification runs only the slice that declares it (Screenplay [decision 0115](https://github.com/Cratis/Screenplay/blob/main/decisions/0115-a-specification-runs-its-own-slice-only.md)); see [A specification runs its own slice only](#a-specification-runs-its-own-slice-only).
+Within that slice, the semantic executor settles event-triggered reactions after each command or direct append, including
 `where`, productions, invocations, cascades, `runs as`, `from`, mixed effects and append constraints.
 It processes new facts in append order, reactions in semantic-identity order and triggers in authored order,
 producing events before invoking commands. Given events establish history without firing reactions.
@@ -53,8 +54,10 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.241.0, admits exact ESM v1–v30 and v32
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.0, admits exact ESM v1–v30 and v32–v34
+version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v31 and v35 or later) with `STAGE-ESM-016`.
+At v33 a capture that keys its records by event source is refused with `STAGE-ESM-016` when the specification's slice runs it;
+at v34 `then invokes` is compared as described below. The renderer and the live semantic Host still refuse v33 and v34 models whole.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
 read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
@@ -84,7 +87,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 4.241.0 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 4.247.0 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
@@ -138,6 +141,27 @@ docker run --rm \
 ```text
 Ran 3 specification(s) for event model 'Invoicing'. Results written to /output/results.json.
 ```
+
+## A specification runs its own slice only
+
+A specification states what its own slice does, so the executor isolates the run to that slice, as Screenplay 4.246.0
+and later do:
+
+- Other slices' reactions do not run, whether an event, clock advance or trigger would select them. Only an explicit
+  `when redelivered ... to <Reaction>` still delivers to the named reaction.
+- Other slices' captures and outbound publications (projections that target a public event) do not run, so their
+  admission refusals do not refuse the specification either.
+- A command another slice owns, invoked by this slice's reaction, is still decided: validation, authorization,
+  constraints and protected reads run, and a refusal routes to the reaction's `on refused` branches. Its events are
+  not kept: they are not appended to the run's in-memory Chronicle event log, so neither `then` events, read-model
+  and query expectations nor later reactions see them. The command's own slice specifies its facts.
+- Read-model projections still build what the specification reads, from the facts the run keeps.
+
+From ESM v34 a specification can state invocations with `then invokes <Command>` and the values it expects. Every
+invocation this slice's reactions make is recorded, accepted or refused. When stated, the invocations must match in
+count and order (as a multiset under `then events in any order`), and only the stated values are compared. A mismatch
+fails with the reference runner's messages, for example
+`Invocation at index 0 does not match the expected command and values. Expected: CloseInvoice(reason = "cancelled"). Actual: CloseInvoice(id = "one", reason = "paid").`
 
 ## Recovery and empty-effect specifications
 

@@ -182,9 +182,10 @@ the declaration retain legacy per-fact reaction evaluation and the same Host rol
 This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
 Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
-The independent specification executor also settles event reactions, including identity, filters and mixed effects;
-see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.241.0 and admits exact ESM v1–v30 and v32 version pairs; unaudited
+The independent specification executor also settles event reactions, including identity, filters and mixed effects,
+but runs only the slice that declares each specification: other slices' reactions and publications do not run, and an
+invoked command another slice owns is decided without keeping its events. See [The spec runner](spec-runner.md#a-specification-runs-its-own-slice-only) for this and its scenario limits.
+The semantic engine uses Screenplay 4.247.0 and admits exact ESM v1–v30 and v32 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
 A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including

@@ -57,7 +57,12 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
                       id = "one"
                       amount = 5
             """;
-        SetContext(Compile(Source.Replace("    slice Automation FollowUp", specification + "\n    slice Automation FollowUp", StringComparison.Ordinal)));
+
+        // A specification runs only its own slice's reactions (Screenplay decision 0115), so the command and the specification
+        // move into the slice that reacts.
+        var oneSlice = Source.Replace("    slice Automation FollowUp\n", string.Empty, StringComparison.Ordinal)
+            .Replace("    slice StateChange Start\n", "    slice Automation FollowUp\n", StringComparison.Ordinal);
+        SetContext(Compile(oneSlice + "\n" + specification));
         Plan();
         _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
         _plan.Artifacts.ShouldBeEmpty();

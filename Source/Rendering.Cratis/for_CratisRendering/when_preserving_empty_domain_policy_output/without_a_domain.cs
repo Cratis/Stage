@@ -23,9 +23,9 @@ public class without_a_domain : given.a_domain_policy_plan
 
         var qualified = QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices"));
 
-        // #767 moves the single generated fact into its owning for_* folder without changing its body.
-        // The complete previous pins are reproduced by reversing that path move. Restoring the initializer
-        // identifier still confines the difference between the pins below to that declaration change.
+        // These pins include #767's owning for_* folder for the single generated fact.
+        // Restoring the initializer identifier confines the difference between the pins below
+        // and the current-output pins to that declaration change.
         Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("A7BD9B9A620030222634B471B265EC96257A6A36E9F3E14D41FB099E70765AFC");
         Digest(BeforeInitializerRename(qualified)).ShouldEqual("02656945C6DCB9DF26FEB6CF87FF07EE3A42AC617699E4B99CC65FD824040E57");
         _digest = Digest(result.Artifacts);

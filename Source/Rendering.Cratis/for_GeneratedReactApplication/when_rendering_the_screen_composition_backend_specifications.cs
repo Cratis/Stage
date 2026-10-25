@@ -25,6 +25,6 @@ public class when_rendering_the_screen_composition_backend_specifications : a_sc
     [Fact] void should_declare_only_the_single_result_for_a_single_query() => Text(_plan, SingleSpecification).ShouldNotContain("_results");
     [Fact] void should_declare_the_single_result_for_a_single_query() => Text(_plan, SingleSpecification).ShouldContain("? _result;");
 
-    const string ListSpecification = "Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs";
-    const string SingleSpecification = "Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs";
+    const string ListSpecification = "Workspaces/Tracking/WorkItemComments/for_Query_CommentView_CommentsForWorkItem/when_showing_comments_for_a_work_item_is_queried.cs";
+    const string SingleSpecification = "Workspaces/Tracking/WorkItemDetails/for_Query_WorkItemDetails_GetWorkItem/when_showing_renamed_details_is_queried.cs";
 }

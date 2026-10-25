@@ -13,7 +13,7 @@ interface ReferenceInputProps extends WrappedFieldProps<unknown> {
     disabled?: boolean;
 }
 
-interface Choice { key: string; label: string; }
+interface Choice { key: string; value: string | number; label: string; }
 
 function ReferenceInput(props: ReferenceInputProps) {
     const scope = useId();
@@ -21,7 +21,7 @@ function ReferenceInput(props: ReferenceInputProps) {
     const route = routes?.queries?.[props.reference.query];
     const ready = routesReady && !!route;
     const result = useStageQuery({ scope, name: props.reference.query, route, ready, publish: false });
-    const selected = typeof props.value === 'string' ? props.value : '';
+    const selected = typeof props.value === 'string' || typeof props.value === 'number' ? String(props.value) : '';
     if (!ready || result.error) return <>
         <input id={props.id} aria-label={props.title} aria-invalid={props.invalid} value={selected} onChange={event => props.onChange(event.target.value)} onBlur={props.onBlur} required={props.required} disabled={props.disabled} />
         {result.error && <span role='alert'>{result.error}</span>}
@@ -33,8 +33,8 @@ function ReferenceInput(props: ReferenceInputProps) {
 function choicesOf(rows: Record<string, unknown>[], reference: SchemaReference): Choice[] {
     return rows.flatMap(row => {
         const key = row[reference.value];
-        if (typeof key !== 'string') return [];
-        return [{ key, label: String(row[reference.label] ?? key) }];
+        if (typeof key !== 'string' && !(typeof key === 'number' && Number.isFinite(key))) return [];
+        return [{ key: String(key), value: key, label: String(row[reference.label] ?? key) }];
     });
 }
 
@@ -44,7 +44,7 @@ function FilterableChoices({ id, onChange, onBlur, invalid, title, required, dis
     const missing = selected !== '' && !choices.some(choice => choice.key === selected);
     return <div className='stage-reference-field'>
         <input type='search' aria-label={`Filter ${title}`} value={filter} onChange={event => setFilter(event.target.value)} disabled={disabled || loading} />
-        <select id={id} aria-label={title} aria-invalid={invalid} value={selected} onChange={event => onChange(event.target.value)} onBlur={onBlur} required={required} disabled={disabled || loading}>
+        <select id={id} aria-label={title} aria-invalid={invalid} value={selected} onChange={event => onChange(choices.find(choice => choice.key === event.target.value)?.value ?? event.target.value)} onBlur={onBlur} required={required} disabled={disabled || loading}>
             <option value=''>Choose {title}</option>
             {missing && <option value={selected}>{selected}</option>}
             {visible.map(choice => <option key={choice.key} value={choice.key}>{choice.label}</option>)}

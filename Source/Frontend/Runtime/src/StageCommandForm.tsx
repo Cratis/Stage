@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -15,7 +15,7 @@ import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
 import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
-import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import { asCommandValue, createsEntity, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { withReferenceField } from './StageReferenceField';
@@ -54,8 +54,9 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
     const form = useMemo(() => formProperties(element), [element]);
-    const schema = useMemo(() => schemaProperties(element), [element]);
-    const hasSchemaMetadata = typeof element.properties.schema === 'string';
+    const schemaText = commandSchema(element, data, form);
+    const schema = useMemo(() => schemaPropertiesOf(schemaText), [schemaText]);
+    const hasSchemaMetadata = schemaText !== '';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
@@ -65,13 +66,14 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
-    const creates = element.properties.createsEntity === true;
-    const rowAction = element.properties.rowAction === true;
+    const { creates, rowAction } = actionIntent(element, schemaText);
     const selectedRows = useMemo(() => selectedRowsFor(data.selections, data.queries, creates, rowAction), [creates, data.selections, data.queries, rowAction]);
     const selectableRows = useMemo(() => selectableRowsFor(data.queries, creates), [creates, data.queries]);
     const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows), [schema, selectedRows, data.parameters]);
     const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences]);
+    const identifiers = useMemo(() => sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), [fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
+    const currentValues = useCurrentValues({ ...identifiers, ...suppliedReferences }, argumentValues);
+    const initialValues = useMemo(() => ({ ...populated, ...identifiers, ...initialCommandValues(fields, data.parameters), ...suppliedReferences }), [populated, fields, identifiers, data.parameters, suppliedReferences]);
     const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -92,7 +94,7 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
                 key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
-                currentValues={argumentValues}
+                currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
@@ -119,6 +121,15 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
             </NativeCommandForm>
         </section>
     );
+}
+
+function commandSchema(element: ExternalComponent, data: StageDataState, form: NativeFormProperties | undefined): string {
+    return text(element, 'schema') || data.routes?.commandSchemas?.[form?.command ?? ''] || '';
+}
+
+function actionIntent(element: ExternalComponent, schemaText: string) {
+    const creates = element.properties.createsEntity === true || createsEntity(schemaText);
+    return { creates, rowAction: !creates && element.properties.rowAction === true };
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {
@@ -287,9 +298,22 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     return values;
 }
 
+/** Follow only externally supplied members; losing a source clears that member without erasing unrelated edits. */
+function useCurrentValues(supplied: StageCommandContent, arguments_: StageCommandContent | undefined) {
+    const previous = useRef<string[]>([]);
+    const key = JSON.stringify(supplied);
+    return useMemo(() => {
+        const values: StageCommandContent = {};
+        for (const name of previous.current) if (!Object.hasOwn(supplied, name)) values[name] = undefined;
+        Object.assign(values, supplied, arguments_);
+        previous.current = Object.keys(supplied);
+        return values;
+    }, [key, arguments_]);
+}
+
 function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[]): StageCommandContent {
     return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
-        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        const value = (parameters[property.name] || selectedReference(property, selectedRows)) ?? (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
         return value === undefined ? [] : [[property.name, value]];
     }));
 }
@@ -337,6 +361,13 @@ export function suppliedIdentifier(property: SchemaProperty, parameters: Record<
 export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | undefined {
     if (!property.identifier) return undefined;
     const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
+    return values.size === 1 ? [...values][0] : undefined;
+}
+
+/** Reference values retain their modeled primitive type, including zero. */
+function selectedReference(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | number | undefined {
+    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string | number =>
+        typeof value === 'string' && value !== '' || typeof value === 'number' && Number.isFinite(value)));
     return values.size === 1 ? [...values][0] : undefined;
 }
 

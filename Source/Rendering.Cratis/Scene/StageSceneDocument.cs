@@ -8,6 +8,7 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
 
 namespace Cratis.Stage.Rendering.Cratis.Scene;
@@ -50,6 +51,7 @@ internal static class StageSceneDocument
     public static string Render(string sceneJson, SemanticApplicationContext context)
     {
         var diagnostics = new ConversionDiagnostics();
+        var creation = new SemanticListCreation(context.Application);
         var schemas = context.Commands.Values
             .GroupBy(command => command.Name, StringComparer.Ordinal)
             .Select(group =>
@@ -60,7 +62,8 @@ internal static class StageSceneDocument
                 var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
                 var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), group.Key, SourceLocation.Start);
                 var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, group.Key, SourceLocation.Start);
-                return (Name: group.Key, Schema: schema, FieldSchema: fieldSchema, Names: names);
+                var creates = creation.Creates(group.First(), diagnostics, group.Key);
+                return (Name: group.Key, Schema: Contracts.Screenplay.SchemaSynthesizer.WithCreationIntent(schema!, creates), FieldSchema: fieldSchema, Names: names, Creates: creates);
             })
             .ToArray();
         if (diagnostics.HasErrors)
@@ -73,7 +76,7 @@ internal static class StageSceneDocument
             {
                 var fields = CanonicalSceneJson.ToNode(CommandFormSchemas.Fields(entry.FieldSchema!))!.AsArray();
                 GeneratedSceneMemberNames.Fields(fields, entry.Names);
-                return new Command(entry.Schema!, fields, entry.Names);
+                return new Command(entry.Schema!, fields, entry.Names, entry.Creates);
             },
             StringComparer.Ordinal);
 
@@ -289,6 +292,11 @@ internal static class StageSceneDocument
             return;
         }
 
+        if (command.Creates)
+        {
+            properties["createsEntity"] = true;
+            properties.Remove("rowAction");
+        }
         properties["schema"] = command.Schema;
         properties["fields"] = Count(formFields) > 0 ? formFields!.DeepClone() : command.Fields.DeepClone();
         properties["parameterless"] = command.Fields.Count == 0;
@@ -301,5 +309,5 @@ internal static class StageSceneDocument
     static string? Text(JsonObject node, string name) =>
         node[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
-    sealed record Command(string Schema, JsonArray Fields, IReadOnlyDictionary<string, string> Names);
+    sealed record Command(string Schema, JsonArray Fields, IReadOnlyDictionary<string, string> Names, bool Creates);
 }

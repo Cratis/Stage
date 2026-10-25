@@ -49,8 +49,10 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("a09710e28afae20990adf6477a6f4e95c99073a44abe56b0d2378bdb28231c10");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23972);
+    // Raw Scene carries advisory selection hints; canonical creation intent can override these during rendering without changing these bytes.
+    [Fact] void should_carry_the_advisory_collection_selection_hints() => Encoding.UTF8.GetString(_bytes).Split("\"rowAction\":true").Length.ShouldEqual(4);
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("d186ca30122ac199487caac46223c862fbe1ac468a883fe5b2dcc6eef3c3bcbb");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24023);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -63,6 +65,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
 
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
+    // Train4 review fixes change creation intent; rederive combined pins after the final merge.
     [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("678501681fc8441c62d9cdc8c14b621e34e6baafad47fb45773e50e2112758ea");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.

@@ -7,6 +7,14 @@ using Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
 
+/// <summary>
+/// Adds an advisory <c language="json">rowAction</c> selection hint to raw Scene actions.
+/// </summary>
+/// <remarks>
+/// This hint is not semantic intent. At rendering and runtime boundaries, proven creation
+/// (<c language="json">x-creates</c> / <c language="json">createsEntity</c>) takes precedence: a creation never acts on a selected row.
+/// </remarks>
+/// <param name="syntax">The authored application syntax.</param>
 internal sealed class CollectionRowActions(ApplicationSyntax syntax)
 {
     readonly SliceSyntax[] _slices = [.. Slices(syntax.Modules.SelectMany(module => module.Features))];

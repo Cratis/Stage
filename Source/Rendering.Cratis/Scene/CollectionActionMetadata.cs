@@ -19,6 +19,7 @@ internal static class CollectionActionMetadata
     static void Bind(JsonObject action, HashSet<string> carried, SemanticApplicationContext context)
     {
         if (action["properties"] is not JsonObject properties || Text(properties, "command") is not { } name) return;
+        if (properties["createsEntity"]?.GetValue<bool>() == true) return;
         var identifiers = context.Commands.Values.Where(command => command.Name == name).SelectMany(command => command.Properties)
             .Where(property => property.IsIdentifier && !property.IsGenerated && !property.Type.IsOptional)
             .Select(context.MemberNames.WireProperty).Where(carried.Contains).ToHashSet(StringComparer.Ordinal);

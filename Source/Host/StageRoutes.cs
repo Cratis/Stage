@@ -48,7 +48,7 @@ public record StageRoutes(
     internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model)
     {
         var diagnostics = new ConversionDiagnostics();
-        var creation = new SemanticListCreation(model);
+        var creation = new SemanticListCreation(model.Application);
         var metadata = new List<(string Identity, string Schema, string ResponseKind)>();
         foreach (var located in SemanticModelWalker.Slices(model))
         {

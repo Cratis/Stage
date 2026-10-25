@@ -108,6 +108,16 @@ public static partial class CratisRendering
 
             profile = UserInterfaceInput.With(profile, PlanSelectionResolver.Slices(loaded.Model.Application, present.Scopes));
         }
+        if (!options.UserInterfaceDomains.IsDefaultOrEmpty)
+        {
+            var (domains, diagnostic) = UserInterfaceDomains(loaded, options, profile);
+            if (diagnostic is not null)
+            {
+                return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, diagnostic], loaded.Model.Revision);
+            }
+
+            profile = UserInterfaceDomainsInput.With(profile, domains!);
+        }
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, resolved.Scopes[0])
         {
             AdditionalScopes = resolved.Scopes.RemoveAt(0),

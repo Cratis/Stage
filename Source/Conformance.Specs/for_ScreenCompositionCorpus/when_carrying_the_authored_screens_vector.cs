@@ -59,8 +59,9 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("c7ffcd1cf5020947f45704488b32e54dc9d19027e15c2b459760833100ab455f");
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("223e1abf79d43578fe1d55ca4ee8b1f495355185f6fde3fd8ba5f4b9ac4e1629");
+    // Re-frozen for the train4 review fixes: proven creations retain their identifier, gain createsEntity/x-creates and lose rowAction.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("462a204306b8f2f2121741c00fdc03a3298c3aae0c1b28dca37a2003d351664c");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("d46f79d1a92acb6c36f63f89e6bc27b2c92a23bd95bc58805a9f6e4ce1838c9e");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 69068d395013f46e2d1b6a40a47ba8e3d0dec57ff968b213d7b85bddde3c02d3 9827

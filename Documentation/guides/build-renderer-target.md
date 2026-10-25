@@ -20,6 +20,8 @@ Rendering is the opposite direction from source recovery. A source adapter such 
 
 For a complete renderer target that lives outside Stage, see [Cratis/Stage.Axon](https://github.com/Cratis/Stage.Axon). It renders Screenplay models into Java, Spring Boot and Axon Framework applications, and its [third-party render target guide](https://github.com/Cratis/Stage.Axon/blob/main/Documentation/guides/third-party-render-target.md) shows how it checks semantic coverage, deterministic output and the generated application's own specifications.
 
+For where renderers and source adapters live, which packages each may depend on, where round trips run, and how targets are named, see [Organize render target and source adapter repositories](target-repository-model.md).
+
 ## Use the public contracts
 
 Reference:

@@ -150,6 +150,7 @@ internal static class SemanticReactorArtifactRenderer
         SemanticResolvedExpression resolved => $"@event.{Identifiers.ToPascalCase(source.Properties.Single(property => property.Id == resolved.Target).Name)}",
         SemanticValueExpression value => types.Value(value.Value, target),
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } => "context.Occurred",
+        SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } => types.EventSourceIdentityValue(target),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticExpression), expression.Kind)
     };
 }

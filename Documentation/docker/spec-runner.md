@@ -34,7 +34,7 @@ Without `given clock`, a reached reaction production using `$context.occurred` r
 rejects with `An execution expression is unresolved in its declared root scope.` A false `where` skips these
 evaluations. The executor never substitutes wall time or its injectable clock for a missing reaction occurrence.
 This time-only fixture supplies no audit identity, including under `runs as system`: reaction mappings of
-`$eventSourceId` (or `$eventContext.eventSourceId`) and `$context.causedBy.*` retain `STAGE-ESM-013`.
+`$context.causedBy.*` retain `STAGE-ESM-013`. A reaction can map `$eventSourceId` (or `$eventContext.eventSourceId`): it is the event source of the event that set the reaction off, and the target property must be text, a uuid, or an identifier concept over one of them.
 The spelling `$context.eventSourceId` is rejected by the compiler.
 The executor also runs `when trigger` specifications for application, startup and shutdown triggers, and
 `when clock` specifications that advance a canonical `given clock` to a later instant. A fired trigger takes its

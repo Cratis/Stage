@@ -180,8 +180,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");
         Add(entries, "SemanticExpressionSourceKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticEventContextExpression", rendered, "Type Value");
-        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred");
-        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
+        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred EventSourceIdentity");
+        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).

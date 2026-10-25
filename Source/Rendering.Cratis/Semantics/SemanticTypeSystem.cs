@@ -122,6 +122,26 @@ internal sealed class SemanticTypeSystem(SemanticApplicationContext context, CSh
         !type.IsCollection && type.Kind == SemanticTypeReferenceKind.Concept &&
         context.IdentifierConcepts.Contains(type.Target) && context.Concepts[type.Target].Values.IsEmpty;
 
+    /// <summary>
+    /// Renders the event source id an event arrived with as a value of a scalar target type.
+    /// </summary>
+    /// <param name="target">The target type; text, a uuid, or an identifier concept over one of them.</param>
+    /// <returns>The C# expression converting <c>context.EventSourceId</c> to the target.</returns>
+    /// <exception cref="UnsupportedSemanticRendering">The target is not text, a uuid or a concept over one of them.</exception>
+    public string EventSourceIdentityValue(SemanticTypeReference target)
+    {
+        var primitive = target.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[target.Target].Primitive : target.Primitive;
+        const string text = "context.EventSourceId.Value";
+        var value = primitive switch
+        {
+            SemanticPrimitiveType.Text => text,
+            SemanticPrimitiveType.Uuid => $"{Named("System", "Guid", ReferenceContext.Expression)}.Parse({text})",
+            _ => throw UnsupportedSemanticRendering.For(nameof(SemanticEventContextExpression), $"eventSourceId as {primitive}")
+        };
+
+        return target.Kind == SemanticTypeReferenceKind.Concept ? $"new {Type(target)}({value})" : value;
+    }
+
     /// <summary>Whether a reducer identifier has an exact, supported Chronicle wire conversion.</summary>
     /// <param name="type">The read-model identifier type.</param>
     /// <returns>Whether its wire representation can be compared without normalization.</returns>

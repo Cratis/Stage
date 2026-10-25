@@ -25,6 +25,8 @@ internal static class SemanticCaptureIdentitySupport
         return CheckAppendIdentities(capture, type);
     }
 
+    internal static bool UsesTypedIdentity(SemanticVersion version) => version == SemanticVersion.V32 || version == SemanticVersion.V33;
+
     static bool HasEverySourceKey(int keyCount, int sourceCount) => keyCount == sourceCount && keyCount > 0;
 
     static bool RequiredScalar(SemanticTypeReference type) => !type.IsOptional && !type.IsCollection;
@@ -36,8 +38,6 @@ internal static class SemanticCaptureIdentitySupport
             ? $"Capture '{capture.Name}' key '{capture.Key}' does not match every append's declared event-source identity type; Stage will not coerce the key to text."
             : null;
     }
-
-    internal static bool UsesTypedIdentity(SemanticVersion version) => version == SemanticVersion.V32 || version == SemanticVersion.V33;
 
     static bool Convertible(SemanticTypeReference type, SemanticApplication application)
     {

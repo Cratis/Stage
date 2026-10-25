@@ -22,7 +22,7 @@ public class with_a_mismatched_source_key : given.a_captured_delivery
     {
         var error = await Catch.Exception(() => Deliver(Fact(0, source: source, key: key)));
         error!.GetType().Name.ShouldEqual(exception);
-        await _inbox.DidNotReceiveWithAnyArgs().GetFromSequenceNumber(default!, default!, default!);
+        await _inbox.DidNotReceiveWithAnyArgs().GetFromSequenceNumber(default!, default, default);
         _store.DidNotReceiveWithAnyArgs().GetEventSequence(default!);
         _log.Attempts.ShouldBeEmpty();
     }

@@ -25,6 +25,16 @@ public static class refusal_dispositions
             new("STAGE-ESM-030", null, "sem1:0000000000000000000000000000000000000000000000000000000000002333")
         ]),
 
+        // Destination-less production: Stage does not allocate event-source ids (Stage#511 decision); the frozen golden keeps it.
+        ([
+            "EsmGoldenVectors.V11", "EsmGoldenVectors.V12", "EsmGoldenVectors.V13",
+            "EsmGoldenVectors.V14", "EsmGoldenVectors.V15", "EsmGoldenVectors.V16",
+            "EsmGoldenVectors.V17", "EsmGoldenVectors.V18", "EsmGoldenVectors.V19",
+            "EsmGoldenVectors.V20", "EsmGoldenVectors.V21", "EsmGoldenVectors.V22",
+            "EsmGoldenVectors.V23", "EsmGoldenVectors.V24"
+        ], conformance_surface.Renderer,
+        [new("STAGE-ESM-053", null, "sem1:000000000000000000000000000000000000000000000000000000000000277e")]),
+
         // A generate rule has an implementation body the interpreter never runs: the Host refuses the command by design (Stage#510).
         (["GenerationFixturesCorpus.V21", "GenerationFixturesCorpus.V21R2"], conformance_surface.Host, [new("STAGE-ESM-028", "command", "sem1:cb7e91a776653c53ea020a87d6d589bb82d105ed85303402d8081ebf9d62a964")]),
 

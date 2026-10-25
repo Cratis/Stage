@@ -34,6 +34,7 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
         """;
 
     ArtifactRenderPlan _plan = null!;
+    bool _hasUnallocatedDestination;
 
     void Because()
     {
@@ -47,6 +48,8 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
         var model = compilation.Value!.Model;
+        var command = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "RegisterProject").Commands.Single();
+        _hasUnallocatedDestination = command.Destination is null && command.Produces.Single().Destination is null;
         var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
         var request = new ArtifactRenderRequest(
             model,
@@ -57,7 +60,8 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
     }
 
     [Fact] void should_not_be_publishable() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unsupported_destination() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-006");
+    [Fact] void should_have_no_bound_destination() => _hasUnallocatedDestination.ShouldBeTrue();
+    [Fact] void should_report_the_unallocated_destination() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-053");
 
     // The projection is keyed by a payload property, which renders through the scope; only the destination is refused.
     [Fact] void should_not_refuse_the_payload_keyed_projection() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-009");

@@ -12,6 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
+    const string UnallocatedDestination = "STAGE-ESM-053";
+
     static void ValidateStateChange(
         SemanticApplicationContext context,
         SemanticSlice slice,
@@ -81,11 +83,25 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (command.Produces.Any(produced => !HasRenderableProductionShape(produced, command, context)))
+        ValidateCommandProductions(context, command, diagnostics);
+    }
+
+    static void ValidateCommandProductions(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var produced in command.Produces.Where(produced => HasUnallocatedDestination(command, produced)))
+        {
+            var eventName = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Name : produced.EventContract.ToString();
+            diagnostics.Add(Error(UnallocatedDestination, $"Produced event '{eventName}' of command '{command.Name}' has no destination: the model names no event source, and Stage does not allocate event-source identities (Stage#511).", command.Id));
+        }
+
+        if (command.Produces.Any(produced => !HasUnallocatedDestination(command, produced) && !HasRenderableProductionShape(produced, command, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
+
+    static bool HasUnallocatedDestination(SemanticCommand command, SemanticProducedEvent produced) =>
+        command.Handler is null && SemanticDestinations.Of(command, produced) is null;
 
     // A described handler supplies payload and destination; STAGE-IMPL-002 refuses the command until #316 renders handlers. Revisit these checks then.
     static bool HasRenderableProductionShape(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>

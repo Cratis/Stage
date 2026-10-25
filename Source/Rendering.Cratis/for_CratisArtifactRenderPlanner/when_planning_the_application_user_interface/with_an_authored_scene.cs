@@ -10,12 +10,12 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_the_application_user_interface;
 
 /// <summary>
-/// The pinned fingerprint is the plan the renderer produced before scoped plans could carry shared UI, so an
-/// application plan is unchanged by that capability.
+/// The pinned fingerprint is the plan the renderer produces with the scoped shared-UI capability removed, so an
+/// application plan is unchanged by that capability. Re-derive it only by planning with that capability reverted.
 /// </summary>
 public class with_an_authored_scene : a_screen_composition_render
 {
-    const string Before = "625dcfa74e2eb908ba3b1865859b411c9601ef14cdd07a91e9c1811834b1b234";
+    const string Before = "eb3f40aaf69c16eb0da1cb337861e4a4cf257edbf29ec329cf76f88d3374693e";
 
     ArtifactRenderPlan _plan = null!;
 

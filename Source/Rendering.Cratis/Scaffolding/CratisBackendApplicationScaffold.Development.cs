@@ -35,7 +35,7 @@ public sealed partial class CratisBackendApplicationScaffold
     // A repository-root application builds its frontend with npm in CI, so its README names the same tool.
     static string FrontendTool(CratisBackendApplicationScaffoldRequest request) => request.RepositoryRoot ? "npm" : "Yarn";
 
-    static string FrontendInstall(CratisBackendApplicationScaffoldRequest request) => request.RepositoryRoot ? "npm install" : "yarn";
+    static string FrontendInstall(CratisBackendApplicationScaffoldRequest request) => request.RepositoryRoot ? "npm install" : "corepack enable\nyarn install";
 
     static string FrontendScript(CratisBackendApplicationScaffoldRequest request, string script) => request.RepositoryRoot ? $"npm run {script}" : $"yarn {script}";
 

@@ -99,7 +99,7 @@ internal static class SemanticHost
         app.UseWebSockets();
         app.MapControllers();
         StageEndpointMapper.Map(app, surface);
-        app.UseSandboxIdentity(modelPath);
+        app.UseSandboxIdentity(modelPath, loaded.Model, surface);
         app.UseCratisArc();
         app.MapOpenApi();
         app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());

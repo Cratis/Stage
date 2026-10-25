@@ -9,9 +9,16 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
 public class when_running_property_keyed_removal_only_projections : Specification
 {
-    const string Source = """
+    internal const string Source = """
         module Billing
           feature Invoices
+            slice StateChange RemoveInvoice
+              command RemoveInvoice
+                sourceId String identifier
+                invoiceId String
+                produces InvoiceRemoved
+                  for sourceId
+                  invoiceId = invoiceId
             slice StateView InvoiceLookup
               event InvoiceRemoved
                 invoiceId String
@@ -31,21 +38,36 @@ public class when_running_property_keyed_removal_only_projections : Specificatio
                   invoiceId = "second"
         """;
 
-    SemanticSpecificationOutcome _outcome;
-    StageExecutionCapability? _capability;
+    SemanticExecutionPlan _plan = null!;
 
-    async Task Because()
+    void Establish() => _plan = Compile(Source);
+
+    [Fact] public async Task should_remove_only_the_instance_named_by_the_property() => await ShouldPass(_plan);
+
+    [Fact] public async Task should_isolate_each_run()
     {
-        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Billing"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", Source);
-        var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
-        Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
-        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
-        _outcome = result.Outcome;
-        _capability = result.Unsupported?.Capability;
+        await ShouldPass(_plan);
+        await ShouldPass(_plan);
     }
 
-    [Fact] void should_refuse_the_specification() => _outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_refuse_it_as_a_projection_limit() => _capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] public async Task should_replace_property_keyed_history_before_applying_the_action()
+    {
+        var source = Source.Replace("        given readmodel InvoiceView\n          invoiceId = \"first\"", "        given InvoiceRemoved\n          for \"unrelated\"\n          invoiceId = \"second\"\n        given readmodel InvoiceView\n          invoiceId = \"first\"", StringComparison.Ordinal);
+        await ShouldPass(Compile(source));
+    }
+
+    internal static SemanticExecutionPlan Compile(string source)
+    {
+        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Billing"));
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
+        var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
+        Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
+        return SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+    }
+
+    static async Task ShouldPass(SemanticExecutionPlan plan)
+    {
+        var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
+        Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
+    }
 }

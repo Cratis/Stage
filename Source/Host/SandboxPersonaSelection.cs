@@ -21,6 +21,20 @@ internal sealed class SandboxPersonaSelection : ScreenplaySyntaxWalker
         visitor.VisitApplication(application);
         var personas = application.Personas?.ToArray() ?? [];
         var menu = visitor._components.FirstOrDefault(component => component.Component == "Cratis.Blueprint.Default.userMenu");
+        if (MenuPersona(application) is { } selection)
+        {
+            return selection;
+        }
+
+        var chosen = ModulePersona(application, personas) ?? personas.FirstOrDefault();
+        return chosen is null ? null : (chosen, menu is null ? chosen.Name : Property(menu, "name") ?? chosen.Name);
+    }
+
+    internal static (PersonaSyntax Persona, string DisplayName)? MenuPersona(ApplicationSyntax application)
+    {
+        var visitor = new SandboxPersonaSelection();
+        visitor.VisitApplication(application);
+        var personas = application.Personas?.ToArray() ?? [];
         foreach (var component in visitor._components.Where(component => component.Component == "Cratis.Blueprint.Default.userMenu"))
         {
             var persona = personas.FirstOrDefault(persona => persona.Name == Property(component, "role"));
@@ -30,8 +44,7 @@ internal sealed class SandboxPersonaSelection : ScreenplaySyntaxWalker
             }
         }
 
-        var chosen = ModulePersona(application, personas) ?? personas.FirstOrDefault();
-        return chosen is null ? null : (chosen, menu is null ? chosen.Name : Property(menu, "name") ?? chosen.Name);
+        return null;
     }
 
     static PersonaSyntax? ModulePersona(ApplicationSyntax application, PersonaSyntax[] personas)

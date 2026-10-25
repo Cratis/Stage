@@ -82,6 +82,56 @@ describe('a synthesized table', () => {
         expect(fetch).toHaveBeenCalledWith(new URL('http://localhost:3000/api/sales/invoices/all-invoices'), expect.anything());
     });
 
+    it('shows humanized enumeration members for numeric indices and names, while preserving unknown values', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => queryResult({ data: [{ invoiceNumber: 'INV-1', stage: 1 }, { invoiceNumber: 'INV-2', stage: 'newLead' }, { invoiceNumber: 'INV-3', stage: 'unknown' }, { invoiceNumber: 'INV-4', stage: 42 }, { invoiceNumber: 'INV-5', stage: null }] }),
+        }));
+        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice' }, {
+            columns: [
+                element('number', 'core:column', { property: 'invoiceNumber', label: 'Invoice #' }),
+                element('stage', 'core:column', { property: 'stage', label: 'Stage', options: ['newLead', 'inProgress', 'won'] }),
+            ],
+        });
+
+        render(<StageTable element={table} slots={{}} />);
+
+        expect(await screen.findByText('In progress')).toBeDefined();
+        expect(screen.getByText('New lead')).toBeDefined();
+        expect(screen.getByText('unknown')).toBeDefined();
+        expect(screen.getByText('42')).toBeDefined();
+        expect(screen.getByText('INV-5')).toBeDefined();
+    });
+
+    it('resolves numeric enumeration values by their explicit numbers rather than by position', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => queryResult({ data: [
+                { id: 'a', explicit: 1, sparse: 5, negative: -1, named: 'issued', missing: 0 },
+                { id: 'b', explicit: 2, sparse: 1, negative: 4, named: 'draft', missing: 7 },
+            ] }),
+        }));
+        const table = element('table', 'core:table', { route: '/api/sales/invoices/all-invoices', typeName: 'Invoice' }, {
+            columns: [
+                element('id', 'core:column', { property: 'id', label: 'Id' }),
+                element('explicit', 'core:column', { property: 'explicit', label: 'Explicit', options: ['draft', 'issued'], optionValues: [1, 2] }),
+                element('sparse', 'core:column', { property: 'sparse', label: 'Sparse', options: ['low', 'high'], optionValues: [1, 5] }),
+                element('negative', 'core:column', { property: 'negative', label: 'Negative', options: ['reversed', 'sent'], optionValues: [-1, 4] }),
+                element('named', 'core:column', { property: 'named', label: 'Named', options: ['draft', 'issued'], optionValues: [1, 2] }),
+                element('missing', 'core:column', { property: 'missing', label: 'Missing', options: ['draft', 'issued'], optionValues: [1, 2] }),
+            ],
+        });
+
+        render(<StageTable element={table} slots={{}} />);
+
+        await screen.findByText('Reversed');
+        const rows = screen.getAllByRole('row').slice(1).map(row => Array.from(row.querySelectorAll('td')).map(cell => cell.textContent));
+        expect(rows).toEqual([
+            ['a', 'Draft', 'High', 'Reversed', 'Issued', '0'],
+            ['b', 'Issued', 'Low', 'Sent', 'Draft', '7'],
+        ]);
+    });
+
     it('resolves same-named queries omitted from the host name map by their distinct attached routes', async () => {
         vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => Promise.resolve({
             ok: true,
@@ -477,10 +527,10 @@ describe('a native command form', () => {
             </PrimeReactProvider>,
         );
 
-        expect(screen.getByLabelText('name')).toBeDefined();
-        expect(screen.getByLabelText('enabled')).toBeDefined();
-        expect(screen.getByLabelText('amount')).toBeDefined();
-        expect(screen.getByLabelText('dueDate')).toBeDefined();
+        expect(screen.getByLabelText('Name')).toBeDefined();
+        expect(screen.getByLabelText('Enabled')).toBeDefined();
+        expect(screen.getByLabelText('Amount')).toBeDefined();
+        expect(screen.getByLabelText('Due date')).toBeDefined();
         const shell = container.querySelector('.stage-command-form') as HTMLElement;
         const layout = container.querySelector('.stage-command-form__layout') as HTMLElement;
         const amount = container.querySelector('[data-field="amount"]') as HTMLElement;
@@ -792,9 +842,9 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
-        fireEvent.blur(screen.getByLabelText('amount'));
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
+        fireEvent.blur(screen.getByLabelText('Amount'));
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         await waitFor(() => expect(fetchMock).toHaveBeenCalled());
@@ -810,8 +860,8 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         await waitFor(() => expect(screen.queryByRole('button', { name: /Execute/ })).toBeNull());
@@ -826,8 +876,8 @@ describe('a synthesized action', () => {
 
         render(<StageAction element={action} slots={{}} />);
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-7' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '13' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-7' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         expect((await screen.findAllByText('Invoice number is required')).length).toBeGreaterThan(0);
@@ -854,8 +904,8 @@ describe('a synthesized action', () => {
         renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
         expect(await screen.findByText('INV-1')).toBeDefined();
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '14' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         expect(await screen.findByText('INV-2')).toBeDefined();
@@ -892,8 +942,8 @@ describe('a synthesized action', () => {
         renderWithData(<><StageTable element={table} slots={{}} /><StageAction element={action} slots={{}} /></>);
         expect(await screen.findByText('INV-1')).toBeDefined();
         fireEvent.click(screen.getByRole('button', { name: 'Register invoice' }));
-        fireEvent.change(screen.getByLabelText('invoiceNumber'), { target: { value: 'INV-8' } });
-        fireEvent.change(screen.getByLabelText('amount'), { target: { value: '14' } });
+        fireEvent.change(screen.getByLabelText('Invoice number'), { target: { value: 'INV-8' } });
+        fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '14' } });
         fireEvent.click(screen.getByRole('button', { name: /Execute/ }));
 
         expect(await screen.findByText('INV-8', {}, { timeout: 2_000 })).toBeDefined();

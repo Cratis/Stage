@@ -3,13 +3,14 @@
 
 using System.Security.Claims;
 using Cratis.Screenplay.Files;
+using Cratis.Screenplay.Semantics;
 using Microsoft.AspNetCore.Authentication;
 
 namespace Cratis.Stage.Host;
 
 internal static class SandboxIdentity
 {
-    internal static void UseSandboxIdentity(this WebApplication app, string modelPath)
+    internal static void UseSandboxIdentity(this WebApplication app, string modelPath, ExecutableSemanticModel? model = null, StageHttpSurface? surface = null)
     {
         if (!app.Services.GetRequiredService<SandboxIdentityOptions>().Enabled)
         {
@@ -18,8 +19,15 @@ internal static class SandboxIdentity
 
         var compiler = new PlayFileCompiler();
         var result = Directory.Exists(modelPath) ? compiler.CompileFolder(modelPath).Result : compiler.CompileApplication(modelPath).Result;
-        var principal = result.Success ? SandboxPersona.Create(result.Value!, app.Logger) : null;
-        Use(app, principal);
+        if (result.Success && model is not null && surface is not null)
+        {
+            var personas = new SandboxPersonas(result.Value!, model, surface, app.Logger);
+            UseForRequests(app, personas.For);
+        }
+        else
+        {
+            Use(app, result.Success ? SandboxPersona.Create(result.Value!, app.Logger) : null);
+        }
     }
 
     /// <summary>
@@ -51,7 +59,9 @@ internal static class SandboxIdentity
         return next();
     }
 
-    internal static void Use(IApplicationBuilder app, ClaimsPrincipal? principal)
+    internal static void Use(IApplicationBuilder app, ClaimsPrincipal? principal) => UseForRequests(app, _ => principal);
+
+    static void UseForRequests(IApplicationBuilder app, Func<HttpContext, ClaimsPrincipal?> select)
     {
         if (!app.ApplicationServices.GetRequiredService<SandboxIdentityOptions>().Enabled)
         {
@@ -60,10 +70,13 @@ internal static class SandboxIdentity
 
         app.Use(StripIdentityHeaders);
 
-        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), api =>
+        // The identity of the page itself (`/.cratis/me`, which Arc asks as soon as the page loads) is the persona being played, as it is for the
+        // `/api` requests: without one it answers 401 on every start of a Play session.
+        app.UseWhen(context => context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/.cratis/me"), api =>
         {
             api.Use((context, next) =>
             {
+                var principal = select(context);
                 context.User = principal is null ? new ClaimsPrincipal(new ClaimsIdentity())
                     : new ClaimsPrincipal(principal.Identities.Select(identity => new ClaimsIdentity(identity)));
 

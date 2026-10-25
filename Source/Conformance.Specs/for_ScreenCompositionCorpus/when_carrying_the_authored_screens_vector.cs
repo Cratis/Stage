@@ -44,8 +44,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ba09e56187e6ac5b2f05d145461b650242496a3381d68f8d40758fc69924cd73");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23916);
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("a09710e28afae20990adf6477a6f4e95c99073a44abe56b0d2378bdb28231c10");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23972);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -56,14 +56,13 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_plan_without_warnings_or_errors() => _plan!.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
 
-    // Both digests retain #494's authenticated endpoints, default spec callers, access README and inference diagnostics.
-    // Main adds route-qualified query registrations, native query proxies, keyed screen identifiers and cleaned frontend tsconfigs.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("216a05a3be0e7dbe2ac9f20f5e846ca97c2b64d69e617fc972e8b655acc60756");
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("55fc2e56681ef0a5733448e638f1c46a52853559cb36a06a0aa13f7fc80035aa");
+    // Re-frozen after merging main: retain #494's authenticated endpoints, callers, README and notes alongside main's scaffold changes.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("ff10053e1d74cadee912cac506db1e24a761d8c44d59ae0afe516ac3c99400fa");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("674babbc68a4240ab8e8cf45b29880242e338aabc1c2cdddb1692f7838f195a7");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 10054bae285b11e3bc411abf7f1231f8745fd5eeff694db5c80b8f830a6e5e5d 9765
-        Workspaces/Tracking/WorkItemList/Screens.scene.json 997c6c77c83d9108a4a541d5e0be6e6189fc18ea3899184d0b1d5ef983b0ffb4 6633
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793
+        Workspaces/Tracking/WorkItemList/Screens.scene.json ebb54a4bc9dc126e98bb1ff94dd6452824637224c57939c33e1215edae93b4e3 6661
         """);
 
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];

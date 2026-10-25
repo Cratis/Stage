@@ -3,28 +3,18 @@
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { PrimeReactProvider } from '@primereact/core/config';
-import 'primeicons/primeicons.css';
-import '@cratis/scene.primereact/primeReactTheme.css';
 import { CratisComponentsProvider } from '@cratis/components';
 import { Arc } from '@cratis/arc.react';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
-import { App, StageSourceProvider, stageTheme, type StageRoutes } from '@cratis/stage.runtime';
+import { App, StageSourceProvider, hostedBasePath, type StageRoutes } from '@cratis/stage.runtime';
 import { StagePackagesFailed, loadStagePackages } from './stagePackages';
 import { registerSharedModules } from './sharedModules';
+import { loadProfileProvider } from './loadProfileProvider';
 import { Browser } from './read-models/Browser';
 import { isBrowserPath } from './read-models/path';
 import { httpStageSource } from './httpStageSource';
 import { registerStageCommands } from './host/commandRegistration';
 import { registerStageQueries } from './host/queryRegistration';
-
-// PrimeReact 11 verifies a license key at runtime and otherwise renders a permanent "Invalid PrimeUI
-// License" banner over the application. The key itself is the PRIMEUI_LICENSE GitHub secret, the same one
-// Direct and Studio already use, remapped to STAGE_PRIMEUI_LICENSE by vite.config.ts's envPrefix - see the
-// Dockerfile's frontend stage and publish.yml for where it is threaded through the build. Absent (a local
-// build with nothing configured) this is just an empty string, and PrimeReact falls back to its own
-// unlicensed presentation rather than failing to render.
-const primeUiLicense = import.meta.env.STAGE_PRIMEUI_LICENSE || '';
 
 const root = document.getElementById('root')!;
 
@@ -55,29 +45,39 @@ async function start() {
     } catch (reason) {
         console.warn('Stage command routes could not be loaded; rendering without registered commands.', reason);
     }
-    const source = { ...httpStageSource, routes: async () => routes };
+    // Read once before rendering so the provider is ready before any opted-in widget mounts. Keep a failed
+    // request for App to report through its existing scene-loading error UI.
+    const sceneRequest = isBrowserPath(window.location.pathname) ? undefined : httpStageSource.scene(abort.signal);
+    const scene = await sceneRequest?.catch(() => undefined);
+    const source = { ...httpStageSource, scene: async (signal: AbortSignal) => sceneRequest ?? httpStageSource.scene(signal), routes: async () => routes };
+    const primeReact = await loadProfileProvider(scene?.uiProfiles);
 
+    const application = (<>
+        {isBrowserPath(window.location.pathname) ? (
+            <CratisComponentsProvider><Browser /></CratisComponentsProvider>
+        ) : (
+            <CratisComponentsProvider>
+                {/*
+                  The runtime entry of the Cratis components package - its components, descriptors and manifest,
+                  without designers, property editors or design-time actions - is what a scene naming
+                  Cratis.Components renders with, live exactly as in a generated application. Approved custom
+                  packages add theirs beside it; the Stage's own never lose a name to them.
+                */}
+                {/*
+                  Arc's own requests - its identity at /.cratis/me among them - use its API base path. Under a
+                  reverse proxy prefix (Studio's Play at /api/play/{id}/) an empty one would reach the proxy's root.
+                */}
+                <Arc queryDirectMode apiBasePath={hostedBasePath()}>
+                    <StageSourceProvider source={source}>
+                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
+                    </StageSourceProvider>
+                </Arc>
+            </CratisComponentsProvider>
+        )}
+    </>);
     createRoot(root).render(
         <StrictMode>
-            <PrimeReactProvider license={primeUiLicense} theme={stageTheme}>
-                {isBrowserPath(window.location.pathname) ? (
-                    <Browser />
-                ) : (
-                    <CratisComponentsProvider>
-                        {/*
-                          The runtime entry of the Cratis components package - its components, descriptors and manifest,
-                          without designers, property editors or design-time actions - is what a scene naming
-                          Cratis.Components renders with, live exactly as in a generated application. Approved custom
-                          packages add theirs beside it; the Stage's own never lose a name to them.
-                        */}
-                        <Arc queryDirectMode>
-                            <StageSourceProvider source={source}>
-                                <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
-                            </StageSourceProvider>
-                        </Arc>
-                    </CratisComponentsProvider>
-                )}
-            </PrimeReactProvider>
+            {primeReact ? primeReact.withPrimeReact(application) : application}
         </StrictMode>,
     );
 }

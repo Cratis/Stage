@@ -108,19 +108,18 @@ internal static class StageRouteCandidates
 
         var owner = identity[..separator];
 
-        return string.Equals(owner, typeName, StringComparison.Ordinal) ||
-            owner.EndsWith($".{typeName}", StringComparison.Ordinal) ||
-            owner.EndsWith($"+{typeName}", StringComparison.Ordinal);
+        return Names(owner, typeName);
     }
 
     /// <summary>
-    /// Gets whether an identity is the type itself, or a name ending in it.
+    /// Gets whether an identity is the type itself, Arc's Execute-prefixed type name, or a name ending in it.
     /// </summary>
     /// <param name="identity">The operation identity.</param>
     /// <param name="typeName">The type name.</param>
     /// <returns><see langword="true"/> when the identity names the type.</returns>
     internal static bool Names(string identity, string typeName) =>
         string.Equals(identity, typeName, StringComparison.Ordinal) ||
+        string.Equals(identity, $"Execute{typeName}", StringComparison.Ordinal) ||
         identity.EndsWith($".{typeName}", StringComparison.Ordinal) ||
         identity.EndsWith($"+{typeName}", StringComparison.Ordinal);
 

@@ -65,11 +65,10 @@ internal static class DefaultSceneComposition
             return null;
         }
 
-        var layout = DefaultLayout.Create();
         var elements = commands.Select(command => CommandForm(context, command)).Concat(queries).ToArray();
         var screen = new SceneScreens.Screen(
             context.Application.Name,
-            layout.Name,
+            string.Empty,
             new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
             {
                 [DefaultLayout.ContentSlotName] = elements
@@ -77,7 +76,7 @@ internal static class DefaultSceneComposition
             [],
             []);
 
-        return new SceneApplication([], [], [layout], [], [], [screen]);
+        return new SceneApplication([], [], [], [], [], [screen]);
     }
 
     /// <summary>

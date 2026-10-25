@@ -16,11 +16,13 @@ internal static class SandboxPersona
             return null;
         }
 
-        var caller = CallerFor(selection.Persona, application, logger);
-        var principal = Principal(selection.Persona, selection.DisplayName, caller);
+        var principal = Create(selection.Persona, selection.DisplayName, application, logger);
         StageLog.SandboxPersonaSelected(logger, selection.Persona.Name, string.Join(", ", principal.FindAll(ClaimTypes.Role).Select(claim => claim.Value)));
         return principal;
     }
+
+    internal static ClaimsPrincipal Create(PersonaSyntax persona, string displayName, ApplicationSyntax application, ILogger logger) =>
+        Principal(persona, displayName, CallerFor(persona, application, logger));
 
     static ClaimsPrincipal Principal(PersonaSyntax persona, string displayName, SpecificationCallerSyntax? caller)
     {

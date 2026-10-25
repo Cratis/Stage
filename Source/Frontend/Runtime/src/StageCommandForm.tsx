@@ -2,12 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { createContext, useContext, useMemo, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
+import { DateOnly } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
-import { CommandForm as NativeCommandForm } from '@cratis/arc.react/commands';
+import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
 import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
@@ -58,8 +59,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows]);
+    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
+    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    const rowAction = element.properties.rowAction === true;
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -85,7 +88,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
+                onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={() => {
@@ -100,7 +103,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>Execute {form.label}</button>
+                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
             </NativeCommandForm>
         </section>
     );
@@ -130,7 +133,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
     if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
-    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: property.name }));
+    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: humanize(property.name) }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
@@ -177,7 +180,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
         switch (descriptor?.type ?? 'text') {
             case 'number': return <NumberField value={accessor} fieldName={property} title={title} required={required} />;
             case 'boolean': return <CheckboxField value={accessor} fieldName={property} label={title} required={required} />;
-            case 'date': return <CalendarField value={accessor} fieldName={property} title={title} required={required} showIcon />;
+            case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
     })();
@@ -195,6 +198,22 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
             {fieldElement}
         </span>
     );
+}
+
+// Arc binds currentValue directly from the command; the accessor only identifies the property.
+const StageCalendarField = withCommandFormFieldBinding((props: ComponentProps<typeof CalendarField>) =>
+    <CalendarField {...props}
+        currentValue={props.showTime ? props.currentValue : calendarDate(props.currentValue)}
+        onValueChange={value => props.onValueChange?.(!props.showTime && value instanceof Date && !Number.isNaN(value.getTime()) ? DateOnly.fromDate(value) : value)} />);
+
+function calendarDate(value: unknown): unknown {
+    if (value instanceof DateOnly) return value.toDate();
+    if (typeof value !== 'string') return value;
+    try {
+        return DateOnly.parse(value).toDate();
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -227,14 +246,29 @@ function initialCommandValues(fields: FormField[], parameters: Record<string, st
  * A schema that marks the identifier the command acts on (`x-identity`, a task dialog's) says which one that is: only it is created, and a
  * reference to another entity gets only what the address or the session supplies. A schema that marks none - an authored form's - leaves
  * every identifier it does not show to the session, as it always has.
+ *
+ * The address wins, then the selected row, then the identity the session already holds: a row the person selected is the entity the action is
+ * about, even when the session holds another one. An identifier that a row the person could select carries (`selectableRows`) names an entity
+ * that already exists: with no row selected the session does not invent it, so the value stays missing until a row is chosen. The identifier
+ * a task dialog acts on (`x-identity`) is still created - the basket a shopper starts - even when a row on the screen shows the same name.
+ *
+ * An action on a list (`rowAction`) acts on the row the person selected, whatever the schema marks: an identifier a row carries comes from the
+ * address or the selected row only - never from the session, and is never created.
  */
-export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = []): StageCommandContent {
+export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[] = [], selectableRows: Record<string, unknown>[] = [], rowAction = false): StageCommandContent {
     const shown = new Set(fields.map(field => field.sourceProperty ?? field.name));
     const marked = schema.some(property => property.identity);
     const values: StageCommandContent = {};
     for (const property of schema) {
         if (!property.identifier || !property.required || shown.has(property.name)) continue;
-        const value = suppliedIdentifier(property, parameters) ?? selectedIdentifier(property, selectedRows) ?? (property.identity || !marked ? sessionIdentity(property.identifier) : undefined);
+        if (rowAction && carriedBy(property, selectableRows)) {
+            const rowValue = parameters[property.name] || selectedIdentifier(property, selectedRows);
+            if (rowValue) values[property.name] = rowValue;
+            continue;
+        }
+
+        const value = parameters[property.name] || selectedIdentifier(property, selectedRows) || heldSessionIdentity(property.identifier)
+            || (property.identity || (!marked && !carriedBy(property, selectableRows)) ? sessionIdentity(property.identifier) : undefined);
         if (value !== undefined) values[property.name] = value;
     }
 
@@ -281,6 +315,57 @@ export function selectedIdentifier(property: SchemaProperty, selectedRows: Recor
     if (!property.identifier) return undefined;
     const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
     return values.size === 1 ? [...values][0] : undefined;
+}
+
+/** Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. */
+export function carriedBy(property: SchemaProperty, rows: Record<string, unknown>[]): boolean {
+    return rows.some(row => Object.hasOwn(row, property.name));
+}
+
+/**
+ * A read model's rows are keyed `id`, while a command acts on that entity by `<entity>Id` - `productId` for the rows of `ProductReadiness`. The
+ * row carries that key too, under the name of every word of the read model's name (`product`, `readiness`), so a command's identifier finds
+ * the row that is its entity. A row that already carries a property of that name keeps it.
+ */
+function withEntityKeys(row: Record<string, unknown>, query: StageDataState['queries'][string]): Record<string, unknown> {
+    const key = row.id;
+    if (typeof key !== 'string' || key === '') return row;
+    const words = `${query.alias ?? ''} ${query.name ?? ''}`.match(/[A-Z][a-z0-9]+/g) ?? [];
+    const aliases = Object.fromEntries(words.map(word => `${word.charAt(0).toLowerCase()}${word.slice(1)}Id`).filter(name => !Object.hasOwn(row, name)).map(name => [name, key]));
+    return Object.keys(aliases).length === 0 ? row : { ...aliases, ...row };
+}
+
+function entityRowsOf(queries: StageDataState['queries']): [Record<string, unknown>, Record<string, unknown>][] {
+    return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
+}
+
+/** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */
+export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
+    return entityRowsOf(queries).map(([, row]) => row);
+}
+
+/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+    const keyed = new Map(entityRowsOf(queries));
+    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
+}
+
+/**
+ * The required identifiers a command acts on that the form does not show and that a selectable row supplies, and for which no row has been
+ * selected yet and nothing else (the screen's address) supplies them. A toolbar action with any of these waits for a selected row - also when
+ * the schema marks it as the identifier the command acts on (`x-identity`), which the host does for every modeled command.
+ *
+ * @param schema The command's properties.
+ * @param parameters The screen's address parameters.
+ * @param selectedRows The rows currently selected on the screen.
+ * @param selectableRows The rows the person could select.
+ * @returns The names of the identifiers still waiting for a selection.
+ */
+export function identifiersAwaitingSelection(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[], selectableRows: Record<string, unknown>[]): string[] {
+    return schema
+        .filter(property => property.identifier && property.required && carriedBy(property, selectableRows))
+        .filter(property => !parameters[property.name] && selectedIdentifier(property, selectedRows) === undefined)
+        .map(property => property.name);
 }
 
 /** What a form populates from: the query that answers the values the form starts with, or the item the screen is about. */
@@ -443,6 +528,19 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
         case FormWidthUnit.Percent: return `${width.value ?? 100}%`;
         case FormWidthUnit.Auto: return 'auto';
     }
+}
+
+/**
+ * The validation messages Arc's command form does not already show next to a field. Arc shows one message per field - the first result
+ * whose member is the field or a path under it - so exactly those are left out; any further message about the same field, and every
+ * message about no field of this form, is listed under the fields.
+ */
+export function unboundValidationMessages(fields: FormField[], validation: { message: string; members?: string[] }[]): string[] {
+    const matches = (result: { members?: string[] }, name: string) => !!result.members?.some(member => member === name || member.startsWith(`${name}.`));
+    const shown = new Set(fields
+        .map(field => validation.find(result => matches(result, field.sourceProperty ?? field.name)))
+        .filter(result => result !== undefined));
+    return [...new Set(validation.filter(result => !shown.has(result)).map(result => result.message))];
 }
 
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {

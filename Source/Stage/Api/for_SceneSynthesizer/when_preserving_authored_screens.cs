@@ -14,10 +14,12 @@ public class when_preserving_authored_screens : given.a_scene_model
 
     void Establish() => _authored = _scene with
     {
-        Screens = [new("AuthoredOverview", _scene.Layouts[0].Name, new Dictionary<string, IReadOnlyList<Cratis.Scene.Model.Elements.SceneElement>>(), [], [])]
+        Screens = [new("AuthoredOverview", string.Empty, new Dictionary<string, IReadOnlyList<Cratis.Scene.Model.Elements.SceneElement>>(), [], [])]
     };
 
     void Because() => _result = SceneSynthesizer.Synthesize(_authored, _semanticModel);
 
     [Fact] void should_preserve_the_authored_scene_without_synthesizing_defaults() => _result.Screens.Select(screen => screen.Name).ShouldContainOnly(["AuthoredOverview"]);
+    [Fact] void should_preserve_the_authored_screens_empty_layout_name() => _result.Screens.Single().Layout.ShouldEqual(string.Empty);
+    [Fact] void should_leave_layouts_empty_for_the_blueprint() => _result.Layouts.ShouldBeEmpty();
 }

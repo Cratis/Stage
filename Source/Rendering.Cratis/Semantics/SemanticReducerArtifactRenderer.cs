@@ -13,6 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Renders one Chronicle reducer with one statically dispatched overload per observed event.</summary>
 internal static class SemanticReducerArtifactRenderer
 {
+    internal const string SelfTransitionMethod = "Apply";
+
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticReducer reducer, SemanticApplicationContext context)
     {
         var model = context.ReadModels[reducer.ReadModel];
@@ -44,19 +46,7 @@ internal static class SemanticReducerArtifactRenderer
         var keyType = model.Properties.Single(_ => _.IsIdentifier).Type;
         var self = context.SelfReduces(reducer.ReadModel);
         var keyMember = Identifiers.ToPascalCase(model.Properties.Single(_ => _.IsIdentifier).Name);
-        var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
-        var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
-            keyType.Primitive == SemanticPrimitiveType.Uuid;
-        var key = $"result.{keyMember}";
-        var typedValue = concept ? $"{key}.TypedValue" : key;
-        var value = concept ? $"{key}.Value" : key;
-        var typedWire = uuid ? $"{typedValue}.ToString()" : typedValue;
-        var valueWire = uuid ? $"{value}.ToString()" : value;
-        var check = $"!global::System.String.Equals({typedWire}, originalSourceId, global::System.StringComparison.Ordinal)";
-        if (concept)
-        {
-            check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
-        }
+        var check = IdentityCheck(keyType, keyMember, context);
 
         foreach (var transition in reducer.Transitions)
         {
@@ -85,7 +75,7 @@ internal static class SemanticReducerArtifactRenderer
             if (analysisRequirement is null)
             {
                 builder.Line("var originalSourceId = eventContext.EventSourceId.Value;")
-                .Line($"var result = {helper}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
+                .Line($"var result = {helper}{(self ? $".{SelfTransitionMethod}" : string.Empty)}(new global::{context.TypedContextsNamespace}.{wrapper}(current, @event, originalSourceId, {tenant}, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));")
                 .OpenBlock($"if (result is not null && ({check}))")
                 .Line("throw new global::System.InvalidOperationException(\"Reducer returned a read model with an identifier different from the event source.\");")
                 .EndBlock()
@@ -95,12 +85,31 @@ internal static class SemanticReducerArtifactRenderer
             {
                 builder.Line("throw new global::System.NotImplementedException();");
             }
-            builder.EndBlock()
-                .BlankLine()
-                .OpenBlock($"static {modelType}? {helper}(global::{context.TypedContextsNamespace}.{wrapper} context)")
+            builder.EndBlock().BlankLine();
+            if (self) builder.OpenBlock($"static class {helper}");
+            builder.OpenBlock($"{(self ? "internal static" : "static")} {modelType}? {(self ? SelfTransitionMethod : helper)}(global::{context.TypedContextsNamespace}.{wrapper} context)")
                 .RawVerbatim(body!)
                 .EndBlock()
                 .BlankLine();
+            if (self) builder.EndBlock().BlankLine();
         }
+    }
+
+    static string IdentityCheck(SemanticTypeReference keyType, string keyMember, SemanticApplicationContext context)
+    {
+        var concept = keyType.Kind == SemanticTypeReferenceKind.Concept;
+        var uuid = concept ? context.Concepts[keyType.Target].Primitive == SemanticPrimitiveType.Uuid :
+            keyType.Primitive == SemanticPrimitiveType.Uuid;
+        var key = $"result.{keyMember}";
+        var typedValue = concept ? $"{key}.TypedValue" : key;
+        var value = concept ? $"{key}.Value" : key;
+        var typedWire = uuid ? $"{typedValue}.ToString()" : typedValue;
+        var valueWire = uuid ? $"{value}.ToString()" : value;
+        var check = $"!global::System.String.Equals({typedWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        if (concept)
+        {
+            check = $"{key} is null || {check} || !global::System.String.Equals({valueWire}, originalSourceId, global::System.StringComparison.Ordinal)";
+        }
+        return check;
     }
 }

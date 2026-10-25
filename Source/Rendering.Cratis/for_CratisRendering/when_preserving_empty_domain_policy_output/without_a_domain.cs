@@ -21,9 +21,22 @@ public class without_a_domain : given.a_domain_policy_plan
         var result = Plan(string.Empty);
         result.Success.ShouldBeTrue();
 
+        var qualified = QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices"));
+
+        // Preserve both the initializer-rename pins and #494's authenticated defaults after merging main's scaffold changes.
+        Digest(BeforeInitializerRename(result.Artifacts)).ShouldEqual("E79FE2D7A065477D198D4DE5057138BB4AABD3B55D45919F92D8B621E26BC130");
+        Digest(BeforeInitializerRename(qualified)).ShouldEqual("5F324E6F7B2864BF1CA9762D4090AAF2084EEE649B6421A836E856FCF21498B0");
         _digest = Digest(result.Artifacts);
-        _qualifiedDigest = Digest(QualifiedCommonOutput.Restore(_loaded.Model, result.Plan!, new("InvoiceApp", "Invoices")));
+        _qualifiedDigest = Digest(qualified);
     }
+
+    static IEnumerable<PlannedArtifact> BeforeInitializerRename(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
+        artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)
+            ? PlannedArtifact.CreateText(
+                artifact.RelativePath,
+                Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("internal static void InitializeGeneratedAuthorization()", "internal static void RegisterPolicy()", StringComparison.Ordinal),
+                artifact.Sources)
+            : artifact);
 
     static string Digest(IEnumerable<PlannedArtifact> artifacts)
     {
@@ -37,7 +50,7 @@ public class without_a_domain : given.a_domain_policy_plan
         return Convert.ToHexString(hash.GetHashAndReset());
     }
 
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("9062A6DD2284AA468581986B6B7FF5F2ECBD4CC1243B8D96B1485AFB06E0481E");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("F99F63EC423FA25C94725A0F75D3A7766092672C2C40913213156ABF3B44B36A");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("E1B2A5CD84402EC04260A80044BFA676A903A30566679981EF93FEC6124F44DB");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("FCB4564727AA3469EB8462D046617AF4F0EF30B79980E38683E441EF4E615024");
 }
 #endif

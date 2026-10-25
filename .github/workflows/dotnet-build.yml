@@ -17,7 +17,8 @@ on:
     # Labels do not trigger skipped required checks. For full coverage:
     # add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow
     # ("Re-run failed jobs" does not rerun routing, so it ignores the label)
-    types: [opened, synchronize, reopened]
+    # Draft PRs wait until they are marked ready for review.
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - "**"
     # Changes outside these paths (documentation, other workflows) do not start this workflow,
@@ -42,6 +43,7 @@ on:
 
 jobs:
   routing:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -66,6 +68,7 @@ jobs:
         run: python3 .github/ci-routing.py route
 
   preflight:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     needs: routing
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -77,6 +80,7 @@ jobs:
         run: python3 Verification/verify-runtime-compatibility.py --self-test
 
   dotnet-build:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     needs: [preflight, routing]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -166,6 +170,7 @@ jobs:
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
   specs:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: specs (${{ matrix.name }})
     needs: [preflight, dotnet-build]
     runs-on: ubuntu-latest
@@ -239,7 +244,7 @@ jobs:
   # skipped. The independent live/generated probe checks stay separate.
   build:
     needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -257,7 +262,7 @@ jobs:
     needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
       && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
@@ -366,7 +371,7 @@ jobs:
     needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
       && needs.routing.outputs.generated-name-matrix == 'true'
     runs-on: ubuntu-latest
@@ -402,11 +407,12 @@ jobs:
   # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
   # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
   standalone-generated-application:
-    needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    needs: [preflight, routing, dotnet-build]
+    # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
+    # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -445,8 +451,8 @@ jobs:
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
           root = ET.parse("TestResults/standalone-generated-application/standalone-generated-application.trx").getroot()
           results = root.findall("t:Results/t:UnitTestResult", ns)
-          if len(results) != 14 or any(result.get("outcome") != "Passed" for result in results):
-              raise SystemExit(f"Expected 14 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          if len(results) != 16 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 16 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
           print(f"{len(results)} standalone application assertions passed")
           PY
 
@@ -466,7 +472,7 @@ jobs:
     needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
       && (needs.routing.outputs.live-custom-packages == 'true' || needs.routing.outputs.live-blueprints == 'true')
     runs-on: ubuntu-latest
@@ -552,7 +558,7 @@ jobs:
     needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -628,7 +634,7 @@ jobs:
     needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
       && needs.routing.outputs.generated-react-blueprint-templates == 'true'
     runs-on: ubuntu-latest
@@ -702,7 +708,7 @@ jobs:
   # Require this check alongside build: a selected lane/step may not silently skip.
   routed-checks:
     needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]
-    if: always()
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -716,7 +722,7 @@ jobs:
 
   nightly-red:
     needs: [build, routed-checks]
-    if: always() && github.event_name == 'schedule' && (needs.build.result != 'success' || needs.routed-checks.result != 'success')
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && github.event_name == 'schedule' && (needs.build.result != 'success' || needs.routed-checks.result != 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

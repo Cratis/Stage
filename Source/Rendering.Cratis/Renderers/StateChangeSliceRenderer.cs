@@ -100,7 +100,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         {
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
-                .OpenBlock("public IEnumerable<object> Handle(CommandContext context)")
+                .OpenBlock($"public {InlineHandlerReturnType.Infer(command.Handler.Code.Code)} Handle(CommandContext context)")
                 .Raw(command.Handler.Code.Code)
                 .EndBlock();
             return;

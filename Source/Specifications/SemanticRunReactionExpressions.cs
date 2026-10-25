@@ -47,7 +47,13 @@ internal static class SemanticRunReactionExpressions
             if (!type.IsOptional) throw new InvalidSemanticContract($"A null {description} is incompatible with a required target.");
             return;
         }
-        if (type.IsCollection) throw new UnsupportedSemanticMapping();
+        if (type.IsCollection)
+        {
+            if (value is not SemanticArrayValue array) throw new InvalidSemanticContract($"A {description} is incompatible with its collection target type.");
+            foreach (var member in array.Values)
+                Validate(plan, member, type with { IsCollection = false, IsOptional = false }, description, depth + 1);
+            return;
+        }
         if (type.Kind == SemanticTypeReferenceKind.CompositeType)
         {
             ValidateObject(plan, value, type, description, depth);

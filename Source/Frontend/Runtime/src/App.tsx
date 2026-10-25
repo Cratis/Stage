@@ -9,6 +9,7 @@ import {
 import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
 import { resolveStringsInElement } from '@cratis/scene.engine';
 import {
+    IconAdapterProvider,
     InteractionScope,
     SceneElementView,
     SliceCommandFieldsProvider,
@@ -49,7 +50,10 @@ import { navigateToScreen, screenArguments } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
+import { standaloneScreenTemplates } from './standaloneScreenTemplates';
 import { withoutSeededSlots } from './withoutSeededSlots';
+import { asDialogScreens } from './stageDialogScreens';
+import { stageIconAdapters } from './stageIcons';
 import './app.css';
 
 export interface StageSceneApplication {
@@ -83,7 +87,7 @@ interface SceneNavigateDetail {
 }
 
 /**
- * The registry a Stage renders with: Scene's core vocabulary, PrimeReact and the default blueprint, then any
+ * The registry a Stage renders with: Scene's core vocabulary, the libraries the profile lists (PrimeReact only then) and the default blueprint, then any
  * components the host adds, then the Stage's own table, action, form and chrome - which always win, because they
  * are what reach the running application.
  * @param components Components the host adds, such as a package an application composes with.
@@ -115,7 +119,7 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     const first = scene.screens[0];
     return effectiveShellOf(scene as ApplicationDocument, first, {
         profile: stageProfile(scene.uiProfiles),
-        blueprintTemplates: screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : undefined,
+        blueprintTemplates: standaloneScreenTemplates(screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates),
     });
 }
 
@@ -130,7 +134,8 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
         // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
-        blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : undefined,
+        // A template that fits inside another one is composed on its own: a Screenplay screen fills only the template it names (standaloneScreenTemplates).
+        blueprintTemplates: standaloneScreenTemplates(blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates),
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
             ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
             : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
@@ -148,7 +153,12 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
  * its slots, the screen inside the template it names - with the Stage's own decisions.
  */
 export function composeStageScreen(scene: StageSceneApplication, screen: Screen, locales: string[], locale: string, packageCatalog?: PackageCatalog, blueprintTemplates?: ScreenTemplate[]): SceneElement {
-    return composeApplicationScreen(scene as ApplicationDocument, screen, stageComposition(scene, locales, locale, packageCatalog, undefined, blueprintTemplates)).element;
+    const [dialog] = asDialogScreens([screen], ownTemplatesOf(scene));
+    return composeApplicationScreen(scene as ApplicationDocument, dialog, stageComposition(scene, locales, locale, packageCatalog, undefined, blueprintTemplates)).element;
+}
+
+function ownTemplatesOf(scene: StageSceneApplication): { name: string }[] {
+    return [...(scene.screenTemplates ?? []), ...(scene.dialogTemplates ?? [])];
 }
 
 /** The browser's local storage, where the shell keeps what a user chose; none where the browser refuses it. */
@@ -182,9 +192,9 @@ export interface AppProps {
 
 export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
     const source = useStageSource();
-    const registry = useMemo(() => stageApplicationRegistry(components), [components]);
     const [scene, setScene] = useState<StageSceneApplication>();
     const [error, setError] = useState('');
+    const registry = useMemo(() => stageApplicationRegistry(components), [components, scene]);
     // Routes and strings are read alongside the scene, not after it, so a command is registered by the time it is first used.
     const routeState = useStageRouteState();
     const strings = useStrings();
@@ -242,7 +252,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
         ...scene,
-        screens: withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]),
+        screens: asDialogScreens(withoutSeededSlots(scene.screens, [...scene.screenTemplates, ...(scene.dialogTemplates ?? []), ...galleryScreenTemplates, ...(screenTemplates ?? [])]), ownTemplatesOf(scene)),
     }) as ApplicationDocument, [scene, screenTemplates]);
 
     if (!initial) {
@@ -335,15 +345,17 @@ function StageScope({ scene, routeState, strings, navigation, themes, shellSetti
     }, [navigate, scene]);
 
     return (
-        <LayoutThemeProvider themes={themes}>
-            {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
-            <ColorSchemeMirror />
-            <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
-                <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
-                    {children}
-                </StageInteractions>
-            </StageDataProvider>
-        </LayoutThemeProvider>
+        <IconAdapterProvider registry={stageIconAdapters}>
+            <LayoutThemeProvider themes={themes}>
+                {shellSettings && <StageShellSettingsApplier settings={shellSettings} onSystemSchemeChange={onSystemSchemeChange} />}
+                <ColorSchemeMirror />
+                <StageDataProvider routes={routeState.routes} routesReady={routeState.ready} parameters={navigation.currentParameters} locale={strings.locale} locales={strings.locales} screen={navigation.primaryScreen ?? scene.screens[0]?.name ?? ''}>
+                    <StageInteractions activity={activity} routesReady={routeState.ready} scene={scene} setActivity={setActivity} strings={strings}>
+                        {children}
+                    </StageInteractions>
+                </StageDataProvider>
+            </LayoutThemeProvider>
+        </IconAdapterProvider>
     );
 }
 

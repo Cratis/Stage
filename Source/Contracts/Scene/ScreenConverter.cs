@@ -27,8 +27,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <para>
 /// A screen <em>never</em> names the application's <c language="csharp">layout</c> - the shell is selected once per build by a
 /// <c language="csharp">ui profile</c>, which is what keeps a screen portable across web, mobile and desktop. Scene's
-/// <see cref="SceneScreens.Screen.Layout"/> is nevertheless a required, resolved name, so the caller resolves
-/// it from the application's declared shell and passes it in.
+/// <see cref="SceneScreens.Screen.Layout"/> is a non-null name, so the caller resolves it from the application's
+/// declared shell, or passes an empty name when the blueprint supplies the shell.
 /// </para>
 /// <para>
 /// A Level-1 "intent" screen (per <c language="csharp">screens.md</c>) names no template at all - <c language="csharp">data</c>/<c language="csharp">action</c> sit
@@ -57,6 +57,8 @@ namespace Cratis.Stage.Contracts.Scene;
 /// </remarks>
 public static class ScreenConverter
 {
+    static readonly string[] _toolbarSlotNames = ["toolbar", "actions"];
+
     /// <summary>
     /// Converts a <see cref="ScreenplaySyntax.ScreenSyntax"/> that attaches no interactions.
     /// </summary>
@@ -191,10 +193,38 @@ public static class ScreenConverter
                 slot => ScreenDirectiveConverter.Convert(slot.Directives, $"{screen.Name}.{slot.Name}", scope, attached),
                 StringComparer.Ordinal);
 
+            ContributeFeatureToolbars(screen.Name, templateReference.Name, slotContent, scope, attached);
             return (templateReference.Name, slotContent);
         }
 
         return (null, ContentSlot(ScreenDirectiveConverter.Convert(screen.Directives, screen.Name, scope, attached)));
+    }
+
+    // The toolbars the feature and the module above the screen declare are the buttons of the toolbar slot of the template the screen fills, after
+    // what the screen puts there itself. A template the document declares tells which slot that is; a template of a package is taken to have the usual one.
+    static void ContributeFeatureToolbars(
+        string screenName,
+        string template,
+        Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> slotContent,
+        BehaviorScope scope,
+        ICollection<SceneInteractions.Behavior> attached)
+    {
+        if (scope.FeatureToolbars.Count == 0)
+        {
+            return;
+        }
+
+        var slot = scope.DeclaredTemplateSlots.TryGetValue(template, out var declared)
+            ? _toolbarSlotNames.FirstOrDefault(name => declared.Contains(name, StringComparer.OrdinalIgnoreCase))
+            : _toolbarSlotNames[0];
+
+        if (slot is null)
+        {
+            return;
+        }
+
+        var contributed = ScreenDirectiveConverter.Convert(scope.FeatureToolbars, $"{screenName}.{slot}.feature", scope, attached);
+        slotContent[slot] = [.. slotContent.GetValueOrDefault(slot) ?? [], .. contributed];
     }
 
     static Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> ContentSlot(IReadOnlyList<SceneElements.SceneElement> content) =>

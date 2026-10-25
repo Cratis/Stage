@@ -69,6 +69,15 @@ internal static class SemanticStateChangeArtifactRenderer
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
 
+        if (@event.Origin is { } origin)
+        {
+            builder.Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(origin)})");
+        }
+        else if (@event.Visibility == SemanticEventVisibility.Public)
+        {
+            builder.Attribute("global::Cratis.Chronicle.Events.PublicAttribute");
+        }
+
         // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
         var products = SemanticProjectionProducts.For(@event, context);
         if (products.Count == 0)
@@ -304,8 +313,9 @@ internal static class SemanticStateChangeArtifactRenderer
 
         var commandName = Identifiers.ToPascalCase(command.Name);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
-            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
-            .OpenBlock($"public {commandName}Validator()");
+            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>");
+        SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
+        builder.OpenBlock($"public {commandName}Validator()");
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         foreach (var rule in command.Validations)
         {
@@ -338,13 +348,7 @@ internal static class SemanticStateChangeArtifactRenderer
             SemanticRequirementRendering.Render(builder, requirement, command, context);
         }
 
-        builder.EndBlock();
-        if (command.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
-        {
-            SemanticValidationRendering.RenderMatchHelper(builder);
-        }
-
-        builder.EndBlock();
+        builder.EndBlock().EndBlock();
     }
 
     static SemanticValidationRendering.ConceptRendering CommandConceptRendering(SemanticValidationRule rule, SemanticProperty property, SemanticApplicationContext context)

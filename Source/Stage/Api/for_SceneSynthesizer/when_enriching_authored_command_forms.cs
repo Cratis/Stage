@@ -23,7 +23,7 @@ public class when_enriching_authored_command_forms : given.a_scene_model
             [
                 new(
                     "ProjectRegistration",
-                    _scene.Layouts[0].Name,
+                    string.Empty,
                     new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal),
                     [new SceneForms.Form("Register project", "RegisterProject", null, [], SceneForms.FormGenerationMode.Auto)],
                     [])

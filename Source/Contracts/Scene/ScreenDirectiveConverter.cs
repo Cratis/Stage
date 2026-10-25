@@ -168,7 +168,7 @@ public static class ScreenDirectiveConverter
                 ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
                 [SceneElementProperties.Destination] = ToolbarDestination(item),
                 ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
-            })).ToList();
+            }.WithConfirm(item.Confirm))).ToList();
 
         // A button invokes a State Change slice: Scene's toolbar button is a core:toolbarItem of kind Action with a slice and an
         // emphasis, read back by the engine's ToolbarButtons.FromItem. The slice is written as the qualified id the structure knows.
@@ -183,9 +183,20 @@ public static class ScreenDirectiveConverter
                 ["slice"] = button.Slice is null ? null : StructureConverter.QualifiedSlice(scope.Structure, button.Slice),
                 ["emphasis"] = button.Emphasis?.ToString().ToLowerInvariant(),
                 ["icon"] = button.Icon,
-            })));
+            }.WithConfirm(button.Confirm))));
 
         return SceneElementFactory.Component(id, "core:toolbar", new Dictionary<string, object?> { ["name"] = toolbar.Name }, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["items"] = items });
+    }
+
+    // A confirmation is written only when the item asks one, so a toolbar that never asks keeps the Scene it always produced.
+    static Dictionary<string, object?> WithConfirm(this Dictionary<string, object?> properties, string? confirm)
+    {
+        if (confirm is not null)
+        {
+            properties["confirm"] = confirm;
+        }
+
+        return properties;
     }
 
     // Where a navigate or dialog item opens, so a renderer executes it through the same destination model every other
@@ -290,10 +301,20 @@ public static class ScreenDirectiveConverter
         };
 
         var columns = table.Columns
-            .Select((column, index) => (SceneElements.SceneElement)SceneElementFactory.Component(
-                $"{id}.{index}-column",
-                "core:column",
-                new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label }))
+            .Select((column, index) =>
+            {
+                var columnProperties = new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label };
+                if (scope.Enumerations is { } enumerations && enumerations.TryGetValue(table.Target, out var fields) && fields.TryGetValue(column.Property, out var members))
+                {
+                    columnProperties["options"] = members;
+                    if (scope.EnumerationNumbers is { } numbers && numbers.TryGetValue(table.Target, out var numberedFields) && numberedFields.TryGetValue(column.Property, out var memberNumbers))
+                    {
+                        columnProperties["optionValues"] = memberNumbers;
+                    }
+                }
+
+                return (SceneElements.SceneElement)SceneElementFactory.Component($"{id}.{index}-column", "core:column", columnProperties);
+            })
             .ToList();
 
         return SceneElementFactory.Component(id, "core:table", properties, new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>> { ["columns"] = columns }) with

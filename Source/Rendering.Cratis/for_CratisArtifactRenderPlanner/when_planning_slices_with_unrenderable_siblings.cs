@@ -54,12 +54,12 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
                   projection Invoices => InvoiceView
                     remove with InvoiceRemoved key invoiceId
                   specification RemovingAnInvoice
-                    given readmodel InvoiceView
+                    given InvoiceRemoved
                       invoiceId = "first"
                     when append InvoiceRemoved
                       invoiceId = "first"
                     then no readmodel InvoiceView for "first"
-            """, SemanticVersion.V5, "STAGE-ESM-011"),
+            """, SemanticVersion.V5, "STAGE-ESM-051"),
             ("""
                 slice StateChange Unsupported
                   command RegisterOtherProject
@@ -85,7 +85,7 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
             var artifact = sibling.Code switch
             {
                 "STAGE-ESM-024" => slice.Reactions.Single().Id,
-                "STAGE-ESM-011" => slice.Specifications.Single().Id,
+                "STAGE-ESM-051" => slice.Specifications.Single().Id,
                 _ => slice.Commands.Single().Id
             };
             var compilation = SemanticExecutionPlan.Compile(model);
@@ -104,13 +104,13 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
         }
     }
 
-    [Fact] void should_cover_every_later_version_refusal() => _plans.Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-011", "STAGE-ESM-038", "STAGE-ESM-038"]);
+    [Fact] void should_cover_every_later_version_refusal() => _plans.Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-051", "STAGE-ESM-038", "STAGE-ESM-038"]);
     [Fact] void should_render_the_clean_slice_in_every_model() => _plans.TrueForAll(plan => plan.Clean.Success).ShouldBeTrue();
     [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.TrueForAll(plan => !plan.Refused.Success).ShouldBeTrue();
     [Fact] void should_report_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
-    [Fact] void should_not_blanket_refuse_scalar_absence() => _plans.Single(plan => plan.Code == "STAGE-ESM-011").Refused.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
+    [Fact] void should_not_blanket_refuse_scalar_absence() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
     [Fact] void should_emit_no_partial_artifacts_for_the_offending_slice() => _plans.SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
 }

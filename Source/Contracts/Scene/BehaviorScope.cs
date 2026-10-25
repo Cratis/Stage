@@ -26,6 +26,11 @@ public sealed record BehaviorScope(
     public IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>? Enumerations { get; init; }
 
     /// <summary>
+    /// Gets the explicit numbers of the members of every explicitly numbered enumeration-typed read model field, by read model and then field.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>>? EnumerationNumbers { get; init; }
+
+    /// <summary>
     /// Gets the read model the nearest <c language="csharp">data</c> declaration reads, which a guard's <c language="csharp">item</c> is.
     /// </summary>
     public string? Subject { get; init; }
@@ -34,6 +39,16 @@ public sealed record BehaviorScope(
     /// Gets the modules, features and slices of the application, which a toolbar button's slice reference resolves against.
     /// </summary>
     public Cratis.Scene.Model.Structure.ApplicationStructure? Structure { get; init; }
+
+    /// <summary>
+    /// Gets the toolbars the feature and the module above a screen declare, outermost first, which the screen's template fills into its <c language="csharp">toolbar</c> slot.
+    /// </summary>
+    public IReadOnlyList<ScreenplaySyntax.ScreenToolbarSyntax> FeatureToolbars { get; init; } = [];
+
+    /// <summary>
+    /// The templates the document declares, by name, with the slots each has - the only way to know whether a template has a toolbar slot.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> DeclaredTemplateSlots { get; init; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
 
     /// <summary>
     /// A scope for a document that declares nothing, used where behaviors are not being translated.
@@ -47,7 +62,7 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), Structure = StructureConverter.Convert(syntax) };
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), EnumerationNumbers = EnumerationNumbersIn(syntax), Structure = StructureConverter.Convert(syntax) };
 
     /// <summary>
     /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the
@@ -97,6 +112,24 @@ public sealed record BehaviorScope(
             result[readModel.Name] = readModel.Properties
                 .Where(property => enumerations.ContainsKey(property.Type.Name))
                 .ToDictionary(property => property.Name, property => enumerations[property.Type.Name], StringComparer.OrdinalIgnoreCase);
+        }
+
+        return result;
+    }
+
+    static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>> EnumerationNumbersIn(ScreenplaySyntax.ApplicationSyntax syntax)
+    {
+        var numbered = syntax.Concepts
+            .Where(concept => concept.IsEnum && concept.ValueNumbers is not null)
+            .GroupBy(concept => concept.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<int>)[.. group.First().ValueNumbers!], StringComparer.Ordinal);
+        var result = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>>(StringComparer.Ordinal);
+
+        foreach (var readModel in syntax.Modules.SelectMany(module => Slices(module.Features)).SelectMany(slice => slice.ReadModels ?? []))
+        {
+            result[readModel.Name] = readModel.Properties
+                .Where(property => numbered.ContainsKey(property.Type.Name))
+                .ToDictionary(property => property.Name, property => numbered[property.Type.Name], StringComparer.OrdinalIgnoreCase);
         }
 
         return result;

@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import type { ExternalComponent } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
-import { Button } from 'primereact/button';
+import { Button } from '@cratis/components/Common';
 import { useStageData, useStageQuery } from './stageData';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { canEvaluate, firstMatch, subjectPath, subjectValue, unevaluableGuardCode, type SubjectReference } from './stageGuards';
@@ -42,7 +42,8 @@ export function isGuardedAction(element: ExternalComponent): boolean {
 
 /**
  * Reads the item a guarded action is about: the single record its nearest `data` declaration reads, which the data
- * source binding carried onto the action as `itemQuery`, `itemRoute` and `itemArguments`.
+ * source binding carried onto the action as `itemQuery`, `itemRoute` and `itemArguments` - or, when that declaration reads
+ * a collection (`itemSelection`), the row the person selected.
  */
 function useGuardSubject(element: ExternalComponent) {
     const data = useStageData();
@@ -59,7 +60,11 @@ function useGuardSubject(element: ExternalComponent) {
         if (value === undefined || value === null || value === '') ready = false;
     }
 
-    const result = useStageQuery({ scope: `${element.id}:item`, name: query || undefined, route: route || undefined, arguments: values, ready, publish: false });
+    // A collection subject is read through the table that shows it: the item is the one row selected on the screen.
+    const selection = element.properties.itemSelection === true;
+    const selectedRows = Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined);
+    const result = useStageQuery({ scope: `${element.id}:item`, name: query || undefined, route: route || undefined, arguments: values, ready: ready && !selection, publish: false });
+    if (selection) return { hasSource: true, item: selectedRows.length === 1 ? selectedRows[0] : undefined };
     return { hasSource: !!query || !!route, item: result.rows.length === 1 ? result.rows[0] : undefined };
 }
 

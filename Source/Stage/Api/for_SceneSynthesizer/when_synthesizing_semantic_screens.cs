@@ -22,4 +22,8 @@ public class when_synthesizing_semantic_screens : given.a_scene_model
     [Fact] void should_produce_the_same_scene_as_the_event_model_path() => JsonSerializer.Serialize(_semantic).ShouldEqual(JsonSerializer.Serialize(_legacy));
     [Fact] void should_synthesize_both_the_command_and_read_model_screens() => _semantic.Screens.Count.ShouldEqual(2);
     [Fact] void should_keep_nested_slice_names() => _semantic.Screens.Select(screen => screen.Name).ShouldContainOnly(["RegisterProject", "ProjectLookup"]);
+    [Fact] void should_not_invent_an_application_layout() => _semantic.Layouts.ShouldBeEmpty();
+    [Fact] void should_leave_the_shell_for_the_default_blueprint_to_resolve() => _semantic.Screens.All(screen => string.IsNullOrEmpty(screen.Layout)).ShouldBeTrue();
+    [Fact] void should_not_invent_a_layout_on_the_event_model_path() => _legacy.Layouts.ShouldBeEmpty();
+    [Fact] void should_leave_the_event_model_screens_without_a_layout() => _legacy.Screens.All(screen => string.IsNullOrEmpty(screen.Layout)).ShouldBeTrue();
 }

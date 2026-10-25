@@ -3,6 +3,7 @@
 
 import { Command } from '@cratis/arc/commands';
 import { PropertyDescriptor } from '@cratis/arc/reflection';
+import { DateOnly } from '@cratis/fundamentals';
 import { registerCommand } from '@cratis/scene.components';
 import type { StageRoutes } from '@cratis/stage.runtime';
 
@@ -33,6 +34,16 @@ function commandTypeFor(route: string, schema: string, responseKind?: string): n
         readonly propertyDescriptors = descriptors;
         get requestParameters(): string[] { return []; }
 
+        override setInitialValues(values: object): void {
+            const initialValues: Record<string, unknown> = { ...values };
+            for (const descriptor of descriptors) {
+                if (descriptor.type === DateOnly && Object.hasOwn(initialValues, descriptor.name)) {
+                    initialValues[descriptor.name] = dateOnlyValue(initialValues[descriptor.name]);
+                }
+            }
+            super.setInitialValues(initialValues);
+        }
+
         constructor() {
             super(responseType, false);
             const values: Record<string, unknown> = {};
@@ -42,7 +53,7 @@ function commandTypeFor(route: string, schema: string, responseKind?: string): n
                     enumerable: true,
                     get: () => values[descriptor.name],
                     set: (value: unknown) => {
-                        values[descriptor.name] = value;
+                        values[descriptor.name] = descriptor.type === DateOnly ? dateOnlyValue(value) : value;
                         this.propertyChanged(descriptor.name);
                     },
                 });
@@ -65,9 +76,20 @@ function constructorFor(definition: unknown) {
     if (type === 'integer' || type === 'number') return Number;
     if (type === 'boolean') return Boolean;
     if (type === 'array') return Array;
-    if (definition.format === 'date' || definition.format === 'date-time') return Date;
+    if (definition.format === 'date') return DateOnly;
+    if (definition.format === 'date-time') return Date;
     if (type === 'string') return String;
     return Object;
+}
+
+function dateOnlyValue(value: unknown): unknown {
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? value : DateOnly.fromDate(value);
+    if (typeof value !== 'string') return value;
+    try {
+        return DateOnly.parse(value);
+    } catch {
+        return value;
+    }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

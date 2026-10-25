@@ -46,15 +46,27 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
     /// <returns>The translated Scene with conversion diagnostics.</returns>
     public SceneApplication Convert(ScreenplaySyntax.ApplicationSyntax syntax) => Convert(syntax, new ConversionDiagnostics());
 
-    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics)
+    static List<SceneLayouts.Layout> ConvertLayouts(ScreenplaySyntax.ApplicationSyntax syntax, BehaviorScope scope, ConversionDiagnostics? diagnostics) =>
+        [
+            .. (syntax.Layouts ?? [])
+                .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
+                {
+                    Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
+                })
+        ];
+
+    // A screen that fills a dialog template opens over a page; it is never where an application starts or where a feature lands. Hosts take
+    // the first screen of the application, or of a feature, as that landing page, and the board orders a command's slice - and so its
+    // dialog - before the list that shows what the command changed. Pages therefore come first and dialogs after, each group in the order
+    // it was declared.
+    static List<SceneScreens.Screen> PagesBeforeDialogs(List<SceneScreens.Screen> screens) =>
+        [.. screens.OrderBy(screen => FillsDialogTemplate(screen.ScreenTemplate))];
+
+    static bool FillsDialogTemplate(string? template)
     {
-        var layouts = (syntax.Layouts ?? [])
-            .Select(layout => LayoutConverter.Convert(layout, diagnostics) with
-            {
-                Behaviors = scope.Resolve(layout.Behaviors, layout.UsedBehaviors, layout.Name)
-            })
-            .ToList();
-        return layouts.Count > 0 ? layouts : [DefaultLayout.Create()];
+        if (string.IsNullOrWhiteSpace(template)) return false;
+        var name = template.Split(['.', ' '], StringSplitOptions.RemoveEmptyEntries)[^1];
+        return name.EndsWith("Dialog", StringComparison.Ordinal) || name == "SideSheet";
     }
 
     static void ConvertModuleScreens(
@@ -68,6 +80,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         // What a module contributes belongs to every screen beneath it, recorded against the module alone.
         IReadOnlyList<string> path = [module.Name];
+        scope = scope with { FeatureToolbars = [.. module.Toolbars] };
         IReadOnlyList<SceneContributionPoints.Contribution> contributed = [.. (module.Contributions ?? [])
             .Select((contribution, index) => ContributionConverter.Convert(contribution, $"{module.Name}.contribution[{index}]", path, scope.Diagnostics))];
         foreach (var feature in module.Features)
@@ -86,6 +99,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         IReadOnlyList<SceneModel.Behavior> inherited,
         IReadOnlyList<SceneContributionPoints.Contribution> moduleContributions)
     {
+        scope = scope with { FeatureToolbars = [.. scope.FeatureToolbars, .. feature.Toolbars] };
         IReadOnlyList<string> hierarchy = [.. parentPath, feature.Name];
         var path = string.Join('.', hierarchy);
         var contributions = moduleContributions
@@ -118,7 +132,14 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
         new UiSyntaxAdmission(diagnostics).VisitApplication(syntax);
         var uiProfiles = syntax.UiProfiles?.SelectMany(profile => UiProfileConverter.Convert(profile, diagnostics)).ToList() ?? [];
         var themes = syntax.Themes?.Select(ThemeConverter.Convert).ToList() ?? [];
-        var scope = BehaviorScope.For(syntax, _findings) with { Diagnostics = diagnostics };
+        var scope = BehaviorScope.For(syntax, _findings) with
+        {
+            Diagnostics = diagnostics,
+            DeclaredTemplateSlots = syntax.Modules
+                .SelectMany(module => module.ScreenTemplates ?? [])
+                .GroupBy(template => template.Name, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)[.. group.First().Slots.Select(slot => slot.Name)], StringComparer.Ordinal)
+        };
         var layouts = ConvertLayouts(syntax, scope, diagnostics);
 
         var screenTemplates = new List<SceneScreens.ScreenTemplate>();
@@ -137,7 +158,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
                 {
                     Behaviors = scope.Resolve(template.Behaviors, template.UsedBehaviors, template.Name)
                 }));
-            ConvertModuleScreens(module, layouts[0].Name, screens, scope);
+            ConvertModuleScreens(module, layouts.FirstOrDefault()?.Name ?? string.Empty, screens, scope);
         }
 
         var runtime = new SceneRuntimeAdmission();
@@ -145,7 +166,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
 
         var structure = scope.Structure ?? StructureConverter.Convert(syntax);
 
-        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, screens)
+        return new SceneApplication(uiProfiles, themes, layouts, screenTemplates, dialogTemplates, PagesBeforeDialogs(screens))
         {
             Exposures = [.. (syntax.Exposures ?? []).Select(exposure => CompositionConverter.Exposure(exposure, diagnostics))],
             InstanceContributions = [.. (syntax.InstanceContributions ?? []).SelectMany(CompositionConverter.Instance)],

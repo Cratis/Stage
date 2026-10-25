@@ -13,10 +13,11 @@ public class when_auditing_the_ui_surface : Specification
     // Freeze the consumed owners as well as every new UI node. A dependency bump that adds a
     // member must make an explicit render/refuse decision rather than silently extending this list.
     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
+    // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
     [Theory]
-    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions Systems Templates Themes Triggers Types UiProfiles")]
-    [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates UsedBehaviors")]
-    [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Purposes Slices Templates UsedBehaviors")]
+    [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StickyNotes Systems Templates Themes Triggers Types UiProfiles")]
+    [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]
+    [InlineData(typeof(FeatureSyntax), "Authorize Behaviors Contributions DependsOn Description Documentation Examples Features FileImports IsPlacement Name Purposes Slices Templates Toolbars UsedBehaviors")]
     [InlineData(typeof(SliceSyntax), "Captures Commands Constraints Description DescriptionLocation DescriptionRawLength Direction Documentation EffectiveDirection Events Examples File Name Operations Projections Purposes Queries Reactions ReadModels Reducers Screens Specifications Templates Type")]
     [InlineData(typeof(InteractionBindingSyntax), "Actions Alternatives Condition Otherwise Trigger")]
     [InlineData(typeof(InteractionAlternativeSyntax), "Actions Condition")]
@@ -48,12 +49,12 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(PresentationValueSyntax), "Name Value")]
     [InlineData(typeof(ComponentOutletSyntax), "Directives Name")]
     [InlineData(typeof(ScreenToolbarSyntax), "Buttons Items Name")]
-    [InlineData(typeof(ToolbarButtonSyntax), "Authorize Emphasis Icon Id Slice Title")]
+    [InlineData(typeof(ToolbarButtonSyntax), "Authorize Confirm Emphasis Icon Id Slice Title")]
     [InlineData(typeof(NavigationRegionSyntax), "Buttons Items Logo Mode Region")]
     [InlineData(typeof(NavigationItemSyntax), "Children Icon Id Slot Target Title")]
     [InlineData(typeof(NavigationTargetSyntax), "Feature Module")]
     [InlineData(typeof(NavigationLogoSyntax), "Image Title")]
-    [InlineData(typeof(ToolbarItemSyntax), "Icon Kind Label Name Parameters Presentation Target")]
+    [InlineData(typeof(ToolbarItemSyntax), "Confirm Icon Kind Label Name Parameters Presentation Target")]
     [InlineData(typeof(ScreenNavigationParameterSyntax), "Binding Name")]
     [InlineData(typeof(TemplateAssignmentSyntax), "Blueprint Name Version")]
     [InlineData(typeof(RootTemplateSyntax), "Blueprint Name Options Version")]

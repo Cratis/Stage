@@ -26,12 +26,14 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
         _plan = invoice_model.Plan(_model);
     }
 
-    // All three digests include #494's authenticated endpoint attributes, access-default README and informational diagnostics,
-    // plus main's route-qualified query registrations, native query proxies and cleaned frontend tsconfigs.
     [Fact] void should_admit_the_lookup_only_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("7c9aba3945dc17dc10e7d77bee03b2f67c7ca4f3bea23bb968e7192b9ef48708");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("dacf338f9465178334552aaba6d693c60717527cab6e6e563348cf01322ed044");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("a181979a5baf1d4b05a67ff7a9190fbe975247e861553cafcf49fca2158e6411");
+    // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
+    // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
+    // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
+    // Re-frozen after merging main: retain #494's authenticated endpoints, callers, README and notes alongside main's scaffold changes.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("ad278142014a25b6e97385473e8a4ddd23ffcad88bc42750ac837492e1ac58cb");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("de6e0c9945a3d93e54b41d602024c71d6116b8a48b9051b0066006b8a48d3162");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("9f480d0e8fcd885e14ccffe33d909d95fd0b301c4e8e48d13dcbd5bf8ba30a81");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

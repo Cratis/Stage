@@ -17,7 +17,8 @@ namespace Cratis.Stage.Api;
 /// <remarks>
 /// A document that declares its own screens keeps them exactly as written. Otherwise, one screen per slice
 /// shows its read model and command. Elements carry the artifact's emitted type name so the host can attach
-/// the route actually registered for it rather than guessing a URL.
+/// the route actually registered for it rather than guessing a URL. When no layout is authored, screens
+/// leave the layout name empty so Scene selects the installed blueprint's default shell.
 /// </remarks>
 public static class SceneSynthesizer
 {
@@ -102,9 +103,16 @@ public static class SceneSynthesizer
                 readModel?.Name,
                 readModel is null ? null : SemanticSchemas.Schema(readModel.Properties, model.Application),
                 command?.Name,
-                command is null ? null : commands.GetValueOrDefault(command.Name)));
+                command is null ? null : commands.GetValueOrDefault(command.Name),
+                ColumnOptions(model.Application, readModel?.Properties ?? [])));
         }));
     }
+
+    static Dictionary<string, IReadOnlyList<string>> ColumnOptions(SemanticApplication application, IEnumerable<SemanticProperty> properties) => properties
+        .Where(property => !property.Type.IsCollection)
+        .Select(property => (property.Name, Concept: application.Concepts.FirstOrDefault(concept => property.Type.Target == concept.Id && !concept.Values.IsEmpty)))
+        .Where(entry => entry.Concept is not null)
+        .ToDictionary(entry => entry.Name, entry => (IReadOnlyList<string>)entry.Concept!.Values, StringComparer.Ordinal);
 
     static SceneApplication Synthesize(SceneApplication scene, IEnumerable<SynthesizedSlice> slices)
     {
@@ -113,8 +121,7 @@ public static class SceneSynthesizer
             return scene;
         }
 
-        var layout = scene.Layouts.Count > 0 ? scene.Layouts[0] : DefaultLayout.Create();
-        var layouts = scene.Layouts.Count > 0 ? scene.Layouts : [layout];
+        var layoutName = scene.Layouts.Count > 0 ? scene.Layouts[0].Name : string.Empty;
         var screens = new List<SceneScreens.Screen>();
         var names = new HashSet<string>(StringComparer.Ordinal);
 
@@ -122,7 +129,7 @@ public static class SceneSynthesizer
         {
             screens.Add(new SceneScreens.Screen(
                 UniqueName(slice, names),
-                layout.Name,
+                layoutName,
                 new Dictionary<string, IReadOnlyList<SceneElements.SceneElement>>(StringComparer.Ordinal)
                 {
                     [DefaultLayout.ContentSlotName] = slice.Content
@@ -131,7 +138,7 @@ public static class SceneSynthesizer
                 []));
         }
 
-        return scene with { Layouts = layouts, Screens = screens };
+        return scene with { Screens = screens };
     }
 
     static string UniqueName(SynthesizedSlice slice, HashSet<string> taken)

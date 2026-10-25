@@ -19,7 +19,10 @@ public class when_recovering_protected_command_reads : given.a_rendered_applicat
     [Fact] void should_recover_the_read_backed_requirement() => Recovered("Consume").Validations.OfType<DeclarativeValidateSyntax>().SelectMany(validation => validation.Requirements!).Select(requirement => requirement.Message).ShouldEqual(["The stored value must not be empty."]);
     [Fact] void should_recover_the_read_path_mapping() => ((PathExpressionSyntax)Recovered("Consume").Produces.Single().Mappings.Single().Source).Path.ShouldEqual("Current.value");
 
-    CommandSyntax Recovered(string name) => _recoveredAuthoring.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices)
+    static IEnumerable<SliceSyntax> Slices(IEnumerable<FeatureSyntax> features) =>
+        features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
+
+    CommandSyntax Recovered(string name) => _recoveredAuthoring.Modules.SelectMany(module => Slices(module.Features))
         .SelectMany(slice => slice.Commands).Single(command => command.Name == name);
 }
 #endif

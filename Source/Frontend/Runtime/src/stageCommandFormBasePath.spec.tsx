@@ -29,7 +29,7 @@ describe('a command form in a Stage served under a path prefix', () => {
             </PrimeReactProvider>,
         );
         fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'ACM-1001' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Add to basket' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Add to basket' }));
 
         await waitFor(() => expect(fetched.mock.calls.some(([url]) => String(url).includes('add-to-basket'))).toBe(true));
         const posted = fetched.mock.calls.map(([url]) => new URL(String(url), 'http://localhost').pathname).find(path => path.includes('add-to-basket'));

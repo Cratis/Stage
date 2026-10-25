@@ -10,6 +10,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
@@ -59,8 +60,7 @@ public class when_comparing_described_command_handlers : Specification
         differences.ShouldBeEmpty();
 
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("DescribedHandlers", "DescribedHandlers"));
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(rendered, "STAGE-IMPL-002");
         rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-IMPL-002" && diagnostic.Message.Contains("ApplyLateFee", StringComparison.Ordinal));
     }
 

@@ -26,5 +26,5 @@ public class with_a_reducer : Specification
     }
 
     [Fact] void should_reject_the_unverified_reducer_with_020() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-020");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_reducer_and_compile_the_retained_artifacts() => rendering_refusals.Rejected(_plan, "STAGE-ESM-020");
 }

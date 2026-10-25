@@ -22,7 +22,7 @@ public class without_typed_contexts : Specification
         _plan = opaque_policy_model.Plan(loaded with { TypedContextDescriptors = [] });
     }
 
-    [Fact] void should_render_nothing() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_render_nothing() => rendering_refusals.Rejected(_plan, "STAGE-ESM-021");
     [Fact] void should_name_the_missing_policy_context() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Message.Contains("PolicyContext", StringComparison.Ordinal));
 }
 #endif

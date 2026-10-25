@@ -12,15 +12,9 @@
 //   - the page is accessible in the browser: axe-core WCAG 2.0/2.1/2.2 A and AA - colour contrast and target size included - and the
 //     landmark structure (one main, no duplicates, unique names, content inside a landmark, a level-one heading).
 // A control breaks the page it just judged and expects every kind of finding, so a clean run is never vacuous.
-const { readFileSync } = require('node:fs');
-const path = require('node:path');
-
-// STAGE_VECTOR_EXTRA_CSS names a stylesheet to add to every page: a way to try a stylesheet fix against the vector before the package that ships it is released.
-const extraCss = process.env.STAGE_VECTOR_EXTRA_CSS ? readFileSync(process.env.STAGE_VECTOR_EXTRA_CSS, 'utf8') : undefined;
-const axeSource = readFileSync(require.resolve('axe-core/axe.min.js', { paths: [path.join(__dirname, '..', 'generated-react-browser')] }), 'utf8');
+const { show, schemes, formatViolations } = require('./contrast.cjs');
 
 const viewports = { desktop: { width: 1440, height: 900 }, tablet: { width: 768, height: 1024 }, phone: { width: 375, height: 667 } };
-const schemes = ['light', 'dark'];
 
 // Slots are the ids the blueprint's template content gives its elements; a slot is filled when every id is on the page with some content.
 const screens = [
@@ -34,16 +28,6 @@ const landmarkRules = [
     'landmark-main-is-top-level', 'landmark-banner-is-top-level', 'landmark-contentinfo-is-top-level', 'landmark-complementary-is-top-level', 'region', 'page-has-heading-one',
 ];
 
-async function show(page, baseUrl, screen, scheme) {
-    await page.goto(`${baseUrl}/#/${screen.screen}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-    await page.locator(`[data-scene-id="template-${screen.screen}-${screen.template}"]`).waitFor({ timeout: 30_000 });
-    // The colour scheme is the Scene configuration's: the layout wrapper carries it (the Stage's theme switcher sets the same attribute).
-    await page.evaluate(value => { document.querySelectorAll('[data-scene-color-scheme]').forEach(element => element.setAttribute('data-scene-color-scheme', value)); }, scheme);
-    if (extraCss) await page.addStyleTag({ content: extraCss });
-    await page.waitForTimeout(400);
-    await page.addScriptTag({ content: axeSource });
-}
-
 const box = (page, id) => page.evaluate(identifier => {
     const element = document.querySelector(`[data-scene-id="${identifier}"]`);
     if (!element) return null;
@@ -52,17 +36,13 @@ const box = (page, id) => page.evaluate(identifier => {
 }, id);
 
 async function audit(page) {
-    return page.evaluate(async rules => {
+    const violations = await page.evaluate(async rules => {
         const axe = window.axe;
         const wcag = await axe.run(document.body, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }, rules: { region: { enabled: false } } });
         const landmarks = await axe.run(document.body, { runOnly: { type: 'rule', values: rules } });
-        const describe = node => {
-            const data = node.any?.find(check => check.data?.contrastRatio)?.data;
-            const detail = data ? ` [${data.fgColor} on ${data.bgColor}, ${data.contrastRatio}:1, needs ${data.expectedContrastRatio}]` : '';
-            return `${node.target.join(' ')}${detail} ${node.html.slice(0, 120)}`;
-        };
-        return [...wcag.violations, ...landmarks.violations].map(violation => `${violation.id}: ${violation.nodes.map(describe).slice(0, 4).join(', ')}`);
+        return [...wcag.violations, ...landmarks.violations];
     }, landmarkRules);
+    return formatViolations(violations);
 }
 
 const overflowOf = page => page.evaluate(() => (document.documentElement.scrollWidth > window.innerWidth ? `the page is ${document.documentElement.scrollWidth}px wide in a ${window.innerWidth}px window` : null));

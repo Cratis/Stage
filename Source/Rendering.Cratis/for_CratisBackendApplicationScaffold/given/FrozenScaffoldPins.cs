@@ -29,6 +29,7 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
+                ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
                 ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
                 ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
                 ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
@@ -63,6 +64,13 @@ internal static class FrozenScaffoldPins
             {
                 text = text.Replace($"\"@cratis/{pin.Id}\": \"{pin.Current}\"", $"\"@cratis/{pin.Id}\": \"{pin.Baseline}\"", StringComparison.Ordinal);
             }
+        }
+
+        if (previous)
+        {
+            // Cratis/Stage#734 and #741 intentionally changed the scaffolded Yarn files; the previous frozen plan predates both.
+            text = text.Replace("nodeLinker: node-modules\nnpmPreapprovedPackages:\n  - \"@cratis/*\"", "nodeLinker: node-modules", StringComparison.Ordinal)
+                .Replace("node_modules/\n.yarn/\n", "node_modules/\n", StringComparison.Ordinal);
         }
 
         return text.Replace($"cratis/chronicle:{profile.ChronicleImageVersion}-development", $"cratis/chronicle:{(previous ? "19.55.2" : "19.71.0")}-development", StringComparison.Ordinal);

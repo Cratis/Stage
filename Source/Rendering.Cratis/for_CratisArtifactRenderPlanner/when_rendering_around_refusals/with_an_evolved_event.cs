@@ -39,8 +39,8 @@ public class with_an_evolved_event : given.a_refused_specification
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_keep_evolved_events_fatal() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
+    [Fact] void should_report_partial_rendering() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
     [Fact] void should_keep_the_event_revision_refusal() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-026");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_refused_parts_and_compile_retained_artifacts() => global::Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given.rendering_refusals.Rejected(_plan, "STAGE-ESM-026");
     [Fact] void should_not_list_omissions() => _plan.Refusals.ShouldBeEmpty();
 }

@@ -70,8 +70,8 @@ public class when_refusing_event_source_in_payload_keyed_projections
 
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source));
 
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
-        Assert.False(plan.Success, name);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-017");
+        Assert.True(plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning), name);
     }
 
     const string WithReaction = """
@@ -130,7 +130,7 @@ public class when_refusing_event_source_in_payload_keyed_projections
     {
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(WithReaction.Replace("DESTINATION", "id", StringComparison.Ordinal)));
 
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-017");
     }
 
     [Fact]

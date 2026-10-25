@@ -15,5 +15,5 @@ public class when_refusing_datetime_query_filters : Specification
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(a_query_filter_model.Source.Replace("status String", "status DateTime", StringComparison.Ordinal)));
 
     [Fact] void should_refuse_lossy_text_to_instant_equality() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-010" && diagnostic.Message.Contains("status", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => rendering_refusals.OmittedParts(_plan);
 }

@@ -12,6 +12,6 @@ public class with_an_optional_required_concept : given.an_invoice_model
         .Replace("        produces InvoiceIssued\n", "        display Display?\n        produces InvoiceIssued\n", StringComparison.Ordinal)
         .Replace("          streamReference = ", "          display = \"xy\"\n          streamReference = ", StringComparison.Ordinal));
 
-    [Fact] void should_reject_a_null_concept_that_arc_graph_validation_skips() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
-    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_reject_a_null_concept_that_arc_graph_validation_skips() => RefusalCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

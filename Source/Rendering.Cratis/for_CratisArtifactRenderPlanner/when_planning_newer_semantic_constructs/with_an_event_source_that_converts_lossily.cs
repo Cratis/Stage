@@ -15,7 +15,7 @@ public class with_an_event_source_that_converts_lossily : given.an_invoice_model
         "then InvoiceIssued\n          for \"2026-01-01T00:00:00.1000000+00:00\"\n          description = \"First payload\"",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_semantic() => ErrorCodes.ShouldContain("STAGE-ESM-011");
-    [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_record_partial_admission() => _plan.Outcome.ShouldEqual(global::Cratis.Stage.Contracts.Rendering.ArtifactRenderOutcome.Partial);
+    [Fact] void should_report_the_unrendered_semantic() => RefusalCodes.ShouldContain("STAGE-ESM-011");
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
 }

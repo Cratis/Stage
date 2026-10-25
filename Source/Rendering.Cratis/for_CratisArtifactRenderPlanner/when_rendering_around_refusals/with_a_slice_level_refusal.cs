@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticAutomationArtifactRenderer.given;
 using Xunit;
 
@@ -23,8 +24,8 @@ public class with_a_slice_level_refusal : given.a_refused_specification
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_keep_non_specification_refusals_fatal() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
+    [Fact] void should_record_non_specification_rendering_gaps() => rendering_refusals.Partial(_plan);
     [Fact] void should_keep_the_reaction_refusal() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_refused_reaction() => rendering_refusals.Rejected(_plan, "STAGE-ESM-024");
     [Fact] void should_not_list_omissions() => _plan.Refusals.ShouldBeEmpty();
 }

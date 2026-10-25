@@ -43,8 +43,7 @@ public class when_rendering_translation_specifications : given.a_translation_spe
             })]
         } : slice);
         var plan = Plan(changed);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011").ShouldBeTrue();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-011");
     }
 
     [Fact]
@@ -61,7 +60,7 @@ public class when_rendering_translation_specifications : given.a_translation_spe
             })]
         } : slice);
         var plan = Plan(changed);
-        plan.Success.ShouldBeFalse();
+        given.rendering_refusals.Rejected(plan, "STAGE-ESM-011");
         plan.Diagnostics.Any(diagnostic => diagnostic.Message.Contains("given history must contain", StringComparison.Ordinal)).ShouldBeTrue();
     }
 }

@@ -151,7 +151,8 @@ internal static class SemanticVersionFeatures
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
         EsmSchemaV30Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
-        (model.LanguageVersion == LanguageVersion.V32 && model.SemanticVersion == SemanticVersion.V32);
+        (model.LanguageVersion == LanguageVersion.V32 && model.SemanticVersion == SemanticVersion.V32) ||
+        (model.LanguageVersion == LanguageVersion.V33 && model.SemanticVersion == SemanticVersion.V33);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.

@@ -45,7 +45,7 @@ public class when_refusing_protected_identities
         var request = new ArtifactRenderRequest(model, execution, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var result = new CratisArtifactRenderPlanner().Plan(request);
         result.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-040");
-        result.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(result, "STAGE-ESM-040");
     }
 
     static void Set(ExecutableSemanticModel model, string property, object value) =>

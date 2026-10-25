@@ -108,7 +108,7 @@ public class when_planning_literal_running_total_operands
         }
         else
         {
-            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+            given.rendering_refusals.Rejected(plan, "STAGE-ESM-017");
         }
     }
 }

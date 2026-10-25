@@ -52,9 +52,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             plan,
             new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("OptionalComposites", "OptionalComposites"));
-        Assert.False(rendered.Success);
-        Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
+        rendering_refusals.Rejected(rendered, "STAGE-ESM-011");
     }
 
     [Fact]
@@ -71,9 +69,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             plan,
             new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("OptionalComposites", "OptionalComposites"));
-        Assert.False(rendered.Success);
-        Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics).Code);
+        rendering_refusals.Rejected(rendered, "STAGE-ESM-011");
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal("Passed", stage.Outcome.ToString());
     }

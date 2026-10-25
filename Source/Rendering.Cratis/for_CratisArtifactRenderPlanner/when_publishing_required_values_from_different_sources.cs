@@ -26,7 +26,7 @@ public class when_publishing_required_values_from_different_sources : given.a_mu
         RenderedOutput.Errors(sources).ShouldBeEmpty();
     }
 
-    [Fact] void should_refuse_until_required_fields_can_be_rebuilt_from_private_history() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_emit_no_partial_publication() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_refuse_until_required_fields_can_be_rebuilt_from_private_history() => given.rendering_refusals.Rejected(_plan, "STAGE-ESM-032");
+    [Fact] void should_emit_no_partial_publication() => given.rendering_refusals.OmittedParts(_plan);
 }
 #endif

@@ -92,8 +92,7 @@ public class when_rendering_every_literals : Specification
                       details.label = "fixed"
             """;
         var plan = Plan(source);
-        Assert.False(plan.Success);
-        Assert.Empty(plan.Artifacts);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-017");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-017" &&
             diagnostic.Message.Contains("overlapping or non-Set from mapping", StringComparison.Ordinal));
     }

@@ -24,7 +24,6 @@ public class when_executing_performed_queries
 {
     [Theory]
     [InlineData("live", "observable")]
-    [InlineData("language", "language")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]
@@ -32,9 +31,8 @@ public class when_executing_performed_queries
     [InlineData("authorized", "CS0103")]
     public async Task should_render_an_unverified_performer_as_a_compilable_gap(string failure, string reason)
     {
-        var source = Source(failure is "compile" or "authorized" ? "return missing;" : "return readModels;", live: failure == "live");
+        var source = Source(string.Equals(failure, "compile", StringComparison.Ordinal) || string.Equals(failure, "authorized", StringComparison.Ordinal) ? "return missing;" : "return readModels;", live: failure == "live");
         if (failure == "authorized") source = "policy Buyers\n  require claim \"role\" matches \"buyer\"\n" + source.Replace("module People", "module People\n  authorize Buyers", StringComparison.Ordinal);
-        if (failure == "language") source = source.Replace("```csharp", "```sql", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = GapRequest((loaded, failure));
         var requirement = Assert.Single(request.ImplementationRequirements);
@@ -266,7 +264,7 @@ public class when_executing_performed_queries
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
         var request = Request(loaded);
         var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
@@ -327,8 +325,7 @@ public class when_executing_performed_queries
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006" && diagnostic.Message.Contains("reserved query performer body binding", StringComparison.Ordinal));
         if (string.Equals(name, "readModels", StringComparison.Ordinal))
         {
-            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012");
-            Assert.Empty(plan.Artifacts);
+            for_CratisArtifactRenderPlanner.given.rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         }
         else
         {
@@ -339,7 +336,7 @@ public class when_executing_performed_queries
     static Task<LoadedSemanticModel> Load(string body, bool live = false, bool single = false, bool optional = false) =>
         when_rendering_a_pure_reducer.Load(Source(body, live, single, optional));
 
-    static string Source(string body, bool live = false, bool single = false, bool optional = false) => $"""
+    internal static string Source(string body, bool live = false, bool single = false, bool optional = false) => $"""
         module People
           feature Directory
             slice StateView People
@@ -374,7 +371,7 @@ public class when_executing_performed_queries
         }
     }
 
-    static ArtifactRenderRequest Request(LoadedSemanticModel loaded) =>
+    internal static ArtifactRenderRequest Request(LoadedSemanticModel loaded) =>
         new(loaded.Model, SemanticExecutionPlan.Compile(loaded.Model).Plan!, CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,

@@ -13,6 +13,6 @@ public class with_an_unrepresentable_validation_message : given.an_invoice_model
         "        validate\n          description not empty message \"{PropertyName} must be present\"\n        produces InvoiceIssued\n",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_any_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_reject_fluent_validation_message_substitution() => ErrorCodes.ShouldContainOnly(["STAGE-ESM-005"]);
+    [Fact] void should_omit_the_refused_parts_and_compile_the_rest() => AssertOmittedParts();
+    [Fact] void should_reject_fluent_validation_message_substitution() => RefusalCodes.ShouldContainOnly(["STAGE-ESM-005"]);
 }

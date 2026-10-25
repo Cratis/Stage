@@ -25,18 +25,19 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(Error("STAGE-ESM-012", $"Concept '{concept.Name}' has members that collide in generated C#.", concept.Id));
             }
 
+            ValidateGenerationStrategy(concept, diagnostics);
             ValidateGenerationBody(context, concept, diagnostics);
+            RememberGenerationRefusals(context, concept, diagnostics);
 
             foreach (var rule in concept.Validations.Where(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation))
             {
                 ValidateRuleBody(context, rule, concept.Id, null, diagnostics);
             }
 
-            if (concept.Primitive == SemanticPrimitiveType.Unknown ||
-                (concept.Values.Length > 0 && (concept.Primitive != SemanticPrimitiveType.Text || !concept.Validations.IsEmpty)) ||
-                !concept.Validations.All(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation || SemanticValidationRendering.CanRender(rule, context)))
+            var reason = ConceptRefusalReason(context, concept);
+            if (reason is not null)
             {
-                diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
+                diagnostics.Add(Error("STAGE-ESM-002", reason, concept.Id));
             }
         }
 
@@ -51,6 +52,35 @@ internal static partial class SemanticCratisAdmission
             {
                 diagnostics.Add(Error("STAGE-ESM-003", $"Property '{property.Name}' of '{type.Name}' has an unresolved type.", type.Id));
             }
+        }
+    }
+
+    static string? ConceptRefusalReason(SemanticApplicationContext context, SemanticConcept concept)
+    {
+        var unsupportedRule = concept.Validations.FirstOrDefault(rule => rule.Kind is not (SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation) && !SemanticValidationRendering.CanRender(rule, context));
+        return concept switch
+        {
+            { Primitive: SemanticPrimitiveType.Unknown } => $"Concept '{concept.Name}' has an unknown primitive.",
+            { Values.Length: > 0, Primitive: not SemanticPrimitiveType.Text } => $"Concept '{concept.Name}' declares values on a {concept.Primitive} concept; only text concepts render as enumerations.",
+            { Values.Length: > 0, Validations.IsEmpty: false } => $"Concept '{concept.Name}' combines enumerated values with validation '{concept.Validations[0].Name ?? concept.Validations[0].Kind.ToString()}'; Stage renders enumerated values as a C# enum, which carries no concept validator, so these rules would be lost (Cratis/Stage#514).",
+            _ when unsupportedRule is not null => $"Concept '{concept.Name}' has validation '{unsupportedRule.Name ?? unsupportedRule.Kind.ToString()}' that Stage cannot render.",
+            _ => null
+        };
+    }
+
+    static void RememberGenerationRefusals(SemanticApplicationContext context, SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var diagnostic in diagnostics.Where(diagnostic => diagnostic.Artifact == concept.Id && SemanticGenerationRendering.IsGenerationFailure(context, diagnostic)))
+        {
+            context.GenerationFailures[concept.Id] = diagnostic.Message;
+        }
+    }
+
+    static void ValidateGenerationStrategy(SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (SemanticGenerationRendering.Rejection(concept.Generation) is { } rejection)
+        {
+            diagnostics.Add(Error("STAGE-ESM-012", rejection, concept.Id));
         }
     }
 

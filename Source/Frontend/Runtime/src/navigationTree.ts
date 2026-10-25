@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { DestinationReference, Screen } from '@cratis/scene.model';
+import { screenTitle } from './screenTitle';
 
 /** The contribution point the application's navigation is contributed to. */
 export const navigationContributionPoint = 'Navigation';
@@ -147,13 +148,13 @@ export function opensElsewhere(destination: DestinationReference): boolean {
  * @param screens The scene's screens.
  * @param listed The names of the screens an authored entry opens.
  * @param fallback The group a screen with no recorded place goes under.
- * @returns One entry for every unlisted screen, labelled with its own name.
+ * @returns One entry for every unlisted screen, labelled with its title (see `screenTitle`).
  */
 export function unlistedNavigationEntries(screens: Screen[], listed: ReadonlySet<string>, fallback: string): NavigationEntry[] {
     return screens
         .filter(screen => !listed.has(screen.name))
         .map(screen => ({
-            label: screen.name,
+            label: screenTitle(screen),
             targetScreen: screen.name,
             hierarchy: screen.path && screen.path.length > 0 ? [...screen.path] : [fallback],
         }));

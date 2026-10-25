@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticConditionRendering;
@@ -32,12 +33,12 @@ public class when_admitting_reaction_conditions : for_SemanticAutomationArtifact
     }
 
     [Fact]
-    public void should_refuse_an_enum_valued_reaction_guard_without_artifacts()
+    public void should_refuse_an_enum_valued_reaction_guard_and_omit_its_owner()
     {
         SetContext(Compile(("concept Rate : Enum\n  low\n  high\n" + Source).Replace("amount Decimal", "amount Rate", StringComparison.Ordinal)
             .Replace("where amount > 0", "where amount == low", StringComparison.Ordinal)));
         Plan();
         _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-039");
-        _plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.Rejected(_plan, "STAGE-ESM-039");
     }
 }

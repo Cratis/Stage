@@ -74,7 +74,7 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     {
         Prepare(Source + "\n" + Publication.Replace("projection ReceiptPublisher", "projection PublicationAppendFailed", StringComparison.Ordinal));
         _plan = Plan(_model);
-        _plan.Success.ShouldBeFalse();
+        given.rendering_refusals.Rejected(_plan, "STAGE-ESM-012");
         _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("append failure", StringComparison.Ordinal));
     }
 
@@ -83,7 +83,7 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     void Refuses(string reason)
     {
         _plan = Plan(_model);
-        _plan.Success.ShouldBeFalse();
+        given.rendering_refusals.Rejected(_plan, "STAGE-ESM-011");
         _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
     }
 }

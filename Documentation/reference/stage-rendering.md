@@ -211,7 +211,9 @@ explicitly null filters. An omitted optional filter remains distinct from a supp
 
 A query a `performer` answers is an opaque read: the executable model leaves it out of the slice's queries and carries its shape - the read model, cardinality, delivery, `by` key and filters, and who may call it (`SemanticPerformedQueryShape.Authorization`, Screenplay 4.236) - on the `QueryPerformer` implementation requirement. Stage renders it as the query that shape states: the read model record, the query method with its route, parameters (filters in declaration order, optional ones defaulted) and the `[Authorize]` policy the model names, and a read model such a query returns needs no projection or reducer. When a verified inline `csharp` or file body is attached, Stage embeds it in a compile-checked helper. The body returns a read-model instance (or null) for a single query, or `IEnumerable<ReadModel>` for a collection. `readModels` is the current read-model collection; caller arguments are available both as their camelCase parameter names and as PascalCase properties on `context.Arguments`. The application-local context also supplies `Tenant` (string), `Identity` (`ClaimsPrincipal`), and `ReceivedAt` (`DateTimeOffset` captured by Arc at query receipt). It deliberately has no command causation, `CausedBy`, or event `Occurred` member. Snapshot queries load instances once. The body is synchronous C#, not a pure reducer sandbox. Observable/live performers have no body-owned stream and render as explicit gaps rather than applying a body to read-model emissions. A non-C# body, missing attachment, changed or hash-invalid body, or body compile error also becomes a gap. Both planning and direct shape rendering produce the same compilable method boundary, throwing `NotImplementedException` with `Query '<name>' (requirement <id>) is not runnable: <reason>`. Planning reports one `STAGE-IMPL-006` Warning per such query ("performer rendered as a gap"), preserving the original reason, compiler diagnostic and body source location when available. The generated artifacts remain available.
 
-Each gap has `ArtifactImplementationGapOrigin.Unverified`, an additive public contract member with minor-version intent, the compiler requirement identity, and the generated stub's signature, body locator and unrealized typed-context metadata. `STAGE-NOT-RUNNABLE.md` lists every gap in the plan. Any non-empty `ImplementationGaps` makes `Outcome` `Partial`; `Success` still means no Error diagnostics, so a partial gap plan can be successful without being fully runnable. Verified synchronous bodies remain unchanged, with `Outcome` `Complete` and no marker when no gaps exist. `STAGE-ESM-019`, `STAGE-ESM-020` and `STAGE-IMPL-005` keep their Error meanings for cases that still refuse; they are not reused as warnings. The semantic runtime continues to list the read model but not the opaque query. A policy implemented by code, a composite `by` key, an unresolved argument type, an observable single result or a required argument after an optional one refuse the read model with `STAGE-ESM-007`, naming the query and why. Explicit `scoped to` clauses remain refused by Screenplay (`PLAY0268`); Stage does not silently drop them.
+Each gap has `ArtifactImplementationGapOrigin.Unverified`, an additive public contract member with minor-version intent, the compiler requirement identity, and the generated stub's signature, body locator and unrealized typed-context metadata. `STAGE-NOT-RUNNABLE.md` lists every gap in the plan. Any non-empty `ImplementationGaps` makes `Outcome` `Partial`; `Success` still means no Error diagnostics, so a partial gap plan can be successful without being fully runnable. Verified synchronous bodies remain unchanged, with `Outcome` `Complete` and no marker when no gaps exist. `STAGE-ESM-019`, `STAGE-ESM-020` and `STAGE-IMPL-005` remain Error diagnostics for cases that still refuse the plan. The semantic runtime continues to list the read model but not the opaque query. A policy implemented by code, a composite `by` key, an unresolved argument type, an observable single result or a required argument after an optional one refuse the read model with `STAGE-ESM-007`, naming the query and why. Explicit `scoped to` clauses remain refused by Screenplay (`PLAY0268`); Stage does not silently drop them.
+
+Rendering gaps use `ArtifactImplementationGapKind.Rendering`; existing payload gaps default to `Implementation`. A rendering gap can have an empty `Stubs` collection when its owner is omitted. Its `Owner` and `Hints` identify what could not be generated; `Role`, context versions and result versions retain their payload-contract meanings for implementation gaps. Path collisions (`STAGE-CRATIS-004`) and artifacts targeting the reserved top-level `Customizations/` directory (`STAGE-CRATIS-005`) produce Warning diagnostics and rendering gaps before the strict plan contract is created. Every file in a colliding path group is omitted, including case-insensitive collisions; Stage does not choose a winner. Other artifacts remain in the plan, and `STAGE-NOT-RUNNABLE.md` lists the gaps.
 
 ESM v18 adds query-only `then error` specifications. For empty fixtures, Stage generates an Arc
 `QueryScenario` call that asserts validation failure and the expected message, when supplied.
@@ -234,17 +236,33 @@ A rename without a pin still orphans stored events: a renderer cannot distinguis
 
 ## Render around refused specifications
 
-By default, any render error refuses the whole plan and emits no artifacts. To render the
-application while omitting supported specification gaps, set `CratisPlanOptions.Refusals` to
-`ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in the
-profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
+Rendering-owner gaps are independent of the specification-refusal opt-in. An unrenderable
+slice-owned part omits its entire slice; a shared concept or composite type is its own
+removable owner. Module and feature owners omit their contained parts. These omissions
+retain the original diagnostic code and message as a Warning and a rendering gap.
+A diagnostic owned by the application itself, such as an uncovered implementation body,
+also becomes a Warning and a rendering gap while independent parts keep rendering. Unknown
+ownership, an unaudited version, an invalid profile, an inconsistent render request or a
+missing embedded generation reference still refuses the whole plan with Error diagnostics
+and no artifacts.
+
+Omission closes over both semantic ownership and generated C# dependencies. A missing
+shared concept can remove a composite type, then a consumer's whole slice including
+sibling artifacts. Each removal rechecks ownership and transitive type or namespace
+dependencies until no further artifact is removed; independent slices and projects survive.
+A specification file removed this way is a gap for that specification only; the slice it
+verifies keeps rendering.
+Path omissions use the same dependency closure. Dependency warnings inherit an actual
+omission's code and message, never an unrelated warning such as a performer's non-C# language.
+
+To render while omitting supported specification refusals, set `CratisPlanOptions.Refusals`
+to `ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in
+the profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
 `Refuse` is the other valid value; absence means `Refuse`. The input is hashed with the profile.
 
-This opt-in applies only when **every** Error is `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` and names
-a specification in the model. Stage omits only those specification files, never commands,
-events, policies, or other application contracts. Any other error still refuses the entire
-plan, including evolved events (`STAGE-ESM-026`), implementation-envelope errors, and
-`STAGE-ESM-024` attached to a reaction, trigger, capture, or slice.
+This opt-in applies to `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` Errors naming a
+specification in the model. It omits only those specification files; rendering-owner gaps
+still use the separate rules above.
 
 A partial plan retains the original errors, so `Success` remains false. Inspect `Outcome`
 (`Complete`, `Partial`, or `Refused`) and `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult`.
@@ -573,7 +591,7 @@ The renderer also retains .NET's non-backtracking automaton-size limit rather th
 ## Chrome
 
 The topbar, sidebar, breadcrumb, footer and settings panel are the blueprint's own. The Stage fills them: the breadcrumb shows
-where the current screen is, the topbar carries the blueprint's theme switcher and, when the model declares more than one locale,
+where the current screen is, the topbar carries the blueprint's theme switcher (unless `option showThemeSwitcher false` or a pinned colour scheme removes it) and, when the model declares more than one locale,
 a locale picker, and the menu is one of two things.
 
 ### Navigation regions
@@ -602,6 +620,8 @@ Submitting posts the command to the route the Stage registered for it, through t
 form posts it: the application's own validation results come back to the dialog against the fields they name, a rejected command
 keeps the dialog open, and a successful one closes it and refreshes what the screen shows.
 
+Creation intent (`x-creates`) classifies a command as creating a row in some listed read model, not necessarily on the current screen; `STAGE-INTENT-001` reports only guarded or ambiguous creation candidates, not ordinary updates.
+
 ### Root template, options and appearance
 
 A `ui profile` can name the application's shell, configure it and set its look:
@@ -611,6 +631,7 @@ ui profile Web
   root template blueprint Cratis.Blueprint.Default AppShell version "^4.5"
     option navigationMode slim
     option showFooter false
+    option showThemeSwitcher false
   appearance
     color scheme dark
     accent "#4f46e5"
@@ -620,7 +641,7 @@ ui profile Web
 * The shell is chosen by Scene's `resolveEffectiveShell` (in .NET `ShellResolver`, through `RootShell.Resolve`) - the function the Studio preview
   calls, so the Stage and the preview start in the same shell: `root`, then the legacy `layout`, then the default blueprint's layout,
   then the bare shell. Nothing in the Stage re-implements the order.
-* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme` and `option showFooter` are applied to the shell; an option or
+* `option navigationMode` (`static`, `overlay`, `slim`, `slim-plus`, `compact`, `horizontal`, `reveal`, `drawer`), `option menuTheme`, `option showFooter` and `option showThemeSwitcher` (both flags, default `true`) are applied to the shell. The theme switcher is also left out when `color scheme` is `light` or `dark`, because the scheme is then pinned and there is nothing to switch, and when the blueprint offers only one theme. `option showFooter false` leaves out the footer, whose default text is the application's name; an option or
   value the shell does not understand is reported, never silently dropped.
 * `color scheme` (`light`, `dark`, `system`) selects the dark or light theme (a `system` scheme follows the operating system), and `accent`
   becomes the theme's primary colour.
@@ -628,6 +649,23 @@ ui profile Web
   a **build-time finding** when planning (`cratis render`, the render plan) and, in a running Stage, an explicit start-up message that names
   the cause. The Stage never falls back to a different shell, and never shows a blank page.
 * The runtime scene carries `root`, `appearance` and `defaults` and, as always, no sample data (see below).
+
+### Default labels and values
+
+With no extra authoring the Stage reads like a product, not a debug view:
+
+* **Navigation and breadcrumb.** A screen is listed by an explicit navigation label when there is one; otherwise by the text of the first
+  `core:title` at the top of the screen's body (a title inside a section names that section, not the screen); otherwise by its name
+  humanized. The breadcrumb's last item uses the same text.
+* **Humanized names.** PascalCase and camelCase are split into words and written in sentence case, and a run of capitals stays as written:
+  `RegisterOpportunity` is "Register opportunity", `RegisterSKU` is "Register SKU". A screen name also loses a trailing `Screen`, `Page` or
+  `Dialog`: `PipelineScreen` is "Pipeline".
+* **Actions.** An action's label is its authored label, else the humanized command name. A command dialog is titled with that label and
+  is submitted with the themed Button, labelled the same way (there is no "Execute" prefix) and, inside a dialog, a Cancel button beside it.
+  Adjacent actions sit on one row; the first is primary and the next ones secondary, unless an action authors its `emphasis`
+  (`primary`, `secondary` or `quiet`), which always wins.
+* **Table values.** A boolean reads Yes or No, and an ISO date or date-time reads in the locale of the user. Any other value, including
+  text that only looks like a date, is shown as it is.
 
 ### Navigation items that render into a shell slot
 

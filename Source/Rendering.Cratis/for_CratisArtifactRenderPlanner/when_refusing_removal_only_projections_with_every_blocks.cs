@@ -45,6 +45,6 @@ public class when_refusing_removal_only_projections_with_every_blocks : Specific
         _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing"));
     }
 
-    [Fact] void should_not_render() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_not_render_the_refused_projection() => given.rendering_refusals.Rejected(_plan, "STAGE-ESM-017");
     [Fact] void should_refuse_the_projection_shape() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-017").ShouldBeTrue();
 }

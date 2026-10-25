@@ -48,6 +48,12 @@ static class ArtifactImplementationGapDigest
         writer.Write(normalized.Length);
         foreach (var gap in normalized)
         {
+            // Preserve the v1 bytes for existing payload gaps; rendering gaps add a tagged discriminator.
+            if (gap.Kind != ArtifactImplementationGapKind.Implementation)
+            {
+                writer.Write("gap-kind");
+                writer.Write((int)gap.Kind);
+            }
             writer.Write((int)gap.Origin);
             writer.Write(gap.RequirementId);
             writer.Write(gap.Owner);

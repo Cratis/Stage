@@ -115,6 +115,8 @@
         </ItemGroup>
     </Target>
     <ItemGroup>
+        <Compile Include="../Stage/Semantics/SemanticListCreation.cs" Link="Semantics/SemanticListCreation.cs" />
+        <Compile Include="../Stage/Semantics/SemanticProjectionObservation.cs" Link="Semantics/SemanticProjectionObservation.cs" />
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>
     <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->

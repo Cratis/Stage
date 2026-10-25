@@ -5,6 +5,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -23,7 +24,7 @@ public class when_refusing_atomic_reaction_batches : given.an_atomic_reaction
         var id = kind == ArtifactRenderScopeKind.Application ? _model.Application.Id : _located.Slice.Id;
         var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(kind, id), new("Reactions", "Reactions"));
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-043" && diagnostic.Artifact == reaction.Id && diagnostic.Message.Contains("multiple same-event production triggers", StringComparison.Ordinal));
-        plan.Artifacts.ShouldBeEmpty();
+        rendering_refusals.OmittedParts(plan);
     }
 
     [Fact]

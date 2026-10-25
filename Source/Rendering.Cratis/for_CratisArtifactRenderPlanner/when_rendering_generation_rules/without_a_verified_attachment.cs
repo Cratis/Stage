@@ -38,8 +38,10 @@ public class without_a_verified_attachment
             contents,
             loaded.AttachmentDiagnostics,
             kind == "omitted" ? [] : loaded.TypedContextDescriptors);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-020");
+        Assert.Equal(ArtifactRenderOutcome.Partial, plan.Outcome);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-020" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.Contains(plan.ImplementationGaps, gap => gap.Kind == ArtifactImplementationGapKind.Rendering);
+        Assert.NotEmpty(opaque_policy_model.Compile(plan).GetTypes());
     }
 
     [Fact]
@@ -55,8 +57,9 @@ public class without_a_verified_attachment
             loaded.ImplementationContents,
             loaded.AttachmentDiagnostics,
             []);
-        Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021");
+        Assert.Equal(ArtifactRenderOutcome.Partial, plan.Outcome);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.NotEmpty(opaque_policy_model.Compile(plan).GetTypes());
     }
 }
 #endif

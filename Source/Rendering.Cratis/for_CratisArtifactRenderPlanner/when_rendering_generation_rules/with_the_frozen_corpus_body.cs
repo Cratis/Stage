@@ -18,7 +18,8 @@ public class with_the_frozen_corpus_body : Specification
     void Establish() => _loaded = generation_rule_corpus.Compile("return value;");
     void Because() => _plan = opaque_policy_model.Plan(_loaded);
 
-    [Fact] void should_render_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_keep_artifacts_with_an_explicit_gap() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_compile_the_partial_output() => opaque_policy_model.Compile(_plan).GetTypes().Length.ShouldBeGreaterThan(0);
     [Fact]
     void should_locate_the_unbound_value_at_the_fence()
     {

@@ -141,6 +141,16 @@ internal static class SemanticWorldRebuilder
         };
     }
 
+    internal static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
+    {
+        if (!MatchesSchema(json, properties))
+        {
+            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
+        }
+
+        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
+    }
+
     static SemanticEventRoute? Route(SemanticExecutionPlan plan, Cratis.Chronicle.Contracts.Sequences.EventContext context)
     {
         if (context.EventSourceType == EventSourceType.Default.Value &&
@@ -309,16 +319,6 @@ internal static class SemanticWorldRebuilder
         }
 
         return true;
-    }
-
-    static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
-    {
-        if (!MatchesSchema(json, properties))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
-        }
-
-        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
     static ImmutableArray<SemanticPropertyValue> CompositeValues(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)

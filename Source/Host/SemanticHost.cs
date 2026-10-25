@@ -117,6 +117,7 @@ internal static class SemanticHost
 
             notes.AddRange(seeds.Diagnostics);
             world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, seeds);
+            await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (Stage.Semantics.ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
         }
         catch (SemanticWorldRebuildRefused exception)
         {

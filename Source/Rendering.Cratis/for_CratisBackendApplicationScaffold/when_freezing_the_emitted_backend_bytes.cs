@@ -16,7 +16,8 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
 {
     // Re-frozen when specifications moved into the application project, compiled in Debug only.
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
-    const string FrozenDigest = "da1b98905ac6381a425b2fedaec61033cc028316e3ba9386da6200875edc9aea";
+    // Re-frozen when GenerateProgramFile became unconditional, so a Release build after a Debug restore keeps one entry point.
+    const string FrozenDigest = "5824bda04bee56487e7a69b4a732bf46167f6a7547be39773197a28c4b020a82";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
     const string SeparateSpecificationsDigest = "cd81f42a9bdba49d65d3110228ed7abb05a02002932bc118be05a9eceaba4549";
@@ -25,7 +26,7 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     const string PreviousFrozenDigest = "8a2ff497b626c46a26773cb8cb46b15c710cbc4edb940bfdd6a9f83e157b1475";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
-    const string FrozenRepositoryRootDigest = "76078580dbb671f5ff3c288c991f64dc45226f6453dffc0bba8947cdd5b36b82";
+    const string FrozenRepositoryRootDigest = "7d6905eeb8f9cab46b49a19db7dc86fd3ed6d336459027701b00bf59c640d29d";
 
     string _digest = null!;
 

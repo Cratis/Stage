@@ -39,7 +39,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("b89323ff2f1ec84c8f67674038f1a96888021acd3dd03b2bb9c16d67f3208bff");
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("007fb82e2a6ee026667619d6cdba61eb7f63482d400aba40544e34a7b2c91f0e");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(

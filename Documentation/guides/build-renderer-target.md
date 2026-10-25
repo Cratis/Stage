@@ -18,6 +18,8 @@ flowchart LR
 
 Rendering is the opposite direction from source recovery. A source adapter such as `IDotNetScreenplayAdapter` recovers source into Screenplay; an `IArtifactRenderPlanner` realizes Screenplay as target code. Do not interpret source-adapter facts as renderer inputs.
 
+For a complete renderer target that lives outside Stage, see [Cratis/Stage.Axon](https://github.com/Cratis/Stage.Axon). It renders Screenplay models into Java, Spring Boot and Axon Framework applications, and its [third-party render target guide](https://github.com/Cratis/Stage.Axon/blob/main/Documentation/guides/third-party-render-target.md) shows how it checks semantic coverage, deterministic output and the generated application's own specifications.
+
 ## Use the public contracts
 
 Reference:

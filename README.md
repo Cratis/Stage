@@ -259,7 +259,8 @@ their parent folder. Input errors exit with code `1` without writing results; an
 
 Full container, URL, specification-result, and render-plan documentation lives in
 [Documentation](Documentation/index.md). Framework maintainers can use the
-[renderer target guide](Documentation/guides/build-renderer-target.md) to implement another deterministic Screenplay-to-code target.
+[renderer target guide](Documentation/guides/build-renderer-target.md) to implement another deterministic Screenplay-to-code target; [Cratis/Stage.Axon](https://github.com/Cratis/Stage.Axon)
+is a complete example that renders Java, Spring Boot and Axon Framework applications.
 Application developers can [customize a rendered application](Documentation/guides/customize-rendered-application.md)
 without editing managed files.
 

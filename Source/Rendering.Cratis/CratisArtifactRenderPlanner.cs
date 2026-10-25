@@ -98,6 +98,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
+        // An unknown UI selection is invalid input, not an owned rendering refusal.
+        if (diagnostics.Any(diagnostic => diagnostic is { Code: "STAGE-SCREEN-007", Severity: ArtifactRenderDiagnosticSeverity.Error }))
+        {
+            return CreatePlan(request, [], diagnostics);
+        }
         var parts = new RenderingPartAdmission(context, diagnostics, userInterface?.Select(slice => slice.Slice.Id).ToHashSet());
         var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
         var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];

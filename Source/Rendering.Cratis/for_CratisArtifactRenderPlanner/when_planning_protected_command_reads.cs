@@ -29,7 +29,7 @@ public class when_planning_protected_command_reads : Specification
     [Fact] void should_examine_read_commands() => ReadCommands().Count().ShouldEqual(3);
     [Fact] void should_render_the_use_slice() => Source("Use").ShouldNotBeEmpty();
     [Fact] void should_protect_every_command_that_reads() => Source("Use").Split("ReadProtectionAttribute(", StringSplitOptions.None).Length.ShouldEqual(4);
-    [Fact] void should_emit_the_admission_specification() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("GeneratedCommands/when_admitting_protected_reads.cs", StringComparison.Ordinal));
+    [Fact] void should_emit_the_admission_specification() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("GeneratedCommands/for_DecisionReadAdmissions/when_admitting_protected_reads.cs", StringComparison.Ordinal));
 
     string Source(string slice) => string.Concat(_plan.Artifacts.Where(artifact => artifact.RelativePath.Contains($"/{slice}.cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString([.. artifact.Bytes])));
 

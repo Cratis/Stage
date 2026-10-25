@@ -82,12 +82,12 @@ internal static class SemanticRunReactionAdmission
     {
         if (specification.WhenTrigger is { } fired)
         {
-            return plan.Reactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == fired.Kind && trigger.Source == fired.Trigger);
+            return plan.RunningReactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == fired.Kind && trigger.Source == fired.Trigger);
         }
         if (specification.WhenClock is not null)
         {
             // Admission is conservative: guards and clock windows must not hide unsupported effects.
-            return plan.Reactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind is SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule);
+            return plan.RunningReactions.SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind is SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule);
         }
 
         return RedeliveryTriggers(plan, specification);
@@ -102,14 +102,15 @@ internal static class SemanticRunReactionAdmission
             .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == given.EventContract));
     }
 
+    // Only the reactions the (possibly isolated) plan runs follow a fact (Screenplay decision 0115).
     static IEnumerable<SemanticReactionTrigger> Triggers(SemanticExecutionPlan plan, SemanticId cause) =>
-        plan.Reactions.SelectMany(reaction => reaction.Triggers)
+        plan.RunningReactions.SelectMany(reaction => reaction.Triggers)
             .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == cause);
 
     static IEnumerable<SemanticId> Effects(SemanticExecutionPlan plan, SemanticReactionTrigger trigger) =>
         trigger.Produces.Concat(trigger.Invokes.SelectMany(invocation => invocation.OnRefused.SelectMany(branch => branch.Produces)))
             .Select(produced => produced.EventContract)
-            .Concat(trigger.Invokes.Where(invocation => plan.Commands.ContainsKey(invocation.Command))
+            .Concat(trigger.Invokes.Where(invocation => plan.Commands.ContainsKey(invocation.Command) && plan.Runs(invocation.Command))
                 .SelectMany(invocation => plan.Commands[invocation.Command].Produces.Select(produced => produced.EventContract)));
 
     static bool MatchesFilter(SemanticExecutionPlan plan, SemanticObserverFilter? filter, SemanticFixtureRoute? route)

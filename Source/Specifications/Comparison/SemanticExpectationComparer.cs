@@ -61,6 +61,10 @@ internal static class SemanticExpectationComparer
             // A direct append's then-events describe only its reaction effects; commands include action facts.
             CompareFacts(expected, Following(expected, run), failures, plan!);
         }
+        if (!expected.ThenInvocations.IsDefaultOrEmpty)
+        {
+            SemanticInvocationComparison.Compare(plan!, expected.ThenInvocations, run.Invocations, expected.ThenEventsInAnyOrder, failures);
+        }
 
         CompareCommandDestination(expected, ActionDestinations(run), plan, failures);
 

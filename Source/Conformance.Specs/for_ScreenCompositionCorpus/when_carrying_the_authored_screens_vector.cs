@@ -44,8 +44,10 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("a09710e28afae20990adf6477a6f4e95c99073a44abe56b0d2378bdb28231c10");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23972);
+    // Re-pinned for #745: plain collection-screen actions that take the selected row now carry "rowAction":true (two on WorkItemDetails, one on WorkItemList; +51 bytes).
+    [Fact] void should_mark_the_actions_that_take_the_selected_row() => Encoding.UTF8.GetString(_bytes).Split("\"rowAction\":true").Length.ShouldEqual(4);
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("d186ca30122ac199487caac46223c862fbe1ac468a883fe5b2dcc6eef3c3bcbb");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24023);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -57,12 +59,12 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("678501681fc8441c62d9cdc8c14b621e34e6baafad47fb45773e50e2112758ea");
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("84212fc11b71a4faffbf02986fa3d6eb400def2552228345116e2bcb79e6bae4");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("c7ffcd1cf5020947f45704488b32e54dc9d19027e15c2b459760833100ab455f");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("223e1abf79d43578fe1d55ca4ee8b1f495355185f6fde3fd8ba5f4b9ac4e1629");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793
-        Workspaces/Tracking/WorkItemList/Screens.scene.json ebb54a4bc9dc126e98bb1ff94dd6452824637224c57939c33e1215edae93b4e3 6661
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 69068d395013f46e2d1b6a40a47ba8e3d0dec57ff968b213d7b85bddde3c02d3 9827
+        Workspaces/Tracking/WorkItemList/Screens.scene.json e83275bead9558ec7617fc163048fb1e5bd22bcea574e51784e83d2a93560389 6678
         """);
 
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];

@@ -15,7 +15,7 @@ internal static partial class SemanticCratisAdmission
             if (SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction))
             {
                 diagnostics.Add(new(
-                    "STAGE-ESM-052",
+                    "STAGE-ESM-055",
                     ArtifactRenderDiagnosticSeverity.Information,
                     $"Reaction '{reaction.Name}' has no runs as and invokes a command with no authorize clause, which renders [Authorize]; " +
                     "Stage renders the reactor with [ExecuteCommandsAsSystem] (the system principal, no roles) so the command is still accepted.",

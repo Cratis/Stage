@@ -47,7 +47,7 @@ internal static partial class SemanticCratisAdmission
         specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty);
 
     static ArtifactRenderDiagnostic AuthenticatedByDefault(string kind, string name, SemanticId artifact) =>
-        new("STAGE-ESM-051", ArtifactRenderDiagnosticSeverity.Information, SemanticAuthorizationAttributes.AuthenticatedByDefault(kind, name), artifact);
+        new("STAGE-ESM-054", ArtifactRenderDiagnosticSeverity.Information, SemanticAuthorizationAttributes.AuthenticatedByDefault(kind, name), artifact);
 
     static bool ValidateCommandAuthorization(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {

@@ -31,9 +31,9 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
     // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
     // Re-frozen after merging main: retain #494's authenticated endpoints, callers, README and notes alongside main's scaffold changes.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("ad278142014a25b6e97385473e8a4ddd23ffcad88bc42750ac837492e1ac58cb");
-    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("de6e0c9945a3d93e54b41d602024c71d6116b8a48b9051b0066006b8a48d3162");
-    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("9f480d0e8fcd885e14ccffe33d909d95fd0b301c4e8e48d13dcbd5bf8ba30a81");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan, new("InvoiceApp", "Invoices")).ShouldEqual("148b531dd5a40f60cff65567c3073a8a5fc7d6cc015b08b91a46705aa13b8723");
+    [Fact] void should_preserve_every_planned_artifact_byte_without_event_sources() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("b50d7467bcf2219b556858d81570038dba4afa6d8321a6aa9e621c96499e8fcb");
+    [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("41ecdca61ddbff0db91b527ee8aa2d9a908208733a7dc8ed2faf487078ff6ae6");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(
         _plan.Target,

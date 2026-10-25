@@ -86,7 +86,7 @@ public sealed partial class CratisBackendApplicationScaffold
         Commands and queries whose Screenplay model has no `authorize` clause are rendered with
         `[Authorize]`: they require an authenticated caller and no particular role. Screenplay's
         reference semantics let everyone call such an artifact; Stage deliberately renders the
-        stricter default, and reports each case as an informational `STAGE-ESM-051` diagnostic.
+        stricter default, and reports each case as an informational `STAGE-ESM-054` diagnostic.
         Explicit anonymous access will be expressed in the model by an upcoming Screenplay
         `anonymous` policy condition.
 

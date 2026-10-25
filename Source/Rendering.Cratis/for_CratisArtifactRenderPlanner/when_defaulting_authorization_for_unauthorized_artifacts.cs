@@ -30,7 +30,7 @@ public class when_defaulting_authorization_for_unauthorized_artifacts : Specific
     [Fact] void should_render_the_command_requiring_an_authenticated_caller() => _command.ShouldContain("Authorize");
     [Fact] void should_not_render_anonymous_access() => _command.ShouldNotContain("AllowAnonymous");
     [Fact] void should_report_the_inferred_default() => _plan.Diagnostics.ShouldContain(diagnostic =>
-        diagnostic.Code == "STAGE-ESM-051" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Information);
+        diagnostic.Code == "STAGE-ESM-054" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Information);
     [Fact] void should_label_the_default_caller_in_the_specification() => _specification.ShouldContain(Semantics.SemanticDefaultCaller.Comment);
     [Fact] void should_run_the_specification_as_an_authenticated_principal() =>
         _specification.ShouldContain("new global::System.Security.Claims.ClaimsIdentity([], \"Screenplay\")");

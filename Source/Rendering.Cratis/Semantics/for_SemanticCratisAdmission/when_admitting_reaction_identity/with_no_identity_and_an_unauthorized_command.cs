@@ -18,9 +18,9 @@ public class with_no_identity_and_an_unauthorized_command : for_SemanticAutomati
     }
 
     [Fact] void should_report_the_default_system_identity() => _plan.Diagnostics.ShouldContain(diagnostic =>
-        diagnostic.Code == "STAGE-ESM-052" && diagnostic.Severity == global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information);
-    [Fact] void should_not_report_it_for_a_reaction_that_invokes_nothing() => _plan.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-052").ShouldEqual(1);
-    [Fact] void should_report_the_authenticated_default_of_the_command() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-051");
+        diagnostic.Code == "STAGE-ESM-055" && diagnostic.Severity == global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information);
+    [Fact] void should_not_report_it_for_a_reaction_that_invokes_nothing() => _plan.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-055").ShouldEqual(1);
+    [Fact] void should_report_the_authenticated_default_of_the_command() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-054");
     [Fact] void should_render_the_reactor_with_the_system_identity() => _reactor.ShouldContain("[global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute]");
     [Fact] void should_plan_the_reactor() => _plan.Artifacts.ShouldNotBeEmpty();
 }

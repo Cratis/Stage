@@ -428,11 +428,11 @@ Screenplay's reference semantics, where a missing clause allows everyone. Stage 
 so a model that forgot to say who may call it is not published to anonymous callers.
 
 - Each such command, query and synthesized read-model query pair is reported as an information
-  diagnostic, `STAGE-ESM-051`, naming the artifact. It does not block rendering.
+  diagnostic, `STAGE-ESM-054`, naming the artifact. It does not block rendering.
 - Rendered specifications for these artifacts that give no caller run as a labelled authenticated
   test caller with no roles or claims; a specification that names a caller keeps it.
 - A reaction with no `runs as` that invokes such a command renders `[ExecuteCommandsAsSystem]` (the system
-  principal, no roles) so the command is still accepted, and is reported as `STAGE-ESM-052`. A reaction
+  principal, no roles) so the command is still accepted, and is reported as `STAGE-ESM-055`. A reaction
   that invokes only commands with an `authorize` clause is unchanged.
 - A specification that gives an explicitly unauthenticated caller for such a command or query is refused
   (`STAGE-ESM-011`), because the rendered artifact would deny it.

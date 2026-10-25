@@ -16,8 +16,8 @@ namespace Cratis.Stage.Rendering.Cratis.given;
 /// </remarks>
 public static class AuthenticatedDefaultNotes
 {
-    const string AuthenticatedByDefault = "STAGE-ESM-051";
-    const string SystemIdentityByDefault = "STAGE-ESM-052";
+    const string AuthenticatedByDefault = "STAGE-ESM-054";
+    const string SystemIdentityByDefault = "STAGE-ESM-055";
 
     // The legacy renderers report plain text without a code; these two phrases are the stable parts of their inference notes.
     const string LegacyNoteSubject = "requires an authenticated caller";

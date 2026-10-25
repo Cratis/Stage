@@ -57,8 +57,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
 
     // Re-frozen after merging main: retain #494's authenticated endpoints, callers, README and notes alongside main's scaffold changes.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("ff10053e1d74cadee912cac506db1e24a761d8c44d59ae0afe516ac3c99400fa");
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("674babbc68a4240ab8e8cf45b29880242e338aabc1c2cdddb1692f7838f195a7");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => QualifiedCommonOutput.Digest(_model, _plan!, new(ApplicationName, ApplicationName)).ShouldEqual("a6bc26fe476c4f582bf1763310f1451661f5d9ad411e40840749125c1e692614");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("e94d1024f1beaf4c6f2eb22ab6edec1249bc0f4c96372a5724e8861ad794d7bb");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793

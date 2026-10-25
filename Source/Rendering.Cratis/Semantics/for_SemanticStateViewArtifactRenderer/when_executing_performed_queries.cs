@@ -264,7 +264,7 @@ public class when_executing_performed_queries
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
         var request = Request(loaded);
         var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;

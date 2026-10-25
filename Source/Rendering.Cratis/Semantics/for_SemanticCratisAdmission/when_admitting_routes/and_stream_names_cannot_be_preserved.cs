@@ -19,9 +19,8 @@ public class and_stream_names_cannot_be_preserved : a_routed_command
         _source = _source with { Streams = [_source.Streams[0] with { Name = name }] };
         ReplaceSlice();
         var plan = invoice_model.Plan(_model);
-        Assert.False(plan.Success);
+        rendering_refusals.Rejected(plan, "STAGE-ESM-012");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == _source.Streams[0].Id);
-        Assert.Empty(plan.Artifacts);
     }
 
     [Fact]

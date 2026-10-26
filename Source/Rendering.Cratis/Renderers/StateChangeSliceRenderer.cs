@@ -52,7 +52,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)
         {
-            RenderCommand(builder, command, applicationSet, diagnostics, rootNamespace);
+            RenderCommand(builder, command, slice, applicationSet, diagnostics, rootNamespace);
         }
 
         foreach (var @event in slice.Slice.Events)
@@ -69,12 +69,25 @@ public class StateChangeSliceRenderer : ISliceRenderer
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
 
+    static bool IsVerifiedInlineReturnType(string returnType, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
+    {
+        var typeName = returnType.StartsWith("global::", StringComparison.Ordinal) ? returnType[8..] : returnType;
+        if (typeName is "void" or "IEnumerable<object>" || typeName.Split('.').Last() == "EventForEventSourceId")
+        {
+            return true;
+        }
+
+        return applicationSet.Slices.Append(slice).Any(declaration => declaration.Slice.Events.Any(@event =>
+            typeName == Identifiers.ToPascalCase(@event.Name) ||
+            typeName == $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}"));
+    }
+
     static IEnumerable<string> ReferencedNames(SliceSyntax slice) =>
         slice.Commands.SelectMany(command => command.Properties).Select(property => property.Type.Name)
             .Concat(EventRenderer.ReferencedNames(slice.Events))
             .Concat(slice.Commands.SelectMany(command => command.Produces).Select(produces => produces.Event));
 
-    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         var typeName = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
@@ -90,18 +103,26 @@ public class StateChangeSliceRenderer : ISliceRenderer
         builder.BlankLine().Documentation(command.Description, command.Documentation).Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
-        RenderHandle(builder, command, applicationSet, diagnostics, rootNamespace);
+        RenderHandle(builder, command, slice, applicationSet, diagnostics, rootNamespace);
 
         builder.EndBlock();
     }
 
-    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         if (command.Handler?.Code is not null)
         {
+            var returnType = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
+            if (!IsVerifiedInlineReturnType(returnType, slice, applicationSet, rootNamespace))
+            {
+                diagnostics.Add(
+                    $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{returnType}'. " +
+                    "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.");
+            }
+
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
-                .OpenBlock($"public {InlineHandlerReturnType.Infer(command.Handler.Code.Code)} Handle(CommandContext context)")
+                .OpenBlock($"public {returnType} Handle(CommandContext context)")
                 .Raw(command.Handler.Code.Code)
                 .EndBlock();
             return;

@@ -42,7 +42,7 @@ public class with_releasing_and_multiple_constraint_targets : given.an_invoice_m
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_render_each_target_and_release() => Artifact("UniqueDescription.cs")
-        .ShouldContain(".On<global::Invoices.Billing.Invoicing.Import.InvoiceImported>");
-    [Fact] void should_render_release() => Artifact("UniqueDescription.cs").ShouldContain(".RemovedWith<global::Invoices.Billing.Invoicing.Release.InvoiceReleased>()");
+        .ShouldContain(".On<InvoiceImported>");
+    [Fact] void should_render_release() => Artifact("UniqueDescription.cs").ShouldContain(".RemovedWith<InvoiceReleased>()");
     [Fact] void should_ignore_casing() => Artifact("UniqueDescription.cs").ShouldContain(".IgnoreCasing()");
 }

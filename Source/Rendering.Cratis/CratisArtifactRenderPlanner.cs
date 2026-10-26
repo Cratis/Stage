@@ -136,8 +136,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
-        var sceneJson = AdmittedScene(request, partitions, diagnostics);
-        var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];
+        var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
+        var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
+        var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
         {
             return CreatePlan(request, [], diagnostics);
@@ -157,7 +158,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
         {
-            artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
         if (GeneratedTypeNames.UsesProtectedReads(slices.SelectMany(located => located.Slice.Commands)))
@@ -167,16 +168,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         if (GeneratedTypeNames.UsesStreamIds(slices.Select(slice => slice.Slice)))
         {
-            artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(StreamIdsRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
         if (selectedReducers.Count > 0)
         {
             artifacts.Add(Artifact(SemanticReducerContextRuntime.Render(context)));
-            artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace)));
+            artifacts.Add(Artifact(TenantTranslationSource.Render(context.RootNamespace, context.GeneratedTypes)));
         }
 
-        AddScaffold(request, context, artifacts, sceneJson);
+        AddScaffold(request, context, artifacts);
 
         if (partitions is not null)
         {
@@ -186,48 +187,15 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 diagnostics.Add(new("STAGE-SCREEN-005", ArtifactRenderDiagnosticSeverity.Information, "This slice declares no authored screen; no slice-owned default UI fragment is emitted.", slice.Slice.Id));
             }
 
-            if (request.Scope.Kind != ArtifactRenderScopeKind.Application)
+            if (userInterface is null)
             {
-                diagnostics.Add(new("STAGE-SCREEN-006", ArtifactRenderDiagnosticSeverity.Information, "Application Scene aggregates are omitted from scoped plans; use application scope to publish shared UI.", context.Application.Id));
+                diagnostics.Add(new("STAGE-SCREEN-006", ArtifactRenderDiagnosticSeverity.Information, "Application Scene aggregates are omitted from scoped plans; use application scope, or name the slices whose UI is present, to publish shared UI.", context.Application.Id));
             }
         }
 
-        if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        if (userInterface is not null)
         {
-            // A caller that authored screens carries its own composition in the profile. A caller that did not
-            // gets one composed from the model here, so a generated application is usable without a hand-written
-            // screen. Either way the binding module accompanies it, because it is what the payload refers to.
-            var composed = SceneCompositionInput.IsCarriedBy(request.Profile)
-                ? null
-                : DefaultSceneComposition.Create(context);
-            if (composed is not null)
-            {
-                artifacts.Add(PlannedArtifact.CreateText(
-                    SceneCompositionInput.RelativePath,
-                    CanonicalSceneJson.Serialize(composed),
-                    [context.Application.Id]));
-            }
-
-            if (composed is not null || SceneCompositionInput.IsCarriedBy(request.Profile))
-            {
-                artifacts.Add(PlannedArtifact.CreateText(
-                    SceneBindingsRenderer.RelativePath,
-                    SceneBindingsRenderer.Render(context),
-                    [context.Application.Id]));
-
-                // The document and module the emitted Stage runtime renders the composition from.
-                var documentJson = composed is not null
-                    ? CanonicalSceneJson.Serialize(composed)
-                    : System.Text.Encoding.UTF8.GetString(artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.AsSpan());
-                artifacts.Add(PlannedArtifact.CreateText(
-                    StageSceneDocument.RelativePath,
-                    StageSceneDocument.Render(documentJson, context),
-                    [context.Application.Id]));
-                artifacts.Add(PlannedArtifact.CreateText(
-                    StageModuleRenderer.RelativePath,
-                    StageModuleRenderer.Render(context),
-                    [context.Application.Id]));
-            }
+            AddUserInterface(request, context, userInterface, sceneJson, artifacts);
         }
 
         var shared = request.Scope.Kind == ArtifactRenderScopeKind.Application
@@ -290,8 +258,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static void AddScaffold(
         ArtifactRenderRequest request,
         SemanticApplicationContext context,
-        List<PlannedArtifact> artifacts,
-        string? sceneJson)
+        List<PlannedArtifact> artifacts)
     {
         if (request.Scope.Kind != ArtifactRenderScopeKind.Application)
         {
@@ -299,25 +266,112 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id]));
-        if (sceneJson is not null)
-        {
-            artifacts.Add(PlannedArtifact.CreateText(SceneCompositionInput.RelativePath, sceneJson, [request.Model.Application.Id]));
-        }
     }
 
-    static string? AdmittedScene(ArtifactRenderRequest request, ScreenPartitionsInput.Catalog? partitions, List<ArtifactRenderDiagnostic> diagnostics)
+    // The application's shared UI: the Scene composition, the module binding it to the generated Arc proxies, and the
+    // document and module the emitted Stage runtime renders it from. An application plan composes it over every slice;
+    // a scoped plan carrying the user interface input composes it over exactly the slices whose proxies are present,
+    // so the bindings never import a proxy that has not been generated.
+    static void AddUserInterface(
+        ArtifactRenderRequest request,
+        SemanticApplicationContext context,
+        IReadOnlyList<LocatedSemanticSlice> userInterface,
+        string? sceneJson,
+        List<PlannedArtifact> artifacts)
     {
-        // Only application plans emit shared Scene artifacts; scoped plans must not be refused for them.
-        if (request.Scope.Kind != ArtifactRenderScopeKind.Application) return null;
+        // A caller that authored screens carries its own composition in the profile. A caller that did not
+        // gets one composed from the model here, so a generated application is usable without a hand-written
+        // screen. Either way the binding module accompanies it, because it is what the payload refers to.
+        var documentJson = sceneJson;
+        if (!SceneCompositionInput.IsCarriedBy(request.Profile) && DefaultSceneComposition.Create(context, userInterface) is { } composed)
+        {
+            documentJson = CanonicalSceneJson.Serialize(composed);
+        }
+
+        if (documentJson is null)
+        {
+            return;
+        }
+
+        artifacts.Add(PlannedArtifact.CreateText(SceneCompositionInput.RelativePath, documentJson, [context.Application.Id]));
+        artifacts.Add(PlannedArtifact.CreateText(
+            SceneBindingsRenderer.RelativePath,
+            SceneBindingsRenderer.Render(context, userInterface),
+            [context.Application.Id]));
+        artifacts.Add(PlannedArtifact.CreateText(
+            StageSceneDocument.RelativePath,
+            StageSceneDocument.Render(documentJson, context),
+            [context.Application.Id]));
+        artifacts.Add(PlannedArtifact.CreateText(
+            StageModuleRenderer.RelativePath,
+            StageModuleRenderer.Render(context, userInterface),
+            [context.Application.Id]));
+    }
+
+    // Application plans carry the UI of every slice. A scoped plan carries shared UI only when the caller names the
+    // slices whose UI is present; the plan's own slices are always among them, because this plan generates them.
+    static IReadOnlyList<LocatedSemanticSlice>? UserInterfaceSlices(
+        ArtifactRenderRequest request,
+        SemanticApplicationContext context,
+        IReadOnlyList<LocatedSemanticSlice> selected,
+        List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        {
+            return context.AllSlices;
+        }
+
+        if (!UserInterfaceInput.TryRead(request.Profile, out var present) || present is not { } named)
+        {
+            return null;
+        }
+
+        var known = context.AllSlices.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+        foreach (var unknown in named.Where(identity => !known.Contains(identity)))
+        {
+            diagnostics.Add(Error("STAGE-SCREEN-007", $"The user interface input names '{unknown}', which is not a slice of this model.", context.Application.Id));
+        }
+
+        UserInterfaceDomainsInput.TryRead(request.Profile, out var domains);
+        var elsewhere = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (domain, identities) in domains?.AsEnumerable() ?? [])
+        {
+            foreach (var identity in identities)
+            {
+                if (!known.Contains(identity))
+                {
+                    diagnostics.Add(Error("STAGE-SCREEN-007", $"The user interface domains input names '{identity}', which is not a slice of this model.", context.Application.Id));
+                }
+
+                elsewhere[identity] = domain;
+            }
+        }
+
+        // A slice this plan generates is placed under the plan's own domain, wherever it was generated before.
+        var own = selected.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+        var included = named.Concat(own).Concat(elsewhere.Keys).ToHashSet(StringComparer.Ordinal);
+        return [.. context.AllSlices
+            .Where(slice => included.Contains(slice.Slice.Id.ToString()))
+            .Select(slice => !own.Contains(slice.Slice.Id.ToString()) && elsewhere.TryGetValue(slice.Slice.Id.ToString(), out var domain)
+                ? slice with { Path = [.. domain.Split('/', StringSplitOptions.RemoveEmptyEntries), .. slice.Path.Skip(context.Domain.Count)] }
+                : slice)];
+    }
+
+    static string? AdmittedScene(ArtifactRenderRequest request, ScreenPartitionsInput.Catalog? partitions, IReadOnlyList<LocatedSemanticSlice>? userInterface, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        // Only plans that emit shared Scene artifacts admit the Scene; other scoped plans must not be refused for it.
+        if (userInterface is null) return null;
         var scene = request.Profile.Inputs.SingleOrDefault(input => input.Name == $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}");
         if (scene is null)
         {
             return null;
         }
 
+        // Partitioned screens are composed from the slices whose UI is present; an unpartitioned Scene is the
+        // caller's whole composition and is carried as authored.
         var sceneJson = partitions is null
             ? System.Text.Encoding.UTF8.GetString(scene.Bytes.AsSpan())
-            : ScreenPartitionsInput.Compose(scene, partitions);
+            : ScreenPartitionsInput.Compose(scene, partitions, userInterface.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal));
 
         // Admission runs before rendering, even if another independent gate has already refused.
         if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(sceneJson))
@@ -337,7 +391,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ImmutableArray<ArtifactRemoval> removals = default)
     {
         if (refusals.IsDefault) refusals = [];
-        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
+
+        // The header is written before gaps are located, so their stub spans address the published bytes.
+        var (planned, gaps) = AddPerformerGaps(request, GeneratedFileHeader.Apply(request.Profile, artifacts), diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))

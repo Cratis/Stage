@@ -19,8 +19,8 @@ public class when_rendering_conditional_generated_productions : Specification
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(Source.Replace("enabled == true", "receipt == \"ABCDEFGHIJKLMNOPQRSTU\" and enabled == true", StringComparison.Ordinal)));
 
     [Fact] void should_admit_the_generated_operand() => Assert.True(_plan.Success, string.Join('\n', _plan.Diagnostics));
-    [Fact] void should_read_the_generated_handle_parameter() => Slice.ShouldContain("global::System.Object.Equals(receipt.Value, \"ABCDEFGHIJKLMNOPQRSTU\")");
-    [Fact] void should_guard_freshness_by_taken_productions() => Slice.ShouldContain("stageProduces0 || stageProduces1 ? new global::Cratis.Chronicle.Events.EventSourceId[]");
+    [Fact] void should_read_the_generated_handle_parameter() => Slice.ShouldContain("object.Equals(receipt.Value, \"ABCDEFGHIJKLMNOPQRSTU\")");
+    [Fact] void should_guard_freshness_by_taken_productions() => Slice.ShouldContain("stageProduces0 || stageProduces1 ? new EventSourceId[]");
     [Fact] void should_return_only_selected_events() => Slice.ShouldContain("EventsWithConcurrencyScopes(stageEvents,");
     [Fact] void should_assert_that_skips_append_nothing() => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_skipped_production.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("void should_append_no_new_events()");
 }

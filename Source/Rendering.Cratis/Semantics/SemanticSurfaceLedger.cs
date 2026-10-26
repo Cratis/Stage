@@ -180,8 +180,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");
         Add(entries, "SemanticExpressionSourceKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticEventContextExpression", rendered, "Type Value");
-        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred");
-        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
+        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred EventSourceIdentity");
+        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
@@ -431,6 +431,10 @@ internal static class SemanticSurfaceLedger
         // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading
         // the inbox and reads only that source's history (Stage#752).
         Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
+
+        // ESM v34 ('then invokes', decision 0115) remains refused whole (STAGE-ESM-016).
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
+        Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.

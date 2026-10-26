@@ -61,7 +61,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -130,7 +130,26 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options! with { Refusals = refusals };
+        if (!FileHeaderInput.TryRead(profile, out var fileHeader))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate file header.";
+            return false;
+        }
+
+        if (!UserInterfaceInput.TryRead(profile, out var userInterface))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate user interface input.";
+            return false;
+        }
+
+        if (!UserInterfaceDomainsInput.TryRead(profile, out var userInterfaceDomains) ||
+            (userInterfaceDomains is { } named && (userInterface is null || named.Keys.Any(domain => DomainPlacementInput.IsReserved(domain, expected)))))
+        {
+            mismatch = "The Cratis profile carries an invalid, duplicate, reserved or unaccompanied user interface domains input.";
+            return false;
+        }
+
+        admittedOptions = options! with { Refusals = refusals, FileHeader = fileHeader };
         mismatch = string.Empty;
         return true;
     }

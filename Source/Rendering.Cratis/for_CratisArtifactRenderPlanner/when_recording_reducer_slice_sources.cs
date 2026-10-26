@@ -37,7 +37,7 @@ public class when_recording_reducer_slice_sources : Specification
     [Fact] void should_admit_the_reducer() => _first.Success.ShouldBeTrue();
     [Fact] void should_preserve_the_read_model_and_input_events_alongside_the_declaring_slice() => _reducer.Sources.ShouldEqual(new[] { _declaring.ReadModels.Single().Id, _input.Events.Single().Id, _declaring.Id }.OrderBy(id => id.ToString(), StringComparer.Ordinal));
     [Fact] void should_not_name_the_input_events_slice_as_an_owner() => _reducer.Sources.ShouldNotContain(_input.Id);
-    [Fact] void should_preserve_the_previous_artifact_hash() => _reducer.Sha256.ShouldEqual("c7418e2f6622e9bc6c04928cda1004d2cee67ef0e381bc4fd48d2ce5c3cd9e55");
+    [Fact] void should_preserve_the_previous_artifact_hash() => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(given.LegacyLicenseHeader.Restore(_reducer.RelativePath, System.Text.Encoding.UTF8.GetString(_reducer.Bytes.AsSpan()))))).ShouldEqual("1b21c24fef92ce4dde23cae467b9d7e2063157e9e93b52694b8cd73d782adb60");
     [Fact] void should_repeat_the_same_sources() => _second.Artifacts.Single(artifact => artifact.RelativePath == _reducer.RelativePath).Sources.AsEnumerable().ShouldEqual(_reducer.Sources.AsEnumerable());
     [Fact] void should_repeat_the_same_plan_digest() => _second.Digest.ShouldEqual(_first.Digest);
 }

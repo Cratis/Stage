@@ -14,7 +14,7 @@ public class when_auditing_the_ui_surface : Specification
     // member must make an explicit render/refuse decision rather than silently extending this list.
     // ReactionProductionMode and CommandReadMode are refused before legacy rendering/execution with STAGE-ESM-043 and STAGE-ESM-044.
     // StickyNotes are Studio canvas notes: authoring metadata outside the executable model, so Stage neither renders nor refuses them.
-    // TimeZone (application time zones) is authoring syntax only: Screenplay's executable binding refuses it with PLAY0268 before Stage sees a bound model.
+    // TimeZone (Screenplay 4.247.0, decisions 0106/0107) never reaches Stage: the Screenplay binder refuses an application time zone (Cratis/Screenplay#824).
     [Theory]
     [InlineData(typeof(ApplicationSyntax), "Authentication Behaviors CommandReadMode Concepts Domain EventSources Examples Exposures FileImports Identity Imports InstanceContributions Layouts Modules Personas Policies Purposes ReactionProductionMode SampleDataPacks Seeds SourceOptions StickyNotes Systems Templates Themes TimeZone Triggers Types UiProfiles")]
     [InlineData(typeof(ModuleSyntax), "Authorize Behaviors Contributions DependsOn Description DialogTemplates Documentation Examples Features FileImports Forms IsPlacement Name Navigation Purposes ScreenTemplates Templates Toolbars UsedBehaviors")]

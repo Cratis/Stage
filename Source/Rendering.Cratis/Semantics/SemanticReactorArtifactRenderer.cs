@@ -16,7 +16,7 @@ internal static class SemanticReactorArtifactRenderer
     {
         var types = new SemanticTypeSystem(context);
         var name = Identifiers.ToPascalCase(reaction.Name);
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(reaction.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
@@ -150,6 +150,7 @@ internal static class SemanticReactorArtifactRenderer
         SemanticResolvedExpression resolved => $"@event.{Identifiers.ToPascalCase(source.Properties.Single(property => property.Id == resolved.Target).Name)}",
         SemanticValueExpression value => types.Value(value.Value, target),
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } => "context.Occurred",
+        SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } => types.EventSourceIdentityValue(target),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticExpression), expression.Kind)
     };
 }

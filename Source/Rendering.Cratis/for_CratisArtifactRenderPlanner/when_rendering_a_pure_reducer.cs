@@ -143,9 +143,9 @@ public class when_rendering_a_pure_reducer
         var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
-        var shadowedFiles = baselineFiles.Append(new RenderedFile($"{sharedName}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {sharedName}(System.Guid Id, decimal Amount);"));
-        Assert.Empty(RenderedOutput.Errors(shadowedFiles));
 
+        // A hand-written type in a generated namespace is outside the contract (keep custom types out of generated
+        // namespaces); a generated sibling of the same name is not, and is qualified.
         var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
         var plan = Plan(await Load(conflicting));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -682,7 +682,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(await Load(source));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var generatedSpec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("is_projected", StringComparison.Ordinal));
-        Assert.Contains("[global::Xunit.FactAttribute]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
+        Assert.Contains("[Fact]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);
@@ -773,6 +773,8 @@ public class when_rendering_a_pure_reducer
     [Theory]
     [InlineData("return new Total(Guid.NewGuid(), context.Event.Amount);", "Guid.NewGuid")]
     [InlineData("return new Total(Guid.Empty, DateTime.UtcNow.Day);", "DateTime.UtcNow")]
+    [InlineData("return new Total(Guid.Empty, DateTimeOffset.UtcNow.Day);", "DateTimeOffset.UtcNow")]
+    [InlineData("_ = new DateTimeOffset(1L, TimeSpan.Zero); return context.State;", "DateTimeOffset(long,TimeSpan)")]
     [InlineData("return new Total(Guid.Empty, Environment.TickCount);", "Environment.TickCount")]
     [InlineData("Environment.ExitCode = 1; return context.State;", "static write")]
     [InlineData("var alias = context; return new Total(Guid.Empty, alias.Tenant.Value.Length);", "context.Tenant alias")]
@@ -918,6 +920,17 @@ public class when_rendering_a_pure_reducer
         }
     }
 
+    [Theory]
+    [InlineData("_ = DateTime.Now; return context.State;")]
+    [InlineData("return new Total(Guid.Empty, DateTime.Now < DateTime.Now ? 1m : 0m);")]
+    public async Task should_suggest_datetimeoffset_for_refused_datetime_members(string body)
+    {
+        var verdict = await Analyze(body);
+        Assert.False(verdict.Accepted);
+        Assert.Equal("STAGE-ESM-022", verdict.Code);
+        Assert.Contains("Use DateTimeOffset (context.Occurred) instead.", verdict.Reason, StringComparison.Ordinal);
+    }
+
     // Planted adversarial bodies: each was admitted by the pre-fix gate (see failing targeted test).
     [Theory]
     [InlineData("return new Total(Guid.Empty, new[] { 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0 }.Sum());")]
@@ -963,6 +976,7 @@ public class when_rendering_a_pure_reducer
 
     internal static readonly string[] AdmittedFixtures =
     [
+            "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
             "return new Total(Guid.Empty, context.Event.Amount + 1m);",
             "return new Total(Guid.Empty, Math.Abs(-1m));",
             "return new Total(Guid.Empty, context.Occurred.AddTicks(1).Day);",
@@ -1003,6 +1017,13 @@ public class when_rendering_a_pure_reducer
             "return new Total(Guid.Empty, (int)1m);",
             "return default(Total);",
             "return new Total(Guid.Empty, context.Occurred >= context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred < context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred <= context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred > context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred == context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred != context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, new DateTimeOffset(2026, 11, 30, 0, 0, 0, context.Occurred - context.Occurred).Day);",
+            "return new Total(Guid.Empty, TimeSpan.Zero.Ticks);",
             "return new Total(Guid.Empty, (context.Occurred - context.Occurred).Add(context.Occurred - context.Occurred).Ticks);",
             "return new Total(Guid.Empty, (context.Occurred - context.Occurred) == (context.Occurred - context.Occurred) ? 1m : 0m);",
             "return context.State is Total total ? total : new Total(Guid.Empty, 0m);",

@@ -53,7 +53,7 @@ internal sealed partial class SemanticRuntime
                     // Empty successes validate the same durable pre-batch boundary as nonempty batches.
                     await guarded.Append(settled.Facts, occurrence, before).WaitAsync(_appendTimeout);
                 }
-                else if (settled.Facts.Length > 0)
+                else if (SemanticPublicEvents.Logged(Plan, settled.Facts) > 0)
                 {
                     // Legacy appenders retain their preflight check but cannot close the append race.
                     await _appender.Append(settled.Facts, occurrence).WaitAsync(_appendTimeout);
@@ -81,9 +81,12 @@ internal sealed partial class SemanticRuntime
 
             _world = settled.World;
             _knownTail = before;
-            if (settled.Facts.Length > 0)
+
+            // Only what reached the event log moves its tail; a published event went to the outbox.
+            var logged = SemanticPublicEvents.Logged(Plan, settled.Facts);
+            if (logged > 0)
             {
-                _knownTail = before == ulong.MaxValue ? (ulong)settled.Facts.Length - 1 : before + (ulong)settled.Facts.Length;
+                _knownTail = before == ulong.MaxValue ? (ulong)logged - 1 : before + (ulong)logged;
             }
 
             PublishChange();

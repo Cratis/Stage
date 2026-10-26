@@ -8,6 +8,16 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 internal static partial class SemanticSpecificationAdmission
 {
+    /// <summary>
+    /// Gets whether the selected trigger invokes exactly one command that a slice other than the specification's declares.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="specification">The specification.</param>
+    /// <param name="selected">The selected reaction trigger.</param>
+    /// <returns>Whether the invoked command is decided only, keeping none of its facts.</returns>
+    internal static bool InvokesForeignCommand(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
+        selected.Trigger.Invokes.Length == 1 && !context.DeclaringSlice(specification.Id).Declares(selected.Trigger.Invokes[0].Command);
+
     internal static SemanticReactionSpecification SelectReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
         var candidates = ReactionCandidates(context, specification).ToArray();
@@ -16,7 +26,7 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static IEnumerable<SemanticReactionSpecification> ReactionCandidates(SemanticApplicationContext context, SemanticSpecification specification) =>
-        SemanticReactionSpecification.Candidates(context, SemanticReactionSpecification.Input(specification))
+        SemanticReactionSpecification.Candidates(context, specification, SemanticReactionSpecification.Input(specification))
             .Where(candidate => specification.WhenRedelivered is not { } redelivery || candidate.Reaction.Id == redelivery.Reaction);
 
     static void ValidateReactionAppend(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
@@ -48,7 +58,14 @@ internal static partial class SemanticSpecificationAdmission
                 : RefusalScenarioRejection(context, specification, active[0]);
         }
 
-        if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty)
+        // Screenplay decision 0115: a command another slice owns is decided for its outcome, but its facts are not the specification's.
+        var foreign = InvokesForeignCommand(context, specification, active[0]);
+        if (foreign && !specification.ThenEvents.IsEmpty)
+        {
+            return "A specification keeps only its own slice's facts; the invoked command belongs to another slice, so its events cannot be stated (Screenplay decision 0115).";
+        }
+
+        if (specification.ThenNoEvents && !active[0].Trigger.Invokes.IsEmpty && !foreign)
         {
             return "No-events append specifications support production-only reactions; invoked commands require a settlement harness.";
         }
@@ -132,7 +149,10 @@ internal static partial class SemanticSpecificationAdmission
             return "Refusal scenarios do not yet reproduce constraint-target branch outputs.";
         }
 
-        if (EventReactionTriggers(context).Any(next => products.Any(produced => produced.EventContract == next.Source)))
+        // A command another slice owns is decided without its facts being kept, so its events set off nothing (Screenplay decision 0115).
+        var kept = SemanticReactionProductions.For(trigger)
+            .Concat(commands.Where(command => AdoptsInvocation(context, specification, command.Id)).SelectMany(command => command.Produces));
+        if (EventReactionTriggers(context, specification).Any(next => kept.Any(produced => produced.EventContract == next.Source)))
         {
             return "Generated refusal scenarios do not settle deeper reaction cascades.";
         }
@@ -186,9 +206,14 @@ internal static partial class SemanticSpecificationAdmission
 
     static bool HasDeeperReactionCascade(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
     {
-        var products = selected.Trigger.Produces.Concat(selected.InvokedProductions(specification, context)).Select(produced => produced.EventContract).ToHashSet();
+        // A command another slice owns is decided without its facts being kept, so its events set off nothing (Screenplay decision 0115).
+        var products = selected.Trigger.Produces.Select(produced => produced.EventContract).ToHashSet();
+        if (!InvokesForeignCommand(context, specification, selected))
+        {
+            products.UnionWith(selected.InvokedProductions(specification, context).Select(produced => produced.EventContract));
+        }
 
-        return EventReactionTriggers(context).Any(next => products.Contains(next.Source));
+        return EventReactionTriggers(context, specification).Any(next => products.Contains(next.Source));
     }
 
     static string? ReactionOutcomeRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected, ICollection<ArtifactRenderDiagnostic> diagnostics)

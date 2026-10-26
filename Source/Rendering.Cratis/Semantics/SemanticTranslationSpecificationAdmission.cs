@@ -43,7 +43,7 @@ internal static partial class SemanticTranslationSpecificationAdmission
             return "Translate fixtures require complete, comparable event values and lossless event sources.";
         }
         var targets = captures.Length != 0 ? captures[0].Appends.Select(append => append.EventContract) : [publications[0].ReadModel];
-        if (EffectRejection(context, append.EventContract, targets) is { } effects) return effects;
+        if (EffectRejection(context, slice, append.EventContract, targets) is { } effects) return effects;
         if (specification.ThenEvents.Any(expected => !targets.Contains(expected.EventContract)))
         {
             return "the expected outcomes require a cascade beyond the selected translation; no outcomes can be silently omitted.";

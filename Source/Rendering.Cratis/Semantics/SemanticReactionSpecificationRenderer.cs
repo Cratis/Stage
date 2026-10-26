@@ -22,7 +22,9 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         if (!selected.Trigger.Invokes.IsEmpty)
         {
-            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude);
+            // Screenplay decision 0115: a command another slice owns is decided, so its refusal still fails, but its facts are not asserted.
+            var decidedOnly = SemanticSpecificationAdmission.InvokesForeignCommand(context, specification, selected);
+            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude with { DecidedOnly = decidedOnly });
         }
 
         return RenderProductions(specification, context, prelude);
@@ -112,7 +114,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Xunit");
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
@@ -123,7 +125,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderProductionExpectations(builder, specification, prelude, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)
@@ -158,4 +160,10 @@ internal static partial class SemanticReactionSpecificationRenderer
 /// <param name="Selection">The statically selected reaction.</param>
 /// <param name="Append">The modeled input fixture.</param>
 /// <param name="Redelivery">The original specification when delivering recorded history.</param>
-internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null);
+internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null)
+{
+    /// <summary>
+    /// Gets a value indicating whether the invoked command belongs to another slice, so it is decided but its facts are not asserted.
+    /// </summary>
+    public bool DecidedOnly { get; init; }
+}

@@ -658,10 +658,6 @@ internal static class SemanticVersionFeatures
     static IEnumerable<SemanticVersionFeature> UnsupportedReactionContexts(SemanticReaction reaction)
     {
         var contexts = ReactionContextExpressions(reaction).ToArray();
-        if (contexts.Any(context => context.Value == SemanticEventContextValueKind.EventSourceIdentity))
-        {
-            yield return new("STAGE-ESM-013", StageExecutionCapability.IdentityAllocation, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.eventSourceId, which Stage does not support yet.");
-        }
         foreach (var context in contexts.Where(context => IsCausedBy(context.Value)).Select(context => context.Value).Distinct())
         {
             var member = CausedByMember(context);

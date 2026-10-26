@@ -13,7 +13,7 @@ internal static class SemanticAutomationArtifactRenderer
 {
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         var hasReadSurface = SemanticReadSurface.IsDeclaredBy(located.Slice);
         if (hasReadSurface)
         {

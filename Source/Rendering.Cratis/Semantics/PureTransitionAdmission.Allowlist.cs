@@ -172,6 +172,12 @@ internal static partial class PureTransitionAdmission
             return SafeValueType(type.TypeArguments[0]) && NameIs(name, "HasValue", "Value", "GetValueOrDefault", ".ctor");
         }
 
+        if (full == "global::System.Guid")
+        {
+            entry = "guid";
+            return symbol is IMethodSymbol { IsStatic: true } && AuditedMemberSignatures.Contains(AuditedSignature(symbol));
+        }
+
         if (full == "global::System.Math")
         {
             entry = "math";
@@ -278,9 +284,16 @@ internal static partial class PureTransitionAdmission
     static bool AllowedTime(ISymbol symbol) => symbol switch
     {
         IPropertySymbol => NameIs(symbol.Name, "Year", "Month", "Day", "Hour", "Minute", "Second", "Ticks"),
-        IMethodSymbol method => IsTimeOperator(method) || IsTimeAdd(method),
+        IFieldSymbol { IsStatic: true, IsReadOnly: true } => symbol.Name == "Zero" && symbol.ContainingType.ToDisplayString() == "System.TimeSpan",
+        IMethodSymbol method => IsTimeOperator(method) || IsTimeAdd(method) || IsExplicitTimeConstructor(method),
         _ => false
     };
+
+    static bool IsExplicitTimeConstructor(IMethodSymbol method) =>
+        method is { MethodKind: MethodKind.Constructor, Parameters.Length: 7 } &&
+        method.ContainingType.ToDisplayString() == "System.DateTimeOffset" &&
+        method.Parameters.Take(6).All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32) &&
+        method.Parameters[6].Type.ToDisplayString() == "System.TimeSpan";
 
     static bool IsTimeOperator(IMethodSymbol method) =>
         NameIs(method.Name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual", "op_Addition", "op_Subtraction") &&

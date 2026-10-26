@@ -7,7 +7,9 @@ using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_running_translations;
 
-public class with_reaction_publication_boundaries : Specification
+// Screenplay decision 0115: the Automation slice's specification runs only its own slice, so the outbound Translate slice's
+// publication does not run between the reaction's appends; the appends keep the reference's append or transaction boundary.
+public class with_reaction_boundaries_beside_another_slices_publication : Specification
 {
     [Theory]
     [InlineData("legacy", false)]
@@ -16,7 +18,7 @@ public class with_reaction_publication_boundaries : Specification
     [InlineData("atomic", true)]
     [InlineData("commands", false)]
     [InlineData("commands", true)]
-    public async Task should_publish_at_the_same_append_or_transaction_boundary_as_the_reference(string mode, bool rejectSecond)
+    public async Task should_append_at_the_same_boundary_as_the_reference_without_publishing(string mode, bool rejectSecond)
     {
         var plan = Compile(mode, rejectSecond);
         var specification = plan.Specifications.Values.Single();
@@ -33,11 +35,11 @@ public class with_reaction_publication_boundaries : Specification
             var accepted = (SemanticAccepted)reference.Execution;
             actual.Trace!.Facts.Select(fact => fact.EventContract).ShouldEqual(accepted.Facts.Select(fact => fact.EventContract.ToString()));
             var names = accepted.Facts.Select(fact => plan.Events[fact.EventContract].Name).ToArray();
-            names.ShouldEqual(mode == "atomic" ? ["Started", "First", "Second", "Published"] : ["Started", "First", "Published", "Second"]);
+            names.ShouldEqual(["Started", "First", "Second"]);
         }
         else
         {
-            count.ShouldEqual(mode == "atomic" ? 2 : 4);
+            count.ShouldEqual(mode == "atomic" ? 2 : 3);
         }
     }
 
@@ -46,10 +48,7 @@ public class with_reaction_publication_boundaries : Specification
         var effects = mode == "commands"
             ? "invokes EmitFirst\n  id = \"one\"\ninvokes EmitSecond\n  id = \"one\""
             : "produces First\n  for \"one\"\nproduces Second\n  for \"one\"";
-        var successful = mode == "atomic"
-            ? "then First\n  for \"one\"\nthen Second\n  for \"one\"\nthen Published\n  status = \"published\""
-            : "then First\n  for \"one\"\nthen Published\n  status = \"published\"\nthen Second\n  for \"one\"";
-        var expected = rejectSecond ? "then error \"Already second\"" : successful;
+        var expected = rejectSecond ? "then error \"Already second\"" : "then First\n  for \"one\"\nthen Second\n  for \"one\"";
         var source = $$"""
             {{(mode == "atomic" ? "reaction batches atomic" : "")}}
             module Work

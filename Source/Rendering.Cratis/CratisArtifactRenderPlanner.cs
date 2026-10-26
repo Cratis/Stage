@@ -46,7 +46,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var plan = PlanCore(request);
         var warnings = ReleaseBaselineWarnings.For(request);
 
-        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings], plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals);
+        plan = warnings.IsEmpty ? plan : CratisPlanDiagnosticReconstruction.Append(request, plan, warnings);
+        return CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _)
+            ? CratisPlanReports.Finalize(request, CratisPlanAcceptance.Apply(request, plan, options), options)
+            : plan;
     }
 
     static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request)

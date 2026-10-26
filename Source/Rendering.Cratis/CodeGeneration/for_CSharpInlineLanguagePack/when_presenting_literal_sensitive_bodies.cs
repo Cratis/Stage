@@ -25,6 +25,15 @@ public class when_presenting_literal_sensitive_bodies : Specification
     [InlineData("return \"\"\"\n    line one\n    line two\n    \"\"\";")]
     [InlineData("return $$\"\"\"\n    line {{1}}\n    line two\n    \"\"\";")]
     [InlineData("return \"\"\"\"\n    three quotes: \"\"\"\n    \"\"\"\";")]
+    [InlineData("return @\"line one\u0085line two\";")]
+    [InlineData("return @\"line one\u2028line two\";")]
+    [InlineData("return @\"line one\u2029line two\";")]
+    [InlineData("return $@\"line {1}\u0085line two\";")]
+    [InlineData("return $@\"line {1}\u2028line two\";")]
+    [InlineData("return $@\"line {1}\u2029line two\";")]
+    [InlineData("return \"\"\"\u0085    line one\u0085    line two\u0085    \"\"\";")]
+    [InlineData("return \"\"\"\u2028    line one\u2028    line two\u2028    \"\"\";")]
+    [InlineData("return \"\"\"\u2029    line one\u2029    line two\u2029    \"\"\";")]
     void should_preserve_literal_tokens_values_and_compile_without_execution(string body)
     {
         var presentation = CSharpInlineLanguagePack.Present(Code(body), 3);

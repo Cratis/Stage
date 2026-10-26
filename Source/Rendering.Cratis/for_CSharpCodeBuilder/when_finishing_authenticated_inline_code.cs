@@ -13,16 +13,18 @@ public class when_finishing_authenticated_inline_code : Specification
     void should_finish_generated_skeleton_without_exposing_authored_body()
     {
         var seen = string.Empty;
-        var builder = new CSharpCodeBuilder().OpenBlock("class Generated").OpenBlock("string Run()")
+        var builder = new CSharpCodeBuilder().OpenBlock("class Generated")
+            .ExpressionMember("string GeneratedValue()", "\"Generated\"").OpenBlock("string Run()")
             .Raw("return \"Generated\";").EndBlock().EndBlock();
         var output = builder.ToString(skeleton =>
         {
             seen = skeleton;
-            return skeleton.Replace("Generated", "Renamed", StringComparison.Ordinal);
+            return skeleton.Replace("\"Generated\"", "\"Finished\"", StringComparison.Ordinal);
         });
         Assert.DoesNotContain("return \"Generated\"", seen);
         Assert.Contains(InlineCodeTokens.Prefix, seen);
-        Assert.Contains("class Renamed", output);
+        Assert.Contains("class Generated", output);
+        Assert.Contains("string GeneratedValue() => \"Finished\";", output);
         Assert.Contains("return \"Generated\";", output);
         Assert.DoesNotContain(InlineCodeTokens.Prefix, output);
     }
@@ -31,10 +33,12 @@ public class when_finishing_authenticated_inline_code : Specification
     void should_not_rewrite_authored_imports_or_generated_looking_strings()
     {
         const string body = "return \"global::System.String [Stage::member] Generated\";";
-        var output = new CSharpCodeBuilder().OpenBlock("class Generated").OpenBlock("string Run()")
-            .RawVerbatim(body).EndBlock().EndBlock().ToString(text => text.Replace("Generated", "Renamed", StringComparison.Ordinal));
+        var output = new CSharpCodeBuilder().OpenBlock("class Generated")
+            .ExpressionMember("string GeneratedValue()", "\"Generated\"").OpenBlock("string Run()")
+            .RawVerbatim(body).EndBlock().EndBlock().ToString(text => text.Replace("\"Generated\"", "\"Finished\"", StringComparison.Ordinal));
         Assert.Contains(body, output);
-        Assert.Contains("class Renamed", output);
+        Assert.Contains("class Generated", output);
+        Assert.Contains("string GeneratedValue() => \"Finished\";", output);
     }
 
     [Theory]

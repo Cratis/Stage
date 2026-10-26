@@ -38,15 +38,16 @@ public class when_rendering_verified_generation_body : Specification
     void should_use_verified_envelope_and_leave_semantic_body_out_of_finish()
     {
         var context = Context("return \"Generated\";");
-        var builder = new CSharpCodeBuilder().OpenBlock("class Generated");
+        var builder = new CSharpCodeBuilder().OpenBlock("class Generated").ExpressionMember("string GeneratedValue()", "\"Generated\"");
         SemanticGenerationRendering.RenderBody(builder, context.Application.Concepts.Single(), context);
         builder.EndBlock();
         var output = builder.ToString(skeleton =>
         {
             Assert.DoesNotContain("return \"Generated\";", skeleton);
-            return skeleton.Replace("Generated", "Renamed", StringComparison.Ordinal);
+            return skeleton.Replace("\"Generated\"", "\"Finished\"", StringComparison.Ordinal);
         });
-        Assert.Contains("class Renamed", output);
+        Assert.Contains("class Generated", output);
+        Assert.Contains("string GeneratedValue() => \"Finished\";", output);
         Assert.Contains("return \"Generated\";", output);
         Assert.DoesNotContain(InlineCodeTokens.Prefix, output);
     }

@@ -3,7 +3,10 @@
 
 using System.Collections.Immutable;
 using System.Text;
+using System.Text.Json;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
@@ -60,23 +63,59 @@ internal static class InlineCodeSplicer
 
     static IEnumerable<string> Sites(string skeleton, InlineCodeTokens registry)
     {
+        var root = CSharpSyntaxTree.ParseText(skeleton).GetRoot();
         var tokens = SyntaxFactory.ParseTokens(skeleton).ToArray();
         var comments = tokens.SelectMany(token => token.LeadingTrivia.Concat(token.TrailingTrivia))
             .Where(trivia => registry.Slots.ContainsKey(trivia.ToString())).OrderBy(trivia => trivia.SpanStart);
         foreach (var comment in comments)
         {
-            // Brace token positions exclude braces in generated literals and comments.
-            var path = new Stack<int>();
-            var opened = 0;
-            foreach (var token in tokens.TakeWhile(token => token.SpanStart < comment.SpanStart))
+            yield return JsonSerializer.Serialize(new
             {
-                if (token.RawKind == (int)SyntaxKind.OpenBraceToken) path.Push(++opened);
-                if (token.RawKind == (int)SyntaxKind.CloseBraceToken && path.Count > 0) path.Pop();
-            }
-
-            yield return comment + ":" + string.Join(',', path.Reverse());
+                Token = comment.ToString(),
+                Scopes = ScopesBefore(root, tokens, comment.SpanStart),
+                Namespaces = root.DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>()
+                    .Where(scope => scope.FullSpan.Contains(comment.Span)).Select(SyntaxIdentity),
+                Before = TokenIdentity(tokens.LastOrDefault(token => token.Span.End <= comment.SpanStart)),
+                After = TokenIdentity(tokens.FirstOrDefault(token => token.SpanStart >= comment.Span.End))
+            });
         }
     }
+
+    static IEnumerable<string> ScopesBefore(SyntaxNode root, SyntaxToken[] tokens, int position)
+    {
+        var path = new Stack<string>();
+        var opened = 0;
+        foreach (var token in tokens.TakeWhile(token => token.SpanStart < position))
+        {
+            // Lexical braces exclude generated literals; syntax headers bind scopes to their actual owners.
+            if (token.IsKind(SyntaxKind.OpenBraceToken))
+            {
+                var scope = root.FindToken(token.SpanStart, findInsideTrivia: true).Parent!;
+                path.Push(JsonSerializer.Serialize(new
+                {
+                    Ordinal = ++opened,
+                    Identity = scope.AncestorsAndSelf().Reverse().Where(node => node is not CompilationUnitSyntax).Select(SyntaxIdentity)
+                }));
+            }
+
+            if (token.IsKind(SyntaxKind.CloseBraceToken) && path.Count > 0) path.Pop();
+        }
+
+        return path.Reverse();
+    }
+
+    static string SyntaxIdentity(SyntaxNode node) => JsonSerializer.Serialize(new
+    {
+        node.RawKind,
+        Header = node.ChildNodesAndTokens().TakeWhile(part => !IsBodyBoundary(part))
+            .SelectMany(part => part.IsToken ? [part.AsToken()] : part.AsNode()!.DescendantTokens()).Select(TokenIdentity)
+    });
+
+    static bool IsBodyBoundary(SyntaxNodeOrToken part) => part.IsToken
+        ? part.IsKind(SyntaxKind.OpenBraceToken) || part.IsKind(SyntaxKind.CloseBraceToken) || part.IsKind(SyntaxKind.SemicolonToken)
+        : part.AsNode() is StatementSyntax or MemberDeclarationSyntax or AccessorListSyntax or ArrowExpressionClauseSyntax or EqualsValueClauseSyntax;
+
+    static string TokenIdentity(SyntaxToken token) => JsonSerializer.Serialize(new { token.RawKind, token.Text });
 
     static List<(int Start, string Spelling)> Find(string skeleton, InlineCodeTokens registry, ImmutableArray<InlineCodeDiagnostic>.Builder diagnostics)
     {

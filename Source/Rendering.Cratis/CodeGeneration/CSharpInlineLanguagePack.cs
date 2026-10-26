@@ -106,7 +106,9 @@ internal static class CSharpInlineLanguagePack
     };
 
     static TextSpan[] LiteralSpans(SyntaxNode root) =>
-        [.. root.DescendantTokens().Where(token => token.Text.Contains('\n') || token.Text.Contains('\r')).Select(token => token.Span),
+        [.. root.DescendantTokens().Where(token => IsMultiline(token.Text)).Select(token => token.Span),
             .. root.DescendantNodes().OfType<InterpolatedStringExpressionSyntax>()
-                .Where(expression => expression.ToString().Contains('\n') || expression.ToString().Contains('\r')).Select(expression => expression.Span)];
+                .Where(expression => IsMultiline(expression.ToString())).Select(expression => expression.Span)];
+
+    static bool IsMultiline(string text) => SourceText.From(text).Lines.Count > 1;
 }

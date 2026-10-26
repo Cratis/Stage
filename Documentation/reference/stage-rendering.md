@@ -420,6 +420,16 @@ Moving an existing model from v7 to v8 widens stored event schemas from int32 to
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
 
+## Generated C# global usings
+
+An application render writes `GlobalUsings.cs` at the backend root with `global using` directives for
+`Cratis.Arc.MongoDB`, `Cratis.Chronicle.Keys`, `MongoDB.Driver` and `System.Reactive.Subjects`. Generated
+files then leave out per-file usings for those namespaces. Where a name exists in two of them, such as `Tag`,
+it is qualified only as far as needed to resolve the collision. A scoped render keeps the per-file usings.
+
+`GlobalUsings.cs` is owned by Stage, like `Program.cs`, and is regenerated on every application render, so
+edits to it are overwritten. Put application-specific global usings in a separate file, for example `Usings.cs`.
+
 ## Generated C# member names
 
 Stage appends `_` only when a command input property's generated name collides with its

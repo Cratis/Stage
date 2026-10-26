@@ -95,6 +95,21 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
         !_scope.Encloses(@namespace) && CanImport(@namespace, name => KeepsBinding(name, @namespace, inner, top));
 
     /// <summary>
+    /// Gets a value indicating whether the renderer declares a type in a namespace, which makes it win a name collision.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <returns><see langword="true"/> when a generated type lives there.</returns>
+    public bool IsGenerated(string @namespace) => _scope.DeclaresGeneratedTypes(@namespace);
+
+    /// <summary>
+    /// Gets a value indicating whether a namespace declares a type with a simple name.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <param name="name">The simple name.</param>
+    /// <returns><see langword="true"/> when it does.</returns>
+    public bool Declares(string @namespace, string name) => _scope.TypeNames(@namespace).Any(candidate => candidate == name || candidate.StartsWith($"{name}`", StringComparison.Ordinal));
+
+    /// <summary>
     /// Determines whether a directive inside the file-scoped namespace may name a namespace without <c language="csharp">global::</c>.
     /// </summary>
     /// <param name="namespace">The namespace.</param>

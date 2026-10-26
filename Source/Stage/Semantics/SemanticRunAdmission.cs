@@ -245,8 +245,34 @@ public static class SemanticRunAdmission
     /// <param name="fact">The fact about to be appended.</param>
     /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
+        CheckProjectionFact(plan, fact, SemanticObserverFilters.Kinds(plan, fact.Route));
+
+    /// <summary>
+    /// Checks a concrete fact and its formatted route before projection replay or append.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="fact">The fact about to be appended.</param>
+    /// <param name="route">The formatted fact route, or null for an unrouted fact.</param>
+    /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact, SemanticEventRoute? route) =>
+        SemanticImplementationReach.ForFact(plan, fact.EventContract, route) ??
         SemanticRunTranslationAdmission.Check(plan, new SemanticSpecification(fact.EventContract, "Reaction production", [], [], null, [], [], [], [])
         { WhenAppended = new(fact.EventContract, fact.Values) { EventSource = fact.EventSource, Route = fact.Route } }) ?? SemanticRunProjectionAdmission.CheckFact(plan, fact);
+
+    /// <summary>
+    /// Checks completed world rows for reducer-backed state, even when no query was requested.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="readModels">The read-model identities present in the completed world.</param>
+    /// <returns>The projection refusal, or null when no world row requires a reducer body.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionWorld(SemanticExecutionPlan plan, IEnumerable<SemanticId> readModels) =>
+        SemanticImplementationReach.ForWorld(plan, readModels);
+
+    internal static bool HasReadModelProvider(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId readModel) =>
+        plan.Projections.Values.Any(projection => projection.ReadModel == readModel) ||
+        specification.GivenReadModels.Any(seed => seed.ReadModel == readModel) ||
+        plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices)
+            .SelectMany(slice => slice.Reducers).Any(reducer => reducer.ReadModel == readModel);
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
     internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
@@ -297,12 +323,13 @@ public static class SemanticRunAdmission
     static SemanticUnsupportedCapability? CommandPlanRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
         SemanticPlanAdmission.Check(plan, command.Id);
 
-    // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
+    // Settlement matches reaction and reducer filters against concrete routes before projection reach.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
     static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>
         SemanticVersionFeatures.InSlice(slice)
             .Except(SemanticVersionFeatures.AutomationSlices(slice))
             .Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+            .Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
             .Where(feature => feature.Kind != "reaction" || feature.Code is not ("STAGE-ESM-034" or "STAGE-ESM-035" or "STAGE-ESM-037"));
 
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");

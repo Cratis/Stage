@@ -24,12 +24,15 @@ internal static class SemanticImplementationReach
         events.UnionWith(rejectedEvents);
         if (specification.When is { } when) commands.Add(when.Command);
         var queries = specification.ThenQueries.Select(assertion => assertion.Query).ToHashSet();
+        var queried = plan.Queries.Values.Where(query => queries.Contains(query.Id)).Select(query => query.ReadModel).ToHashSet();
         var readModels = specification.GivenReadModels.Select(state => state.ReadModel)
             .Concat(specification.ThenReadModels.Select(assertion => assertion.ReadModel))
-            .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel))
-            .Concat(plan.Queries.Values.Where(query => queries.Contains(query.Id)).Select(query => query.ReadModel)).ToHashSet();
+            .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel)).ToHashSet();
 
-        return First(plan, commands, events, readModels, queries);
+        // Initial filtered seeds are allowed here; completed reducer-backed worlds refuse at the later world gate.
+        return First(plan, commands, queries, (reducer, transition) => queried.Contains(reducer.ReadModel) ||
+            (reducer.From is null && (readModels.Contains(reducer.ReadModel) || events.Contains(transition.EventContract))) ||
+            ObservesGiven(plan, specification, reducer, transition));
     }
 
     internal static SemanticUnsupportedCapability? ForCommand(SemanticExecutionPlan plan, SemanticCommand command)
@@ -42,14 +45,27 @@ internal static class SemanticImplementationReach
     }
 
     internal static SemanticUnsupportedCapability? ForQuery(SemanticExecutionPlan plan, SemanticKeyedQuery query) =>
-        First(plan, [], [], [query.ReadModel], [query.Id]);
+        First(plan, [], [query.Id], (reducer, _) => reducer.ReadModel == query.ReadModel);
+
+    internal static SemanticUnsupportedCapability? ForFact(SemanticExecutionPlan plan, SemanticId @event, SemanticEventRoute? route) =>
+        First(plan, [], [], (reducer, transition) => transition.EventContract == @event &&
+            SemanticObserverFilters.Matches(plan.Model.Application, reducer.From, route));
+
+    internal static SemanticUnsupportedCapability? ForWorld(SemanticExecutionPlan plan, IEnumerable<SemanticId> readModels)
+    {
+        var rows = readModels.ToHashSet();
+        return First(plan, [], [], (reducer, _) => rows.Contains(reducer.ReadModel));
+    }
+
+    static bool ObservesGiven(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticReducer reducer, SemanticReducerTransition transition) =>
+        specification.GivenEvents.Any(fact => fact.EventContract == transition.EventContract &&
+            SemanticObserverFilters.Matches(plan.Model.Application, reducer.From, SemanticObserverFilters.Kinds(plan, fact.Route)));
 
     static SemanticUnsupportedCapability? First(
         SemanticExecutionPlan plan,
         HashSet<SemanticId> commands,
-        HashSet<SemanticId> events,
-        HashSet<SemanticId> readModels,
-        HashSet<SemanticId> queries)
+        HashSet<SemanticId> queries,
+        Func<SemanticReducer, SemanticReducerTransition, bool> reaches)
     {
         var slices = SemanticVersionFeatures.Slices(plan.Model.Application).ToArray();
         var context = new SemanticApplicationContext(plan);
@@ -81,7 +97,7 @@ internal static class SemanticImplementationReach
             }
             foreach (var reducer in slice.Reducers)
             {
-                var transition = reducer.Transitions.FirstOrDefault(transition => readModels.Contains(reducer.ReadModel) || events.Contains(transition.EventContract));
+                var transition = reducer.Transitions.FirstOrDefault(transition => reaches(reducer, transition));
                 if (transition is not null)
                 {
                     return Refusal(StageExecutionCapability.Projection, reducer.ReadModel, $"Reducer '{reducer.Name}' transition '{transition.RequirementId}'");

@@ -9,7 +9,7 @@ public sealed partial class CratisBackendApplicationScaffold
     // Hand-written specifications follow the same convention in when_*, for_* and given folders.
     const string SpecificationGlobs = "**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**";
 
-    static string DirectoryBuildProps(CratisBackendApplicationScaffoldProfile profile) =>
+    internal static string DirectoryBuildProps(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
         <Project>
           <PropertyGroup>
@@ -33,9 +33,9 @@ public sealed partial class CratisBackendApplicationScaffold
         </Project>
         """;
 
-    static string DirectoryBuildTargets() => "<Project />";
+    internal static string DirectoryBuildTargets() => "<Project />";
 
-    static string DirectoryPackagesProps(CratisBackendApplicationScaffoldProfile profile) =>
+    internal static string DirectoryPackagesProps(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
         <Project>
           <PropertyGroup>

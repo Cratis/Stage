@@ -34,7 +34,7 @@ public class when_creating_for_a_repository_root : a_current_scaffold
     [Fact] void should_add_only_the_workflow_and_dependabot_files_to_the_default_roster() => _root.Select(PathOf).Order(StringComparer.Ordinal).SequenceEqual(_first.Select(PathOf).Concat([".github/dependabot.yml", ".github/workflows/build.yml"]).Order(StringComparer.Ordinal)).ShouldBeTrue();
     [Fact] void should_keep_ordinal_path_order() => _root.Select(PathOf).SequenceEqual(_root.Select(PathOf).Order(StringComparer.Ordinal)).ShouldBeTrue();
     [Fact] void should_keep_every_default_input_but_the_readme_byte_identical() => _first.Where(input => PathOf(input) != "README.md").All(input => _root.Single(other => other.Name == input.Name).Bytes.SequenceEqual(input.Bytes)).ShouldBeTrue();
-    [Fact] void should_version_every_input_with_the_scaffold_contract() => _root.All(input => input.Version == "2").ShouldBeTrue();
+    [Fact] void should_version_every_input_with_the_scaffold_contract() => _root.All(input => input.Version == "3").ShouldBeTrue();
     [Fact] void should_use_line_feeds_only() => _root.All(input => !input.Bytes.Contains((byte)'\r')).ShouldBeTrue();
     [Fact] void should_end_the_workflow_with_exactly_one_line_feed() => (_workflow.EndsWith('\n') && !_workflow.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_bytes() => _rootAgain.Zip(_root).All(pair => pair.First.Name == pair.Second.Name && pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();

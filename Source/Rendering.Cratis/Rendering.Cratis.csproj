@@ -131,6 +131,7 @@
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit.runner.visualstudio" Constant="XunitRunner" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.runner.visualstudio')->Metadata('Version'))" />
             <_ScaffoldPackage Include="@cratis/stage.runtime" Constant="StageRuntime" PinVersion="$(Version)" />
+            <_ScaffoldPackage Include="Aspire.Hosting.AppHost" Constant="AspireAppHost" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Aspire.Hosting.AppHost')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

@@ -14,3 +14,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
+
+// The stylesheet of design tokens Cratis Components publishes without types of its own.
+declare module '@cratis/components/tokens';

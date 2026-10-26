@@ -109,8 +109,25 @@ export const stageNavigationTreeComponent = 'Stage:navigationTree';
 /** The name the application shows in its topbar and sidebar when the model gives it no logo. */
 export const stageApplicationName = 'Cratis Stage';
 
-function logo(id: string, title: string, image?: string): SceneElement {
-    return externalComponent(id, ComponentName.Logo, { label: title, initials: title.slice(0, 1).toUpperCase() || 'S', targetScreen: '', ...(image ? { lightImageUrl: image } : {}) });
+/** What the application calls itself and how its mark is drawn. */
+export interface ApplicationIdentity {
+    title: string;
+    image?: string;
+    icon?: string;
+    showName?: boolean;
+}
+
+/** The mark opens the landing page - the first screen - the way the logo of any application does. */
+function logo(id: string, application: ApplicationIdentity | undefined, landing: string): SceneElement {
+    const title = application?.title ?? stageApplicationName;
+    return externalComponent(id, ComponentName.Logo, {
+        label: title,
+        initials: title.slice(0, 1).toUpperCase() || 'S',
+        targetScreen: landing,
+        ...(application?.image ? { lightImageUrl: application.image } : {}),
+        ...(application?.icon ? { iconName: application.icon } : {}),
+        ...(application?.showName !== undefined ? { showName: application.showName } : {}),
+    });
 }
 
 /**
@@ -121,7 +138,7 @@ function logo(id: string, title: string, image?: string): SceneElement {
  * the entries its screens authored as `Navigation` contributions - or one flat list of its screens - as the menu, and the topbar and
  * sidebar draw no region of their own.
  */
-export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: { title: string; image?: string }, regions = false, showFooter = true): Record<string, SceneElement[]> {
+export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, regions = false, showFooter = true): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
     const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
@@ -144,8 +161,8 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const regionNavigation = { regionNavigation: regions };
 
     return {
-        [SlotName.Topbar]: [externalComponent('topbar', ComponentName.Topbar, regionNavigation, { logo: [logo('topbar-logo', title, application?.image)], end })],
-        [SlotName.Sidebar]: [externalComponent('sidebar', ComponentName.Sidebar, regionNavigation, { logo: [logo('sidebar-logo', title, application?.image)] })],
+        [SlotName.Topbar]: [externalComponent('topbar', ComponentName.Topbar, regionNavigation, { logo: [logo('topbar-logo', application, first)], end })],
+        [SlotName.Sidebar]: [externalComponent('sidebar', ComponentName.Sidebar, regionNavigation, { logo: [logo('sidebar-logo', application, first)] })],
         ...(regions ? {} : { [SlotName.Menu]: [menu] }),
         [SlotName.Breadcrumb]: [externalComponent('breadcrumb', ComponentName.Breadcrumb, {
             homeTargetScreen: first,

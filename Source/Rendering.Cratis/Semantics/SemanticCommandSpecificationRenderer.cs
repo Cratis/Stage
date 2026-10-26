@@ -190,8 +190,8 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[given.EventContract];
-        var source = given.EventSource!;
-        if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
+        var source = given.EventSource;
+        if ((source is not null && SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type)) ||
             PropertyValuesNeedCommon(@event.Properties, given.Values))
         {
             builder.Using(context.CommonNamespace);
@@ -199,7 +199,7 @@ internal static partial class SemanticCommandSpecificationRenderer
 
         var eventArguments = @event.Properties.Select(property =>
             types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-        var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+        var eventSource = SemanticSpecificationEventSources.Expression(context, types, given);
         var eventValue = $"new {types.EventType(@event)}({string.Join(", ", eventArguments)})";
         if (given.Route is { } route)
         {

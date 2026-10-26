@@ -36,8 +36,8 @@ public class when_refusing_seeded_composite_removal_without_an_event_source : Sp
     [Fact] void should_cover_seeded_absence() => _specification.GivenReadModels.ShouldNotBeEmpty();
     [Fact] void should_cover_an_absence_expectation() => _specification.ThenAbsentReadModels.ShouldNotBeEmpty();
     [Fact] void should_cover_an_unsourced_append() => Assert.True(_specification.WhenAppended is { EventSource: null });
-    [Fact] void should_refuse_the_unsourced_append_explicitly() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'PaymentRemoved' has no event source", StringComparison.Ordinal));
-    [Fact] void should_not_hide_it_in_a_generic_refusal() => Assert.DoesNotContain(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-011");
+    [Fact] void should_not_refuse_the_unobserved_event_source() => Assert.DoesNotContain(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-051");
+    [Fact] void should_keep_the_independent_seeded_absence_refusal() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-011");
     [Fact] void should_not_admit_composite_absence() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Artifact == _specification.Id && diagnostic.Code == "STAGE-ESM-027");
     [Fact] void should_not_publish_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

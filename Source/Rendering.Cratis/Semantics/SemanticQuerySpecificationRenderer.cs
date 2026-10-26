@@ -87,8 +87,7 @@ internal static class SemanticQuerySpecificationRenderer
             var givenEvent = context.Events[given.EventContract];
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            var givenSource = given.EventSource!;
-            builder.Line(SeedEvent(query, types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type), $"new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)})", given.Route, context, types));
+            builder.Line(SeedEvent(query, SemanticSpecificationEventSources.Expression(context, types, given), $"new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)})", given.Route, context, types));
         }
 
         foreach (var (produced, expectedEvent) in replay)

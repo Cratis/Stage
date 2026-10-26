@@ -23,8 +23,18 @@ public class with_an_attachment_boundary
         AssertBlocked(request, "STAGE-ESM-056");
     }
 
-    [Fact]
-    public void should_require_the_compilation_descriptor() => AssertBlocked(handler_model.Request() with { TypedContextDescriptors = [] }, "STAGE-ESM-021");
+    [Theory]
+    [InlineData(ImplementationGapMode.Refuse)]
+    [InlineData(ImplementationGapMode.Stub)]
+    public void should_require_the_compilation_descriptor(ImplementationGapMode mode)
+    {
+        var request = handler_model.Request() with { TypedContextDescriptors = [] };
+        var plan = CratisRendering.Plan(request.Model, request.ExecutionPlan, request.Scope, new("HandlerApp", "Orders") { ImplementationGaps = mode }, request.ImplementationRequirements, request.ImplementationContents, [], request.TypedContextDescriptors);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        Assert.Equal(ArtifactRenderOutcome.Refused, plan.Outcome);
+        Assert.Empty(plan.Artifacts);
+        Assert.Empty(plan.ImplementationGaps);
+    }
 
     [Fact]
     public void should_reject_a_descriptor_that_omits_a_command_input()

@@ -91,7 +91,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
-        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved.
+        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor
+        // returns one append batch, and ordered per-trigger batches that are not duplicated on redelivery need Cratis/Chronicle#5248.
         Add(entries, "SemanticApplication", rendered, "ReactionProductionMode");
         Add(entries, "SemanticReactionProductionMode", rendered, "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");

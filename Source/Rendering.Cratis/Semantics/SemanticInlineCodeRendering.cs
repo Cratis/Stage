@@ -47,6 +47,35 @@ internal static class SemanticInlineCodeRendering
         return new(presentation.Text is null ? null : code, placement, diagnostics.ToImmutable());
     }
 
+    internal static SemanticInlineCodeResult CommandBody(SemanticCommand command, SemanticApplicationContext context)
+    {
+        var placement = new InlineCodePlacement("command", command.Id.ToString(), SemanticCommandHandlerRendering.Method(command));
+        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+        var site = new SemanticInlineCodeSite(command.Handler!.RequirementId, command.Id, placement);
+        if (!SemanticImplementationAdmission.TryGetVerifiedInline(context.Request, site, diagnostics, out var code))
+        {
+            return new(null, placement, diagnostics.ToImmutable());
+        }
+        var requirement = context.Request.ImplementationRequirements.Single(item => item.RequirementId == code!.RequirementId);
+        if (requirement.Role != SemanticImplementationRole.CommandHandler || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
+            !string.Equals(requirement.RequiredCapability, "provider-defined", StringComparison.Ordinal))
+        {
+            diagnostics.Add(new("STAGE-ESM-019", ArtifactRenderDiagnosticSeverity.Error, "The command handler envelope has an invalid role, version or capability.", command.Id));
+            return new(null, placement, diagnostics.ToImmutable());
+        }
+        var presentation = CSharpInlineLanguagePack.Present(code!, verbatim: true);
+        if (presentation.Degraded)
+        {
+            diagnostics.Add(new("STAGE-INLINE-INTEGRITY", ArtifactRenderDiagnosticSeverity.Error, "The command handler body has no supported containment proof; a placeholder is not a command payload.", command.Id));
+            return new(null, placement, diagnostics.ToImmutable());
+        }
+        foreach (var diagnostic in presentation.Diagnostics)
+        {
+            diagnostics.Add(new(diagnostic.Code, presentation.Degraded ? ArtifactRenderDiagnosticSeverity.Warning : ArtifactRenderDiagnosticSeverity.Error, diagnostic.Message, command.Id));
+        }
+        return new(presentation.Text is null ? null : code, placement, diagnostics.ToImmutable());
+    }
+
     static bool GenerationEnvelope(SemanticImplementationRequirement requirement) =>
         requirement.Role == SemanticImplementationRole.ValueGeneration && requirement.ContextVersion == 1 &&
         requirement.ResultVersion == 1 && string.Equals(requirement.RequiredCapability, "provider-defined", StringComparison.Ordinal);

@@ -9,28 +9,31 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_executing_primitive_invoice_specifications;
 
-public class with_a_wrong_seeded_query_result : a_generated_application
+public class with_a_wrong_seeded_query_result(with_a_wrong_seeded_query_result.context fixture) : IClassFixture<with_a_wrong_seeded_query_result.context>
 {
-    protected override ArtifactRenderPlan CreatePlan()
+    [Fact] void should_fail_the_generated_seeded_query_specification() => fixture.Error!.Message.ShouldContain("should_have_name");
+    [Fact] void should_report_the_wrong_expectation() => fixture.Error!.Message.ShouldContain("Failed");
+
+    public class context : a_generated_application
     {
-        var source = when_rendering_scoped_projections.ScopedSource.Replace(
-            "result\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n            name = \"Pinned\"",
-            "result\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n            name = \"Wrong\"",
-            StringComparison.Ordinal);
-        var plan = invoice_model.Plan(invoice_model.Compile(source));
-        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
-        return plan;
+        protected override ArtifactRenderPlan CreatePlan()
+        {
+            var source = when_rendering_scoped_projections.ScopedSource.Replace(
+                "result\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n            name = \"Pinned\"",
+                "result\n            projectId = \"4fa85f64-5717-4562-b3fc-2c963f66afa7\"\n            name = \"Wrong\"",
+                StringComparison.Ordinal);
+            var plan = invoice_model.Plan(invoice_model.Compile(source));
+            Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+            return plan;
+        }
+
+        async Task Because()
+        {
+            await Run("seeded-wrong-debug.log", "build", "-c", "Debug", "-warnaserror");
+            Error = await Catch.Exception(() => Run("seeded-wrong-test.log", "test", "-c", "Debug", "--no-build"));
+        }
+
+        public Exception? Error { get; private set; }
     }
-
-    Exception? _error;
-
-    async Task Because()
-    {
-        await Run("seeded-wrong-debug.log", "build", "-c", "Debug", "-warnaserror");
-        _error = await Catch.Exception(() => Run("seeded-wrong-test.log", "test", "-c", "Debug", "--no-build"));
-    }
-
-    [Fact] void should_fail_the_generated_seeded_query_specification() => _error!.Message.ShouldContain("should_have_name");
-    [Fact] void should_report_the_wrong_expectation() => _error!.Message.ShouldContain("Failed");
 }
 #endif

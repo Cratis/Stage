@@ -36,6 +36,7 @@ public sealed partial class CratisBackendApplicationScaffold
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
+            ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
         };

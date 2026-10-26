@@ -53,6 +53,7 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
 
     // Static and alias global usings bring names the catalog does not model, so the compilation unit is then unknown.
     readonly HashSet<string>? _global = catalog.HasUnmodeledUsings(request.Project) ? null : catalog.GlobalUsings(request.Project).ToHashSet(StringComparer.Ordinal);
+    readonly HashSet<string> _scaffold = catalog.ScaffoldGlobalUsings(request.Project).ToHashSet(StringComparer.Ordinal);
     readonly HashSet<string> _enclosing = CatalogNames.SelfAndContaining(request.FileNamespace).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>
@@ -62,12 +63,38 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <returns><see langword="true"/> when the directive must stay.</returns>
-    public bool NeedsRequired(string @namespace)
+    public bool NeedsRequired(string @namespace) => NeedsRequired(@namespace, true);
+
+    /// <summary>
+    /// Gets a value indicating whether a namespace the renderer asked to import is still needed.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <param name="assumeScaffoldGlobals">Whether the scaffold-owned GlobalUsings.cs can be relied on to import its namespaces.</param>
+    /// <returns><see langword="true"/> when the directive must stay.</returns>
+    public bool NeedsRequired(string @namespace, bool assumeScaffoldGlobals)
     {
-        if (_global?.Contains(@namespace) == true) return false;
+        if (_global?.Contains(@namespace) == true && (assumeScaffoldGlobals || !_scaffold.Contains(@namespace))) return false;
         if (!_scope.Knows(@namespace)) return true;
         return _scope.ExtensionNames(@namespace).Any(_accessed.Contains) || Brings(@namespace) ||
             _references.Any(reference => reference.Namespace == @namespace);
+    }
+
+    /// <summary>
+    /// Gets the scaffold-owned global namespaces the file relies on: those a short spelling goes through, outside the
+    /// namespaces imported inside the file-scoped namespace, and those a requested import still needs. A destination without
+    /// GlobalUsings.cs gets them as directives, so the file compiles whether or not the scaffold file is there.
+    /// </summary>
+    /// <param name="required">The namespaces the renderer asked to import.</param>
+    /// <param name="spellings">The final spelling of each reference.</param>
+    /// <param name="inner">The imports inside the file-scoped namespace.</param>
+    /// <returns>The namespaces to import above the file-scoped namespace.</returns>
+    public IEnumerable<string> ScaffoldImports(IEnumerable<string> required, ImmutableDictionary<TypeReference, string> spellings, IReadOnlyCollection<string> inner)
+    {
+        if (_global is null) return [];
+        return _references.Where(reference => spellings[reference] != reference.Qualified).Select(reference => reference.Namespace)
+            .Concat(required.Where(@namespace => NeedsRequired(@namespace, false)))
+            .Where(@namespace => _scaffold.Contains(@namespace) && !inner.Contains(@namespace, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal);
     }
 
     /// <summary>

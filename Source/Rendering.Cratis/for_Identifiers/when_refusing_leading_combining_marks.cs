@@ -18,8 +18,8 @@ public class when_refusing_leading_combining_marks : Specification
     [InlineData("_\u20ddx")]
     void should_refuse_a_combining_mark_exposed_by_separator_removal(string name)
     {
-        var error = Assert.Throws<InvalidGeneratedIdentifier>(() => GeneratedPascalCase.From(name));
-        Assert.Equal("STAGE-ESM-019", error.Code);
+        Assert.Throws<InvalidGeneratedIdentifier>(() => GeneratedPascalCase.From(name));
+        Assert.Equal("STAGE-ESM-019", InvalidGeneratedIdentifier.DiagnosticCode);
     }
 
     [Fact]

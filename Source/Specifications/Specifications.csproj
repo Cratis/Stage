@@ -26,6 +26,10 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticReactionProductions.cs" Link="Admission/SemanticReactionProductions.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Admission/SemanticTranslationSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Admission/SemanticVersionFeatures.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmVersionRange.cs" Link="Semantics/Admission/EsmVersionRange.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmVersionStanding.cs" Link="Semantics/Admission/EsmVersionStanding.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmSupport.cs" Link="Semantics/Admission/EsmSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/CratisEsmSupport.cs" Link="Semantics/Admission/CratisEsmSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Admission/SemanticPatternShape.cs" />

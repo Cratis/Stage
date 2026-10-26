@@ -400,7 +400,11 @@ internal static partial class PureTransitionAdmission
             return Reject("STAGE-ESM-019", "The rendered application does not compile.");
         }
 
-        return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor, context?.RootNamespace,
+        return Walk(
+            compilation.GetSemanticModel(tree),
+            method.Body!,
+            descriptor,
+            context?.RootNamespace,
             context is null ? null : GeneratedConceptSymbols(context, compilation));
     }
 
@@ -431,9 +435,10 @@ internal static partial class PureTransitionAdmission
     internal static bool IsGeneratedConceptConversion(ISymbol symbol, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
         symbol is IMethodSymbol
         {
-            MethodKind: MethodKind.Conversion, Name: "op_Implicit", IsStatic: true,
+            MethodKind: MethodKind.Conversion, IsStatic: true,
             DeclaredAccessibility: Accessibility.Public, Parameters.Length: 1
         } method &&
+        string.Equals(method.Name, "op_Implicit", StringComparison.Ordinal) &&
         trusted.TryGetValue(method.ContainingType, out var primitive) &&
         method.Parameters[0].RefKind == RefKind.None &&
         SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, primitive) &&

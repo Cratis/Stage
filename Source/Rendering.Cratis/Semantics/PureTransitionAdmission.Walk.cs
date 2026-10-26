@@ -15,7 +15,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, string? rootNamespace = null,
+    internal static Verdict Walk(
+        SemanticModel model,
+        BlockSyntax body,
+        SemanticTypedContextDescriptor descriptor,
+        string? rootNamespace = null,
         IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol>? generatedConcepts = null)
     {
         rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();

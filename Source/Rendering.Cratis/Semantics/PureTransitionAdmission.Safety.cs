@@ -65,12 +65,18 @@ internal static partial class PureTransitionAdmission
     {
         if (operation.OperatorMethod is { } method)
         {
-            return !IsNullConstant(operation) && IsGeneratedConceptConversion(method, trusted);
+            return !IsNullConstant(operation) && !MayBeNull(operation.Operand) && IsGeneratedConceptConversion(method, trusted);
         }
 
         if (IsNullConstant(operation) && operation.Type is INamedTypeSymbol target && trusted.ContainsKey(target)) return false;
         return IsNullConstant(operation) || IsSafeTypedConversion(operation);
     }
+
+    // A generated conversion admits only operands that nullable flow analysis proves non-null.
+    static bool MayBeNull(IOperation operand) =>
+        operand.Type is not { IsValueType: true } &&
+        (operand.SemanticModel is not { } model ||
+            model.GetTypeInfo(operand.Syntax).Nullability.FlowState != NullableFlowState.NotNull);
 
     static bool IsNullConstant(IConversionOperation operation) =>
         operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null;

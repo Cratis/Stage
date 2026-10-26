@@ -16,7 +16,7 @@ internal static class GeneratedMemberDiagnostic
         if (diagnostic.Location.SourceTree != model.SyntaxTree) return string.Empty;
         var node = model.SyntaxTree.GetRoot().FindNode(diagnostic.Location.SourceSpan);
         if (diagnostic.Id == "CS1503") return ConceptValueHint(node, model) + ConceptConstructionHint(node, model) + NamedArgumentsHint(node, model);
-        if (diagnostic.Id is "CS0029" or "CS0266") return ConceptValueHint(node, model);
+        if (string.Equals(diagnostic.Id, "CS0029", StringComparison.Ordinal) || string.Equals(diagnostic.Id, "CS0266", StringComparison.Ordinal)) return ConceptValueHint(node, model);
         if (diagnostic.Id is not ("CS1061" or "CS0117")) return string.Empty;
         var access = node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax);
         var (receiver, name) = access switch

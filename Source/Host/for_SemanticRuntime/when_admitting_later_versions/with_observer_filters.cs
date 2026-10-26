@@ -17,6 +17,7 @@ public class with_observer_filters : Specification
     void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan())).Plan!;
     void Because() => _admission = new(_plan);
 
-    [Fact] void should_refuse_only_the_reducer_observer() => _admission.Blocking.Where(entry => entry.Details!.StartsWith("STAGE-ESM-035:", StringComparison.Ordinal)).Select(entry => entry.Kind).ShouldContainOnly(["reducer"]);
+    [Fact] void should_admit_filtered_reducers_until_a_matching_fact_is_reached() => _admission.Blocking.ShouldBeEmpty();
+    [Fact] void should_not_statically_refuse_the_fold_command() => _admission.Entries.Where(entry => entry.Kind == "command").All(entry => entry.Status != "unsupported").ShouldBeTrue();
     [Fact] void should_admit_the_version_pair() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
 }

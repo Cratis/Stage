@@ -90,8 +90,7 @@ internal static partial class SemanticRunProjectionAdmission
             .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel));
         foreach (var readModel in assertedModels)
         {
-            if (!plan.ReadModels.ContainsKey(readModel) ||
-                (plan.Projections.Values.All(projection => projection.ReadModel != readModel) && specification.GivenReadModels.All(seed => seed.ReadModel != readModel)))
+            if (!plan.ReadModels.ContainsKey(readModel) || !SemanticRunAdmission.HasReadModelProvider(plan, specification, readModel))
             {
                 return new(StageExecutionCapability.Projection, readModel.ToString(), "The asserted read model has no projection in this run.");
             }

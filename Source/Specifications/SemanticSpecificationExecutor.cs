@@ -18,6 +18,7 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
@@ -146,15 +147,9 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         {
             await context.Append(given, cancellationToken);
         }
-        var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
         if (specification.WhenAppended is { } appended)
         {
-            var candidate = new SemanticConstraintEvaluator.Fact(appended.EventContract, appended.EventSource?.Value ?? SemanticValue.Null, appended.Values);
-            if (SemanticConstraintEvaluator.FindViolation(plan, history, [candidate]) is { } violation)
-            {
-                return Rejected(slice, specification, new SemanticRejection(SemanticConstraintEvaluator.Message(violation), violation.Name));
-            }
-            await context.Append(new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route }, candidate.Destination, cancellationToken);
+            if (await AppendFact(plan, context, appended, cancellationToken) is { } appendFailure) return appendFailure.ToRecord(slice, specification);
         }
         else if (command is not null)
         {
@@ -182,6 +177,17 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts, reactions.Invocations);
+    }
+
+    static async Task<SemanticRunReactionFailure?> AppendFact(SemanticExecutionPlan plan, SemanticRunContext context, SemanticSpecificationAppend appended, CancellationToken cancellationToken)
+    {
+        var candidate = new SemanticConstraintEvaluator.Fact(appended.EventContract, appended.EventSource?.Value ?? SemanticValue.Null, appended.Values);
+        var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
+        if (SemanticConstraintEvaluator.FindViolation(plan, history, [candidate]) is { } violation) return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
+        var fact = new SemanticSpecificationEvent(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route };
+        if (SemanticRunAdmission.CheckProjectionFact(plan, fact, SemanticRunRoutes.Format(plan, fact.Route)) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+        await context.Append(fact, candidate.Destination, cancellationToken);
+        return null;
     }
 
     static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when, SemanticExecutionPlan plan)
@@ -299,8 +305,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     {
         var (context, slice, expected) = (run.Context, run.Slice, run.Expected);
         var history = context.Facts.Select((fact, index) => new SemanticConstraintEvaluator.Fact(fact.EventContract, context.Destinations[index], fact.Values)).ToArray();
-        var candidates = context.Command.Produces.Where(context.Holds).Select(context.Produce)
-            .Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
+        var produced = context.Command.Produces.Where(context.Holds).Select(context.Produce).ToArray();
+        var candidates = produced.Select(item => new SemanticConstraintEvaluator.Fact(item.Fact.EventContract, item.Destination, item.Fact.Values)).ToArray();
         if (ReusesGeneratedSource(context, candidates.Select(candidate => candidate.Destination)))
         {
             return new(Rejected(slice, expected, SemanticGenerationShapes.FreshnessMessage));
@@ -315,6 +321,11 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 [.. constraints.Select(constraint => new SemanticConstraintFailure(constraint.Name, SemanticConstraintEvaluator.Message(constraint)))],
                 string.Join('\n', constraints.Select(SemanticConstraintEvaluator.Message))) : null;
             return new(Rejected(slice, expected, new SemanticRejection(SemanticConstraintEvaluator.Message(first), first.Name)), refusal);
+        }
+
+        foreach (var (fact, _) in produced)
+        {
+            if (SemanticRunAdmission.CheckProjectionFact(run.Plan, fact, SemanticRunRoutes.Format(run.Plan, fact.Route)) is { } blocker) return new(Unsupported(slice, expected, blocker));
         }
 
         return context.Facts.Count - expected.GivenEvents.Length + candidates.Length > SemanticRunReactions.MaximumFacts
@@ -398,16 +409,9 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             }
         }
         var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts) { Invocations = invocations }).ToList();
-        IReadOnlyList<SemanticRunProjections.Projected> projected = [];
-        var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
-
-        // Expected rejection/denial is settled without calling the projection executor, even when the command accepts.
-        if (!expectsRejection)
-        {
-            projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
-            failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
-            failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
-        }
+        var (projected, projectionBlocker, projectionFailures) = ProjectWorld(context, runtimeTypes, defaults);
+        if (projectionBlocker is not null) return Unsupported(slice, specification, projectionBlocker);
+        failures.AddRange(projectionFailures);
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),
@@ -424,6 +428,19 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 entry => JsonSerializer.Serialize(SemanticRunQueries.Select(plan, entry.query, projected).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
         return Settled(slice, specification, failures, trace);
+    }
+
+    static (IReadOnlyList<SemanticRunProjections.Projected> Rows, SemanticUnsupportedCapability? Blocker, IEnumerable<string> Failures) ProjectWorld(SemanticRunContext context, SemanticRuntimeTypes runtimeTypes, Defaults defaults)
+    {
+        var specification = context.Specification;
+
+        // Expected rejection/denial is settled without projection replay, even when the command accepts.
+        if (!specification.ThenErrors.IsEmpty || specification.ThenDenied) return ([], null, []);
+        var projected = SemanticRunProjections.Execute(context.Plan, specification, context, runtimeTypes, defaults);
+        var blocker = SemanticRunAdmission.CheckProjectionWorld(context.Plan, projected.Select(row => row.ReadModel));
+        var failures = SemanticExpectationComparer.CompareProjections(specification, projected, context.Plan)
+            .Concat(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        return (projected, blocker, failures);
     }
 
     static bool ContainsScope(SemanticApplication application, SemanticId scope) =>

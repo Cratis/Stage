@@ -121,6 +121,12 @@ internal static class GeneratedPascalCase
             return "Item";
         }
 
+        if (char.GetUnicodeCategory(result[0]) is System.Globalization.UnicodeCategory.NonSpacingMark or
+            System.Globalization.UnicodeCategory.SpacingCombiningMark or System.Globalization.UnicodeCategory.EnclosingMark)
+        {
+            throw new InvalidGeneratedIdentifier(name);
+        }
+
         return char.IsDigit(result[0]) ? $"_{result}" : result;
     }
 }

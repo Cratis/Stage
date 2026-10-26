@@ -161,6 +161,8 @@ internal sealed class SemanticApplicationContext
 
     internal GeneratedMemberNames MemberNames { get; }
 
+    internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];

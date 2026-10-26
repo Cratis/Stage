@@ -68,6 +68,7 @@ public static class QueryRenderer
         ApplicationSet applicationSet,
         ICollection<string> diagnostics)
     {
+        var parameterName = Identifiers.EscapeKeyword(keyParameterName);
         var own = queries.Where(query => Reads(query, typeName)).ToArray();
         QueryAdmission.EnsureSupported(own);
 
@@ -75,7 +76,7 @@ public static class QueryRenderer
 
         if (own.Length == 0)
         {
-            RenderTheFixedPair(builder, typeName, keyType, keyParameterName);
+            RenderTheFixedPair(builder, typeName, keyType, parameterName);
             return;
         }
 
@@ -91,7 +92,7 @@ public static class QueryRenderer
                 applicationSet,
                 $"Query '{query.Name}'",
                 diagnostics);
-            builder.Documentation(query.Description).Attribute(authorization).Line(Signature(query, typeName, keyType, keyParameterName));
+            builder.Documentation(query.Description).Attribute(authorization).Line(Signature(query, typeName, keyType, parameterName));
         }
     }
 
@@ -143,7 +144,7 @@ public static class QueryRenderer
     static string Signature(QuerySyntax query, string typeName, string keyType, string keyParameterName)
     {
         var name = Identifiers.ToPascalCase(query.Name);
-        var parameter = query.By is { } by ? Identifiers.ToCamelCase(by.Name) : keyParameterName;
+        var parameter = Identifiers.EscapeKeyword(query.By is { } by ? Identifiers.ToCamelCase(by.Name) : keyParameterName);
         var readsTheWholeModel = query.By is null && query.ReturnType.IsCollection;
 
         if (query.IsObservable)

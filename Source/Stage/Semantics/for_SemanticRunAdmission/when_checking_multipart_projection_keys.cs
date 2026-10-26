@@ -21,6 +21,7 @@ public class when_checking_multipart_projection_keys : Specification
     string? _typedComposite;
     string? _mixedFrom;
     string? _mixedRemoval;
+    string? _decimal;
 
     void Because()
     {
@@ -50,6 +51,10 @@ public class when_checking_multipart_projection_keys : Specification
         var uuidModel = model with { Properties = model.Properties.Replace(invoice, invoice with { Type = invoice.Type with { Primitive = SemanticPrimitiveType.Uuid } }) };
         _mixedFrom = SemanticRunProjectionAdmission.CheckCompositeKey(plan, spec, uuidModel, scope with { Removals = [] });
         _mixedRemoval = SemanticRunProjectionAdmission.CheckCompositeKey(plan, spec, uuidModel, scope with { From = [] });
+
+        // Chronicle keys composite parts by their text, so 1.0 and 1.00 would become different rows.
+        var decimalModel = model with { Properties = model.Properties.Replace(invoice, invoice with { Type = invoice.Type with { Primitive = SemanticPrimitiveType.DecimalNumber } }) };
+        _decimal = SemanticRunProjectionAdmission.CheckCompositeKey(plan, spec, decimalModel, scope);
     }
 
     [Fact] void should_admit_the_bounded_root_projection() => _supported.ShouldBeNull();
@@ -62,6 +67,7 @@ public class when_checking_multipart_projection_keys : Specification
     [Fact] void should_explain_seed_refusal_before_scalar_seed_lookup() => _seed!.ShouldContain("Given readmodel seeds with composite keys");
     [Fact] void should_keep_typed_composite_keys_refused() => _typedComposite.ShouldNotBeNull();
     [Fact] void should_refuse_text_to_uuid_from_parts() => _mixedFrom!.ShouldContain("compatible required event properties");
+    [Fact] void should_refuse_decimal_parts_whose_scale_would_split_rows() => _decimal!.ShouldContain("non-decimal");
     [Fact] void should_refuse_text_to_uuid_removal_parts() => _mixedRemoval!.ShouldContain("compatible required event properties");
 
     const string Source = """

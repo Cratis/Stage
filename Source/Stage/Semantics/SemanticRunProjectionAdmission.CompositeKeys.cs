@@ -56,7 +56,7 @@ internal static partial class SemanticRunProjectionAdmission
     {
         if (!CompositeShapeSupported(plan, readModel))
         {
-            return "Composite key parts must be required, single, non-date primitives or concepts and must not collide with the runtime Id property.";
+            return "Composite key parts must be required, single, non-date, non-decimal primitives or concepts and must not collide with the runtime Id property.";
         }
         if (specification.GivenReadModels.Any(given => given.ReadModel == readModel.Id))
         {
@@ -86,7 +86,7 @@ internal static partial class SemanticRunProjectionAdmission
         !type.IsOptional && !type.IsCollection && CompositePrimitiveSupported(plan, type);
 
     static bool CompositePrimitiveSupported(SemanticExecutionPlan plan, SemanticTypeReference type) =>
-        IsScalar(type) && Primitive(plan, type) != SemanticPrimitiveType.DateTime;
+        IsScalar(type) && Primitive(plan, type) is not (SemanticPrimitiveType.DateTime or SemanticPrimitiveType.DecimalNumber);
 
     static bool CompositeRootScope(SemanticProjectionScope scope) =>
         !(scope.From.IsEmpty && scope.Removals.IsEmpty) && OnlyCompositeRootOperations(scope);

@@ -81,7 +81,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
         catch (InvalidGeneratedIdentifier exception)
         {
-            diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
+            diagnostics.Add(Error(InvalidGeneratedIdentifier.DiagnosticCode, exception.Message, request.Model.Application.Id));
         }
 
         return CreatePlan(request, [], diagnostics);

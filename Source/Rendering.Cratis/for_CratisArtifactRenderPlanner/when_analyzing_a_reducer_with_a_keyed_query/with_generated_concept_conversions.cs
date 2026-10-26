@@ -29,7 +29,13 @@ public class with_generated_concept_conversions
         { false, "String", "global::Projects.Common.Reason reason = context.Key; global::Projects.Common.TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
         { true, "String", "Reason reason = context.Key; TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
         { false, "Uuid", "global::Projects.Common.TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { true, "Uuid", "TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" }
+        { true, "Uuid", "TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        { false, "String", "string? text = null; global::Projects.Common.Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        { true, "String", "string? text = null; Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        { false, "String", "global::Projects.Common.Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        { true, "String", "Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        { false, "String", "string? s = null; string text = s!; global::Projects.Common.Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" },
+        { true, "String", "string? s = null; string text = s!; Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" }
     };
 
     [Theory]
@@ -63,8 +69,6 @@ public class with_generated_concept_conversions
     [InlineData("_ = context.State.Reason == \"text\";", "STAGE-ESM-022", "Symbol 'Projects.Common.Reason.operator ==", false)]
     [InlineData("global::Projects.Common.Reason reason = null;", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason?' is outside the pure allowlist.", false)]
     [InlineData("global::Projects.Common.Reason reason = default(string);", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
-    [InlineData("string? text = null; global::Projects.Common.Reason reason = text;", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
-    [InlineData("global::Projects.Common.Reason reason = context.Key.Length > 0 ? null : \"text\";", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
     public async Task should_keep_refusing_other_concept_operations(string prefix, string code, string message, bool valueHint)
     {
         var body = prefix + " " + ConstructedBody;

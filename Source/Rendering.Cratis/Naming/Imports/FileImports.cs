@@ -65,6 +65,9 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     public bool NeedsRequired(string @namespace)
     {
         if (_global?.Contains(@namespace) == true) return false;
+
+        // The file namespace and the namespaces around it are searched before any directive, so importing one adds nothing.
+        if (_enclosing.Contains(@namespace)) return false;
         if (!_scope.Knows(@namespace)) return true;
         return _scope.ExtensionNames(@namespace).Any(_accessed.Contains) || Brings(@namespace) ||
             _references.Any(reference => reference.Namespace == @namespace);

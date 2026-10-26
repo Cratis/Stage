@@ -33,7 +33,7 @@ internal static class SemanticWorldRebuilder
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
-            return Outcome(new SemanticEvaluator().EstablishWorld(plan, facts));
+            return Outcome(new SemanticEvaluator().EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
         }
         catch (InvalidSemanticContract exception)
         {

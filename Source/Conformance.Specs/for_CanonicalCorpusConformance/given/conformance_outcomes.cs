@@ -179,6 +179,7 @@ public static partial class conformance_outcomes
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (rendered.Success)
         {
+            RecordSpecificationRefusals(rendered, codes);
             if (rendered.Artifacts.Length == 0)
             {
                 problems.Add("rendered-nothing");
@@ -210,6 +211,19 @@ public static partial class conformance_outcomes
         }
 
         return Classify(codes, problems);
+    }
+
+    static void RecordSpecificationRefusals(ArtifactRenderPlan rendered, Dictionary<refusal_fingerprint, string> codes)
+    {
+        var warnings = rendered.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).ToArray();
+        foreach (var refusal in rendered.Refusals)
+        {
+            foreach (var code in refusal.Codes)
+            {
+                codes[new(code, null, refusal.Artifact.ToString())] =
+                    warnings.FirstOrDefault(diagnostic => diagnostic.Code == code && diagnostic.Artifact == refusal.Artifact)?.Message ?? code;
+            }
+        }
     }
 
     // A refusal typed by a STAGE code is that code. One typed only by its capability also carries a short reason key (the first words of

@@ -15,7 +15,7 @@ public class when_reporting_inline_degradation : Specification
     void should_report_the_warning_before_emitting_a_degraded_body()
     {
         var diagnostics = new List<InlineCodeDiagnostic>();
-        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, []).Namespace("Shop").OpenBlock("class Host").OpenBlock("void Run()");
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, [], true).Namespace("Shop").OpenBlock("class Host").OpenBlock("void Run()");
         builder.Inline(Code(" ", "java"), Site, reportDegradation: diagnostics.Add);
         var output = builder.EndBlock().EndBlock().ToString();
         Assert.Contains("throw new NotSupportedException", output);
@@ -26,7 +26,7 @@ public class when_reporting_inline_degradation : Specification
     [Fact]
     void should_qualify_a_placeholder_only_when_its_type_name_collides()
     {
-        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, []).Namespace("Shop").Line("class NotSupportedException {}").OpenBlock("class Host").OpenBlock("void Run()");
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, [], true).Namespace("Shop").Line("class NotSupportedException {}").OpenBlock("class Host").OpenBlock("void Run()");
         builder.Inline(Code(" ", "java"), Site, reportDegradation: _ => { });
         var output = builder.EndBlock().EndBlock().ToString();
         Assert.Contains("throw new global::System.NotSupportedException", output);

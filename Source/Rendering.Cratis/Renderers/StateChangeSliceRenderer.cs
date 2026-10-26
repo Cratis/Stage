@@ -45,7 +45,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace)).Namespace(ownNamespace);
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false).Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 

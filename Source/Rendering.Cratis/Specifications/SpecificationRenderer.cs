@@ -114,7 +114,7 @@ public static class SpecificationRenderer
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);
         var ownNamespace = $"{SliceNaming.Namespace(rootNamespace, slice.FullPath)}.{name}";
-        var builder = new CSharpCodeBuilder(GeneratedProjects.Specifications, LegacyGeneratedTypes.For(applicationSet, rootNamespace))
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Specifications, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false)
             .Namespace(ownNamespace)
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")

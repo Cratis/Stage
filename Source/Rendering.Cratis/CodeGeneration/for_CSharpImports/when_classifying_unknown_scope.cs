@@ -13,7 +13,7 @@ public class when_classifying_unknown_scope : Specification
 
     static UnknownScopeReason Classify(string source, bool declared = false)
     {
-        var imports = new CSharpImports(GeneratedProjects.Application, []);
+        var imports = new CSharpImports(GeneratedProjects.Application, [], true);
         if (declared) imports.Unknown();
         return imports.Classify(source, []);
     }

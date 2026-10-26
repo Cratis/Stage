@@ -294,6 +294,13 @@ see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution
 can instead render the supported inbox capture and outbox publication subset; see
 [Translation rendering](translation-rendering.md) for its mappings, added-state approximation and refusals.
 
+Systems, operation declarations and phases, inline `produces operation`, `given operation … fails`,
+`then operation` and `then compensated` are syntax-only authoring constructs. The legacy renderer, Host
+and structural specification runner refuse them with `STAGE-ESM-057`, naming the construct and its
+source location, rather than dropping it or appending an event instead. The semantic path refuses the
+same constructs with Screenplay's `PLAY0268`; operations are not admitted by any supported executable
+model (ESM) version yet (Cratis/Stage#176, Cratis/Screenplay#301).
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,

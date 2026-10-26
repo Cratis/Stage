@@ -33,6 +33,7 @@ public class with_generated_native_body_specifications
             .Replace("      reaction Notifier", "      event Heartbeat\n      reaction Notifier", StringComparison.Ordinal) + "\n" + """
                   specification Notifying
                     given TicketOpened
+                      for "ticket-one"
                       title = "Broken"
                     when append Heartbeat
                     then no events

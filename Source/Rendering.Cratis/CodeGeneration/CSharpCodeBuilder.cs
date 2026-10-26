@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Microsoft.CodeAnalysis.Text;
 
@@ -176,7 +177,7 @@ public class CSharpCodeBuilder
         }
         else
         {
-            _body.Append(' ', _indent * 4).AppendLine(text);
+            _body.Append(' ', _indent * 4).AppendLine(text.AsSpan().TrimStart().StartsWith("//", StringComparison.Ordinal) ? NormalizeLineComment(text) : text);
         }
 
         return this;
@@ -306,18 +307,36 @@ public class CSharpCodeBuilder
         return result.Append(unit).ToString();
     }
 
+    internal static string NormalizeLineComment(string text) => text.ReplaceLineEndings(" ");
+
     internal static string NormalizeDocumentation(string text) => string.Join(
         '\n',
         text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
-    internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true)
+    internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true, Action<InlineCodeDiagnostic>? reportDegradation = null)
     {
         var issued = _inline.Issue(code, placement, _indent, verbatim);
-        _inlineDiagnostics.AddRange(issued.Diagnostics);
+        foreach (var diagnostic in issued.Diagnostics)
+        {
+            if (diagnostic.Code == "STAGE-DEGRADE-003" && reportDegradation is not null) reportDegradation(diagnostic);
+            else _inlineDiagnostics.Add(diagnostic);
+        }
+
         if (issued.Token is not null) _body.Append(issued.Token);
         return this;
+    }
+
+    internal CSharpCodeBuilder Validation(CodeBlockSyntax source, string owner, string member) =>
+        AuthoredBody(source, new("validation", owner, member));
+
+    internal CSharpCodeBuilder AuthoredBody(CodeBlockSyntax source, InlineCodePlacement placement)
+    {
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(source.Code)));
+        var verified = InlineCode.VerifyUtf8Text(source.Code, new(hash, source.Language, placement, $"{placement.Owner}/{placement.Member}"));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        return verified.Value is { } code ? Inline(code, placement, verbatim: false) : this;
     }
 
     internal string Type(TypeReference reference) => reference.Qualified;
@@ -329,7 +348,7 @@ public class CSharpCodeBuilder
 
     string Complete(InlineCodeSplice splice)
     {
-        if (_inlineDiagnostics.Exists(diagnostic => diagnostic.Code != "STAGE-DEGRADE-003") || splice.Text is null)
+        if (_inlineDiagnostics.Count > 0 || splice.Text is null)
         {
             throw new InlineCodeRejected([.. _inlineDiagnostics, .. splice.Diagnostics]);
         }
@@ -345,7 +364,12 @@ public class CSharpCodeBuilder
         var placement = new InlineCodePlacement("builder", "builder", id);
         var verified = InlineCode.VerifyUtf8Text(text, new(hash, "csharp", placement, id));
         _inlineDiagnostics.AddRange(verified.Diagnostics);
-        return verified.Value is { } code ? Inline(code, placement, verbatim) : this;
+        if (verified.Value is not { } code) return this;
+        var options = new InlineCodePresentationOptions(_indent, verbatim, CSharpBodyContainment.ScopeAtEnd(_body));
+        var issued = _inline.IssueLegacy(code, options);
+        _inlineDiagnostics.AddRange(issued.Diagnostics);
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
     }
 
     void TextDocumentation(string tag, string text)

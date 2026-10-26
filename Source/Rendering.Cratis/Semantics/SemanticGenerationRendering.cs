@@ -44,7 +44,8 @@ internal static class SemanticGenerationRendering
         // The raw body binds against this namespace in the compile gate, independent of import shortening.
         builder.Using("Cratis.Concepts")
             .OpenBlock($"static string {BodyMethod(concept)}(global::Cratis.Concepts.GenerationContext context)")
-            .Inline(inline.Code!, inline.Placement)
+            .Inline(inline.Code!, inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(
+                new(diagnostic.Code, ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, concept.Id)))
             .EndBlock()
             .BlankLine();
     }

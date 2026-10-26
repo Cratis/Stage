@@ -62,6 +62,18 @@ public class when_presenting_literal_sensitive_bodies : Specification
         result.Diagnostics.Single().Code.ShouldEqual("STAGE-DEGRADE-003");
     }
 
+    [Theory]
+    [InlineData("return @\"unterminated")]
+    [InlineData("} public class Escaped {} {")]
+    [InlineData("return true; /*")]
+    void should_refuse_foreign_invalid_body_without_a_placeholder(string source)
+    {
+        var result = CSharpInlineLanguagePack.Present(Code(source, "java"));
+        Assert.Null(result.Text);
+        result.Degraded.ShouldBeFalse();
+        Assert.All(result.Diagnostics, diagnostic => Assert.Equal("STAGE-INLINE-INTEGRITY", diagnostic.Code));
+    }
+
     [Fact]
     void should_only_degrade_foreign_language_when_language_independent_containment_is_provable()
     {

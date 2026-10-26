@@ -1,9 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
@@ -29,6 +31,46 @@ internal static class CSharpBodyContainment
         return (proof.IsContained ? new(proof.Block, false, "Directives are not supported in inline bodies.") : proof) with { HasDirectives = true };
     }
 
+    internal static InlineCodeScope ScopeAtEnd(StringBuilder skeleton)
+    {
+        var source = skeleton.ToString();
+        var root = SyntaxFactory.ParseCompilationUnit(source + "\n__stage_inline_site();");
+        var ancestors = root.FindToken(source.Length + 1).Parent!.AncestorsAndSelf().ToArray();
+        if (ancestors.OfType<BlockSyntax>().Any()) return InlineCodeScope.MemberBody;
+        return ancestors.OfType<BaseTypeDeclarationSyntax>().Any() ? InlineCodeScope.TypeMembers : InlineCodeScope.CompilationUnit;
+    }
+
+    internal static bool DeclarationsAreContained(InlineCode code)
+    {
+        var source = code.Text;
+        var root = SyntaxFactory.ParseCompilationUnit(source);
+        var directives = root.DescendantTrivia(descendIntoTrivia: true).Where(trivia => trivia.IsDirective).ToArray();
+        if (!ProveDeclarations(SourceText.From(source))) return false;
+        return directives.Length == 0 || ProveDeclarations(SourceText.From(WithoutDirectives(source, directives)));
+    }
+
+    static bool ProveDeclarations(SourceText source)
+    {
+        var root = SyntaxFactory.ParseCompilationUnit(source + "\nclass __StageInlineBoundary {}\n");
+        var terminator = root.DescendantNodes().OfType<ClassDeclarationSyntax>().Any(type => type.SpanStart == source.Length + 1);
+        if (!terminator || HasUnprovenLiteral(root)) return false;
+        if (SyntaxFactory.ParseTokens(source.ToString()).Any(token => token.ContainsDiagnostics || token.IsKind(SyntaxKind.BadToken))) return false;
+        return BalancedBraces(root.DescendantTokens(descendIntoTrivia: true).Where(token => !token.IsMissing && token.SpanStart < source.Length));
+    }
+
+    static bool BalancedBraces(IEnumerable<SyntaxToken> tokens)
+    {
+        var depth = 0;
+        foreach (var token in tokens)
+        {
+            if (token.IsKind(SyntaxKind.OpenBraceToken)) depth++;
+            if (token.IsKind(SyntaxKind.CloseBraceToken)) depth--;
+            if (depth < 0) return false;
+        }
+
+        return depth == 0;
+    }
+
     static CSharpContainmentProof Prove(string text)
     {
         // Token diagnostics cover unterminated strings/comments even when newline recovery leaves a closing brace.
@@ -48,7 +90,7 @@ internal static class CSharpBodyContainment
     }
 
     // Raw/interpolated string diagnostics can be attached only during parsing, not standalone tokenization.
-    static bool HasUnprovenLiteral(StatementSyntax parsed) => parsed.DescendantNodes().Any(HasLiteralDiagnostic);
+    static bool HasUnprovenLiteral(SyntaxNode parsed) => parsed.DescendantNodes().Any(HasLiteralDiagnostic);
 
     static bool HasLiteralDiagnostic(SyntaxNode node)
     {

@@ -76,6 +76,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
         }
+        catch (GeneratedPascalCase.InvalidIdentifier exception)
+        {
+            diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
+        }
 
         return CreatePlan(request, [], diagnostics);
     }
@@ -220,6 +224,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
+        diagnostics.AddRange(context.InlineDiagnostics);
         return CreatePlan(request, artifacts, diagnostics, refusals, removals);
     }
 

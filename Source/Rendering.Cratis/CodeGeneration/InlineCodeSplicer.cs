@@ -30,15 +30,20 @@ internal static class InlineCodeSplicer
         }
 
         if (diagnostics.Count > 0) return new(null, [], diagnostics.ToImmutable());
+        return ReplacePlacements(skeleton, registry, occurrences);
+    }
+
+    static InlineCodeSplice ReplacePlacements(string skeleton, InlineCodeTokens registry, List<(int Start, string Spelling)> occurrences)
+    {
         var output = new StringBuilder();
         var authored = ImmutableArray.CreateBuilder<TextSpan>();
         var copied = 0;
         foreach (var (start, spelling) in occurrences)
         {
             output.Append(skeleton.AsSpan(copied, start - copied));
-            var presentation = registry.Slots[spelling].Presentation;
-            authored.Add(new(output.Length, presentation.Length));
-            output.Append(presentation);
+            var slot = registry.Slots[spelling];
+            if (slot.IsAuthored) authored.Add(new(output.Length, slot.Presentation.Length));
+            output.Append(slot.Presentation);
             copied = start + spelling.Length;
         }
 

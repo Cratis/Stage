@@ -73,6 +73,44 @@ public class when_finishing_authenticated_inline_code : Specification
         }));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    void should_preserve_whole_authored_types_in_namespace_or_type_slots(bool nested, bool verbatim)
+    {
+        const string source = "public class Authored { public string Value => \"global::System.String [Stage::member]\"; }";
+        var builder = new CSharpCodeBuilder().Namespace("Example");
+        if (nested) builder.OpenBlock("public class Host");
+        if (verbatim) builder.RawVerbatim(source);
+        else builder.Raw(source);
+        if (nested) builder.EndBlock();
+        var output = builder.ToString();
+        Assert.Contains((nested && !verbatim ? "    " : string.Empty) + source + "\n", output);
+        Assert.DoesNotContain(InlineCodeTokens.Prefix, output);
+    }
+
+    [Theory]
+    [InlineData("class Authored { string Value => \"\"\"unterminated")]
+    [InlineData("class Authored { /*")]
+    [InlineData("#if false\nclass Authored {}")]
+    void should_refuse_unproven_declaration_slots_in_both_legacy_modes(string source)
+    {
+        var raw = new CSharpCodeBuilder().Namespace("Example").Raw(source);
+        var verbatim = new CSharpCodeBuilder().Namespace("Example").RawVerbatim(source);
+        Assert.Throws<InlineCodeRejected>(raw.ToString);
+        Assert.Throws<InlineCodeRejected>(verbatim.ToString);
+    }
+
+    [Fact]
+    void should_still_refuse_authored_type_declarations_inside_a_generated_member()
+    {
+        var builder = new CSharpCodeBuilder().OpenBlock("class Host").OpenBlock("void Run()")
+            .Raw("public class Authored {}").EndBlock().EndBlock();
+        Assert.Throws<InlineCodeRejected>(builder.ToString);
+    }
+
     [Fact]
     void should_render_deterministically_and_not_execute_body()
     {

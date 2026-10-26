@@ -91,13 +91,15 @@ public class when_rendering_verified_generation_body : Specification
         warning.Code.ShouldEqual("STAGE-DEGRADE-003");
         warning.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
         warning.Message.ShouldEqual("The body language does not match csharp.");
-        var builder = new CSharpCodeBuilder().OpenBlock("class Host");
+        var builder = context.CodeBuilder().OpenBlock("class Host");
         SemanticGenerationRendering.RenderBody(builder, context.Application.Concepts.Single(), context);
         var source = builder.EndBlock().ToString();
         Assert.Contains("class Host", source);
-        Assert.Contains("throw new global::System.NotSupportedException", source);
+        Assert.Contains("throw new NotSupportedException", source);
+        Assert.DoesNotContain("global::System.NotSupportedException", source);
         Assert.DoesNotContain("return \"Generated\";", source);
         Assert.NotNull(outcome.EffectiveInputFingerprint);
+        Assert.Equal(warning, Assert.Single(context.InlineDiagnostics));
     }
 
     static SemanticApplicationContext Context(string body, string? hashSource = null, string language = "csharp")

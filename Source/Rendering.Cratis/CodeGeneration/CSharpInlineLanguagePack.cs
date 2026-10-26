@@ -12,13 +12,20 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
+internal enum InlineCodeScope
+{
+    MemberBody,
+    TypeMembers,
+    CompilationUnit
+}
+
 internal sealed record InlineCodePresentation(string? Text, bool Degraded, ImmutableArray<InlineCodeDiagnostic> Diagnostics);
-internal sealed record InlineCodePresentationOptions(int Indent, bool Verbatim);
+internal sealed record InlineCodePresentationOptions(int Indent, bool Verbatim, InlineCodeScope Scope = InlineCodeScope.MemberBody);
 
 internal static class CSharpInlineLanguagePack
 {
     internal const string Language = "csharp";
-    static readonly HashSet<string> _roles = new(["command", "operation", "generation", "guard", "validation", "builder"], StringComparer.Ordinal);
+    static readonly HashSet<string> _roles = new(["command", "operation", "generation", "reaction", "guard", "validation", "builder"], StringComparer.Ordinal);
 
     internal static InlineCodePresentation Present(InlineCode code, int indent = 0, bool verbatim = false)
     {
@@ -28,6 +35,13 @@ internal static class CSharpInlineLanguagePack
         // Without a foreign language parser, only an empty/whitespace body has a language-independent proof.
         if (!HasLanguageProof(code)) return Refuse("No structural containment proof is available for this foreign language body.");
         return PresentProven(code, new(indent, verbatim));
+    }
+
+    internal static InlineCodePresentation PresentLegacy(InlineCode code, InlineCodePresentationOptions options)
+    {
+        if (options.Scope == InlineCodeScope.MemberBody) return Present(code, options.Indent, options.Verbatim);
+        if (!CSharpBodyContainment.DeclarationsAreContained(code)) return Refuse("The authored declarations escape their scope or have unprovable lexical containment.");
+        return PresentText(code, options);
     }
 
     internal static string Fingerprint(IEnumerable<InlineCode> inputs)
@@ -49,8 +63,11 @@ internal static class CSharpInlineLanguagePack
         var proof = CSharpBodyContainment.Analyze(code.Text);
         if (!proof.IsContained) return Refuse(proof.Reason!);
         if (!LanguageMatches(code) || !proof.Supported) return Placeholder(code, proof);
-        return new(options.Verbatim ? Terminate(code.Text) : Indent(code, options), false, []);
+        return PresentText(code, options);
     }
+
+    static InlineCodePresentation PresentText(InlineCode code, InlineCodePresentationOptions options) =>
+        new(options.Verbatim ? Terminate(code.Text) : Indent(code, options), false, []);
 
     static InlineCodePresentation Placeholder(InlineCode code, CSharpContainmentProof proof)
     {
@@ -64,14 +81,15 @@ internal static class CSharpInlineLanguagePack
     static string Indent(InlineCode code, InlineCodePresentationOptions options)
     {
         var text = code.Text;
-        var tree = CSharpSyntaxTree.ParseText("{\n" + text + "\n}");
+        var prefix = ContextPrefix(options);
+        var tree = CSharpSyntaxTree.ParseText(prefix + text + (prefix.Length == 0 ? string.Empty : "\n}"));
         var root = tree.GetRoot();
         var spans = LiteralSpans(root);
         var source = SourceText.From(text);
         var output = new StringBuilder();
         foreach (var line in source.Lines)
         {
-            var position = line.Start + 2;
+            var position = line.Start + prefix.Length;
             var protectedLine = spans.Any(span => span.Start < position + line.SpanIncludingLineBreak.Length && span.End > position);
             if (!protectedLine && line.Span.Length > 0) output.Append(' ', options.Indent * 4);
             output.Append(text.AsSpan(line.Start, line.SpanIncludingLineBreak.Length));
@@ -79,6 +97,13 @@ internal static class CSharpInlineLanguagePack
 
         return Terminate(output.ToString());
     }
+
+    static string ContextPrefix(InlineCodePresentationOptions options) => options.Scope switch
+    {
+        InlineCodeScope.MemberBody => "{\n",
+        InlineCodeScope.TypeMembers => "class __StageInlineHost {\n",
+        _ => string.Empty
+    };
 
     static TextSpan[] LiteralSpans(SyntaxNode root) =>
         [.. root.DescendantTokens().Where(token => token.Text.Contains('\n') || token.Text.Contains('\r')).Select(token => token.Span),

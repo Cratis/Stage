@@ -18,6 +18,8 @@ public class when_proving_member_boundaries : Specification
     [InlineData("return \"\"\"\n}\n{\n\"\"\";")]
     [InlineData("return $$\"\"\"literal } {{1}}\"\"\";")]
     [InlineData("return 'a';")]
+    [InlineData("return '{';")]
+    [InlineData("return '}';")]
     [InlineData("return $\"value {1}\";")]
     void should_prove_balanced_authored_statements_and_literal_braces(string text) => CSharpBodyContainment.Analyze(text).IsContained.ShouldBeTrue();
 

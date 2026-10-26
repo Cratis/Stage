@@ -46,6 +46,48 @@ public class when_consuming_authenticated_placements : Specification
         Assert.Equal(4, result.Diagnostics.Length);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    void should_refuse_forged_or_tampered_token_even_when_the_genuine_token_is_present(bool tampered)
+    {
+        var registry = new InlineCodeTokens();
+        var genuine = registry.Issue(Code("return 1;"), Site).Token!.ToString();
+        var forged = tampered ? genuine.Replace("stage_inline:", "stage_inline:0", StringComparison.Ordinal) :
+            InlineCodeTokens.Prefix + "forged" + InlineCodeTokens.Suffix;
+        var result = InlineCodeSplicer.Splice(genuine + forged, registry);
+        Assert.Null(result.Text);
+        Assert.Single(result.Diagnostics);
+        Assert.Contains("unauthenticated", result.Diagnostics.Single().Message);
+    }
+
+    [Fact]
+    void should_refuse_token_in_a_sibling_member_without_a_missing_or_duplicate_token()
+    {
+        var registry = new InlineCodeTokens();
+        var token = registry.Issue(Code("return;"), Site).Token;
+        var original = $"class Host {{ void First() {{ {token} }} void Second() {{ }} }}";
+        var moved = $"class Host {{ void First() {{ }} void Second() {{ {token} }} }}";
+        var result = InlineCodeSplicer.Splice(moved, registry, original);
+        Assert.Null(result.Text);
+        Assert.Single(result.Diagnostics);
+        Assert.Contains("scope or token order", result.Diagnostics.Single().Message);
+    }
+
+    [Fact]
+    void should_refuse_reordering_genuine_tokens_within_the_same_member()
+    {
+        var registry = new InlineCodeTokens();
+        var first = registry.Issue(Code("var first = 1;"), Site).Token;
+        var second = registry.Issue(Code("var second = 2;"), Site).Token;
+        var original = $"class Host {{ void Run() {{ {first}{second} }} }}";
+        var reordered = $"class Host {{ void Run() {{ {second}{first} }} }}";
+        var result = InlineCodeSplicer.Splice(reordered, registry, original);
+        Assert.Null(result.Text);
+        Assert.Single(result.Diagnostics);
+        Assert.Contains("scope or token order", result.Diagnostics.Single().Message);
+    }
+
     [Fact]
     void should_refuse_unterminated_token_and_wrong_role_owner_or_member()
     {

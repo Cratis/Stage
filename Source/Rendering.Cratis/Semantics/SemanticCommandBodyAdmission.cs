@@ -40,17 +40,35 @@ internal static class SemanticCommandBodyAdmission
         Analyze(command, context, diagnostics);
     }
 
-    internal static bool ProbeDescriptor(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
+    internal static RenderedFile RenderDescriptor(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
     {
-        if (descriptor.Role != SemanticImplementationRole.CommandHandler) return false;
-        if (descriptor.OperationId is not { } owner) return false;
-        if (!context.Commands.TryGetValue(owner, out var command)) return false;
-        if (!IsCSharp(command, context)) return false;
-        SemanticCommandHandlerRendering.RenderContext(new CSharpCodeBuilder(), command, context);
-        return true;
+        if (!IsCommandDescriptorProbe(descriptor, context)) return SemanticTypedContextRenderer.Render(descriptor, context);
+        var command = context.Commands[descriptor.OperationId!.Value];
+        var name = $"HandlerContextProbe_{SemanticCommandHandlerRendering.Suffix(command)}";
+        var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace).OpenBlock($"internal static class {name}");
+        SemanticCommandHandlerRendering.RenderContext(builder, command, context);
+        builder.EndBlock();
+        return new(Path.Combine(context.TypedContextsFolder, $"{name}.cs"), builder.ToString());
     }
 
-    internal static bool ReachesBody(SemanticSpecification specification, SemanticApplicationContext context) =>
+    internal static IEnumerable<SemanticSpecification> WithoutBodySpecifications(IEnumerable<SemanticSpecification> specifications, SemanticApplicationContext context, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var specification in specifications)
+        {
+            if (ReachesBody(specification, context))
+            {
+                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command handler bodies are not executed by the reference specification runtime.", specification.Id));
+                continue;
+            }
+            yield return specification;
+        }
+    }
+
+    static bool IsCommandDescriptorProbe(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context) =>
+        descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.OperationId is { } owner &&
+        context.Commands.TryGetValue(owner, out var command) && IsCSharp(command, context);
+
+    static bool ReachesBody(SemanticSpecification specification, SemanticApplicationContext context) =>
         specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command) && command.Handler is not null;
 
     static bool HasVerifiedBody(SemanticCommand command, SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)

@@ -29,13 +29,8 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
+        foreach (var specification in SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics))
         {
-            if (SemanticCommandBodyAdmission.ReachesBody(specification, context))
-            {
-                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command handler bodies are not executed by the reference specification runtime.", specification.Id));
-                continue;
-            }
             if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
             {
                 if (!CanRenderProjectedFacts(context, facts))

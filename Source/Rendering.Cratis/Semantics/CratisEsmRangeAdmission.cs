@@ -13,13 +13,10 @@ internal static class CratisEsmRangeAdmission
     {
         var version = CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
         if (version != EsmVersionStanding.NewerWithinRange) return FromFindings(request, new(version, []));
-        var gated = SemanticSurfaceLedger.Entries.Where(entry => entry.Value.Kind == SemanticSurfaceDispositionKind.Rejected && entry.Value.Detail == "STAGE-ESM-016")
-            .Select(entry => entry.Key).ToImmutableHashSet(StringComparer.Ordinal);
-        var known = SemanticSurfaceLedger.Entries.Where(entry => !gated.Contains(entry.Key)).ToImmutableDictionary(StringComparer.Ordinal);
         var owners = CratisSelectedSemanticOwners.Enumerate(context).Select(owner => owner.Id).Append(context.Application.Id).ToImmutableHashSet();
         var selected = context.SelectedSlices().Select(located => located.Slice.Id).ToImmutableHashSet();
         var excluded = context.AllSlices.Select(located => located.Slice.Id).Where(id => !selected.Contains(id)).ToImmutableHashSet();
-        var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, known, new(owners, excluded, gated));
+        var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, excluded));
         return FromFindings(request, standing);
     }
 

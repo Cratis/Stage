@@ -4,6 +4,9 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
+import type { ExternalComponent, Screen } from '@cratis/scene.model';
+import { StageConfirmDialog } from './StageConfirmDialog';
+import { asDialogScreens, stageConfirmDialogComponent } from './stageDialogScreens';
 import { registerStageCommands } from '../../src/host/commandRegistration';
 import { stageComponents } from './stageComponents';
 import { StageDataProvider } from './stageData';
@@ -100,6 +103,43 @@ async function submittedBody(fetched: ReturnType<typeof renderScreens>) {
 
 describe('an action scoped to its own screen tables', () => {
     afterEach(() => { vi.unstubAllGlobals(); globalThis.localStorage?.clear(); });
+
+    it('should keep the selected list row when a confirm-dialog screen opens its decision form', async () => {
+        const routes = { commands: { DispatchShipment: '/api/scoped-dispatch' }, queries: { OwnShipments: '/api/own-shipments' }, commandSchemas: { DispatchShipment: schema } };
+        registerStageCommands(routes);
+        registerTestQueries(routes.queries);
+        const fetched = vi.fn(respond);
+        vi.stubGlobal('fetch', fetched);
+        globalThis.location.hash = '#/Shipments';
+        const table = element('own-table', 'core:table', { query: 'OwnShipments' }, {
+            columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })],
+        });
+        const [dialog] = asDialogScreens([{
+            name: 'Dispatch', screenTemplate: 'ConfirmDialog', forms: [],
+            slotContent: { actions: [element('dispatch', 'core:action', { command: 'DispatchShipment' })] },
+        } as unknown as Screen], []);
+        const confirmation = dialog.slotContent.content[0] as ExternalComponent;
+        const show = (content: ExternalComponent) => (
+            <PrimeReactProvider>
+                <StageDataProvider routes={routes} locale='en' locales={['en']} screen={content.id}>
+                    <StageScreenTables element={content}>
+                        {content.componentName === stageConfirmDialogComponent ? <StageConfirmDialog element={content} /> : <RegisteredTable element={content} slots={{}} />}
+                    </StageScreenTables>
+                </StageDataProvider>
+            </PrimeReactProvider>
+        );
+        const view = render(show(table));
+        fireEvent.click(await screen.findByText('Own shipment'));
+        globalThis.location.hash = '#/Dispatch';
+        view.rerender(show(confirmation));
+        expect(screenTablesOf(confirmation)).toEqual([]);
+        fireEvent.click(screen.getByRole('button', { name: 'Dispatch shipment' }));
+        expect(screen.queryByLabelText(/shipmentId/i)).toBeNull();
+        fireEvent.change(screen.getByLabelText('carrier', { exact: false }), { target: { value: 'Posten' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+        expect(await submittedBody(fetched)).toEqual({ shipmentId: ownRow.shipmentId, carrier: 'Posten' });
+    });
 
     it('should stay disabled when only another screen has a selected row', async () => {
         renderScreens();

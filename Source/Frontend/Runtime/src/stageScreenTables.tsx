@@ -33,6 +33,11 @@ export function StageScreenTables({ element, children }: { element: SceneElement
     return <ScreenTablesContext.Provider value={tables}>{children}</ScreenTablesContext.Provider>;
 }
 
+/** Preserves the page-wide selection of a confirmation decision and its form after leaving the list screen. */
+export function StagePageRows({ children }: { children: ReactNode }) {
+    return <ScreenTablesContext.Provider value={undefined}>{children}</ScreenTablesContext.Provider>;
+}
+
 /**
  * The rows a person could select and has selected in this screen's tables, each carrying the entity keys the command form recognizes.
  * Queries published for `data:` declarations or `binding:` values and tables on other screens cannot gate an action or fill its identifier.

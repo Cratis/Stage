@@ -481,6 +481,7 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
+                {/* Template dialogs own their table scope; only ConfirmDialog decisions preserve the originating list selection. */}
                 <StageScreenTables element={resolved}>
                     <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
                 </StageScreenTables>

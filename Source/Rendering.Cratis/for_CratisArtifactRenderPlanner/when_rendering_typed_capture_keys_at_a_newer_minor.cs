@@ -61,23 +61,14 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
         Check().ShouldBeNull();
     }
 
-    [Fact]
-    void should_preserve_unsafe_identity_refusal_at_a_newer_minor()
+    [Theory]
+    [InlineData(SemanticPrimitiveType.Boolean, SemanticPrimitiveType.Boolean, "identity type")]
+    [InlineData(SemanticPrimitiveType.Uuid, SemanticPrimitiveType.Text, "will not coerce")]
+    public void should_preserve_identity_refusals_at_a_newer_minor(SemanticPrimitiveType source, SemanticPrimitiveType append, string expected)
     {
-        var key = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Boolean);
-        SetTypes(key, key);
+        SetTypes(SemanticTypeReference.ForPrimitive(source), SemanticTypeReference.ForPrimitive(append));
         var audited = Check();
-        audited!.ShouldContain("identity type");
-        Versions(32, 1);
-        Check().ShouldEqual(audited);
-    }
-
-    [Fact]
-    void should_preserve_mismatched_append_identity_refusal_at_a_newer_minor()
-    {
-        SetTypes(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid), SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text));
-        var audited = Check();
-        audited!.ShouldContain("will not coerce");
+        audited!.ShouldContain(expected);
         Versions(32, 1);
         Check().ShouldEqual(audited);
     }

@@ -19,7 +19,7 @@ static class CratisPlanReports
         var reports = ArtifactRenderReports.Create(plan, context);
         var original = plan.WithAcceptance(plan.Degradations);
         return ArtifactRenderPlan.Create(request, [.. plan.Artifacts, reports.Completeness, reports.Unsupported], original.Diagnostics, plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals)
-            .WithInventory(plan.Inventory!).WithAcceptance(plan.Degradations, plan.Strict);
+            .WithInventory(plan.Inventory!).WithPlanEvidence(plan.PlanEvidence).WithAcceptance(plan.Degradations, plan.Strict);
     }
 
     // An input inside the declared range gets the additive v2 provenance; every other report keeps the exact v1 shape.

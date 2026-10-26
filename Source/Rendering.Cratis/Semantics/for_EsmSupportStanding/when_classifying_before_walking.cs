@@ -13,14 +13,14 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_EsmSupportStanding;
 public class when_classifying_before_walking : a_range_model
 {
     [Theory]
-    [InlineData(32, 0, 32, 0, false)]
-    [InlineData(32, 1, 32, 1, true)]
-    [InlineData(33, 0, 33, 0, false)]
-    [InlineData(31, 0, 31, 0, false)]
-    [InlineData(32, 0, 32, 1, false)]
-    public void should_consult_a_throwing_ledger_only_within_range(uint languageMajor, uint languageMinor, uint semanticMajor, uint semanticMinor, bool walks)
+    [InlineData(32, 0, 0, false)]
+    [InlineData(32, 1, 1, true)]
+    [InlineData(33, 0, 0, false)]
+    [InlineData(31, 0, 0, false)]
+    [InlineData(32, 0, 1, false)]
+    public void should_consult_a_throwing_ledger_only_within_range(uint major, uint languageMinor, uint semanticMinor, bool walks)
     {
-        Versions(languageMajor, languageMinor, semanticMajor, semanticMinor);
+        Versions(major, languageMinor, major, semanticMinor);
         var ledger = new ThrowingLedger();
         var scope = new SemanticUnknownMemberScope(ImmutableHashSet<SemanticId>.Empty, ImmutableHashSet<SemanticId>.Empty, ImmutableHashSet<string>.Empty);
         var result = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, _model, ledger, scope);

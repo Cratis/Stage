@@ -15,6 +15,9 @@ internal static partial class CratisRepositoryScaffold
     const string Composition = "Composition";
     const string ChronicleResource = "chronicle";
 
+    [GeneratedRegex("[^a-z0-9]+", RegexOptions.NonBacktracking)]
+    private static partial Regex NonResourceCharacters { get; }
+
     internal static string? Validate(CratisRepositoryPlanOptions options)
     {
         if (options is null) return "Repository planning requires options.";
@@ -22,21 +25,6 @@ internal static partial class CratisRepositoryScaffold
         if (!IsName(options.RepositoryName)) return $"The repository name '{options.RepositoryName}' must be a dot-separated C# identifier without paths or reserved keywords.";
 
         return options.Services.Select(ServiceError).FirstOrDefault(error => error is not null) ?? DuplicateError(options.Services);
-    }
-
-    static string? ServiceError(string service)
-    {
-        if (!IsName(service)) return $"The service name '{service}' must be a dot-separated C# identifier without paths or reserved keywords.";
-        if (string.Equals(service, Composition, StringComparison.OrdinalIgnoreCase)) return $"The service name '{service}' is reserved for the Aspire application host.";
-
-        // The application host adds Chronicle itself, and Aspire resource names are unique.
-        return ResourceName(service) == ChronicleResource ? $"The service name '{service}' maps to the Aspire resource '{ChronicleResource}', which the application host reserves for Chronicle." : null;
-    }
-
-    static string? DuplicateError(IEnumerable<string> services)
-    {
-        if (services.GroupBy(service => service, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1)) return "Service names must be unique, ignoring case.";
-        return services.GroupBy(ResourceName, StringComparer.Ordinal).Any(group => group.Count() > 1) ? "Two services map to the same Aspire resource name." : null;
     }
 
     internal static IEnumerable<PlannedArtifact> Render(CratisRepositoryPlanOptions options, CratisBackendApplicationScaffoldProfile profile)
@@ -55,6 +43,21 @@ internal static partial class CratisRepositoryScaffold
         };
 
         return files.Select(file => PlannedArtifact.CreateText(file.Path, $"{file.Content.TrimEnd('\r', '\n')}\n"));
+    }
+
+    static string? ServiceError(string service)
+    {
+        if (!IsName(service)) return $"The service name '{service}' must be a dot-separated C# identifier without paths or reserved keywords.";
+        if (string.Equals(service, Composition, StringComparison.OrdinalIgnoreCase)) return $"The service name '{service}' is reserved for the Aspire application host.";
+
+        // The application host adds Chronicle itself, and Aspire resource names are unique.
+        return ResourceName(service) == ChronicleResource ? $"The service name '{service}' maps to the Aspire resource '{ChronicleResource}', which the application host reserves for Chronicle." : null;
+    }
+
+    static string? DuplicateError(IEnumerable<string> services)
+    {
+        if (services.GroupBy(service => service, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1)) return "Service names must be unique, ignoring case.";
+        return services.GroupBy(ResourceName, StringComparer.Ordinal).Any(group => group.Count() > 1) ? "Two services map to the same Aspire resource name." : null;
     }
 
     // The Aspire pins are the only difference from the single-service file.
@@ -91,7 +94,7 @@ internal static partial class CratisRepositoryScaffold
           </ItemGroup>
 
           <ItemGroup>
-        {string.Join("\n", services.Select(service => $"    <ProjectReference Include=\"../{service}/{service}.csproj\" />"))}
+        {string.Join('\n', services.Select(service => $"    <ProjectReference Include=\"../{service}/{service}.csproj\" />"))}
           </ItemGroup>
         </Project>
         """;
@@ -142,7 +145,7 @@ internal static partial class CratisRepositoryScaffold
     // Lower-cased, with every run of characters outside [a-z0-9] collapsed to one '-'; 'service-' keeps it from being empty or starting with a digit.
     static string ResourceName(string service)
     {
-        var name = NonResourceCharacters().Replace(service.ToLowerInvariant(), "-").Trim('-');
+        var name = NonResourceCharacters.Replace(service.ToLowerInvariant(), "-").Trim('-');
         return name.Length == 0 || char.IsAsciiDigit(name[0]) ? $"service-{name}".TrimEnd('-') : name;
     }
 
@@ -158,7 +161,4 @@ internal static partial class CratisRepositoryScaffold
             return false;
         }
     }
-
-    [GeneratedRegex("[^a-z0-9]+")]
-    private static partial Regex NonResourceCharacters();
 }

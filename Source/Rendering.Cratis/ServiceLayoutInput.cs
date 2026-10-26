@@ -58,9 +58,6 @@ public static class ServiceLayoutInput
     internal static bool TryAdmit(ArtifactRenderProfile profile, CratisRenderingOptions options, out bool layout) =>
         TryRead(profile, out layout) && !(layout && options.RepositoryRoot);
 
-    static bool IsCanonical(ArtifactRenderInput input) =>
-        input.Version == Version && input.Bytes.AsSpan().SequenceEqual(_payload);
-
     /// <summary>
     /// Adds the service layout input to a profile.
     /// </summary>
@@ -80,4 +77,7 @@ public static class ServiceLayoutInput
             profile.RendererVersion,
             [.. profile.Inputs, Create()]);
     }
+
+    static bool IsCanonical(ArtifactRenderInput input) =>
+        input.Version == Version && input.Bytes.AsSpan().SequenceEqual(_payload);
 }

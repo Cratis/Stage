@@ -34,6 +34,9 @@ internal static partial class PureTransitionAdmission
 
     static Verdict Forbid(string reason) => Reject("STAGE-ESM-022", reason);
 
+    static string DateTimeAlternative(INamedTypeSymbol? type) =>
+        type?.ToDisplayString() == "System.DateTime" ? " Use DateTimeOffset (context.Occurred) instead." : string.Empty;
+
     static IOperation? WriteTarget(IOperation operation) => operation switch
     {
         ISimpleAssignmentOperation simple => simple.Target,
@@ -310,7 +313,7 @@ internal static partial class PureTransitionAdmission
         Verdict? OperatorRejection(IOperation operation) => operation switch
         {
             IBinaryOperation binary when !SafeBinary(binary, Compilation) =>
-                Forbid($"Binary operation '{binary.OperatorKind}' on '{binary.LeftOperand.Type}' is outside the pure allowlist."),
+                Forbid($"Binary operation '{binary.OperatorKind}' on '{binary.LeftOperand.Type}' is outside the pure allowlist.{DateTimeAlternative(binary.OperatorMethod?.ContainingType)}"),
             IUnaryOperation unary when !SafeValue(unary.Operand.Type, Compilation) =>
                 Forbid($"Unary operation on '{unary.Operand.Type}' is outside the pure allowlist."),
             ICompoundAssignmentOperation compound when IsUnsafeCompound(compound, Compilation) =>
@@ -328,7 +331,7 @@ internal static partial class PureTransitionAdmission
             IPropertyReferenceOperation provider when IsInvariantProviderMisuse(provider) =>
                 Forbid("CultureInfo.InvariantCulture is admitted only for numeric ToString."),
             IPropertyReferenceOperation value when IsUnsafePropertyType(value) =>
-                Forbid($"Property '{value.Property.ToDisplayString()}' returns a type outside the pure allowlist."),
+                Forbid($"Property '{value.Property.ToDisplayString()}' returns a type outside the pure allowlist.{DateTimeAlternative(value.Property.ContainingType)}"),
             _ => null
         };
 
@@ -426,7 +429,7 @@ internal static partial class PureTransitionAdmission
 
             if (!IsAdmitted(operation, symbol, out var entry))
             {
-                return Forbid($"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.");
+                return Forbid($"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.{DateTimeAlternative(symbol.ContainingType)}");
             }
 
             if (IsAuditedMember(symbol) && !AuditedMemberSignatures.Contains(AuditedSignature(symbol)))

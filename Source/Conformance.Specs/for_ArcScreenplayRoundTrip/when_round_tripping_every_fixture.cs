@@ -28,6 +28,11 @@ public class when_round_tripping_every_fixture
     [Fact] void should_explain_every_loss_by_a_diagnostic() => Assert.True(fixture.Verdict.Unexplained.IsEmpty, $"Losses no diagnostic explains:{Environment.NewLine}{arc_round_trip_ledger.Describe(fixture.Verdict.Unexplained)}");
     [Fact] void should_cite_every_warning_diagnostic() => Assert.True(fixture.Verdict.Uncited.IsEmpty, $"Diagnostics no ledger entry cites:{Environment.NewLine}{arc_round_trip_ledger.Describe(fixture.Verdict.Uncited)}");
     [Fact] void should_stay_within_the_loss_budget() => Assert.True(fixture.Verdict.OverBudget.IsEmpty, arc_round_trip_ledger.Describe(fixture.Verdict.OverBudget));
+    [Fact] void should_stay_within_each_independent_category_budget()
+    {
+        var counts = arc_round_trip_ledger.ValidateCategories(fixture.Ledger.Losses);
+        Assert.True(counts.IsWithinBudget, $"Semantic/uncompilable: {counts.Semantic}/{arc_round_trip_ledger.MaximumSemanticEntries}; diagnostic-only: {counts.Diagnostic}/{arc_round_trip_ledger.MaximumDiagnosticEntries}; unsupported: {counts.Unsupported}. Category budgets cannot offset each other.");
+    }
     [Fact] void should_have_no_orphaned_entry_or_exclusion() => Assert.True(fixture.Verdict.Orphans.Length + fixture.Verdict.IneligibleExclusions.Length + fixture.Verdict.ObsoleteExclusions.Length + fixture.Verdict.Unobserved.Length == 0, arc_round_trip_ledger.Describe([.. fixture.Verdict.Orphans, .. fixture.Verdict.IneligibleExclusions, .. fixture.Verdict.ObsoleteExclusions, .. fixture.Verdict.Unobserved]));
 
     sealed class context

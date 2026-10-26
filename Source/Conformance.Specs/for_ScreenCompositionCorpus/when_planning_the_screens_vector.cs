@@ -27,7 +27,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 {
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    const string Digest = "658447f3435f3a19589082236234431caf66b8cd58da5398c0eca3a290e7d73d";
+    const string Digest = "a11b43dc2b0cc3582ee8547419577b3a21eb28480197ce16b5623943c3b693c6";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -47,6 +47,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
+        GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
         Program.cs f148d2954e15bdf675f63ed1472c70b1f6396db6a826f7644c4cedad3ca5dd56 847
         README.md 7217ef0b3fb886c022bd062ad77bbf730a262d0d9c9b05958fe1efcb1c5d9ffd 1819
         Workspaces.csproj 93f351d3db49bcdc4dbc03efab9b636a6820f3e724aa6ed7ae944c0e31c7db2b 2364
@@ -59,11 +60,11 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 4a0cc504bb25cf0a05d7cea13c5a849dd67063b677c7af9a646d96a0a337ccc9 1394
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 5d7080b6fdd423c625d5b3c122dcf20c6bae565982e63b5b55ebcb37340b39e6 479
         Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 5fa0a9440faf0fa2a32922c3b2e253ff04b0ae697fbde3944240d7aebc759dc4 1381
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 1c1863c1cc29e81dcd92540c043e37cf7f20ed12b066fb22e4e37fe06c551d72 1395
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs aab31b30fd1319fec7f8874b45da27d31d29e6374cc6d14740a1abb81287ffba 1363
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 598a7e484bdc0109942398fbc17646d0cfa5d7809fc036d914bc31a188dfff7a 1913
         Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs f694a593f3d9ab31da4e9aac65caedd6bc93cd6412e1c1320dbbf53a6bf463ac 2059
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs a1d3b07ad309cd796f9862a567ac6a5c8127c60cc5083d520c17322f94a716e4 1690
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs e2090ab9800a5116bf13126a22b5155e48db1aec33ed2833d2bcde793ab035b2 2234
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs e3de173ced957343633e25af2dbf9127e5b376f34723ec7ae363676d129d56c5 2202
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259

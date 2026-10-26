@@ -33,7 +33,7 @@ public class a_republished_application_plan : a_profile_source_plan
         var existing = _full.Artifacts
             .Select(artifact => (artifact.RelativePath, Content: Existing(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))))
             .Where(entry => entry.Content is not null)
-            .ToDictionary(entry => entry.RelativePath, entry => entry.Content!);
+            .ToDictionary(entry => entry.RelativePath, entry => entry.Content);
         _check = CratisRendering.CheckPublication(_full, path =>
         {
             _readPaths.Add(path);

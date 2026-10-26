@@ -234,34 +234,33 @@ A rename without a pin still orphans stored events: a renderer cannot distinguis
 
 ## Render around refused specifications
 
-By default, any render error refuses the whole plan and emits no artifacts. To render the
-application while omitting supported specification gaps, set `CratisPlanOptions.Refusals` to
-`ArtifactRefusalMode.RenderAround`. Low-level callers carry `RefusalModeInput.Create` in the
-profile inputs: `cratis-render:refusals`, version `1`, with exact UTF-8 bytes `RenderAround`.
-`Refuse` is the other valid value; absence means `Refuse`. The input is hashed with the profile.
+Stage renders the application while omitting supported specification gaps by default.
+When **every** Error is `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` and names a
+specification in the model, Stage changes those diagnostics to warnings and skips only
+those specification files. Each warning names the specification, the original diagnostic
+code and the reason it cannot render. No opt-in is needed, including when
+`CratisPlanOptions.Refusals` is `ArtifactRefusalMode.Refuse`.
 
-This opt-in applies only when **every** Error is `STAGE-ESM-011`, `STAGE-ESM-024`, or `STAGE-ESM-051` and names
-a specification in the model. Stage omits only those specification files, never commands,
-events, policies, or other application contracts. Any other error still refuses the entire
-plan, including evolved events (`STAGE-ESM-026`), implementation-envelope errors, and
-`STAGE-ESM-024` attached to a reaction, trigger, capture, or slice.
+Stage never omits commands, events, policies, or other application contracts. Any other
+error still refuses the entire plan, including evolved events (`STAGE-ESM-026`),
+implementation-envelope errors, and `STAGE-ESM-024` attached to a reaction, trigger,
+capture, or slice. Specification admission guards, including the constraint-target guard,
+remain unchanged; skipping a specification does not prove that it passes.
 
-A partial plan retains the original errors, so `Success` remains false. Inspect `Outcome`
-(`Complete`, `Partial`, or `Refused`) and `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult`.
-Each refusal lists its semantic `Artifact`, `Kind` (`specification`), and sorted diagnostic
+A plan with only skipped specifications has `Success == true` and `Outcome == Complete`.
+Inspect `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult` for the omissions. Each
+refusal lists its semantic `Artifact`, `Kind` (`specification`), and sorted diagnostic
 `Codes`; entries are sorted by artifact identity. No emitted artifact's `Sources` contains
 an omitted identity, and no placeholder specification is emitted.
 
 | Diagnostic | Severity | Meaning |
 | --- | --- | --- |
-| `STAGE-PLAN-007` | Information | Rendered around N refused specifications; the original errors remain. |
+| `STAGE-PLAN-007` | Information | Rendered around N refused specifications; inspect their warnings. |
 
-Publishers must explicitly accept `Outcome == ArtifactRenderOutcome.Partial` before writing
-these artifacts and must still perform the ordinary publication and ownership checks.
-Consumers checking only `Success` continue to refuse partial plans. The opt-in does not
-change Host or specification-executor admission, and does not add a CLI flag.
-Without the opt-in, artifact bytes and digests are unchanged. The output digest adds a
-`refusals-v1` segment only when `Refusals` is nonempty.
+Publishers still perform the ordinary publication and ownership checks. This behavior
+does not change Host or specification-executor admission, and does not add a CLI flag.
+The existing refusal-mode profile input remains accepted and hashed with the profile.
+The output digest adds a `refusals-v1` segment only when `Refusals` is nonempty.
 
 ## Release-baseline warnings in artifact plans
 

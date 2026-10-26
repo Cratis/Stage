@@ -10,6 +10,14 @@
 body { margin: 0; min-width: 20rem; min-height: 100vh; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
 button { font: inherit; }
 
+/* The blueprint's dark menu inverts the text colour, which in a dark scheme is a light surface. A dark menu is the one just darker than the page in either scheme. */
+:root[data-scene-color-scheme='dark'] .layout-menu-dark {
+    --layout-sidebar-surface: color-mix(in srgb, var(--layout-background) 70%, black);
+    --layout-sidebar-text: var(--layout-text);
+    --layout-sidebar-muted: var(--layout-text-muted);
+    --layout-sidebar-hover: color-mix(in srgb, var(--layout-text) 10%, transparent);
+}
+
 .stage-message { display: grid; min-height: 100vh; padding: 2rem; place-content: center; text-align: center; }
 
 

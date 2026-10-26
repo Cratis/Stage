@@ -108,8 +108,9 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
     [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).ShouldBeEmpty();
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_refuse_the_offending_slice_in_every_model() => _plans.TrueForAll(plan => !plan.Refused.Success).ShouldBeTrue();
+    [Fact] void should_refuse_only_production_gaps() => _plans.TrueForAll(plan => plan.Refused.Success == (plan.Code == "STAGE-ESM-051")).ShouldBeTrue();
     [Fact] void should_report_the_expected_refusal() => _plans.TrueForAll(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
     [Fact] void should_not_blanket_refuse_scalar_absence() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-027");
-    [Fact] void should_emit_no_partial_artifacts_for_the_offending_slice() => _plans.SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
+    [Fact] void should_emit_no_artifacts_for_production_gaps() => _plans.Where(plan => plan.Code != "STAGE-ESM-051").SelectMany(plan => plan.Refused.Artifacts).ShouldBeEmpty();
+    [Fact] void should_omit_only_the_unsupported_specification() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plans.Single(plan => plan.Code == "STAGE-ESM-051").Artifact);
 }

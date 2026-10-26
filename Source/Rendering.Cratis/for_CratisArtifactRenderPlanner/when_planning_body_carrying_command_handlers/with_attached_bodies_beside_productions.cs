@@ -79,7 +79,9 @@ public class with_attached_bodies_beside_productions : Specification
     [Fact] void should_emit_no_partial_artifacts() => _plans.Values.All(plan => plan.Artifacts.IsEmpty).ShouldBeTrue();
     [Fact] void should_not_render_the_body_anywhere() => _plans.Values.All(plan => plan.ImplementationGaps.IsEmpty).ShouldBeTrue();
     [Fact] void should_not_turn_into_a_stub_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Artifacts.IsEmpty).ShouldBeTrue();
-    [Fact] void should_still_refuse_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-IMPL-002")).ShouldBeTrue();
+    [Fact] void should_still_refuse_with_an_error_naming_the_requirement_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-IMPL-002" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains(_requirementId, StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_report_a_refused_outcome_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Outcome == ArtifactRenderOutcome.Refused).ShouldBeTrue();
+    [Fact] void should_not_report_the_body_as_unresolved_when_stubs_are_enabled() => _stubPlans.Values.All(plan => !plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020")).ShouldBeTrue();
     [Fact] void should_leave_no_gap_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.ImplementationGaps.IsEmpty).ShouldBeTrue();
 
     ArtifactRenderPlan Plan(SemanticImplementationRequirement requirement, string body, ImplementationGapMode mode) =>

@@ -15,7 +15,8 @@ internal static class GeneratedMemberDiagnostic
     {
         if (diagnostic.Location.SourceTree != model.SyntaxTree) return string.Empty;
         var node = model.SyntaxTree.GetRoot().FindNode(diagnostic.Location.SourceSpan);
-        if (diagnostic.Id == "CS1503") return ConceptConstructionHint(node, model) + NamedArgumentsHint(node, model);
+        if (diagnostic.Id == "CS1503") return ConceptValueHint(node, model) + ConceptConstructionHint(node, model) + NamedArgumentsHint(node, model);
+        if (diagnostic.Id is "CS0029" or "CS0266") return ConceptValueHint(node, model);
         if (diagnostic.Id is not ("CS1061" or "CS0117")) return string.Empty;
         var access = node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax);
         var (receiver, name) = access switch
@@ -35,6 +36,17 @@ internal static class GeneratedMemberDiagnostic
         return matches.Length == 1
             ? $" Use generated member '{matches[0].Name}' instead of authored name '{authored}'."
             : string.Empty;
+    }
+
+    static string ConceptValueHint(SyntaxNode node, SemanticModel model)
+    {
+        var expression = node.AncestorsAndSelf().OfType<ExpressionSyntax>().FirstOrDefault();
+        if (expression is null) return string.Empty;
+        var info = model.GetTypeInfo(expression);
+        return info.Type is INamedTypeSymbol concept && ConceptUnderlyingType(concept) is { } primitive &&
+            SymbolEqualityComparer.Default.Equals(info.ConvertedType, primitive)
+                ? $" Use .Value to read the underlying value of generated concept '{concept.Name}'."
+                : string.Empty;
     }
 
     static string NamedArgumentsHint(SyntaxNode node, SemanticModel model)

@@ -202,11 +202,12 @@ internal static partial class PureTransitionAdmission
             var scalar = types.Primitive(concept.Primitive);
 
             // Mirror the inherited concept getters, including the distinct TypedValue on identifiers.
-            // Synthetic concepts intentionally have no implicit conversions: extra refusals are safe.
+            // Mirror only Stage's primitive-to-concept operator; all other conversions stay refused.
             var baseType = context.IdentifierConcepts.Contains(concept.Id)
                 ? $"global::Cratis.Chronicle.Events.EventSourceId<{scalar}>"
                 : $"global::Cratis.Concepts.ConceptAs<{scalar}>";
-            definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value) : {baseType}(Value); }}");
+            var name = Identifiers.ToPascalCase(concept.Name);
+            definitions.Add($"namespace {context.CommonNamespace} {{ public record {name}({scalar} Value) : {baseType}(Value) {{ public static implicit operator {name}({scalar} value) => new(value); }} }}");
         }
 
         foreach (var composite in context.Application.Types)
@@ -340,7 +341,7 @@ internal static partial class PureTransitionAdmission
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
-        return Walk(semanticModel, method.Body!, descriptor, context.RootNamespace);
+        return Walk(semanticModel, method.Body!, descriptor, context.RootNamespace, GeneratedConceptSymbols(context, compilation));
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -388,7 +389,7 @@ internal static partial class PureTransitionAdmission
         return (block, null);
     }
 
-    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor)
+    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext? context = null)
     {
         var tree = compilation.SyntaxTrees.Single(_ => _.FilePath == reducerPath);
         var methodName = "Transition_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
@@ -399,8 +400,44 @@ internal static partial class PureTransitionAdmission
             return Reject("STAGE-ESM-019", "The rendered application does not compile.");
         }
 
-        return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
+        return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor, context?.RootNamespace,
+            context is null ? null : GeneratedConceptSymbols(context, compilation));
     }
+
+    // Resolve only modeled, non-enum Common concepts in this compilation. Source ownership or
+    // a matching short name alone never grants an operator entry into the allowlist.
+    internal static IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> GeneratedConceptSymbols(SemanticApplicationContext context, Compilation compilation)
+    {
+        var trusted = new Dictionary<INamedTypeSymbol, ITypeSymbol>(SymbolEqualityComparer.Default);
+        var types = new SemanticTypeSystem(context);
+        foreach (var concept in context.Application.Concepts.Where(concept => concept.Values.IsEmpty))
+        {
+            var symbol = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{Identifiers.ToPascalCase(concept.Name)}");
+            var scalar = types.Primitive(concept.Primitive);
+            var primitive = scalar switch
+            {
+                "string" => compilation.GetSpecialType(SpecialType.System_String),
+                "int" => compilation.GetSpecialType(SpecialType.System_Int32),
+                "long" => compilation.GetSpecialType(SpecialType.System_Int64),
+                "decimal" => compilation.GetSpecialType(SpecialType.System_Decimal),
+                "bool" => compilation.GetSpecialType(SpecialType.System_Boolean),
+                _ => compilation.GetTypeByMetadataName(scalar.Replace("global::", string.Empty, StringComparison.Ordinal))
+            };
+            if (symbol is not null && Generated(symbol, compilation) && primitive is not null) trusted.Add(symbol, primitive);
+        }
+        return trusted;
+    }
+
+    internal static bool IsGeneratedConceptConversion(ISymbol symbol, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
+        symbol is IMethodSymbol
+        {
+            MethodKind: MethodKind.Conversion, Name: "op_Implicit", IsStatic: true,
+            DeclaredAccessibility: Accessibility.Public, Parameters.Length: 1
+        } method &&
+        trusted.TryGetValue(method.ContainingType, out var primitive) &&
+        method.Parameters[0].RefKind == RefKind.None &&
+        SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, primitive) &&
+        SymbolEqualityComparer.Default.Equals(method.ReturnType, method.ContainingType);
 
     internal static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");

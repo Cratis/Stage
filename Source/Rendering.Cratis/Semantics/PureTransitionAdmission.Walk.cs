@@ -15,12 +15,13 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, string? rootNamespace = null)
+    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, string? rootNamespace = null,
+        IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol>? generatedConcepts = null)
     {
         rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();
         var root = model.GetOperation(body);
         if (root is null) return Reject("STAGE-ESM-022", "Reducer body has no bound operation.");
-        var walker = new Walker(model, root, rootNamespace, descriptor);
+        var walker = new Walker(model, root, rootNamespace, descriptor, generatedConcepts ?? ImmutableDictionary<INamedTypeSymbol, ITypeSymbol>.Empty);
         foreach (var operation in Descendants(root))
         {
             if (walker.Visit(operation) is { } rejection)
@@ -84,8 +85,8 @@ internal static partial class PureTransitionAdmission
             conversion.Operand.Type?.SpecialType == SpecialType.System_Decimal ||
             conversion.Type?.SpecialType == SpecialType.System_Decimal);
 
-    static bool IsUnsafeConversion(IConversionOperation conversion) =>
-        (conversion.Syntax is CastExpressionSyntax && !IsSafeNumericCast(conversion)) || !SafeConversion(conversion);
+    static bool IsUnsafeConversion(IConversionOperation conversion, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> generatedConcepts) =>
+        (conversion.Syntax is CastExpressionSyntax && !IsSafeNumericCast(conversion)) || !SafeConversion(conversion, generatedConcepts);
 
     static bool IsInvariantProviderMisuse(IPropertyReferenceOperation provider) =>
         provider.Property.Name == "InvariantCulture" && IsInvariantProvider(provider) &&
@@ -163,7 +164,8 @@ internal static partial class PureTransitionAdmission
         _ => OperatorMethod(operation)
     };
 
-    sealed class Walker(SemanticModel model, IOperation root, string rootNamespace, SemanticTypedContextDescriptor descriptor)
+    sealed class Walker(SemanticModel model, IOperation root, string rootNamespace, SemanticTypedContextDescriptor descriptor,
+        IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> generatedConcepts)
     {
         readonly ImmutableHashSet<string>.Builder _reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
         readonly ImmutableHashSet<string>.Builder _used = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
@@ -340,7 +342,7 @@ internal static partial class PureTransitionAdmission
 
         Verdict? ConversionRejection(IOperation operation) => operation switch
         {
-            IConversionOperation conversion when IsUnsafeConversion(conversion) =>
+            IConversionOperation conversion when IsUnsafeConversion(conversion, generatedConcepts) =>
                 Forbid($"Conversion to '{conversion.Type?.ToDisplayString()}' is outside the pure allowlist."),
             IIsPatternOperation pattern when !SafePattern(pattern.Pattern, Compilation) =>
                 Forbid($"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist."),
@@ -442,7 +444,7 @@ internal static partial class PureTransitionAdmission
         }
 
         bool IsAdmitted(IOperation operation, ISymbol symbol, out string entry) =>
-            Allowed(symbol, Compilation, rootNamespace, out entry) &&
+            Allowed(symbol, Compilation, rootNamespace, generatedConcepts, out entry) &&
             !(symbol.ContainingType?.Name == Wrapper && operation is not IPropertyReferenceOperation);
 
         Verdict? WrapperReadRejection(IOperation operation)

@@ -324,6 +324,16 @@ includes possible reaction effects without evaluating runtime guards. Reducer re
 capability; validation refusals carry Command. This does not change live-world history rebuilding or the
 renderer's implementation-body admission.
 
+Pure reducer bodies may use Stage's generated primitive-to-concept implicit conversion: for example,
+`Reason reason = context.Key;` when `Reason` is a String concept, or a Guid value passed to a Uuid
+identifier concept. The primitive must match the modeled type, and the operator must belong to the
+exact generated Common concept symbol. Positional and named constructor arguments and typed locals
+use the same admission rule. Null-literal and null-default operands converted to concepts remain
+refused. Concept-to-primitive conversion still requires `.Value`; projection-source concept-to-concept
+operators, record equality, inherited operators and arbitrary user-defined operators are not admitted.
+Production analysis mirrors only the allowed operator, and Debug parity specs compare its full bound
+identity against the real rendered compilation for classic and self-reducer profiles.
+
 The renderer admits verified pure C# Boolean named rule bodies and code-validation iterators on commands and concepts,
 using generated app-local contexts and Arc validators without a Screenplay runtime dependency.
 The context supplies `Artifact`, `Value`, `Property` and `IsWholeArtifact`; command shapes exclude

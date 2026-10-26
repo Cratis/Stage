@@ -45,9 +45,12 @@ internal static class SemanticValidationRendering
         var value = concept ? "_.Value" : $"_.{generatedMember ?? Identifiers.ToPascalCase(property)}";
         conceptRendering ??= new();
         var ruleFor = conceptRendering.RuleFor;
-        var validation = rule.Kind == SemanticValidationRuleKind.Matches
-            ? PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value)
-            : $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})";
+        var validation = rule.Kind switch
+        {
+            SemanticValidationRuleKind.NotEmpty when primitive == SemanticPrimitiveType.Text && !collection && !optional && conceptRendering.OptionalType is null => ".NotEmpty()",
+            SemanticValidationRuleKind.Matches => PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value),
+            _ => $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})"
+        };
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severitySuffix = SeveritySuffix(rule.Severity, typeBuilder);
         if (message.StartsWith("$strings.", StringComparison.Ordinal))

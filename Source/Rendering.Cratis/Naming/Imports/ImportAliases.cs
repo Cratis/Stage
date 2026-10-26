@@ -17,7 +17,7 @@ internal static class ImportAliases
     }
 
     internal static (ImmutableDictionary<TypeReference, string> Spellings, ImmutableArray<string> Directives) Resolve(
-        ImportRequest request, ImmutableDictionary<TypeReference, string> spellings)
+        ImportRequest request, ImmutableDictionary<TypeReference, string> spellings, ScaffoldBindings scaffold)
     {
         var reserved = request.ScopeTypeNames.Concat(request.ScopeValueNames).Concat(request.PinnedNames)
             .Concat(request.GeneratedTypes.Select(type => type.Name)).Concat(request.FileNamespace.Split('.'))
@@ -25,7 +25,7 @@ internal static class ImportAliases
         var result = spellings.ToBuilder();
         var directives = ImmutableArray.CreateBuilder<string>();
         var index = 0;
-        foreach (var group in spellings.Where(entry => entry.Value == entry.Key.Qualified).GroupBy(entry => entry.Key.Namespace).OrderBy(group => group.Key, StringComparer.Ordinal))
+        foreach (var group in spellings.Where(entry => entry.Value == entry.Key.Qualified && scaffold.NeedsAlias(entry.Key)).GroupBy(entry => entry.Key.Namespace).OrderBy(group => group.Key, StringComparer.Ordinal))
         {
             if (group.Key.Length == 0) throw new CSharpImportRejected("A colliding global-namespace type has no provable namespace alias.");
             string alias;

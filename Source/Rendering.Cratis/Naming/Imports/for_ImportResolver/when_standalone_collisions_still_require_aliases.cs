@@ -16,6 +16,6 @@ public class when_standalone_collisions_still_require_aliases : Specification
 
     [Fact] void should_keep_the_standalone_model_spelling() => _result.Spell(_model).ShouldEqual("Subject");
     [Fact] void should_keep_the_framework_collision_aliased() => _result.Spell(_framework).ShouldEqual("StageImport0::Subject");
-    [Fact] void should_emit_the_used_namespace_alias() => Assert.Equal(["StageImport0 = global::System.Reactive.Subjects"], _result.Aliases);
+    [Fact] void should_emit_the_used_namespace_alias() => Assert.Equal<string>(["StageImport0 = global::System.Reactive.Subjects"], _result.Aliases);
     [Fact] void should_not_rely_on_the_absent_scaffold_file() => _result.TopLevelUsings.ShouldBeEmpty();
 }

@@ -19,6 +19,6 @@ public class when_a_model_collides_with_a_non_global_framework_import : given.a_
 
     [Fact] void should_keep_the_proven_model_spelling() => _result.Spell(_model).ShouldEqual("EventType");
     [Fact] void should_keep_the_non_global_framework_collision_aliased() => _result.Spell(_framework).ShouldEqual("StageImport0::EventType");
-    [Fact] void should_declare_the_used_alias() => Assert.Equal(["StageImport0 = global::Cratis.Chronicle.Events"], _result.Aliases);
+    [Fact] void should_declare_the_used_alias() => Assert.Equal<string>(["StageImport0 = global::Cratis.Chronicle.Events"], _result.Aliases);
     [Fact] void should_keep_the_other_framework_reference_short() => _result.Spell(_context).ShouldEqual("EventContext");
 }

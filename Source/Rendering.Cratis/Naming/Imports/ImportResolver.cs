@@ -37,6 +37,7 @@ internal static class ImportResolver
         ImportAliases.Verify(request, catalog);
 
         var file = new FileImports(new NameScope(request, catalog), catalog, request, references);
+        var scaffold = new ScaffoldBindings(request, catalog);
         var kept = required.Where(file.NeedsRequired).ToArray();
         var topCandidates = new List<string>([.. kept, .. references.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Where(file.CanImportAtTop)]);
         var top = file.Settle([], topCandidates, kept, out _);
@@ -47,12 +48,12 @@ internal static class ImportResolver
         List<string> inner = [];
         if (unresolved.Length > 0)
         {
-            (inner, top, spellings) = TryInner(file, references, unresolved, topCandidates, kept, (inner, top, spellings));
+            (inner, top, spellings) = TryInner(file, scaffold, references, unresolved, topCandidates, kept, (inner, top, spellings));
         }
 
         if (!request.HasScaffoldGlobalUsings) top = [.. top.Concat(file.ScaffoldImports(required, spellings, inner)).Distinct(StringComparer.Ordinal)];
 
-        var aliased = ImportAliases.Resolve(request, spellings);
+        var aliased = ImportAliases.Resolve(request, spellings, scaffold);
         return new([.. inner.Order(StringComparer.Ordinal)], aliased.Spellings)
         {
             Aliases = aliased.Directives,
@@ -63,6 +64,7 @@ internal static class ImportResolver
 
     static (List<string> Inner, List<string> Top, ImmutableDictionary<TypeReference, string> Spellings) TryInner(
         FileImports file,
+        ScaffoldBindings scaffold,
         TypeReference[] references,
         string[] unresolved,
         List<string> topCandidates,
@@ -101,7 +103,7 @@ internal static class ImportResolver
             var trial = file.Settle([.. winners, @namespace], topCandidates, kept, out var trialInner);
             var spelled = file.Spell(trialInner, trial);
             var gains = references.Any(reference => reference.Namespace == @namespace && spelled[reference] != reference.Qualified);
-            var keeps = KeepsShortNames(current.Spellings, spelled);
+            var keeps = KeepsShortNames(current.Spellings, spelled) && scaffold.KeepsBindings(current.Spellings, spelled);
             if (gains && keeps)
             {
                 winners.Add(@namespace);
@@ -117,7 +119,7 @@ internal static class ImportResolver
         var finalSpellings = file.Spell(finalInner, finalTop);
         var shortBefore = best.Spellings.Count(entry => entry.Value != entry.Key.Qualified);
         var shortAfter = finalSpellings.Count(entry => entry.Value != entry.Key.Qualified);
-        var safe = KeepsShortNames(current.Spellings, finalSpellings);
+        var safe = KeepsShortNames(current.Spellings, finalSpellings) && scaffold.KeepsBindings(current.Spellings, finalSpellings);
         var better = shortAfter > shortBefore || (shortAfter == shortBefore && winners.Exists(file.IsGenerated));
         return safe && better ? (finalInner, finalTop, finalSpellings) : best;
     }

@@ -136,6 +136,8 @@ public class with_a_body
     [InlineData(true, "Guid.Parse(default(ReadOnlySpan<char>), null)", "Parse")]
     [InlineData(false, "Guid.NewGuid()", "NewGuid")]
     [InlineData(true, "Guid.NewGuid()", "NewGuid")]
+    [InlineData(false, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
+    [InlineData(true, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
     public async Task should_keep_refusing_impure_calls_in_the_body(bool performer, string expression, string member)
     {
         var body = $"_ = {expression}; return context.State;";

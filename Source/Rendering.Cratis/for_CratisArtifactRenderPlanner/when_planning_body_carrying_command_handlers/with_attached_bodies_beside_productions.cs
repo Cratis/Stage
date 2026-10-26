@@ -15,10 +15,10 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_planning_body_carrying_command_handlers;
 
 /// <summary>
-/// Screenplay#1068 admits a command handler that carries an attached or inline body beside <c language="text">produces</c>. Until Stage
-/// splices an authenticated body (Stage#808) such a command must be refused with a typed diagnostic, never crash, drop the
-/// body silently, or render a partial command. The model is the V23 handler-presence vector with its pending requirement
-/// resolved to a body, which is the only difference between a described and a body-carrying handler in the ESM.
+/// Screenplay#1068 admits a command handler that carries an attached or inline body beside <c language="text">produces</c>.
+/// C# bodies now go through Stage#817 admission and are refused here for the missing Stage compilation descriptor
+/// (STAGE-ESM-021); non-C# bodies stay refused with STAGE-IMPL-002. Neither case may crash, drop the body silently, or
+/// render partial commands or stubs. The model is the V23 handler-presence vector with its pending requirement resolved to a body.
 /// </summary>
 public class with_attached_bodies_beside_productions : Specification
 {
@@ -33,6 +33,7 @@ public class with_attached_bodies_beside_productions : Specification
 
     ExecutableSemanticModel _model = null!;
     string _requirementId = null!;
+    SemanticId _commandId;
     Dictionary<string, ArtifactRenderPlan> _plans = null!;
     Dictionary<string, ArtifactRenderPlan> _stubPlans = null!;
     Dictionary<string, Exception?> _errors = null!;
@@ -40,7 +41,9 @@ public class with_attached_bodies_beside_productions : Specification
     void Establish()
     {
         _model = SemanticModelSerializer.Deserialize(DescribedCommandHandlersCorpus.V23.EsmBytes.AsSpan());
-        _requirementId = _model.Application.Modules[0].Features[0].Slices.SelectMany(slice => slice.Commands).Single(command => command.Handler is not null).Handler!.RequirementId;
+        var command = _model.Application.Modules[0].Features[0].Slices.SelectMany(slice => slice.Commands).Single(command => command.Handler is not null);
+        _requirementId = command.Handler!.RequirementId;
+        _commandId = command.Id;
         _plans = [];
         _stubPlans = [];
         _errors = [];
@@ -73,16 +76,38 @@ public class with_attached_bodies_beside_productions : Specification
 
     [Fact] void should_not_throw_for_any_body() => _errors.ShouldBeEmpty();
     [Fact] void should_plan_every_scenario() => _plans.Count.ShouldEqual(_scenarios.Length);
-    [Fact] void should_refuse_every_body_with_the_handler_code_and_identity() => _plans.Values.All(plan => plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-IMPL-002" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains(_requirementId, StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_refuse_csharp_bodies_without_the_compilation_descriptor() => AssertCSharpRefusals(_plans);
+    [Fact] void should_refuse_python_bodies_with_the_handler_code_and_requirement() => AssertPythonRefusals(_plans);
     [Fact] void should_report_a_refused_outcome() => _plans.Values.All(plan => plan.Outcome == ArtifactRenderOutcome.Refused).ShouldBeTrue();
     [Fact] void should_not_report_the_body_as_unresolved() => _plans.Values.All(plan => !plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020")).ShouldBeTrue();
     [Fact] void should_emit_no_partial_artifacts() => _plans.Values.All(plan => plan.Artifacts.IsEmpty).ShouldBeTrue();
     [Fact] void should_not_render_the_body_anywhere() => _plans.Values.All(plan => plan.ImplementationGaps.IsEmpty).ShouldBeTrue();
     [Fact] void should_not_turn_into_a_stub_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Artifacts.IsEmpty).ShouldBeTrue();
-    [Fact] void should_still_refuse_with_an_error_naming_the_requirement_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-IMPL-002" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains(_requirementId, StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_still_refuse_csharp_bodies_without_the_compilation_descriptor_when_stubs_are_enabled() => AssertCSharpRefusals(_stubPlans);
+    [Fact] void should_still_refuse_python_bodies_with_the_handler_code_and_requirement_when_stubs_are_enabled() => AssertPythonRefusals(_stubPlans);
     [Fact] void should_report_a_refused_outcome_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.Outcome == ArtifactRenderOutcome.Refused).ShouldBeTrue();
     [Fact] void should_not_report_the_body_as_unresolved_when_stubs_are_enabled() => _stubPlans.Values.All(plan => !plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-020")).ShouldBeTrue();
     [Fact] void should_leave_no_gap_when_stubs_are_enabled() => _stubPlans.Values.All(plan => plan.ImplementationGaps.IsEmpty).ShouldBeTrue();
+
+    void AssertCSharpRefusals(Dictionary<string, ArtifactRenderPlan> plans)
+    {
+        foreach (var scenario in _scenarios.Where(scenario => scenario.Language == "csharp"))
+        {
+            Assert.Contains(plans[scenario.Name].Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
+                diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Artifact == _commandId &&
+                diagnostic.Message.Contains("Command snapshot descriptor from this compilation", StringComparison.Ordinal));
+        }
+    }
+
+    void AssertPythonRefusals(Dictionary<string, ArtifactRenderPlan> plans)
+    {
+        foreach (var scenario in _scenarios.Where(scenario => scenario.Language == "python"))
+        {
+            Assert.Contains(plans[scenario.Name].Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-002" &&
+                diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && diagnostic.Artifact == _commandId &&
+                diagnostic.Message.Contains(_requirementId, StringComparison.Ordinal));
+        }
+    }
 
     ArtifactRenderPlan Plan(SemanticImplementationRequirement requirement, string body, ImplementationGapMode mode) =>
         CratisRendering.Plan(

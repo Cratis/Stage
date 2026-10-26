@@ -86,7 +86,7 @@ internal static partial class SemanticCratisAdmission
             !HasRenderableProductionCondition(produced, command, context) ||
             @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) ||
-            @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
+            @event.Properties.Any(_ => !TypeExists(context, _.Type, @event.Id) || _.Type.IsOptional) ||
             produced.Mappings.Length != @event.Properties.Length ||
             !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
                 (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||

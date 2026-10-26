@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_refusing_from_several_gates;
@@ -32,7 +33,18 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
         var model = CompileEvolvedModel(source);
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _request = _request with { Model = model, ExecutionPlan = execution.Plan! };
+        var profile = _request.Profile;
+        _request = _request with
+        {
+            Model = model,
+            ExecutionPlan = execution.Plan!,
+            Profile = ArtifactRenderProfile.Create(
+                profile.Target,
+                profile.TargetVersion,
+                profile.Renderer,
+                profile.RendererVersion,
+                [.. profile.Inputs, RefusalModeInput.Create(ArtifactRefusalMode.Refuse)])
+        };
         var slice = _request.Model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Kind == SemanticSliceKind.StateChange);
         _event = slice.Events.Single().Id;
         _specification = slice.Specifications.Single(specification => specification.Name == "RegisteringAProject").Id;
@@ -64,5 +76,6 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
 
     [Fact] void should_report_the_event_revision() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-026" && diagnostic.Artifact == _event);
     [Fact] void should_also_report_specification_admission() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == _specification);
+    [Fact] void should_refuse_the_entire_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

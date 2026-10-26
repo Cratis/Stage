@@ -85,7 +85,8 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     void Refuses(string reason)
     {
         _plan = Plan(_model);
-        _plan.Success.ShouldBeFalse();
+        _plan.Success.ShouldBeTrue();
+        _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
         _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
     }
 }

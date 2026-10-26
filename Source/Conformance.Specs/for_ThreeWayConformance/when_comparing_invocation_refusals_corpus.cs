@@ -19,7 +19,7 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 public class when_comparing_invocation_refusals_corpus : Specification
 {
     [Fact]
-    public async Task should_execute_the_unmodified_reference_and_executor_and_refuse_rendered_redelivery()
+    public async Task should_execute_the_unmodified_reference_and_executor_and_omit_unrenderable_redelivery()
     {
         var corpus = InvocationRefusalsCorpus.V19;
         var model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
@@ -38,9 +38,11 @@ public class when_comparing_invocation_refusals_corpus : Specification
             Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
             var selected = a_recovery_plan.WithSpecification(model, specification);
             var rendered = CratisRendering.Plan(selected, SemanticExecutionPlan.Compile(selected).Plan!, new(ArtifactRenderScopeKind.Application, selected.Application.Id), new("Refusals", "Refusals"));
-            rendered.Success.ShouldBeFalse();
-            rendered.Artifacts.ShouldBeEmpty();
-            rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id)
+            rendered.Success.ShouldBeTrue();
+            rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+            rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+            rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+            rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning)
                 .Message.ShouldContain("Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness.");
         }
     }

@@ -68,8 +68,9 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
     /// <param name="source">The source, with at most one file-scoped namespace and no using directives of its own.</param>
     /// <param name="authored">The spans of authored text, which keep their bytes.</param>
     /// <param name="required">The namespaces the renderer asked to import.</param>
-    /// <param name="reason">Why every type stayed qualified, or <see cref="UnknownScopeReason.None"/>.</param>
+    /// <param name="reason">Why finalization was refused, or <see cref="UnknownScopeReason.None"/>.</param>
     /// <returns>The rewritten source, its using directives in place.</returns>
+    /// <exception cref="CSharpImportRejected">The scope or a generated reference cannot be proved.</exception>
     internal string Rewrite(string source, IReadOnlyList<TextSpan> authored, IEnumerable<string> required, out UnknownScopeReason reason)
     {
         var tree = CSharpSyntaxTree.ParseText(SourceText.From(source), _parseOptions);
@@ -84,7 +85,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
         var references = new QualifiedReferences(root, inventory, project, authored).Find();
         var scope = FileScope.Read(root, name, inventory, project, [.. references.Select(reference => reference.Span)]);
         reason = Classify(tree, root, namespaces.Length > 0 && fileNamespace is null, scope);
-        var unknown = reason != UnknownScopeReason.None;
+        if (reason != UnknownScopeReason.None) throw new CSharpImportRejected($"The generated file has an unknown C# scope: {reason}.");
         var resolution = ImportResolver.Resolve(new ImportRequest(name, project, inventory, references.Select(reference => reference.Type))
         {
             RequiredImports = required,
@@ -92,7 +93,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
             ScopeValueNames = [.. scope.ValueNames, .. _values],
             PinnedNames = [.. scope.PinnedNames, .. _pinned],
             MemberAccessNames = [.. scope.MemberAccessNames, .. _accessed],
-            HasUnknownScope = unknown
+            HasUnknownScope = false
         });
 
         var changes = new List<TextChange>();
@@ -108,7 +109,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
         }
 
         var text = new StringBuilder();
-        foreach (var @using in resolution.TopLevelUsings) text.Append("using ").Append(@using).Append(';').AppendLine();
+        foreach (var @using in resolution.TopLevelUsings.Concat(resolution.Aliases)) text.Append("using ").Append(@using).Append(';').AppendLine();
         if (text.Length > 0) text.AppendLine();
         return text.Append(SourceText.From(source).WithChanges(changes.OrderBy(change => change.Span.Start))).ToString();
     }
@@ -121,8 +122,12 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
     /// <returns>The reason, or <see cref="UnknownScopeReason.None"/> when the scope is known.</returns>
     internal UnknownScopeReason Classify(string source, IReadOnlyList<TextSpan> authored)
     {
-        Rewrite(source, authored, [], out var reason);
-        return reason;
+        var tree = CSharpSyntaxTree.ParseText(SourceText.From(source), _parseOptions);
+        var root = tree.GetCompilationUnitRoot();
+        var namespaces = root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>().ToArray();
+        var fileNamespace = namespaces.Length == 1 ? namespaces[0] as FileScopedNamespaceDeclarationSyntax : null;
+        var scope = FileScope.Read(root, fileNamespace?.Name.ToString() ?? string.Empty, [.. generated], project, authored);
+        return Classify(tree, root, namespaces.Length > 0 && fileNamespace is null, scope);
     }
 
     UnknownScopeReason Classify(SyntaxTree tree, CompilationUnitSyntax root, bool notFileScoped, FileScope scope)
@@ -130,7 +135,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
         if (_unknown) return UnknownScopeReason.Declared;
         if (scope.IsUnknown) return UnknownScopeReason.UnknownBase;
         if (notFileScoped) return UnknownScopeReason.NotFileScopedNamespace;
-        if (root.Usings.Count > 0) return UnknownScopeReason.OwnUsings;
+        if (root.DescendantNodes().OfType<UsingDirectiveSyntax>().Any()) return UnknownScopeReason.OwnUsings;
         if (tree.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)) return UnknownScopeReason.ParseError;
         return root.DescendantTrivia().Any(trivia => trivia.IsKind(SyntaxKind.IfDirectiveTrivia)) ? UnknownScopeReason.ConditionalDirective : UnknownScopeReason.None;
     }

@@ -25,7 +25,7 @@ public sealed class ArtifactRenderInventory
     public ArtifactRenderScore Score { get; }
 
     /// <summary>Gets the aggregate realization outcome, independent of acceptance.</summary>
-    public ArtifactRenderOutcome Outcome => ArtifactRenderOutcomeClassification.Aggregate(Constructs.Select(ArtifactRenderOutcomeClassification.Classify));
+    public ArtifactRenderOutcome Outcome => ArtifactRenderOutcomeClassification.AggregateInventory(Constructs);
 
     /// <summary>Gets a versioned metadata digest, including graph, placeholders and fixed scoring policy.</summary>
     public string Digest => Convert.ToHexString(SHA256.HashData(ArtifactRenderInventoryWriter.Bytes(this))).ToLowerInvariant();

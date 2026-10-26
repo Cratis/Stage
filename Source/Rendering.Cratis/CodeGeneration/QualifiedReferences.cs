@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// <summary>
 /// Finds the <c language="csharp">global::</c>-qualified types a generated file names outside its authored text. A
 /// qualified name is read the way C# reads it: each leading segment that names a known namespace is a namespace, and
-/// the next segment is the type. A name whose namespace or type is not known stays as it is.
+/// the next segment is the type. A name whose namespace or type is not known is refused.
 /// </summary>
 /// <param name="root">The parsed file.</param>
 /// <param name="generated">The generated type inventory.</param>
@@ -61,6 +61,9 @@ internal sealed class QualifiedReferences(CompilationUnitSyntax root, IReadOnlyC
         .Any(invocation => invocation.Expression is IdentifierNameSyntax name &&
             string.Equals(name.Identifier.ValueText, "nameof", StringComparison.Ordinal) && invocation.ArgumentList.Span.Contains(node.Span));
 
+    static string MetadataName(SimpleNameSyntax name) => name is GenericNameSyntax generic ?
+        $"{name.Identifier.ValueText}`{generic.TypeArgumentList.Arguments.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)}" : name.Identifier.ValueText;
+
     QualifiedReference? Reference(AliasQualifiedNameSyntax alias)
     {
         SyntaxNode node = alias;
@@ -83,9 +86,21 @@ internal sealed class QualifiedReferences(CompilationUnitSyntax root, IReadOnlyC
 
             // [global::N.Name] names N.NameAttribute when N.Name is not an attribute type itself.
             if (!IsType(@namespace, typeName, arity) && context == ReferenceContext.Attribute) typeName += "Attribute";
-            if (!IsType(@namespace, typeName, arity)) return null;
+            if (!IsType(@namespace, typeName, arity)) throw new CSharpImportRejected($"The generated type starting at '{alias}' is not cataloged.");
+            VerifyNested(node, @namespace, MetadataName(segment));
             var type = new TypeReference(@namespace, typeName, arity, context);
             return new(type, TextSpan.FromBounds(alias.SpanStart, segment.Identifier.Span.End));
+        }
+    }
+
+    void VerifyNested(SyntaxNode node, string @namespace, string metadataName)
+    {
+        while (Next(node) is { Node: QualifiedNameSyntax qualified, Segment: var nested })
+        {
+            metadataName += "+" + MetadataName(nested);
+            if (!_catalog.Content.Types.Any(type => type.Namespace == @namespace && type.MetadataName == metadataName && (type.Projects & project) != GeneratedProjects.None))
+                throw new CSharpImportRejected($"The generated nested type '{@namespace}.{metadataName}' is not cataloged.");
+            node = qualified;
         }
     }
 

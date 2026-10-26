@@ -74,6 +74,56 @@ public class with_real_compiler_inputs
         Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
     }
 
+    [Theory]
+    [InlineData("System.Console.WriteLine(Title);")]
+    [InlineData("return 42;")]
+    [InlineData("if (Title.Length > 0) return null;")]
+    [InlineData("int unused = 42; return null;")]
+    [InlineData("return new object[] { context.UnrepresentedMember };")]
+    public void should_refuse_bodies_that_cannot_satisfy_the_emitted_return_contract(string body)
+    {
+        var plan = opaque_policy_model.Plan(reaction_body_model.Load(body));
+        Assert.False(plan.CanPublishArtifacts);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Severity == Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("return null;")]
+    [InlineData("return new object[] { Title, @event, context };")]
+    [InlineData("return Array.Empty<string>();")]
+    [InlineData("yield return Title;")]
+    [InlineData("if (Title.Length > 0) return new object[] { Title }; else return null;")]
+    public void should_compile_accepted_return_shapes_against_the_real_runtime_contract(string body)
+    {
+        var plan = opaque_policy_model.Plan(reaction_body_model.Load(body));
+        Assert.True(plan.CanPublishArtifacts, opaque_policy_model.Errors(plan));
+        Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
+        Assert.Empty(RenderedOutput.Warnings(opaque_policy_model.Files(plan)));
+        Assert.Contains(plan.Artifacts, artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains(body, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("return new object[] { Title, context };", true)]
+    [InlineData("yield return Title;", false)]
+    public void should_admit_the_same_guarded_return_contract_that_the_renderer_emits(string body, bool expected)
+    {
+        var source = reaction_body_model.Source(body, extraProperty: "        count Int")
+            .Replace("      reaction Notifier", "      reaction Notifier\n        where count > 0", StringComparison.Ordinal);
+        var plan = opaque_policy_model.Plan(reaction_body_model.LoadSource(source));
+        Assert.Equal(expected, plan.CanPublishArtifacts);
+        if (expected)
+        {
+            Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
+            Assert.Empty(RenderedOutput.Warnings(opaque_policy_model.Files(plan)));
+        }
+        else
+        {
+            Assert.Empty(plan.Artifacts);
+            Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012");
+        }
+    }
+
     [Fact]
     public void should_preserve_the_same_authenticated_text_for_inline_and_file_attachments()
     {

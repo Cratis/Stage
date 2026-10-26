@@ -15,5 +15,5 @@ public class when_a_pinned_name_binds_elsewhere_before_an_inner_import : given.a
     void Because() => _result = ImportResolver.Resolve(Request(_identities) with { PinnedNames = ["IIdentityProvider"] }, _catalog);
 
     [Fact] void should_not_import_inside_the_namespace() => _result.Usings.ShouldBeEmpty();
-    [Fact] void should_qualify_the_type() => _result.Spell(_identities).ShouldEqual("global::Cratis.Chronicle.Identities.IIdentityProvider");
+    [Fact] void should_qualify_the_type() => _result.Spell(_identities).ShouldEqual("StageImport0::IIdentityProvider");
 }

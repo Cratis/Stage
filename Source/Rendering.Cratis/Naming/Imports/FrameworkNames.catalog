@@ -2,9 +2,9 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	2
-pin	Cratis	22.138.3
-pin	Cratis.Arc.Chronicle.Testing	22.138.3
-pin	Cratis.Arc.MongoDB	22.138.3
+pin	Cratis	22.140.1
+pin	Cratis.Arc.Chronicle.Testing	22.140.1
+pin	Cratis.Arc.MongoDB	22.140.1
 pin	Cratis.Chronicle	19.110.1
 pin	Cratis.Chronicle.AspNetCore	19.110.1
 pin	Cratis.Chronicle.Testing	19.110.1
@@ -18,18 +18,18 @@ pin	TargetingPackVersion	10.0.12
 pin	xunit	2.9.3
 pin	xunit.runner.visualstudio	4.0.1
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.138.3
-package	AS	Cratis.Arc	22.138.3
-package	AS	Cratis.Arc.Chronicle	22.138.3
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.138.3
-package	AS	Cratis.Arc.Chronicle.Testing	22.138.3
-package	AS	Cratis.Arc.Core	22.138.3
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.138.3
-package	AS	Cratis.Arc.MongoDB	22.138.3
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.138.3
-package	AS	Cratis.Arc.Screenplay.Embedded	22.138.3
-package	AS	Cratis.Arc.Swagger	22.138.3
-package	AS	Cratis.Arc.Testing	22.138.3
+package	AS	Cratis	22.140.1
+package	AS	Cratis.Arc	22.140.1
+package	AS	Cratis.Arc.Chronicle	22.140.1
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.140.1
+package	AS	Cratis.Arc.Chronicle.Testing	22.140.1
+package	AS	Cratis.Arc.Core	22.140.1
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.140.1
+package	AS	Cratis.Arc.MongoDB	22.140.1
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.140.1
+package	AS	Cratis.Arc.Screenplay.Embedded	22.140.1
+package	AS	Cratis.Arc.Swagger	22.140.1
+package	AS	Cratis.Arc.Testing	22.140.1
 package	AS	Cratis.Chronicle	19.110.1
 package	AS	Cratis.Chronicle.AspNetCore	19.110.1
 package	AS	Cratis.Chronicle.CodeAnalysis	19.110.1

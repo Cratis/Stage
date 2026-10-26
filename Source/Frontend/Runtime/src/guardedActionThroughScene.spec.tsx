@@ -37,7 +37,7 @@ describe('a guarded action rendered through Scene and Stage', () => {
             json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: { id: 'invoice-1', status } }),
         } as Response));
         vi.stubGlobal('fetch', fetched);
-        render(<PrimeReactProvider><StageDataProvider routes={routes}><ThroughScene /></StageDataProvider></PrimeReactProvider>);
+        render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene /></StageDataProvider></PrimeReactProvider>);
 
         fireEvent.click(await screen.findByRole('button', { name: 'Process' }));
 

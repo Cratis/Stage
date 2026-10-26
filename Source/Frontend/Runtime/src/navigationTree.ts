@@ -13,6 +13,10 @@ export interface NavigationEntry {
     /** The module and features, outermost first, the entry was declared in. */
     hierarchy: string[];
     order?: number;
+    /** The authored identity of the entry: one entry per id, however many screens it arrives on. */
+    id?: string;
+    /** The section heading the entry is listed under within its feature. */
+    group?: string;
     /** The icon the entry was authored with. */
     icon?: string;
     /** How chrome shows the entry - `icon`, `text` or `both`; any other value is a hint the theme may read. */
@@ -24,6 +28,10 @@ export interface NavigationEntry {
 /** A node of the navigation tree: a group (module or feature) with children, or an entry that opens a screen. */
 export interface NavigationNode {
     label: string;
+    /** The authored identity of the entry; absent on a group. */
+    id?: string;
+    /** Whether the node is a heading made from an entry's `group`, rather than a module or feature. */
+    section?: true;
     /** The screen the node opens; absent on a group. */
     screen?: string;
     icon?: string;
@@ -53,7 +61,8 @@ export function authoredNavigationEntries(screens: Screen[]): NavigationEntry[] 
             if (typeof label !== 'string' || typeof targetScreen !== 'string') continue;
 
             const hierarchy = Array.isArray(properties.hierarchy) ? properties.hierarchy.filter((part): part is string => typeof part === 'string') : [];
-            const key = JSON.stringify([hierarchy, targetScreen, label]);
+            const id = typeof properties.id === 'string' ? properties.id : undefined;
+            const key = id !== undefined ? JSON.stringify(['id', id]) : JSON.stringify([hierarchy, targetScreen, label]);
             if (seen.has(key)) continue;
             seen.add(key);
             const order = contribution.order ?? (typeof properties.order === 'number' ? properties.order : undefined);
@@ -63,6 +72,8 @@ export function authoredNavigationEntries(screens: Screen[]): NavigationEntry[] 
                 targetScreen,
                 hierarchy,
                 order,
+                ...(id !== undefined ? { id } : {}),
+                ...(typeof properties.group === 'string' ? { group: properties.group } : {}),
                 ...(typeof properties.icon === 'string' ? { icon: properties.icon } : {}),
                 ...(typeof properties.presentation === 'string' ? { presentation: properties.presentation } : {}),
                 ...(destination && opensElsewhere(destination) ? { destination } : {}),
@@ -89,7 +100,7 @@ export function navigationTree(entries: NavigationEntry[]): NavigationNode[] {
     for (const entry of entries) {
         let parent = root;
         for (const part of entry.hierarchy) {
-            let group = parent.children.find(candidate => candidate.screen === undefined && candidate.label === part);
+            let group = parent.children.find(candidate => candidate.screen === undefined && !candidate.section && candidate.label === part);
             if (!group) {
                 group = { label: part, children: [] };
                 parent.children.push(group);
@@ -98,8 +109,19 @@ export function navigationTree(entries: NavigationEntry[]): NavigationNode[] {
             parent = group;
         }
 
+        if (entry.group) {
+            let section = parent.children.find(candidate => candidate.section && candidate.label === entry.group);
+            if (!section) {
+                section = { label: entry.group, section: true, children: [] };
+                parent.children.push(section);
+            }
+
+            parent = section;
+        }
+
         parent.children.push({
             label: entry.label,
+            ...(entry.id ? { id: entry.id } : {}),
             screen: entry.targetScreen,
             ...(entry.icon ? { icon: entry.icon } : {}),
             ...(entry.presentation ? { presentation: entry.presentation } : {}),
@@ -122,7 +144,7 @@ export function navigationPathTo(nodes: NavigationNode[], screen: string): strin
     for (const node of nodes) {
         if (node.screen === screen) return [node.label];
         const below = navigationPathTo(node.children, screen);
-        if (below.length > 0) return [node.label, ...below];
+        if (below.length > 0) return node.section ? below : [node.label, ...below];
     }
 
     return [];

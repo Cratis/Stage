@@ -101,15 +101,16 @@ internal static partial class SemanticCratisAdmission
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="type">The declared type.</param>
+    /// <param name="owner">The owning event, when checking an event property whose failure must refuse the whole render.</param>
     /// <returns>Whether the declared type exists.</returns>
     /// <exception cref="UnsupportedSemanticRendering">The type reference kind is not handled.</exception>
-    internal static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
+    internal static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type, SemanticId? owner = null) => type.Kind switch
     {
         SemanticTypeReferenceKind.Primitive => type.Primitive != SemanticPrimitiveType.Unknown,
         SemanticTypeReferenceKind.Concept => context.Concepts.ContainsKey(type.Target),
         SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target),
         SemanticTypeReferenceKind.Unknown => false,
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind, owner)
     };
 
     internal static bool UsesOpaquePolicies(SemanticApplicationContext context, IEnumerable<LocatedSemanticSlice> slices) =>
@@ -183,7 +184,7 @@ internal static partial class SemanticCratisAdmission
         }
         catch (UnsupportedSemanticRendering exception)
         {
-            diagnostics.Add(Error(exception.Code, exception.Message, artifact));
+            diagnostics.Add(Error(exception.Code, exception.Message, exception.Owner ?? artifact));
         }
         catch (InvalidTypedContext exception)
         {

@@ -35,7 +35,13 @@ public class when_inline_bare_names_keep_their_original_binding : Specification
         var model = CSharpSyntaxTree.ParseText("namespace Shop.Models { public class Subject<T> {} }");
         MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(), MetadataReference.CreateFromFile(typeof(System.Reactive.Subjects.Subject<>).Assembly.Location)];
         var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
-            .WithSpecificDiagnosticOptions([new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress)]);
+            .WithSpecificDiagnosticOptions(
+            [
+                // The SDK suppresses these by default: a package built against an older framework assembly version
+                // (MongoDB.Driver against System.Linq.Expressions 6.0) binds to the one the host provides.
+                new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),
+                new KeyValuePair<string, ReportDiagnostic>("CS1702", ReportDiagnostic.Suppress)
+            ]);
         _compilation = CSharpCompilation.Create("RenderedInline", [_tree, globals, model], references, options);
         _original = CSharpCompilation.Create("OriginalInline", [_originalTree, globals, model], references, options);
     }

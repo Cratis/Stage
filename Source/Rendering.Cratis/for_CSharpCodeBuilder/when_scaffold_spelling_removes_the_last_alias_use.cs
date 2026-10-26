@@ -32,7 +32,13 @@ public class when_scaffold_spelling_removes_the_last_alias_use : Specification
             [_tree],
             [.. PureTransitionAdmission.AnalysisReferences(), MetadataReference.CreateFromFile(typeof(System.Reactive.Subjects.Subject<>).Assembly.Location)],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
-                .WithSpecificDiagnosticOptions([new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress)]));
+                .WithSpecificDiagnosticOptions(
+                [
+                    // The SDK suppresses these by default: a package built against an older framework assembly version
+                    // (MongoDB.Driver against System.Linq.Expressions 6.0) binds to the one the host provides.
+                    new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),
+                    new KeyValuePair<string, ReportDiagnostic>("CS1702", ReportDiagnostic.Suppress)
+                ]));
     }
 
     [Fact] void should_choose_the_rooted_scaffold_spelling() => _source.ShouldContain("public global::System.Reactive.Subjects.Subject<int> Value");

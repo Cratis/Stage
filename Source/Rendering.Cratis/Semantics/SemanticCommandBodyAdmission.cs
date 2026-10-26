@@ -15,6 +15,15 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Admits the render-only, synchronous, typed command payload ABI.</summary>
 internal static class SemanticCommandBodyAdmission
 {
+    static readonly Dictionary<string, string> _ambientTokens = new(StringComparer.Ordinal)
+    {
+        ["Tenant"] = SemanticContextRuntimeTokens.TenantId,
+        ["Identity"] = SemanticContextRuntimeTokens.Identity,
+        ["CausedBy"] = SemanticContextRuntimeTokens.CausedBy,
+        ["Causation"] = SemanticContextRuntimeTokens.Causation,
+        ["Occurred"] = SemanticContextRuntimeTokens.DateTime
+    };
+
     internal static bool IsCSharp(SemanticCommand command, SemanticApplicationContext context) =>
         SemanticCommandHandlerAdmission.Classify(command, context.Request).Kind == SemanticCommandHandlerAdmission.HandlerKind.CSharp;
 
@@ -92,13 +101,40 @@ internal static class SemanticCommandBodyAdmission
     static bool Matches(SemanticTypedContextDescriptor descriptor, SemanticCommand command)
     {
         if (!IsHandlerDescriptor(descriptor)) return false;
-        var member = descriptor.Members[0];
-        return MatchesCommandMember(member, command) && MatchesSnapshotShape(member.Type, command) &&
-            member.Type.Properties.SequenceEqual(command.Properties.Select(property => new SemanticContextProperty(property.Name, property.Id, property.Type)));
+        var members = descriptor.Members;
+        if (members.Any(member => member is not { Source: not null, Type: not null })) return false;
+        var commands = members.Where(member => member.Name == "Command").ToArray();
+        if (commands.Length != 1) return false;
+        return MatchesCommandSnapshot(commands[0], command) && HasOnlyKnownAmbientMembers(members.Where(other => other.Name != "Command"));
     }
 
+    static bool MatchesCommandSnapshot(SemanticTypedContextMember member, SemanticCommand command) =>
+        MatchesCommandMember(member, command) && MatchesSnapshotShape(member.Type, command) &&
+        member.Type.Properties.SequenceEqual(command.Properties.Select(property => new SemanticContextProperty(property.Name, property.Id, property.Type)));
+
+    // The compiler passes the Command snapshot plus a fixed ambient set; each ambient member is a non-derived runtime context value.
+    static bool HasOnlyKnownAmbientMembers(IEnumerable<SemanticTypedContextMember> ambient)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        return ambient.All(member => IsKnownAmbientMember(member) && seen.Add(member.Name));
+    }
+
+    static bool IsKnownAmbientMember(SemanticTypedContextMember member)
+    {
+        return member.Name is not null && _ambientTokens.TryGetValue(member.Name, out var token) && IsAmbientMember(member, token);
+    }
+
+    static bool IsAmbientMember(SemanticTypedContextMember member, string token) =>
+        !member.IsNullable && !member.IsDerived && IsAmbientRuntimeType(member.Type, token) && IsFixedAmbientSource(member);
+
+    static bool IsAmbientRuntimeType(SemanticContextType type, string token) =>
+        type.Kind == SemanticContextTypeKinds.Runtime && type.RuntimeToken == token && type.ModelType is null && type.Shape is null && type.Properties.IsEmpty;
+
+    static bool IsFixedAmbientSource(SemanticTypedContextMember member) =>
+        member.Source.Kind == SemanticContextSourceKinds.ContextContract && member.Source.SemanticId is null && member.Source.Path == member.Name;
+
     static bool IsHandlerDescriptor(SemanticTypedContextDescriptor descriptor) =>
-        descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.ContextVersion == 1 && descriptor.Members.Length == 1;
+        descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.ContextVersion == 1 && !descriptor.Members.IsDefault;
 
     static bool MatchesCommandMember(SemanticTypedContextMember member, SemanticCommand command) =>
         !member.IsNullable && !member.IsDerived && member.Name == "Command" &&

@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    static bool Allowed(ISymbol symbol, Compilation compilation, string rootNamespace, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted, out string entry)
+    static bool Allowed(ISymbol symbol, Compilation compilation, PureTransitionAnalysisContext analysis, out string entry)
     {
         entry = string.Empty;
         if (symbol is IMethodSymbol { MethodKind: MethodKind.BuiltinOperator } builtin)
@@ -23,14 +23,15 @@ internal static partial class PureTransitionAdmission
 
         // Anonymous records can carry randomized string hashes; no synthesized method is trusted.
         var type = symbol.ContainingType;
-        return type is not null && !IsUnadmittable(symbol, type) && AllowedMember(symbol, compilation, rootNamespace, trusted, out entry);
+        return type is not null && !IsUnadmittable(symbol, type) && AllowedMember(symbol, compilation, analysis, out entry);
     }
 
-    static bool AllowedMember(ISymbol symbol, Compilation compilation, string rootNamespace, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted, out string entry)
+    static bool AllowedMember(ISymbol symbol, Compilation compilation, PureTransitionAnalysisContext analysis, out string entry)
     {
         var type = symbol.ContainingType;
+        var rootNamespace = analysis.RootNamespace;
         entry = string.Empty;
-        if (IsGeneratedConceptConversion(symbol, trusted) || IsConceptValueMember(symbol, type, compilation))
+        if (IsGeneratedConceptConversion(symbol, analysis.GeneratedConcepts) || IsConceptValueMember(symbol, type, compilation))
         {
             entry = "generated";
             return true;

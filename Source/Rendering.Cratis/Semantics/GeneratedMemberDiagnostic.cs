@@ -15,16 +15,18 @@ internal static class GeneratedMemberDiagnostic
     {
         if (diagnostic.Location.SourceTree != model.SyntaxTree) return string.Empty;
         var node = model.SyntaxTree.GetRoot().FindNode(diagnostic.Location.SourceSpan);
-        if (diagnostic.Id == "CS1503") return ConceptValueHint(node, model) + ConceptConstructionHint(node, model) + NamedArgumentsHint(node, model);
-        if (string.Equals(diagnostic.Id, "CS0029", StringComparison.Ordinal) || string.Equals(diagnostic.Id, "CS0266", StringComparison.Ordinal)) return ConceptValueHint(node, model);
-        if (diagnostic.Id is not ("CS1061" or "CS0117")) return string.Empty;
-        var access = node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax);
-        var (receiver, name) = access switch
+        return diagnostic.Id switch
         {
-            MemberAccessExpressionSyntax member => (member.Expression, member.Name),
-            MemberBindingExpressionSyntax member => (member.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression, member.Name),
-            _ => (null, null)
+            "CS1503" => ConceptValueHint(node, model) + ConceptConstructionHint(node, model) + GeneratedConstructorHints.NamedArguments(node, model),
+            "CS0029" or "CS0266" => ConceptValueHint(node, model),
+            "CS1061" or "CS0117" => MemberCasingHint(node, model),
+            _ => string.Empty
         };
+    }
+
+    static string MemberCasingHint(SyntaxNode node, SemanticModel model)
+    {
+        var (receiver, name) = MemberAccess(node);
         if (receiver is null || name is null) return string.Empty;
         var type = model.GetTypeInfo(receiver).Type ?? model.GetSymbolInfo(receiver).Symbol as ITypeSymbol;
         if (type?.DeclaringSyntaxReferences.IsEmpty != false) return string.Empty;
@@ -38,6 +40,14 @@ internal static class GeneratedMemberDiagnostic
             : string.Empty;
     }
 
+    static (ExpressionSyntax? Receiver, SimpleNameSyntax? Name) MemberAccess(SyntaxNode node) =>
+        node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax) switch
+        {
+            MemberAccessExpressionSyntax member => (member.Expression, member.Name),
+            MemberBindingExpressionSyntax member => (member.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression, member.Name),
+            _ => (null, null)
+        };
+
     static string ConceptValueHint(SyntaxNode node, SemanticModel model)
     {
         var expression = node.AncestorsAndSelf().OfType<ExpressionSyntax>().FirstOrDefault();
@@ -47,24 +57,6 @@ internal static class GeneratedMemberDiagnostic
             SymbolEqualityComparer.Default.Equals(info.ConvertedType, primitive)
                 ? $" Use .Value to read the underlying value of generated concept '{concept.Name}'."
                 : string.Empty;
-    }
-
-    static string NamedArgumentsHint(SyntaxNode node, SemanticModel model)
-    {
-        var argument = node.AncestorsAndSelf().OfType<ArgumentSyntax>().FirstOrDefault();
-        if (argument is null || argument.NameColon is not null || argument.Parent is not ArgumentListSyntax arguments) return string.Empty;
-        if (arguments.Parent is not (ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax)) return string.Empty;
-        var info = model.GetSymbolInfo(arguments.Parent);
-        var candidates = info.Symbol is IMethodSymbol method ? (IMethodSymbol[])[method] : [.. info.CandidateSymbols.OfType<IMethodSymbol>()];
-        candidates = [.. candidates.Where(candidate => candidate.MethodKind == MethodKind.Constructor &&
-            !candidate.ContainingType.DeclaringSyntaxReferences.IsEmpty && candidate.Parameters.Length == arguments.Arguments.Count &&
-            arguments.Arguments.All(authoredArgument => authoredArgument.NameColon is not { } authoredName ||
-                candidate.Parameters.Any(parameter => parameter.Name == authoredName.Name.Identifier.ValueText)))];
-        if (candidates.Length != 1) return string.Empty;
-        var constructor = candidates[0];
-        var parameters = string.Join(", ", constructor.Parameters.Select(parameter => $"{parameter.Name}: ..."));
-
-        return $" Use named arguments: new {constructor.ContainingType.Name}({parameters}); generated constructor parameters follow semantic order, not declaration order.";
     }
 
     static string ConceptConstructionHint(SyntaxNode node, SemanticModel model)

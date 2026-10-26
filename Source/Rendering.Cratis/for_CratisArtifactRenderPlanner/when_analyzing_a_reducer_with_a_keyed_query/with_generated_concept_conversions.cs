@@ -63,6 +63,8 @@ public class with_generated_concept_conversions
     [InlineData("_ = context.State.Reason == \"text\";", "STAGE-ESM-022", "Symbol 'Projects.Common.Reason.operator ==", false)]
     [InlineData("global::Projects.Common.Reason reason = null;", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason?' is outside the pure allowlist.", false)]
     [InlineData("global::Projects.Common.Reason reason = default(string);", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
+    [InlineData("string? text = null; global::Projects.Common.Reason reason = text;", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
+    [InlineData("global::Projects.Common.Reason reason = context.Key.Length > 0 ? null : \"text\";", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
     public async Task should_keep_refusing_other_concept_operations(string prefix, string code, string message, bool valueHint)
     {
         var body = prefix + " " + ConstructedBody;

@@ -103,7 +103,7 @@ public class when_rendering_verified_generation_body : Specification
         Assert.Equal(warning, Assert.Single(context.InlineDiagnostics));
     }
 
-    static SemanticApplicationContext Context(string body, string? hashSource = null, string language = "csharp")
+    internal static SemanticApplicationContext Context(string body, string? hashSource = null, string language = "csharp")
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Shop"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("shop"), "shop", "Shop.play", Source);

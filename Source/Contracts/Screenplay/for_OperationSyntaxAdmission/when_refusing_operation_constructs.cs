@@ -17,6 +17,7 @@ public class when_refusing_operation_constructs : Specification
     [InlineData("system Mailer\n", "System 'Mailer'")]
     [InlineData(Prefix + "      operation Send\n        uses Mailer\n", "Operation 'Send'")]
     [InlineData(Prefix + "      command C\n        produces operation Send\n          uses Mailer\n", "Inline operation 'Send'")]
+    [InlineData(Prefix + "      operation Send\n        uses Mailer\n      command C\n        produces Send\n", "Operation 'Send'")]
     [InlineData(Prefix + "      operation Send\n        uses Mailer\n        execute\n          file Adapters/Send.cs\n", "Operation 'Send'")]
     [InlineData(Prefix + "      operation Send\n        uses Mailer\n        execute\n          ```csharp\n          return;\n          ```\n", "Operation 'Send'")]
     [InlineData(Prefix + "      specification T\n        given operation Send fails\n", "Operation failure fixture 'Send'")]
@@ -49,6 +50,6 @@ public class when_refusing_operation_constructs : Specification
     {
         var refusal = Assert.IsType<InvalidEventModel>(error);
         refusal.Message.ShouldContain($"STAGE-ESM-057: {construct} at ");
-        refusal.Message.ShouldContain("Stage would otherwise drop it or append an event instead (Cratis/Stage#176, Cratis/Screenplay#301).");
+        refusal.Message.ShouldContain("the legacy syntax path would drop it or render it as an event append (Cratis/Stage#176, Cratis/Screenplay#301).");
     }
 }

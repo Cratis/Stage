@@ -7,7 +7,7 @@ using Cratis.Screenplay.Syntax.Specifications;
 namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
-/// Refuses operation constructs before a legacy path can discard them or append an event instead.
+/// Refuses operation constructs before a legacy path can drop them or render them as event appends.
 /// </summary>
 public sealed class OperationSyntaxAdmission : ScreenplaySyntaxWalker
 {
@@ -19,7 +19,7 @@ public sealed class OperationSyntaxAdmission : ScreenplaySyntaxWalker
         {
             throw new InvalidEventModel(
                 node.Location.Path ?? "<source>",
-                [$"STAGE-ESM-057: {construct} at {node.Location} cannot be rendered yet; Stage would otherwise drop it or append an event instead (Cratis/Stage#176, Cratis/Screenplay#301)."]);
+                [$"STAGE-ESM-057: {construct} at {node.Location} cannot be rendered yet; the legacy syntax path would drop it or render it as an event append (Cratis/Stage#176, Cratis/Screenplay#301)."]);
         }
     }
 

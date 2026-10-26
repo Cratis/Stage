@@ -138,7 +138,12 @@ The generated `CommandScenario` does not settle reactions, whereas the reference
 Generated backend `$context.occurred` mappings remain supported through `EventContext.Occurred`, but
 context-dependent generated reaction specifications retain `STAGE-ESM-011`. Authored clocks on generated
 append/redelivery specifications additionally retain `STAGE-ESM-024`; the renderer's clock fixture support
-remains command-only. Independent executor support does not broaden that generated scenario contract.
+remains command-only. These specification-scoped diagnostics are warnings during artifact planning:
+Stage omits the unrenderable specification while preserving renderable specifications and production
+artifacts. Each warning names the specification, original code and reason. A production-scoped
+refusal still fails the whole render. The constraint-target guard remains unchanged. See
+[Render around refused specifications](stage-rendering.md#render-around-refused-specifications).
+Independent executor support does not broaden that generated scenario contract.
 
 Render admission, generated Debug compilation, generated specifications and live execution are separate results. Build and test the generated project rather than treating a published render as runtime evidence. Live verification requires a Chronicle kernel and the generated Arc host wiring, including its reactor result handlers.
 

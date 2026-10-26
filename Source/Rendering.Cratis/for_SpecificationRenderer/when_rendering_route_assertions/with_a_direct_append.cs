@@ -32,6 +32,6 @@ public class with_a_direct_append : Specification
 
     // Direct-append specs have never been rendered. Keep that refusal rather than treating the action fact
     // as the following fact a v6+ then expectation compares against.
-    [Fact] void should_keep_the_direct_append_outside_the_rendered_subset() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
-    [Fact] void should_not_generate_an_incorrect_action_fact_assertion() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_keep_the_direct_append_outside_the_rendered_subset() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
+    [Fact] void should_not_generate_an_incorrect_action_fact_assertion() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

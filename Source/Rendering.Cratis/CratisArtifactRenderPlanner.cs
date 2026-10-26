@@ -145,7 +145,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
         var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
-        var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];
+        var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
         {
             return CreatePlan(request, [], diagnostics);

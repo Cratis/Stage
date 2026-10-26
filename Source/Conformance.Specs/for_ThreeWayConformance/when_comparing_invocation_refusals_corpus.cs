@@ -38,8 +38,11 @@ public class when_comparing_invocation_refusals_corpus : Specification
             Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), stage.Trace!.Facts.Select(fact => fact.EventContract));
             var selected = a_recovery_plan.WithSpecification(model, specification);
             var rendered = CratisRendering.Plan(selected, SemanticExecutionPlan.Compile(selected).Plan!, new(ArtifactRenderScopeKind.Application, selected.Application.Id), new("Refusals", "Refusals"));
-            rendered.Success.ShouldBeFalse();
-            rendered.Artifacts.ShouldBeEmpty();
+            rendered.Success.ShouldBeTrue();
+            rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+            Assert.DoesNotContain(rendered.Artifacts, artifact =>
+                artifact.RelativePath != "STAGE-NOT-RUNNABLE.md" &&
+                artifact.Sources.Contains(specification.Id));
             rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id)
                 .Message.ShouldContain("Redelivery with invocation refusal branches requires a context-preserving refusal settlement harness.");
         }

@@ -108,7 +108,8 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)
     {
-        // A protected command's scenario runs its own decision store, where EventScenario is unavailable: only routed facts seed through the log.
+        // Arc selects decision mode per assembly, not only for commands with reads.
+        // Preserve the reads path: routed facts use the log; other facts use the scenario's own Given.
         if (!command.Reads.IsDefaultOrEmpty) return specification.GivenEvents.Any(given => given.Route is not null);
 
         var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
@@ -207,9 +208,9 @@ internal static partial class SemanticCommandSpecificationRenderer
             return;
         }
 
-        // Decision mode (protected reads) seeds through the scenario's own given, which feeds the store the reads observe.
+        // EventScenario is unavailable in decision mode, which Arc now selects per assembly; the checked log append works in both modes.
         builder.Line(scope.SeedInLog && scope.Command.Reads.IsDefaultOrEmpty
-            ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
+            ? $"(await _scenario.EventLog.Append({eventSource}, {eventValue})).IsSuccess.ShouldBeTrue();"
             : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
     }
 

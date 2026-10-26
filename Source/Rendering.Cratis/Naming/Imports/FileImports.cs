@@ -58,16 +58,14 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     /// <summary>
     /// Gets a value indicating whether a namespace the renderer asked to import is still needed. A directive that a global
     /// using repeats, or that brings nothing the file names, is dropped; one whose names are not all known is kept, since
-    /// something in the file may rely on it.
+    /// something in the file may rely on it. Explicit self and enclosing namespace imports follow this same policy to
+    /// preserve existing rendered header bytes.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <returns><see langword="true"/> when the directive must stay.</returns>
     public bool NeedsRequired(string @namespace)
     {
         if (_global?.Contains(@namespace) == true) return false;
-
-        // The file namespace and the namespaces around it are searched before any directive, so importing one adds nothing.
-        if (_enclosing.Contains(@namespace)) return false;
         if (!_scope.Knows(@namespace)) return true;
         return _scope.ExtensionNames(@namespace).Any(_accessed.Contains) || Brings(@namespace) ||
             _references.Any(reference => reference.Namespace == @namespace);

@@ -316,8 +316,13 @@ history passes the same strict admission checks.
 
 The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
 login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
-`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+`/api/**` requests and the page identity at `/.cratis/me`. `/stage/**` endpoints and the Chronicle Workbench
+do not receive that persona.
 This changes only the Stage host, never rendered applications or their authentication.
+
+The sandbox runs with `ASPNETCORE_ENVIRONMENT=Docker`, not Development. Arc's discovery catalogs require
+authentication and answer `401` to anonymous sandbox requests by design. The persona is not applied to these
+endpoints, and Play does not use them.
 
 Stage selects the default persona once at startup:
 

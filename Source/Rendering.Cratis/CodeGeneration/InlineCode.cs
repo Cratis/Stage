@@ -20,12 +20,6 @@ internal sealed record InlineCodeEnvelope(string ContentHash, string Language, I
 internal sealed record InlineCodeDiagnostic(string Code, string Message);
 internal sealed record InlineCodeVerification(InlineCode? Value, ImmutableArray<InlineCodeDiagnostic> Diagnostics);
 
-internal sealed class InlineCodeRejected(ImmutableArray<InlineCodeDiagnostic> diagnostics)
-    : Exception(string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")))
-{
-    internal ImmutableArray<InlineCodeDiagnostic> Diagnostics { get; } = diagnostics;
-}
-
 internal sealed class InlineCode
 {
     InlineCode(InlineCodeEnvelope envelope, string text, string byteSource)

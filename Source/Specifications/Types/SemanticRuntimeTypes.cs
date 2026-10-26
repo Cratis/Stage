@@ -34,6 +34,7 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     readonly Dictionary<SemanticId, Type> _events = [];
     readonly Dictionary<SemanticId, Type> _commands = [];
     readonly Dictionary<SemanticId, Type> _readModels = [];
+    readonly Dictionary<SemanticId, Type> _readModelKeys = [];
     readonly Dictionary<SemanticId, Type> _composites = [];
     readonly HashSet<SemanticId> _resolving = [];
 
@@ -70,8 +71,26 @@ internal sealed class SemanticRuntimeTypes(SemanticExecutionPlan plan)
     {
         if (!_readModels.TryGetValue(readModel.Id, out var type))
         {
-            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", readModel.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            var properties = readModel.Properties.ToDictionary(property => property.Name, property => ResolveReadModel(property.Type));
+            if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+            {
+                properties.Add("Id", ForReadModelKey(readModel));
+            }
+            type = _factory.CreateReadModelType("Stage.Semantic.ReadModels", $"ReadModel_{_readModels.Count}", properties);
             _readModels.Add(readModel.Id, type);
+        }
+
+        return type;
+    }
+
+    internal Type ForReadModelKey(SemanticReadModel readModel)
+    {
+        if (!_readModelKeys.TryGetValue(readModel.Id, out var type))
+        {
+            type = _factory.CreateReadModelType("Stage.Semantic.Keys", $"Key_{_readModelKeys.Count}", readModel.Properties
+                .Where(property => property.IsIdentifier).OrderBy(property => property.Name, StringComparer.Ordinal)
+                .ToDictionary(property => property.Name, property => ResolveReadModel(property.Type)));
+            _readModelKeys.Add(readModel.Id, type);
         }
 
         return type;

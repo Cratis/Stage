@@ -11,9 +11,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_ana
 public class with_a_body
 {
     const string IssueBody = "return new ChangeRequest(context.Key, context.Event.Reason, context.Event.RequestedAt);";
-    const string ConstructedBody = "return new ChangeRequest(TalkId: new TalkId(context.Key), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
+    const string ConstructedBody = "return new ChangeRequest(TalkId: new TalkId(Guid.Parse(context.Key)), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
     const string Source = """
-        concept TalkId : String
+        concept TalkId : Uuid
         concept Reason : String
         module Talks
           feature Changes
@@ -52,11 +52,15 @@ public class with_a_body
         """;
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task should_render_the_explicitly_constructed_body_without_an_internal_analysis_error(bool performer)
+    [InlineData(false, "Uuid")]
+    [InlineData(true, "Uuid")]
+    [InlineData(false, "String")]
+    [InlineData(true, "String")]
+    public async Task should_render_the_explicitly_constructed_body_without_an_internal_analysis_error(bool performer, string primitive)
     {
-        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(ConstructedBody, performer)), self: true);
+        var body = primitive == "String" ? ConstructedBody.Replace("Guid.Parse(context.Key)", "context.Key", StringComparison.Ordinal) : ConstructedBody;
+        var source = Model(body, performer).Replace("concept TalkId : Uuid", $"concept TalkId : {primitive}", StringComparison.Ordinal);
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: true);
         AssertNoInternalReducerError(plan);
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" ||
             diagnostic.Message.StartsWith("Reducer 'OpenChangeRequests'", StringComparison.Ordinal));
@@ -67,7 +71,7 @@ public class with_a_body
         Assert.NotEmpty(plan.Artifacts);
         var artifact = Assert.Single(plan.Artifacts.Where(candidate => candidate.RelativePath.EndsWith("/ChangeRequests.cs", StringComparison.Ordinal)));
         var rendered = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
-        Assert.Contains(ConstructedBody, rendered, StringComparison.Ordinal);
+        Assert.Contains(body, rendered, StringComparison.Ordinal);
         Assert.Contains("Reduce(", rendered, StringComparison.Ordinal);
     }
 
@@ -80,6 +84,7 @@ public class with_a_body
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         AssertNoInternalReducerError(plan);
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
             diagnostic.Message.Contains("Reducer body", StringComparison.Ordinal) && diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) &&
             diagnostic.Message.Contains("Use new Reason(...)", StringComparison.Ordinal));
@@ -88,27 +93,59 @@ public class with_a_body
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_suggest_explicit_talk_id_construction_for_the_named_implicit_argument(bool performer)
+    public async Task should_suggest_guid_parsing_for_a_string_passed_to_the_uuid_concept_constructor(bool performer)
     {
-        var body = ConstructedBody.Replace("new TalkId(context.Key)", "context.Key", StringComparison.Ordinal);
-        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
-        Assert.False(plan.Success);
-        AssertNoInternalReducerError(plan);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
-            diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) && diagnostic.Message.Contains("Use new TalkId(...)", StringComparison.Ordinal));
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task should_keep_refusing_impure_calls_in_the_body(bool performer)
-    {
-        const string body = "_ = Guid.NewGuid(); return context.State;";
+        var body = ConstructedBody.Replace("Guid.Parse(context.Key)", "context.Key", StringComparison.Ordinal);
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         AssertNoInternalReducerError(plan);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("NewGuid", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
+            diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("'string' to 'System.Guid'", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("Use new TalkId(Guid.Parse(...))", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false, "Uuid", "Use new TalkId(Guid.Parse(...))")]
+    [InlineData(true, "Uuid", "Use new TalkId(Guid.Parse(...))")]
+    [InlineData(false, "String", "Use new TalkId(...)")]
+    [InlineData(true, "String", "Use new TalkId(...)")]
+    public async Task should_suggest_explicit_talk_id_construction_for_the_named_implicit_argument(bool performer, string primitive, string hint)
+    {
+        var body = ConstructedBody.Replace("new TalkId(Guid.Parse(context.Key))", "context.Key", StringComparison.Ordinal);
+        var source = Model(body, performer).Replace("concept TalkId : Uuid", $"concept TalkId : {primitive}", StringComparison.Ordinal);
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: true);
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        AssertNoInternalReducerError(plan);
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
+            diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) && diagnostic.Message.Contains(hint, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false, "Guid.TryParse(context.Key, out var parsed)", "TryParse")]
+    [InlineData(true, "Guid.TryParse(context.Key, out var parsed)", "TryParse")]
+    [InlineData(false, "Guid.Parse(context.Key, null)", "Parse")]
+    [InlineData(true, "Guid.Parse(context.Key, null)", "Parse")]
+    [InlineData(false, "Guid.Parse(default(ReadOnlySpan<char>))", "Parse")]
+    [InlineData(true, "Guid.Parse(default(ReadOnlySpan<char>))", "Parse")]
+    [InlineData(false, "Guid.Parse(default(ReadOnlySpan<char>), null)", "Parse")]
+    [InlineData(true, "Guid.Parse(default(ReadOnlySpan<char>), null)", "Parse")]
+    [InlineData(false, "Guid.NewGuid()", "NewGuid")]
+    [InlineData(true, "Guid.NewGuid()", "NewGuid")]
+    [InlineData(false, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
+    [InlineData(true, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
+    public async Task should_keep_refusing_impure_calls_in_the_body(bool performer, string expression, string member)
+    {
+        var body = $"_ = {expression}; return context.State;";
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        AssertNoInternalReducerError(plan);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains(member, StringComparison.Ordinal));
     }
 
     [Theory]

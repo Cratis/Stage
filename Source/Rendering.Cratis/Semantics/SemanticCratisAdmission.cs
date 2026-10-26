@@ -48,7 +48,7 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticSurfaceLedger.Entries;
         PassesPreconditions(context, slices, diagnostics);
 
-        Collect(() => _ = SemanticPolicyNames.For(context), context.Application.Id, diagnostics);
+        ValidatePolicyBindings(context, diagnostics);
         Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics);
         Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics);
         Collect(() => ValidateTypes(context, diagnostics), context.Application.Id, diagnostics);
@@ -161,6 +161,20 @@ internal static partial class SemanticCratisAdmission
         Collect(() => ValidateWholeNumberLiterals(context, slices, diagnostics), context.Application.Id, diagnostics);
     }
 
+    static void ValidatePolicyBindings(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var conflict in SemanticPolicyNames.Conflicts(context))
+        {
+            foreach (var operation in conflict.Operations)
+            {
+                if (!diagnostics.Exists(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code && diagnostic.Artifact == operation))
+                {
+                    diagnostics.Add(Error(ConflictingPolicyBindings.Code, conflict.Message, operation));
+                }
+            }
+        }
+    }
+
     static void Collect(Action validate, SemanticId artifact, List<ArtifactRenderDiagnostic> diagnostics)
     {
         try
@@ -174,16 +188,6 @@ internal static partial class SemanticCratisAdmission
         catch (InvalidTypedContext exception)
         {
             diagnostics.Add(Error("STAGE-ESM-021", exception.Message, artifact));
-        }
-        catch (ConflictingPolicyBindings exception)
-        {
-            foreach (var operation in exception.Operations.IsEmpty ? [artifact] : exception.Operations)
-            {
-                if (!diagnostics.Exists(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code && diagnostic.Artifact == operation))
-                {
-                    diagnostics.Add(Error(ConflictingPolicyBindings.Code, exception.Message, operation));
-                }
-            }
         }
     }
 

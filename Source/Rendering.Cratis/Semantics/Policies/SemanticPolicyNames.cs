@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -35,6 +36,18 @@ internal static class SemanticPolicyNames
     /// <returns>The policy names by operation identity.</returns>
     public static IReadOnlyDictionary<SemanticId, PolicyName> For(SemanticApplicationContext context) =>
         _cache.GetValue(context, Compute);
+
+    /// <summary>
+    /// Gets policy bindings whose generated names collide and must be refused by admission.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The conflicts in generated class-name order of discovery.</returns>
+    public static ImmutableArray<ConflictingPolicyBindings> Conflicts(SemanticApplicationContext context) =>
+    [
+        .. For(context).Values.GroupBy(name => name.ClassName, StringComparer.Ordinal)
+            .Where(group => group.Select(name => name.Sources).Distinct().Count() > 1)
+            .Select(group => new ConflictingPolicyBindings([.. group.SelectMany(name => name.Sources).Distinct()], group.First().Name))
+    ];
 
     /// <summary>
     /// Gets the policy name Arc knows an operation's policy by, including the domain placement.
@@ -106,21 +119,9 @@ internal static class SemanticPolicyNames
             result[operation.Id] = new($"{name}Policy", name, [operation.Id]);
         }
 
-        EnsureDistinct(result);
+        // Keep naming total even when qualification is exhausted. Admission reports these collisions before
+        // artifacts can be returned, while generated-type and typed-context lookups can still use the map.
         return result;
-    }
-
-    // Operations that do not share a policy must never share a class: a shared class would silently enforce one
-    // operation's authorization on the other.
-    static void EnsureDistinct(Dictionary<SemanticId, PolicyName> names)
-    {
-        var conflict = names.Values
-            .GroupBy(name => name.ClassName, StringComparer.Ordinal)
-            .FirstOrDefault(group => group.Select(name => name.Sources).Distinct().Count() > 1);
-        if (conflict is not null)
-        {
-            throw new ConflictingPolicyBindings([.. conflict.SelectMany(name => name.Sources).Distinct()], conflict.First().Name);
-        }
     }
 
     // Levels 1 to the feature count add outer features, the next adds the module, the next the slice, and the last

@@ -7,13 +7,11 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 /// <summary>
-/// Signals operations whose different policy bindings cannot have distinct generated class names.
+/// Describes operations whose different policy bindings cannot have distinct generated class names.
 /// </summary>
-/// <param name="operations">The conflicting operation identities.</param>
-/// <param name="policyName">The generated policy name shared by the operations.</param>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "Only internal policy naming throws this diagnostic exception; it is not a public API.")]
-internal sealed class ConflictingPolicyBindings(ImmutableArray<SemanticId> operations, string policyName)
-    : Exception($"Operations {string.Join(", ", operations)} bind the policy '{policyName}' differently and cannot be given distinct policy class names.")
+/// <param name="Operations">The conflicting operation identities.</param>
+/// <param name="PolicyName">The generated policy name shared by the operations.</param>
+internal sealed record ConflictingPolicyBindings(ImmutableArray<SemanticId> Operations, string PolicyName)
 {
     /// <summary>
     /// The diagnostic code for conflicting policy bindings.
@@ -21,7 +19,7 @@ internal sealed class ConflictingPolicyBindings(ImmutableArray<SemanticId> opera
     public const string Code = "STAGE-AUTH-002";
 
     /// <summary>
-    /// Gets the conflicting operation identities.
+    /// Gets the conflict diagnostic message.
     /// </summary>
-    public ImmutableArray<SemanticId> Operations { get; } = operations;
+    public string Message => $"Operations {string.Join(", ", Operations)} bind the policy '{PolicyName}' differently and cannot be given distinct policy class names.";
 }

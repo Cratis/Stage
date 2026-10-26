@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-    DestinationKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
+    DestinationKind, LogoKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
     type EffectiveConfiguration, type NavigationModel, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile, type ExposureDeclaration,
 } from '@cratis/scene.model';
 import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
@@ -33,6 +33,9 @@ import {
     type ApplicationDocument,
     type CompositionOptions,
 } from '@cratis/scene.blueprint.default';
+// The tokens (z-index scale, shadows, spacing) every Cratis Components overlay reads: a dialog or drawer is portaled to `body`, outside the
+// shell, so without them its stacking falls back to `auto` and the page content paints over it.
+import '@cratis/components/tokens';
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
@@ -41,7 +44,7 @@ import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
@@ -129,7 +132,7 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
  */
 export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true): CompositionOptions {
     const regions = declaresRegions(scene.navigation);
-    const application = scene.navigation?.application.logo ? { title: scene.navigation.application.logo.title, image: scene.navigation.application.logo.image || undefined } : undefined;
+    const application = applicationIdentity(scene);
     return {
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
@@ -145,6 +148,26 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
             const bound = bindDataSources(element);
             return dictionary ? resolveStringsInElement(bound, dictionary) : bound;
         },
+    };
+}
+
+/**
+ * What the application calls itself and how it draws its mark: the logo its navigation declares, otherwise the `identity` of the ui profile
+ * (its name, an icon logo and whether the name is shown), so the model's own title replaces the Stage's. Undefined when the model says neither.
+ */
+export function applicationIdentity(scene: StageSceneApplication): ApplicationIdentity | undefined {
+    const logo = scene.navigation?.application.logo;
+    if (logo) return { title: logo.title, image: logo.image || undefined };
+
+    const identity = stageProfile(scene.uiProfiles).identity;
+    if (!identity?.name) return undefined;
+
+    const mark = identity.logo;
+    return {
+        title: identity.name,
+        image: mark?.kind === LogoKind.Image ? mark.image || undefined : undefined,
+        icon: mark?.kind === LogoKind.Icon ? mark.icon : undefined,
+        showName: identity.showName,
     };
 }
 
@@ -248,7 +271,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
         () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter),
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
-    const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
+    const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
         ...scene,

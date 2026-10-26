@@ -83,7 +83,7 @@ internal static class SemanticVersionFeatures
     internal const string ProductionRoutes = "STAGE-ESM-036";
 
     /// <summary>
-    /// The code for a reaction trigger that both produces events and invokes commands.
+    /// The code for mixed reaction effects whose scheduling cannot be preserved.
     /// </summary>
     internal const string MixedReactionEffects = "STAGE-ESM-037";
 
@@ -641,13 +641,13 @@ internal static class SemanticVersionFeatures
 
     static IEnumerable<SemanticVersionFeature> MixedEffectsInReaction(SemanticReaction reaction)
     {
-        foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && !trigger.Invokes.IsDefaultOrEmpty))
+        foreach (var trigger in reaction.Triggers.Where(trigger => !trigger.Produces.IsDefaultOrEmpty && trigger.Invokes.Any(invocation => invocation.OnRefused.Any(branch => !branch.Produces.IsDefaultOrEmpty))))
         {
-            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' both produces events and invokes commands in one '{trigger.Kind}' trigger; a failed command would make Chronicle redeliver the trigger and append the reaction's events again until reactor appends are idempotent (Cratis/Stage#342).");
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' combines direct productions with refusal-branch productions in one '{trigger.Kind}' trigger; refusal-branch events can reuse direct-event idempotency keys (Cratis/Arc#3561) (Cratis/Stage#342).");
         }
         foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source).Where(HasMixedTriggerGroup))
         {
-            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' produces events and invokes commands across triggers on event '{group.Key}'; a failed command would make Chronicle redeliver the trigger and append the reaction's events again until reactor appends are idempotent (Cratis/Stage#342).");
+            yield return new(MixedReactionEffects, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' produces events and invokes commands across triggers on event '{group.Key}'; Cratis appends all events before commands and stops the command list on refusal, unlike Screenplay's per-trigger declaration order (Cratis/Stage#342).");
         }
     }
 

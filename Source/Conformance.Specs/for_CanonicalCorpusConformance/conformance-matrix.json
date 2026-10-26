@@ -2819,8 +2819,7 @@
         { "code": "STAGE-ESM-024", "artifact": "sem1:a7d3742c31e7b821867d912a7a87d359d82c385cd043855b4af74517c732c411", "issue": 79 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:cbe4a85130d7c4c518af0206bde8cec51751799cd243e54bd0c33159f2c63c28", "issue": 79 },
         { "code": "STAGE-ESM-024", "artifact": "sem1:e95bcc6e3b88097ed6b714b00463dde09ebb28a65195fafa29d49558ffe310fe", "issue": 343 },
-        { "code": "STAGE-ESM-024", "artifact": "sem1:f2296f14456126c82c68d2e8d0ecdc7f6c82ae0b20118b2f22f64398ee100fbe", "issue": 343 },
-        { "code": "STAGE-ESM-037", "artifact": "sem1:7e649a78b546248801c4e357cb178ee52b3e7b3556e565cbe560a8a49d3c6c1d", "issue": 342 } ] }
+        { "code": "STAGE-ESM-024", "artifact": "sem1:f2296f14456126c82c68d2e8d0ecdc7f6c82ae0b20118b2f22f64398ee100fbe", "issue": 343 } ] }
     },
     "ReadModelAbsenceCorpus.V5": {
       "loader": { "outcome": "supported" },

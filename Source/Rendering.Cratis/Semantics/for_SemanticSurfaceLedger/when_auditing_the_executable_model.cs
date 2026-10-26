@@ -98,9 +98,8 @@ public class when_auditing_the_executable_model : Specification
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public void should_render_unmixed_reaction_side_effects(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
-
-    [Fact] void should_refuse_mixed_reaction_side_effects() => SemanticSurfaceLedger.ReactionSideEffectShapes[(true, true)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-037"));
+    [InlineData(true, true)]
+    public void should_render_reaction_side_effect_combinations(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSliceKind.Automation")]

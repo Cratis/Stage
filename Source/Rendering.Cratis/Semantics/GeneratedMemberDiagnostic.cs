@@ -42,24 +42,33 @@ internal static class GeneratedMemberDiagnostic
         var argument = node.AncestorsAndSelf().OfType<ArgumentSyntax>().FirstOrDefault();
         if (argument?.Parent is not ArgumentListSyntax arguments || arguments.Parent is not { } call) return string.Empty;
         var info = model.GetSymbolInfo(call);
-        IMethodSymbol[] candidates = info.Symbol is IMethodSymbol method ? [method] : info.CandidateSymbols.OfType<IMethodSymbol>().ToArray();
+        var candidates = info.Symbol is IMethodSymbol method ? (IMethodSymbol[])[method] : [.. info.CandidateSymbols.OfType<IMethodSymbol>()];
+
         // Failed record construction can also list the copy constructor. Only a matching
         // argument shape identifies the parameter whose generated concept needs construction.
-        candidates = candidates.Where(candidate => candidate.Parameters.Length == arguments.Arguments.Count &&
+        candidates = [.. candidates.Where(candidate => candidate.Parameters.Length == arguments.Arguments.Count &&
             arguments.Arguments.All(authoredArgument => authoredArgument.NameColon is not { } authoredName ||
-                candidate.Parameters.Any(candidateParameter => candidateParameter.Name == authoredName.Name.Identifier.ValueText))).ToArray();
+                candidate.Parameters.Any(candidateParameter => candidateParameter.Name == authoredName.Name.Identifier.ValueText)))];
         if (candidates.Length != 1) return string.Empty;
         var parameters = candidates[0].Parameters;
         var index = arguments.Arguments.IndexOf(argument);
-        var parameter = argument.NameColon is { } name
-            ? parameters.FirstOrDefault(candidate => candidate.Name == name.Name.Identifier.ValueText)
-            : index >= 0 && index < parameters.Length ? parameters[index] : null;
+        var parameter = argument.NameColon switch
+        {
+            { } name => parameters.FirstOrDefault(candidate => candidate.Name == name.Name.Identifier.ValueText),
+            _ when index >= 0 && index < parameters.Length => parameters[index],
+            _ => null
+        };
         if (parameter?.Type is not INamedTypeSymbol concept || concept.DeclaringSyntaxReferences.IsEmpty ||
             concept.BaseType is not { TypeArguments.Length: 1 } basis ||
             !((basis.Name == "ConceptAs" && basis.ContainingNamespace.ToDisplayString() == "Cratis.Concepts") ||
-                (basis.Name == "EventSourceId" && basis.ContainingNamespace.ToDisplayString() == "Cratis.Chronicle.Events"))) return string.Empty;
+                (basis.Name == "EventSourceId" && basis.ContainingNamespace.ToDisplayString() == "Cratis.Chronicle.Events")))
+        {
+            return string.Empty;
+        }
+
         var source = model.GetTypeInfo(argument.Expression).Type;
         if (!SymbolEqualityComparer.Default.Equals(source, basis.TypeArguments[0])) return string.Empty;
+
         return $" Use new {concept.Name}(...) to construct the generated concept explicitly.";
     }
 }

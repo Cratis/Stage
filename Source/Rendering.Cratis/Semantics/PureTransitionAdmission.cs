@@ -300,8 +300,8 @@ internal static partial class PureTransitionAdmission
         var boundTypes = analyzedBody.DescendantNodes().OfType<SimpleNameSyntax>()
             .Select(name => semanticModel.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
         var shadow = peers.FirstOrDefault(name => ShadowsAuditedName(name) ||
-            referencedTypes.Any(reference => reference.Name == name) &&
-                !IsUnambiguousCommonType(name, context, compilation, allDeclarations, boundTypes));
+            (referencedTypes.Any(reference => reference.Name == name) &&
+                !IsUnambiguousCommonType(name, context, compilation, allDeclarations, boundTypes)));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
         var namespaceShadow = namespacePaths.FirstOrDefault(entry => ShadowsAuditedName(entry.Key) ||
@@ -393,41 +393,6 @@ internal static partial class PureTransitionAdmission
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
     }
 
-    // Only authored Common concepts/composites can opt out of the conservative name guard.
-    // Referenced types (including primitive CLR names) and slice-local peers never opt out.
-    static bool IsUnambiguousCommonType(
-        string name,
-        SemanticApplicationContext context,
-        CSharpCompilation compilation,
-        IEnumerable<(SemanticId? Id, string Namespace, string Name)> declarations,
-        IEnumerable<INamedTypeSymbol> boundTypes)
-    {
-        if (ShadowsAuditedName(name)) return false;
-        var commonIds = context.Application.Concepts.Where(concept => Identifiers.ToPascalCase(concept.Name) == name).Select(concept => concept.Id)
-            .Concat(context.Application.Types.Where(type => Identifiers.ToPascalCase(type.Name) == name).Select(type => type.Id)).ToHashSet();
-        if (commonIds.Count == 0 || declarations.Where(declaration => declaration.Name == name).Any(declaration =>
-            declaration.Namespace != context.CommonNamespace || declaration.Id is not { } id || !commonIds.Contains(id))) return false;
-        var commonType = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{name}");
-        var references = boundTypes.Where(type => type.Name == name).ToArray();
-        if (commonType is null || references.Length == 0 || references.Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType))) return false;
-
-        var imports = compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()).ToArray();
-        // Alias/static import lookup is not modeled by this narrow exemption.
-        if (imports.Any(import => import.Alias is not null || import.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))) return false;
-        var namespaces = imports.Select(import => import.Name?.ToString().Replace("global::", string.Empty, StringComparison.Ordinal))
-            .OfType<string>().Append("System").Append(string.Empty).Distinct(StringComparer.Ordinal);
-        foreach (var path in namespaces)
-        {
-            INamespaceSymbol? imported = compilation.GlobalNamespace;
-            foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
-                imported = imported?.GetNamespaceMembers().FirstOrDefault(candidate => candidate.Name == segment);
-            // The merged namespace includes referenced assemblies and signature stand-ins.
-            // Ignore only the exact Common declaration being considered, not other source types.
-            if (imported?.GetTypeMembers(name).Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType)) == true) return false;
-        }
-        return true;
-    }
-
     internal static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
 
@@ -469,6 +434,50 @@ internal static partial class PureTransitionAdmission
     // The audited pack, or the isolated failure-path override, for every pure body analysis.
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    // Only authored Common concepts/composites can opt out of the conservative name guard.
+    // Referenced types (including primitive CLR names) and slice-local peers never opt out.
+    static bool IsUnambiguousCommonType(
+        string name,
+        SemanticApplicationContext context,
+        CSharpCompilation compilation,
+        IEnumerable<(SemanticId? Id, string Namespace, string Name)> declarations,
+        IEnumerable<INamedTypeSymbol> boundTypes)
+    {
+        if (ShadowsAuditedName(name)) return false;
+        var commonIds = context.Application.Concepts.Where(concept => Identifiers.ToPascalCase(concept.Name) == name).Select(concept => concept.Id)
+            .Concat(context.Application.Types.Where(type => Identifiers.ToPascalCase(type.Name) == name).Select(type => type.Id)).ToHashSet();
+        if (commonIds.Count == 0 || declarations.Any(declaration => declaration.Name == name &&
+            (declaration.Namespace != context.CommonNamespace || declaration.Id is not { } id || !commonIds.Contains(id))))
+        {
+            return false;
+        }
+
+        var commonType = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{name}");
+        var references = boundTypes.Where(type => type.Name == name).ToArray();
+        if (commonType is null || references.Length == 0 || references.Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType))) return false;
+
+        var imports = compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()).ToArray();
+
+        // Alias/static import lookup is not modeled by this narrow exemption.
+        if (imports.Any(import => import.Alias is not null || import.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))) return false;
+        var namespaces = imports.Select(import => import.Name?.ToString().Replace("global::", string.Empty, StringComparison.Ordinal))
+            .OfType<string>().Append("System").Append(string.Empty).Distinct(StringComparer.Ordinal);
+        foreach (var path in namespaces)
+        {
+            var imported = compilation.GlobalNamespace;
+            foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
+            {
+                imported = imported?.GetNamespaceMembers().FirstOrDefault(candidate => candidate.Name == segment);
+            }
+
+            // The merged namespace includes referenced assemblies and signature stand-ins.
+            // Ignore only the exact Common declaration being considered, not other source types.
+            if (imported?.GetTypeMembers(name).Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType)) == true) return false;
+        }
+
+        return true;
+    }
 
     static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
         method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||

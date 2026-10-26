@@ -11,7 +11,8 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
+import { useScreenRows } from './stageScreenTables';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -260,13 +261,12 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
  * address supplies yet. A form that asks for every property of the schema - one with no fields of its own that is not manual - asks for its keys too.
  */
 function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
-    const { parameters, queries, selections } = useStageData();
+    const { parameters } = useStageData();
     const schema = text(element, 'schema');
     const fields = element.properties.fields;
     const generationMode = text(element, 'generationMode').toLowerCase();
     const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const formFields: unknown[] = Array.isArray(fields) ? fields : [];
     const asked = formFields.length > 0 || generationMode === 'manual'
         ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
@@ -311,14 +311,13 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const element = props.element ?? syntheticElement('slice-dialog', {});
     const navigation = useOptionalSceneNavigation();
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
     const title = text(element, 'title') || opened?.title || command;
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
@@ -364,13 +363,12 @@ function StageToolbarItem(props: RegisteredProps) {
  */
 function StageToolbarSliceButton(props: RegisteredProps) {
     const { element } = props;
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const slice = text(element, 'slice');
     const command = text(element, 'command') || slice.split('.').at(-1) || '';
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
 
@@ -388,14 +386,13 @@ function StageToolbarSliceButton(props: RegisteredProps) {
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const name = text(element, 'name', element.id);
     const command = text(element, 'target');
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};

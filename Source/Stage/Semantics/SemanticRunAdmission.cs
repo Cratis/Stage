@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -16,17 +18,23 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticRunAdmission
 {
-    const string UnsupportedVersion = "STAGE-ESM-016: The model's language/semantic version is not one Stage has audited.";
+    static readonly ConditionalWeakTable<ExecutableSemanticModel, ConcurrentDictionary<string, EsmSupportStanding>> _standings = [];
 
     /// <summary>
     /// Checks the audited version pair before finding constructs that block live model admission.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model) =>
-        SemanticVersionFeatures.Supports(model)
-            ? ModelFeatures(model.Application)
-            : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model)
+    {
+        var standing = RunStanding(model, new HashSet<SemanticId>());
+        if (standing.Version is not (EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange))
+        {
+            return [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion(model))];
+        }
+        return standing.UnknownMembers.Select(member => new SemanticAdmissionFeature(member.Owner.ToString(), member.OwnerKind, nameof(StageExecutionCapability.PlanIssue), UnauditedMember(member)))
+            .Concat(ModelFeatures(model.Application));
+    }
 
     /// <summary>
     /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v33 and v34, whose only additions
@@ -35,7 +43,7 @@ public static class SemanticRunAdmission
     /// <param name="model">The executable model.</param>
     /// <returns>Whether the executor runs the version pair.</returns>
     public static bool SupportsRun(ExecutableSemanticModel model) =>
-        SemanticVersionFeatures.Supports(model) ||
+        CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion) is EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange ||
         (model.LanguageVersion == LanguageVersion.V33 && model.SemanticVersion == SemanticVersion.V33) ||
         (model.LanguageVersion == LanguageVersion.V34 && model.SemanticVersion == SemanticVersion.V34);
 
@@ -120,7 +128,7 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (!SupportsRun(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+        if (RangeRefusal(plan, specification) is { } rangeRefusal) return rangeRefusal;
 
         // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
@@ -274,6 +282,21 @@ public static class SemanticRunAdmission
         plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
             .SelectMany(slice => slice.Reducers).Any(reducer => reducer.ReadModel == readModel);
 
+    internal static EsmSupportStanding RunStanding(ExecutableSemanticModel model, IReadOnlySet<SemanticId> excluded)
+    {
+        var version = CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion);
+        if (version != EsmVersionStanding.NewerWithinRange) return new(version, []);
+        var key = string.Join('/', excluded.Select(id => id.ToString()).Order(StringComparer.Ordinal));
+        return _standings.GetOrCreateValue(model).GetOrAdd(
+            key,
+            static (_, state) =>
+            {
+                var owners = SemanticVersionFeatures.Slices(state.Model.Application).Select(slice => slice.Id).Append(state.Model.Application.Id).ToHashSet();
+                return EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, state.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, state.Excluded));
+            },
+            (Model: model, Excluded: excluded));
+    }
+
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
     internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
     {
@@ -319,6 +342,21 @@ public static class SemanticRunAdmission
 
         return null;
     }
+
+    static SemanticUnsupportedCapability? RangeRefusal(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
+        if (!SupportsRun(plan.Model)) return new(StageExecutionCapability.PlanIssue, plan.Model.Application.Id.ToString(), UnsupportedVersion(plan.Model));
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
+        var excluded = SemanticVersionFeatures.Slices(plan.Model.Application).Where(slice => plan.IsolatedSlice is not null && slice.Id != plan.IsolatedSlice).Select(slice => slice.Id).ToHashSet();
+        return RunStanding(plan.Model, excluded).UnknownMembers.FirstOrDefault() is { } unknown
+            ? new(StageExecutionCapability.PlanIssue, unknown.Owner.ToString(), UnauditedMember(unknown))
+            : null;
+    }
+
+    static string UnsupportedVersion(ExecutableSemanticModel model) =>
+        $"STAGE-ESM-016: ESM pair {model.LanguageVersion}/{model.SemanticVersion} is not an audited pair and is outside the range Stage runs ({CratisEsmSupport.Descriptor.Accepts}).";
+
+    static string UnauditedMember(SemanticUnknownMember member) => $"STAGE-ESM-016: Unaudited ESM member {member.Member} at {member.Path}.";
 
     static SemanticUnsupportedCapability? CommandPlanRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
         SemanticPlanAdmission.Check(plan, command.Id);

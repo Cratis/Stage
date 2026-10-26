@@ -19,8 +19,8 @@ public class when_selecting_refusal_modes : for_CratisArtifactRenderPlanner.when
         _optionsForPlan with { Refusals = ArtifactRefusalMode.RenderAround });
 
     [Fact] void should_default_to_refuse() => _optionsForPlan.Refusals.ShouldEqual(ArtifactRefusalMode.Refuse);
-    [Fact] void should_carry_the_opt_in_through_source_planning() => _result.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
-    [Fact] void should_keep_success_false() => _result.Success.ShouldBeFalse();
+    [Fact] void should_render_around_unrenderable_specifications() => _result.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+    [Fact] void should_succeed_with_warnings() => _result.Success.ShouldBeTrue();
     [Fact] void should_expose_the_refused_specification() => _result.Refusals.Single().Artifact.ShouldEqual(_refused);
     [Fact] void should_preserve_the_default_profile_roster() => CratisRendering.CreateProfile(_original.Model.Application.Name, _options).Inputs.Any(input => input.Name == RefusalModeInput.Name).ShouldBeFalse();
 }

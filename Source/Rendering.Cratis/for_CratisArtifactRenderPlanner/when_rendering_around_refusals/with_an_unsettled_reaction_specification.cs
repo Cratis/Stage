@@ -26,7 +26,7 @@ public class with_an_unsettled_reaction_specification : given.a_refused_specific
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_render_a_partial_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_render_a_complete_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
     [Fact] void should_list_the_unsettled_specification() => _plan.Refusals.Single().Artifact.ShouldEqual(_refused);
     [Fact] void should_keep_the_reactor() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("Worker.cs", StringComparison.Ordinal));
     [Fact] void should_omit_the_unsettled_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_refused);

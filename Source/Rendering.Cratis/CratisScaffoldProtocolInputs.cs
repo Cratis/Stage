@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 internal static class CratisScaffoldProtocolInputs
 {
-    static readonly HashSet<string> Names = new(StringComparer.Ordinal)
+    static readonly HashSet<string> _names = new(StringComparer.Ordinal)
     {
         StringsCatalogInput.Name,
         AuthoringMetadataInput.Name,
@@ -23,5 +23,5 @@ internal static class CratisScaffoldProtocolInputs
         UserInterfaceInput.Name
     };
 
-    internal static bool Contains(string name) => Names.Contains(name);
+    internal static bool Contains(string name) => _names.Contains(name);
 }

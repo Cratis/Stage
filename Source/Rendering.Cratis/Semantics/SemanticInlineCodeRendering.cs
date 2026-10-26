@@ -47,6 +47,9 @@ internal static class SemanticInlineCodeRendering
         return new(presentation.Text is null ? null : code, placement, diagnostics.ToImmutable());
     }
 
+    internal static SemanticInlineCodeResult Reaction(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context) =>
+        SemanticReactionBodyRendering.Inline(located, reaction, context);
+
     static bool GenerationEnvelope(SemanticImplementationRequirement requirement) =>
         requirement.Role == SemanticImplementationRole.ValueGeneration && requirement.ContextVersion == 1 &&
         requirement.ResultVersion == 1 && string.Equals(requirement.RequiredCapability, "provider-defined", StringComparison.Ordinal);

@@ -52,33 +52,13 @@ export interface NavigationNode {
 export function authoredNavigationEntries(screens: Screen[]): NavigationEntry[] {
     const seen = new Set<string>();
     const entries: NavigationEntry[] = [];
-    for (const screen of screens) {
-        for (const contribution of screen.contributions ?? []) {
-            if (contribution.contributionPointName !== navigationContributionPoint) continue;
-            const properties = (contribution.content?.properties ?? {}) as Record<string, unknown>;
-            const label = properties.label;
-            const targetScreen = properties.targetScreen;
-            if (typeof label !== 'string' || typeof targetScreen !== 'string') continue;
-
-            const hierarchy = Array.isArray(properties.hierarchy) ? properties.hierarchy.filter((part): part is string => typeof part === 'string') : [];
-            const id = typeof properties.id === 'string' ? properties.id : undefined;
-            const key = id !== undefined ? JSON.stringify(['id', id]) : JSON.stringify([hierarchy, targetScreen, label]);
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const order = contribution.order ?? (typeof properties.order === 'number' ? properties.order : undefined);
-            const destination = isDestination(properties.destination) ? properties.destination : undefined;
-            entries.push({
-                label,
-                targetScreen,
-                hierarchy,
-                order,
-                ...(id !== undefined ? { id } : {}),
-                ...(typeof properties.group === 'string' ? { group: properties.group } : {}),
-                ...(typeof properties.icon === 'string' ? { icon: properties.icon } : {}),
-                ...(typeof properties.presentation === 'string' ? { presentation: properties.presentation } : {}),
-                ...(destination && opensElsewhere(destination) ? { destination } : {}),
-            });
-        }
+    for (const contribution of screens.flatMap(screen => screen.contributions ?? [])) {
+        const entry = navigationEntryFrom(contribution);
+        if (!entry) continue;
+        const key = navigationEntryKey(entry);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        entries.push(entry);
     }
 
     return entries
@@ -98,39 +78,73 @@ export function authoredNavigationEntries(screens: Screen[]): NavigationEntry[] 
 export function navigationTree(entries: NavigationEntry[]): NavigationNode[] {
     const root: NavigationNode = { label: '', children: [] };
     for (const entry of entries) {
-        let parent = root;
-        for (const part of entry.hierarchy) {
-            let group = parent.children.find(candidate => candidate.screen === undefined && !candidate.section && candidate.label === part);
-            if (!group) {
-                group = { label: part, children: [] };
-                parent.children.push(group);
-            }
-
-            parent = group;
-        }
-
-        if (entry.group) {
-            let section = parent.children.find(candidate => candidate.section && candidate.label === entry.group);
-            if (!section) {
-                section = { label: entry.group, section: true, children: [] };
-                parent.children.push(section);
-            }
-
-            parent = section;
-        }
-
-        parent.children.push({
-            label: entry.label,
-            ...(entry.id ? { id: entry.id } : {}),
-            screen: entry.targetScreen,
-            ...(entry.icon ? { icon: entry.icon } : {}),
-            ...(entry.presentation ? { presentation: entry.presentation } : {}),
-            ...(entry.destination ? { destination: entry.destination } : {}),
-            children: [],
-        });
+        const feature = entry.hierarchy.reduce((parent, part) => groupNode(parent, part, false), root);
+        const parent = entry.group ? groupNode(feature, entry.group, true) : feature;
+        parent.children.push(entryNode(entry));
     }
 
     return root.children;
+}
+
+type Contribution = NonNullable<Screen['contributions']>[number];
+
+function navigationEntryFrom(contribution: Contribution): NavigationEntry | undefined {
+    if (contribution.contributionPointName !== navigationContributionPoint) return undefined;
+    const properties = (contribution.content?.properties ?? {}) as Record<string, unknown>;
+    const label = properties.label;
+    const targetScreen = properties.targetScreen;
+    if (typeof label !== 'string' || typeof targetScreen !== 'string') return undefined;
+
+    const hierarchy = Array.isArray(properties.hierarchy) ? properties.hierarchy.filter((part): part is string => typeof part === 'string') : [];
+    const order = contribution.order ?? (typeof properties.order === 'number' ? properties.order : undefined);
+    const destination = properties.destination;
+    return {
+        label,
+        targetScreen,
+        hierarchy,
+        order,
+        ...presentProperties({
+            id: optionalString(properties.id),
+            group: optionalString(properties.group),
+            icon: optionalString(properties.icon),
+            presentation: optionalString(properties.presentation),
+            destination: isDestination(destination) && opensElsewhere(destination) ? destination : undefined,
+        }),
+    };
+}
+
+function navigationEntryKey(entry: NavigationEntry): string {
+    return entry.id !== undefined ? JSON.stringify(['id', entry.id]) : JSON.stringify([entry.hierarchy, entry.targetScreen, entry.label]);
+}
+
+function groupNode(parent: NavigationNode, label: string, section: boolean): NavigationNode {
+    const existing = parent.children.find(candidate => candidate.screen === undefined && (candidate.section === true) === section && candidate.label === label);
+    if (existing) return existing;
+    const group: NavigationNode = section ? { label, section: true, children: [] } : { label, children: [] };
+    parent.children.push(group);
+    return group;
+}
+
+function entryNode(entry: NavigationEntry): NavigationNode {
+    return {
+        label: entry.label,
+        ...presentProperties({ id: entry.id || undefined }),
+        screen: entry.targetScreen,
+        ...presentProperties({
+            icon: entry.icon || undefined,
+            presentation: entry.presentation || undefined,
+            destination: entry.destination,
+        }),
+        children: [],
+    };
+}
+
+function optionalString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+}
+
+function presentProperties<T extends object>(properties: T): Partial<T> {
+    return Object.fromEntries(Object.entries(properties).filter(([, value]) => value !== undefined)) as Partial<T>;
 }
 
 /**

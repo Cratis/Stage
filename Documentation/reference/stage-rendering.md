@@ -688,7 +688,8 @@ entry reaches the runtime on every screen of that feature and is shown once. A m
 the flat list of screens.
 
 A navigation entry carries everything it was authored with. Its `id`, `icon`, `presentation` and `group` reach the
-runtime, and a `destination outlet|dialog|external` composes with its `navigate to` into one Scene destination: the
+runtime. The `id` is the entry's stable identity, so there is one entry per `id`. Entries that share a `group` are listed
+under a section heading of that name within their feature, and the breadcrumb leaves the section out. A `destination outlet|dialog|external` composes with its `navigate to` into one Scene destination: the
 entry opens in the named outlet, opens the named dialog, or leaves the application. The `presentation` hint decides
 what the menu shows - `icon`, `text` or `both` (the default) - and an icon-only entry keeps its label as its accessible
 name. An entry that opens somewhere a plain link does not reach is executed by the Scene navigation host, the same as a

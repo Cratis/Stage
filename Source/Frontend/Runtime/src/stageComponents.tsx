@@ -7,10 +7,11 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
-import { Button } from 'primereact/button';
-import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { Button } from '@cratis/components/Common';
+import { Dialog } from '@cratis/components/Dialogs';
+import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -48,6 +49,18 @@ function text(element: ExternalComponent, name: string, fallback = ''): string {
 interface TableColumn {
     property: string;
     label: string;
+    options?: readonly string[];
+
+    // The number each option carries, parallel to options. Absent for an implicitly numbered enumeration,
+    // whose members are numbered by position.
+    optionValues?: readonly number[];
+}
+
+function tableValue(value: unknown, options?: readonly string[], optionValues?: readonly number[]): string {
+    const member = typeof value === 'number' && Number.isInteger(value)
+        ? (optionValues && optionValues.length === options?.length ? options?.[optionValues.indexOf(value)] : options?.[value])
+        : value;
+    return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
 }
 
 interface QueryArguments {
@@ -76,6 +89,8 @@ function columnsFor(element: ExternalComponent, rows: Record<string, unknown>[])
         return {
             property: typeof properties.property === 'string' ? properties.property : '',
             label: typeof properties.label === 'string' ? properties.label : '',
+            options: Array.isArray(properties.options) && properties.options.every(option => typeof option === 'string') ? properties.options : undefined,
+            optionValues: Array.isArray(properties.optionValues) && properties.optionValues.every(option => typeof option === 'number') ? properties.optionValues : undefined,
         };
     }).filter(column => column.property.length > 0);
 
@@ -166,8 +181,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {loading && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
-            {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
+            {loading && <Message severity='info' text='Loading…' />}
+            {error && <Message severity='error' text={error} />}
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
                 <thead>
@@ -188,7 +203,7 @@ export function StageTable({ element, slots }: RegisteredProps) {
                                     event.preventDefault();
                                     select(row);
                                 }}>
-                                {columns.map(column => <td key={column.property}>{String(row[column.property] ?? '')}</td>)}
+                                {columns.map(column => <td key={column.property}>{tableValue(row[column.property], column.options, column.optionValues)}</td>)}
                             </tr>
                         );
                     })}
@@ -264,16 +279,17 @@ function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
-    const close = useCallback(() => setGeneration(current => current + 1), []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm element={element} /></StageDialogContext.Provider>;
+    const [visible, setVisible] = useState(false);
+    const close = useCallback(() => {
+        setVisible(false);
+        setGeneration(current => current + 1);
+    }, []);
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <PrimeDialog
-                key={generation}
-                element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
-                slots={{ content: [content] }}
-            />
+            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
         </div>
     );
 }
@@ -295,7 +311,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
@@ -347,7 +363,7 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
 
@@ -372,7 +388,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};

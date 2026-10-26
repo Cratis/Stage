@@ -59,8 +59,19 @@ static class QualifiedFileRewrite
 
         if (resolution.Usings.Length > 0 && namespaces is [FileScopedNamespaceDeclarationSyntax fileNamespace])
         {
-            var lines = string.Concat(resolution.Usings.Select(@namespace => $"\nusing global::{@namespace};"));
+            var lines = string.Concat(resolution.Usings.Select(@namespace => $"\nusing {resolution.Inner(@namespace)};"));
             changes.Add(new(new(fileNamespace.SemicolonToken.Span.End, 0), $"\n{lines}\n"));
+        }
+
+        // Directives above the file-scoped namespace replace the ones the file already has.
+        var existing = root.Usings.Where(@using => @using.Alias is null && @using.StaticKeyword.IsKind(SyntaxKind.None)).ToArray();
+        if (existing.Length > 0 || resolution.TopLevelUsings.Length > 0)
+        {
+            var start = existing.Length > 0 ? existing[0].FullSpan.Start : root.FullSpan.Start;
+            var end = existing.Length > 0 ? existing[^1].FullSpan.End : root.FullSpan.Start;
+            var text = string.Concat(resolution.TopLevelUsings.Select(@namespace => $"using {@namespace};\n"));
+            if (existing.Length == 0 && text.Length > 0) text += "\n";
+            changes.Add(new(TextSpan.FromBounds(start, end), text));
         }
         return ([.. changes.Where(change => change.Span.Length > 0 || change.NewText!.Length > 0).OrderBy(change => change.Span.Start)], spelledShort);
     }

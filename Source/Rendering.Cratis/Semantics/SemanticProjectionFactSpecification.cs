@@ -43,8 +43,9 @@ internal static class SemanticProjectionFactSpecification
             return true;
         }
 
-        // An event something reacts to would have to be settled; an event an append-time constraint governs would have to be refused.
-        if (SemanticSpecificationAdmission.EventReactionTriggers(context).Any(trigger => trigger.Source == appended.EventContract) ||
+        // An event the specification's own slice reacts to would have to be settled; an event an append-time constraint governs would have to be refused.
+        // Another slice's reactions do not run in this specification (Screenplay decision 0115).
+        if (SemanticSpecificationAdmission.EventReactionTriggers(context, specification).Any(trigger => trigger.Source == appended.EventContract) ||
             context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == appended.EventContract)))
         {
             return false;

@@ -44,6 +44,9 @@ button { font: inherit; }
 .stage-action { display: grid; gap: 0.75rem; justify-items: start; }
 .stage-command-form__layout { display: grid; gap: var(--layout-gap, 1rem); min-width: 0; width: 100%; }
 .stage-command-form__field { display: block; min-width: 0; }
+/* One line is always reserved under the control, so a message that fits it never shifts the fields below; a longer one grows in flow and pushes them down instead of covering the control. */
+.stage-command-form__field small.p-error { min-height: 1.25rem; line-height: 1.25rem; margin: 0.25rem 0 0; }
+.stage-command-form__field:not(:has(small.p-error))::after { content: ''; display: block; min-height: 1.5rem; }
 .stage-record-field,
 .stage-list-field { border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); display: grid; gap: 0.6rem; margin: 0; min-width: 0; padding: 0.75rem; }
 .stage-record-field legend,

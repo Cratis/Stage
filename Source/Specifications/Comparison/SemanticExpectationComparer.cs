@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Specifications.Commands;
@@ -60,6 +61,10 @@ internal static class SemanticExpectationComparer
             // A direct append's then-events describe only its reaction effects; commands include action facts.
             CompareFacts(expected, Following(expected, run), failures, plan!);
         }
+        if (!expected.ThenInvocations.IsDefaultOrEmpty)
+        {
+            SemanticInvocationComparison.Compare(plan!, expected.ThenInvocations, run.Invocations, expected.ThenEventsInAnyOrder, failures);
+        }
 
         CompareCommandDestination(expected, ActionDestinations(run), plan, failures);
 
@@ -79,7 +84,7 @@ internal static class SemanticExpectationComparer
         var failures = new List<string>();
         foreach (var state in expected.ThenReadModels)
         {
-            if (!MatchesState(state, projected))
+            if (!MatchesState(state, projected, plan))
             {
                 failures.Add($"Expected read model '{state.ReadModel}' with key '{state.Key}' was not found with matching values.");
             }
@@ -95,7 +100,7 @@ internal static class SemanticExpectationComparer
         {
             var query = expected.ThenQueries[index];
             var rows = SemanticRunQueries.Select(plan, query, projected);
-            if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, query.Exactly)))
+            if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, plan, query.Exactly)))
             {
                 failures.Add($"Query result at index {index} expected {query.Results.Length} row(s) with matching values, got {rows.Length}.");
             }
@@ -202,8 +207,22 @@ internal static class SemanticExpectationComparer
         (!expected.Unrouted || actual.Route is null) &&
         (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
 
-    static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, bool exactly = false) =>
+    static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, SemanticExecutionPlan plan, bool exactly = false) =>
         rows.Any(row => row.ReadModel == state.ReadModel && AreEqual(row.Key, state.Key) &&
             (!(state.Exactly || exactly) || state.Values.Length == row.Values.Length) &&
-            state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty && AreEqual(actual.Value, expected.Value))));
+            state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty &&
+                (AreEqual(actual.Value, expected.Value) || SameInstant(plan, row.ReadModel, actual, expected)))));
+
+    // A DateTime read-model value is materialized as a DateTimeOffset, which renders a zero offset as '+00:00'. The authored spelling of the same
+    // instant and offset ('Z') is accepted for a DateTime property, as the Screenplay reference compares them.
+    static bool SameInstant(SemanticExecutionPlan plan, SemanticId readModel, SemanticPropertyValue actual, SemanticPropertyValue expected) =>
+        actual.Value is SemanticTextValue actualText && expected.Value is SemanticTextValue expectedText &&
+        plan.ReadModels.TryGetValue(readModel, out var model) &&
+        model.Properties.FirstOrDefault(property => property.Id == actual.TargetProperty) is { } property &&
+        !property.Type.IsCollection &&
+        (property.Type.Kind == SemanticTypeReferenceKind.Concept
+            ? plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target).Primitive : property.Type.Primitive) == SemanticPrimitiveType.DateTime &&
+        DateTimeOffset.TryParseExact(actualText.Value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var left) &&
+        DateTimeOffset.TryParse(expectedText.Value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var right) &&
+        left == right && left.Offset == right.Offset;
 }

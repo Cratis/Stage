@@ -143,9 +143,9 @@ public class when_rendering_a_pure_reducer
         var baselineFiles = baseline.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
-        var shadowedFiles = baselineFiles.Append(new RenderedFile($"{sharedName}.cs", $"namespace Projects.Orders.Ordering.Totals; public record {sharedName}(System.Guid Id, decimal Amount);"));
-        Assert.Empty(RenderedOutput.Errors(shadowedFiles));
 
+        // A hand-written type in a generated namespace is outside the contract (keep custom types out of generated
+        // namespaces); a generated sibling of the same name is not, and is qualified.
         var conflicting = source.Replace("      readmodel Total", $"      readmodel {sharedName}\n        id Uuid\n        amount Decimal\n      query {sharedName}ById => {sharedName}?\n        by id Uuid\n      reducer {sharedName}Fold => {sharedName}\n        on OrderPlaced\n          ```csharp\n          return context.State;\n          ```\n      readmodel Total", StringComparison.Ordinal);
         var plan = Plan(await Load(conflicting));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -682,7 +682,7 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(await Load(source));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var generatedSpec = plan.Artifacts.Single(artifact => artifact.RelativePath.Contains("is_projected", StringComparison.Ordinal));
-        Assert.Contains("[global::Xunit.FactAttribute]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
+        Assert.Contains("[Fact]", System.Text.Encoding.UTF8.GetString(generatedSpec.Bytes.AsSpan()), StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         var errors = RenderedOutput.Errors(files);

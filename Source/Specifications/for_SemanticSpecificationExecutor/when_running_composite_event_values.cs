@@ -42,7 +42,7 @@ public class when_running_composite_event_values : Specification
           child Child
         module Facts
           feature Recording
-            slice StateChange Record
+            slice Automation Record
               command RecordDetails
                 id String identifier
                 details Details
@@ -77,7 +77,6 @@ public class when_running_composite_event_values : Specification
                   for "one"
                   details = {"label":"nested","child":{"count":7}}
                 then no events
-            slice Automation Forward
               event DetailsRequested
                 details Details
               reaction ForwardDetails

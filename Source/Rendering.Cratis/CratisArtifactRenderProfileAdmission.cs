@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Cratis.Scene.Engine.Packages;
@@ -49,7 +50,7 @@ static class CratisArtifactRenderProfileAdmission
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages);
+            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile));
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
@@ -60,7 +61,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -129,7 +130,26 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options! with { Refusals = refusals };
+        if (!FileHeaderInput.TryRead(profile, out var fileHeader))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate file header.";
+            return false;
+        }
+
+        if (!UserInterfaceInput.TryRead(profile, out var userInterface))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate user interface input.";
+            return false;
+        }
+
+        if (!UserInterfaceDomainsInput.TryRead(profile, out var userInterfaceDomains) ||
+            (userInterfaceDomains is { } named && (userInterface is null || named.Keys.Any(domain => DomainPlacementInput.IsReserved(domain, expected)))))
+        {
+            mismatch = "The Cratis profile carries an invalid, duplicate, reserved or unaccompanied user interface domains input.";
+            return false;
+        }
+
+        admittedOptions = options! with { Refusals = refusals, FileHeader = fileHeader };
         mismatch = string.Empty;
         return true;
     }
@@ -161,6 +181,33 @@ static class CratisArtifactRenderProfileAdmission
         catch (DecoderFallbackException)
         {
             mismatch = "The Cratis profile carries an approved package set that is not valid UTF-8.";
+            return false;
+        }
+    }
+
+    // The composed Scene is application content, so whether the application opted in to PrimeReact is read from the ui profiles it declares.
+    static bool ListsPrimeReact(ArtifactRenderProfile profile)
+    {
+        var scene = profile.Inputs.FirstOrDefault(IsComposedScene);
+        if (scene is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(scene.Bytes.AsMemory());
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("uiProfiles", out var profiles) &&
+                profiles.ValueKind == JsonValueKind.Array &&
+                CratisRendering.ListsPrimeReact(profiles.EnumerateArray()
+                    .Where(uiProfile => uiProfile.ValueKind == JsonValueKind.Object && uiProfile.TryGetProperty("packages", out var packages) && packages.ValueKind == JsonValueKind.Array)
+                    .SelectMany(uiProfile => uiProfile.GetProperty("packages").EnumerateArray())
+                    .Where(package => package.ValueKind == JsonValueKind.String)
+                    .Select(package => package.GetString()!));
+        }
+        catch (JsonException)
+        {
             return false;
         }
     }

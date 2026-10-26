@@ -12,6 +12,12 @@ internal static class portable_match_cases
 {
     internal static readonly (string Pattern, string Input, bool Accepted)[] Cases =
     [
+        ("b{2996}", new string('b', 2996), true), ("b{2996}", new string('b', 2995), false),
+        ("^(ab){1498}$", string.Concat(Enumerable.Repeat("ab", 1498)), true),
+        ("^(ab){1498}$", string.Concat(Enumerable.Repeat("ab", 1497)), false),
+        ("^(a{2996}b)+$", new string('a', 2996) + "b", true),
+        ("^(a{2996}b)+$", new string('a', 2995) + "b", false),
+        ("(){999999999999999999999999999}", "one", true),
         ("^.$", "\r", false), ("^.$", "\u2028", false), ("^.$", "\u2029", false),
         (@"^\s$", "\u00a0", true), (@"^\s$", "\ufeff", true), (@"^\s$", "\u0085", false),
         (@"^\S$", "\u00a0", false), (@"^[\s]$", "\u2003", true), (@"^[^\s]$", "\u3000", false),

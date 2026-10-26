@@ -64,16 +64,13 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
-    internal static IEnumerable<SemanticReactionTrigger> EventReactionTriggers(SemanticApplicationContext context) =>
-        SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
-            .SelectMany(reaction => reaction.Triggers).Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event);
-
+    // Only the declaring slice's own reactions can make a command specification a cascade (Screenplay decision 0115).
     internal static bool CommandTriggersReaction(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is not { } action) return false;
         if (!context.Commands.TryGetValue(action.Command, out var command)) return false;
 
-        return EventReactionTriggers(context).Any(trigger => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => produced.EventContract == trigger.Source));
+        return EventReactionTriggers(context, specification).Any(trigger => SemanticProductionSelection.Taken(context.Application, command, specification).Any(produced => produced.EventContract == trigger.Source));
     }
 
     internal static bool IsReactionConstraintTarget(SemanticApplicationContext context, SemanticId @event) =>

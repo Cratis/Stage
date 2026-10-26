@@ -20,21 +20,23 @@ const approve = JSON.stringify({
         productId: { type: 'string', format: 'uuid', 'x-concept': 'ProductId', 'x-identity': true },
     },
 });
-const routes = { commands: { ApproveProductForSale: '/api/approve' }, queries: { ReadyForApproval: '/api/ready' }, commandSchemas: { ApproveProductForSale: approve } };
+// What a read model of the application answers: its rows are keyed `id`, and the command acts on that entity by `productId`.
+const keyedRows = [{ id: '5c1e8a10-0000-4000-8000-000000000001', name: 'Acme mug' }, { id: '5c1e8a10-0000-4000-8000-000000000002', name: 'Acme lamp' }];
 const rows = [{ productId: '5c1e8a10-0000-4000-8000-000000000001', name: 'Acme mug' }, { productId: '5c1e8a10-0000-4000-8000-000000000002', name: 'Acme lamp' }];
 
 // The toolbar button is first on the screen; the dialog beside it carries the same title.
 const toolbarButton = () => screen.getAllByRole('button', { name: 'Approve product' })[0] as HTMLButtonElement;
 
-function renderScreen() {
+function renderScreen(query = 'ReadyForApproval', answered: Record<string, unknown>[] = rows) {
+    const routes = { commands: { ApproveProductForSale: '/api/approve' }, queries: { [query]: '/api/ready' }, commandSchemas: { ApproveProductForSale: approve } };
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
         ? Promise.resolve({ ok: true, json: async () => commandResult() })
-        : Promise.resolve({ ok: true, json: async () => queryResult({ data: rows }) }));
+        : Promise.resolve({ ok: true, json: async () => queryResult({ data: answered }) }));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Publication';
-    const table = element('ready', 'core:table', { query: 'ReadyForApproval', typeName: 'ProductRow' }, { columns: [element('name', 'core:column', { property: 'name', label: 'Name' })] });
+    const table = element('ready', 'core:table', { query, typeName: 'ProductRow' }, { columns: [element('name', 'core:column', { property: 'name', label: 'Name' })] });
     const button = element('approve', 'core:toolbarItem', { name: 'approve', kind: 'Button', label: 'Approve product', slice: 'Merchandising.Publication.ApproveProductForSale' });
     render(
         <PrimeReactProvider>
@@ -72,5 +74,35 @@ describe('a feature toolbar button on a list whose rows carry the key its comman
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
         expect(JSON.parse(String(init?.body))).toEqual({ productId: rows[1].productId });
+    });
+});
+
+describe('a feature toolbar button on a list whose rows are keyed id', () => {
+    afterEach(() => { vi.unstubAllGlobals(); globalThis.localStorage?.clear(); });
+
+    it('waits for a row when the rows belong to the entity the command acts on, and submits the selected row\'s id as the key', async () => {
+        const fetched = renderScreen('AllProductReadiness', keyedRows);
+
+        await screen.findByText('Acme mug');
+        await waitFor(() => expect(toolbarButton().disabled).toBe(true));
+        expect(toolbarButton().title).toBe('Select a row first');
+
+        fireEvent.click(screen.getByText('Acme lamp'));
+        await waitFor(() => expect(toolbarButton().disabled).toBe(false));
+
+        const dialog = document.querySelector('.scene-slice-dialog') as HTMLElement;
+        expect(within(dialog).queryByLabelText('Product Id', { exact: false })).toBeNull();
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ productId: keyedRows[1].id });
+    });
+
+    it('is not held back when the rows belong to another entity than the one the command acts on', async () => {
+        renderScreen('AllOrders', keyedRows);
+
+        await screen.findByText('Acme mug');
+        expect(toolbarButton().disabled).toBe(false);
     });
 });

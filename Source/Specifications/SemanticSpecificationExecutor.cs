@@ -87,6 +87,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             {
                 results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Authorization, specification.Id.ToString(), exception.Message)));
             }
+            catch (SemanticProjectionLoweringRefused exception)
+            {
+                results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Projection, exception.Projection.ToString(), exception.Message)));
+            }
             catch (UnsupportedSemanticMapping exception)
             {
                 results.Add(Unsupported(slice, specification, new(StageExecutionCapability.Command, specification.Id.ToString(), exception.Message)));
@@ -121,6 +125,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, Action<SemanticId, int>? observeWorldFacts, CancellationToken cancellationToken)
     {
+        // A specification is about the slice it belongs to and nothing else: other slices' reactions, captures and publications do not run.
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         if (SemanticRunContext.OccurrenceOf(specification) is { } instant) options = options with { Clock = new FixedSemanticClock(instant) };
         var when = specification.When;
         var command = when is null ? null : plan.Commands[when.Command];
@@ -128,7 +134,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var runtimeType = command is null ? typeof(DynamicCommand) : runtimeTypes.ForCommand(command);
         var instance = command is null ? null : Materialize(runtimeType, command, when!, plan);
 
-        var eventTypes = plan.Events.Keys.Select(runtimeTypes.For).ToArray();
+        // An event that cannot be materialized stays out of the eager set; a run that needs it is refused when it is resolved.
+        var eventTypes = runtimeTypes.MaterializableEvents();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
         var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);
@@ -174,7 +181,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         };
         if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
-        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
+        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts, reactions.Invocations);
     }
 
     static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when, SemanticExecutionPlan plan)
@@ -368,7 +375,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static bool IsUuidFixture(SemanticValue value) => value is SemanticTextValue text && Guid.TryParse(text.Value, out _);
 
-    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts)
+    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts, IReadOnlyList<SemanticRecordedInvocation> invocations)
     {
         var plan = context.Plan;
         var persisted = await eventScenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
@@ -379,7 +386,6 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
         var facts = context.Facts.Skip(specification.GivenEvents.Length).ToArray();
         var destinations = context.Destinations.Skip(specification.GivenEvents.Length).ToArray();
-        var projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
         foreach (var assertion in specification.ThenQueries)
         {
             if (!SemanticPolicyEvaluator.Allows(plan.Queries[assertion.Query], assertion.Key, plan, specification.GivenCaller))
@@ -391,9 +397,17 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 return Rejected(slice, specification, new SemanticRejection(validation.Message) { Category = SemanticRejectionCategory.Validation });
             }
         }
-        var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
-        failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
-        failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts) { Invocations = invocations }).ToList();
+        IReadOnlyList<SemanticRunProjections.Projected> projected = [];
+        var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
+
+        // Expected rejection/denial is settled without calling the projection executor, even when the command accepts.
+        if (!expectsRejection)
+        {
+            projected = SemanticRunProjections.Execute(plan, specification, context, runtimeTypes, defaults);
+            failures.AddRange(SemanticExpectationComparer.CompareProjections(specification, projected, plan));
+            failures.AddRange(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
+        }
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),

@@ -40,23 +40,30 @@ internal static class SceneBindingsRenderer
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <returns>The generated module text.</returns>
+    public static string Render(SemanticApplicationContext context) => Render(context, context.AllSlices);
+
+    /// <summary>
+    /// Renders the binding registration module for the slices whose user interface is present.
+    /// </summary>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <param name="slices">The slices whose generated proxies are present, in model order, each placed under the domain folder its code was generated in; only their commands and queries are imported.</param>
+    /// <returns>The generated module text.</returns>
     /// <remarks>
     /// The proxy generator writes a proxy beside the source it was generated from, so a proxy is imported from
     /// the slice folder that declares it rather than from the project root. Each of those folders carries an
     /// index that re-exports it, which is what makes the folder itself the import.
     /// </remarks>
-    public static string Render(SemanticApplicationContext context)
+    public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = context.Commands.Values
-            .Select(_ => (_.Name, Module: Module(context, _.Id)))
+        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Module: Module(slice))))
             .DistinctBy(_ => _.Name, StringComparer.Ordinal)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .ToArray();
-        var queries = context.Queries.Values
-            .OrderBy(_ => _.Name, StringComparer.Ordinal)
-            .ThenBy(_ => _.Id.ToString(), StringComparer.Ordinal)
-            .Select((query, index) => (query.Name, Identity: query.Id.ToString(),
-                Export: context.MemberNames.Query(query), Module: Module(context, query.Id), Alias: $"__sceneQuery{index}"))
+        var queries = slices.SelectMany(slice => slice.Slice.Queries.Select(query => (Query: context.Queries[query.Id], Slice: slice)))
+            .OrderBy(_ => _.Query.Name, StringComparer.Ordinal)
+            .ThenBy(_ => _.Query.Id.ToString(), StringComparer.Ordinal)
+            .Select((located, index) => (located.Query.Name, Identity: located.Query.Id.ToString(),
+                Export: context.MemberNames.Query(located.Query), Module: Module(located.Slice), Alias: $"__sceneQuery{index}"))
             .ToArray();
 
         var builder = new StringBuilder()
@@ -98,9 +105,8 @@ internal static class SceneBindingsRenderer
     /// <summary>
     /// The module a generated proxy is imported from, relative to this module.
     /// </summary>
-    /// <param name="context">The indexed semantic application.</param>
-    /// <param name="artifact">The command or query being registered.</param>
+    /// <param name="slice">The slice declaring the command or query being registered, placed under the domain folder its code was generated in.</param>
     /// <returns>The relative module specifier.</returns>
-    static string Module(SemanticApplicationContext context, SemanticId artifact) =>
-        "../" + string.Join('/', SliceNaming.FolderPath(context.DeclaringSlice(artifact).Path));
+    static string Module(LocatedSemanticSlice slice) =>
+        "../" + string.Join('/', SliceNaming.FolderPath(slice.Path));
 }

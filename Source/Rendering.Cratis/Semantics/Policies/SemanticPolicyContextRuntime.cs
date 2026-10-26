@@ -67,7 +67,7 @@ internal static class SemanticPolicyContextRuntime
     /// <returns>The rendered runtime file.</returns>
     internal static RenderedFile RenderRuntime(SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts");
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.TypedContexts");
         Identity(builder, analysis: false);
 
         // ClaimsIdentity.IsInRole compares the identity's role claim type ignoring case and the value ordinally,
@@ -95,7 +95,7 @@ internal static class SemanticPolicyContextRuntime
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor)
     {
         var identity = context.Domain.Count == 0 ? IdentityType : $"global::{context.RootNamespace}.TypedContexts.{IdentityType}";
-        var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace)
+        var builder = context.CodeBuilder().Namespace(context.TypedContextsNamespace)
             .Summary("The policy context a verified opaque policy body reads.")
             .Line($"public sealed record {Wrapper(descriptor)}(string Subject, {identity} Identity, global::System.DateTimeOffset Occurred);");
         return new(Path.Combine(context.TypedContextsFolder, $"{Wrapper(descriptor)}.cs"), builder.ToString());
@@ -108,7 +108,7 @@ internal static class SemanticPolicyContextRuntime
     /// <returns>The shared partial declaration.</returns>
     internal static RenderedFile RenderSharedBodies(SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies")
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies")
             .Summary("Evaluates verified opaque policy bodies against Stage's typed policy context.")
             .Line("internal static partial class PolicyBodies;");
         return new(Path.Combine("GeneratedPolicies", "PolicyBodies.cs"), builder.ToString());
@@ -150,10 +150,11 @@ internal static class SemanticPolicyContextRuntime
     internal static RenderedFile RenderBodies(SemanticApplicationContext context, IEnumerable<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool evaluators)
     {
         // The body is compiled in this exact namespace, class and signature both by admission and by the
-        // application; the class has no usings so only SDK implicit globals and enclosing namespaces bind.
+        // application. Admission compiles it without usings, so only SDK implicit globals and enclosing namespaces bind;
+        // the application file may gain imports, but never one that brings a name the body writes.
         var contexts = $"global::{context.TypedContextsNamespace}";
         var runtime = $"global::{context.RootNamespace}.TypedContexts";
-        var builder = new CSharpCodeBuilder().Namespace(context.PoliciesNamespace)
+        var builder = (evaluators ? context.CodeBuilder() : new CSharpCodeBuilder()).Namespace(context.PoliciesNamespace)
             .Summary("Evaluates verified opaque policy bodies against Stage's typed policy context.")
             .OpenBlock("internal static partial class PolicyBodies");
         foreach (var (descriptor, body) in bodies)

@@ -33,7 +33,12 @@ internal static class SemanticValidationContextRuntime
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, bool analysis = false)
     {
         var supplied = descriptor with { Members = [.. descriptor.Members.Where(member => !RefusedMembers.Contains(member.Name, StringComparer.Ordinal))] };
-        var file = SemanticTypedContextRenderer.Render(supplied, context);
+        RenderedFile file;
+        using (analysis ? QualifiedSpelling.Begin() : null)
+        {
+            file = SemanticTypedContextRenderer.Render(supplied, context);
+        }
+
         if (!analysis) return file;
         var marker = $"public record {Wrapper(descriptor)}(";
         return file with { Content = file.Content.Replace(marker, marker + "string Tenant, string CausedBy, global::System.DateTimeOffset Occurred, ", StringComparison.Ordinal) };
@@ -41,7 +46,7 @@ internal static class SemanticValidationContextRuntime
 
     internal static RenderedFile RenderBodies(SemanticApplicationContext context, IEnumerable<(SemanticTypedContextDescriptor Descriptor, string Body)> bodies, bool analysis = false)
     {
-        var builder = new CSharpCodeBuilder().Namespace(context.TypedContextsNamespace)
+        var builder = (analysis ? new CSharpCodeBuilder() : context.CodeBuilder()).Namespace(context.TypedContextsNamespace)
             .OpenBlock("internal static class ValidationBodies");
         foreach (var (descriptor, body) in bodies)
         {

@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -18,7 +19,8 @@ internal static class SemanticSliceArtifactRenderers
     [
         new StateChange(),
         new StateView(),
-        new Automation()
+        new Automation(),
+        new Translate()
     ];
 
     static IEnumerable<RenderedFile> RenderWithSpecifications(
@@ -61,6 +63,37 @@ internal static class SemanticSliceArtifactRenderers
             foreach (var reaction in located.Slice.Reactions)
             {
                 yield return SemanticReactorArtifactRenderer.Render(located, reaction, context);
+            }
+        }
+    }
+
+    sealed class Translate : ISemanticSliceArtifactRenderer
+    {
+        public bool Handles(LocatedSemanticSlice located) => located.Slice.Kind == SemanticSliceKind.Translate;
+
+        public IEnumerable<RenderedFile> Render(LocatedSemanticSlice located, SemanticApplicationContext context)
+        {
+            if (!located.Slice.Events.IsEmpty || !located.Slice.Constraints.IsDefaultOrEmpty)
+            {
+                yield return SemanticStateChangeArtifactRenderer.Render(located, context) with
+                {
+                    RelativePath = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(located.Slice.Name)}.Events.cs"])
+                };
+            }
+            foreach (var capture in located.Slice.Captures)
+            {
+                yield return SemanticCaptureArtifactRenderer.Render(located, capture, context);
+            }
+            foreach (var projection in located.Slice.Projections)
+            {
+                yield return SemanticPublicationArtifactRenderer.Render(located, projection, context);
+            }
+            foreach (var specification in located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)))
+            {
+                foreach (var file in SemanticSpecificationArtifactRenderer.Render(specification, context))
+                {
+                    yield return file;
+                }
             }
         }
     }

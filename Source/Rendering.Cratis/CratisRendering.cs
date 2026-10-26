@@ -38,6 +38,12 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
     /// </summary>
     public bool RepositoryRoot { get; init; }
+
+    /// <summary>
+    /// Gets the plain-text lines every generated code file starts with, carried by the hashed profile. Empty, the
+    /// default, writes no header at all. See <see cref="CratisPlanOptions.FileHeader"/>.
+    /// </summary>
+    public ImmutableArray<string> FileHeader { get; init; } = [];
 }
 
 /// <summary>
@@ -78,7 +84,16 @@ public static partial class CratisRendering
     [
         .. ShippedPackageManifests.All.Where(package => package.Name == StageShippedPackages.Core),
         new(StageShippedPackages.SceneWeb, "1.0.0", PackageKind.ComponentLibrary, [], [], [], [], [], []),
-        new(StageShippedPackages.CratisComponents, Dependencies.FrontendPackageSet.ComponentsPackageVersion, PackageKind.ComponentLibrary, [], [], [], [], [], []),
+        new(
+            StageShippedPackages.CratisComponents,
+            Dependencies.FrontendPackageSet.ComponentsPackageVersion,
+            PackageKind.ComponentLibrary,
+            [],
+            [.. ShippedPackageManifests.All.Single(package => package.Name == StageShippedPackages.CratisComponents).Components],
+            [],
+            [],
+            [],
+            []),
         .. ShippedPackageManifests.All.Where(package => package.Name == StageShippedPackages.PrimeReact || package.Name == StageShippedPackages.DefaultBlueprint)
     ];
 
@@ -175,70 +190,8 @@ public static partial class CratisRendering
         Contracts.Scene.SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
-        ApprovedPackageSet? approvedPackages)
-    {
-        if (options is null)
-        {
-            throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
-        }
-
-        if (scene is not null)
-        {
-            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
-            if (errors.Length > 0)
-            {
-                throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
-            }
-            Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
-        }
-
-        var request = CratisBackendApplicationScaffoldRequest.Create(
-            applicationName,
-            options.ProjectName,
-            options.RootNamespace,
-            Dependencies);
-        if (approvedPackages is { IsEmpty: false })
-        {
-            request = request.WithApprovedPackages(approvedPackages);
-        }
-
-        if (options.RepositoryRoot)
-        {
-            request = request.WithRepositoryRoot();
-        }
-
-        var backend = new CratisBackendApplicationScaffold().Create(request);
-        var frontend = new CratisFrontendApplicationScaffold().Create(request);
-        var composed = scene is null
-            ? []
-            : new[]
-            {
-                CratisArtifactRenderInput.CreateText(
-                    SceneCompositionInput.RelativePath,
-                    Dependencies.CratisPackageVersion,
-                    CanonicalSceneJson.Serialize(scene))
-            };
-        if ((stringsFiles is null) != (defaultLocale is null))
-        {
-            throw new InvalidCratisBackendApplicationScaffold("Both strings files and a default locale are required together.");
-        }
-
-        var strings = stringsFiles is null ? Enumerable.Empty<ArtifactRenderInput>() :
-            [StringsCatalogInput.Create(stringsFiles, defaultLocale!)];
-        var inputs = backend
-            .Concat(frontend)
-            .Concat(composed)
-            .Concat(strings)
-            .OrderBy(input => input.Name, StringComparer.Ordinal)
-            .ToImmutableArray();
-
-        return ArtifactRenderProfile.Create(
-            TargetId,
-            TargetVersion,
-            RendererId,
-            RendererVersion,
-            inputs);
-    }
+        ApprovedPackageSet? approvedPackages) =>
+        CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, approvedPackages, ListsPrimeReact(scene?.UiProfiles.SelectMany(profile => profile.Packages)));
 
     /// <summary>
     /// Adds declaring-slice screen partitions from the compilation that owns the profile's translated Scene.
@@ -363,5 +316,115 @@ public static partial class CratisRendering
             AttachmentDiagnostics = attachmentDiagnostics
         };
         return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    /// <summary>
+    /// Gets whether the packages a ui profile lists include <c language="text">PrimeReact</c>, the component library an application opts in to.
+    /// </summary>
+    /// <param name="listedPackages">The packages the ui profile lists, or null for none.</param>
+    /// <returns>Whether PrimeReact is listed.</returns>
+    public static bool ListsPrimeReact(IEnumerable<string>? listedPackages) =>
+        listedPackages?.Contains(StageShippedPackages.PrimeReact, StringComparer.Ordinal) == true;
+
+    /// <summary>
+    /// Creates the complete immutable target profile for an application that does or does not list <c language="text">PrimeReact</c> in its ui profile.
+    /// </summary>
+    /// <param name="applicationName">The semantic application name used for persistent stores.</param>
+    /// <param name="options">The explicit project and root namespace choices.</param>
+    /// <param name="scene">The optional composed Scene.</param>
+    /// <param name="stringsFiles">Relative file names and original contents of companion .strings files, or null for no catalog.</param>
+    /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
+    /// <param name="approvedPackages">The custom runtime packages the application approved, or null for none.</param>
+    /// <param name="usesPrimeReact">Whether the ui profile lists <c language="text">PrimeReact</c>.</param>
+    /// <returns>The immutable Cratis render profile.</returns>
+    /// <remarks>
+    /// A host that composes the Scene input itself, and so passes a null <paramref name="scene"/>, passes the authored ui profile's
+    /// choice here (see <see cref="ListsPrimeReact(IEnumerable{string}?)"/>) and appends the matching <c language="shell">scene.json</c> input.
+    /// Admission reads the choice from that Scene input's ui profiles, so the two must agree.
+    /// </remarks>
+    /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options, strings input or approved packages are invalid.</exception>
+    /// <exception cref="InvalidArtifactRenderContract">The Scene contains conversion errors.</exception>
+    public static ArtifactRenderProfile CreateProfile(
+        string applicationName,
+        CratisRenderingOptions options,
+        Contracts.Scene.SceneApplication? scene,
+        IReadOnlyDictionary<string, string>? stringsFiles,
+        string? defaultLocale,
+        ApprovedPackageSet? approvedPackages,
+        bool usesPrimeReact)
+    {
+        if (options is null)
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
+        }
+
+        if (!FileHeaderInput.IsValid(options.FileHeader))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks.");
+        }
+
+        if (scene is not null)
+        {
+            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+            if (errors.Length > 0)
+            {
+                throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
+            }
+            Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
+        }
+
+        var request = CratisBackendApplicationScaffoldRequest.Create(
+            applicationName,
+            options.ProjectName,
+            options.RootNamespace,
+            Dependencies);
+        if (approvedPackages is { IsEmpty: false })
+        {
+            request = request.WithApprovedPackages(approvedPackages);
+        }
+
+        if (usesPrimeReact)
+        {
+            request = request.WithPrimeReact();
+        }
+
+        if (options.RepositoryRoot)
+        {
+            request = request.WithRepositoryRoot();
+        }
+
+        var backend = new CratisBackendApplicationScaffold().Create(request);
+        var frontend = new CratisFrontendApplicationScaffold().Create(request);
+        var composed = scene is null
+            ? []
+            : new[]
+            {
+                CratisArtifactRenderInput.CreateText(
+                    SceneCompositionInput.RelativePath,
+                    Dependencies.CratisPackageVersion,
+                    CanonicalSceneJson.Serialize(scene))
+            };
+        if ((stringsFiles is null) != (defaultLocale is null))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Both strings files and a default locale are required together.");
+        }
+
+        var strings = stringsFiles is null ? Enumerable.Empty<ArtifactRenderInput>() :
+            [StringsCatalogInput.Create(stringsFiles, defaultLocale!)];
+        var inputs = backend
+            .Concat(frontend)
+            .Concat(composed)
+            .Concat(strings)
+            .OrderBy(input => input.Name, StringComparer.Ordinal)
+            .ToImmutableArray();
+
+        return FileHeaderInput.With(
+            ArtifactRenderProfile.Create(
+                TargetId,
+                TargetVersion,
+                RendererId,
+                RendererVersion,
+                inputs),
+            options.FileHeader);
     }
 }

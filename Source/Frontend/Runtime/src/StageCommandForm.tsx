@@ -59,7 +59,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
     const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
     const rowAction = element.properties.rowAction === true;
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
@@ -88,7 +88,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
+                onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={() => {
@@ -133,7 +133,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
     if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
-    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: property.name }));
+    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: humanize(property.name) }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
@@ -322,9 +322,32 @@ export function carriedBy(property: SchemaProperty, rows: Record<string, unknown
     return rows.some(row => Object.hasOwn(row, property.name));
 }
 
-/** The rows of every query the screen has read: the rows a table shows and the person could select. */
+/**
+ * A read model's rows are keyed `id`, while a command acts on that entity by `<entity>Id` - `productId` for the rows of `ProductReadiness`. The
+ * row carries that key too, under the name of every word of the read model's name (`product`, `readiness`), so a command's identifier finds
+ * the row that is its entity. A row that already carries a property of that name keeps it.
+ */
+function withEntityKeys(row: Record<string, unknown>, query: StageDataState['queries'][string]): Record<string, unknown> {
+    const key = row.id;
+    if (typeof key !== 'string' || key === '') return row;
+    const words = `${query.alias ?? ''} ${query.name ?? ''}`.match(/[A-Z][a-z0-9]+/g) ?? [];
+    const aliases = Object.fromEntries(words.map(word => `${word.charAt(0).toLowerCase()}${word.slice(1)}Id`).filter(name => !Object.hasOwn(row, name)).map(name => [name, key]));
+    return Object.keys(aliases).length === 0 ? row : { ...aliases, ...row };
+}
+
+function entityRowsOf(queries: StageDataState['queries']): [Record<string, unknown>, Record<string, unknown>][] {
+    return Object.values(queries).flatMap(query => query.rows.map((row): [Record<string, unknown>, Record<string, unknown>] => [row, withEntityKeys(row, query)]));
+}
+
+/** The rows of every query the screen has read: the rows a table shows and the person could select, each also carrying its entity's key. */
 export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
-    return Object.values(queries).flatMap(query => query.rows);
+    return entityRowsOf(queries).map(([, row]) => row);
+}
+
+/** The rows the person selected on the screen, each also carrying its entity's key as the rows they came from do. */
+export function selectedRowsOf(selections: StageDataState['selections'], queries: StageDataState['queries']): Record<string, unknown>[] {
+    const keyed = new Map(entityRowsOf(queries));
+    return Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined).map(row => keyed.get(row) ?? row);
 }
 
 /**
@@ -505,6 +528,19 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
         case FormWidthUnit.Percent: return `${width.value ?? 100}%`;
         case FormWidthUnit.Auto: return 'auto';
     }
+}
+
+/**
+ * The validation messages Arc's command form does not already show next to a field. Arc shows one message per field - the first result
+ * whose member is the field or a path under it - so exactly those are left out; any further message about the same field, and every
+ * message about no field of this form, is listed under the fields.
+ */
+export function unboundValidationMessages(fields: FormField[], validation: { message: string; members?: string[] }[]): string[] {
+    const matches = (result: { members?: string[] }, name: string) => !!result.members?.some(member => member === name || member.startsWith(`${name}.`));
+    const shown = new Set(fields
+        .map(field => validation.find(result => matches(result, field.sourceProperty ?? field.name)))
+        .filter(result => result !== undefined));
+    return [...new Set(validation.filter(result => !shown.has(result)).map(result => result.message))];
 }
 
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {

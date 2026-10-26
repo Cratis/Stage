@@ -72,7 +72,6 @@ public class when_refusing_unprovable_projected_facts
         """;
 
     const string Reaction = """
-            slice Automation Welcome
               event Welcomed
                 name String
               reaction Welcome
@@ -82,10 +81,19 @@ public class when_refusing_unprovable_projected_facts
                     name = name
         """;
 
-    static ArtifactRenderPlan Plan(string specification, bool reacts = false)
+    static ArtifactRenderPlan Plan(string specification, string? reactingSlice = null)
     {
         var source = Source.Replace("<specification>", "Proving\n" + specification, StringComparison.Ordinal);
-        if (reacts) source += "\n" + Reaction;
+        if (reactingSlice == "LeadList")
+        {
+            // Only an Automation slice may react, so the read side moves into one.
+            source = source.Replace("      specification Proving", Reaction + "\n      specification Proving", StringComparison.Ordinal)
+                .Replace("slice StateView LeadList", "slice Automation LeadList", StringComparison.Ordinal);
+        }
+        else if (reactingSlice is not null)
+        {
+            source += $"\n    slice Automation {reactingSlice}\n{Reaction}";
+        }
 
         return invoice_model.Plan(invoice_model.Compile(source));
     }
@@ -93,10 +101,18 @@ public class when_refusing_unprovable_projected_facts
     [Fact]
     void should_admit_an_append_nothing_reacts_to() => Plan(Appended).Success.ShouldBeTrue();
 
+    // A specification runs only its own slice (Screenplay decision 0115): another slice's reaction to the append does not run.
+    [Fact]
+    void should_admit_an_append_only_another_slice_reacts_to()
+    {
+        var plan = Plan(Appended, reactingSlice: "Greeting");
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+    }
+
     [Fact]
     void should_refuse_an_append_a_reaction_reacts_to()
     {
-        var plan = Plan(Appended, reacts: true);
+        var plan = Plan(Appended, reactingSlice: "LeadList");
         plan.Success.ShouldBeFalse();
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Reaction append scenarios", StringComparison.Ordinal));
     }

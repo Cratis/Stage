@@ -41,10 +41,13 @@ internal sealed class SemanticCommandHandlerProvider(IEnumerable<SemanticRunCont
                 context.HandlerBodyReached = true;
                 return null;
             }
+
+            // A command another slice owns is that slice's behavior: in an isolated run it is decided, but its facts are not kept.
+            var adopted = !context.IsInvocation || context.Plan.Runs(context.Command.Id);
             foreach (var produced in context.Command.Produces.Where(context.Holds))
             {
                 var (fact, destination) = context.Produce(produced);
-                await context.Append(fact, destination, commandContext.CancellationToken);
+                if (adopted) await context.Append(fact, destination, commandContext.CancellationToken);
             }
 
             context.CompleteResponse();

@@ -10,14 +10,13 @@ using Xunit;
 
 namespace Cratis.Stage.Contracts.for_ProjectionConverter.when_converting_with_diagnostics;
 
-// ESM v29 'add total by unitPrice * quantity': Chronicle's Add/Subtract take one event property, so converting the sum of one
-// factor would silently change the meaning of the projection.
+// ESM v29 'add total by unitPrice * quantity': the definition carries the second operand, so nothing is lost and nothing is reported.
 public class and_an_arithmetic_mapping_is_a_product : Specification
 {
     [Theory]
     [InlineData("add")]
     [InlineData("subtract")]
-    public void should_refuse_the_product_at_its_source_location(string operation)
+    public void should_convert_the_product_without_a_diagnostic(string operation)
     {
         var location = new SourceLocation(12, 11, "basket.play");
         var value = new PathExpressionSyntax("unitPrice", location);
@@ -29,11 +28,8 @@ public class and_an_arithmetic_mapping_is_a_product : Specification
         var projection = new ProjectionSyntax("Basket", "Basket", null, AutoMapMode.Inherit, null, [from], location);
         var diagnostics = new ConversionDiagnostics();
 
-        ProjectionConverter.Convert(projection, diagnostics, "Basket").ShouldBeNull();
-        diagnostics.All.Count.ShouldEqual(1);
-        diagnostics.All[0].Code.ShouldEqual("STAGE-PROJECTION-004");
-        diagnostics.All[0].Location.ShouldEqual(location);
-        diagnostics.All[0].Construct.ShouldContain("by a product");
+        ProjectionConverter.Convert(projection, diagnostics, "Basket").ShouldNotBeNull();
+        diagnostics.All.ShouldBeEmpty();
     }
 
     [Fact]

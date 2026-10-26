@@ -24,13 +24,13 @@ public class when_rendering_equality_query_filters : Specification
     }
 
     [Fact] void should_admit_equality_filters() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_keep_declaration_order_and_optional_defaults() => _query.ShouldContain("IReadModels readModels, string status, global::Invoices.Common.Category? category = null)");
-    [Fact] void should_combine_the_key_with_filters() => _query.ShouldContain("IReadModels readModels, global::Invoices.Common.InvoiceId invoiceId, string status, global::Invoices.Common.Category? category = null)");
+    [Fact] void should_keep_declaration_order_and_optional_defaults() => _query.ShouldContain("IReadModels readModels, string status, Category? category = null)");
+    [Fact] void should_combine_the_key_with_filters() => _query.ShouldContain("IReadModels readModels, InvoiceId invoiceId, string status, Category? category = null)");
     [Fact] void should_guard_missing_required_text_filters() => _query.ShouldContain("MissingArgumentForQuery(nameof(status), typeof(string)");
-    [Fact] void should_skip_omitted_optional_filters() => _query.ShouldContain("category == null || global::System.Collections.Generic.EqualityComparer<global::Invoices.Common.Category?>.Default.Equals");
+    [Fact] void should_skip_omitted_optional_filters() => _query.ShouldContain("category == null || EqualityComparer<Category?>.Default.Equals");
     [Fact] void should_compare_concept_typed_filter_arguments() => _query.ShouldContain("Default.Equals(instance.Category, category)");
-    [Fact] void should_pass_named_filter_values_to_companion_specs() => _specification.ShouldContain("status: _status, category: new global::Invoices.Common.Category(\"North\")");
-    [Fact] void should_return_arc_observable_collections() => _query.ShouldContain("ISubject<global::System.Collections.Generic.IEnumerable<InvoiceSummary>>");
+    [Fact] void should_pass_named_filter_values_to_companion_specs() => _specification.ShouldContain("status: _status, category: new Category(\"North\")");
+    [Fact] void should_return_arc_observable_collections() => _query.ShouldContain("ISubject<IEnumerable<InvoiceSummary>>");
     [Fact] void should_observe_the_filtered_read_model() => _query.ShouldContain("readModels.Observe<InvoiceSummary>(instance =>");
     [Fact] void should_execute_the_real_observation_in_companion_specs() => _specification.ShouldContain("EventStoreForTesting _scenario = new()");
     [Fact] void should_await_the_first_emission_in_companion_specs() => _specification.ShouldContain("Observable.FirstAsync(");

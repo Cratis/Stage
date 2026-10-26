@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import type { ExternalComponent } from '@cratis/scene.model';
 import type { InteractionHandlers } from '@cratis/scene.react';
-import { Button } from 'primereact/button';
+import { Button } from '@cratis/components/Common';
 import { useStageData, useStageQuery } from './stageData';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { canEvaluate, firstMatch, subjectPath, subjectValue, unevaluableGuardCode, type SubjectReference } from './stageGuards';

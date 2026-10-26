@@ -22,6 +22,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         ".frontend/vite-env.d.ts",
         ".frontend/vite.config.ts",
         ".gitignore",
+        ".yarnrc.yml",
         "package.json",
         "tsconfig.json"
     ];
@@ -71,14 +72,16 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsRuntimePackage.components} />");
     [Fact] void should_load_the_runtime_only_components_entry() => Content(".frontend/main.tsx").ShouldContain("import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';");
     [Fact] void should_not_load_the_design_time_components_package() => Content(".frontend/main.tsx").ShouldNotContain("import { cratisComponentsPackage }");
-    [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
-    [Fact] void should_serve_styled_primereact_components() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
+    [Fact] void should_not_mount_a_prime_provider_by_default() => Content(".frontend/main.tsx").ShouldNotContain("PrimeReactProvider");
+    [Fact] void should_not_install_the_prime_styling_plugin_by_default() => Content(".frontend/vite.config.ts").ShouldNotContain("styledPrimeReact");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");
     [Fact] void should_proxy_every_backend_surface_while_developing() => ProxiedPaths().ShouldEqual("/.cratis|/api|/swagger");
     [Fact] void should_name_the_package_after_the_application() => PackageProperty("name").ShouldEqual("myapp");
     [Fact] void should_keep_the_package_private() => PackageJson().RootElement.GetProperty("private").GetBoolean().ShouldBeTrue();
+    [Fact] void should_pin_modern_yarn_for_typescript_seven() => PackageProperty("packageManager").ShouldEqual("yarn@4.18.1");
+    [Fact] void should_install_node_modules_for_the_typescript_and_vite_toolchain() => Content(".yarnrc.yml").ShouldEqual("nodeLinker: node-modules\n");
     [Fact] void should_run_vite_through_the_frontend_configuration() => PackageScript("dev").ShouldEqual("vite --config .frontend/vite.config.ts");
     [Fact] void should_type_check_before_bundling() => PackageScript("build").ShouldEqual("tsc -b .frontend/tsconfig.json && vite build --config .frontend/vite.config.ts");
     [Fact] void should_extend_the_frontend_type_configuration_from_the_root() => Content("tsconfig.json").ShouldContain("\"extends\": \"./.frontend/tsconfig.json\"");
@@ -118,23 +121,13 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.components={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.engine={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
-            $"@cratis/scene.primereact={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/stage.runtime={ScaffoldPackageVersions.StageRuntime}",
-            "@primereact/core=11.2.0",
-            "@primereact/headless=11.2.0",
-            "@primereact/hooks=11.2.0",
-            "@primereact/styles=11.2.0",
-            "@primereact/types=11.2.0",
-            "@primereact/ui=11.2.0",
-            "@primeuix/themes=3.0.1",
             "@types/node=26.6.4",
             "@types/react=19.3.0",
             "@types/react-dom=19.3.0",
             "@vitejs/plugin-react=6.1.1",
-            "primeicons=8.0.2",
             "lucide-react=1.52.0",
-            "primereact=11.2.0",
             "react=19.3.0",
             "react-dom=19.3.0",
             "react-router-dom=7.18.4",

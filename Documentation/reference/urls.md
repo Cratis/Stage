@@ -22,7 +22,7 @@ Nothing needs to be discovered by hand — start at the Scalar reference and cli
 | URL                                     | What it is                                                                                                                                                |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `http://localhost:9090/scalar/v1`       | **The API reference.** A Scalar UI over the model's operations, with a request builder that executes them. `http://localhost:9090/scalar` redirects here. |
-| `http://localhost:9090/openapi/v1.json` | The OpenAPI document behind it. Framework infrastructure operations are stripped, so it describes **only** the model's own commands and queries.          |
+| `http://localhost:9090/openapi/v1.json` | The OpenAPI document behind it. Framework infrastructure operations and Stage's own `/stage` and `/workbench` endpoints are stripped, so it describes **only** the model's own commands and queries. |
 | `http://localhost:9090/workbench`       | **The Chronicle Workbench** — event stores, event types, observers and read models for the session.                                                       |
 
 The Scalar page is the authoritative list of what a session exposes: it is generated from the endpoints Arc

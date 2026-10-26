@@ -1,0 +1,25 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using Cratis.Specifications;
+using Cratis.Stage.Host.for_SemanticRuntime.given;
+using Cratis.Stage.Semantics;
+using Xunit;
+
+namespace Cratis.Stage.Host.for_SemanticRuntime.when_admitting_specifications;
+
+public class with_structured_given_payloads : Specification
+{
+    SemanticRuntimeAdmission _admission = null!;
+
+    void Because()
+    {
+        var source = "type Payload\n  labels String[]\n" + specification_plan.Source()
+            .Replace("      event ProjectRegistered", "      event Historical\n        payload Payload\n        entries Payload[]\n        values Int[]\n      event ProjectRegistered", StringComparison.Ordinal)
+            .Replace("        when RegisterProject", "        given Historical\n          payload = {\"labels\":[]}\n          entries = [{\"labels\":[\"first\"]}]\n          values = [1,2]\n        when RegisterProject", StringComparison.Ordinal);
+        _admission = new(compiled_plan.From(source));
+    }
+
+    [Fact] void should_report_supported() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("supported");
+    [Fact] void should_not_block_the_model() => _admission.Blocking.ShouldBeEmpty();
+}

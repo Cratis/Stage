@@ -358,8 +358,105 @@ by full commit hash, and Dependabot updates them weekly. Application-scope plans
 scoped plans do not. Pass the same value, together with the same `Profile`, to every planning call:
 a profile and options that disagree are refused with `STAGE-CRATIS-001`.
 
-Scene composition, bindings, and screen runtime artifacts require the whole model and
-come only from an application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
+### File header option
+
+Generated code belongs to the application, so by default no generated file carries a license or
+copyright header. Set `FileHeader` to the plain-text lines every generated code file should start
+with:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    FileHeader = ["Copyright (c) Acme Corporation. All rights reserved.", "", "Proprietary and confidential."]
+};
+```
+
+Stage writes each line as a line comment in the file's language, followed by one blank line. For
+`.cs`, `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files, a line becomes `// line`, and an empty or
+whitespace-only line becomes `//`. Trailing whitespace is trimmed. Do not add comment markers
+yourself; a line containing a line break is refused with `STAGE-PLAN-023`. JSON, CSS, HTML,
+Markdown, YAML and MSBuild files never get a header.
+
+The header travels in the profile as the hashed `cratis-render:file-header` input, so it
+contributes to the plan digest and applies to the scaffold, scoped plans and application-scope
+plans alike. `CratisRenderingOptions.FileHeader` sets it for `CratisRendering.Plan(...)` and
+`CreateProfile(...)`. Pass the same lines to every planning call; a caller profile that already
+carries a header combined with a non-empty `FileHeader` option is refused with `STAGE-CRATIS-001`.
+
+### User interface option
+
+A host that generates an application feature by feature needs a working frontend after every
+generation, not only after a whole-application render. The application's shared UI is four files:
+`scene.json` (the Scene composition), `src/bindings.ts` (which imports the generated Arc proxies),
+`src/stage-scene.json` and `src/stage.ts` (what the emitted Stage runtime renders). The bindings import
+a proxy from the folder of the slice that declares it, and Arc only generates that proxy when the
+slice's backend code is built. Composing the shared UI over the whole model before every slice is
+generated would import proxies that do not exist, and the frontend would not compile.
+
+Set `UserInterface` to the slices whose generated code is already present in the application:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    UserInterface = new([PlanSelectionEntry.Feature("Catalog", "Products")])
+};
+var plan = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Slice("Ordering", "Checkout", "PlaceOrder")]), options);
+```
+
+The scoped plan then also emits the four shared UI files, composed over exactly those slices and the
+plan's own selection. Entries use the same module, feature and slice paths as the selection; an
+unknown entry is refused with the selection diagnostic, prefixed `User interface selection:`. An
+empty `new([])` composes over the plan's own selection only. The default, `null`, keeps scoped plans
+free of shared UI and reports `STAGE-SCREEN-006` when screen partitions are carried.
+
+What the files contain depends on the profile:
+
+- With authored screens carried as screen partitions, `scene.json` holds the authored screens declared
+  by the present slices.
+- Without an authored Scene, Stage composes the default screen over the present slices' commands and
+  queries, the same way an application-scope plan composes it over every slice.
+- An authored Scene that is not partitioned is the caller's whole composition and is carried as is.
+
+When every slice of the model is present, the four files are byte-identical to the ones an
+application-scope plan emits. The set is written to the profile as the hashed
+`cratis-render:user-interface` input (a canonical JSON array of slice identities), so it contributes
+to the plan digest. Pass the set that matches the application's state to each generation; a caller
+profile that already carries the input combined with the option is refused with `STAGE-CRATIS-001`.
+Scaffold files are not affected: scoped plans still exclude them.
+
+#### An application generated one domain at a time
+
+The four shared UI files sit at the application root, but a plan places its slices, and with them
+their proxies, under its own `Domain` folder. A host that generates an application one domain at a
+time therefore names where the other domains' slices were generated. Set `UserInterfaceDomains` to
+those domains, each with the slices whose code is present under it, and keep `UserInterface` for the
+slices present under the plan's own domain:
+
+```csharp
+var options = new CratisPlanOptions("Shop", "Shop", "Shop")
+{
+    Domain = "Support",
+    UserInterface = new([]),
+    UserInterfaceDomains = [new("Sales", new([PlanSelectionEntry.Module("Catalog")]))]
+};
+var plan = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Module("Tickets")]), options);
+```
+
+The shared UI then composes the screens of every named domain and imports each proxy from the folder
+it was generated under, here `../Sales/Catalog/...` and `../Support/Tickets/...`. Planning the Sales
+domain against the same state, with Support named in `UserInterfaceDomains`, emits the same four files
+byte for byte, so generating one domain never drops another domain's UI. A slice this plan selects is
+always placed under the plan's own domain.
+
+The domains travel as the hashed `cratis-render:user-interface-domains` input (a canonical JSON object
+of normalized domain paths, each holding its slice identities), which is added only when the option is
+not empty; plans without it are unchanged. The option is refused with `STAGE-PLAN-024` without
+`UserInterface`, `STAGE-PLAN-025` for an invalid or reserved domain, `STAGE-PLAN-026` for the plan's own
+domain or a domain named twice, and `STAGE-PLAN-027` for a slice named under two domains. An unknown
+entry is refused with the selection diagnostic, prefixed `User interface domain '<domain>':`.
+
+Without this option, Scene composition, bindings, and screen runtime artifacts come only from an
+application-scope render ([#275](https://github.com/Cratis/Stage/issues/275)).
 A scaffold profile carrying a Scene emits no Scene artifacts and reports the
 `STAGE-PLAN-031` information diagnostic. This mode does not compose a default Scene.
 
@@ -373,9 +470,8 @@ The backend scaffold contains:
 
 | Artifact | Purpose |
 | --- | --- |
-| `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, and the optional `Customizations/Dependencies.props` import. |
-| `{Project}.Specs/{Project}.Specs.csproj` | Separate plain-SDK test project referencing the host and linking slice-local `**/when_*.cs` files. |
-| `{Project}.slnx` | Solution containing both projects. |
+| `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, Debug-only test packages, and the optional `Customizations/Dependencies.props` import. |
+| `{Project}.slnx` | Solution containing the application project. |
 | `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, compiler/analyzer warnings as errors, and build-time code style. |
 | `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
 | `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
@@ -384,11 +480,13 @@ The backend scaffold contains:
 | `Program.cs`, `GeneratedPolicyRegistration.cs` | Application startup and generated policy registration. |
 | `appsettings.json`, `docker-compose.yml` | Development connection settings and pinned Chronicle image with named data volumes. |
 
-Generated specification paths do not change: command, projection, query, and reaction
-specifications remain beside their slices. The web host excludes them and the nested specs
-folder in both configurations. The specs project links them without moving them; their
-existing `#if DEBUG` wrappers remain, so run `dotnet test {Project}.Specs -c Debug`.
-Build `{Project}.slnx` to compile both projects. Frontend scaffold files remain at their
+Command, projection, query, and reaction specifications stay beside their slices, and there
+is no separate specifications project. In Debug the application project is a test project: it
+references the testing packages and compiles every `when_*.cs` file and every file under a
+`when_*/`, `for_*/` or `given/` folder, so hand-written specifications follow the same
+convention. Run them with `dotnet test {Project}.csproj -c Debug`. Release removes those files
+and references no testing package. Because the package set differs, switching between Debug and
+Release restores again; a Release build after a Debug restore must not pass `--no-restore`. Frontend scaffold files remain at their
 existing paths, including `package.json` and `.frontend/`.
 
 Builds explicitly include the application's `.editorconfig` and disable automatic
@@ -504,6 +602,11 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-020` | Invalid domain segment. |
 | `STAGE-PLAN-021` | Domain collides with a reserved root path. |
 | `STAGE-PLAN-022` | Domain supplied for scaffold-only mode. |
+| `STAGE-PLAN-023` | A `FileHeader` line is null or contains a line break. |
+| `STAGE-PLAN-024` | `UserInterfaceDomains` is set without `UserInterface`. |
+| `STAGE-PLAN-025` | A user interface domain is invalid or collides with a reserved root path. |
+| `STAGE-PLAN-026` | A user interface domain is the plan's own domain or is named twice. |
+| `STAGE-PLAN-027` | A slice is named under two user interface domains. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
 | `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 

@@ -25,6 +25,6 @@ public class with_a_flat_projection : for_SemanticCratisAdmission.given.a_query_
         _source = SemanticStateViewArtifactRenderer.Render(_context.Slice(_slice.Id), _context).Content;
     }
 
-    [Fact] void should_keep_the_list_filter_out_of_the_instance_key() => _source.ShouldNotContain("Cratis.Chronicle.Keys.KeyAttribute");
+    [Fact] void should_keep_the_list_filter_out_of_the_instance_key() => _source.ShouldNotContain("[Key]");
     [Fact] void should_preserve_the_list_filter() => _source.ShouldContain("EqualityComparer<");
 }

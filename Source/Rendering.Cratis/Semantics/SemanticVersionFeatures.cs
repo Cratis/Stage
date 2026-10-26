@@ -150,7 +150,8 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV30Support.Supports(model.LanguageVersion, model.SemanticVersion);
+        EsmSchemaV30Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
+        (model.LanguageVersion == LanguageVersion.V32 && model.SemanticVersion == SemanticVersion.V32);
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -319,6 +320,15 @@ internal static class SemanticVersionFeatures
             }
         }
     }
+
+    /// <summary>
+    /// Finds translation refusals that specification execution scopes to reachable behavior.
+    /// </summary>
+    /// <param name="slice">The slice.</param>
+    /// <returns>The translation features, with the same diagnostics as rendering.</returns>
+    public static IEnumerable<SemanticVersionFeature> TranslationFeaturesInSlice(SemanticSlice slice) =>
+        InSlice(slice).Where(feature => feature.Code == PublicEvents || feature.Code == ForeignEvents ||
+            (feature.Code == Automation && (feature.Kind == "capture" || (feature.Kind == "slice" && slice.Kind == SemanticSliceKind.Translate))));
 
     /// <summary>
     /// Finds every refused reaction construct, with precise reasons before the generic reaction refusal.
@@ -647,10 +657,6 @@ internal static class SemanticVersionFeatures
     static IEnumerable<SemanticVersionFeature> UnsupportedReactionContexts(SemanticReaction reaction)
     {
         var contexts = ReactionContextExpressions(reaction).ToArray();
-        if (contexts.Any(context => context.Value == SemanticEventContextValueKind.EventSourceIdentity))
-        {
-            yield return new("STAGE-ESM-013", StageExecutionCapability.IdentityAllocation, reaction.Id, "reaction", $"Reaction '{reaction.Name}' maps $context.eventSourceId, which Stage does not support yet.");
-        }
         foreach (var context in contexts.Where(context => IsCausedBy(context.Value)).Select(context => context.Value).Distinct())
         {
             var member = CausedByMember(context);

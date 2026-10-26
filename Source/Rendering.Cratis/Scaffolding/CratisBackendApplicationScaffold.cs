@@ -54,6 +54,26 @@ public sealed partial class CratisBackendApplicationScaffold
         ];
     }
 
+    // The development image keeps its bundled MongoDB data in anonymous volumes, which a recreated container does not
+    // get back: `docker compose down` followed by `up` would start from an empty store. Named volumes make the
+    // lifecycle explicit - data survives restarts, recreation and regeneration, and only `down --volumes` removes it.
+    internal static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
+        $$"""
+        services:
+          chronicle:
+            image: cratis/chronicle:{{profile.ChronicleImageVersion}}-development
+            ports:
+              - "27017:27017"
+              - "35000:35000"
+            volumes:
+              - chronicle-data:/data/db
+              - chronicle-config:/data/configdb
+
+        volumes:
+          chronicle-data:
+          chronicle-config:
+        """;
+
     static ArtifactRenderInput Input(string relativePath, string version, string content)
     {
         var withSingleTrailingLineFeed = $"{content.TrimEnd('\r', '\n')}\n";
@@ -132,25 +152,5 @@ public sealed partial class CratisBackendApplicationScaffold
             }
           }
         }
-        """;
-
-    // The development image keeps its bundled MongoDB data in anonymous volumes, which a recreated container does not
-    // get back: `docker compose down` followed by `up` would start from an empty store. Named volumes make the
-    // lifecycle explicit - data survives restarts, recreation and regeneration, and only `down --volumes` removes it.
-    internal static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
-        $$"""
-        services:
-          chronicle:
-            image: cratis/chronicle:{{profile.ChronicleImageVersion}}-development
-            ports:
-              - "27017:27017"
-              - "35000:35000"
-            volumes:
-              - chronicle-data:/data/db
-              - chronicle-config:/data/configdb
-
-        volumes:
-          chronicle-data:
-          chronicle-config:
         """;
 }

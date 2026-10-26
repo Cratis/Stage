@@ -266,14 +266,21 @@ function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
     const generationMode = text(element, 'generationMode').toLowerCase();
     const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const formFields: unknown[] = Array.isArray(fields) ? fields : [];
     const asked = formFields.length > 0 || generationMode === 'manual'
-        ? new Set(formFields.map(field => isRecord(field) && typeof field.name === 'string' ? field.name : '').filter(name => name !== ''))
+        ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
         : undefined;
     if (!asked) return [];
 
     return identifiersAwaitingSelection(properties.filter(property => !asked.has(property.name)), parameters, selectedRows, selectableRows);
+}
+
+/** The command property a form field asks for: its source property when it names one, as the form binds it, else its name. */
+function askedProperty(field: unknown): string {
+    if (!isRecord(field)) return '';
+    if (typeof field.sourceProperty === 'string' && field.sourceProperty !== '') return field.sourceProperty;
+    return typeof field.name === 'string' ? field.name : '';
 }
 
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */

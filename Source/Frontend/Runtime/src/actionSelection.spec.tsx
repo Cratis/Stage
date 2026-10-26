@@ -23,10 +23,14 @@ const dispatch = JSON.stringify({
     },
 });
 // The host registers the command from the schema it serves; the action reads the one the rendered scene put on it.
-const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { AllShipments: '/api/shipments' }, commandSchemas: { DispatchShipment: dispatch } };
 const rows = [{ shipmentId: '7d1c8f3a-0000-4000-8000-000000000001', consignee: 'Fjordline' }, { shipmentId: '7d1c8f3a-0000-4000-8000-000000000002', consignee: 'Norsk Fisk' }];
+// What a read model of the application answers: its rows are keyed `id`, and the command acts on that entity by `shipmentId`.
+const keyedRows = rows.map(({ shipmentId, consignee }) => ({ id: shipmentId, consignee }));
 
-function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: { name: string; label: string }[] = [{ name: 'carrier', label: 'Carrier' }]) {
+type Field = { name: string; label: string; sourceProperty?: string };
+
+function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: Field[] = [{ name: 'carrier', label: 'Carrier' }], query = 'AllShipments') {
+    const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { [query]: '/api/shipments' }, commandSchemas: { DispatchShipment: dispatch } };
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
@@ -34,7 +38,7 @@ function renderShipments(screenRows: Record<string, unknown>[] = rows, fields: {
         : Promise.resolve({ ok: true, json: async () => queryResult({ data: screenRows }) }));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Shipments';
-    const table = element('shipments', 'core:table', { query: 'AllShipments', typeName: 'ShipmentRow' }, { columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })] });
+    const table = element('shipments', 'core:table', { query, typeName: 'ShipmentRow' }, { columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })] });
     // What a screen's toolbar renders an action as: the command, its schema and the form's own fields, which leave the key out.
     const item = element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema: dispatch, fields, generationMode: 'manual' });
     render(
@@ -67,6 +71,13 @@ describe('an action on a list screen whose rows carry the key it acts on', () =>
         await waitFor(() => expect(screen.getByRole('button', { name: 'Dispatch' }).hasAttribute('disabled')).toBe(false));
     });
 
+    it('is enabled without a selection when a field asks for the key through its source property', async () => {
+        renderShipments(rows, [{ name: 'shipment', label: 'Shipment', sourceProperty: 'shipmentId' }, { name: 'carrier', label: 'Carrier' }]);
+
+        await screen.findByText('Fjordline');
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Dispatch' }).hasAttribute('disabled')).toBe(false));
+    });
+
     it('is enabled once a row is selected and submits that row\'s key', async () => {
         const fetched = await selectAndSubmit();
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
@@ -82,8 +93,26 @@ describe('an action on a list screen whose rows carry the key it acts on', () =>
     });
 });
 
+describe('an action on a list screen whose rows are keyed id', () => {
+    afterEach(() => { vi.unstubAllGlobals(); globalThis.localStorage?.clear(); });
+
+    it('waits for a row, then submits the selected row\'s id as the key the command acts on', async () => {
+        const fetched = renderShipments(keyedRows, undefined, 'AllShipmentRows');
+
+        await screen.findByText('Fjordline');
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(true));
+
+        await submitSelected(fetched);
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: keyedRows[1].id, carrier: 'Posten' });
+    });
+});
+
 async function selectAndSubmit() {
-    const fetched = renderShipments();
+    return submitSelected(renderShipments());
+}
+
+async function submitSelected(fetched: ReturnType<typeof renderShipments>) {
 
     fireEvent.click(await screen.findByText('Norsk Fisk'));
     await waitFor(() => expect((screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement).disabled).toBe(false));

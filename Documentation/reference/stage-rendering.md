@@ -742,3 +742,29 @@ document of an application without toolbar slice references. Query reads still u
 A model with no `screen` still renders. The Stage synthesizes one screen per slice that carries a command or a
 read model and places it in the same shell. That is a fallback for a model that has not designed its screens yet;
 as soon as the model declares its own screens they are what is drawn.
+
+## Multi-service repository layout
+
+`CratisPlanOptions.ServiceLayout` (and `CratisRepositoryPlanOptions` for the repository root) renders one
+application as a service of a repository that holds several. It defaults to `false`, and then every plan is
+byte-identical to the plan without the option: no path changes, no input joins the profile, and the
+digest is unchanged.
+
+With `ServiceLayout = true` the profile carries the hashed input `cratis-render:service-layout`, version
+`1`, with exact UTF-8 bytes `service`. Every artifact moves, byte for byte, into `Source/{ProjectName}/`,
+including scaffold, source plans, scoped plans, implementation-gap stubs and required removals. The files
+the repository owns are left out: `.editorconfig`, `Directory.Build.props`, `Directory.Build.targets`,
+`Directory.Packages.props`, `{ProjectName}.slnx` and `docker-compose.yml`. Files with those names in a
+sub-folder are application files and stay. Pass the same options, together with the same `Profile`, to
+every planning call. Planning never moves an existing repository; the caller decides to switch layouts.
+
+`CratisRendering.PlanRepository` plans those repository files: the shared build files, a solution that
+lists every service and `Source/Composition`, `docker-compose.yml`, and an Aspire application host that
+starts Chronicle and every service. `Composition` is reserved for the host.
+
+| Diagnostic | Severity | Meaning |
+| --- | --- | --- |
+| `STAGE-PLAN-028` | Error | `ServiceLayout` is combined with `RepositoryRoot`, which would give one application the repository-root files it must leave to the repository plan. |
+| `STAGE-PLAN-029` | Error | `PlanRepository` options are invalid: no services, a name that is not a dot-separated C# identifier, `Composition`, a service whose Aspire resource name is `chronicle` (any casing), which the application host reserves for Chronicle, a duplicate service ignoring case, or two services that map to the same Aspire resource name. |
+
+Both codes are raised only for invalid option combinations, never for model constructs.

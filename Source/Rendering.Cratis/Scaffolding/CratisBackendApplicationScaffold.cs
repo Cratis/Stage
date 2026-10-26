@@ -137,7 +137,7 @@ public sealed partial class CratisBackendApplicationScaffold
     // The development image keeps its bundled MongoDB data in anonymous volumes, which a recreated container does not
     // get back: `docker compose down` followed by `up` would start from an empty store. Named volumes make the
     // lifecycle explicit - data survives restarts, recreation and regeneration, and only `down --volumes` removes it.
-    static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
+    internal static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
         services:
           chronicle:

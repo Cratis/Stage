@@ -607,6 +607,8 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-025` | A user interface domain is invalid or collides with a reserved root path. |
 | `STAGE-PLAN-026` | A user interface domain is the plan's own domain or is named twice. |
 | `STAGE-PLAN-027` | A slice is named under two user interface domains. |
+| `STAGE-PLAN-028` | `ServiceLayout` is combined with `RepositoryRoot`. See [Multi-service repository layout](stage-rendering.md#multi-service-repository-layout). |
+| `STAGE-PLAN-029` | Invalid `PlanRepository` options. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
 | `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 

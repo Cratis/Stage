@@ -61,7 +61,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).Where(IsNotServiceLayout).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -149,8 +149,22 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options! with { Refusals = refusals, FileHeader = fileHeader };
+        return TryAdmitServiceLayout(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out admittedOptions, out mismatch);
+    }
+
+    static bool IsNotServiceLayout(ArtifactRenderInput input) => input.Name != ServiceLayoutInput.Name;
+
+    static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        admittedOptions = null;
         mismatch = string.Empty;
+        if (!ServiceLayoutInput.TryAdmit(profile, options, out var serviceLayout))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate service layout input, or combines it with the repository root.";
+            return false;
+        }
+
+        admittedOptions = options with { ServiceLayout = serviceLayout };
         return true;
     }
 
@@ -215,7 +229,7 @@ static class CratisArtifactRenderProfileAdmission
     static bool IsComposedScene(ArtifactRenderInput input) =>
         string.Equals(input.Name, $"{ProjectInputPrefix}{Scene.SceneCompositionInput.RelativePath}", StringComparison.Ordinal);
 
-    static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
     {
         options = null;
         var projectInputs = profile.Inputs

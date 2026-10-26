@@ -18,6 +18,12 @@ internal sealed record ImportRequest(
     IEnumerable<TypeReference> References)
 {
     /// <summary>
+    /// Gets a value indicating whether the render includes the scaffold's global using declarations.
+    /// Scoped renders cannot assume an existing application has those declarations.
+    /// </summary>
+    public bool HasScaffoldGlobalUsings { get; init; } = true;
+
+    /// <summary>
     /// Gets the namespaces the file must import whatever the references need, such as the namespace of an extension
     /// method the file calls.
     /// </summary>

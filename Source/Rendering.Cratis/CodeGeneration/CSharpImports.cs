@@ -19,7 +19,8 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 /// <param name="project">The project the file compiles into.</param>
 /// <param name="generated">The complete renderer-owned declaration inventory.</param>
-internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated)
+/// <param name="hasScaffoldGlobalUsings">Whether the render includes the scaffold's global using declarations.</param>
+internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated, bool hasScaffoldGlobalUsings = true)
 {
     static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
 
@@ -78,6 +79,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
             root.DescendantTrivia().Any(trivia => trivia.IsKind(SyntaxKind.IfDirectiveTrivia));
         var resolution = ImportResolver.Resolve(new ImportRequest(name, project, inventory, references.Select(reference => reference.Type))
         {
+            HasScaffoldGlobalUsings = hasScaffoldGlobalUsings,
             RequiredImports = required,
             ScopeTypeNames = [.. scope.TypeNames, .. _types],
             ScopeValueNames = [.. scope.ValueNames, .. _values],

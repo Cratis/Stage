@@ -52,7 +52,7 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     readonly HashSet<string> _accessed = request.MemberAccessNames.Concat(_patternMembers).ToHashSet(StringComparer.Ordinal);
 
     // Static and alias global usings bring names the catalog does not model, so the compilation unit is then unknown.
-    readonly HashSet<string>? _global = catalog.HasUnmodeledUsings(request.Project) ? null : catalog.GlobalUsings(request.Project).ToHashSet(StringComparer.Ordinal);
+    readonly HashSet<string>? _global = catalog.HasUnmodeledUsings(request.Project) ? null : GlobalUsings(catalog, request).ToHashSet(StringComparer.Ordinal);
     readonly HashSet<string> _enclosing = CatalogNames.SelfAndContaining(request.FileNamespace).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>
@@ -141,6 +141,12 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
         IReadOnlyCollection<string>? compilationUnit = _global is null ? null : [.. _global.Concat(top).Distinct(StringComparer.Ordinal)];
         return _references.ToImmutableDictionary(reference => reference, reference => Spell(reference, inner, compilationUnit));
     }
+
+    static IEnumerable<string> GlobalUsings(FrameworkNameCatalog catalog, ImportRequest request) => request.HasScaffoldGlobalUsings
+        ? catalog.GlobalUsings(request.Project)
+        : catalog.Content.Usings.Where(@using => @using.Kind == CatalogUsingKind.Namespace &&
+            (@using.Projects & request.Project) != GeneratedProjects.None && @using.Source != "compile:GlobalUsings.cs")
+            .Select(@using => @using.Target);
 
     bool Brings(string @namespace) => Brings(@namespace, _ => false);
 

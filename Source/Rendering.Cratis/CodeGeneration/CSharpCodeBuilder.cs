@@ -35,13 +35,14 @@ public class CSharpCodeBuilder
     /// </summary>
     /// <param name="project">The project the file compiles into.</param>
     /// <param name="generated">The complete renderer-owned declaration inventory.</param>
-    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated)
+    /// <param name="hasScaffoldGlobalUsings">Whether the render includes the scaffold's global using declarations.</param>
+    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated, bool hasScaffoldGlobalUsings = true)
     {
-        if (!QualifiedSpelling.IsActive) _imports = new(project, generated);
+        if (!QualifiedSpelling.IsActive) _imports = new(project, generated, hasScaffoldGlobalUsings);
     }
 
     internal CSharpCodeBuilder(ImportRequest imports)
-        : this(imports.Project, imports.GeneratedTypes)
+        : this(imports.Project, imports.GeneratedTypes, imports.HasScaffoldGlobalUsings)
     {
     }
 

@@ -23,7 +23,8 @@ public class when_rendering_an_inline_event_source_wrapper_return_type : state_c
 
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
 
-        file.Content.ShouldContain($"public {typeName} Handle(CommandContext context)");
+        when_rendering_an_inline_return_type_declared_in_the_model.AssertReturnBinding(file, "Cratis.Chronicle.EventSequences.EventForEventSourceId");
+        file.Content.ShouldContain(command.Handler.Code.Code);
         file.Diagnostics.ShouldBeEmpty();
     }
 }

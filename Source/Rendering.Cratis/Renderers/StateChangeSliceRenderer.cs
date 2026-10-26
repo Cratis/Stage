@@ -21,6 +21,14 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
+    static readonly Dictionary<string, string> _inlineReturnContracts = new(StringComparer.Ordinal)
+    {
+        ["void"] = "void",
+        ["IEnumerable<object>"] = "IEnumerable<object>",
+        ["EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId",
+        ["Cratis.Chronicle.EventSequences.EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId"
+    };
+
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
@@ -69,21 +77,6 @@ public class StateChangeSliceRenderer : ISliceRenderer
         return new RenderedFile(Path.Combine([.. path]), builder.ToString()) { Diagnostics = diagnostics };
     }
 
-    static bool IsVerifiedInlineReturnType(string returnType, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
-    {
-        var typeName = returnType.StartsWith("global::", StringComparison.Ordinal) ? returnType[8..] : returnType;
-        if (string.Equals(typeName, "void", StringComparison.Ordinal)
-            || string.Equals(typeName, "IEnumerable<object>", StringComparison.Ordinal)
-            || string.Equals(typeName.Split('.')[^1], "EventForEventSourceId", StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        return applicationSet.Slices.Append(slice).Any(declaration => declaration.Slice.Events.Any(@event =>
-            typeName == Identifiers.ToPascalCase(@event.Name) ||
-            typeName == $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}"));
-    }
-
     static IEnumerable<string> ReferencedNames(SliceSyntax slice) =>
         slice.Commands.SelectMany(command => command.Properties).Select(property => property.Type.Name)
             .Concat(EventRenderer.ReferencedNames(slice.Events))
@@ -114,12 +107,11 @@ public class StateChangeSliceRenderer : ISliceRenderer
     {
         if (command.Handler?.Code is not null)
         {
-            var returnType = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
-            if (!IsVerifiedInlineReturnType(returnType, slice, applicationSet, rootNamespace))
+            var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
+            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
+            if (returnType is null)
             {
-                diagnostics.Add(
-                    $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{returnType}'. " +
-                    "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.");
+                throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is not a verified model or handler contract type.");
             }
 
             builder.Using("Cratis.Arc.Commands")
@@ -188,6 +180,19 @@ public class StateChangeSliceRenderer : ISliceRenderer
         }
 
         builder.Line("return events;").EndBlock();
+    }
+
+    static string? ResolveInlineReturnType(string inferred, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
+    {
+        var name = inferred.StartsWith("global::", StringComparison.Ordinal) ? inferred[8..] : inferred;
+        if (_inlineReturnContracts.TryGetValue(name, out var contract)) return contract;
+        var matches = applicationSet.Slices.Append(slice)
+            .SelectMany(declaration => declaration.Slice.Events.Select(@event => (
+                Short: Identifiers.ToPascalCase(@event.Name),
+                Qualified: $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}")))
+            .Where(candidate => string.Equals(name, candidate.Short, StringComparison.Ordinal) || string.Equals(name, candidate.Qualified, StringComparison.Ordinal))
+            .Select(candidate => candidate.Qualified).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        return matches.Length == 1 ? $"global::{matches[0]}" : null;
     }
 
     static string WrappedEvent(string eventName, string arguments, string destination) =>

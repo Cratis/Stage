@@ -87,9 +87,14 @@ static class ArtifactRenderInventoryValidation
 
     static void ValidateReason(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason)
     {
-        if (!IsOwnerError(construct, reason)) throw new InvalidArtifactRenderContract("A refusal requires an original generation error on its owner.");
+        if (!IsOwnerError(construct, reason) && !IsOmissionWarning(construct, reason)) throw new InvalidArtifactRenderContract("A refusal requires an original generation error on its owner.");
         if (string.IsNullOrWhiteSpace(reason.Code) || string.IsNullOrWhiteSpace(reason.Message)) throw new InvalidArtifactRenderContract("Refusal reasons require a code and explanation.");
     }
+
+    static bool IsOmissionWarning(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason) =>
+        construct.Outcome == ArtifactRenderOutcome.Refused && construct.Kind == ArtifactRenderConstructKind.Specification &&
+        reason?.Severity == ArtifactRenderDiagnosticSeverity.Warning && reason.Artifact == construct.Identity &&
+        construct.RefusalReasons.All(candidate => candidate?.Severity == ArtifactRenderDiagnosticSeverity.Warning);
 
     static bool HasKnownIdentity(ArtifactRenderConstruct construct) => construct.Identity.IsSet && Enum.IsDefined(construct.Kind) && Enum.IsDefined(construct.Outcome);
     static bool IsOwnerError(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason) => reason is not null && reason.Artifact == construct.Identity && reason.Severity == ArtifactRenderDiagnosticSeverity.Error;

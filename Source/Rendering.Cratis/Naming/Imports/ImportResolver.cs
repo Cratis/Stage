@@ -7,8 +7,8 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 /// <summary>
 /// Decides the using directives of a generated C# file and spells each type it names by its short name wherever C#
-/// provably binds that name to the intended type, falling back to the fully qualified <c language="csharp">global::</c>
-/// name everywhere else. A type a global using already imports needs no directive; any other namespace is imported with a
+/// provably binds that name to the intended type, using deterministic namespace aliases for known collisions.
+/// Unknown identities or scopes are refused. A type a global using already imports needs no directive; any other namespace is imported with a
 /// <c language="csharp">using</c> directive above the file-scoped namespace, and only where that cannot be proven safe with
 /// a globally rooted directive inside it. An import is added only when it cannot change what anything else in the file
 /// binds to: it may not bring a type named like a name the resolver does not spell, nor an extension member named like a
@@ -34,13 +34,7 @@ internal static class ImportResolver
     {
         var references = request.References.Distinct().ToArray();
         var required = request.RequiredImports.Distinct(StringComparer.Ordinal).ToArray();
-        if (request.HasUnknownScope)
-        {
-            return new([], references.ToImmutableDictionary(reference => reference, reference => reference.Qualified))
-            {
-                TopLevelUsings = [.. required.Order(StringComparer.Ordinal)]
-            };
-        }
+        ImportAliases.Verify(request, catalog);
 
         var file = new FileImports(new NameScope(request, catalog), catalog, request, references);
         var kept = required.Where(file.NeedsRequired).ToArray();
@@ -58,8 +52,10 @@ internal static class ImportResolver
 
         if (!request.HasScaffoldGlobalUsings) top = [.. top.Concat(file.ScaffoldImports(required, spellings, inner)).Distinct(StringComparer.Ordinal)];
 
-        return new([.. inner.Order(StringComparer.Ordinal)], spellings)
+        var aliased = ImportAliases.Resolve(request, spellings);
+        return new([.. inner.Order(StringComparer.Ordinal)], aliased.Spellings)
         {
+            Aliases = aliased.Directives,
             TopLevelUsings = [.. top.Order(StringComparer.Ordinal)],
             RootedUsings = [.. inner.Where(@namespace => !file.BindsFromGlobal(@namespace))]
         };

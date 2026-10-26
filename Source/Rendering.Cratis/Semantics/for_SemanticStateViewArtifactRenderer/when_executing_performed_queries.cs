@@ -72,6 +72,16 @@ public class when_executing_performed_queries
         Assert.Contains(reason, notImplemented.Message, StringComparison.Ordinal);
     }
 
+    // Cratis/Stage#58: a performer body that observes one optional result needs a stream contract (Screenplay#1077), so it stays refused.
+    [Fact]
+    public async Task should_refuse_an_observable_optional_performer()
+    {
+        var loaded = await Load("return readModels;", live: true, single: true);
+        var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("only a collection can be observed.", StringComparison.Ordinal));
+    }
+
     static ArtifactRenderRequest GapRequest((LoadedSemanticModel Loaded, string Failure) scenario)
     {
         var request = Request(scenario.Loaded);

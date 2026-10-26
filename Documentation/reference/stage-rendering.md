@@ -534,13 +534,33 @@ still fetch one result and refresh after commands.
 
 Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` using
 `GetInstances` and in-memory filtering. Snapshot lookup arguments retain their concept types.
-Live-list companion specifications append fixtures to `EventStoreForTesting` and await
+Live-query companion specifications append fixtures to `EventStoreForTesting` and await
 an emission from the generated query, executing its actual filter expression. Protected
 observable collection-success specifications use Arc's `QueryScenario` with its default Chronicle
 read models. Scoped projections remain refused with `STAGE-ESM-011`; routed replay requires a
 readable generated `Key`, `Subject`, or `Id` on every pinned row. Protected snapshot collection
 success remains refused because Arc 22.87's `GetInstances` does not read scenario-seeded rows.
 Both allowed and denied protected queries run through Arc's authorization pipeline with the fixture caller.
+
+## Declarative observable optional lookups
+
+A declarative `query InvoiceById => observable InvoiceSummary?` with a `by` argument
+matching the read model's sole identifier renders as `ISubject<InvoiceSummary?>`.
+This keyed optional shape is an exception to the observable single/optional refusal
+in the query-shape matrix above. Stage filters Chronicle's observed collection by
+that identifier and maps each emission to its first matching instance, or `null`
+when none matches. Later updates and transitions back to no match remain observable.
+The adapter subscribes only when its consumer subscribes; disposing the consumer's
+subscription releases the underlying observation. Key arguments retain their concept types.
+
+Unkeyed optional lookups, non-identifier keys, filtered optional lookups, and required
+single-result observable queries remain refused with `STAGE-ESM-010`. Unsupported
+concept validation remains refused with `STAGE-ESM-005`.
+
+This support does not admit observable performer bodies. Those remain unverified
+`STAGE-IMPL-006` gaps with non-runnable stubs and `STAGE-NOT-RUNNABLE.md`, not
+body-owned streams. Live optional lookup companion specifications use Chronicle's
+real observation and await the first emission rather than substituting a snapshot read.
 
 ## Generated C# query filters
 

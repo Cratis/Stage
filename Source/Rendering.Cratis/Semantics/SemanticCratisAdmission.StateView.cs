@@ -140,7 +140,7 @@ internal static partial class SemanticCratisAdmission
 
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
             {
-                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor a collection query the renderer can preserve.", query.Id));
+                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot or live lookup by identifier nor a collection query the renderer can preserve.", query.Id));
             }
         }
     }
@@ -196,7 +196,7 @@ internal static partial class SemanticCratisAdmission
             return false;
         }
 
-        if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
+        if (IsOptionalLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
         if (!IsCollection(context, query, readModel)) return false;
 
         var optionalSeen = false;
@@ -218,11 +218,11 @@ internal static partial class SemanticCratisAdmission
         type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
         context.Concepts[type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty);
 
-    static bool IsSnapshotLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
+    static bool IsOptionalLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
     {
         var identifiers = readModel?.Properties.Where(property => property.IsIdentifier).ToArray() ?? [];
 
-        return query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot, Argument: { } argument } &&
+        return query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live, Argument: { } argument } &&
             identifiers is [var identifier] && query.KeyProperty == identifier.Id && TypeExists(context, argument.Type);
     }
 

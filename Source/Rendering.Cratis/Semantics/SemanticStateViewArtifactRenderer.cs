@@ -202,16 +202,20 @@ internal static class SemanticStateViewArtifactRenderer
     {
         var readModelName = Identifiers.ToPascalCase(readModel.Name);
         var methodName = context.MemberNames.Query(query);
-        var documentation = context.Docs(query.Id).Render(builder.BlankLine())
-            .Attribute(SemanticAuthorizationAttributes.For(query, context));
-        if (methodName != Identifiers.ToPascalCase(query.Name))
-        {
-            var path = GeneratedApiRoutes.QueryPath(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path), Identifiers.ToPascalCase(query.Name));
-            documentation.Attribute($"global::Cratis.Arc.Queries.ModelBound.PathAttribute({CSharpCodeBuilder.StringLiteral(path)})");
-        }
+        var documentation = RenderQueryDocumentation(builder, query, context);
         if (context.PerformedQueries.Contains(query.Id))
         {
             RenderPerformedQuery(documentation, query, readModelName, methodName, types, context);
+            return;
+        }
+
+        if (query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Live })
+        {
+            RenderObservableLookup(
+                documentation,
+                readModelName,
+                $"public static global::System.Reactive.Subjects.ISubject<{readModelName}?> {methodName}(global::Cratis.Chronicle.ReadModels.IReadModels readModels, {QueryArgument.For(query.Argument!, types).Parameter})",
+                KeyPredicates(query, readModel, types).Single());
             return;
         }
 
@@ -246,6 +250,18 @@ internal static class SemanticStateViewArtifactRenderer
             $"await readModels.GetInstanceById<{readModelName}>({(raw ? argument.Name : $"(global::Cratis.Chronicle.Events.EventSourceId){argument.Name}")})");
     }
 
+    static CSharpCodeBuilder RenderQueryDocumentation(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticApplicationContext context)
+    {
+        var documentation = context.Docs(query.Id).Render(builder.BlankLine())
+            .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        if (context.MemberNames.Query(query) != Identifiers.ToPascalCase(query.Name))
+        {
+            var path = GeneratedApiRoutes.QueryPath(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path), Identifiers.ToPascalCase(query.Name));
+            documentation.Attribute($"global::Cratis.Arc.Queries.ModelBound.PathAttribute({CSharpCodeBuilder.StringLiteral(path)})");
+        }
+        return documentation;
+    }
+
     // A performer owns the result; retain the route and shape whether its body is available or not.
     static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)
     {
@@ -258,6 +274,17 @@ internal static class SemanticStateViewArtifactRenderer
         }
 
         SemanticQueryContextRuntime.RenderGap(builder, query, context, admission);
+    }
+
+    static void RenderObservableLookup(CSharpCodeBuilder builder, string readModelName, string declaration, string predicate)
+    {
+        // Adapt both sides without eagerly subscribing: Arc's subscription owns Chronicle's observation lifetime.
+        builder.OpenBlock(declaration)
+            .Line($"var instances = readModels.Observe<{readModelName}>(instance => {predicate});")
+            .Line($"return global::System.Reactive.Subjects.Subject.Create<{readModelName}?>(")
+            .Line($"    global::System.Reactive.Observer.Create<{readModelName}?>(instance => instances.OnNext(instance is null ? [] : [instance]), instances.OnError, instances.OnCompleted),")
+            .Line("    global::System.Reactive.Linq.Observable.Select(instances, values => global::System.Linq.Enumerable.FirstOrDefault(values)));")
+            .EndBlock();
     }
 
     static void RenderCollectionQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticReadModel readModel, SemanticTypeSystem types, SemanticApplicationContext context)

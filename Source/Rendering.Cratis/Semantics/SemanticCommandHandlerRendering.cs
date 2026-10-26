@@ -62,18 +62,6 @@ internal static class SemanticCommandHandlerRendering
         builder.Line($"var {locals.Name("handlerPayloads")} = {Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})));");
     }
 
-    internal static void RenderFastHandle(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals, bool bare, Func<SemanticProducedEvent, string> eventValue, Func<SemanticProducedEvent, string> wrappedEvent)
-    {
-        var single = command.Produces.Length == 1;
-        var resultType = single ? "global::Cratis.Chronicle.EventSequences.EventForEventSourceId" : "global::System.Collections.Generic.IEnumerable<global::Cratis.Chronicle.EventSequences.EventForEventSourceId>";
-        if (bare) resultType = new SemanticTypeSystem(context).EventType(context.Events[command.Produces[0].EventContract]);
-        builder.OpenBlock($"public {resultType} Handle()");
-        Prepare(builder, command, context, locals);
-        var payload = single ? wrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(wrappedEvent))}]";
-        if (bare) payload = eventValue(command.Produces[0]);
-        builder.Line($"return {payload};").EndBlock();
-    }
-
     internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticHandleLocals locals)
     {
         var value = locals.Name("handlerPayloads");

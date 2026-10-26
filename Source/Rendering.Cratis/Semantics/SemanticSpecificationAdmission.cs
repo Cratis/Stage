@@ -31,7 +31,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
         {
-            if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command) && command.Handler is not null)
+            if (SemanticCommandBodyAdmission.ReachesBody(specification, context))
             {
                 diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command handler bodies are not executed by the reference specification runtime.", specification.Id));
                 continue;

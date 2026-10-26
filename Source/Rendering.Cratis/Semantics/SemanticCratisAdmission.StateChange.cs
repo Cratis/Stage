@@ -89,12 +89,7 @@ internal static partial class SemanticCratisAdmission
             @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
             !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) ||
             @event.Properties.Any(_ => !TypeExists(context, _.Type) || _.Type.IsOptional) ||
-            (command.Handler is null && (produced.Mappings.Length != @event.Properties.Length ||
-            !@event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
-                (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||
-                 (mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence && occurrence.Type == property.Type) ||
-                 mapping.Source is SemanticValueExpression ||
-                 mapping.Source is SemanticReadPathExpression)))))))
+            InvalidPayloadMappings(command, produced, @event)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }

@@ -19,11 +19,12 @@ public class when_executing_command_handler_payloads : a_generated_application
 
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var source = "concept OrderId : Uuid\n  generate uuid\n" + handler_model.MultiSource +
+        var source = "concept EventForEventSourceId : String\nconcept OrderId : Uuid\n  generate uuid\n" + handler_model.MultiSource +
             string.Concat(Enumerable.Repeat("\n        produces OrderPlaced\n          for orderId\n          name = name", 7)) + "\n" + """
                   command FastPlace
                     orderId Uuid identifier
                     name String
+                    marker EventForEventSourceId
                     handler
                       implementation
                         hint "Uppercase the name"
@@ -45,7 +46,7 @@ public class when_executing_command_handler_payloads : a_generated_application
         var request = handler_model.Request(source: source, bodies: new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["PlaceOrder"] = tupleBody,
-            ["FastPlace"] = handler_model.Body,
+            ["FastPlace"] = "return new OrderPlaced(context.Command.Name.ToUpperInvariant() + context.Command.Marker.Value);",
             ["GeneratedPlace"] = "global::System.AppContext.SetData(context.Command.OrderId.Value.ToString(), 1 + ((int?)global::System.AppContext.GetData(context.Command.OrderId.Value.ToString()) ?? 0)); return new OrderRegistered(context.Command.OrderId, context.Command.Quantity + 10);"
         });
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
@@ -105,8 +106,8 @@ public class when_executing_command_handler_payloads : a_generated_application
             [Fact]
             public void executes_the_fast_path_instead_of_the_misleading_mapping()
             {
-                var payload = new FastPlace(Guid.NewGuid(), "alice").Handle();
-                Assert.Equal("ALICE", payload.Name);
+                var payload = new FastPlace(Guid.NewGuid(), "alice", new global::Orders.Common.EventForEventSourceId("!")).Handle();
+                Assert.Equal("ALICE!", payload.Name);
             }
 
             [Fact]

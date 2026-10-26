@@ -126,12 +126,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             try
             {
-                if (descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.OperationId is { } handlerOwner &&
-                    context.Commands.TryGetValue(handlerOwner, out var handlerCommand) && SemanticCommandBodyAdmission.IsCSharp(handlerCommand, context))
-                {
-                    SemanticCommandHandlerRendering.RenderContext(new CodeGeneration.CSharpCodeBuilder(), handlerCommand, context);
-                    continue;
-                }
+                if (SemanticCommandBodyAdmission.ProbeDescriptor(descriptor, context)) continue;
                 var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);
                 if (descriptor.OperationId is { } operation && selectedReducers.Contains((descriptor.RequirementId, operation)))
                 {

@@ -20,23 +20,13 @@ internal static class SemanticCommandBodyAdmission
 
     internal static void Verify(SemanticCommand command, SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (command.Handler is null) return;
-        var classification = SemanticCommandHandlerAdmission.Classify(command, context.Request);
-        if (classification.Kind is SemanticCommandHandlerAdmission.HandlerKind.Pending or SemanticCommandHandlerAdmission.HandlerKind.Foreign) return;
-        if (classification.Kind != SemanticCommandHandlerAdmission.HandlerKind.CSharp)
-        {
-            diagnostics.Add(Error("STAGE-ESM-019", classification.Reason ?? "Invalid command handler attachment.", command));
-            return;
-        }
-        var inline = SemanticInlineCodeRendering.CommandBody(command, context);
-        diagnostics.AddRange(inline.Diagnostics);
-        if (inline.Refused) return;
-        if (command.Produces.IsEmpty || command.Produces.Any(produced => produced.When is not null || produced.Condition is not null))
+        if (!HasVerifiedBody(command, context, diagnostics)) return;
+        if (!HasUnconditionalOutputs(command))
         {
             diagnostics.Add(Error("STAGE-ESM-019", "Command handlers require unconditional, declared event outputs.", command));
             return;
         }
-        var descriptors = context.Request.TypedContextDescriptors.Where(descriptor => descriptor.RequirementId == command.Handler.RequirementId && descriptor.OperationId == command.Id).ToArray();
+        var descriptors = context.Request.TypedContextDescriptors.Where(descriptor => descriptor.RequirementId == command.Handler!.RequirementId && descriptor.OperationId == command.Id).ToArray();
         if (descriptors.Length != 1 || !Matches(descriptors[0], command))
         {
             diagnostics.Add(Error("STAGE-ESM-021", "The command handler needs its wrapper-ready Command snapshot descriptor from this compilation.", command));
@@ -50,13 +40,54 @@ internal static class SemanticCommandBodyAdmission
         Analyze(command, context, diagnostics);
     }
 
-    static bool Matches(SemanticTypedContextDescriptor descriptor, SemanticCommand command) =>
-        descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.ContextVersion == 1 &&
-        descriptor.Members.Length == 1 && descriptor.Members[0] is { IsNullable: false, IsDerived: false } member && member.Name == "Command" &&
-        member.Source.Kind == SemanticContextSourceKinds.Command && member.Source.SemanticId == command.Id && member.Source.Path == "Command" &&
-        member.Type.Kind == SemanticContextTypeKinds.Shape && member.Type.Shape == command.Id && member.Type.ModelType is null && member.Type.RuntimeToken is null &&
-        member.Type.Properties.Length == command.Properties.Length && member.Type.Properties.Zip(command.Properties).All(pair =>
-            pair.First.Id == pair.Second.Id && pair.First.Name == pair.Second.Name && pair.First.Type == pair.Second.Type);
+    internal static bool ProbeDescriptor(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context)
+    {
+        if (descriptor.Role != SemanticImplementationRole.CommandHandler) return false;
+        if (descriptor.OperationId is not { } owner) return false;
+        if (!context.Commands.TryGetValue(owner, out var command)) return false;
+        if (!IsCSharp(command, context)) return false;
+        SemanticCommandHandlerRendering.RenderContext(new CSharpCodeBuilder(), command, context);
+        return true;
+    }
+
+    internal static bool ReachesBody(SemanticSpecification specification, SemanticApplicationContext context) =>
+        specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command) && command.Handler is not null;
+
+    static bool HasVerifiedBody(SemanticCommand command, SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (command.Handler is null) return false;
+        var classification = SemanticCommandHandlerAdmission.Classify(command, context.Request);
+        if (classification.Kind is SemanticCommandHandlerAdmission.HandlerKind.Pending or SemanticCommandHandlerAdmission.HandlerKind.Foreign) return false;
+        if (classification.Kind != SemanticCommandHandlerAdmission.HandlerKind.CSharp)
+        {
+            diagnostics.Add(Error("STAGE-ESM-019", classification.Reason ?? "Invalid command handler attachment.", command));
+            return false;
+        }
+        var inline = SemanticInlineCodeRendering.CommandBody(command, context);
+        diagnostics.AddRange(inline.Diagnostics);
+        return !inline.Refused;
+    }
+
+    static bool HasUnconditionalOutputs(SemanticCommand command) =>
+        !command.Produces.IsEmpty && command.Produces.All(produced => produced.When is null && produced.Condition is null);
+
+    static bool Matches(SemanticTypedContextDescriptor descriptor, SemanticCommand command)
+    {
+        if (!IsHandlerDescriptor(descriptor)) return false;
+        var member = descriptor.Members[0];
+        return MatchesCommandMember(member, command) && MatchesSnapshotShape(member.Type, command) &&
+            member.Type.Properties.SequenceEqual(command.Properties.Select(property => new SemanticContextProperty(property.Name, property.Id, property.Type)));
+    }
+
+    static bool IsHandlerDescriptor(SemanticTypedContextDescriptor descriptor) =>
+        descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.ContextVersion == 1 && descriptor.Members.Length == 1;
+
+    static bool MatchesCommandMember(SemanticTypedContextMember member, SemanticCommand command) =>
+        !member.IsNullable && !member.IsDerived && member.Name == "Command" &&
+        member.Source.Kind == SemanticContextSourceKinds.Command && member.Source.SemanticId == command.Id && member.Source.Path == "Command";
+
+    static bool MatchesSnapshotShape(SemanticContextType type, SemanticCommand command) =>
+        type.Kind == SemanticContextTypeKinds.Shape && type.Shape == command.Id && type.ModelType is null && type.RuntimeToken is null;
 
     static void Analyze(SemanticCommand command, SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {

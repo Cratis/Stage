@@ -226,7 +226,7 @@ internal static class SemanticStateChangeArtifactRenderer
             else if (command.Handler is not null)
             {
                 var bare = command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides;
-                SemanticCommandHandlerRendering.RenderFastHandle(builder, command, context, locals, bare, EventValue, WrappedEvent);
+                new SemanticCommandHandlerHandleRendering(command, context, locals).Render(builder, bare, EventValue, WrappedEvent);
             }
             else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides)
             {

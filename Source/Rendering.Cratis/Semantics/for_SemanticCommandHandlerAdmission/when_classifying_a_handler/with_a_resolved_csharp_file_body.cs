@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCommandHandlerAdmi
 
 public class with_a_resolved_csharp_file_body : given.a_described_handler
 {
-    void Establish() => Resolve("csharp", "Handlers/ApplyLateFee.cs");
+    void Establish() => Resolve(null, "Handlers/ApplyLateFee.cs");
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_classify_as_csharp() => _classification.Kind.ShouldEqual(HandlerKind.CSharp);

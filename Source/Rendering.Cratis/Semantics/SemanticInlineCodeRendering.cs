@@ -57,8 +57,7 @@ internal static class SemanticInlineCodeRendering
             return new(null, placement, diagnostics.ToImmutable());
         }
         var requirement = context.Request.ImplementationRequirements.Single(item => item.RequirementId == code!.RequirementId);
-        if (requirement.Role != SemanticImplementationRole.CommandHandler || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
-            !string.Equals(requirement.RequiredCapability, "provider-defined", StringComparison.Ordinal))
+        if (!CommandEnvelope(requirement))
         {
             diagnostics.Add(new("STAGE-ESM-019", ArtifactRenderDiagnosticSeverity.Error, "The command handler envelope has an invalid role, version or capability.", command.Id));
             return new(null, placement, diagnostics.ToImmutable());
@@ -75,6 +74,10 @@ internal static class SemanticInlineCodeRendering
         }
         return new(presentation.Text is null ? null : code, placement, diagnostics.ToImmutable());
     }
+
+    static bool CommandEnvelope(SemanticImplementationRequirement requirement) =>
+        requirement.Role == SemanticImplementationRole.CommandHandler && requirement.ContextVersion == 1 && requirement.ResultVersion == 1 &&
+        string.Equals(requirement.RequiredCapability, "provider-defined", StringComparison.Ordinal);
 
     static bool GenerationEnvelope(SemanticImplementationRequirement requirement) =>
         requirement.Role == SemanticImplementationRole.ValueGeneration && requirement.ContextVersion == 1 &&

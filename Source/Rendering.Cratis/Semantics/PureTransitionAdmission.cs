@@ -246,14 +246,16 @@ internal static partial class PureTransitionAdmission
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
-        // The observable interface is a signature-only stand-in, not an admitted pure call surface.
+        // Observable and injected query interfaces are signature-only stand-ins, not admitted pure call surfaces.
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.CommonNamespace}; ") +
             "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
             "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId(string Value) : global::Cratis.Concepts.ConceptAs<string>(Value); public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
-            "namespace Cratis.Arc.Authorization {} namespace Cratis.Arc.Queries.ModelBound {} " +
+            "namespace Cratis.Arc.Authorization { public interface ICurrentPrincipalAccessor {} } " +
+            "namespace Cratis.Arc.Queries { public interface IQueryContextManager {} } " +
+            "namespace Cratis.Arc.Tenancy { public interface ITenantIdAccessor {} } namespace Cratis.Arc.Queries.ModelBound {} " +
             "namespace Cratis.Arc.Commands.ModelBound {} namespace Cratis.Arc.Validation {} namespace Cratis.Chronicle.EventSequences {} " +
             "namespace Cratis.Chronicle.Projections.ModelBound {} namespace Cratis.Chronicle.Keys {} " +
             "namespace Cratis.Chronicle.ReadModels { public interface IReadModels {} } " +
@@ -293,7 +295,13 @@ internal static partial class PureTransitionAdmission
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
         var referencedTypes = MethodTypeReferences(tree, semanticModel, $"Transition_{suffix}");
-        var shadow = peers.FirstOrDefault(name => referencedTypes.Any(reference => reference.Name == name) || ShadowsAuditedName(name));
+        var analyzedBody = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Single(declaration => IsTransitionMethod(declaration, $"Transition_{suffix}")).Body!;
+        var boundTypes = analyzedBody.DescendantNodes().OfType<SimpleNameSyntax>()
+            .Select(name => semanticModel.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
+        var shadow = peers.FirstOrDefault(name => ShadowsAuditedName(name) ||
+            referencedTypes.Any(reference => reference.Name == name) &&
+                !IsUnambiguousCommonType(name, context, compilation, allDeclarations, boundTypes));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
         var namespaceShadow = namespacePaths.FirstOrDefault(entry => ShadowsAuditedName(entry.Key) ||
@@ -383,6 +391,41 @@ internal static partial class PureTransitionAdmission
         }
 
         return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
+    }
+
+    // Only authored Common concepts/composites can opt out of the conservative name guard.
+    // Referenced types (including primitive CLR names) and slice-local peers never opt out.
+    static bool IsUnambiguousCommonType(
+        string name,
+        SemanticApplicationContext context,
+        CSharpCompilation compilation,
+        IEnumerable<(SemanticId? Id, string Namespace, string Name)> declarations,
+        IEnumerable<INamedTypeSymbol> boundTypes)
+    {
+        if (ShadowsAuditedName(name)) return false;
+        var commonIds = context.Application.Concepts.Where(concept => Identifiers.ToPascalCase(concept.Name) == name).Select(concept => concept.Id)
+            .Concat(context.Application.Types.Where(type => Identifiers.ToPascalCase(type.Name) == name).Select(type => type.Id)).ToHashSet();
+        if (commonIds.Count == 0 || declarations.Where(declaration => declaration.Name == name).Any(declaration =>
+            declaration.Namespace != context.CommonNamespace || declaration.Id is not { } id || !commonIds.Contains(id))) return false;
+        var commonType = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{name}");
+        var references = boundTypes.Where(type => type.Name == name).ToArray();
+        if (commonType is null || references.Length == 0 || references.Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType))) return false;
+
+        var imports = compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()).ToArray();
+        // Alias/static import lookup is not modeled by this narrow exemption.
+        if (imports.Any(import => import.Alias is not null || import.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))) return false;
+        var namespaces = imports.Select(import => import.Name?.ToString().Replace("global::", string.Empty, StringComparison.Ordinal))
+            .OfType<string>().Append("System").Append(string.Empty).Distinct(StringComparer.Ordinal);
+        foreach (var path in namespaces)
+        {
+            INamespaceSymbol? imported = compilation.GlobalNamespace;
+            foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
+                imported = imported?.GetNamespaceMembers().FirstOrDefault(candidate => candidate.Name == segment);
+            // The merged namespace includes referenced assemblies and signature stand-ins.
+            // Ignore only the exact Common declaration being considered, not other source types.
+            if (imported?.GetTypeMembers(name).Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType)) == true) return false;
+        }
+        return true;
     }
 
     internal static bool ShadowsAuditedName(string name) =>

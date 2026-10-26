@@ -13,5 +13,8 @@ public class in_development : given.a_sandbox_host
 
     [Fact] void should_serve_the_command_catalog_anonymously() => _commandCatalog.ShouldEqual(HttpStatusCode.OK);
     [Fact] void should_serve_the_query_catalog_anonymously() => _queryCatalog.ShouldEqual(HttpStatusCode.OK);
+    [Fact] void should_serve_the_users_catalog_anonymously() => _usersCatalog.ShouldEqual(HttpStatusCode.OK);
+    [Fact] void should_serve_the_tenants_catalog_anonymously() => _tenantsCatalog.ShouldEqual(HttpStatusCode.OK);
+    [Fact] void should_serve_the_identity_details_schema_anonymously() => _identityDetailsSchema.ShouldEqual(HttpStatusCode.OK);
     [Fact] void should_answer_the_identity_of_the_page_as_the_persona() => _identityOfThePage.ShouldEqual(HttpStatusCode.OK);
 }

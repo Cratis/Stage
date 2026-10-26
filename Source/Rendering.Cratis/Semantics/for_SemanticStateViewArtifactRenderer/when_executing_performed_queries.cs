@@ -15,6 +15,8 @@ using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NSubstitute;
 using Xunit;
 
@@ -97,13 +99,45 @@ public class when_executing_performed_queries
         Assert.Empty(plan.ImplementationGaps);
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == "STAGE-NOT-RUNNABLE.md");
         var method = Method(loaded);
-        var (rows, row) = Rows(method);
+        var (_, row) = Rows(method);
+        var (_, secondRow) = Rows(method);
+        var rows = Array.CreateInstance(method.DeclaringType!, 2);
+        rows.SetValue(row, 0);
+        rows.SetValue(secondRow, 1);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
         var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
-        Assert.Same(row, Assert.Single(result.Cast<object>()));
+        Assert.Collection(result.Cast<object>(), item => Assert.Same(row, item), item => Assert.Same(secondRow, item));
+        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"])!;
+        await unmatched;
+        var empty = (System.Collections.IEnumerable)unmatched.GetType().GetProperty("Result")!.GetValue(unmatched)!;
+        Assert.Empty(empty.Cast<object>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_keep_only_authored_query_methods_on_the_read_model(bool singleResult)
+    {
+        var body = singleResult ? "return readModels.SingleOrDefault(row => row.Name == name);" : "return readModels.Where(row => row.Name == name);";
+        var loaded = await Load(body, single: singleResult);
+        var context = new SemanticApplicationContext(Request(loaded), new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        var model = (await CSharpSyntaxTree.ParseText(rendered).GetRootAsync()).DescendantNodes().OfType<RecordDeclarationSyntax>()
+            .Single(record => record.Identifier.ValueText == "PersonSummary");
+        var methods = model.Members.OfType<MethodDeclarationSyntax>().Where(method => method.Modifiers.Any(modifier => modifier.ValueText == "static"));
+        Assert.Equal("FindPeople", Assert.Single(methods).Identifier.ValueText);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.Contains("StagePerformer_FindPeople.Invoke(", rendered, StringComparison.Ordinal);
+        var method = Method(loaded);
+        var helper = method.DeclaringType!.GetNestedType("StagePerformer_FindPeople", BindingFlags.NonPublic)!;
+        Assert.NotNull(helper);
+        Assert.True(helper.IsNestedPrivate);
+        Assert.True(helper.IsAbstract && helper.IsSealed);
+        Assert.DoesNotContain(helper.GetCustomAttributesData(), attribute => attribute.AttributeType.Name == "ReadModelAttribute");
+        Assert.Equal("Invoke", Assert.Single(helper.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Name);
     }
 
     [Fact]
@@ -128,6 +162,9 @@ public class when_executing_performed_queries
         var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
         await task;
         Assert.Same(row, task.GetType().GetProperty("Result")!.GetValue(task));
+        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"])!;
+        await unmatched;
+        Assert.Null(unmatched.GetType().GetProperty("Result")!.GetValue(unmatched));
     }
 
     [Fact]
@@ -171,6 +208,19 @@ public class when_executing_performed_queries
         Assert.Contains(requirement.Source.Span.Document.ToString(), diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains($":{requirement.BodyLines[0].Line}:", diagnostic.Message, StringComparison.Ordinal);
         Assert.NotEmpty(plan.Artifacts);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_not_emit_unresolvable_source_directives(bool fileBacked)
+    {
+        var loaded = fileBacked ? await LoadFile("return readModels;") : await Load("return readModels;");
+        var context = new SemanticApplicationContext(Request(loaded), new("Projects", "Projects"));
+        var source = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains("return readModels;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("#line", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(Assert.Single(loaded.ImplementationRequirements).Source.Span.Document.ToString(), source, StringComparison.Ordinal);
     }
 
     [Fact]

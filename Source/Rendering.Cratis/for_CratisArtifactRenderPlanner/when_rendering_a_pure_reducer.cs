@@ -976,6 +976,7 @@ public class when_rendering_a_pure_reducer
 
     internal static readonly string[] AdmittedFixtures =
     [
+            "return new Total(Guid.Parse(\"00000000-0000-0000-0000-000000000001\"), context.Event.Amount);",
             "return new Total(Guid.Empty, context.Event.Amount + 1m);",
             "return new Total(Guid.Empty, Math.Abs(-1m));",
             "return new Total(Guid.Empty, context.Occurred.AddTicks(1).Day);",

@@ -58,17 +58,35 @@ internal static class GeneratedMemberDiagnostic
             _ when index >= 0 && index < parameters.Length => parameters[index],
             _ => null
         };
-        if (parameter?.Type is not INamedTypeSymbol concept || concept.DeclaringSyntaxReferences.IsEmpty ||
-            concept.BaseType is not { TypeArguments.Length: 1 } basis ||
-            !((basis.Name == "ConceptAs" && basis.ContainingNamespace.ToDisplayString() == "Cratis.Concepts") ||
-                (basis.Name == "EventSourceId" && basis.ContainingNamespace.ToDisplayString() == "Cratis.Chronicle.Events")))
+        var concept = parameter?.Type as INamedTypeSymbol;
+        var underlying = ConceptUnderlyingType(concept);
+        if (underlying is null && candidates[0].MethodKind == MethodKind.Constructor)
         {
-            return string.Empty;
+            concept = candidates[0].ContainingType;
+            underlying = ConceptUnderlyingType(concept);
+            if (!SymbolEqualityComparer.Default.Equals(parameter?.Type, underlying)) return string.Empty;
         }
+        if (concept is null || underlying is null) return string.Empty;
 
         var source = model.GetTypeInfo(argument.Expression).Type;
-        if (!SymbolEqualityComparer.Default.Equals(source, basis.TypeArguments[0])) return string.Empty;
+        if (source?.SpecialType == SpecialType.System_String && underlying.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.Guid")
+        {
+            return $" Use new {concept.Name}(Guid.Parse(...)) to construct the generated concept explicitly.";
+        }
+        if (!SymbolEqualityComparer.Default.Equals(source, underlying)) return string.Empty;
 
         return $" Use new {concept.Name}(...) to construct the generated concept explicitly.";
+    }
+
+    static ITypeSymbol? ConceptUnderlyingType(INamedTypeSymbol? concept)
+    {
+        if (concept?.DeclaringSyntaxReferences.IsEmpty != false) return null;
+        if (concept.BaseType is not { TypeArguments.Length: 1 } basis) return null;
+
+        return (basis.Name, basis.ContainingNamespace.ToDisplayString()) switch
+        {
+            ("ConceptAs", "Cratis.Concepts") or ("EventSourceId", "Cratis.Chronicle.Events") => basis.TypeArguments[0],
+            _ => null
+        };
     }
 }

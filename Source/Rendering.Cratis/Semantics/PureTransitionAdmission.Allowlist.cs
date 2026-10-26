@@ -172,6 +172,12 @@ internal static partial class PureTransitionAdmission
             return SafeValueType(type.TypeArguments[0]) && NameIs(name, "HasValue", "Value", "GetValueOrDefault", ".ctor");
         }
 
+        if (full == "global::System.Guid")
+        {
+            entry = "guid";
+            return symbol is IMethodSymbol { IsStatic: true } && AuditedMemberSignatures.Contains(AuditedSignature(symbol));
+        }
+
         if (full == "global::System.Math")
         {
             entry = "math";

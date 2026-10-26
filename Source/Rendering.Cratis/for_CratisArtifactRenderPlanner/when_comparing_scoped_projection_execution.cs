@@ -8,6 +8,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -22,6 +23,12 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
     [Fact] void should_match_all_reference_snapshots() => fixture.TestOutput.ShouldContain("Passed!");
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
     [Fact] void should_materialize_an_unrelated_source_in_the_reference() => fixture.AllExpected.ShouldEqual(JsonSerializer.Serialize(new[] { new { projectId = First, lastSeen = First }, new { projectId = Second, lastSeen = Second } }));
+
+    [Fact] void should_apply_the_all_literals_to_an_unrelated_instance_in_the_reference() => fixture.AllLiteralExpected.ShouldEqual(JsonSerializer.Serialize(new[]
+    {
+        new { projectId = First, label = "fixed", title = "named", score = "12.5" },
+        new { projectId = Second, label = "fixed", title = "named", score = "12.5" }
+    }));
 
     [Fact] void should_keep_the_literal_after_a_later_local_write() => fixture.LaterFromExpected.ShouldContain("\"label\":\"fixed\"");
 
@@ -51,13 +58,14 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
         public string TestOutput { get; private set; } = null!;
         public string LaterFromExpected { get; private set; } = null!;
         public string AllExpected { get; private set; } = null!;
+        public string AllLiteralExpected { get; private set; } = null!;
 
         protected override ArtifactRenderPlan CreatePlan()
         {
             var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
 
             // ClearWith binds to the event-source key, so its root from must use the same key.
-            var source = all_events_projection.Source;
+            var source = every_literal_join_projection.Source;
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
             var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
@@ -86,6 +94,34 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             Fact[] allFacts = [new("ProjectRegistered", First, First, "First"), new("ProjectNamed", Second, Name: "Unrelated")];
             AllExpected = Reference(allFacts, "AllSummary");
             AddGeneratedSpecification("Projects/Registration/AllLookup/when_observing_an_unrelated_event.cs", GeneratedAllSpecification(allFacts, AllExpected));
+
+            AllLiteralExpected = Reference(allFacts, "AllLabelSummary");
+            AddGeneratedSpecification("Projects/Registration/AllLabelLookup/when_observing_an_unrelated_event_with_all_literals.cs", GeneratedLiteralSpecification(allFacts, AllLiteralExpected, "observing_an_unrelated_event_with_all_literals", LiteralView.AllLabelSummary));
+
+            // CI-only integration: both orders must retain the nonidentifier from target used for join backfill.
+            foreach (var joinedBeforeFrom in new[] { true, false })
+            {
+                Fact registered = new("ProjectRegistered", First, First, "Local");
+                Fact joined = new("ProjectNamed", Second, Name: "Joined");
+                Fact[] facts = joinedBeforeFrom ? [joined, registered] : [registered, joined];
+                var name = joinedBeforeFrom ? "joined_before_from_with_every_key_collision" : "joined_after_from_with_every_key_collision";
+                var expected = Reference(facts, "CompanySummary");
+                var expectedSnapshot = JsonSerializer.Serialize(new object?[]
+                {
+                    new { company = Second, joined = "Joined", label = "fixed", score = "12.5" }, null
+                });
+                Assert.Equal(expectedSnapshot, expected);
+                AddGeneratedSpecification($"Projects/Registration/CompanyLookup/when_{name}.cs", GeneratedLiteralSpecification(facts, expected, name, LiteralView.CompanySummary));
+            }
+
+            Fact[] removedCompanyFacts =
+            [
+                new("ProjectRegistered", First, First, "Local"), new("ProjectRemoved", First), new("ProjectNamed", Second, Name: "Joined")
+            ];
+            var removedCompany = Reference(removedCompanyFacts, "CompanySummary");
+            Assert.Equal("[null,null]", removedCompany);
+            AddGeneratedSpecification("Projects/Registration/CompanyLookup/when_a_join_does_not_recreate_the_removed_root.cs",
+                GeneratedLiteralSpecification(removedCompanyFacts, removedCompany, "a_join_does_not_recreate_the_removed_root", LiteralView.CompanySummary));
 
             await Run("differential-debug.log", "build", "-c", "Debug", "-warnaserror");
             TestOutput = await Run("differential-tests.log", "test", "-c", "Debug", "--no-build");
@@ -176,6 +212,16 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             if (instance is null) return null;
             var values = instance.Values.ToDictionary(value => readModel.Properties.Single(property => property.Id == value.TargetProperty).Name, value => value.Value);
             if (readModel.Name == "AllSummary") return new { projectId = values.TryGetValue("projectId", out var projectId) ? Text(projectId) : null, lastSeen = Text(values["lastSeen"]) };
+            if (readModel.Name == "AllLabelSummary")
+            {
+                return new { projectId = values.TryGetValue("projectId", out var labelProject) ? Text(labelProject) : null, label = Text(values["label"]), title = Text(values["title"]), score = Number(values["score"]) };
+            }
+
+            if (readModel.Name == "CompanySummary")
+            {
+                return new { company = Text(values["company"]), joined = Text(values["joined"]), label = Text(values["label"]), score = Number(values["score"]) };
+            }
+
             var noteType = model.Application.Types.Single(type => type.Name == "ProjectNote");
             var infoType = model.Application.Types.Single(type => type.Name == "ProjectInfo");
             var notes = values["notes"] is SemanticArrayValue array ? array.Values.Select(value =>
@@ -276,6 +322,50 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             }
             #endif
             """;
+        }
+
+        static string GeneratedLiteralSpecification(Fact[] facts, string expected, string name, LiteralView view)
+        {
+            var model = view.ToString();
+            var slice = model.Replace("Summary", "Lookup", StringComparison.Ordinal);
+            var code = new CSharpCodeBuilder()
+                .Line("// Copyright (c) Cratis. All rights reserved.")
+                .Line("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
+                .Line("#if DEBUG")
+                .Line("using System.Globalization;")
+                .Line("using System.Text.Json;")
+                .Line("using Cratis.Chronicle.Events;")
+                .Line("using Cratis.Chronicle.Testing.ReadModels;")
+                .Line("using Projects.Common;")
+                .Line("using Projects.Projects.Registration.RegisterProject;")
+                .Line("using Xunit;")
+                .Line($"namespace Projects.Projects.Registration.{slice};")
+                .OpenBlock($"public class when_{name}")
+                .Line($"static readonly string[] _keys = [\"{First}\", \"{Second}\"];")
+                .Attribute("Fact")
+                .OpenBlock("public async Task should_match_screenplay()")
+                .Line($"var scenario = new ReadModelScenario<{model}>();");
+            foreach (var fact in facts)
+            {
+                code.Line($"await scenario.Given.ForEventSource(new EventSourceId(\"{fact.Source}\")).Events({fact.CSharpEvent()});");
+            }
+
+            code.OpenBlock("var actual = _keys.Select(key =>")
+                .Line("var instance = scenario.InstanceForEventSourceId(new EventSourceId(key));")
+                .Line(view == LiteralView.AllLabelSummary ? "Assert.NotNull(instance);" : "if (instance is null) return null;")
+                .Line(view == LiteralView.AllLabelSummary
+                    ? "return new { projectId = instance.ProjectId.Value.ToString(), label = instance.Label, title = instance.Title.Value, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };"
+                    : "return new { company = instance.Company.Value.ToString(), joined = instance.Joined?.Value, label = instance.Label, score = instance.Score?.ToString(CultureInfo.InvariantCulture) };")
+                .EndBlock().Line(");")
+                .Line($"Assert.Equal({JsonSerializer.Serialize(expected)}, JsonSerializer.Serialize(actual));")
+                .EndBlock().EndBlock().Line("#endif");
+            return code.ToString();
+        }
+
+        enum LiteralView
+        {
+            AllLabelSummary,
+            CompanySummary
         }
 
         sealed record Fact(string Event, string Source, string? Id = null, string? Name = null, string? NoteId = null)

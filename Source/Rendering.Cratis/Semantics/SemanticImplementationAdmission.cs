@@ -14,6 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticImplementationAdmission
 {
     internal const string PerformerGapCode = "STAGE-IMPL-006";
+    internal const string BodyIntegrityCode = "STAGE-ESM-056";
 
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request)
     {
@@ -193,7 +194,7 @@ internal static class SemanticImplementationAdmission
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidate))).ToLowerInvariant();
         if (!string.Equals(hash, requirement.ContentHash, StringComparison.Ordinal))
         {
-            diagnostics.Add(Error($"Implementation requirement '{requirementId}' has a body whose SHA-256 differs from ContentHash.", owner));
+            diagnostics.Add(new(BodyIntegrityCode, ArtifactRenderDiagnosticSeverity.Error, $"Implementation requirement '{requirementId}' has a body whose SHA-256 differs from ContentHash.", owner));
             return false;
         }
 

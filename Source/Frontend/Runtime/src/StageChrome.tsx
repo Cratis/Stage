@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
+import { externalRouteHref } from './externalRouteHref';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -84,7 +85,7 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
     const navigation = useContext(SceneNavigationContextInternal);
     const mode = node.presentation === 'icon' || node.presentation === 'text' ? node.presentation : 'both';
     const destination = node.destination;
-    const external = destination?.kind === 'external' && destination.route !== undefined;
+    const external = destination?.kind === 'external';
     const execute = destination && navigation && !external && opensElsewhere(destination)
         ? (event: { preventDefault: () => void }) => {
             event.preventDefault();
@@ -94,7 +95,7 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
 
     return (
         <a
-            href={external ? destination.route : screenHash(screen)}
+            href={external ? externalRouteHref(destination.route) : screenHash(screen)}
             rel={external ? 'noreferrer' : undefined}
             aria-current={screen === activeScreen ? 'page' : undefined}
             aria-label={mode === 'icon' ? node.label : undefined}

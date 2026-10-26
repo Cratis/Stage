@@ -18,6 +18,8 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
     ArtifactRenderRequest _legacyRequest = null!;
     SemanticImplementationRequirement _performerRequirement = null!;
     SemanticIdentityCatalog _catalog = null!;
+    ArtifactRenderPlan _defaultLegacy = null!;
+    ArtifactRenderPlan _defaultAccepted = null!;
 
     void Establish() => File.WriteAllText(Path.Combine(_root, "performer.play"), """
         concept Status : Enum
@@ -67,10 +69,35 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
             AttachmentDiagnostics = model.AttachmentDiagnostics
         };
         var planner = new CratisArtifactRenderPlanner();
+        var defaults = new CratisRenderingOptions(_planOptions.ProjectName, _planOptions.RootNamespace);
+        var defaultRequest = request with
+        {
+            Profile = CratisRendering.CreateProfile(_planOptions.ApplicationName, defaults),
+            SemanticIdentities = [],
+            IdentityCatalog = null
+        };
+        _defaultLegacy = planner.Plan(defaultRequest);
+        _defaultAccepted = CratisPlanAcceptance.Apply(defaultRequest, _defaultLegacy, defaults);
         _legacyRequest = request with { SemanticIdentities = [], IdentityCatalog = null };
         _legacy = planner.Plan(_legacyRequest);
         _beforeBaseline = planner.Plan(request);
         _afterBaseline = planner.Plan(request with { ReleaseBaseline = new(ReleaseBaselineAssessmentStatus.Unreadable, model.Model.Revision, [], "fixture unreadable baseline") });
+    }
+
+    [Fact]
+    void should_leave_default_acceptance_and_legacy_performer_diagnostics_and_digest_unchanged()
+    {
+        Assert.NotEmpty(_defaultLegacy.ImplementationGaps);
+        Assert.Contains(_defaultLegacy.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.DoesNotContain(_defaultLegacy.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
+        Assert.Empty(_defaultLegacy.Degradations);
+        Assert.False(_defaultLegacy.Strict);
+        Assert.Same(_defaultLegacy, _defaultAccepted);
+        Assert.Equal("8c76ddb2158e46a3b80ee5edfda2e5dcd08a383e2b7f8c86abf281ffde573b91", _defaultLegacy.Digest);
+        Assert.DoesNotContain(_normal.Plan!.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
+        Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
+        Assert.Null(_normal.Plan.Inventory);
+        Assert.DoesNotContain(_normal.Plan.Artifacts, IsReport);
     }
 
     [Fact]

@@ -12,6 +12,7 @@ static class CratisPlanReports
     {
         if (request.IdentityCatalog is null && request.SemanticIdentities.IsDefaultOrEmpty) return plan;
         if (!plan.CanPublishArtifacts) return plan;
+        if (!plan.ImplementationGaps.IsEmpty && plan.Degradations.IsEmpty) return plan;
         plan = plan.WithInventory(CratisSemanticInventory.Create(request, plan, options));
         var context = new ArtifactRenderReportContext(plan.InputVersions!, new([plan.InputVersions!]), [new(request.Profile.Renderer, request.Profile.RendererVersion)]);
         var reports = ArtifactRenderReports.Create(plan, context);

@@ -12,12 +12,13 @@ static class CratisPlanAcceptance
 {
     internal static ArtifactRenderPlan Apply(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options)
     {
+        if (!options.Strict) return plan;
         var evidence = PerformerEvidence(request, plan, options);
         if (!evidence.IsEmpty)
         {
             plan = CratisPlanDiagnosticReconstruction.Append(request, plan, [.. evidence.Select(gap => gap.Diagnostic)]);
         }
-        return options.Strict || !evidence.IsEmpty ? plan.WithAcceptance([.. plan.Degradations, .. evidence], options.Strict) : plan;
+        return plan.WithAcceptance([.. plan.Degradations, .. evidence], strict: true);
     }
 
     static ImmutableArray<ArtifactRenderDegradation> PerformerEvidence(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options)

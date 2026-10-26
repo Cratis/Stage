@@ -31,7 +31,9 @@ public sealed partial class ArtifactRenderPlan
         {
             if (construct.Outcome == ArtifactRenderOutcome.Refused &&
                 construct.RefusalReasons.All(reason => reason.Severity == ArtifactRenderDiagnosticSeverity.Warning) && !HasRecordedOmission(construct))
+            {
                 throw new InvalidArtifactRenderContract("Inventory omission evidence does not match an actual recorded omission.");
+            }
             foreach (var reason in construct.RefusalReasons) ValidateOriginalReason(reason);
         }
     }

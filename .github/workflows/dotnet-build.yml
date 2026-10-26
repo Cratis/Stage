@@ -260,10 +260,10 @@ jobs:
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
     needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')
       && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -382,10 +382,10 @@ jobs:
   # suite, so it runs next to the build job instead of inside it.
   generated-name-matrix:
     needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')
       && needs.routing.outputs.generated-name-matrix == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -438,7 +438,7 @@ jobs:
     # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')
+      && needs.dotnet-build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -595,10 +595,10 @@ jobs:
   # on its own backend against the pinned Chronicle kernel and runs the browser scenarios used against a live Stage.
   generated-react:
     needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -684,10 +684,10 @@ jobs:
   # application, builds it the way its author would and runs the template vector - slots filled, no overflow, layout, accessibility - against it.
   generated-react-blueprint-templates:
     needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')
       && needs.routing.outputs.generated-react-blueprint-templates == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30

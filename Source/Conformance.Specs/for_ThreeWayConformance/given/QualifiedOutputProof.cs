@@ -28,7 +28,7 @@ static class QualifiedOutputProof
         return (References(projects.Application), References(projects.Specifications));
     });
 
-    static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
+    static readonly CSharpParseOptions _parseOptions = new(documentationMode: DocumentationMode.Diagnose, preprocessorSymbols: ["DEBUG"]);
     static readonly CSharpCompilationOptions _options = new(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
     static ImmutableArray<MetadataReference> References(ScaffoldedProject project) =>
         [.. project.References.Select(reference => reference.Path).Distinct(StringComparer.Ordinal).Select(path => MetadataReference.CreateFromFile(path))];
@@ -157,6 +157,81 @@ static class QualifiedOutputProof
     }
 
     /// <summary>
+    /// Measures how short a rendered application is spelled: its compiler errors, its unused or duplicate usings, its
+    /// remaining <c language="csharp">global::</c> references and why each file kept its scope unknown, if it did.
+    /// </summary>
+    /// <param name="files">The rendered sources.</param>
+    /// <param name="qualified">The same application rendered in the fully qualified spelling, which is what the import rewrite reads to decide whether the scope is known.</param>
+    /// <returns>The measurement.</returns>
+    internal static RenderedMeasurement Measure(IReadOnlyList<RenderedFile> files, IReadOnlyList<RenderedFile> qualified)
+    {
+        var qualifiedByPath = qualified.GroupBy(file => file.RelativePath).ToDictionary(group => group.Key, group => group.First().Content, StringComparer.Ordinal);
+        var compiled = Compile(files);
+        var compilations = new[] { (compiled.Application, GeneratedProjects.Application), (compiled.Specifications, GeneratedProjects.Specifications) };
+        var inventory = compilations.SelectMany(entry => Declarations(entry.Item1)).Append(new(string.Empty, "Program")).Distinct().ToArray();
+        List<string> errors = [];
+        List<string> unused = [];
+        List<ResidualQualification> residuals = [];
+        Dictionary<string, UnknownScopeReason> reasons = new(StringComparer.Ordinal);
+        foreach (var (compilation, project) in compilations)
+        {
+            errors.AddRange(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.ToString()));
+            foreach (var tree in Rendered(compilation))
+            {
+                reasons[tree.FilePath] = new CSharpImports(project, inventory).Classify(WithoutUsings(qualifiedByPath.GetValueOrDefault(tree.FilePath, tree.ToString())), []);
+                unused.AddRange(compilation.GetSemanticModel(tree).GetDiagnostics().Where(diagnostic => diagnostic.Id is "CS8019" or "CS0105")
+                    .Select(diagnostic => $"{tree.FilePath}: {diagnostic.Id} {diagnostic.Location.GetLineSpan().StartLinePosition.Line + 1}"));
+                residuals.AddRange(ResidualQualifications(compilation.GetSemanticModel(tree), tree));
+            }
+        }
+
+        return new(errors, unused, residuals, reasons);
+    }
+
+    /// <summary>
+    /// Lists the fully qualified type names a file still spells with <c language="csharp">global::</c>.
+    /// </summary>
+    /// <param name="model">The semantic model of the file.</param>
+    /// <param name="tree">The file.</param>
+    /// <returns>Each residual reference.</returns>
+    static IEnumerable<ResidualQualification> ResidualQualifications(SemanticModel model, SyntaxTree tree)
+    {
+        var root = tree.GetRoot();
+        var declared = root.DescendantNodes().Select(node => model.GetDeclaredSymbol(node)).OfType<ISymbol>()
+            .Where(symbol => symbol is IFieldSymbol or IPropertySymbol or IParameterSymbol or ILocalSymbol or IMethodSymbol or IEventSymbol)
+            .Select(symbol => symbol.Name).ToHashSet(StringComparer.Ordinal);
+        var referenced = root.DescendantNodes().OfType<SimpleNameSyntax>()
+            .Select(name => model.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().Select(symbol => symbol.OriginalDefinition).Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default).ToArray();
+        foreach (var alias in root.DescendantNodes().OfType<AliasQualifiedNameSyntax>().Where(name => !name.Ancestors().OfType<UsingDirectiveSyntax>().Any()))
+        {
+            SyntaxNode node = alias;
+            INamedTypeSymbol? type = null;
+            while (true)
+            {
+                type = model.GetSymbolInfo(node).Symbol as INamedTypeSymbol ?? model.GetTypeInfo(node).Type as INamedTypeSymbol;
+                if (type is not null) break;
+                var parent = node.Parent;
+                if (parent is QualifiedNameSyntax qualified && qualified.Left == node) node = qualified;
+                else if (parent is MemberAccessExpressionSyntax access && access.Expression == node) node = access;
+                else break;
+            }
+
+            var simple = type?.Name ?? node.ToString();
+            var collides = declared.Contains(simple) ||
+                referenced.Count(candidate => candidate.Name == simple) > 1 ||
+                model.Compilation.GlobalNamespace.GetNamespaceMembers().Any(@namespace => @namespace.Name == simple);
+            yield return new(tree.FilePath, type?.ContainingNamespace.ToDisplayString() ?? string.Empty, simple, node.ToString(), collides);
+        }
+    }
+
+    static string WithoutUsings(string source)
+    {
+        var root = CSharpSyntaxTree.ParseText(source, _parseOptions).GetCompilationUnitRoot();
+        var stripped = root.RemoveNodes(root.DescendantNodes().OfType<UsingDirectiveSyntax>(), SyntaxRemoveOptions.KeepNoTrivia) ?? root;
+        return stripped.ToFullString();
+    }
+
+    /// <summary>
     /// Requires an independently rendered proof fixture to compile, not merely to reproduce the same errors.
     /// </summary>
     /// <param name="files">The rendered sources.</param>
@@ -203,4 +278,27 @@ static class QualifiedOutputProof
                 _ => 0
             }));
 }
+
+/// <summary>
+/// A type a rendered file still spells with <c language="csharp">global::</c>.
+/// </summary>
+/// <param name="Path">The file.</param>
+/// <param name="Namespace">The namespace of the type, or empty when it did not resolve to a type.</param>
+/// <param name="Name">The simple name of the type.</param>
+/// <param name="Text">The qualified text as written.</param>
+/// <param name="Collides">Whether the simple name is also another type, a member or local, or a root namespace in that compilation.</param>
+sealed record ResidualQualification(string Path, string Namespace, string Name, string Text, bool Collides);
+
+/// <summary>
+/// How short a rendered application is spelled.
+/// </summary>
+/// <param name="CompilationErrors">Every compiler error of both scaffold projects.</param>
+/// <param name="UnusedUsings">Every unused or duplicate using directive.</param>
+/// <param name="Residuals">Every remaining <c language="csharp">global::</c> type reference.</param>
+/// <param name="UnknownScope">Why a file kept every type qualified, by path.</param>
+sealed record RenderedMeasurement(
+    IReadOnlyList<string> CompilationErrors,
+    IReadOnlyList<string> UnusedUsings,
+    IReadOnlyList<ResidualQualification> Residuals,
+    IReadOnlyDictionary<string, UnknownScopeReason> UnknownScope);
 #endif

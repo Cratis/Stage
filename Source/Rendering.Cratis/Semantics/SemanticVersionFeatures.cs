@@ -358,7 +358,7 @@ internal static class SemanticVersionFeatures
             {
                 if (trigger.RequirementId is not null)
                 {
-                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                    yield return ReactionBodyFeature(reaction, trigger);
                 }
 
                 foreach (var feature in NonEventTrigger(reaction, trigger)) yield return feature;
@@ -614,6 +614,18 @@ internal static class SemanticVersionFeatures
             yield return new(ProtectedReadRequirementSeverity, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has a non-Error requirement on protected reads; Stage refuses this severity until Screenplay defines its semantics.");
         }
     }
+
+    internal static bool HasStandaloneEventBody(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
+        trigger.Kind == SemanticReactionTriggerKind.Event && reaction.Triggers.Length == 1 &&
+        trigger.Produces.IsEmpty && trigger.Invokes.IsEmpty && reaction.RunsAs is null;
+
+    internal static IEnumerable<SemanticVersionFeature> StandaloneReactionBodiesInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers
+            .Where(trigger => trigger.RequirementId is not null && HasStandaloneEventBody(reaction, trigger))
+            .Select(trigger => ReactionBodyFeature(reaction, trigger)));
+
+    static SemanticVersionFeature ReactionBodyFeature(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
+        new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
 
     static IEnumerable<SemanticVersionFeature> UnknownValidationRules(
         IEnumerable<SemanticValidationRule> rules, SemanticId owner, string kind, string name) =>

@@ -28,6 +28,7 @@ internal static class SemanticVersionFeatureAdmission
         var features = slices.Select(located => located.Slice).SelectMany(slice =>
             SemanticVersionFeatures.InSlice(slice).Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+                .Except(SemanticVersionFeatures.StandaloneReactionBodiesInSlice(slice))
                 .Except(SemanticTranslationAdmission.AdmittedFeatures(slice, context))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))

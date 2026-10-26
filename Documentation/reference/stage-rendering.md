@@ -26,35 +26,34 @@ rather than placeholders. A name no package declares renders a placeholder that 
 
 ## Guarded actions and interactions
 
-A simple `action … execute <Command>` translates to `core:action`. A guarded action with ordered
-`when … execute` alternatives and an `otherwise` also translates to `core:action`, carrying its alternatives,
-their guards and the fallback. The Stage frontend runtime (the `@cratis/stage.runtime` package), which a live Stage
-and a generated React application both render with, evaluates the guard against the item the screen's nearest `data` declaration reads:
+A simple `action … execute <Command>` translates to `core:action`. Guarded `when … execute` alternatives
+translate to Scene 4.83.0's `core:guarded-action`, carrying typed conditions, subject references and an optional
+fallback. Stage binds the nearest `data` declaration's query, route and screen-key arguments to the component's
+`item`; a collection supplies its selected row instead. Scene selects and executes the branch through Stage's
+registered Arc commands, for both live and generated applications.
 
-- The first alternative whose guard holds is the command the action executes, with its `with` values read from
-  the item. A missing or null field does not match.
-- When no alternative holds, `otherwise hidden` renders nothing, and `otherwise execute <Command>` offers that
-  command instead.
-- Without an item, the action is not offered at all, even if it has a fallback command.
-- The guard is evaluated again whenever the item changes, so the action follows the data.
+- Only the first matching alternative executes, with its `with` values read from the item.
+- A missing field never matches. A present null matches only `== null`.
+- When no alternative holds, `otherwise hidden` renders nothing; `otherwise execute <Command>` offers that command.
+- No fallback is invented. Without an item or selected row, the action is hidden, even if it has a fallback command.
+- The action follows changes to the item and prevents duplicate execution while its command is pending.
 
-Guarded `on click`, `on double click`, and `on select` interactions translate to one Scene interaction binding
-per branch, in authored order. The Scene interaction engine runs exactly the branch that holds for the row the
-interaction happened on, or the `otherwise` actions when none does, and runs nothing without a row. A table that
-declares a double click delays its single-row click briefly, so a double click on a row does not first select or
-navigate.
+Guarded `on click`, `on double click` and `on select` interactions translate to one Scene interaction binding
+containing ordered `alternatives` and optional `otherwise` actions. Scene selects the first matching branch for
+the row the interaction happened on, or otherwise when none matches. Without a row it runs nothing. A double
+click does not first select or navigate through the single-click handler.
 
-### Guards Stage cannot evaluate
+Scene evaluates comparisons of `item.<field>` with literals using `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`
+and `startswith`, including nested `and` and `or` and enumeration membership. References use `subject`, not
+render-time `path` bindings. Unqualified paths are not implicitly prefixed with `item.`; they remain unsupported.
+An unevaluable condition refuses the whole selection rather than taking a different branch or the fallback.
 
-Stage evaluates guards that compare `item.<field>` with a literal using `==`, `!=`, `>`, `>=`, `<`, `<=`,
-`contains` or `startswith`, combined with `and` and `or`. Any other guard, and any fallback other than `hidden`
-or an `execute` that names a command, is refused rather than guessed at: runnable application rendering and
-live Host serving refuse a guarded action with `STAGE-SCENE-ACTION-001` and a guarded interaction with
-`STAGE-SCENE-INTERACTION-001`, identifying it and its source location when source is available. This also
-applies inside sections and template slots, and to guarded actions supplied as Scene JSON. The Host records
-these refusals as unsupported capabilities: `/stage/status` reports `unsupported`, and `/api` requests return
-HTTP 501 rather than executing an unconditional action. If such a guard reaches the frontend runtime anyway, the
-action is shown disabled with the diagnostic and never executes.
+Unsupported source or Scene JSON stays refused with `STAGE-SCENE-ACTION-001` or `STAGE-SCENE-INTERACTION-001`,
+including inside sections and template slots. The Host records the capability refusal in `/stage/status` and
+returns HTTP 501 rather than executing an unconditional action. A runtime action without a data declaration or
+whose subject query fails shows `STAGE-SCENE-ACTION-001`; an unsupported predicate that reaches Scene shows
+its disabled action and `SCENE-GUARD-001`. Neither executes a command. Legacy `$guard` envelopes are not emitted
+and remain refused.
 
 ## Conversion diagnostics
 

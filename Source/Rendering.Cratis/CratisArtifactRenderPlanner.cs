@@ -86,11 +86,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static ArtifactRenderPlan PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var artifacts = new List<PlannedArtifact>();
-        if (!SemanticVersionFeatures.Supports(request.Model))
-        {
-            // No audited semantic surface means later gates cannot interpret the model meaningfully.
-            return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
-        }
+        var range = AdmitVersion(request, options);
+        if (!range.IsAdmitted) return CreatePlan(request, [], [.. range.Diagnostics]);
+        diagnostics.AddRange(range.Diagnostics);
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
@@ -223,7 +221,19 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
-        return CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
+    }
+
+    // Only a pair inside the declared range is interpreted; every other unaudited pair is refused before any context is built.
+    static CratisEsmRangeVerdict AdmitVersion(ArtifactRenderRequest request, CratisRenderingOptions options)
+    {
+        var standing = SemanticVersionFeatures.Supports(request.Model)
+            ? EsmVersionStanding.Audited
+            : CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
+        return standing == EsmVersionStanding.NewerWithinRange
+            ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
+            : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
     }
 
     static (List<PlannedArtifact> Artifacts, ImmutableArray<ArtifactImplementationGap> Gaps) AddPerformerGaps(ArtifactRenderRequest request, IEnumerable<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)

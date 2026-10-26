@@ -12,18 +12,20 @@ static class ArtifactRenderReportWriter
         using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, ArtifactRenderInventoryWriter.Options);
         writer.WriteStartObject();
-        writer.WriteString("schemaVersion", ArtifactRenderReports.SchemaVersion);
+        var ranged = context.Support.DeclaredRange is not null;
+        writer.WriteString("schemaVersion", ranged ? ArtifactRenderReports.RangeSchemaVersion : ArtifactRenderReports.SchemaVersion);
         writer.WriteString("scoreVersion", ArtifactRenderConstructWeights.Version);
         writer.WriteString("inputLanguageVersion", context.Input.Language.ToString());
         writer.WriteString("inputSemanticVersion", context.Input.Semantics.ToString());
         WriteProvider(writer, plan);
-        WriteSupport(writer, context.Support);
+        WriteSupport(writer, context);
         WritePacks(writer, context);
         WriteScopes(writer, plan);
         writer.WriteString("outcome", plan.Outcome.ToCanonicalName());
         writer.WriteBoolean("strict", plan.Strict);
         writer.WriteBoolean("success", plan.Success);
         writer.WriteBoolean("canPublishArtifacts", plan.CanPublishArtifacts);
+        if (ranged) WritePlanEvidence(writer, plan);
         writer.WritePropertyName("inventory");
         ArtifactRenderInventoryWriter.Write(writer, plan.Inventory!);
         writer.WriteEndObject();
@@ -42,11 +44,14 @@ static class ArtifactRenderReportWriter
         writer.WriteEndObject();
     }
 
-    static void WriteSupport(Utf8JsonWriter writer, ArtifactRenderAuditedSupport support)
+    static void WriteSupport(Utf8JsonWriter writer, ArtifactRenderReportContext context)
     {
+        var support = context.Support;
+        var range = support.DeclaredRange;
         writer.WriteStartObject("support");
-        writer.WriteString("version", ArtifactRenderAuditedSupport.Version);
-        writer.WriteString("policy", ArtifactRenderAuditedSupport.Policy);
+        writer.WriteString("version", range is null ? ArtifactRenderAuditedSupport.Version : ArtifactRenderAuditedSupport.RangeVersion);
+        writer.WriteString("policy", range is null ? ArtifactRenderAuditedSupport.Policy : ArtifactRenderAuditedSupport.RangePolicy);
+        if (range is not null) WriteRange(writer, context, range);
         writer.WriteStartArray("auditedPairs");
         foreach (var pair in support.AuditedPairs)
         {
@@ -57,6 +62,35 @@ static class ArtifactRenderReportWriter
         }
         writer.WriteEndArray();
         writer.WriteEndObject();
+    }
+
+    static void WriteRange(Utf8JsonWriter writer, ArtifactRenderReportContext context, ArtifactRenderDeclaredRange range)
+    {
+        writer.WriteStartObject("declaredRange");
+        writer.WriteString("minimumLanguageVersion", range.Minimum.Language.ToString());
+        writer.WriteString("minimumSemanticVersion", range.Minimum.Semantics.ToString());
+        writer.WriteNumber("exclusiveMajor", range.ExclusiveMajor);
+        writer.WriteEndObject();
+        writer.WriteStartObject("effective");
+        writer.WriteString("policy", context.Support.AuditedPairs.Contains(context.Input) ? "Audited" : "NewerWithinDeclaredRange");
+        writer.WriteString("languageVersion", context.Input.Language.ToString());
+        writer.WriteString("semanticVersion", context.Input.Semantics.ToString());
+        writer.WriteEndObject();
+    }
+
+    static void WritePlanEvidence(Utf8JsonWriter writer, ArtifactRenderPlan plan)
+    {
+        writer.WriteStartArray("planEvidence");
+        foreach (var gap in plan.PlanEvidence)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("code", gap.Diagnostic.Code);
+            writer.WriteString("identity", gap.Diagnostic.Artifact.ToString());
+            writer.WriteString("message", gap.Diagnostic.Message);
+            writer.WriteString("remedy", gap.Remedy);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
     }
 
     static void WritePacks(Utf8JsonWriter writer, ArtifactRenderReportContext context)

@@ -351,7 +351,7 @@ internal sealed class SemanticApplicationContext
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
             .Select(_ => _.Type.Target)
-            .Concat(Request.Model.SemanticVersion == SemanticVersion.V32
+            .Concat(Request.Model.SemanticVersion.Major == SemanticVersion.V32.Major
                 ? _slices.Values.Where(located => !located.Slice.Captures.IsDefaultOrEmpty)
                     .SelectMany(located => located.Slice.Captures).SelectMany(capture => capture.Appends)
                     .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)

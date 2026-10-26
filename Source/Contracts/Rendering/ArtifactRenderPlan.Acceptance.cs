@@ -14,11 +14,19 @@ public sealed partial class ArtifactRenderPlan
     /// <summary>Gets the validated root degradations, in ordinal semantic-identity, code and message order.</summary>
     public ImmutableArray<ArtifactRenderDegradation> Degradations { get; private init; } = [];
 
+    /// <summary>
+    /// Gets plan-level degradation evidence, in ordinal order. It is validated against original warnings and promoted by strict acceptance
+    /// like a degradation, but it names no selected construct, so it is excluded from the inventory, completeness score and construct gaps.
+    /// </summary>
+    public ImmutableArray<ArtifactRenderDegradation> PlanEvidence { get; private init; } = [];
+
     /// <summary>Gets whether validated degradations fail acceptance. Defaults to false.</summary>
     public bool Strict { get; private init; }
 
     /// <summary>Gets whether original generation diagnostics permit publication, independently of strict acceptance.</summary>
     public bool CanPublishArtifacts => GenerationDiagnostics.All(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Error);
+
+    bool HasAcceptance => Strict || !Degradations.IsEmpty || !PlanEvidence.IsEmpty;
 
     ImmutableArray<ArtifactRenderDiagnostic> GenerationDiagnostics => _generationDiagnostics ?? Diagnostics;
 
@@ -33,12 +41,20 @@ public sealed partial class ArtifactRenderPlan
     /// <exception cref="InvalidArtifactRenderContract">Evidence is malformed or does not match an original public degradation warning.</exception>
     public ArtifactRenderPlan WithAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict = false) => ApplyAcceptance(degradations, strict, Inventory);
 
-    ArtifactRenderPlan ApplyAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict, ArtifactRenderInventory? inventory)
+    /// <summary>Records plan-level, non-scored degradation evidence. Applying acceptance or an inventory afterwards retains it.</summary>
+    /// <param name="evidence">Original warning evidence and remedies. Default arrays and duplicate warnings are invalid.</param>
+    /// <returns>A new immutable plan. A non-empty set makes a publishable plan at least degraded.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Evidence is malformed or does not match an original public degradation warning.</exception>
+    public ArtifactRenderPlan WithPlanEvidence(ImmutableArray<ArtifactRenderDegradation> evidence) =>
+        ApplyAcceptance(Degradations, Strict, Inventory, ArtifactRenderDegradation.Normalize(evidence, GenerationDiagnostics));
+
+    ArtifactRenderPlan ApplyAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict, ArtifactRenderInventory? inventory, ImmutableArray<ArtifactRenderDegradation>? planEvidence = null)
     {
+        var retained = planEvidence ?? PlanEvidence;
         var original = GenerationDiagnostics;
         var normalized = ArtifactRenderDegradation.Normalize(degradations, original);
         if (inventory is not null && !normalized.ToHashSet().SetEquals(inventory.Evidence)) throw new InvalidArtifactRenderContract("Acceptance evidence must agree with the attached inventory.");
-        var evidence = normalized.Select(gap => gap.Diagnostic).ToHashSet();
+        var evidence = normalized.Concat(retained).Select(gap => gap.Diagnostic).ToHashSet();
         var accepted = original.Select(diagnostic => strict && evidence.Contains(diagnostic)
             ? diagnostic with { Severity = ArtifactRenderDiagnosticSeverity.Error } : diagnostic).ToImmutableArray();
         return new(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, SemanticRevision, Artifacts, accepted, ImplementationGaps, Refusals, RequiredRemovals)
@@ -46,6 +62,7 @@ public sealed partial class ArtifactRenderPlan
             Scope = Scope,
             AdditionalScopes = AdditionalScopes,
             Degradations = normalized,
+            PlanEvidence = retained,
             Strict = strict,
             InputVersions = InputVersions,
             _generationDiagnostics = original,
@@ -55,7 +72,7 @@ public sealed partial class ArtifactRenderPlan
 
     string AcceptanceDigest(string original)
     {
-        if (Degradations.IsEmpty && !Strict) return original;
+        if (!HasAcceptance) return original;
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, new UTF8Encoding(false), leaveOpen: true);
         writer.Write("stage-acceptance-v1");
@@ -68,6 +85,18 @@ public sealed partial class ArtifactRenderPlan
             writer.Write(gap.Diagnostic.Code);
             writer.Write(gap.Diagnostic.Message);
             writer.Write(gap.Remedy);
+        }
+        if (!PlanEvidence.IsEmpty)
+        {
+            writer.Write("plan-evidence");
+            writer.Write(PlanEvidence.Length);
+            foreach (var gap in PlanEvidence)
+            {
+                writer.Write(gap.Diagnostic.Artifact.ToString());
+                writer.Write(gap.Diagnostic.Code);
+                writer.Write(gap.Diagnostic.Message);
+                writer.Write(gap.Remedy);
+            }
         }
         writer.Flush();
         return Convert.ToHexString(SHA256.HashData(stream.ToArray())).ToLowerInvariant();

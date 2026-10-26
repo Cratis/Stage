@@ -30,8 +30,9 @@ internal static partial class SemanticCratisAdmission
         // Standalone admission callers still need the version gates; the planner has already run them.
         if (!SemanticVersionFeatures.Supports(context.Request.Model))
         {
-            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", context.Application.Id));
-            return [.. diagnostics];
+            var range = CratisEsmRangeAdmission.Evaluate(context.Request, context);
+            diagnostics.AddRange(range.Diagnostics);
+            if (!range.IsAdmitted) return [.. diagnostics];
         }
 
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));

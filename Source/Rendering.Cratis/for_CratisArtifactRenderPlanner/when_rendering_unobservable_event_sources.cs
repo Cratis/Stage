@@ -26,6 +26,16 @@ public class when_rendering_unobservable_event_sources
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    void should_plan_the_v27_corpus_without_throwing(bool golden)
+    {
+        var bytes = golden ? EsmGoldenVectors.Get(27).Bytes : CompositeReadModelKeysCorpus.V27.EsmBytes;
+        var model = SemanticModelSerializer.Deserialize(bytes.AsSpan());
+        Assert.Null(Record.Exception(() => invoice_model.Plan(model)));
+    }
+
+    [Theory]
     [InlineData(false, "RecreateRemovedParts")]
     [InlineData(true, "Recreate")]
     void should_render_the_composite_keyed_recreation(bool golden, string name)

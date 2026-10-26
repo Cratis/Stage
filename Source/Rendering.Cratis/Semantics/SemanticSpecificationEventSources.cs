@@ -13,9 +13,7 @@ internal static class SemanticSpecificationEventSources
     internal static bool RequiresSource(SemanticApplicationContext context, SemanticId contract, bool routed = false) =>
         routed || context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == contract)) ||
         SemanticSpecificationAdmission.IsReactionConstraintTarget(context, contract) ||
-        SemanticSpecificationAdmission.EventReactionTriggers(context).Any(trigger => trigger.Source == contract) ||
-        context.Commands.Values.Any(command => command.Produces.Any(produced => produced.EventContract == contract &&
-            (command.Route is not null || produced.Route is not null))) ||
+        ReactionObservesSource(context, contract) || RoutedProductionObservesSource(context, contract) ||
         context.Projections.Values.Any(projection => ObservesSource(projection, contract));
 
     internal static string Expression(SemanticApplicationContext context, SemanticTypeSystem types, SemanticSpecificationEvent fact)
@@ -33,31 +31,40 @@ internal static class SemanticSpecificationEventSources
         return CSharpCodeBuilder.StringLiteral(Placeholder);
     }
 
+    static bool ReactionObservesSource(SemanticApplicationContext context, SemanticId contract) =>
+        SemanticVersionFeatures.Slices(context.Request.Model.Application)
+            .SelectMany(slice => slice.Reactions)
+            .SelectMany(reaction => reaction.Triggers)
+            .Any(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == contract);
+
+    static bool RoutedProductionObservesSource(SemanticApplicationContext context, SemanticId contract) =>
+        context.Commands.Values.Any(command => command.Produces.Any(produced => produced.EventContract == contract &&
+            (command.Route is not null || produced.Route is not null)));
+
     static bool ObservesSource(SemanticProjection projection, SemanticId contract) => projection.Scope is { } scope
         ? ObservesSource(scope, contract, false)
         : projection.Transitions.Any(transition => transition.EventContract == contract);
 
-    static bool ObservesSource(SemanticProjectionScope scope, SemanticId contract, bool child)
-    {
-        if (scope.Every is { SubscribesToAllEvents: true })
-        {
-            return true;
-        }
-        if (scope.Every is { } every && Projections.ProjectionReferencedEventNamesAreUnique.ScopeEvents(scope).Contains(contract) &&
-            every.Mappings.Any(ReadsSource))
-        {
-            return true;
-        }
+    static bool ObservesSource(SemanticProjectionScope scope, SemanticId contract, bool child) =>
+        EveryObservesSource(scope, contract) ||
+        scope.From.Any(contribution => ObservesSource(contribution, contract, child)) ||
+        scope.Removals.Any(removal => ObservesSource(removal, contract, child)) ||
+        scope.Joins.Any(join => join.EventContract == contract) ||
+        scope.JoinRemovals.Any(removal => removal.EventContract == contract && ObservesSource(removal.Key)) ||
+        scope.Children.Any(nested => ObservesSource(nested.Scope, contract, true)) ||
+        scope.Nested.Any(nested => ObservesSource(nested.Scope, contract, child));
 
-        return scope.From.Any(from => from.EventContract == contract &&
-                (ObservesSource(from.Key) || ObservesParent(from.ParentKey, child) || from.Mappings.Any(ReadsSource))) ||
-            scope.Removals.Any(removal => removal.EventContract == contract &&
-                (ObservesSource(removal.Key) || ObservesParent(removal.ParentKey, child))) ||
-            scope.Joins.Any(join => join.EventContract == contract) ||
-            scope.JoinRemovals.Any(removal => removal.EventContract == contract && ObservesSource(removal.Key)) ||
-            scope.Children.Any(nested => ObservesSource(nested.Scope, contract, true)) ||
-            scope.Nested.Any(nested => ObservesSource(nested.Scope, contract, child));
-    }
+    static bool EveryObservesSource(SemanticProjectionScope scope, SemanticId contract) =>
+        scope.Every is { SubscribesToAllEvents: true } ||
+        (scope.Every is { } every && Projections.ProjectionReferencedEventNamesAreUnique.ScopeEvents(scope).Contains(contract) &&
+            every.Mappings.Any(ReadsSource));
+
+    static bool ObservesSource(SemanticProjectionFrom contribution, SemanticId contract, bool child) =>
+        contribution.EventContract == contract &&
+        (ObservesSource(contribution.Key) || ObservesParent(contribution.ParentKey, child) || contribution.Mappings.Any(ReadsSource));
+
+    static bool ObservesSource(SemanticProjectionRemoval removal, SemanticId contract, bool child) =>
+        removal.EventContract == contract && (ObservesSource(removal.Key) || ObservesParent(removal.ParentKey, child));
 
     static bool ObservesParent(SemanticProjectionKey? key, bool child) => key is null ? child : ObservesSource(key);
 

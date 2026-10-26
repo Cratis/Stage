@@ -119,7 +119,7 @@ internal static class SemanticPolicyNames
             .FirstOrDefault(group => group.Select(name => name.Sources).Distinct().Count() > 1);
         if (conflict is not null)
         {
-            throw new InvalidOperationException($"Operations {string.Join(", ", conflict.SelectMany(name => name.Sources).Distinct())} bind the policy '{conflict.First().Name}' differently and cannot be given distinct policy class names.");
+            throw new ConflictingPolicyBindings([.. conflict.SelectMany(name => name.Sources).Distinct()], conflict.First().Name);
         }
     }
 

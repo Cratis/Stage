@@ -174,6 +174,13 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(Error("STAGE-ESM-021", exception.Message, artifact));
         }
+        catch (ConflictingPolicyBindings exception)
+        {
+            foreach (var operation in exception.Operations.IsEmpty ? [artifact] : exception.Operations)
+            {
+                diagnostics.Add(Error(ConflictingPolicyBindings.Code, exception.Message, operation));
+            }
+        }
     }
 
     static void ValidateReservedNamespace(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)

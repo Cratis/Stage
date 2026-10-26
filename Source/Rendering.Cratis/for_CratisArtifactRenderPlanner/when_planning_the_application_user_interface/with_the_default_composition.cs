@@ -23,5 +23,6 @@ public class with_the_default_composition : a_register_project_render_request
 
     [Fact] void should_plan_the_application() => _plan.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeFalse();
     [Fact] void should_compose_the_shared_user_interface() => _plan.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("src/bindings.ts");
-    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_plan).ShouldEqual(Before);
+    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_plan, beforeSchemaForwarding: true).ShouldEqual(Before);
+    [Fact] void should_add_only_the_schema_forwarding() => PlanFingerprint.Of(_plan).ShouldEqual("4143a3f5e8c6380fb3b50a0036a04944c60d5207d9027cc3f21f3135d765d4ed");
 }

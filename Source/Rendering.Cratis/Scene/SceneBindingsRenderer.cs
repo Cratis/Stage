@@ -55,8 +55,8 @@ internal static class SceneBindingsRenderer
     /// </remarks>
     public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Export: GeneratedPascalCase.From(command.Name), Module: Module(slice))))
-            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
+        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Id, Name: context.SceneCommands.ById[command.Id].Key, Export: GeneratedPascalCase.From(command.Name), Module: Module(slice))))
+            .DistinctBy(command => command.Id)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
             .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__sceneCommand{index}"))
             .ToArray();

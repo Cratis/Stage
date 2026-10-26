@@ -1,12 +1,13 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
-import type { ComponentProps, CSSProperties, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import type { ComponentProps, CSSProperties, FormEvent, ReactNode } from 'react';
+import type { CommandFormHandle } from '@cratis/arc.react/commands';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
-import { DateOnly } from '@cratis/fundamentals';
+import { DateOnly, Guid } from '@cratis/fundamentals';
 import { registeredCommand, commandOutcome, withHostedBasePath } from './commandExecutor';
 import { CommandForm as NativeCommandForm, withCommandFormFieldBinding } from '@cratis/arc.react/commands';
 import { CheckboxField, InputTextField, NumberField, CalendarField, DropdownField } from '@cratis/components/CommandForm';
@@ -26,6 +27,11 @@ export type { SchemaProperty };
  * - the next step of a wizard - is reachable again. A form outside a dialog has nothing to close.
  */
 export const StageDialogContext = createContext<(() => void) | undefined>(undefined);
+
+type NativeInstance = { active: boolean; pending: boolean; handle: CommandFormHandle };
+
+/** Private lifetime of a Stage-owned command dialog; not a request cancellation signal. */
+export const StageCommandSessionContext = createContext<{ active: boolean } | undefined>(undefined);
 
 interface NativeFormProperties {
     command: string;
@@ -53,7 +59,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
-    const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
+    const argumentValues = useArgumentValues(element, fields, schema, data.resolveArgument);
     const answered = usePopulatedValues(element, schema, data);
 
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
@@ -67,6 +73,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
+    const { formRef, submit, whenCurrent } = useNativeSubmission(populationKey, commandType);
 
     if (!form) return <p className='stage-note'>This form is missing its command metadata.</p>;
     if (!commandType && !data.routesReady) return <p className='stage-note'>The modeled command “{form.command}” is waiting for Stage routes.</p>;
@@ -78,9 +85,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
 
     return (
-        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
+        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode} onSubmitCapture={submit}>
             <NativeCommandForm
                 key={populationKey}
+                formRef={formRef}
                 command={commandType}
                 initialValues={initialValues}
                 currentValues={argumentValues}
@@ -88,10 +96,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
-                onException={exceptionMessages => setMessages(exceptionMessages)}
-                onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
-                onSuccess={() => {
+                onValidationFailure={whenCurrent((validation: Parameters<typeof unboundValidationMessages>[1]) => setMessages(unboundValidationMessages(fields, validation)))}
+                onException={whenCurrent((exceptionMessages: string[]) => setMessages(exceptionMessages))}
+                onFailed={whenCurrent((result: Parameters<typeof commandOutcome>[1]) => setMessages(commandOutcome(form.command, result).messages))}
+                onSuccess={whenCurrent(() => {
                     setMessages([]);
                     data.refreshAfterCommand();
 
@@ -99,7 +107,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                     const destination = text(element, 'navigateToScreen');
                     if (destination) navigateToScreen(destination, {});
                     closeDialog?.();
-                }}>
+                })}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
@@ -107,6 +115,43 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
             </NativeCommandForm>
         </section>
     );
+}
+
+function useNativeSubmission(populationKey: string, commandType: unknown) {
+    const session = useContext(StageCommandSessionContext);
+    const [instance, setInstance] = useState<NativeInstance>();
+    const currentInstance = useRef<NativeInstance | undefined>(undefined);
+    const formRef = useCallback((handle: CommandFormHandle | null) => {
+        if (currentInstance.current) currentInstance.current.active = false;
+        const replacement = handle ? { active: true, pending: false, handle } : undefined;
+        currentInstance.current = replacement;
+        if (replacement) setInstance(replacement);
+    }, [populationKey, commandType, session]);
+    const isCurrent = () => isCurrentNativeInstance(instance, currentInstance.current, session);
+    const submit = async (event: FormEvent<HTMLElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const captured = instance;
+        if (!captured) return;
+        if (!isCurrent()) return;
+        if (captured.pending) return;
+        captured.pending = true;
+        try {
+            await captured.handle.execute();
+        } finally {
+            captured.pending = false;
+        }
+    };
+    const whenCurrent = <Value,>(callback: (value: Value) => void) => (value: Value) => {
+        if (isCurrent()) callback(value);
+    };
+    return { formRef, submit, whenCurrent };
+}
+
+function isCurrentNativeInstance(instance: NativeInstance | undefined, current: NativeInstance | undefined, session: { active: boolean } | undefined): boolean {
+    if (!instance?.active) return false;
+    if (session?.active === false) return false;
+    return current === instance;
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {
@@ -313,8 +358,13 @@ export function suppliedIdentifier(property: SchemaProperty, parameters: Record<
  */
 export function selectedIdentifier(property: SchemaProperty, selectedRows: Record<string, unknown>[]): string | undefined {
     if (!property.identifier) return undefined;
-    const values = new Set(selectedRows.map(row => row[property.name]).filter((value): value is string => typeof value === 'string' && value !== ''));
+    const values = new Set(selectedRows.map(row => identifierText(row[property.name])).filter((value): value is string => value !== undefined));
     return values.size === 1 ? [...values][0] : undefined;
+}
+
+function identifierText(value: unknown): string | undefined {
+    const text = value instanceof Guid ? value.toString() : value;
+    return typeof text === 'string' && text !== '' && text !== Guid.empty.toString() ? text : undefined;
 }
 
 /** Whether a row the person could select carries a property of this name - the key of an entity that already exists on the screen. */
@@ -328,8 +378,8 @@ export function carriedBy(property: SchemaProperty, rows: Record<string, unknown
  * the row that is its entity. A row that already carries a property of that name keeps it.
  */
 function withEntityKeys(row: Record<string, unknown>, query: StageDataState['queries'][string]): Record<string, unknown> {
-    const key = row.id;
-    if (typeof key !== 'string' || key === '') return row;
+    const key = identifierText(row.id);
+    if (key === undefined) return row;
     const words = `${query.alias ?? ''} ${query.name ?? ''}`.match(/[A-Z][a-z0-9]+/g) ?? [];
     const aliases = Object.fromEntries(words.map(word => `${word.charAt(0).toLowerCase()}${word.slice(1)}Id`).filter(name => !Object.hasOwn(row, name)).map(name => [name, key]));
     return Object.keys(aliases).length === 0 ? row : { ...aliases, ...row };
@@ -441,26 +491,37 @@ interface ArgumentMapping {
  * another row is selected, the input is edited - the field follows it, and edits in other fields stay. A source
  * that resolves to nothing supplies nothing, so the route parameter, or an empty field, stays.
  */
-function useArgumentValues(element: ExternalComponent, fields: FormField[], resolveArgument: (source: string | undefined) => unknown): StageCommandContent | undefined {
-    const mapping = useMemo(() => argumentMapping(element, fields), [element, fields]);
+function useArgumentValues(element: ExternalComponent, fields: FormField[], schema: SchemaProperty[], resolveArgument: (source: string | undefined) => unknown): StageCommandContent | undefined {
+    const mapping = useMemo(() => argumentMapping(element, fields, schema), [element, fields, schema]);
     const resolved = mapping.map(argument => resolveArgument(argument.source));
 
     // `resolved` is a new array on every render; its serialized form says whether a value actually changed.
     const key = JSON.stringify(resolved);
+    const supplied = useRef(new Set<string>());
     return useMemo(() => {
-        const values = Object.fromEntries(mapping
-            .map((argument, index) => [argument.name, resolved[index]] as const)
-            .filter(([, value]) => value !== undefined && value !== null && value !== ''));
+        const values = Object.fromEntries(mapping.flatMap<[string, unknown]>((argument, index) => {
+            const value = resolved[index];
+            if (hasArgumentValue(value)) {
+                supplied.current.add(argument.name);
+                return [[argument.name, value]];
+            }
+            // A source that was cleared must also clear its previously supplied native value.
+            return supplied.current.has(argument.name) ? [[argument.name, undefined]] : [];
+        }));
         return Object.keys(values).length > 0 ? values : undefined;
     }, [mapping, key]);
 }
 
-function argumentMapping(element: ExternalComponent, fields: FormField[]): ArgumentMapping[] {
+function hasArgumentValue(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== '';
+}
+
+function argumentMapping(element: ExternalComponent, fields: FormField[], schema: SchemaProperty[]): ArgumentMapping[] {
     const mapping = element.properties.arguments;
     if (!Array.isArray(mapping)) return [];
 
     // Only the command's own members can be seeded; an argument for anything else would never be submitted.
-    const members = new Set(fields.map(field => field.sourceProperty ?? field.name));
+    const members = new Set(schema.length > 0 ? schema.map(property => property.name) : fields.map(field => field.sourceProperty ?? field.name));
     return mapping.filter((argument): argument is ArgumentMapping =>
         typeof argument === 'object' && argument !== null &&
         typeof (argument as ArgumentMapping).name === 'string' &&

@@ -51,16 +51,16 @@ internal static class StageSceneDocument
     {
         var diagnostics = new ConversionDiagnostics();
         var schemas = context.Commands.Values
-            .GroupBy(command => command.Name, StringComparer.Ordinal)
-            .Select(group =>
+            .Select(command =>
             {
-                var properties = group.First().Properties.Where(property => !property.IsGenerated).ToArray();
+                var key = context.SceneCommands.ById[command.Id].Key;
+                var properties = command.Properties.Where(property => !property.IsGenerated).ToArray();
 
                 // Contracts serves semantic Host names. Only this generated application's transport uses CLR escapes.
                 var names = properties.ToDictionary(property => property.Name, context.MemberNames.WireProperty, StringComparer.Ordinal);
-                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), group.Key, SourceLocation.Start);
-                var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, group.Key, SourceLocation.Start);
-                return (Name: group.Key, Schema: schema, FieldSchema: fieldSchema, Names: names);
+                var schema = CommandFormSchemas.For(context.Application, properties.Select(property => property with { Name = names[property.Name] }), new ConversionDiagnostics(), key, SourceLocation.Start);
+                var fieldSchema = CommandFormSchemas.For(context.Application, properties, diagnostics, key, SourceLocation.Start);
+                return (Name: key, Schema: schema, FieldSchema: fieldSchema, Names: names);
             })
             .ToArray();
         if (diagnostics.HasErrors)
@@ -81,10 +81,9 @@ internal static class StageSceneDocument
         StripSampleData(document);
         EnrichColumns(document, context);
 
-        // A toolbar slice button opens a task dialog built from its command's schema, so the runtime document carries the schemas -
-        // and, from the canonical document, the structure - only where one is used. An application with no such button is
-        // byte-identical to what it was before slice buttons existed.
-        if (CanonicalSceneJson.NamesSlices(document))
+        // Both slice buttons and typed command toolbar targets open native task dialogs built from these schemas.
+        // Scenes using neither keep their existing bytes; command targets do not need slice structure.
+        if (CanonicalSceneJson.NamesSlices(document) || UsesCommandToolbar(document))
         {
             document["commandSchemas"] = new JsonObject(commands
                 .OrderBy(command => command.Key, StringComparer.Ordinal)
@@ -102,6 +101,21 @@ internal static class StageSceneDocument
         GeneratedSceneMemberNames.Arguments(document, commands.ToDictionary(pair => pair.Key, pair => pair.Value.Names, StringComparer.Ordinal));
         return CanonicalSceneJson.Write(document);
     }
+
+    static bool UsesCommandToolbar(JsonNode? node) => node switch
+    {
+        JsonArray array => array.Any(UsesCommandToolbar),
+        JsonObject element => IsCommandToolbar(element) || element.Any(property => UsesCommandToolbar(property.Value)),
+        _ => false
+    };
+
+    static bool IsCommandToolbar(JsonObject element) =>
+        element["componentName"]?.ToString() == "core:toolbarItem"
+        && element["properties"] is JsonObject properties
+        && properties["kind"]?.ToString() == "Action"
+        && properties["target"] is JsonValue target
+        && target.TryGetValue<string>(out var command)
+        && !string.IsNullOrWhiteSpace(command);
 
     static void EnrichColumns(JsonNode? node, SemanticApplicationContext context)
     {

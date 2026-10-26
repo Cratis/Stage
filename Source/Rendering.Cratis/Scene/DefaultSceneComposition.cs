@@ -58,8 +58,9 @@ internal static class DefaultSceneComposition
         ArgumentNullException.ThrowIfNull(slices);
 
         var commands = slices.SelectMany(slice => slice.Slice.Commands)
-            .DistinctBy(_ => _.Name, StringComparer.Ordinal)
-            .OrderBy(_ => _.Name, StringComparer.Ordinal)
+            .DistinctBy(command => command.Id)
+            .Select(command => (Command: command, context.SceneCommands.ById[command.Id].Key))
+            .OrderBy(_ => _.Key, StringComparer.Ordinal)
             .ToArray();
         var queries = slices.SelectMany(slice => slice.Slice.Queries).Select(query => context.Queries[query.Id])
             .GroupBy(_ => _.Name, StringComparer.Ordinal)
@@ -74,7 +75,7 @@ internal static class DefaultSceneComposition
             return null;
         }
 
-        var elements = commands.Select(command => CommandForm(context, command)).Concat(queries).ToArray();
+        var elements = commands.Select(command => CommandForm(context, command.Command, command.Key)).Concat(queries).ToArray();
         var screen = new SceneScreens.Screen(
             context.Application.Name,
             string.Empty,
@@ -190,7 +191,7 @@ internal static class DefaultSceneComposition
             : char.ToLowerInvariant(member[0]) + member[1..];
     }
 
-    static SceneElements.ExternalComponent CommandForm(SemanticApplicationContext context, SemanticCommand command)
+    static SceneElements.ExternalComponent CommandForm(SemanticApplicationContext context, SemanticCommand command, string key)
     {
         // Arc uses PascalCase CLR members for the proxy and camel-cases them except for leading acronyms.
         // A normalized collision would bind two different semantic values to one native descriptor.
@@ -212,7 +213,7 @@ internal static class DefaultSceneComposition
         {
             return new SceneElements.ExternalComponent
             {
-                Id = command.Name,
+                Id = key,
                 Name = command.Name,
                 ComponentName = "core:text",
                 Properties = new Dictionary<string, object?>(StringComparer.Ordinal) { ["text"] = invalid }
@@ -221,7 +222,7 @@ internal static class DefaultSceneComposition
 
         var form = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["command"] = command.Name,
+            ["command"] = key,
             ["submitLabel"] = "Submit"
         };
         if (explicitInputs && properties.Any(_ => _.Type == SemanticPrimitiveType.Uuid))
@@ -238,7 +239,7 @@ internal static class DefaultSceneComposition
 
         return new SceneElements.ExternalComponent
         {
-            Id = command.Name,
+            Id = key,
             Name = command.Name,
             ComponentName = CommandFormComponent,
             Properties = form

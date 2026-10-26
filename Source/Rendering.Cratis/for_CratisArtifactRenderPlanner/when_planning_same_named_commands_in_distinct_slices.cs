@@ -71,6 +71,14 @@ public class when_planning_same_named_commands_in_distinct_slices : a_register_p
         ];
     }
 
+    [Fact] void should_register_the_original_command_under_its_slice_key() => Content("src/bindings.ts").ShouldContain("\"$command$4:8:Projects12:Registration15:RegisterProject15:RegisterProject\": __sceneCommand1");
+    [Fact] void should_register_the_additional_command_under_its_slice_key() => Content("src/bindings.ts").ShouldContain("\"$command$4:8:Projects12:Registration13:RegisterAgain15:RegisterProject\": __sceneCommand0");
+    [Fact] void should_import_the_original_binding_from_its_own_slice() => Content("src/bindings.ts").ShouldContain("import { RegisterProject as __sceneCommand1 } from '../Projects/Registration/RegisterProject';");
+    [Fact] void should_import_the_additional_binding_from_its_own_slice() => Content("src/bindings.ts").ShouldContain("import { RegisterProject as __sceneCommand0 } from '../Projects/Registration/RegisterAgain';");
+    [Fact] void should_route_the_original_command_by_its_slice() => Content("src/stage.ts").ShouldContain("\"$command$4:8:Projects12:Registration15:RegisterProject15:RegisterProject\": new __stageCommand1().route");
+    [Fact] void should_route_the_additional_command_by_its_slice() => Content("src/stage.ts").ShouldContain("\"$command$4:8:Projects12:Registration13:RegisterAgain15:RegisterProject\": new __stageCommand0().route");
+    [Fact] void should_compose_the_original_command_reference() => Content("scene.json").ShouldContain("\"command\":\"$command$4:8:Projects12:Registration15:RegisterProject15:RegisterProject\"");
+    [Fact] void should_compose_the_additional_command_reference() => Content("scene.json").ShouldContain("\"command\":\"$command$4:8:Projects12:Registration13:RegisterAgain15:RegisterProject\"");
     [Fact] void should_be_publishable() => _plan.Success.ShouldBeTrue();
     [Fact] void should_not_report_a_command_name_collision() => _plan.Diagnostics.Select(_ => _.Code).ShouldNotContain("STAGE-ESM-011");
     [Fact] void should_render_the_original_slice() => _plan.Artifacts.Any(_ => _.RelativePath == OriginalPath).ShouldBeTrue();

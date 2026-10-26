@@ -7,6 +7,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -53,7 +54,8 @@ internal sealed class SemanticApplicationContext
         }
 
         Events = _slices.Values.SelectMany(_ => _.Slice.Events).ToDictionary(_ => _.Id);
-        Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).ToDictionary(_ => _.Id);
+        Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).DistinctBy(_ => _.Id).ToDictionary(_ => _.Id);
+        SceneCommands = new(AllSlices);
         ReadModels = _slices.Values.SelectMany(_ => _.Slice.ReadModels).ToDictionary(_ => _.Id);
         Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
         Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
@@ -148,6 +150,9 @@ internal sealed class SemanticApplicationContext
     /// Gets every append-time constraint in the application with the slice declaring it.
     /// </summary>
     public IReadOnlyList<(SemanticSlice Slice, SemanticConstraint Constraint)> Constraints { get; }
+
+    /// <summary>Gets the application-wide command identity and Scene key index.</summary>
+    internal SceneCommandIndex SceneCommands { get; }
 
     /// <summary>
     /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.

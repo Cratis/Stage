@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { registeredQuery } from './queryExecutor';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -11,7 +11,7 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, StageCommandSessionContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -249,16 +249,24 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    const session = useRef({ active: false });
     const close = useCallback(() => {
+        session.current.active = false;
         setVisible(false);
         setGeneration(current => current + 1);
     }, []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
+    const open = useCallback(() => {
+        session.current.active = false;
+        session.current = { active: true };
+        setGeneration(current => current + 1);
+        setVisible(true);
+    }, []);
+    const content = <StageCommandSessionContext.Provider value={session.current}><StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider></StageCommandSessionContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
-            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
+            <Button type='button' onClick={open}>{label}</Button>
+            <Dialog title={label} visible={visible} onClose={close} buttons={null} dismissable>{content}</Dialog>
         </div>
     );
 }
@@ -359,9 +367,11 @@ function StageToolbarCommand(props: RegisteredProps) {
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
+    const argumentsFromParameters = toolbarArguments(element);
+    const providedMembers = new Set(argumentsFromParameters.map(argument => argument.name));
+    const asked = properties.filter(property => !providedMembers.has(property.name) && !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { ...element.properties, command, label, rowAction: true, ...askedFields, arguments: argumentsFromParameters } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>
@@ -370,6 +380,12 @@ function StageToolbarCommand(props: RegisteredProps) {
                 : <StageAction element={action} interactions={props.interactions} slots={props.slots} />}
         </span>
     );
+}
+
+function toolbarArguments(element: ExternalComponent) {
+    if (!isRecord(element.properties.parameters)) return [];
+    return Object.entries(element.properties.parameters).flatMap(([name, binding]) =>
+        isRecord(binding) && typeof binding.path === 'string' ? [{ name, source: binding.path }] : []);
 }
 
 /**

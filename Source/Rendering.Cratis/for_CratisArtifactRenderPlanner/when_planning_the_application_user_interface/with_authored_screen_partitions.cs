@@ -21,5 +21,6 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
 
     [Fact] void should_plan_the_application() => _application.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeFalse();
     [Fact] void should_compose_the_shared_user_interface() => _application.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("scene.json");
-    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_application).ShouldEqual(Before);
+    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_application, beforeSchemaForwarding: true).ShouldEqual(Before);
+    [Fact] void should_add_only_the_schema_forwarding() => PlanFingerprint.Of(_application).ShouldEqual("e78b02ab1d4be4105f500cff3d0e553f69481c4a559084725c21240241d496e9");
 }

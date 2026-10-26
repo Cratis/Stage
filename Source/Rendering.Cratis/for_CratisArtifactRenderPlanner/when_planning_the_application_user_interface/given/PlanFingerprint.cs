@@ -17,13 +17,17 @@ public static class PlanFingerprint
     /// Computes the fingerprint.
     /// </summary>
     /// <param name="plan">The plan.</param>
+    /// <param name="beforeSchemaForwarding">Compare the recorded plan before the single generated schema-forwarding line was added.</param>
     /// <returns>The lowercase hexadecimal SHA-256 of the canonical listing.</returns>
-    public static string Of(ArtifactRenderPlan plan)
+    public static string Of(ArtifactRenderPlan plan, bool beforeSchemaForwarding = false)
     {
         var listing = new StringBuilder();
         foreach (var artifact in plan.Artifacts.OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
         {
-            listing.Append(artifact.RelativePath).Append('\0').Append(artifact.Sha256).Append('\0')
+            var hash = beforeSchemaForwarding && artifact.RelativePath == "src/stage.ts"
+                ? WithoutSchemaForwarding(artifact).Sha256
+                : artifact.Sha256;
+            listing.Append(artifact.RelativePath).Append('\0').Append(hash).Append('\0')
                 .AppendJoin(',', artifact.Sources.Select(source => source.ToString()).Order(StringComparer.Ordinal)).Append('\n');
         }
 
@@ -34,4 +38,11 @@ public static class PlanFingerprint
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(listing.ToString())));
     }
+
+    /// <summary>Removes only the intended #820 metadata line for comparison with recorded pre-change bytes.</summary>
+    /// <param name="artifact">The generated Stage module.</param>
+    /// <returns>The module before schema forwarding.</returns>
+    public static PlannedArtifact WithoutSchemaForwarding(PlannedArtifact artifact) => PlannedArtifact.CreateText(
+        artifact.RelativePath,
+        Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Replace("        commandSchemas: (scene as unknown as StageSceneApplication).commandSchemas,\n", string.Empty, StringComparison.Ordinal));
 }

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { Guid } from '@cratis/fundamentals';
 import { schemaPropertiesOf, selectedIdentifier, sessionIdentifiers } from './StageCommandForm';
 
 const schema = JSON.stringify({
@@ -58,6 +59,16 @@ describe('when a row is selected on the screen', () => {
 
     it('should prefer the address parameter to the selected row', () => {
         expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), { basketId: 'b1' }, [{ basketId: 'row-1' }])).toEqual({ basketId: 'b1' });
+    });
+
+    it('should accept the Guid instances returned by native generated query proxies', () => {
+        const key = Guid.parse('7d1c8f3a-0000-4000-8000-000000000001');
+        expect(sessionIdentifiers(fields as never, schemaPropertiesOf(schema), {}, [{ basketId: key }])).toEqual({ basketId: key.toString() });
+    });
+
+    it.each([Guid.empty, Guid.empty.toString()])('should not act on an empty native identifier: %s', key => {
+        const property = schemaPropertiesOf(schema).find(item => item.name === 'basketId')!;
+        expect(selectedIdentifier(property, [{ basketId: key }])).toBeUndefined();
     });
 
     it('should not choose between selected rows that disagree', () => {

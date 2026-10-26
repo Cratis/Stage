@@ -142,14 +142,8 @@ internal sealed class SemanticRunReactions(
             .Select(trigger => (reaction, trigger)));
     }
 
-    bool MatchesFilter(SemanticObserverFilter? filter, SemanticEventRoute? route)
-    {
-        if (filter is null) return true;
-        if (route is null) return false;
-        var source = plan.Model.Application.EventSources.Single(source => source.Id == filter.Source);
-
-        return source.SourceKind == route.SourceKind && (filter.Stream is null || source.Streams.Single(stream => stream.Id == filter.Stream.Value).StreamKind == route.StreamKind);
-    }
+    bool MatchesFilter(SemanticObserverFilter? filter, SemanticEventRoute? route) =>
+        SemanticObserverFilters.Matches(plan.Model.Application, filter, route);
 
     async Task<SemanticRunReactionFailure?> Fire(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticReactionCause cause, CancellationToken cancellationToken)
     {
@@ -221,7 +215,7 @@ internal sealed class SemanticRunReactions(
         }
         foreach (var (fact, _) in candidates)
         {
-            if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+            if (SemanticRunAdmission.CheckProjectionFact(plan, fact, SemanticRunRoutes.Format(plan, fact.Route)) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
         }
         foreach (var fact in candidates.Select(candidate => context.Prepare(candidate.Fact, candidate.Destination, cause.Occurred)).ToArray())
         {
@@ -258,7 +252,7 @@ internal sealed class SemanticRunReactions(
         {
             return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
         }
-        if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker)
+        if (SemanticRunAdmission.CheckProjectionFact(plan, fact, SemanticRunRoutes.Format(plan, fact.Route)) is { } blocker)
         {
             return SemanticRunReactionFailure.Refused(blocker);
         }

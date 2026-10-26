@@ -78,7 +78,7 @@ public class with_a_body
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_report_the_original_body_conversion_as_a_body_error(bool performer)
+    public async Task should_suggest_named_arguments_in_generated_order_for_the_positional_body(bool performer)
     {
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(IssueBody, performer)), self: true);
         Assert.False(plan.Success);
@@ -87,7 +87,8 @@ public class with_a_body
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
             diagnostic.Message.Contains("Reducer body", StringComparison.Ordinal) && diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("Use new Reason(...)", StringComparison.Ordinal));
+            diagnostic.Message.Contains("Use new Reason(...)", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains(" Use named arguments: new ChangeRequest(Reason: ..., TalkId: ..., RequestedAt: ...); generated constructor parameters follow semantic order, not declaration order.", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -123,6 +124,22 @@ public class with_a_body
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
             diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) && diagnostic.Message.Contains(hint, StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("Use named arguments:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_not_suggest_named_arguments_for_a_bcl_constructor(bool performer)
+    {
+        var body = "_ = new DateTime(context.Key, 1, 1); return context.State;";
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        AssertNoInternalReducerError(plan);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
+            diagnostic.Message.Contains("CS1503", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("Use named arguments:", StringComparison.Ordinal));
     }
 
     [Theory]

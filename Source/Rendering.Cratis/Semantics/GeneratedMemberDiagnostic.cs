@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Identifies generated member casing and concept construction mistakes without rewriting the submitted body.
+/// Identifies generated member casing and constructor argument mistakes without rewriting the submitted body.
 /// </summary>
 internal static class GeneratedMemberDiagnostic
 {
@@ -15,7 +15,7 @@ internal static class GeneratedMemberDiagnostic
     {
         if (diagnostic.Location.SourceTree != model.SyntaxTree) return string.Empty;
         var node = model.SyntaxTree.GetRoot().FindNode(diagnostic.Location.SourceSpan);
-        if (diagnostic.Id == "CS1503") return ConceptConstructionHint(node, model);
+        if (diagnostic.Id == "CS1503") return ConceptConstructionHint(node, model) + NamedArgumentsHint(node, model);
         if (diagnostic.Id is not ("CS1061" or "CS0117")) return string.Empty;
         var access = node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax);
         var (receiver, name) = access switch
@@ -35,6 +35,24 @@ internal static class GeneratedMemberDiagnostic
         return matches.Length == 1
             ? $" Use generated member '{matches[0].Name}' instead of authored name '{authored}'."
             : string.Empty;
+    }
+
+    static string NamedArgumentsHint(SyntaxNode node, SemanticModel model)
+    {
+        var argument = node.AncestorsAndSelf().OfType<ArgumentSyntax>().FirstOrDefault();
+        if (argument is null || argument.NameColon is not null || argument.Parent is not ArgumentListSyntax arguments) return string.Empty;
+        if (arguments.Parent is not (ObjectCreationExpressionSyntax or ImplicitObjectCreationExpressionSyntax)) return string.Empty;
+        var info = model.GetSymbolInfo(arguments.Parent);
+        var candidates = info.Symbol is IMethodSymbol method ? (IMethodSymbol[])[method] : [.. info.CandidateSymbols.OfType<IMethodSymbol>()];
+        candidates = [.. candidates.Where(candidate => candidate.MethodKind == MethodKind.Constructor &&
+            !candidate.ContainingType.DeclaringSyntaxReferences.IsEmpty && candidate.Parameters.Length == arguments.Arguments.Count &&
+            arguments.Arguments.All(authoredArgument => authoredArgument.NameColon is not { } authoredName ||
+                candidate.Parameters.Any(parameter => parameter.Name == authoredName.Name.Identifier.ValueText)))];
+        if (candidates.Length != 1) return string.Empty;
+        var constructor = candidates[0];
+        var parameters = string.Join(", ", constructor.Parameters.Select(parameter => $"{parameter.Name}: ..."));
+
+        return $" Use named arguments: new {constructor.ContainingType.Name}({parameters}); generated constructor parameters follow semantic order, not declaration order.";
     }
 
     static string ConceptConstructionHint(SyntaxNode node, SemanticModel model)

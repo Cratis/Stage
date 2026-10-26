@@ -67,9 +67,7 @@ internal static partial class SemanticCratisAdmission
 
         var requirement = context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == generation.RequirementId);
         if (requirement.Role != SemanticImplementationRole.ValueGeneration || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
-            requirement.RequiredCapability != "provider-defined" ||
-            !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
+            requirement.RequiredCapability != "provider-defined")
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"Concept '{concept.Name}' has an unsupported generation envelope or language.", concept.Id));
             return;
@@ -83,6 +81,9 @@ internal static partial class SemanticCratisAdmission
             diagnostics.Add(Error("STAGE-ESM-021", $"Concept '{concept.Name}' has no typed context for generation '{generation.RequirementId}' from this compilation.", concept.Id));
             return;
         }
+
+        // A body in another language renders as a throwing placeholder and a STAGE-DEGRADE-003 warning.
+        if (!ImplementationLanguage.IsCSharp(requirement)) return;
 
         var verdict = SemanticGenerationBodyAdmission.Analyze(body!, concept, context, requirement);
         if (!verdict.Accepted) diagnostics.Add(Error(verdict.Code!, verdict.Reason!, concept.Id));

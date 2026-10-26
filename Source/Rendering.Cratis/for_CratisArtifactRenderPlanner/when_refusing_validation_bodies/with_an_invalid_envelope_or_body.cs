@@ -13,7 +13,6 @@ public class with_an_invalid_envelope_or_body
     [InlineData("missing", "STAGE-ESM-020")]
     [InlineData("descriptor", "STAGE-ESM-021")]
     [InlineData("member", "STAGE-ESM-021")]
-    [InlineData("language", "STAGE-ESM-019")]
     [InlineData("compile", "STAGE-ESM-019")]
     [InlineData("pure", "STAGE-ESM-022")]
     public void should_refuse_without_artifacts(string change, string code)
@@ -25,7 +24,6 @@ public class with_an_invalid_envelope_or_body
             "missing" => loaded with { ImplementationContents = loaded.ImplementationContents.Clear() },
             "descriptor" => loaded with { TypedContextDescriptors = [] },
             "member" => loaded with { TypedContextDescriptors = [loaded.TypedContextDescriptors.Single() with { Members = loaded.TypedContextDescriptors.Single().Members.RemoveAt(0) }] },
-            "language" => loaded with { ImplementationRequirements = [loaded.ImplementationRequirements.Single() with { Language = "javascript" }] },
             _ => loaded
         };
         var plan = opaque_policy_model.Plan(loaded);

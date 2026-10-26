@@ -18,8 +18,15 @@ static class CratisPlanAcceptance
         {
             plan = CratisPlanDiagnosticReconstruction.Append(request, plan, [.. evidence.Select(gap => gap.Diagnostic)]);
         }
-        return plan.WithAcceptance([.. plan.Degradations, .. evidence], strict: true);
+        return plan.WithAcceptance([.. plan.Degradations, .. evidence, .. LanguageEvidence(plan)], strict: true);
     }
+
+    // The warning is already emitted; acceptance only pairs it with the remedy, once per distinct warning.
+    static ImmutableArray<ArtifactRenderDegradation> LanguageEvidence(ArtifactRenderPlan plan) =>
+        [.. plan.Diagnostics
+            .Where(diagnostic => diagnostic.Code == ArtifactRenderDegradationCodes.InlineMismatch && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning)
+            .Distinct()
+            .Select(diagnostic => new ArtifactRenderDegradation(diagnostic, ImplementationLanguage.Remedy))];
 
     static ImmutableArray<ArtifactRenderDegradation> PerformerEvidence(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options)
     {

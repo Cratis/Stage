@@ -80,8 +80,6 @@ internal static partial class SemanticCratisAdmission
                 if (requirement is null || requirement.Role != SemanticImplementationRole.ReducerTransition ||
                     requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
                     requirement.RequiredCapability != "pure" ||
-                    !((requirement.Language == "csharp" && requirement.File is null) ||
-                        (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)) ||
                     !context.Events.TryGetValue(transition.EventContract, out var @event))
                 {
                     diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' has an unsupported transition envelope or language.", reducer.ReadModel));
@@ -131,6 +129,13 @@ internal static partial class SemanticCratisAdmission
                 if (context.DeclaringSlice(@event.Id).Slice.Kind is not (SemanticSliceKind.StateChange or SemanticSliceKind.Automation))
                 {
                     diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in a StateView slice, which cannot render an event contract.", reducer.ReadModel));
+                    continue;
+                }
+
+                if (!ImplementationLanguage.IsCSharp(requirement))
+                {
+                    // Rendered as a throwing placeholder with a STAGE-DEGRADE-003 warning; there is nothing to analyse.
+                    context.ReducerContextReads[transition.RequirementId] = System.Collections.Immutable.ImmutableHashSet<string>.Empty;
                     continue;
                 }
 

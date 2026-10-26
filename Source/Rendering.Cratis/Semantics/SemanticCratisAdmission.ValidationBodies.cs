@@ -40,8 +40,7 @@ internal static partial class SemanticCratisAdmission
         }
         var requirement = context.Request.ImplementationRequirements.SingleOrDefault(requirement => requirement.RequirementId == requirementId);
         if (requirement is null || requirement.Role != role || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
-            requirement.RequiredCapability != "pure" || !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
+            requirement.RequiredCapability != "pure")
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"Validation '{name ?? requirementId}' has an unsupported envelope or language.", owner));
             return;
@@ -50,6 +49,12 @@ internal static partial class SemanticCratisAdmission
         if (descriptors.Length != 1 || !descriptors[0].IsWrapperReady || !MatchesRuleMembers(context, descriptors[0], owner, property))
         {
             diagnostics.Add(Error("STAGE-ESM-021", $"Validation '{name ?? requirementId}' has no unique wrapper-ready typed context with matching members and sources.", owner));
+            return;
+        }
+        if (!ImplementationLanguage.IsCSharp(requirement))
+        {
+            // A guard has no safe placeholder: the whole render is refused, naming the language.
+            diagnostics.Add(Error("STAGE-ESM-019", $"Validation '{name ?? requirementId}' has an unsupported envelope or language: {ImplementationLanguage.Describe(requirement)} cannot be rendered as a guard.", owner));
             return;
         }
         var verdict = PureValidationAdmission.Analyze(body!, context, descriptors[0], requirement);

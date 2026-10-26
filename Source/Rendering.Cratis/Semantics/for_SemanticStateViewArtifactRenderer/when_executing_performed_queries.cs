@@ -24,7 +24,6 @@ public class when_executing_performed_queries
 {
     [Theory]
     [InlineData("live", "observable")]
-    [InlineData("language", "language")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]
@@ -34,7 +33,6 @@ public class when_executing_performed_queries
     {
         var source = Source(failure is "compile" or "authorized" ? "return missing;" : "return readModels;", live: failure == "live");
         if (failure == "authorized") source = "policy Buyers\n  require claim \"role\" matches \"buyer\"\n" + source.Replace("module People", "module People\n  authorize Buyers", StringComparison.Ordinal);
-        if (failure == "language") source = source.Replace("```csharp", "```sql", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = GapRequest((loaded, failure));
         var requirement = Assert.Single(request.ImplementationRequirements);
@@ -266,11 +264,12 @@ public class when_executing_performed_queries
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
         var request = Request(loaded);
         var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
-        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
+        var warning = Assert.Single(diagnostics, diagnostic => diagnostic.Code == "STAGE-DEGRADE-003");
+        Assert.Contains("language 'sql'", warning.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005" || diagnostic.Code == "STAGE-IMPL-006" || diagnostic.Code == "STAGE-IMPL-007");
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
-        Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
+        Assert.Contains("throw new NotSupportedException(\"STAGE-DEGRADE-003\")", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
     }

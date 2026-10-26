@@ -68,7 +68,7 @@ internal static class SemanticImplementationAdmission
         }
         if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
         {
-            return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
+            return new(requirement, null, ImplementationLanguage.Reason(requirement), true);
         }
 
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
@@ -144,6 +144,12 @@ internal static class SemanticImplementationAdmission
         {
             var admission = AdmitPerformer(context, query);
             if (admission.Reason is not { } reason) continue;
+            if (admission is { LanguageMismatch: true, Requirement: { } mismatched })
+            {
+                yield return ImplementationLanguage.Warning(mismatched, query.Id, $"Query '{query.Name}'");
+                continue;
+            }
+
             yield return new(
                 PerformerGapCode,
                 ArtifactRenderDiagnosticSeverity.Warning,
@@ -279,5 +285,5 @@ internal static class SemanticImplementationAdmission
     static ArtifactRenderDiagnostic Error(string message, SemanticId artifact) =>
         new("STAGE-ESM-020", ArtifactRenderDiagnosticSeverity.Error, message, artifact);
 
-    internal sealed record PerformerAdmission(SemanticImplementationRequirement? Requirement, string? Body, string? Reason);
+    internal sealed record PerformerAdmission(SemanticImplementationRequirement? Requirement, string? Body, string? Reason, bool LanguageMismatch = false);
 }

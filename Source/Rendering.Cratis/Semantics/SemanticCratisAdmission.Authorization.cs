@@ -24,8 +24,7 @@ internal static partial class SemanticCratisAdmission
     };
 
     internal static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) =>
-        (requirement.Language == "csharp" && requirement.File is null) ||
-        (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true);
+        ImplementationLanguage.IsCSharp(requirement);
 
     static bool HasOpaque(SemanticPolicyCondition condition) => condition switch
     {

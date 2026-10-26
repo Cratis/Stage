@@ -46,8 +46,9 @@ internal static class SemanticQueryContextRuntime
         var types = new SemanticTypeSystem(context);
         var source = admission.Requirement?.File is { } file ? $" ({file})" : string.Empty;
         var message = $"Query '{query.Name}' (requirement {admission.Requirement?.RequirementId}){source} is not runnable: {admission.Reason}";
+        var thrown = admission.LanguageMismatch ? ImplementationLanguage.ThrowingBody() : $"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral(message)});";
         builder.OpenBlock($"public static {returnType} {method}({Parameters(query, types)})")
-            .Line($"throw new global::System.NotImplementedException({CSharpCodeBuilder.StringLiteral(message)});")
+            .Line(thrown)
             .EndBlock().BlankLine();
         RenderContextDeclarations(builder, query, method, types);
     }

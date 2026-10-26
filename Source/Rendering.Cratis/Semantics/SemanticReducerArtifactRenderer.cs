@@ -63,6 +63,8 @@ internal static class SemanticReducerArtifactRenderer
                 throw new InvalidTypedContext($"Reducer '{name}' lost its verified body after admission.");
             }
 
+            if (analysisRequirement is null) body = VerifiedBody(context, reducer, transition.RequirementId, body!);
+
             if (!context.ReducerContextReads.TryGetValue(transition.RequirementId, out var contextReads) && analysisRequirement is null)
             {
                 throw new InvalidTypedContext($"Reducer '{name}' lost its analyzed context reads after admission.");
@@ -93,6 +95,16 @@ internal static class SemanticReducerArtifactRenderer
                 .BlankLine();
             if (self) builder.EndBlock().BlankLine();
         }
+    }
+
+    // A body in another language is never emitted: a throwing placeholder and a STAGE-DEGRADE-003 warning stand in for it.
+    static string VerifiedBody(SemanticApplicationContext context, SemanticReducer reducer, string requirementId, string body)
+    {
+        var requirement = context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == requirementId);
+        if (ImplementationLanguage.IsCSharp(requirement)) return body;
+        var warning = ImplementationLanguage.Warning(requirement, requirement.Source.SemanticId, $"Reducer '{reducer.Name}' transition");
+        if (!context.InlineDiagnostics.Contains(warning)) context.InlineDiagnostics.Add(warning);
+        return ImplementationLanguage.ThrowingBody();
     }
 
     static string IdentityCheck(SemanticTypeReference keyType, string keyMember, SemanticApplicationContext context)

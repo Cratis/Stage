@@ -544,7 +544,7 @@ Both allowed and denied protected queries run through Arc's authorization pipeli
 
 ## Declarative observable optional lookups
 
-A declarative `query InvoiceById => observable InvoiceSummary?` with a `by` argument
+A declarative `query InvoiceById => observable InvoiceSummary optional` with a `by` argument
 matching the read model's sole identifier renders as `ISubject<InvoiceSummary?>`.
 This keyed optional shape is an exception to the observable single/optional refusal
 in the query-shape matrix above. Stage filters Chronicle's observed collection by
@@ -553,13 +553,14 @@ when none matches. Later updates and transitions back to no match remain observa
 The adapter subscribes only when its consumer subscribes; disposing the consumer's
 subscription releases the underlying observation. Key arguments retain their concept types.
 
-Unkeyed optional lookups, non-identifier keys, filtered optional lookups, and required
-single-result observable queries remain refused with `STAGE-ESM-010`. Unsupported
-concept validation remains refused with `STAGE-ESM-005`.
+Non-identifier keys, filtered optional lookups, and required single-result observable
+queries remain refused with `STAGE-ESM-010`. Screenplay rejects an unkeyed optional
+lookup before Stage sees it, because an unkeyed query must return a collection.
 
-This support does not admit observable performer bodies. Those remain unverified
-`STAGE-IMPL-006` gaps with non-runnable stubs and `STAGE-NOT-RUNNABLE.md`, not
-body-owned streams. Live optional lookup companion specifications use Chronicle's
+This support does not admit observable performer bodies. An observable collection
+performer remains an unverified `STAGE-IMPL-006` gap with a non-runnable stub and
+`STAGE-NOT-RUNNABLE.md`. An observable optional performer is refused, because only
+a collection can be observed through a performer body. Live optional lookup companion specifications use Chronicle's
 real observation and await the first emission rather than substituting a snapshot read.
 
 ## Generated C# query filters

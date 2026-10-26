@@ -108,11 +108,8 @@ public class StateChangeSliceRenderer : ISliceRenderer
         if (command.Handler?.Code is not null)
         {
             var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
-            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
-            if (returnType is null)
-            {
+            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace) ??
                 throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is not a verified model or handler contract type.");
-            }
 
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()

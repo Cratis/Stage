@@ -14,14 +14,6 @@ namespace Cratis.Stage.Host.for_SandboxIdentity.when_discovering_outside_develop
 
 public class a_sandbox_host : Specification
 {
-    protected HttpStatusCode _commandCatalog;
-    protected HttpStatusCode _queryCatalog;
-    protected HttpStatusCode _usersCatalog;
-    protected HttpStatusCode _tenantsCatalog;
-    protected HttpStatusCode _identityDetailsSchema;
-    protected HttpStatusCode _identityOfThePage;
-    protected HttpStatusCode _roleGatedApi;
-    protected HttpStatusCode _roleGatedApiWithoutPersona;
     protected virtual string Environment => "Docker";
     WebApplication _app = null!;
     HttpClient _client = null!;
@@ -57,18 +49,6 @@ public class a_sandbox_host : Specification
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 
-    async Task Because()
-    {
-        _commandCatalog = await Get("/.cratis/commands");
-        _queryCatalog = await Get("/.cratis/queries");
-        _usersCatalog = await Get("/.cratis/users");
-        _tenantsCatalog = await Get("/.cratis/tenants");
-        _identityDetailsSchema = await Get("/.cratis/identity-details/schema");
-        _identityOfThePage = await Get("/.cratis/me");
-        _roleGatedApi = await Get("/api/probe");
-        _roleGatedApiWithoutPersona = await Get("/other/probe");
-    }
-
     async Task Destroy()
     {
         _client?.Dispose();
@@ -79,7 +59,7 @@ public class a_sandbox_host : Specification
         }
     }
 
-    async Task<HttpStatusCode> Get(string path)
+    protected async Task<HttpStatusCode> Get(string path)
     {
         using var response = await _client.GetAsync(path);
         return response.StatusCode;

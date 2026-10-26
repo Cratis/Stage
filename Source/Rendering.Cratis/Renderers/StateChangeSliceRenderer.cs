@@ -251,7 +251,106 @@ public class StateChangeSliceRenderer : ISliceRenderer
             return "default!";
         }
 
-        return ExpressionRenderer.Render(mapping.Source, context);
+        var source = MappedCommandProperty(mapping.Source, command, applicationSet);
+        var converted = ConvertCommandProperty(ExpressionRenderer.Render(mapping.Source, context), source?.Type, declared?.Type, applicationSet);
+        return ReportCommandPropertyConversion(converted, mapping, diagnostics);
+    }
+
+    static string ReportCommandPropertyConversion((string Value, string? Diagnostic) converted, PropertyMappingSyntax mapping, ICollection<string> diagnostics)
+    {
+        if (converted.Diagnostic is not null)
+        {
+            diagnostics.Add($"'{mapping.Property}' is mapped from '{((PathExpressionSyntax)mapping.Source).Path}', {converted.Diagnostic} — rendered as a missing value.");
+        }
+
+        return converted.Value;
+    }
+
+    static (string Value, string? Diagnostic) ConvertCommandProperty(string value, TypeRefSyntax? source, TypeRefSyntax? target, ApplicationSet applicationSet)
+    {
+        if (source is null || target is null)
+        {
+            return (value, null);
+        }
+
+        if (IsPrimitiveMapping(source, target, applicationSet))
+        {
+            return (value, null);
+        }
+
+        var sourcePrimitive = UnderlyingType(source, applicationSet);
+        var targetPrimitive = UnderlyingType(target, applicationSet);
+        if (sourcePrimitive is null || targetPrimitive is null)
+        {
+            return (value, null);
+        }
+
+        if (!CanImplicitlyConvertPrimitive(sourcePrimitive, targetPrimitive))
+        {
+            return ("default!", $"declared as '{source.Name}' — a {sourcePrimitive}, which the event declares as '{target.Name}' — a {targetPrimitive}");
+        }
+
+        return (ConvertCompatibleConcept(value, source, target, applicationSet), null);
+    }
+
+    // Int to Decimal is the only numeric widening among TypeResolver's supported primitives.
+    static bool CanImplicitlyConvertPrimitive(string source, string target) =>
+        source == target || (source, target) is ("int", "decimal");
+
+    static bool IsPrimitiveMapping(TypeRefSyntax source, TypeRefSyntax target, ApplicationSet applicationSet) =>
+        TypeResolver.Resolve(source, applicationSet).Kind == ResolvedTypeKind.Primitive &&
+        TypeResolver.Resolve(target, applicationSet).Kind == ResolvedTypeKind.Primitive;
+
+    static string ConvertCompatibleConcept(string value, TypeRefSyntax source, TypeRefSyntax target, ApplicationSet applicationSet)
+    {
+        if (source.Name == target.Name)
+        {
+            return value;
+        }
+
+        if (TypeResolver.Resolve(source, applicationSet) is not { Kind: ResolvedTypeKind.Concept, IsCollection: false, IsOptional: false })
+        {
+            return value;
+        }
+
+        if (TypeResolver.Resolve(target, applicationSet) is not { Kind: ResolvedTypeKind.Concept, IsCollection: false } resolvedTarget)
+        {
+            return value;
+        }
+
+        return $"new {resolvedTarget.ClrTypeName}({value}.Value)";
+    }
+
+    static PropertySyntax? MappedCommandProperty(ExpressionSyntax expression, CommandSyntax command, ApplicationSet applicationSet)
+    {
+        if (expression is not PathExpressionSyntax path)
+        {
+            return null;
+        }
+
+        var segments = path.Path.Split('.');
+        var property = CommandProperty(segments[0], command);
+        foreach (var segment in segments.Skip(1))
+        {
+            property = CompositeProperty(property, segment, applicationSet);
+        }
+
+        return property;
+    }
+
+    static PropertySyntax? CompositeProperty(PropertySyntax? property, string name, ApplicationSet applicationSet)
+    {
+        if (property?.Type is not { IsCollection: false, IsOptional: false } type)
+        {
+            return null;
+        }
+
+        if (!applicationSet.Types.TryGetValue(type.Name, out var composite))
+        {
+            return null;
+        }
+
+        return composite.Properties.FirstOrDefault(candidate => string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

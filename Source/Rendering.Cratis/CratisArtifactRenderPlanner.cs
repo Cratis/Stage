@@ -124,7 +124,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             try
             {
-                var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);
+                var wrapper = SemanticCommandBodyAdmission.RenderDescriptor(descriptor, context);
                 if (descriptor.OperationId is { } operation && selectedReducers.Contains((descriptor.RequirementId, operation)))
                 {
                     artifacts.Add(Artifact(wrapper));

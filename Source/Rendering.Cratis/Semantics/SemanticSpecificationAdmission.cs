@@ -29,7 +29,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
+        foreach (var specification in SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics))
         {
             if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
             {

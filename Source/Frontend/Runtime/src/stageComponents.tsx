@@ -234,15 +234,53 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
         : <StageCommandAction element={element} interactions={interactions} slots={slots} />;
 }
 
+/**
+ * A command action. An action on a list screen - a screen toolbar's Dispatch next to the shipments table - acts on the row the person selects:
+ * while the command's key is one the screen's rows carry, the form does not ask for it and no row is selected, the action waits, visible
+ * and disabled, instead of opening a form that would act on an entity nobody chose.
+ */
 function StageCommandAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
+    const awaiting = useIdentifiersAwaitingSelection(element);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
+    if (awaiting.length > 0) {
+        return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+    }
+
     return <StageCommandDialog element={element} label={label} />;
+}
+
+/**
+ * The keys an action's command acts on that the action's form does not ask for, that a row of the screen carries and that no selected row or
+ * address supplies yet. A form that asks for every property of the schema - one with no fields of its own that is not manual - asks for its keys too.
+ */
+function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
+    const { parameters, queries, selections } = useStageData();
+    const schema = text(element, 'schema');
+    const fields = element.properties.fields;
+    const generationMode = text(element, 'generationMode').toLowerCase();
+    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
+    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const formFields: unknown[] = Array.isArray(fields) ? fields : [];
+    const asked = formFields.length > 0 || generationMode === 'manual'
+        ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
+        : undefined;
+    if (!asked) return [];
+
+    return identifiersAwaitingSelection(properties.filter(property => !asked.has(property.name)), parameters, selectedRows, selectableRows);
+}
+
+/** The command property a form field asks for: its source property when it names one, as the form binds it, else its name. */
+function askedProperty(field: unknown): string {
+    if (!isRecord(field)) return '';
+    if (typeof field.sourceProperty === 'string' && field.sourceProperty !== '') return field.sourceProperty;
+    return typeof field.name === 'string' ? field.name : '';
 }
 
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */

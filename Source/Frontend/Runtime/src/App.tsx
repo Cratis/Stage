@@ -40,6 +40,7 @@ import { useComponentOutputsPublisher } from './stageComponentOutputs';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
+import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
@@ -446,10 +447,10 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
     return (
-        <>
+        <StageScreenTables element={element}>
             <StageQueryBindings element={element} />
             <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
-        </>
+        </StageScreenTables>
     );
 }
 
@@ -480,7 +481,10 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
-                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                {/* Template dialogs own their table scope; only ConfirmDialog decisions preserve the originating list selection. */}
+                <StageScreenTables element={resolved}>
+                    <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                </StageScreenTables>
             </section>
         </div>
     );

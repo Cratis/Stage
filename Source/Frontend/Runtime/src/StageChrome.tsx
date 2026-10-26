@@ -9,6 +9,7 @@ import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from '
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
 import { externalRouteHref } from './externalRouteHref';
+import { StageScreenTables } from './stageScreenTables';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -135,7 +136,7 @@ export function StageOutlet({ element }: RegisteredComponentProps) {
                     <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
                 </div>
             )}
-            {screen && outlets && <SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} />}
+            {screen && outlets && <StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables>}
         </div>
     );
 }

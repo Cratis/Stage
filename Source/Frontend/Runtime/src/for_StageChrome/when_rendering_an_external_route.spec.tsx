@@ -20,6 +20,7 @@ describe('when rendering an external route', () => {
         const entry = renderEntry({ kind: DestinationKind.External, route });
 
         entry.getAttribute('href')!.should.equal(route);
+        entry.hasAttribute('aria-disabled').should.be.false;
     });
 
     it.each([
@@ -37,6 +38,8 @@ describe('when rendering an external route', () => {
         const entry = renderEntry({ kind: DestinationKind.External, route });
 
         entry.hasAttribute('href').should.be.false;
+        entry.getAttribute('aria-disabled')!.should.equal('true');
+        entry.hasAttribute('rel').should.be.false;
     });
 
     it('should keep an internal screen link unchanged', () => {

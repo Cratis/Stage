@@ -92,11 +92,14 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
             navigation.navigate(destination);
         }
         : undefined;
+    const href = external ? externalRouteHref(destination.route) : screenHash(screen);
+    const refused = external && href === undefined;
 
     return (
         <a
-            href={external ? externalRouteHref(destination.route) : screenHash(screen)}
-            rel={external ? 'noreferrer' : undefined}
+            href={href}
+            rel={external && !refused ? 'noreferrer' : undefined}
+            aria-disabled={refused ? 'true' : undefined}
             aria-current={screen === activeScreen ? 'page' : undefined}
             aria-label={mode === 'icon' ? node.label : undefined}
             data-presentation={node.presentation}

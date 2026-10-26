@@ -17,7 +17,8 @@ public class CSharpCodeBuilder
 {
     readonly HashSet<string> _usings = new(StringComparer.Ordinal);
     readonly StringBuilder _body = new();
-    readonly List<TextSpan> _authored = [];
+    readonly InlineCodeTokens _inline = new();
+    readonly List<InlineCodeDiagnostic> _inlineDiagnostics = [];
     readonly CSharpImports? _imports;
     string? _namespace;
     int _indent;
@@ -196,10 +197,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder Raw(string text)
     {
-        var start = _body.Length;
-        Fragment(text);
-        _authored.Add(TextSpan.FromBounds(start, _body.Length));
-        return this;
+        return Authored(text, false);
     }
 
     /// <summary>
@@ -226,14 +224,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder RawVerbatim(string text)
     {
-        _authored.Add(new(_body.Length, text.Length));
-        _body.Append(text);
-        if (!text.EndsWith('\n'))
-        {
-            _body.AppendLine();
-        }
-
-        return this;
+        return Authored(text, true);
     }
 
     /// <summary>
@@ -281,7 +272,9 @@ public class CSharpCodeBuilder
     public string ToString(Func<string, string> finish)
     {
         var original = _body.ToString();
-        var body = finish(original);
+        var skeleton = finish(original);
+        var splice = InlineCodeSplicer.Splice(skeleton, _inline, original);
+        var body = Complete(splice);
         var unit = new StringBuilder();
         if (_namespace is not null)
         {
@@ -293,10 +286,10 @@ public class CSharpCodeBuilder
         if (_imports is not null)
         {
             // A finished body can move authored text, whose spans are then no longer known: such a file keeps every name qualified.
-            if (!string.Equals(body, original, StringComparison.Ordinal) && _authored.Count > 0) _imports.Unknown();
+            if (!string.Equals(skeleton, original, StringComparison.Ordinal) && _inline.Slots.Count > 0) _imports.Unknown();
 
             // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
-            return _imports.Rewrite(unit.ToString(), [.. _authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
+            return _imports.Rewrite(unit.ToString(), [.. splice.Authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
         }
 
         var result = new StringBuilder();
@@ -319,12 +312,41 @@ public class CSharpCodeBuilder
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
+    internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true)
+    {
+        var issued = _inline.Issue(code, placement, _indent, verbatim);
+        _inlineDiagnostics.AddRange(issued.Diagnostics);
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
+    }
+
     internal string Type(TypeReference reference) => reference.Qualified;
 
     internal void Scope(IEnumerable<string> types, IEnumerable<string> values) => _imports?.Scope(types, values);
     internal void Pin(params string[] names) => _imports?.Pin(names);
     internal void Access(params string[] names) => _imports?.Access(names);
     internal void Inherits(string fullName) => _imports?.Inherits(fullName);
+
+    string Complete(InlineCodeSplice splice)
+    {
+        if (_inlineDiagnostics.Exists(diagnostic => diagnostic.Code != "STAGE-DEGRADE-003") || splice.Text is null)
+        {
+            throw new InlineCodeRejected([.. _inlineDiagnostics, .. splice.Diagnostics]);
+        }
+
+        return splice.Text;
+    }
+
+    CSharpCodeBuilder Authored(string text, bool verbatim)
+    {
+        // Legacy callers supply strings, not compiler identities or original disk bytes.
+        var id = $"builder-{_inline.Slots.Count}";
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        var placement = new InlineCodePlacement("builder", "builder", id);
+        var verified = InlineCode.VerifyUtf8Text(text, new(hash, "csharp", placement, id));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        return verified.Value is { } code ? Inline(code, placement, verbatim) : this;
+    }
 
     void TextDocumentation(string tag, string text)
     {

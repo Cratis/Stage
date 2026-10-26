@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -53,17 +54,13 @@ internal static class InlineCommandHandlerAdmission
             return InlineCommandHandlerRejectionReason.UnsupportedLanguage;
         }
 
-        // Parse the entire input as ONE block, not as interpolated members of a compilation unit.
-        // consumeFullText retains trailing/skipped tokens; the closing brace must be ours, not authored.
-        var text = "{\n" + code.Code + "\n}";
-        var statement = SyntaxFactory.ParseStatement(text, options: new CSharpParseOptions(), consumeFullText: true);
-        if (statement.DescendantTrivia(descendIntoTrivia: true).Any(trivia => trivia.IsDirective))
+        var proof = CSharpBodyContainment.Analyze(code.Code);
+        if (proof.HasDirectives)
         {
             return InlineCommandHandlerRejectionReason.Directives;
         }
 
-        if (statement is not BlockSyntax body || body.ContainsDiagnostics || body.ContainsSkippedText ||
-            body.CloseBraceToken.IsMissing || body.CloseBraceToken.SpanStart != text.Length - 1)
+        if (proof.Block is not { } body || !proof.Supported)
         {
             return InlineCommandHandlerRejectionReason.MalformedBody;
         }

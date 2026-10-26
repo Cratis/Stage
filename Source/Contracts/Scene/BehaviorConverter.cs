@@ -98,9 +98,7 @@ public static class BehaviorConverter
         return null;
     }
 
-    // An unguarded binding is one Scene binding. A guarded one - `when ... otherwise` - becomes one binding per branch
-    // with the same trigger, in authored order, each conditioned on being the branch that holds for the subject (see
-    // SceneGuards), so the Scene interaction engine runs exactly one of them.
+    // Scene owns ordered first-match selection for guarded interaction alternatives.
     static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path)
     {
         var trigger = ConvertTrigger(binding.Trigger, diagnostics, path);
@@ -115,26 +113,14 @@ public static class BehaviorConverter
             yield break;
         }
 
-        var conditions = alternatives.Select(alternative => (object?)SceneGuards.Convert(alternative.Condition, enumerationOf)).ToList();
-        for (var index = 0; index < alternatives.Length; index++)
-        {
-            yield return new(
-                trigger,
-                [.. alternatives[index].Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
-                Guard(new Dictionary<string, object?> { ["kind"] = "firstMatch", ["index"] = index, ["alternatives"] = conditions }));
-        }
-
-        if (binding.Otherwise is not null)
-        {
-            yield return new(
-                trigger,
-                [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()],
-                Guard(new Dictionary<string, object?> { ["kind"] = "otherwise", ["alternatives"] = conditions }));
-        }
+        yield return new(
+            trigger,
+            [],
+            Alternatives: [.. alternatives.Select(alternative => new SceneModel.InteractionAlternative(
+                SceneGuards.Convert(alternative.Condition, enumerationOf),
+                [.. alternative.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]))],
+            Otherwise: binding.Otherwise is null ? null : [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]);
     }
-
-    static SceneCommon.BindingExpression Guard(Dictionary<string, object?> selection) =>
-        new(SceneGuards.GuardPath, Value: selection);
 
     /// <summary>
     /// Normalizes an interval to seconds, which is the one unit the model carries.

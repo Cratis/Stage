@@ -15,9 +15,9 @@ public class and_a_guarded_action_has_a_hidden_fallback : given.a_guarded_action
     void Establish() => _action = _action with { Otherwise = new ScreenActionOtherwiseSyntax(ScreenActionOtherwiseOutcome.Hidden, null, _location) };
     void Because() => _result = (ExternalComponent)ScreenDirectiveConverter.Convert([_action], "InvoiceDetails")[0];
 
-    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:action");
-    [Fact] void should_carry_the_hidden_fallback() => Otherwise["outcome"].ShouldEqual("Hidden");
-    [Fact] void should_not_invent_a_fallback_command() => Otherwise["command"].ShouldBeNull();
+    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:guarded-action");
+    [Fact] void should_carry_the_hidden_fallback() => Otherwise.Outcome.ShouldEqual(Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome.Hidden);
+    [Fact] void should_not_invent_a_fallback_command() => Otherwise.Command.ShouldBeNull();
 
-    Dictionary<string, object?> Otherwise => (Dictionary<string, object?>)_result.Properties["otherwise"]!;
+    Cratis.Scene.Model.Guards.GuardedActionFallback Otherwise => Cratis.Scene.Model.Guards.GuardedActionProperties.Read(_result).Otherwise!;
 }

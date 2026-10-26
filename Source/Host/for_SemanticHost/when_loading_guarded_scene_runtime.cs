@@ -91,9 +91,9 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         issues.ShouldBeEmpty();
         var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
         sceneJson.ShouldContain("Overview");
-        sceneJson.ShouldContain(SceneGuards.GuardPath);
-        sceneJson.ShouldContain("\"kind\":\"firstMatch\"");
-        sceneJson.ShouldContain("\"kind\":\"otherwise\"");
+        sceneJson.ShouldContain("\"alternatives\":[");
+        sceneJson.ShouldContain("\"subject\":\"item.status\"");
+        sceneJson.ShouldContain("\"otherwise\":[");
         sceneJson.ShouldContain("Not ready");
     }
 

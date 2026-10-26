@@ -45,14 +45,14 @@ public class when_translating_guarded_constructs : Specification
 
     [Fact] void should_admit_guarded_actions_the_runtime_evaluates() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedScreenAction.DiagnosticCode).ShouldBeFalse();
     [Fact] void should_admit_named_and_inherited_guarded_interactions_the_runtime_evaluates() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedInteraction.DiagnosticCode).ShouldBeFalse();
-    [Fact] void should_carry_each_interaction_branch_as_its_own_guarded_binding() => GuardedBindings().Select(Kind).ShouldContain("firstMatch", "otherwise");
+    [Fact] void should_carry_the_ordered_alternatives_and_otherwise_on_one_binding() => GuardedBindings().All(binding => binding["alternatives"] is System.Text.Json.Nodes.JsonArray { Count: > 0 } && binding["otherwise"] is System.Text.Json.Nodes.JsonArray { Count: > 0 }).ShouldBeTrue();
     [Fact] void should_carry_the_authored_guard_on_every_branch() => GuardedBindings().All(_ => _.ToJsonString().Contains("\"right\":\"Ready\"", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_preserve_guarded_action_contract_output() => ((ExternalComponent)_scene.Screens.Single().SlotContent[DefaultLayout.ContentSlotName].Single()).Slots["content"].Single().Properties.ContainsKey("alternatives").ShouldBeTrue();
 
     // Behaviors attach at every level - the module, the feature, the screen and its elements - so read them all.
     IEnumerable<System.Text.Json.Nodes.JsonObject> GuardedBindings() =>
         Nodes(JsonSerializer.SerializeToNode(_scene, _camelCase))
-            .Where(_ => _["condition"]?["path"]?.GetValue<string>() == SceneGuards.GuardPath);
+            .Where(_ => _["trigger"] is not null && _["alternatives"] is System.Text.Json.Nodes.JsonArray);
 
     static IEnumerable<System.Text.Json.Nodes.JsonObject> Nodes(System.Text.Json.Nodes.JsonNode? node) => node switch
     {
@@ -60,8 +60,6 @@ public class when_translating_guarded_constructs : Specification
         System.Text.Json.Nodes.JsonArray array => array.SelectMany(Nodes),
         _ => []
     };
-
-    static string? Kind(System.Text.Json.Nodes.JsonObject binding) => binding["condition"]?["value"]?["kind"]?.GetValue<string>();
 
     [Fact] void should_keep_runtime_issues_out_of_the_scene_wire_contract() => JsonSerializer.Serialize(_scene).ShouldNotContain("RuntimeIssues");
 }

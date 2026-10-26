@@ -50,16 +50,14 @@ internal static class SemanticSurfaceLedger
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
 
     /// <summary>
-    /// Gets reaction side-effect combinations. Events and commands from one trigger cannot share an Arc handler result
-    /// at the pinned Arc version; event-only, command-only and empty results render.
+    /// Gets reaction side-effect combinations. One trigger can return events and commands together;
+    /// refusal-branch productions and cross-trigger scheduling have separate admission checks.
     /// </summary>
     public static IReadOnlyDictionary<(bool Produces, bool Invokes), SemanticSurfaceDisposition> ReactionSideEffectShapes { get; } =
         (from produces in new[] { false, true }
          from invokes in new[] { false, true }
          select (Produces: produces, Invokes: invokes))
-        .ToDictionary(shape => shape, shape => shape.Produces && shape.Invokes
-            ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, SemanticVersionFeatures.MixedReactionEffects)
-            : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
+        .ToDictionary(shape => shape, _ => new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
 
     /// <summary>
     /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;

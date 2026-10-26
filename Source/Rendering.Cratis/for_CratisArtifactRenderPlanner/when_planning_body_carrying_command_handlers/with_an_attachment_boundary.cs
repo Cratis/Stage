@@ -18,6 +18,7 @@ public class with_an_attachment_boundary
     {
         var request = handler_model.Request();
         request = request with { ImplementationContents = ImmutableDictionary<string, string>.Empty.Add(request.ImplementationRequirements.Single().RequirementId, "return 42;") };
+
         // ed0b46d7 separates body integrity failures from unresolved attachment envelopes.
         AssertBlocked(request, "STAGE-ESM-056");
     }
@@ -114,6 +115,7 @@ public class with_an_attachment_boundary
                 then OrderPlaced
                   name = "ALICE"
         """;
+
         // Stage#828 degrades specification execution gaps, not application contracts.
         var request = handler_model.Request(source: handler_model.Source + specification);
         var slice = request.Model.Application.Modules.Single().Features.Single().Slices.Single();

@@ -50,7 +50,16 @@ internal static class SemanticVersionFeatureAdmission
             features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
         }
 
-        return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct().Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];
+        return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct()
+            .Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, DiagnosticMessage(feature, context), feature.Artifact))];
+    }
+
+    static string DiagnosticMessage(SemanticVersionFeature feature, SemanticApplicationContext context)
+    {
+        if (feature.Code != SemanticVersionFeatures.PendingCommandHandler) return feature.Message;
+        if (!context.Commands.TryGetValue(feature.Artifact, out var command)) return feature.Message;
+        if (SemanticCommandHandlerAdmission.Classify(command, context.Request) is not { Kind: SemanticCommandHandlerAdmission.HandlerKind.Foreign, Requirement: { } requirement }) return feature.Message;
+        return $"Command '{command.Name}' handler '{requirement.RequirementId}' uses language '{requirement.Language ?? requirement.File}'; Stage renders only C# handler bodies.";
     }
 
     // Render-only: the execution runtime still sees PendingCommandHandler as unsupported.

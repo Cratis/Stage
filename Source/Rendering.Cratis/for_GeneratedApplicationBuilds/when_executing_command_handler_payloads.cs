@@ -19,7 +19,7 @@ public class when_executing_command_handler_payloads : a_generated_application
 
     protected override ArtifactRenderPlan CreatePlan()
     {
-        var source = "concept EventForEventSourceId : String\nconcept OrderId : Uuid\n  generate uuid\n" + handler_model.MultiSource +
+        var source = "policy HandlerAccountant\n  require role \"Accountant\"\nconcept EventForEventSourceId : String\nconcept OrderId : Uuid\n  generate uuid\n" + handler_model.MultiSource +
             string.Concat(Enumerable.Repeat("\n        produces OrderPlaced\n          for orderId\n          name = name", 7)) + "\n" + """
                   command FastPlace
                     orderId Uuid identifier
@@ -41,6 +41,16 @@ public class when_executing_command_handler_payloads : a_generated_application
                       for orderId
                       orderId OrderId = orderId
                       quantity Int = quantity
+                  command ProtectedPlace
+                    orderId Uuid identifier
+                    name String
+                    authorize HandlerAccountant
+                    handler
+                      implementation
+                        hint "Count only authorized calls"
+                    produces OrderPlaced
+                      for orderId
+                      name = name
             """ + "\n" + handler_model.TimedCommand;
         var tupleBody = handler_model.MultiBody.Replace("new OrderEchoed(name));", "new OrderEchoed(name), " + string.Join(", ", Enumerable.Range(3, 7).Select(index => $"new OrderPlaced(name + \"{index}\")")) + ");", StringComparison.Ordinal);
         var request = handler_model.Request(source: source, bodies: new Dictionary<string, string>(StringComparer.Ordinal)
@@ -48,6 +58,7 @@ public class when_executing_command_handler_payloads : a_generated_application
             ["PlaceOrder"] = tupleBody,
             ["FastPlace"] = "return new OrderPlaced(context.Command.Name.ToUpperInvariant() + context.Command.Marker.Value);",
             ["TimedPlace"] = handler_model.TimedBody,
+            ["ProtectedPlace"] = "var key = \"S2:\" + context.Command.Name; global::System.AppContext.SetData(key, 1 + ((int?)global::System.AppContext.GetData(key) ?? 0)); return new OrderPlaced(context.Command.Name);",
             ["GeneratedPlace"] = "global::System.AppContext.SetData(context.Command.OrderId.Value.ToString(), 1 + ((int?)global::System.AppContext.GetData(context.Command.OrderId.Value.ToString()) ?? 0)); return new OrderRegistered(context.Command.OrderId, context.Command.Quantity + 10);"
         });
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
@@ -59,7 +70,10 @@ public class when_executing_command_handler_payloads : a_generated_application
     void Establish() => AddGeneratedSpecification("handler_payloads.cs", $$"""
         using System;
         using System.Linq;
+        using System.Security.Claims;
         using Xunit;
+        using Cratis.Arc.Authorization;
+        using Cratis.Arc.Http;
         using Cratis.Arc.Chronicle.Testing.Commands;
         using Cratis.Arc.Testing.Commands;
         using Cratis.Chronicle.EventSequences;
@@ -153,6 +167,23 @@ public class when_executing_command_handler_payloads : a_generated_application
                     Calls++;
                     return utc;
                 }
+            }
+
+            [Fact]
+            public async System.Threading.Tasks.Task does_not_reach_the_body_or_append_events_when_the_required_role_is_missing()
+            {
+                using var scenario = new CommandScenario<ProtectedPlace>();
+                var name = Guid.NewGuid().ToString();
+                var key = "S2:" + name;
+                AppContext.SetData(key, 0);
+                using var caller = new CurrentPrincipalAccessor(new HttpRequestContextAccessor())
+                    .BeginScope(new ClaimsPrincipal(new ClaimsIdentity([], "fixture")));
+                var result = await scenario.Execute(new ProtectedPlace(Guid.NewGuid(), name));
+                Assert.False(result.IsSuccess);
+                Assert.False(result.IsAuthorized);
+                Assert.Equal(0, (int)AppContext.GetData(key)!);
+                Assert.Empty(scenario.AppendedEvents);
+                Assert.Empty(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
             }
 
             [Fact]

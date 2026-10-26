@@ -90,24 +90,7 @@ internal static class handler_model
                 IsProvisional = false
             };
         }).ToImmutableArray();
-        var descriptors = compilation.TypedContextDescriptors.Select(descriptor =>
-        {
-            var command = commands.Single(command => command.Id == descriptor.OperationId);
-            return descriptor with
-            {
-                Members =
-                [
-                    new("Command",
-                        new(SemanticContextTypeKinds.Shape, null, command.Id, null)
-                        {
-                            Properties = [.. command.Properties.Select(property => new SemanticContextProperty(property.Name, property.Id, property.Type))]
-                        },
-                        false,
-                        false,
-                        new(SemanticContextSourceKinds.Command, command.Id, "Command"))
-                ]
-            };
-        }).ToImmutableArray();
+        var descriptors = compilation.TypedContextDescriptors;
         return new(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile("HandlerModel", new("HandlerApp", "Orders")), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = requirements,

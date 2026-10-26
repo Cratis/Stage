@@ -31,7 +31,7 @@ public class with_an_attachment_boundary
     {
         var request = handler_model.Request();
         var descriptor = request.TypedContextDescriptors.Single();
-        var member = descriptor.Members.Single();
+        var member = descriptor.Members.Single(member => member.Name == "Command");
         request = request with { TypedContextDescriptors = [descriptor with { Members = [member with { Type = member.Type with { Properties = [.. member.Type.Properties.Skip(1)] } }] }] };
         AssertBlocked(request, "STAGE-ESM-021");
     }
@@ -44,6 +44,8 @@ public class with_an_attachment_boundary
         var request = handler_model.Request();
         request = request with { ImplementationRequirements = [request.ImplementationRequirements.Single() with { Language = language, File = file }] };
         AssertBlocked(request, "STAGE-IMPL-002");
+        Assert.Contains(handler_model.Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-002" &&
+            diagnostic.Message.Contains(language, StringComparison.Ordinal) && diagnostic.Message.Contains("only C# handler bodies", StringComparison.Ordinal));
     }
 
     [Theory]

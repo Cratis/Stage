@@ -82,6 +82,7 @@ internal static partial class CratisRepositoryScaffold
           <PropertyGroup>
             <OutputType>Exe</OutputType>
             <IsAspireHost>true</IsAspireHost>
+            <AspireUseCliBundle>true</AspireUseCliBundle>
           </PropertyGroup>
 
           <ItemGroup>

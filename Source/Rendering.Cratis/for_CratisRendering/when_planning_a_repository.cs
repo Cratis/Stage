@@ -60,6 +60,7 @@ public class when_planning_a_repository : Specification
           <PropertyGroup>
             <OutputType>Exe</OutputType>
             <IsAspireHost>true</IsAspireHost>
+            <AspireUseCliBundle>true</AspireUseCliBundle>
           </PropertyGroup>
 
           <ItemGroup>

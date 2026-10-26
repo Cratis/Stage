@@ -297,7 +297,8 @@ jobs:
       # Setup/health is not runtime evidence. This separate gate requires the two exact MongoFacts.
       - name: Run default and atomic mixed-refusal runtime proofs
         id: mixed342
-        timeout-minutes: 10
+        # Allow 3 minutes for bounded preflight, evidence validation and cleanup around the 600-second test.
+        timeout-minutes: 13
         env:
           STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
           AI_WORK_KEEP: ${{ github.workspace }}/.ai-work/342/ci

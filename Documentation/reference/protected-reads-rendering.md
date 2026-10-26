@@ -67,7 +67,8 @@ Do not combine a read with:
 
 - a read path in a `produces when` condition or destination;
 - a read-path mapping to an optional or differently typed event property (the reference yields null for a missing value, which Arc cannot express faithfully); a required collection or composite maps when the event property has exactly the same type;
-- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven.
+- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven;
+- a read of a read model whose key property is not named `id`. Chronicle's decision-read guard looks for the key only in an `id` property (a string or UUID, concepts included) and refuses any other with `KeyConversion` when the command runs. Rename the key to `id`, or read a small decision-only view keyed by `id`.
 
 A command may combine reads with an event under an append-time constraint. The failure order is a missing read first, then the requirements, then the constraint; the three-way conformance specification `when_comparing_protected_reads_with_constraints` compares the reference evaluator, the Stage executor and the rendered application.
 

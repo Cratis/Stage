@@ -29,13 +29,13 @@ public static class ReducerConventionInput
     /// </summary>
     /// <param name="applicationName">The exact semantic application name.</param>
     /// <param name="json">The persisted configuration contents.</param>
-    /// <returns>The validated, canonical input: version one without migrated read models, version two with them.</returns>
+    /// <returns>The validated, canonical input: version one without migrated read models, version two with them, version three selecting model-bound projections.</returns>
     /// <exception cref="InvalidArtifactRenderContract">The configuration is malformed, stale or unsupported.</exception>
     public static ArtifactRenderInput Read(string applicationName, string json)
     {
         if (!TryParse(json, applicationName, out var convention))
         {
-            throw new InvalidArtifactRenderContract("Reducer configuration requires the matching application and reducerConvention 'classic' or 'self': version 1 without read-model overrides, or version 2 with ordinally sorted, unique self overrides carrying an observer id and previous path.");
+            throw new InvalidArtifactRenderContract("Reducer configuration requires the matching application and reducerConvention 'classic' or 'self': version 1 without read-model overrides, version 2 with ordinally sorted, unique self overrides carrying an observer id and previous path, or version 3 with projectionConvention 'model-bound' and optionally the same overrides.");
         }
 
         return Create(applicationName, convention);
@@ -47,14 +47,23 @@ public static class ReducerConventionInput
     internal static ArtifactRenderInput Create(string applicationName, ReducerConvention convention)
     {
         var name = convention.SelfDefault ? "self" : "classic";
+        if (convention.ModelBoundProjections)
+        {
+            var models = ReadModels(convention);
+            return ArtifactRenderInput.Create(
+                Name,
+                "3",
+                convention.Overrides.IsEmpty
+                    ? Encode(new { version = 3, application = applicationName, reducerConvention = name, projectionConvention = "model-bound" })
+                    : Encode(new { version = 3, application = applicationName, reducerConvention = name, projectionConvention = "model-bound", readModels = models }));
+        }
+
         if (convention.Overrides.IsEmpty)
         {
             return ArtifactRenderInput.Create(Name, "1", Encode(new { version = 1, application = applicationName, reducerConvention = name }));
         }
 
-        var readModels = convention.Overrides.OrderBy(entry => entry.Key.ToString(), StringComparer.Ordinal)
-            .Select(entry => new { id = entry.Key.ToString(), convention = "self", observerId = entry.Value.ObserverId, previousPath = entry.Value.PreviousPath });
-        return ArtifactRenderInput.Create(Name, "2", Encode(new { version = 2, application = applicationName, reducerConvention = name, readModels }));
+        return ArtifactRenderInput.Create(Name, "2", Encode(new { version = 2, application = applicationName, reducerConvention = name, readModels = ReadModels(convention) }));
     }
 
     internal static bool TryRead(ArtifactRenderProfile profile, string applicationName, out ReducerConvention convention)
@@ -84,14 +93,13 @@ public static class ReducerConventionInput
         {
             using var document = JsonDocument.Parse(json);
             var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("version", out var versionElement) || !versionElement.TryGetInt32(out var version)) return false;
-            string[] expected = version == 2 ? ["application", "readModels", "reducerConvention", "version"] : ["application", "reducerConvention", "version"];
-            if ((version != 1 && version != 2) || !HasExactProperties(root, expected) || root.GetProperty("application").GetString() != applicationName) return false;
+            if (!TryReadVersion(root, out var version) || !MatchesConfiguration(root, version, applicationName)) return false;
+            var hasReadModels = HasReadModels(root, version);
             var name = root.GetProperty("reducerConvention").GetString();
             if (name is not ("classic" or "self")) return false;
             var overrides = ImmutableDictionary<SemanticId, ReducerOverride>.Empty;
-            if (version == 2 && !TryParseOverrides(root.GetProperty("readModels"), out overrides)) return false;
-            convention = new(name == "self", overrides);
+            if (hasReadModels && !TryParseOverrides(root.GetProperty("readModels"), out overrides)) return false;
+            convention = new(name == "self", overrides) { ModelBoundProjections = version == 3 };
             return true;
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or KeyNotFoundException)
@@ -100,7 +108,34 @@ public static class ReducerConventionInput
         }
     }
 
+    static bool TryReadVersion(JsonElement root, out int version)
+    {
+        version = 0;
+        return root.ValueKind == JsonValueKind.Object && root.TryGetProperty("version", out var element) && element.TryGetInt32(out version);
+    }
+
+    static bool HasReadModels(JsonElement root, int version) =>
+        version == 2 || (version == 3 && root.TryGetProperty("readModels", out _));
+
+    static bool MatchesConfiguration(JsonElement root, int version, string applicationName)
+    {
+        if (version is < 1 or > 3 || !HasExactProperties(root, ConfigurationProperties(root, version))) return false;
+        if (version == 3 && root.GetProperty("projectionConvention").GetString() != "model-bound") return false;
+        return root.GetProperty("application").GetString() == applicationName;
+    }
+
+    static string[] ConfigurationProperties(JsonElement root, int version) => version switch
+    {
+        3 => HasReadModels(root, version) ? ["application", "projectionConvention", "readModels", "reducerConvention", "version"] : ["application", "projectionConvention", "reducerConvention", "version"],
+        2 => ["application", "readModels", "reducerConvention", "version"],
+        _ => ["application", "reducerConvention", "version"]
+    };
+
     static ImmutableArray<byte> Encode(object value) => [.. Encoding.UTF8.GetBytes(JsonSerializer.Serialize(value) + "\n")];
+
+    static object[] ReadModels(ReducerConvention convention) =>
+        [.. convention.Overrides.OrderBy(entry => entry.Key.ToString(), StringComparer.Ordinal)
+            .Select(entry => (object)new { id = entry.Key.ToString(), convention = "self", observerId = entry.Value.ObserverId, previousPath = entry.Value.PreviousPath })];
 
     static bool TryParseOverrides(JsonElement readModels, out ImmutableDictionary<SemanticId, ReducerOverride> overrides)
     {

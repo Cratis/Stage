@@ -38,7 +38,17 @@ public class when_performer_languages_are_not_supported
         AssertLanguageGap(when_rendering_a_pure_reducer.Plan(loaded), loaded, language);
     }
 
-    public enum BodyEnvelope { InlineCSharp, CSharpFile, MixedCSharpJavaFile, InlineJava, UppercaseCSharpFile, ExtensionlessFile, JavaFile, TypeScriptFile }
+    public enum BodyEnvelope
+    {
+        InlineCSharp,
+        CSharpFile,
+        MixedCSharpJavaFile,
+        InlineJava,
+        UppercaseCSharpFile,
+        ExtensionlessFile,
+        JavaFile,
+        TypeScriptFile
+    }
 
     [Theory]
     [InlineData(BodyEnvelope.JavaFile)]

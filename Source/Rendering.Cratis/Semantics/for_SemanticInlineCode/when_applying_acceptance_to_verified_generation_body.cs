@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticInlineCode;
 
 public class when_applying_acceptance_to_verified_generation_body : Specification
 {
-    const string Remedy = "Supply verified csharp inline bytes for the same placement and requirement.";
+    const string Remedy = ImplementationLanguage.Remedy;
     SemanticInlineCodeResult _inline = null!;
     ArtifactRenderDiagnostic _warning = null!;
     ArtifactRenderDegradation _evidence = null!;
@@ -25,7 +25,8 @@ public class when_applying_acceptance_to_verified_generation_body : Specificatio
         _inline = SemanticInlineCodeRendering.Generation(concept, context);
         var output = SemanticCommonArtifactRenderer.Render(concept, context);
         _warning = Assert.Single(context.InlineDiagnostics);
-        Assert.Equal(Assert.Single(_inline.Diagnostics), _warning);
+        Assert.Equal(Assert.Single(_inline.Diagnostics).Code, _warning.Code);
+        Assert.Equal(concept.Id, _warning.Artifact);
         _evidence = new(_warning, Remedy);
         var generated = ArtifactRenderPlan.Create(
             context.Request,
@@ -50,7 +51,8 @@ public class when_applying_acceptance_to_verified_generation_body : Specificatio
     [Fact] void should_retain_the_original_warning() => Assert.Equal(_warning, Assert.Single(_original.Diagnostics));
     [Fact] void should_keep_warning_severity() => _warning.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
     [Fact] void should_keep_the_warning_code() => _warning.Code.ShouldEqual("STAGE-DEGRADE-003");
-    [Fact] void should_keep_the_warning_explanation() => _warning.Message.ShouldEqual("The body language does not match csharp.");
+    [Fact] void should_keep_the_warning_explanation() => Assert.Contains("language 'java'", _warning.Message, StringComparison.Ordinal);
+    [Fact] void should_include_the_remedy_in_the_warning() => Assert.Contains(Remedy, _warning.Message, StringComparison.Ordinal);
     [Fact] void should_keep_the_original_evidence_and_remedy() => Assert.Equal(_evidence, Assert.Single(_original.Degradations));
     [Fact] void should_fail_strict_acceptance() => _strict.Success.ShouldBeFalse();
     [Fact] void should_still_publish_safe_artifacts_in_strict_mode() => _strict.CanPublishArtifacts.ShouldBeTrue();

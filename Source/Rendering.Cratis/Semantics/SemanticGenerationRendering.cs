@@ -64,9 +64,6 @@ internal static class SemanticGenerationRendering
             .BlankLine();
     }
 
-    static SemanticImplementationRequirement RequirementOf(SemanticConcept concept, SemanticApplicationContext context) =>
-        context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == concept.Generation!.RequirementId);
-
     internal static string Factory(SemanticConcept concept, string? context, CSharpCodeBuilder? builder = null)
     {
         var generation = concept.Generation ?? new SemanticGeneration("uuid");
@@ -75,6 +72,9 @@ internal static class SemanticGenerationRendering
 
         return concept.Primitive is SemanticPrimitiveType.Uuid or SemanticPrimitiveType.WholeNumber ? value : Text(generation, value);
     }
+
+    static SemanticImplementationRequirement RequirementOf(SemanticConcept concept, SemanticApplicationContext context) =>
+        context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == concept.Generation!.RequirementId);
 
     static string Strategy(SemanticGeneration generation, string? context, CSharpCodeBuilder? builder)
     {

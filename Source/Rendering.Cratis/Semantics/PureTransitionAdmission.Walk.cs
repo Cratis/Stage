@@ -19,13 +19,17 @@ internal static partial class PureTransitionAdmission
         SemanticModel model,
         BlockSyntax body,
         SemanticTypedContextDescriptor descriptor,
-        string? rootNamespace = null,
-        IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol>? generatedConcepts = null)
+        string? rootNamespace = null)
     {
         rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();
+        return Walk(model, body, new PureTransitionAnalysisContext(descriptor, rootNamespace, ImmutableDictionary<INamedTypeSymbol, ITypeSymbol>.Empty));
+    }
+
+    static Verdict Walk(SemanticModel model, BlockSyntax body, PureTransitionAnalysisContext analysis)
+    {
         var root = model.GetOperation(body);
         if (root is null) return Reject("STAGE-ESM-022", "Reducer body has no bound operation.");
-        var walker = new Walker(model, root, rootNamespace, descriptor, generatedConcepts ?? ImmutableDictionary<INamedTypeSymbol, ITypeSymbol>.Empty);
+        var walker = new Walker(model, root, analysis);
         foreach (var operation in Descendants(root))
         {
             if (walker.Visit(operation) is { } rejection)
@@ -168,18 +172,17 @@ internal static partial class PureTransitionAdmission
         _ => OperatorMethod(operation)
     };
 
-    sealed class Walker(SemanticModel model, IOperation root, string rootNamespace, SemanticTypedContextDescriptor descriptor,
-        IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> generatedConcepts)
+    sealed class Walker(SemanticModel model, IOperation root, PureTransitionAnalysisContext analysis)
     {
         readonly ImmutableHashSet<string>.Builder _reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
         readonly ImmutableHashSet<string>.Builder _used = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-        readonly Lazy<string> _wrapper = new(() => $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}");
+        readonly Lazy<string> _wrapper = new(() => $"TypedContext_{SemanticTypedContextRenderer.Suffix(analysis.Descriptor)}");
 
         string Wrapper => _wrapper.Value;
 
         Compilation Compilation => model.Compilation;
 
-        bool IsValidationIterator => descriptor.Role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
+        bool IsValidationIterator => analysis.Descriptor.Role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
         public Verdict Accepted() => new(
             null,
@@ -346,7 +349,7 @@ internal static partial class PureTransitionAdmission
 
         Verdict? ConversionRejection(IOperation operation) => operation switch
         {
-            IConversionOperation conversion when IsUnsafeConversion(conversion, generatedConcepts) =>
+            IConversionOperation conversion when IsUnsafeConversion(conversion, analysis.GeneratedConcepts) =>
                 Forbid($"Conversion to '{conversion.Type?.ToDisplayString()}' is outside the pure allowlist."),
             IIsPatternOperation pattern when !SafePattern(pattern.Pattern, Compilation) =>
                 Forbid($"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist."),
@@ -448,7 +451,7 @@ internal static partial class PureTransitionAdmission
         }
 
         bool IsAdmitted(IOperation operation, ISymbol symbol, out string entry) =>
-            Allowed(symbol, Compilation, rootNamespace, generatedConcepts, out entry) &&
+            Allowed(symbol, Compilation, analysis, out entry) &&
             !(symbol.ContainingType?.Name == Wrapper && operation is not IPropertyReferenceOperation);
 
         Verdict? WrapperReadRejection(IOperation operation)

@@ -11,6 +11,7 @@ using Cratis.Stage.Rendering.Cratis.Semantics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_analyzing_a_reducer_with_a_keyed_query;
 
@@ -18,30 +19,31 @@ public class with_generated_concept_conversions
 {
     const string ConstructedBody = "return new ChangeRequest(TalkId: new global::Projects.Common.TalkId(Guid.Parse(context.Key)), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
 
-    public static TheoryData<bool, string, string> AdmittedBodies => new()
+    public static TheoryData<AdmittedConceptBody> AdmittedBodies => new()
     {
-        { false, "String", "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
-        { true, "String", "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
-        { false, "String", "return new ChangeRequest(TalkId: context.Key, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { true, "String", "return new ChangeRequest(TalkId: context.Key, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { false, "Uuid", "return new ChangeRequest(TalkId: Guid.Parse(context.Key), Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { true, "Uuid", "return new ChangeRequest(TalkId: Guid.Parse(context.Key), Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { false, "String", "global::Projects.Common.Reason reason = context.Key; global::Projects.Common.TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { true, "String", "Reason reason = context.Key; TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { false, "Uuid", "global::Projects.Common.TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { true, "Uuid", "TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
-        { false, "String", "string? text = null; global::Projects.Common.Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { true, "String", "string? text = null; Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { false, "String", "global::Projects.Common.Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { true, "String", "Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
-        { false, "String", "string? s = null; string text = s!; global::Projects.Common.Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" },
-        { true, "String", "string? s = null; string text = s!; Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" }
+        new() { Self = false, Primitive = "String", Body = "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "return new ChangeRequest(context.Key, context.Key, context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "String", Body = "return new ChangeRequest(TalkId: context.Key, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "return new ChangeRequest(TalkId: context.Key, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "Uuid", Body = "return new ChangeRequest(TalkId: Guid.Parse(context.Key), Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "Uuid", Body = "return new ChangeRequest(TalkId: Guid.Parse(context.Key), Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "String", Body = "global::Projects.Common.Reason reason = context.Key; global::Projects.Common.TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "Reason reason = context.Key; TalkId id = context.Key; return new ChangeRequest(TalkId: id, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "Uuid", Body = "global::Projects.Common.TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "Uuid", Body = "TalkId id = Guid.Parse(context.Key); return new ChangeRequest(TalkId: id, Reason: context.Key, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "String", Body = "string? text = null; global::Projects.Common.Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "string? text = null; Reason reason = text; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "String", Body = "global::Projects.Common.Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "Reason reason = context.Key.Length > 0 ? null : \"text\"; return new ChangeRequest(TalkId: context.Key, Reason: reason, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = false, Primitive = "String", Body = "string? s = null; string text = s!; global::Projects.Common.Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" },
+        new() { Self = true, Primitive = "String", Body = "string? s = null; string text = s!; Reason r = text; return new ChangeRequest(TalkId: context.Key, Reason: r, RequestedAt: context.Event.RequestedAt);" }
     };
 
     [Theory]
     [MemberData(nameof(AdmittedBodies))]
-    public async Task should_render_and_bind_the_identical_generated_operator_in_both_compilations(bool self, string primitive, string body)
+    public async Task should_render_and_bind_the_identical_generated_operator_in_both_compilations(AdmittedConceptBody scenario)
     {
+        var (self, primitive, body) = (scenario.Self, scenario.Primitive, scenario.Body);
         var source = with_a_body.Model(body, performer: false).Replace("concept TalkId : Uuid", $"concept TalkId : {primitive}", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var context = Context(loaded, self);
@@ -64,13 +66,19 @@ public class with_generated_concept_conversions
         Assert.Contains(synthetic.BoundSymbols, identity => identity.Contains("Projects.Common.TalkId.op_Implicit", StringComparison.Ordinal));
     }
 
-    [Theory]
-    [InlineData("string text = context.State.Reason;", "STAGE-ESM-019", "CS0029", true)]
-    [InlineData("_ = context.State.Reason == \"text\";", "STAGE-ESM-022", "Symbol 'Projects.Common.Reason.operator ==", false)]
-    [InlineData("global::Projects.Common.Reason reason = null;", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason?' is outside the pure allowlist.", false)]
-    [InlineData("global::Projects.Common.Reason reason = default(string);", "STAGE-ESM-022", "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", false)]
-    public async Task should_keep_refusing_other_concept_operations(string prefix, string code, string message, bool valueHint)
+    public static TheoryData<RefusedConceptOperation> RefusedOperations => new()
     {
+        new() { Prefix = "string text = context.State.Reason;", Code = "STAGE-ESM-019", Message = "CS0029", ValueHint = true },
+        new() { Prefix = "_ = context.State.Reason == \"text\";", Code = "STAGE-ESM-022", Message = "Symbol 'Projects.Common.Reason.operator ==", ValueHint = false },
+        new() { Prefix = "global::Projects.Common.Reason reason = null;", Code = "STAGE-ESM-022", Message = "Conversion to 'Projects.Common.Reason?' is outside the pure allowlist.", ValueHint = false },
+        new() { Prefix = "global::Projects.Common.Reason reason = default(string);", Code = "STAGE-ESM-022", Message = "Conversion to 'Projects.Common.Reason' is outside the pure allowlist.", ValueHint = false }
+    };
+
+    [Theory]
+    [MemberData(nameof(RefusedOperations))]
+    public async Task should_keep_refusing_other_concept_operations(RefusedConceptOperation scenario)
+    {
+        var (prefix, code, message, valueHint) = (scenario.Prefix, scenario.Code, scenario.Message, scenario.ValueHint);
         var body = prefix + " " + ConstructedBody;
         var loaded = await when_rendering_a_pure_reducer.Load(with_a_body.Model(body, performer: false));
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
@@ -93,11 +101,17 @@ public class with_generated_concept_conversions
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
     }
 
-    [Theory]
-    [InlineData("Peer", "Projects.Peers")]
-    [InlineData("Reason", "Projects.Peers.Common")]
-    public async Task should_not_trust_a_peer_operator_even_when_its_type_has_a_concept_name(string name, string peerNamespace)
+    public static TheoryData<PeerConceptOperator> PeerOperators => new()
     {
+        new() { Name = "Peer", Namespace = "Projects.Peers" },
+        new() { Name = "Reason", Namespace = "Projects.Peers.Common" }
+    };
+
+    [Theory]
+    [MemberData(nameof(PeerOperators))]
+    public async Task should_not_trust_a_peer_operator_even_when_its_type_has_a_concept_name(PeerConceptOperator scenario)
+    {
+        var (name, peerNamespace) = (scenario.Name, scenario.Namespace);
         var loaded = await when_rendering_a_pure_reducer.Load(with_a_body.Model(ConstructedBody, performer: false));
         var context = Context(loaded, self: false);
         var plan = when_rendering_a_pure_reducer.Plan(loaded);
@@ -170,6 +184,69 @@ public class with_generated_concept_conversions
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, loaded.TypedContextDescriptors.Single(), context);
         Assert.False(rendered.Accepted);
         Assert.Equal("STAGE-ESM-022", rendered.Code);
+    }
+
+    public sealed record AdmittedConceptBody : IXunitSerializable
+    {
+        public bool Self { get; set; }
+        public string Primitive { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            info.AddValue(nameof(Self), Self);
+            info.AddValue(nameof(Primitive), Primitive);
+            info.AddValue(nameof(Body), Body);
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            Self = info.GetValue<bool>(nameof(Self));
+            Primitive = info.GetValue<string>(nameof(Primitive));
+            Body = info.GetValue<string>(nameof(Body));
+        }
+    }
+
+    public sealed record RefusedConceptOperation : IXunitSerializable
+    {
+        public string Prefix { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public bool ValueHint { get; set; }
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            info.AddValue(nameof(Prefix), Prefix);
+            info.AddValue(nameof(Code), Code);
+            info.AddValue(nameof(Message), Message);
+            info.AddValue(nameof(ValueHint), ValueHint);
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            Prefix = info.GetValue<string>(nameof(Prefix));
+            Code = info.GetValue<string>(nameof(Code));
+            Message = info.GetValue<string>(nameof(Message));
+            ValueHint = info.GetValue<bool>(nameof(ValueHint));
+        }
+    }
+
+    public sealed record PeerConceptOperator : IXunitSerializable
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Namespace { get; set; } = string.Empty;
+
+        public void Serialize(IXunitSerializationInfo info)
+        {
+            info.AddValue(nameof(Name), Name);
+            info.AddValue(nameof(Namespace), Namespace);
+        }
+
+        public void Deserialize(IXunitSerializationInfo info)
+        {
+            Name = info.GetValue<string>(nameof(Name));
+            Namespace = info.GetValue<string>(nameof(Namespace));
+        }
     }
 
     static SemanticApplicationContext Context(LoadedSemanticModel loaded, bool self)

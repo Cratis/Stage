@@ -68,9 +68,12 @@ internal static partial class PureTransitionAdmission
             return !IsNullConstant(operation) && IsGeneratedConceptConversion(method, trusted);
         }
 
-        if (IsNullConstant(operation) && operation.Type is INamedTypeSymbol target && trusted.ContainsKey(target)) return false;
+        if (IsNullConstant(operation) && IsTrustedConceptTarget(operation.Type, trusted)) return false;
         return IsNullConstant(operation) || IsSafeTypedConversion(operation);
     }
+
+    static bool IsTrustedConceptTarget(ITypeSymbol? type, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
+        type is INamedTypeSymbol target && trusted.ContainsKey(target);
 
     static bool IsNullConstant(IConversionOperation operation) =>
         operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null;

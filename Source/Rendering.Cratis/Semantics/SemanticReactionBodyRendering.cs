@@ -42,13 +42,7 @@ internal static class SemanticReactionBodyRendering
             return new(null, placement, diagnostics.ToImmutable());
         }
 
-        var result = Present(code!, placement, context.Events[reaction.Triggers.Single().Source], diagnostics, reaction.Id);
-        if (result.Code is not null && SemanticReactionBodyAdmission.Failure(context, reaction, result.Code) is { } failure)
-        {
-            diagnostics.Add(new("STAGE-ESM-012", ArtifactRenderDiagnosticSeverity.Error, $"The reaction handler does not satisfy its synchronous return contract: {failure}", reaction.Id));
-            return new(null, placement, diagnostics.ToImmutable());
-        }
-        return result;
+        return Present(code!, placement, context.Events[reaction.Triggers.Single().Source], diagnostics, reaction.Id);
     }
 
     static bool EnvelopeMatches(SemanticImplementationRequirement requirement, SemanticId owner) =>

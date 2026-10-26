@@ -17,21 +17,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 
 public abstract class a_rendered_application : Specification
 {
-    protected const string RoutedSource = """
-        concept AccountId : Uuid
-        eventsource Account
-          identifier AccountId
-          stream Transactions
-        module Banking
-          feature Deposits
-            slice StateChange Deposit
-              command Deposit
-                accountId AccountId identifier
-                amount Decimal
-                stream Account.Transactions
-                produces event Deposited
-                  amount Decimal = amount
-        """;
+    protected const string RoutedSource = round_trip_fixtures.RoutedSource;
 
     protected ExecutableSemanticModel _model = null!;
     protected Compilation _compilation = null!;
@@ -73,27 +59,14 @@ public abstract class a_rendered_application : Specification
         _result.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code, StringComparer.Ordinal)).ShouldBeEmpty();
     }
 
-    protected void AssertSourceAndStreamsRecovered()
+    protected static void AssertRoundTripEquivalent(string fixture)
     {
-        var expected = _model.Application.EventSources.Single();
-        var actual = _recovered.Application.EventSources.Single();
-        actual.Name.ShouldEqual(expected.Name);
-        actual.SourceKind.ShouldEqual(expected.SourceKind);
-        actual.Streams.Select(stream => (stream.Name, stream.StreamKind)).ShouldEqual(expected.Streams.Select(stream => (stream.Name, stream.StreamKind)));
+        var verdict = arc_round_trip_ledger.Load().Reconcile([arc_round_trip.Run(round_trip_fixtures.Inline(fixture))], requireCompleteRun: false);
+        Assert.True(verdict.IsClean, arc_round_trip_ledger.Describe(verdict.Findings));
     }
 
-    protected static string StoredNames(string sourceId, string streamId) => RoutedSource
-        .Replace("eventsource Account\n", $"eventsource Account\n  id \"{sourceId}\"\n", StringComparison.Ordinal)
-        .Replace("  stream Transactions\n", $"  stream Transactions\n    id \"{streamId}\"\n", StringComparison.Ordinal);
+    protected static string StoredNames(string sourceId, string streamId) => round_trip_fixtures.StoredNames(sourceId, streamId);
 
-    static ExecutableSemanticModel Compile(string source)
-    {
-        var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Banking"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("roundtrip"), "roundtrip", "RoundTrip.play", source);
-        var compilation = new SemanticModelCompiler().Compile("Banking", SemanticDocumentSet.Create([document], catalog));
-        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-
-        return compilation.Value!.Model;
-    }
+    static ExecutableSemanticModel Compile(string source) => round_trip_fixtures.Compile(source);
 }
 #endif

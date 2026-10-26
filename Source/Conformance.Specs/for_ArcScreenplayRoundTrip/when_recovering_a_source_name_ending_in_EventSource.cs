@@ -3,16 +3,17 @@
 
 #if DEBUG
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
 public class when_recovering_a_source_name_ending_in_EventSource : given.a_rendered_application
 {
-    protected override string Source => RoutedSource.Replace("Account", "AccountEventSource", StringComparison.Ordinal);
+    protected override string Source => round_trip_fixtures.InlineSource(round_trip_fixtures.EventSourceSuffix);
     void Because() => Generate();
 
-    [Fact] void should_preserve_the_model_suffix_on_the_source() => AssertSourceAndStreamsRecovered();
+    [Fact] void should_round_trip_to_an_equivalent_model() => AssertRoundTripEquivalent(round_trip_fixtures.EventSourceSuffix);
     [Fact] void should_preserve_the_model_suffix_on_the_command_route() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().Authoring!.Route!.Source.ShouldEqual("AccountEventSource");
     [Fact] void should_preserve_the_stream_name() => _result.Model.Slices.SelectMany(slice => slice.Commands).Single().Authoring!.Route!.Stream.ShouldEqual("Transactions");
     [Fact] void should_not_report_source_or_stream_diagnostics() => AssertSourceDiagnosticsAbsent();

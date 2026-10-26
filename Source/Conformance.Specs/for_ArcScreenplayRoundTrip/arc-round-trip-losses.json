@@ -1,0 +1,1775 @@
+{
+  "schema": "cratis.screenplay.loss-ledger/v1",
+  "target": "cratis-arc",
+  "corpusVersion": "4.249.0",
+  "minimumFixtureCount": 29,
+  "budget": {
+    "maximumEntries": 199,
+    "maximumByDesign": 0,
+    "maximumExclusions": 2
+  },
+  "excludedFixtures": {
+    "AcmeAdmissionsCorpus.V29": "Rendered output does not compile (CS1503), Cratis/Stage#822",
+    "EventRoutesCorpus.CompositesV8": "Rendered output does not compile (CS0246), Cratis/Stage#823"
+  },
+  "losses": [
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3550"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/specifications[ConfirmingAnOrderCreatesAShipment]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Orders]/slices[PlaceOrder]/commands[PlaceOrder]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Orders]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Orders]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Orders]/slices[PlaceOrder]/commands[PlaceOrder]/properties[orderId]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Orders]/slices[PlaceOrder]/specifications[PlacingAnOrderReservesTheProduct]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "AcmeSecondAdmissionsCorpus.V30",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ConceptComplianceCorpus.V13",
+      "change": "missing",
+      "path": "/application/concepts[HealthInformation]/compliance/personal/criminal",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "ConceptComplianceCorpus.V13",
+      "change": "missing",
+      "path": "/application/concepts[HealthInformation]/compliance/personal/special",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "ConceptComplianceCorpus.V13",
+      "change": "missing",
+      "path": "/application/concepts[PersonalSecret]/compliance/secret",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "ConceptComplianceCorpus.V13",
+      "change": "missing",
+      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[ProtectedInformation]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/commands[KeepDate]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/commands[KeepDate]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/commands[KeepDate]/produces[0]/when",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/commands[KeepDate]/properties[id]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/specifications[CalendarBeforeThreshold]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Calendar]/specifications[CalendarOrdering]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/primitive",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/properties[at]/type/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/commands[CompareInstant]/validations[0]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/specifications[DistinctTicks]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Compare]/specifications[EqualityAcrossOffsets]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/primitive",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[from]/type/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/primitive",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/properties[to]/type/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/commands[KeepWindow]/requirements",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/specifications[OrderingAcrossOffsets]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[Keep]/specifications[RejectingAnInvertedWindow]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "DateComparisonsCorpus.V26",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EnumMemberNumbersCorpus.V12",
+      "change": "missing",
+      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[CancelledStatus]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "EnumMemberNumbersCorpus.V12",
+      "change": "missing",
+      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[DraftStatus]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "EnumMemberNumbersCorpus.V12",
+      "change": "missing",
+      "path": "/application/modules[Invoices]/features[Lifecycle]/slices[Record]/specifications[IssuedStatus]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "missing",
+      "path": "/application/eventSources",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[S]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "unexpected",
+      "path": "/application/modules[M]/features[F]/slices[Slice]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "changed",
+      "path": "/application/policies[AccountantOnly]/condition/kind",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "missing",
+      "path": "/application/policies[AccountantOnly]/condition/left",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "missing",
+      "path": "/application/policies[AccountantOnly]/condition/operator",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "missing",
+      "path": "/application/policies[AccountantOnly]/condition/right",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "missing",
+      "path": "/application/eventSources",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[S]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "unexpected",
+      "path": "/application/modules[M]/features[F]/slices[Slice]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "missing",
+      "path": "/application/eventSources[Account]/streams[Base]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "missing",
+      "path": "/application/eventSources[Account]/streams[Notes]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "missing",
+      "path": "/application/eventSources[Account]/streams[Periods]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[S]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "unexpected",
+      "path": "/application/modules[M]/features[F]/slices[Slice]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0044"
+      ],
+      "issue": "Cratis/Arc#3553"
+    },
+    {
+      "fixture": "GeneratedValuesCorpus.V15",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0056"
+      ],
+      "issue": "Cratis/Arc#3558"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "missing",
+      "path": "/application/concepts[InvoiceRef]/generation",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "missing",
+      "path": "/application/concepts[InvoiceRef]/validations[0]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "missing",
+      "path": "/application/concepts[TenantOrderId]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "missing",
+      "path": "/application/concepts[TicketNumber]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "missing",
+      "path": "/application/modules[Shop]/features[References]/slices[Record]/specifications[ValidStoredChecksum]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "GenerationSupportCorpus.V21",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "NumberLiteralsCorpus.ExactLiteralsV11",
+      "change": "missing",
+      "path": "/application/modules[Numbers]/features[Recording]/slices[Record]/specifications[InputValues]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "NumberLiteralsCorpus.ExactLiteralsV11",
+      "change": "missing",
+      "path": "/application/modules[Numbers]/features[Recording]/slices[Record]/specifications[LiteralValues]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "ProtectedCommandReadRaceVectors.Model",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0056"
+      ],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedCommandReadRaceVectors.ModelV1R2",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0056"
+      ],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "ProtectedCommandReadsCorpus.V25",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0056"
+      ],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/captures",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/direction",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/events[Arrived]/origin",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/events[Arrived]/visibility",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/events[Labelled]/origin",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/events[Labelled]/visibility",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "unexpected",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/reactions",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3551"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/specifications[FirstArrival]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/specifications[GivenTransition]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Tracking]/slices[Receive]/specifications[Overlay]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "PublicEventsCorpus.CapturesFromEventsV9",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/direction",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/events[OrderShipped]/visibility",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "changed",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3550"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/projections[OrderShippedPublisher]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "unexpected",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/reactions",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3551"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[PublishOrderShipped]/specifications[PublishingAPackedOrder]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[TrackShipments]/captures",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[TrackShipments]/direction",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[TrackShipments]/events[ShipmentDispatched]/origin",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "missing",
+      "path": "/application/modules[Integration]/features[Translation]/slices[TrackShipments]/events[ShipmentDispatched]/visibility",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "unexpected",
+      "path": "/application/modules[Integration]/features[Translation]/slices[TrackShipments]/reactions",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3551"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "PublicEventsCorpus.V9",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ReactionIdentityCorpus.V10",
+      "change": "changed",
+      "path": "/application/modules[Work]/features[Completion]/slices[CompleteWork]/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3550"
+    },
+    {
+      "fixture": "ReactionIdentityCorpus.V10",
+      "change": "missing",
+      "path": "/application/modules[Work]/features[Completion]/slices[CompleteWork]/specifications[DeclaredIdentityAllows]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "ReactionIdentityCorpus.V10",
+      "change": "missing",
+      "path": "/application/modules[Work]/features[Completion]/slices[CompleteWork]/specifications[NoIdentityDenies]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "ReactionIdentityCorpus.V10",
+      "change": "changed",
+      "path": "/application/policies[CanComplete]/condition/kind",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "ReactionIdentityCorpus.V10",
+      "change": "missing",
+      "path": "/application/policies[CanComplete]/condition/role",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0026"
+      ],
+      "issue": "Cratis/Arc#3555"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "unexpected",
+      "path": "/application/concepts[EventSourceId]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "missing",
+      "path": "/application/modules[Billing]/features[Invoices]/slices[InvoiceLookup]/queries[InvoiceById]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3557"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "missing",
+      "path": "/application/modules[Billing]/features[Invoices]/slices[InvoiceLookup]/specifications[RemovingOneOfTwoInvoices]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "ReadModelAbsenceCorpus.V5",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[ProjectLookup]/projections[ProjectSummaryProjection]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "unexpected",
+      "path": "/application/modules[Projects]/features[Registration]/slices[ProjectLookup]/projections[ProjectSummary]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3552"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[ProjectLookup]/queries[ProjectById]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3557"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/validations[0]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[RegisteringAProject]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.LegacyV1",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[RejectingAnEmptyProjectName]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "changed",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "changed",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/properties[projectId]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/commands[RegisterProject]/response",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[MismatchedReturn]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[MissingAllocation]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "RegisterProjectCorpus.V7",
+      "change": "missing",
+      "path": "/application/modules[Projects]/features[Registration]/slices[RegisterProject]/specifications[RegisteringAProject]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "StoredEventNamesCorpus.V16",
+      "change": "missing",
+      "path": "/application/modules[Records]/features[Recording]/slices[Record]/commands[Record]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "StoredEventNamesCorpus.V16",
+      "change": "changed",
+      "path": "/application/modules[Records]/features[Recording]/slices[Record]/commands[Record]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "StoredEventNamesCorpus.V16",
+      "change": "changed",
+      "path": "/application/modules[Records]/features[Recording]/slices[Record]/commands[Record]/produces[1]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "StoredEventNamesCorpus.V16",
+      "change": "changed",
+      "path": "/application/modules[Records]/features[Recording]/slices[Record]/commands[Record]/properties[id]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "StoredEventNamesCorpus.V16",
+      "change": "missing",
+      "path": "/application/modules[Records]/features[Recording]/slices[Record]/specifications[MixedNames]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Approve]/commands[ApproveRequest]/requirements",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Approve]/specifications[ApprovingAnotherMember]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Approve]/specifications[RejectingASelfApproval]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/commands[FlagMember]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "changed",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/commands[FlagMember]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/commands[FlagMember]/produces[0]/when",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "changed",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/commands[FlagMember]/properties[id]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/specifications[FlaggingTheWatchedMember]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Flag]/specifications[IgnoringAnotherMember]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Match]/commands[MatchMember]/requirements",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Match]/specifications[MatchingABareUuid]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "missing",
+      "path": "/application/modules[Access]/features[Approvals]/slices[Match]/specifications[RejectingADifferentUuid]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "UuidComparisonsCorpus.V28",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V25",
+      "change": "uncompilable",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0056"
+      ],
+      "issue": "Cratis/Arc#3558"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/produces[1]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/produces[1]/when",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/properties[id]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/requirements",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "missing",
+      "path": "/application/modules[Scheduling]/features[Windows]/slices[KeepWindow]/commands[KeepWindow]/validations[0]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016",
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V26",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/commandReadMode",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "unexpected",
+      "path": "/application/concepts[EventSourceId]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3554"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[Lookup]/queries[Get]",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3557"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/produces[1]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/produces[1]/when",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/properties[id]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/reads",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Stage#515"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "missing",
+      "path": "/application/modules[M]/features[F]/slices[Write]/commands[Update]/requirements",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V28",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/kind",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3550"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[Dispatching]/specifications[ConfirmingAnOrderCreatesAShipment]",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "missing",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/mappings[0]/source/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/mappings[0]/targetProperty",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/mappings[1]/source/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[0]/mappings[1]/targetProperty",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/destination",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/mappings[0]/source/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/mappings[0]/targetProperty",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/mappings[1]/source/target",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/produces[1]/mappings[1]/targetProperty",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3556"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/application/modules[Shipping]/features[Dispatch]/slices[PlaceOrder]/commands[PlaceOrder]/properties[orderId]/identifier",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3548"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/languageVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/schemaVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "EsmGoldenVectors.V30",
+      "change": "changed",
+      "path": "/semanticVersion",
+      "direction": "adapter",
+      "diagnostics": [],
+      "issue": "Cratis/Arc#3559"
+    },
+    {
+      "fixture": "Inline.FilteredReactor",
+      "change": "changed",
+      "path": "/application/modules[Banking]/features[Deposits]/slices[Forward]/kind",
+      "direction": "adapter",
+      "issue": "Cratis/Arc#3550",
+      "diagnostics": []
+    },
+    {
+      "fixture": "Inline.FilteredReactor",
+      "change": "missing",
+      "path": "/application/modules[Banking]/features[Deposits]/slices[Forward]/reactions[Follow]/triggers[0]/produces[0]",
+      "direction": "adapter",
+      "issue": "Cratis/Arc#3551",
+      "diagnostics": []
+    },
+    {
+      "fixture": "Inline.FilteredReactor",
+      "change": "unexpected",
+      "path": "/application/modules[Banking]/features[Deposits]/slices[Forward]/reactions[Follow]/triggers[0]/requirementId",
+      "direction": "adapter",
+      "issue": "Cratis/Arc#3551",
+      "diagnostics": []
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0016"
+      ],
+      "issue": "Cratis/Arc#3549",
+      "path": "/diagnostics[SP0016]"
+    },
+    {
+      "fixture": "EventRoutesCorpus.V8",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547",
+      "path": "/diagnostics[SP0039]"
+    },
+    {
+      "fixture": "EventRoutesCorpus.CompositeCommandsV8",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547",
+      "path": "/diagnostics[SP0039]"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549",
+      "path": "/diagnostics[SP0012]"
+    },
+    {
+      "fixture": "EventRoutesCorpus.ProductionRoutesV10",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547",
+      "path": "/diagnostics[SP0039]"
+    },
+    {
+      "fixture": "GeneratedValuesCorpus.V15",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0012"
+      ],
+      "issue": "Cratis/Arc#3549",
+      "path": "/diagnostics[SP0012]"
+    },
+    {
+      "fixture": "GeneratedValuesCorpus.V15",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547",
+      "path": "/diagnostics[SP0039]"
+    },
+    {
+      "fixture": "ProtectedCommandReadsCorpus.V25",
+      "change": "diagnostic",
+      "direction": "adapter",
+      "diagnostics": [
+        "SP0039"
+      ],
+      "issue": "Cratis/Arc#3547",
+      "path": "/diagnostics[SP0039]"
+    }
+  ]
+}

@@ -3,26 +3,17 @@
 
 #if DEBUG
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
 public class when_recovering_a_filtered_reactor : given.a_rendered_application
 {
-    protected override string Source => StoredNames("stored-account", "stored-transactions") + """
-
-            slice Automation Forward
-              event Forwarded
-                amount Decimal
-              reaction Follow
-                from Account.Transactions
-                when Deposited
-                  produces Forwarded
-                    amount = amount
-        """;
+    protected override string Source => round_trip_fixtures.InlineSource(round_trip_fixtures.FilteredReactor);
     void Because() => Generate();
 
-    [Fact] void should_recover_the_source_and_stream_names_and_ids() => AssertSourceAndStreamsRecovered();
+    [Fact] void should_round_trip_to_an_equivalent_model() => AssertRoundTripEquivalent(round_trip_fixtures.FilteredReactor);
     [Fact] void should_recover_the_observed_source() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.Source.ShouldEqual("Account");
     [Fact] void should_recover_the_observed_stream() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.Stream.ShouldEqual("Transactions");
     [Fact] void should_recognize_the_observed_stream_as_declared() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.StreamDeclared.ShouldBeTrue();

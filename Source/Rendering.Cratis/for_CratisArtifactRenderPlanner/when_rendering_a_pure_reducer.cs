@@ -773,6 +773,8 @@ public class when_rendering_a_pure_reducer
     [Theory]
     [InlineData("return new Total(Guid.NewGuid(), context.Event.Amount);", "Guid.NewGuid")]
     [InlineData("return new Total(Guid.Empty, DateTime.UtcNow.Day);", "DateTime.UtcNow")]
+    [InlineData("return new Total(Guid.Empty, DateTimeOffset.UtcNow.Day);", "DateTimeOffset.UtcNow")]
+    [InlineData("_ = new DateTimeOffset(1L, TimeSpan.Zero); return context.State;", "DateTimeOffset(long,TimeSpan)")]
     [InlineData("return new Total(Guid.Empty, Environment.TickCount);", "Environment.TickCount")]
     [InlineData("Environment.ExitCode = 1; return context.State;", "static write")]
     [InlineData("var alias = context; return new Total(Guid.Empty, alias.Tenant.Value.Length);", "context.Tenant alias")]
@@ -918,6 +920,17 @@ public class when_rendering_a_pure_reducer
         }
     }
 
+    [Theory]
+    [InlineData("_ = DateTime.Now; return context.State;")]
+    [InlineData("return new Total(Guid.Empty, DateTime.Now < DateTime.Now ? 1m : 0m);")]
+    public async Task should_suggest_datetimeoffset_for_refused_datetime_members(string body)
+    {
+        var verdict = await Analyze(body);
+        Assert.False(verdict.Accepted);
+        Assert.Equal("STAGE-ESM-022", verdict.Code);
+        Assert.Contains("Use DateTimeOffset (context.Occurred) instead.", verdict.Reason, StringComparison.Ordinal);
+    }
+
     // Planted adversarial bodies: each was admitted by the pre-fix gate (see failing targeted test).
     [Theory]
     [InlineData("return new Total(Guid.Empty, new[] { 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0, 2147483647, -2147483647, 0, 0 }.Sum());")]
@@ -1003,6 +1016,13 @@ public class when_rendering_a_pure_reducer
             "return new Total(Guid.Empty, (int)1m);",
             "return default(Total);",
             "return new Total(Guid.Empty, context.Occurred >= context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred < context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred <= context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred > context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred == context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, context.Occurred != context.Occurred ? 1m : 0m);",
+            "return new Total(Guid.Empty, new DateTimeOffset(2026, 11, 30, 0, 0, 0, context.Occurred - context.Occurred).Day);",
+            "return new Total(Guid.Empty, TimeSpan.Zero.Ticks);",
             "return new Total(Guid.Empty, (context.Occurred - context.Occurred).Add(context.Occurred - context.Occurred).Ticks);",
             "return new Total(Guid.Empty, (context.Occurred - context.Occurred) == (context.Occurred - context.Occurred) ? 1m : 0m);",
             "return context.State is Total total ? total : new Total(Guid.Empty, 0m);",

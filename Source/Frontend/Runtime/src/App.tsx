@@ -53,7 +53,6 @@ import { navigateToScreen, screenArguments } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
-import { standaloneScreenTemplates } from './standaloneScreenTemplates';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
 import { stageIconAdapters } from './stageIcons';
@@ -122,7 +121,7 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     const first = scene.screens[0];
     return effectiveShellOf(scene as ApplicationDocument, first, {
         profile: stageProfile(scene.uiProfiles),
-        blueprintTemplates: standaloneScreenTemplates(screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates),
+        blueprintTemplates: screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates,
     });
 }
 
@@ -137,8 +136,9 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
         // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
-        // A template that fits inside another one is composed on its own: a Screenplay screen fills only the template it names (standaloneScreenTemplates).
-        blueprintTemplates: standaloneScreenTemplates(blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates),
+        // A modeled screen fills only the slots of the template it names, so Stage composes just that template (Scene namedTemplateOnly).
+        blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates,
+        namedTemplateOnly: true,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
             ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
             : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),

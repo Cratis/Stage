@@ -15,7 +15,7 @@ public class with_a_concept_rule : Specification
 
     void Because()
     {
-        var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.Concept("return context.Value.Value > 0 && context.IsWholeArtifact;")));
+        var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.Concept("return context.Value > 0 && context.IsWholeArtifact;")));
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         _assembly = opaque_policy_model.Compile(plan);
     }

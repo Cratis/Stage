@@ -38,7 +38,7 @@ public class with_a_specification : Specification
         _plan = opaque_policy_model.Plan(source);
     }
 
-    [Fact] void should_render_nothing() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
     [Fact] void should_name_the_unsupported_reference() => Assert.Contains(_plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("opaque", StringComparison.Ordinal));
 }
 #endif

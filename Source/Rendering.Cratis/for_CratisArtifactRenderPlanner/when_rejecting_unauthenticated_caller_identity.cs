@@ -13,7 +13,7 @@ public class when_rejecting_unauthenticated_caller_identity
     [InlineData(false, "claim \"department\" = \"Sales\"")]
     [InlineData(true, "role \"Staff\"")]
     [InlineData(true, "claim \"department\" = \"Sales\"")]
-    public void should_refuse_the_fixture_before_emitting_any_artifacts(bool queryOnly, string identity)
+    public void should_omit_the_unrepresentable_fixture(bool queryOnly, string identity)
     {
         var action = queryOnly
             ? "then query InvoiceById\n          arguments\n            invoiceId = \"invoice-one\""
@@ -27,6 +27,7 @@ public class when_rejecting_unauthenticated_caller_identity
         var plan = invoice_model.Plan(model);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == fixture.Id &&
             diagnostic.Message.Contains("An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        Assert.True(plan.Success);
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(fixture.Id));
     }
 }

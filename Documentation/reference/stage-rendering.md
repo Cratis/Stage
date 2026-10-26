@@ -301,8 +301,29 @@ refused and degraded constructs may coexist in one inventory, with refusal takin
 The shared `STAGE-DEGRADE-001` through `005` codes describe unknown members, unsupported
 constructs, inline mismatches, a newer ESM inside an explicitly declared supported range, and
 dependency degradation. Their availability is not a claim that the Cratis provider emits all
-five today. In particular, the current audited-version gate is unchanged: a newer unaudited ESM
-is refused with `STAGE-ESM-016`, not admitted with `STAGE-DEGRADE-004`.
+five today.
+
+### A newer ESM inside the declared range
+
+The Cratis renderer declares the range `>=32.0 <33`. The exact audited pairs are unchanged. A
+language/semantic pair that is not audited, matches in major and minor, and lies inside that range
+(for example 32.1) renders as **Degraded** with plan-level `STAGE-DEGRADE-004` evidence in
+`ArtifactRenderPlan.PlanEvidence`, in the default and the strict mode alike (strict promotes the
+warning to an error, as for any degradation, but the plan still publishes). Members that this
+Stage version has not audited on selected owners add `STAGE-DEGRADE-001` evidence. A member that
+carries security meaning (policies, authorization, claims and similar masks) is never rendered
+around: the render is refused with `STAGE-ESM-016` naming the member. A future major (33 or later),
+an out-of-range pair, a malformed pair and an unknown enumeration value are refused with
+`STAGE-ESM-016`; the runtime and specification executor still support only the exact audited pairs.
+
+Plan-level evidence names no selected construct, so it is excluded from the inventory, the
+completeness score and the construct gaps. It does change the plan digest and the outcome.
+
+When a completeness report is written for such a plan, it is the additive `stage-render-completeness/v2`
+shape: `support` carries the `stage-render-audited-support/v2` version, the
+`AuditedOrNewerWithinDeclaredRange` policy, the typed `declaredRange` (minimum pair and exclusive
+major) and the `effective` policy and versions, and a `planEvidence` array lists the evidence.
+Reports without a declared range keep the exact `v1` bytes and the `AuditedOnly` policy.
 
 ## Release-baseline warnings in artifact plans
 

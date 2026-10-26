@@ -31,8 +31,21 @@ public sealed record ArtifactRenderReportContext(ArtifactRenderVersionPair Input
         if (Support.AuditedPairs.IsDefaultOrEmpty) throw new InvalidArtifactRenderContract("Reports require exact audited input provenance.");
         ValidatePair(Input);
         foreach (var pair in Support.AuditedPairs) ValidatePair(pair);
-        if (!Support.AuditedPairs.Contains(Input)) throw new InvalidArtifactRenderContract("The report input is not an exact audited pair.");
+        ValidateInputAdmission();
         if (Support.AuditedPairs.Distinct().Count() != Support.AuditedPairs.Length) throw new InvalidArtifactRenderContract("Audited provenance contains duplicate pairs.");
+    }
+
+    void ValidateInputAdmission()
+    {
+        if (Support.DeclaredRange is null)
+        {
+            if (!Support.AuditedPairs.Contains(Input)) throw new InvalidArtifactRenderContract("The report input is not an exact audited pair.");
+            return;
+        }
+
+        ValidatePair(Support.DeclaredRange.Minimum);
+        if (!Support.DeclaredRange.IsValid) throw new InvalidArtifactRenderContract("The declared range requires a matching minimum pair and a later exclusive major.");
+        if (!Support.AuditedPairs.Contains(Input) && !Support.DeclaredRange.Contains(Input)) throw new InvalidArtifactRenderContract("The report input is neither an exact audited pair nor within the declared range.");
     }
 
     static void ValidatePair(ArtifactRenderVersionPair pair)

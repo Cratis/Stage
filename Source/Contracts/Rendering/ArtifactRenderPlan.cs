@@ -319,8 +319,8 @@ public sealed partial class ArtifactRenderPlan
         get
         {
             if (_generationDiagnostics.HasValue && !CanPublishArtifacts) return ArtifactRenderOutcome.Refused;
-            if (Inventory is not null) return Inventory.Outcome;
-            if (!Degradations.IsEmpty) return ArtifactRenderOutcome.Degraded;
+            if (Inventory is not null) return Inventory.Outcome == ArtifactRenderOutcome.Complete && !PlanEvidence.IsEmpty ? ArtifactRenderOutcome.Degraded : Inventory.Outcome;
+            if (!Degradations.IsEmpty || !PlanEvidence.IsEmpty) return ArtifactRenderOutcome.Degraded;
             if (!ImplementationGaps.IsEmpty) return ArtifactRenderOutcome.Partial;
             if (Success) return ArtifactRenderOutcome.Complete;
             return !Refusals.IsEmpty && !Artifacts.IsEmpty ? ArtifactRenderOutcome.Partial : ArtifactRenderOutcome.Refused;

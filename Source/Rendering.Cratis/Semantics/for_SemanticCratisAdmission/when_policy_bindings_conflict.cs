@@ -29,6 +29,7 @@ public class when_policy_bindings_conflict : Specification
     void Because() => _diagnostics = SemanticCratisAdmission.Evaluate(_context, _context.AllSlices);
 
     [Fact] void should_report_the_conflict_for_each_operation() => _diagnostics.Where(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code).Select(diagnostic => diagnostic.Artifact).ShouldContainOnly(_operations);
+    [Fact] void should_report_each_conflicting_operation_exactly_once() => _diagnostics.Where(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code).GroupBy(diagnostic => diagnostic.Artifact).Select(group => group.Count()).ShouldContainOnly([1, 1]);
     [Fact] void should_refuse_the_conflict_as_errors() => _diagnostics.Where(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code).All(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeTrue();
     [Fact] void should_preserve_the_policy_name_in_the_diagnostic() => _diagnostics.First(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code).Message.ShouldContain("bind the policy 'OwnerForBillingInvoicingIssueInvoiceIssueInvoiceCommand' differently");
 }

@@ -48,6 +48,7 @@ internal static partial class SemanticCratisAdmission
         _ = SemanticSurfaceLedger.Entries;
         PassesPreconditions(context, slices, diagnostics);
 
+        Collect(() => _ = SemanticPolicyNames.For(context), context.Application.Id, diagnostics);
         Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics);
         Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics);
         Collect(() => ValidateTypes(context, diagnostics), context.Application.Id, diagnostics);
@@ -178,7 +179,10 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var operation in exception.Operations.IsEmpty ? [artifact] : exception.Operations)
             {
-                diagnostics.Add(Error(ConflictingPolicyBindings.Code, exception.Message, operation));
+                if (!diagnostics.Exists(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code && diagnostic.Artifact == operation))
+                {
+                    diagnostics.Add(Error(ConflictingPolicyBindings.Code, exception.Message, operation));
+                }
             }
         }
     }

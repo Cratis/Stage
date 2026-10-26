@@ -263,6 +263,30 @@ change Host or specification-executor admission, and does not add a CLI flag.
 Without the opt-in, artifact bytes and digests are unchanged. The output digest adds a
 `refusals-v1` segment only when `Refusals` is nonempty.
 
+## Strict plan acceptance
+
+Set `CratisPlanOptions.Strict` for source planning, or `CratisRenderingOptions.Strict` when
+creating a direct rendering profile, to reject validated degradation at acceptance time.
+The setting is recorded as the hashed `stage:strict` profile input, version `1`, with
+exact UTF-8 bytes `true` or `false` and no trailing newline. An absent input means false;
+default profile creation omits it to preserve legacy profile bytes. The shared
+`Cratis.Stage.Contracts.Rendering.StrictAcceptanceInput` creates and reads this input.
+
+Unverified query performers retain their generated throwing bodies and implementation-gap
+metadata. Their original `STAGE-DEGRADE-002` warning evidence is recorded in
+`ArtifactRenderPlan.Degradations`. Strict acceptance promotes that recorded warning to an
+Error, so `Success` becomes false while `Outcome` remains `Degraded` and
+`CanPublishArtifacts` remains true. Genuine generation or integrity Errors still prevent
+safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
+planning itself never publishes files.
+
+`WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
+Release-baseline warnings and source diagnostics retain that evidence across plan
+reconstruction. `WithInventory` accepts a validated construct inventory; its locations carry
+the exact typed `SemanticAddress` as `semanticLocator` and a real portable relative
+`modelPath`, or explicit null when no source filename is available. Semantic locators are
+not filenames and must not be flattened into fabricated paths.
+
 ## Release-baseline warnings in artifact plans
 
 An admitted release baseline freezes stored event revisions, including the resolved

@@ -92,10 +92,15 @@ public static class SceneGuards
     static bool HasUnevaluableGuard(JsonNode? node) => node switch
     {
         JsonObject element when IsGuardedAction(element) && !CanRunAction(element["properties"] as JsonObject) => true,
-        JsonObject binding when binding.ContainsKey("trigger") && (!CanRunBinding(binding["condition"]) ||
-            (binding["alternatives"] is JsonArray alternatives && alternatives.Any(branch => !CanEvaluate(branch?["condition"])))) => true,
+        JsonObject binding when HasUnevaluableInteraction(binding) => true,
         JsonObject element => element.Any(property => HasUnevaluableGuard(property.Value)),
         JsonArray array => array.Any(HasUnevaluableGuard),
         _ => false
     };
+
+    static bool HasUnevaluableInteraction(JsonObject binding) => binding.ContainsKey("trigger") &&
+        (!CanRunBinding(binding["condition"]) || HasUnevaluableAlternatives(binding["alternatives"]));
+
+    static bool HasUnevaluableAlternatives(JsonNode? node) => node is JsonArray alternatives &&
+        alternatives.Any(branch => !CanEvaluate(branch?["condition"]));
 }

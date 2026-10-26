@@ -78,7 +78,7 @@ function feed(component: ExternalComponent, sources: Map<string, ExternalCompone
  * When that declaration reads a collection, `item` is the selected row of the collection instead, as Screenplay documents.
  */
 function feedSubject(component: ExternalComponent, subject: ExternalComponent | undefined): ExternalComponent {
-    if ((component.componentName !== 'core:guarded-action' && component.componentName !== 'core:action') || !Array.isArray(component.properties?.alternatives)) return component;
+    if (!['core:guarded-action', 'core:action'].includes(component.componentName) || !Array.isArray(component.properties?.alternatives)) return component;
     if (!subject || component.properties.itemQuery !== undefined) return component;
 
     const properties: Record<string, unknown> = { ...component.properties };

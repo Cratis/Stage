@@ -27,6 +27,15 @@ export function isGuardedAction(element: ExternalComponent): boolean {
 
 /** Supplies Stage's nearest-data subject to Scene; Scene alone selects and executes the branch. */
 export function StageSceneGuardedAction(props: Omit<RegisteredComponentProps, 'slots'> & { slots?: RegisteredComponentProps['slots'] }) {
+    const { dispatcher, attachments } = useGuardedActionDispatch();
+    const { item, refused, error } = useGuardedActionSubject(props.element);
+    if (refused) return <span role='alert'>STAGE-SCENE-ACTION-001: The action's data subject or command scope is unavailable.{error}</span>;
+    return <InteractionScope dispatcher={dispatcher} attachments={attachments}>
+        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...props.element.properties, item } }} />
+    </InteractionScope>;
+}
+
+function useGuardedActionDispatch() {
     const data = useStageData();
     const interaction = useInteractionScope();
     const execute = useStageCommandExecutor();
@@ -38,23 +47,44 @@ export function StageSceneGuardedAction(props: Omit<RegisteredComponentProps, 's
         },
         navigate: (screen, args) => navigateToScreen(screen, Object.fromEntries(Object.entries(args).map(([name, value]) => [name, String(value)]))),
     });
-    const properties = props.element.properties;
-    const query = typeof properties.itemQuery === 'string' ? properties.itemQuery : undefined;
-    const route = (query ? data.routes?.queries?.[query] : undefined) ?? (typeof properties.itemRoute === 'string' ? properties.itemRoute : undefined);
-    const bindings = isRecord(properties.itemArguments) ? properties.itemArguments : {};
-    const args = Object.fromEntries(Object.entries(bindings).map(([name, binding]) => [name,
-        isRecord(binding) && typeof binding.path === 'string' ? data.resolveBinding({ path: binding.path }) : binding]));
-    const selection = properties.itemSelection === true;
-    const result = useStageQuery({ scope: `${props.element.id}:item`, name: query, route, arguments: args,
-        ready: !selection && Object.values(args).every(value => value !== undefined && value !== null && value !== ''), publish: false });
+    return { dispatcher, attachments: interaction?.attachments ?? [] };
+}
+
+function useGuardedActionSubject(element: ExternalComponent) {
+    const data = useStageData();
+    const request = guardedSubjectRequest(element, data);
+    const result = useStageQuery(request);
+    const selection = element.properties.itemSelection === true;
     const rows = selection ? Object.values(data.selections).filter(row => row !== undefined) : result.rows;
     const item = rows.length === 1 ? rows[0] : undefined;
-    if ((!query && !route && !selection) || result.error) {
-        return <span role='alert'>STAGE-SCENE-ACTION-001: The action's data subject or command scope is unavailable.{result.error}</span>;
-    }
-    return <InteractionScope dispatcher={dispatcher} attachments={interaction?.attachments ?? []}>
-        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...properties, item } }} />
-    </InteractionScope>;
+    const absent = !hasQuerySource(request) && !selection;
+    return { item, refused: absent || !!result.error, error: result.error };
+}
+
+function guardedSubjectRequest(element: ExternalComponent, data: StageDataState): StageQueryRequest {
+    const properties = element.properties;
+    const query = subjectString(properties.itemQuery);
+    const route = data.routes?.queries?.[query ?? ''] ?? subjectString(properties.itemRoute);
+    const bindings = isRecord(properties.itemArguments) ? properties.itemArguments : {};
+    const args = Object.fromEntries(Object.entries(bindings).map(([name, binding]) => [name, guardedArgument(binding, data.resolveBinding)]));
+    return { scope: `${element.id}:item`, name: query, route, arguments: args,
+        ready: properties.itemSelection !== true && Object.values(args).every(subjectArgumentReady), publish: false };
+}
+
+function subjectString(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined;
+}
+
+function guardedArgument(binding: unknown, resolve: StageDataState['resolveBinding']): unknown {
+    return isRecord(binding) && typeof binding.path === 'string' ? resolve({ path: binding.path }) : binding;
+}
+
+function subjectArgumentReady(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== '';
+}
+
+function hasQuerySource(request: StageQueryRequest): boolean {
+    return !!(request.name || request.route);
 }
 
 interface QueryState {
@@ -355,7 +385,7 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const latest = useRef(0);
     const liveOpen = useRef(false);
     const ready = request.ready ?? true;
-    const active = !!(request.name || request.route) && ready;
+    const active = hasQuerySource(request) && ready;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {

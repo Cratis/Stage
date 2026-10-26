@@ -14,6 +14,8 @@ using Cratis.Stage.Specifications;
 
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance.given;
 
+public sealed record render_capture(conformance_observation Observation, ArtifactRenderPlan? Plan, ArtifactRenderRequest? Request);
+
 // Observes each surface without reducing full artifact identities to cell-level code or kind sets.
 public static partial class conformance_outcomes
 {
@@ -141,7 +143,23 @@ public static partial class conformance_outcomes
         return Classify(refused, problems);
     }
 
-    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    public static render_capture CaptureRenderer(conformance_vector vector)
+    {
+        try
+        {
+            return SemanticExecutionPlan.Compile(vector.Model, []).Plan is { } plan
+                ? CaptureRenderer(vector, plan)
+                : new(conformance_observation.WithoutRefusals(NotLoaded), null, null);
+        }
+        catch (Exception exception)
+        {
+            return new(conformance_observation.WithoutRefusals($"gap:threw({exception.GetType().Name}: {exception.Message})"), null, null);
+        }
+    }
+
+    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan) => CaptureRenderer(vector, plan).Observation;
+
+    static render_capture CaptureRenderer(conformance_vector vector, SemanticExecutionPlan plan)
     {
         var name = vector.Name.Replace('.', '_').Replace('[', '_').Replace("]", string.Empty, StringComparison.Ordinal);
 
@@ -157,7 +175,7 @@ public static partial class conformance_outcomes
         var source = conformance_source_bodies.Compile(vector);
         if (source.Problem is not null)
         {
-            return conformance_observation.WithoutRefusals($"gap:{source.Problem}");
+            return new(conformance_observation.WithoutRefusals($"gap:{source.Problem}"), null, null);
         }
 
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
@@ -184,7 +202,7 @@ public static partial class conformance_outcomes
                 problems.Add("rendered-nothing");
             }
 
-            return Classify(codes, problems);
+            return new(Classify(codes, problems), rendered, request);
         }
 
         if (rendered.Artifacts.Length > 0)
@@ -209,7 +227,7 @@ public static partial class conformance_outcomes
             problems.Add("blocked-without-diagnostics");
         }
 
-        return Classify(codes, problems);
+        return new(Classify(codes, problems), rendered, request);
     }
 
     // A refusal typed by a STAGE code is that code. One typed only by its capability also carries a short reason key (the first words of

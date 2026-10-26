@@ -3,6 +3,7 @@
 
 #if DEBUG
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +13,23 @@ using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+
+public sealed record generated_execution_result(
+    string Command,
+    IReadOnlyList<string> Arguments,
+    string Phase,
+    int? ExitCode,
+    bool TimedOut,
+    bool Truncated,
+    string StandardOutput,
+    string StandardError,
+    TimeSpan Elapsed,
+    string LogPath,
+    Exception? Failure)
+{
+    public string Output => $"{StandardOutput}{StandardError}";
+    public bool Success => Failure is null && ExitCode == 0 && !TimedOut && !Truncated;
+}
 
 public class a_generated_application : a_register_project_render_request
 {
@@ -143,6 +161,8 @@ public class a_generated_application : a_register_project_render_request
 
     protected string ReadGeneratedFile(string relativePath) => File.ReadAllText(Path.Combine(_application!.FullName, relativePath));
 
+    protected byte[] ReadGeneratedBytes(string relativePath) => File.ReadAllBytes(GeneratedPath(relativePath));
+
     protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application!.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
 
     // Specifications compile into the application in Debug; a for_ folder keeps them out of its Release build.
@@ -162,6 +182,22 @@ public class a_generated_application : a_register_project_render_request
 
     // A parity vector with an intentionally wrong expectation must still yield a complete TRX result.
     protected async Task<string> Run(string logName, bool allowFailedTests, params string[] arguments)
+    {
+        var result = await RunExecution(logName, TimeSpan.FromMinutes(8), arguments);
+        if (result.Failure is { } failure)
+        {
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        if (result.TimedOut || result.Truncated || (result.ExitCode != 0 && !(allowFailedTests && result.ExitCode == 1)))
+        {
+            throw new GeneratedApplicationVerificationFailed(result.Command, result.LogPath, result.Output);
+        }
+
+        return result.Output;
+    }
+
+    protected async Task<generated_execution_result> RunExecution(string logName, TimeSpan executionTimeout, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
         using var slot = await GeneratedApplicationBuilds.Enter();
@@ -184,46 +220,61 @@ public class a_generated_application : a_register_project_render_request
         }
 
         using var process = new Process { StartInfo = startInfo };
-        process.Start();
-        var standardOutput = ReadOutput(process.StandardOutput);
-        var standardError = ReadOutput(process.StandardError);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(8));
+        var elapsed = Stopwatch.StartNew();
+        var command = $"dotnet {string.Join(' ', arguments)}";
+        var logPath = Path.Combine(_evidence.FullName, logName);
+        var phase = "startup";
+        int? exitCode = null;
         var timedOut = false;
+        var truncated = false;
+        var stdout = string.Empty;
+        var stderr = string.Empty;
+        Exception? failure = null;
         try
         {
-            await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(timeout.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            timedOut = true;
-            if (!process.HasExited)
+            process.Start();
+            phase = arguments.FirstOrDefault() ?? "execution";
+            var standardOutput = ReadOutput(process.StandardOutput);
+            var standardError = ReadOutput(process.StandardError);
+            using var timeout = new CancellationTokenSource(executionTimeout);
+            try
             {
-                process.Kill(entireProcessTree: true);
+                await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                timedOut = true;
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                }
+
+                await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(30));
             }
 
-            await Task.WhenAll(process.WaitForExitAsync(), standardOutput, standardError).WaitAsync(TimeSpan.FromSeconds(30));
+            exitCode = process.ExitCode;
+            var output = await standardOutput;
+            var error = await standardError;
+            stdout = output.Text;
+            stderr = error.Text;
+            truncated = output.Truncated || error.Truncated;
+            await File.WriteAllTextAsync(logPath, $"{command}\nExit code: {exitCode}\nTimed out: {timedOut}\nTruncated: {truncated}\n{stdout}{stderr}");
+            phase = "integrity";
+            foreach (var (relativePath, expectedHash) in _artifactHashes)
+            {
+                var path = Path.Combine(_application.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
+                var actualHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(path))).ToLowerInvariant();
+                actualHash.ShouldEqual(expectedHash);
+            }
+            phase = arguments.FirstOrDefault() ?? "execution";
         }
-
-        var command = $"dotnet {string.Join(' ', arguments)}";
-        var stdout = await standardOutput;
-        var stderr = await standardError;
-        var output = $"{stdout.Text}{stderr.Text}";
-        var truncated = stdout.Truncated || stderr.Truncated;
-        var logPath = Path.Combine(_evidence.FullName, logName);
-        await File.WriteAllTextAsync(logPath, $"{command}\nExit code: {process.ExitCode}\nTimed out: {timedOut}\nTruncated: {truncated}\n{output}");
-        foreach (var (relativePath, expectedHash) in _artifactHashes)
+        catch (Exception exception)
         {
-            var path = Path.Combine(_application.FullName, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            var actualHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(path))).ToLowerInvariant();
-            actualHash.ShouldEqual(expectedHash);
+            failure = exception;
+            if (phase != "startup" && phase != "integrity") phase = "execution";
         }
 
-        if (timedOut || truncated || (process.ExitCode != 0 && !(allowFailedTests && process.ExitCode == 1)))
-        {
-            throw new GeneratedApplicationVerificationFailed(command, logPath, output);
-        }
-
-        return output;
+        return new(command, arguments, phase, exitCode, timedOut, truncated, stdout, stderr, elapsed.Elapsed, logPath, failure);
     }
 
     // Callers name the application they rendered; restore and build cover its solution, test runs the application's specs.

@@ -116,7 +116,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticGeneration", rendered, "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
-        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
+        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via [ComplianceDetails] on the syntax renderer (#259)."), "Special Criminal");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");

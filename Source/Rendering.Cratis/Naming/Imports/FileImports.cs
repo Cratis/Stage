@@ -58,7 +58,8 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     /// <summary>
     /// Gets a value indicating whether a namespace the renderer asked to import is still needed. A directive that a global
     /// using repeats, or that brings nothing the file names, is dropped; one whose names are not all known is kept, since
-    /// something in the file may rely on it.
+    /// something in the file may rely on it. Explicit self and enclosing namespace imports follow this same policy to
+    /// preserve existing rendered header bytes.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
     /// <returns><see langword="true"/> when the directive must stay.</returns>
@@ -93,6 +94,21 @@ internal sealed class FileImports(NameScope scope, FrameworkNameCatalog catalog,
     /// </remarks>
     public bool CanImportInside(string @namespace, IReadOnlyCollection<string> inner, IReadOnlyCollection<string> top) =>
         !_scope.Encloses(@namespace) && CanImport(@namespace, name => KeepsBinding(name, @namespace, inner, top));
+
+    /// <summary>
+    /// Gets a value indicating whether the renderer declares a type in a namespace, which makes it win a name collision.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <returns><see langword="true"/> when a generated type lives there.</returns>
+    public bool IsGenerated(string @namespace) => _scope.DeclaresGeneratedTypes(@namespace);
+
+    /// <summary>
+    /// Gets a value indicating whether a namespace declares a type with a simple name.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <param name="name">The simple name.</param>
+    /// <returns><see langword="true"/> when it does.</returns>
+    public bool Declares(string @namespace, string name) => _scope.TypeNames(@namespace).Any(candidate => candidate == name || candidate.StartsWith($"{name}`", StringComparison.Ordinal));
 
     /// <summary>
     /// Determines whether a directive inside the file-scoped namespace may name a namespace without <c language="csharp">global::</c>.

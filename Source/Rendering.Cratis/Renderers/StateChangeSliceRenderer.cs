@@ -7,6 +7,7 @@ using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Types;
 using Cratis.Stage.Rendering.Cratis.Validation;
 
@@ -44,7 +45,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace)).Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 

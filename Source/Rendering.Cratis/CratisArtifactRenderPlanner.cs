@@ -79,7 +79,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
         }
-        catch (GeneratedPascalCase.InvalidIdentifier exception)
+        catch (InvalidGeneratedIdentifier exception)
         {
             diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
         }

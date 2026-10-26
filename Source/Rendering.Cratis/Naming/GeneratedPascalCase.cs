@@ -124,14 +124,9 @@ internal static class GeneratedPascalCase
         if (char.GetUnicodeCategory(result[0]) is System.Globalization.UnicodeCategory.NonSpacingMark or
             System.Globalization.UnicodeCategory.SpacingCombiningMark or System.Globalization.UnicodeCategory.EnclosingMark)
         {
-            throw new InvalidIdentifier(name);
+            throw new InvalidGeneratedIdentifier(name);
         }
 
         return char.IsDigit(result[0]) ? $"_{result}" : result;
-    }
-
-    internal sealed class InvalidIdentifier(string name) : Exception($"The authored name '{name}' starts with a combining mark after generated identifier normalization.")
-    {
-        internal string Code => "STAGE-ESM-019";
     }
 }

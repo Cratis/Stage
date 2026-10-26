@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission;
@@ -46,7 +47,7 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
     }
 
     [Fact]
-    public void should_refuse_command_specifications_that_cascade_into_reactions()
+    public void should_omit_command_specifications_that_cascade_into_reactions()
     {
         const string specification = """
                   specification Starting
@@ -64,8 +65,12 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
             .Replace("    slice StateChange Start\n", "    slice Automation FollowUp\n", StringComparison.Ordinal);
         SetContext(Compile(oneSlice + "\n" + specification));
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
-        _plan.Artifacts.ShouldBeEmpty();
+        _plan.Success.ShouldBeTrue();
+        _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-PLAN-007");
+        _plan.Refusals.Single().Artifact.ShouldEqual(_located.Slice.Specifications.Single().Id);
+        _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_located.Slice.Specifications.Single().Id);
     }
 
     [Fact]

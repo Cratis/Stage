@@ -304,7 +304,7 @@ public sealed partial class ArtifactRenderPlan
     /// <summary>
     /// Gets the output-only SHA-256 digest, excluding the semantic revision.
     /// </summary>
-    public string Digest => ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals);
+    public string Digest => InventoryDigest(AcceptanceDigest(ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals)));
 
     /// <summary>
     /// Gets omitted artifacts in ordinal semantic-identity order.
@@ -318,6 +318,9 @@ public sealed partial class ArtifactRenderPlan
     {
         get
         {
+            if (_generationDiagnostics.HasValue && !CanPublishArtifacts) return ArtifactRenderOutcome.Refused;
+            if (Inventory is not null) return Inventory.Outcome;
+            if (!Degradations.IsEmpty) return ArtifactRenderOutcome.Degraded;
             if (!ImplementationGaps.IsEmpty) return ArtifactRenderOutcome.Partial;
             if (Success) return ArtifactRenderOutcome.Complete;
             return !Refusals.IsEmpty && !Artifacts.IsEmpty ? ArtifactRenderOutcome.Partial : ArtifactRenderOutcome.Refused;
@@ -431,7 +434,8 @@ public sealed partial class ArtifactRenderPlan
             normalizedRemovals)
         {
             Scope = request.Scope,
-            AdditionalScopes = request.AdditionalScopes
+            AdditionalScopes = request.AdditionalScopes,
+            InputVersions = new(request.Model.LanguageVersion, request.Model.SemanticVersion)
         };
     }
 

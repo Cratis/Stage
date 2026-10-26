@@ -44,9 +44,9 @@ public class without_a_domain : given.a_domain_policy_plan
 
     static string Digest(IEnumerable<PlannedArtifact> artifacts)
     {
-        // Pins the complete output, including paths, wrappers, bodies, policies and generated specs.
+        // Pins the unchanged payload: paths, wrappers, bodies, policies and generated specs. Managed reports have separate byte goldens.
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (var artifact in artifacts.OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
+        foreach (var artifact in artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal)).OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
         {
             hash.AppendData(Encoding.UTF8.GetBytes(artifact.RelativePath + "\n"));
             hash.AppendData(artifact.Bytes.AsSpan());

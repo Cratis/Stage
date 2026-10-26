@@ -263,6 +263,48 @@ change Host or specification-executor admission, and does not add a CLI flag.
 Without the opt-in, artifact bytes and digests are unchanged. The output digest adds a
 `refusals-v1` segment only when `Refusals` is nonempty.
 
+## Strict plan acceptance
+
+Set `CratisPlanOptions.Strict` for source planning, or `CratisRenderingOptions.Strict` when
+creating a direct rendering profile, to reject validated degradation at acceptance time.
+The setting is recorded as the hashed `stage:strict` profile input, version `1`, with
+exact UTF-8 bytes `true` or `false` and no trailing newline. An absent input means false;
+default profile creation omits it to preserve legacy profile bytes. The shared
+`Cratis.Stage.Contracts.Rendering.StrictAcceptanceInput` creates and reads this input.
+
+Unverified query performers retain their generated throwing bodies and implementation-gap
+metadata. Default planning preserves the existing `STAGE-IMPL-006` diagnostics and does not
+add public degradation warnings or acceptance metadata. Default plans with unclassified
+implementation gaps retain their legacy partial outcome and omit the unavailable inventory
+and completeness reports rather than claim those owners are rendered. Only strict planning records
+`STAGE-DEGRADE-002` warning evidence in `ArtifactRenderPlan.Degradations` and promotes that
+recorded warning to an Error, so `Success` becomes false while `Outcome` remains `Degraded` and
+`CanPublishArtifacts` remains true. Genuine generation or integrity Errors still prevent
+safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
+planning itself never publishes files.
+
+`WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
+Release-baseline warnings and source diagnostics retain that evidence across plan
+reconstruction. `WithInventory` accepts a validated construct inventory; its locations carry
+the exact typed `SemanticAddress` as `semanticLocator` and a real portable relative
+`modelPath`, or explicit null when no source filename is available. Semantic locators are
+not filenames and must not be flattened into fabricated paths.
+
+The current provider counts selected identity-bearing commands, produced events, read models,
+queries, projections, reactions, captures, specifications, concepts and composite types. It does
+not claim a complete inventory of every public construct kind: reducers and constraints lack
+independent identities in the current semantic model, and policies, guards, validations and
+screens are not yet independently inventoried. It never invents identities for those owners.
+The shared contract supports their kinds for providers with explicit semantic ownership.
+A refused construct currently requires refusal reasons and no degradation entries; independent
+refused and degraded constructs may coexist in one inventory, with refusal taking precedence.
+
+The shared `STAGE-DEGRADE-001` through `005` codes describe unknown members, unsupported
+constructs, inline mismatches, a newer ESM inside an explicitly declared supported range, and
+dependency degradation. Their availability is not a claim that the Cratis provider emits all
+five today. In particular, the current audited-version gate is unchanged: a newer unaudited ESM
+is refused with `STAGE-ESM-016`, not admitted with `STAGE-DEGRADE-004`.
+
 ## Release-baseline warnings in artifact plans
 
 An admitted release baseline freezes stored event revisions, including the resolved

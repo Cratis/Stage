@@ -46,7 +46,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var plan = PlanCore(request);
         var warnings = ReleaseBaselineWarnings.For(request);
 
-        return warnings.IsEmpty ? plan : ArtifactRenderPlan.Create(request, plan.Artifacts, [.. plan.Diagnostics, .. warnings], plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals);
+        plan = warnings.IsEmpty ? plan : CratisPlanDiagnosticReconstruction.Append(request, plan, warnings);
+        return CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _)
+            ? CratisPlanReports.Finalize(request, CratisPlanAcceptance.Apply(request, plan, options), options)
+            : plan;
     }
 
     static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request)
@@ -73,6 +76,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             diagnostics.Add(Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id));
         }
         catch (UnsupportedSemanticRendering exception)
+        {
+            diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
+        }
+        catch (GeneratedPascalCase.InvalidIdentifier exception)
         {
             diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
         }
@@ -220,6 +227,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
+        diagnostics.AddRange(context.InlineDiagnostics);
         return CreatePlan(request, artifacts, diagnostics, refusals, removals);
     }
 

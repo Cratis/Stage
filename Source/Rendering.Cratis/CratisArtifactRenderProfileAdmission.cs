@@ -61,7 +61,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name && _.Name != StrictAcceptanceInput.Name && _.Name != FileHeaderInput.Name && _.Name != UserInterfaceInput.Name && _.Name != UserInterfaceDomainsInput.Name).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -149,9 +149,7 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options! with { Refusals = refusals, FileHeader = fileHeader };
-        mismatch = string.Empty;
-        return true;
+        return CratisStrictProfileInput.TryAdmit(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out admittedOptions, out mismatch);
     }
 
     // The approved package set is read first because the frontend that installs and loads those packages is generated

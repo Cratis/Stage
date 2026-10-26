@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -81,6 +82,31 @@ internal static class SemanticImplementationAdmission
 
     // This is the only path by which an implementation body can be obtained. Any future admitted
     // implementation role must use it rather than reading ImplementationContents directly.
+    internal static bool TryGetVerifiedInline(
+        ArtifactRenderRequest request,
+        SemanticInlineCodeSite site,
+        ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics,
+        out InlineCode? code)
+    {
+        var (requirementId, owner, placement) = site;
+        code = null;
+        if (!TryGetVerifiedBody(request, requirementId, owner, diagnostics, out var body)) return false;
+        var requirement = request.ImplementationRequirements.Single(item => item.RequirementId == requirementId);
+        if (!string.Equals(placement.Owner, owner.ToString(), StringComparison.Ordinal))
+        {
+            diagnostics.Add(Error("The inline placement owner differs from the semantic insertion site.", owner));
+            return false;
+        }
+
+        var language = requirement.Language ?? (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true ? "csharp" : string.Empty);
+
+        // This request contract supplies strings only: never claim these are the original disk bytes.
+        var verified = InlineCode.VerifyUtf8Text(body!, new(requirement.ContentHash!, language, placement, requirementId));
+        code = verified.Value;
+        foreach (var diagnostic in verified.Diagnostics) diagnostics.Add(Error(diagnostic.Message, owner));
+        return code is not null;
+    }
+
     internal static bool TryGetVerifiedBody(
         ArtifactRenderRequest request,
         string requirementId,

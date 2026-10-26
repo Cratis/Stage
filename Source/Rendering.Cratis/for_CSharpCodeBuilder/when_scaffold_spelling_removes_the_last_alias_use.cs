@@ -31,7 +31,8 @@ public class when_scaffold_spelling_removes_the_last_alias_use : Specification
             "ScaffoldAlias",
             [_tree],
             [.. PureTransitionAdmission.AnalysisReferences(), MetadataReference.CreateFromFile(typeof(System.Reactive.Subjects.Subject<>).Assembly.Location)],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
+                .WithSpecificDiagnosticOptions([new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress)]));
     }
 
     [Fact] void should_choose_the_rooted_scaffold_spelling() => _source.ShouldContain("public global::System.Reactive.Subjects.Subject<int> Value");

@@ -34,7 +34,8 @@ public class when_inline_bare_names_keep_their_original_binding : Specification
         var globals = CSharpSyntaxTree.ParseText("global using System.Reactive.Subjects;");
         var model = CSharpSyntaxTree.ParseText("namespace Shop.Models { public class Subject<T> {} }");
         MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(), MetadataReference.CreateFromFile(typeof(System.Reactive.Subjects.Subject<>).Assembly.Location)];
-        var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
+        var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
+            .WithSpecificDiagnosticOptions([new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress)]);
         _compilation = CSharpCompilation.Create("RenderedInline", [_tree, globals, model], references, options);
         _original = CSharpCompilation.Create("OriginalInline", [_originalTree, globals, model], references, options);
     }

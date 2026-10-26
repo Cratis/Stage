@@ -14,8 +14,7 @@ public enum ArtifactRefusalMode
     Refuse = 0,
 
     /// <summary>
-    /// Render the remaining runtime artifacts when the target can safely omit every refused runtime artifact;
-    /// specifications that cannot be rendered are omitted and reported in Refusals.
+    /// Currently matches Refuse because only specifications can be omitted; retained for compatibility.
     /// </summary>
     RenderAround = 1
 }

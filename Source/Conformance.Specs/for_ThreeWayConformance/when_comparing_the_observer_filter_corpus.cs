@@ -23,13 +23,17 @@ public class when_comparing_the_observer_filter_corpus(when_comparing_the_observ
     [Theory]
     [InlineData("UnroutedReaction", "STAGE-ESM-011")]
     [InlineData("WrongStreamReaction", "STAGE-ESM-011")]
-    public void should_refuse_the_remaining_corpus_boundaries_separately(string specification, string code)
+    public void should_omit_the_remaining_corpus_specifications_separately(string specification, string code)
     {
         var model = an_observer_filter_model.Create(specification);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        var omitted = model.Application.Modules.Single().Features.Single().Slices.Single().Specifications.Single();
+        plan.Success.ShouldBeTrue();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        plan.Refusals.Single().Artifact.ShouldEqual(omitted.Id);
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(omitted.Id);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
+        plan.Diagnostics.Single(diagnostic => diagnostic.Code == code && diagnostic.Artifact == omitted.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-035");
     }
 

@@ -13,8 +13,6 @@ static class SemanticRefusalScope
         var refusals = Classify(context, diagnostics);
         if (refusals.IsEmpty) return refusals;
 
-        var names = context.SelectedSlices().SelectMany(located => located.Slice.Specifications)
-            .ToDictionary(specification => specification.Id, specification => specification.Name);
         for (var index = 0; index < diagnostics.Count; index++)
         {
             var diagnostic = diagnostics[index];
@@ -24,7 +22,7 @@ static class SemanticRefusalScope
             diagnostics[index] = diagnostic with
             {
                 Severity = ArtifactRenderDiagnosticSeverity.Warning,
-                Message = $"Skipped specification '{names[diagnostic.Artifact]}' ({diagnostic.Code}): {diagnostic.Message}"
+                Message = $"Skipped specification '{context.Specifications[diagnostic.Artifact].Name}' ({diagnostic.Code}): {diagnostic.Message}"
             };
         }
         return refusals;

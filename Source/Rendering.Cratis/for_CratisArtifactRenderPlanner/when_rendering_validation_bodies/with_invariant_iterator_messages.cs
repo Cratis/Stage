@@ -47,7 +47,7 @@ public class with_invariant_iterator_messages : Specification
         try
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-            var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorConcept("yield return $\"Amount {context.Value.Value:F2}\";")));
+            var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorConcept("yield return $\"Amount {context.Value:F2}\";")));
             Assert.True(plan.Success, opaque_policy_model.Errors(plan));
             validation_body_model.Validate(opaque_policy_model.Compile(plan), "Amount", 1234.5m).Errors.Single().ErrorMessage.ShouldEqual("Amount 1234.50");
         }

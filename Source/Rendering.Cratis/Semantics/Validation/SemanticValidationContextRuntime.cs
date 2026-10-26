@@ -32,7 +32,11 @@ internal static class SemanticValidationContextRuntime
 
     internal static RenderedFile RenderWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, bool analysis = false)
     {
-        var supplied = descriptor with { Members = [.. descriptor.Members.Where(member => !RefusedMembers.Contains(member.Name, StringComparer.Ordinal))] };
+        var supplied = descriptor with
+        {
+            Members = [.. descriptor.Members.Where(member => !RefusedMembers.Contains(member.Name, StringComparer.Ordinal))
+                .Select(member => PrimitiveConceptMember(context, member))]
+        };
         RenderedFile file;
         using (analysis ? QualifiedSpelling.Begin() : null)
         {
@@ -82,10 +86,14 @@ internal static class SemanticValidationContextRuntime
     internal static void RenderIterator(CSharpCodeBuilder builder, SemanticApplicationContext context, string requirementId, SemanticId owner, SemanticProperty? property = null)
     {
         var descriptor = context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == owner);
+        var ruleFor = property is null && context.Concepts.ContainsKey(owner)
+            ? $"RuleFor<{new SemanticTypeSystem(context).Type(SemanticTypeReference.ForConcept(owner))}>" : "RuleFor";
         var selector = property is null ? "_" : $"_.{context.MemberNames.Property(property)}";
         var path = CSharpCodeBuilder.StringLiteral(PropertyPath(context, property));
-        builder.OpenBlock($"RuleFor(_ => {selector}).Custom((value, validation) =>")
-            .OpenBlock($"foreach (var message in global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}(validation.InstanceToValidate, value, {path})))")
+        var artifact = ConceptValue(context, owner, "validation.InstanceToValidate");
+        var value = ConceptValue(context, owner, "value");
+        builder.OpenBlock($"{ruleFor}(_ => {selector}).Custom((value, validation) =>")
+            .OpenBlock($"foreach (var message in global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}({artifact}, {value}, {path})))")
             .Line("validation.AddFailure(message);")
             .EndBlock().EndBlock().Line(");");
     }
@@ -100,9 +108,10 @@ internal static class SemanticValidationContextRuntime
         var descriptor = context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == rule.RequirementId && descriptor.OperationId == owner);
         var type = property is null ? new SemanticTypeSystem(context).Type(SemanticTypeReference.ForConcept(owner)) : new SemanticTypeSystem(context).Type(property.Type);
         var selector = property is null ? "_" : $"_.{context.MemberNames.Property(property)}";
-        var artifact = property is null ? "value" : "artifact";
+        var artifact = property is null ? ConceptValue(context, owner, "value") : "artifact";
+        var value = ConceptValue(context, owner, "value");
         var path = CSharpCodeBuilder.StringLiteral(PropertyPath(context, property));
-        var call = $"global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}({artifact}, value, {path}))";
+        var call = $"global::{context.TypedContextsNamespace}.ValidationBodies.{Method(descriptor)}(new global::{context.TypedContextsNamespace}.{Wrapper(descriptor)}({artifact}, {value}, {path}))";
         var message = rule.Message ?? $"A value does not satisfy the '{rule.Kind}' rule.";
         var localized = message.StartsWith("$strings.", StringComparison.Ordinal);
         var renderedMessage = localized ? $"_ => global::{context.RootNamespace}.GeneratedStrings.Resolve({CSharpCodeBuilder.StringLiteral(message)})" : CSharpCodeBuilder.StringLiteral(message);
@@ -111,6 +120,18 @@ internal static class SemanticValidationContextRuntime
         var predicate = property is null ? $"value => {call}" : $"(artifact, value) => {call}";
         builder.Line($"RuleFor<{type}>(_ => {selector}).Must({predicate}).WithMessage({renderedMessage}){state}{severity};");
     }
+
+    static SemanticTypedContextMember PrimitiveConceptMember(SemanticApplicationContext context, SemanticTypedContextMember member)
+    {
+        if (member.Source.Kind != SemanticContextSourceKinds.ConceptValue) return member;
+        if (member.Source.SemanticId is not { } id) return member;
+        if (!context.Concepts.TryGetValue(id, out var concept)) return member;
+        if (!concept.Values.IsEmpty) return member;
+        return member with { Type = member.Type with { ModelType = SemanticTypeReference.ForPrimitive(concept.Primitive) } };
+    }
+
+    static string ConceptValue(SemanticApplicationContext context, SemanticId owner, string expression) =>
+        context.Concepts.TryGetValue(owner, out var concept) && concept.Values.IsEmpty ? $"{expression}.Value" : expression;
 
     static string PropertyPath(SemanticApplicationContext context, SemanticProperty? property)
     {

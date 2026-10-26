@@ -12,7 +12,12 @@ static class CratisPlanAcceptance
 {
     internal static ArtifactRenderPlan Apply(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options)
     {
-        if (!options.Strict) return plan;
+        if (!options.Strict)
+        {
+            var language = LanguageEvidence(plan);
+            return language.IsEmpty ? plan : plan.WithAcceptance([.. plan.Degradations, .. language]);
+        }
+
         var evidence = PerformerEvidence(request, plan, options);
         if (!evidence.IsEmpty)
         {

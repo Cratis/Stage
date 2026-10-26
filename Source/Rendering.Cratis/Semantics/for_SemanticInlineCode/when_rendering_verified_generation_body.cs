@@ -100,7 +100,10 @@ public class when_rendering_verified_generation_body : Specification
         Assert.DoesNotContain("global::System.NotSupportedException", source);
         Assert.DoesNotContain("return \"Generated\";", source);
         Assert.NotNull(outcome.EffectiveInputFingerprint);
-        Assert.Equal(warning, Assert.Single(context.InlineDiagnostics));
+        var rendered = Assert.Single(context.InlineDiagnostics);
+        rendered.Code.ShouldEqual("STAGE-DEGRADE-003");
+        rendered.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.Contains("language 'java'", rendered.Message, StringComparison.Ordinal);
     }
 
     internal static SemanticApplicationContext Context(string body, string? hashSource = null, string language = "csharp")

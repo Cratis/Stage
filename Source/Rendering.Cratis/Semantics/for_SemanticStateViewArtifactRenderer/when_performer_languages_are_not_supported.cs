@@ -120,12 +120,12 @@ public class when_performer_languages_are_not_supported
         var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == ArtifactRenderDegradationCodes.InlineMismatch));
         Assert.Equal(ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal(requirement.Source.SemanticId, diagnostic.Artifact);
-        if (diagnostic.Message != "The body language does not match csharp.")
-        {
-            Assert.Contains($"language '{language}'", diagnostic.Message, StringComparison.Ordinal);
-            Assert.Contains(ImplementationLanguage.Remedy, diagnostic.Message, StringComparison.Ordinal);
-        }
-
+        Assert.Contains($"language '{language}'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains(ImplementationLanguage.Remedy, diagnostic.Message, StringComparison.Ordinal);
+        var degradation = Assert.Single(plan.Degradations, degradation => degradation.Diagnostic == diagnostic);
+        Assert.Equal(ImplementationLanguage.Remedy, degradation.Remedy);
+        Assert.Equal(ArtifactRenderOutcome.Degraded, plan.Outcome);
+        Assert.False(plan.Strict);
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006" || diagnostic.Code == "STAGE-IMPL-007");
         Assert.Empty(plan.ImplementationGaps);
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));

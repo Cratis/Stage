@@ -271,7 +271,17 @@ exact UTF-8 bytes `true` or `false` and no trailing newline. An absent input mea
 default profile creation omits it to preserve legacy profile bytes. The shared
 `Cratis.Stage.Contracts.Rendering.StrictAcceptanceInput` creates and reads this input.
 
-Unverified query performers retain their generated throwing bodies and implementation-gap
+Non-C# query performer, reducer transition and generation bodies render as throwing
+`NotSupportedException("STAGE-DEGRADE-003")` placeholders, never as executable foreign code.
+The `STAGE-DEGRADE-003` Warning names the authored language and owner/role. Both default and
+strict plans attach `ArtifactRenderDegradation` metadata with the original Warning and a remedy:
+supply a C# body, or use a target that realizes the authored language. These plans are `Degraded`,
+not complete; the inventory records a `ThrowingOperationBody`. Strict acceptance promotes the
+recorded Warning to an Error without discarding the safe artifacts; restoring non-strict
+acceptance restores the Warning. Non-C# validation guards still refuse the whole render with
+`STAGE-ESM-019`, naming the language. Observable performers still use `STAGE-IMPL-006`.
+
+Other unverified query performers retain their generated throwing bodies and implementation-gap
 metadata. Default planning preserves the existing `STAGE-IMPL-006` diagnostics and does not
 add public degradation warnings or acceptance metadata. Default plans with unclassified
 implementation gaps retain their legacy partial outcome and omit the unavailable inventory

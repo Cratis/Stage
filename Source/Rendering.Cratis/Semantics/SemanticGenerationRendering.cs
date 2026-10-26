@@ -35,11 +35,10 @@ internal static class SemanticGenerationRendering
     internal static void RenderBody(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
     {
         if (!IsRule(concept.Generation)) return;
-        var inline = SemanticInlineCodeRendering.Generation(concept, context);
-        if (inline.Refused && !ImplementationLanguage.IsCSharp(RequirementOf(concept, context)))
+        var requirement = RequirementOf(concept, context);
+        if (!ImplementationLanguage.IsCSharp(requirement))
         {
-            // The inline pack proves containment for C# and empty bodies only: another language is replaced, never emitted.
-            var requirement = RequirementOf(concept, context);
+            // Another language is replaced, never emitted, and the warning names the authored language.
             var warning = ImplementationLanguage.Warning(requirement, requirement.Source.SemanticId, $"Generation for concept '{concept.Name}'");
             if (!context.InlineDiagnostics.Contains(warning)) context.InlineDiagnostics.Add(warning);
             builder.Using("Cratis.Concepts")
@@ -50,6 +49,7 @@ internal static class SemanticGenerationRendering
             return;
         }
 
+        var inline = SemanticInlineCodeRendering.Generation(concept, context);
         if (inline.Refused)
         {
             throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));

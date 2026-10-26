@@ -21,6 +21,17 @@ public class with_a_typed_event_body
         Assert.DoesNotContain("object[]", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void should_render_receipt_occurrence_on_the_fast_handler_path()
+    {
+        var plan = handler_model.Plan(handler_model.Request(handler_model.TimedBody, handler_model.TimedSource));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var source = string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
+        Assert.Contains("Handle(IOperationContextAccessor operation)", source, StringComparison.Ordinal);
+        Assert.Contains("CommandReceiptTime.OccurredAtReceipt(operation)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("global::Cratis.Arc.IOperationContextAccessor", source, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("return new object[] { new OrderPlaced(context.Command.Name) };", "STAGE-ESM-019")]
     [InlineData("return 42;", "STAGE-ESM-019")]
@@ -32,11 +43,25 @@ public class with_a_typed_event_body
     [InlineData("context.Command.Name = \"changed\"; return new OrderPlaced(context.Command.Name);", "STAGE-ESM-019")]
     [InlineData("return new OrderPlaced(context.Identity.Id);", "STAGE-ESM-015")]
     [InlineData("var alias = context; return new OrderPlaced(alias.Tenant.ToString());", "STAGE-ESM-015")]
+    [InlineData("return new OrderPlaced(context?.Identity?.ToString() ?? \"missing\");", "STAGE-ESM-015")]
+    [InlineData("var alias = context; return new OrderPlaced(alias?.Tenant?.ToString() ?? \"missing\");", "STAGE-ESM-015")]
+    [InlineData("return new OrderPlaced(context[\"Identity\"].ToString());", "STAGE-ESM-015")]
+    [InlineData("var alias = context; return new OrderPlaced(alias?[\"Occurred\"]?.ToString() ?? \"missing\");", "STAGE-ESM-015")]
     public void should_refuse_invalid_or_unavailable_bodies_without_partial_artifacts(string body, string code)
     {
         var plan = handler_model.Plan(handler_model.Request(body));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
         Assert.Empty(plan.Artifacts);
+    }
+
+    [Theory]
+    [InlineData("return new OrderPlaced(context?.Command.Name ?? \"missing\");")]
+    [InlineData("var alias = context; return new OrderPlaced(alias?.Command?.Name ?? \"missing\");")]
+    [InlineData("return new OrderPlaced(context.Command.Name[0].ToString());")]
+    public void should_allow_conditional_snapshot_and_input_element_access(string body)
+    {
+        var plan = handler_model.Plan(handler_model.Request(body));
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
     }
 
     [Theory]

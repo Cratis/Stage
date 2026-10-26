@@ -41,12 +41,13 @@ public class when_executing_command_handler_payloads : a_generated_application
                       for orderId
                       orderId OrderId = orderId
                       quantity Int = quantity
-            """;
+            """ + "\n" + handler_model.TimedCommand;
         var tupleBody = handler_model.MultiBody.Replace("new OrderEchoed(name));", "new OrderEchoed(name), " + string.Join(", ", Enumerable.Range(3, 7).Select(index => $"new OrderPlaced(name + \"{index}\")")) + ");", StringComparison.Ordinal);
         var request = handler_model.Request(source: source, bodies: new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["PlaceOrder"] = tupleBody,
             ["FastPlace"] = "return new OrderPlaced(context.Command.Name.ToUpperInvariant() + context.Command.Marker.Value);",
+            ["TimedPlace"] = handler_model.TimedBody,
             ["GeneratedPlace"] = "global::System.AppContext.SetData(context.Command.OrderId.Value.ToString(), 1 + ((int?)global::System.AppContext.GetData(context.Command.OrderId.Value.ToString()) ?? 0)); return new OrderRegistered(context.Command.OrderId, context.Command.Quantity + 10);"
         });
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
@@ -62,6 +63,7 @@ public class when_executing_command_handler_payloads : a_generated_application
         using Cratis.Arc.Chronicle.Testing.Commands;
         using Cratis.Arc.Testing.Commands;
         using Cratis.Chronicle.EventSequences;
+        using Microsoft.Extensions.DependencyInjection;
         using {{_commandNamespace}};
         using Orders.Common;
 
@@ -123,6 +125,34 @@ public class when_executing_command_handler_payloads : a_generated_application
                 Assert.Equal(id, payload.OrderId);
                 Assert.Equal(12, payload.Quantity);
                 Assert.Equal(1, (int)AppContext.GetData(id.Value.ToString())!);
+            }
+
+            [Fact]
+            public async System.Threading.Tasks.Task supplies_receipt_occurrence_to_fast_handler_event_envelopes()
+            {
+                var utc = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero).AddTicks(12345);
+                var clock = new FixedReceiptClock(utc);
+                using var scenario = new CommandScenario<TimedPlace>();
+                scenario.Services.AddSingleton<TimeProvider>(clock);
+                var result = await scenario.Execute(new TimedPlace(Guid.NewGuid(), "alice"));
+                Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
+                var stored = Assert.Single(await scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
+                var payload = Assert.IsType<OrderStamped>(stored.Content);
+                Assert.Equal("ALICE", payload.Name);
+                Assert.Equal(DateTimeOffset.MinValue, payload.Stamp);
+                Assert.Equal(utc.ToUnixTimeMilliseconds(), ((DateTimeOffset)stored.Context.Occurred).ToUnixTimeMilliseconds());
+                Assert.Equal(1, clock.Calls);
+            }
+
+            sealed class FixedReceiptClock(DateTimeOffset utc) : TimeProvider
+            {
+                public int Calls { get; private set; }
+
+                public override DateTimeOffset GetUtcNow()
+                {
+                    Calls++;
+                    return utc;
+                }
             }
 
             [Fact]

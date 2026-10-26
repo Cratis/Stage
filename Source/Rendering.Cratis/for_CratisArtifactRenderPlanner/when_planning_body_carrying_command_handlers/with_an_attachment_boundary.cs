@@ -37,12 +37,23 @@ public class with_an_attachment_boundary
     [Theory]
     [InlineData("typescript", null)]
     [InlineData("csharp", "handler.ts")]
-    [InlineData("csharp", "handler.cs")]
     public void should_keep_foreign_and_inconsistent_language_envelopes_refused(string language, string? file)
     {
         var request = handler_model.Request();
         request = request with { ImplementationRequirements = [request.ImplementationRequirements.Single() with { Language = language, File = file }] };
         AssertBlocked(request, "STAGE-IMPL-002");
+    }
+
+    [Theory]
+    [InlineData(null, "handler.cs")]
+    [InlineData("csharp", "handler.cs")]
+    [InlineData("csharp", null)]
+    public void should_admit_equivalent_csharp_envelopes(string? language, string? file)
+    {
+        var request = handler_model.Request();
+        request = request with { ImplementationRequirements = [request.ImplementationRequirements.Single() with { Language = language, File = file }] };
+        var plan = handler_model.Plan(request);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
     }
 
     [Fact]

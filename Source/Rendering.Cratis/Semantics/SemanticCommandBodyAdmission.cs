@@ -123,8 +123,8 @@ internal static class SemanticCommandBodyAdmission
         var compilation = CSharpCompilation.Create("CommandBodyProbe", [tree], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == SemanticCommandHandlerRendering.Method(command));
-        var unavailable = method.DescendantNodes().OfType<MemberAccessExpressionSyntax>().Any(access =>
-            model.GetTypeInfo(access.Expression).Type?.Name == SemanticCommandHandlerRendering.ContextType(command) && access.Name.Identifier.ValueText != "Command");
+        var unavailable = method.DescendantNodes().OfType<ExpressionSyntax>().Any(expression =>
+            UnavailableAccess(expression, model, SemanticCommandHandlerRendering.ContextType(command)));
         if (unavailable)
         {
             diagnostics.Add(Error("STAGE-ESM-015", "The command handler may access only the immutable Command snapshot; ambient context is unavailable.", command));
@@ -142,6 +142,21 @@ internal static class SemanticCommandBodyAdmission
             diagnostics.Add(Error("STAGE-ESM-019", $"The command handler does not satisfy its typed event return contract: {string.Join("; ", failures.Select(diagnostic => diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)))}", command));
         }
     }
+
+    static bool UnavailableAccess(ExpressionSyntax expression, SemanticModel model, string contextType) => expression switch
+    {
+        MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText != "Command" && IsContext(access.Expression, model, contextType),
+        ElementAccessExpressionSyntax access => IsContext(access.Expression, model, contextType),
+        MemberBindingExpressionSyntax binding => binding.Name.Identifier.ValueText != "Command" && ConditionalReceiverIsContext(binding, model, contextType),
+        ElementBindingExpressionSyntax binding => ConditionalReceiverIsContext(binding, model, contextType),
+        _ => false
+    };
+
+    static bool IsContext(ExpressionSyntax expression, SemanticModel model, string contextType) => model.GetTypeInfo(expression).Type?.Name == contextType;
+
+    static bool ConditionalReceiverIsContext(ExpressionSyntax binding, SemanticModel model, string contextType) =>
+        binding.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault(access => access.WhenNotNull.Span.Contains(binding.Span)) is { } conditional &&
+        IsContext(conditional.Expression, model, contextType);
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticCommand command) => new(code, ArtifactRenderDiagnosticSeverity.Error, message, command.Id);
 }

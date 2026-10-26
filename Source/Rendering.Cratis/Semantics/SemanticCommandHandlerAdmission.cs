@@ -46,8 +46,7 @@ internal static class SemanticCommandHandlerAdmission
         var language = requirement.Language ?? (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true ? "csharp" : null);
         if (string.IsNullOrWhiteSpace(language)) return new(HandlerKind.Invalid, requirement, "The resolved handler has no implementation language.");
 
-        var csharp = (requirement.Language == "csharp" && requirement.File is null) ||
-            (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true);
+        var csharp = language == "csharp" && (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) ?? true);
         return new(csharp ? HandlerKind.CSharp : HandlerKind.Foreign, requirement);
     }
 

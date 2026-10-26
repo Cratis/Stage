@@ -51,6 +51,22 @@ internal static class handler_model
                   name String = name
         """;
 
+    internal const string TimedBody = "return new OrderStamped(context.Command.Name.ToUpperInvariant(), global::System.DateTimeOffset.MinValue);";
+    internal const string TimedCommand = """
+              command TimedPlace
+                orderId Uuid identifier
+                name String
+                handler
+                  implementation
+                    hint "Stamp the payload without owning envelope metadata"
+                produces event OrderStamped
+                  for orderId
+                  name String = name
+                  stamp DateTime = $context.occurred
+        """;
+
+    internal static string TimedSource => "module Orders\n  feature Ordering\n    slice StateChange Place\n" + TimedCommand;
+
     // Synthetic resolved attachment: the pinned compiler does not yet accept a handler body
     // beside produces. The model and requirement are compiler-owned; this envelope is not
     // evidence of native Screenplay body acceptance (Screenplay#1068).

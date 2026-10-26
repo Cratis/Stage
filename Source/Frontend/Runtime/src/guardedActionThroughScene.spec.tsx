@@ -1,150 +1,49 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { registerTestQueries } from './testing/queries';
-import { queryResult } from './testing/queries';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SceneElement } from '@cratis/scene.model';
 import { SceneElementView } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
 import { stageApplicationRegistry } from './App';
 import { StageDataProvider, useStageData } from './stageData';
 import { bindDataSources } from './stageDataSources';
 import { element } from './testElements';
-import { registerTestCommand, commandResult } from './testing/commands';
+import { commandResult, registerTestCommand } from './testing/commands';
+import { queryResult, registerTestQueries } from './testing/queries';
 
-const workItemId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
-const routes = { commands: { CloseWorkItem: '/api/close-work-item' }, queries: { GetWorkItem: '/api/get-work-item' } };
+const tree = bindDataSources(element('screen', 'core:section', {}, { content: [
+    element('subject', 'core:data', { typeName: 'Invoice', query: 'GetInvoice', isCollection: false }),
+    element('process', 'core:guarded-action', {
+        label: 'Process',
+        alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'draft' }, arguments: { invoiceId: { subject: 'item.id' } } }],
+        otherwise: { outcome: 'Execute', command: 'ReopenInvoice', arguments: { invoiceId: { subject: 'item.id' } } },
+    }),
+] }));
+const routes = { queries: { GetInvoice: '/api/invoice' }, commands: { SendInvoice: '/api/send', ReopenInvoice: '/api/reopen' } };
 
-// The Close action exactly as Stage emits it into the Scene: subject references, not bindings.
-const emittedClose = {
-    label: 'Close',
-    alternatives: [{ command: 'CloseWorkItem', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' }, arguments: { workItemId: { subject: 'item.workItemId' } } }],
-    otherwise: { outcome: 'Hidden', arguments: {} },
-};
-
-// The earlier binding-shaped form, which Scene's renderer resolves away before the component sees it.
-const bindingShapedClose = {
-    label: 'Close',
-    alternatives: [{ command: 'CloseWorkItem', condition: { kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: 'open' }, arguments: { workItemId: { path: 'item.workItemId' } } }],
-    otherwise: { outcome: 'Hidden', arguments: {} },
-};
-
-function details(properties: Record<string, unknown>): SceneElement {
-    return bindDataSources(element('details', 'core:section', {}, {
-        content: [
-            element('details-data', 'core:data', { typeName: 'WorkItemDetails', query: 'GetWorkItem', by: 'workItemId', isCollection: false }),
-            element('close', 'core:action', properties),
-        ],
-    }));
-}
-
-function ThroughScene({ tree }: { tree: SceneElement }) {
+function ThroughScene() {
     const data = useStageData();
     return <SceneElementView element={tree} registry={stageApplicationRegistry()} resolveBinding={data.resolveBinding} />;
 }
 
-function renderThroughScene(tree: SceneElement) {
-    registerTestQueries(routes.queries);
-    registerTestCommand('CloseWorkItem', routes.commands.CloseWorkItem, { workItemId: { type: 'string' } });
-    globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
-    return render(
-        <PrimeReactProvider>
-            <StageDataProvider routes={routes} parameters={{ workItemId }} locale='en' locales={['en']} screen='WorkItemDetails'>
-                <ThroughScene tree={tree} />
-            </StageDataProvider>
-        </PrimeReactProvider>,
-    );
-}
+describe('a guarded action rendered through Scene and Stage', () => {
+    afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-function respond(status: string) {
-    const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-        if (String(input).startsWith('/api/get-work-item') || String(input).startsWith('http://localhost:3000/api/get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
-        return Promise.resolve({ ok: false, json: async () => ({}) });
-    });
-    vi.stubGlobal('fetch', fetched);
-    return fetched;
-}
-
-describe('a guarded action rendered through Scene', () => {
-    afterEach(() => vi.unstubAllGlobals());
-
-    it('runs its command for the item when the guard holds', async () => {
-        const fetched = respond('open');
-        renderThroughScene(details(emittedClose));
-
-        const close = await screen.findByRole('button', { name: 'Close' });
-        expect((close as HTMLButtonElement).disabled).toBe(false);
-        fireEvent.click(close);
-
-        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
-        const [route, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
-        expect(String(route)).toBe('http://localhost:3000/api/close-work-item');
-        expect(init?.body).toBe(JSON.stringify({ workItemId }));
-    });
-
-    it('offers nothing when the guard does not hold', async () => {
-        const fetched = respond('closed');
-        renderThroughScene(details(emittedClose));
-
-        await waitFor(() => expect(fetched.mock.calls.some(([input]) => String(input).includes('get-work-item'))).toBe(true));
-        await new Promise(resolve => setTimeout(resolve, 50));
-        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
-    });
-
-    it('cannot evaluate a binding-shaped guard, because Scene resolves it before the action renders', async () => {
-        respond('open');
-        renderThroughScene(details(bindingShapedClose));
-
-        const close = await screen.findByRole('button', { name: 'Close' });
-        expect((close as HTMLButtonElement).disabled).toBe(true);
-        expect(close.getAttribute('title')).toContain('STAGE-SCENE-ACTION-001');
-    });
-});
-
-describe('a guarded action over an enumeration rendered through Scene', () => {
-    afterEach(() => vi.unstubAllGlobals());
-
-    const enumerated = {
-        ...emittedClose,
-        alternatives: [{ ...emittedClose.alternatives[0], condition: { ...emittedClose.alternatives[0].condition, enumeration: ['open', 'closed'] } }],
-    };
-
-    function respondWithOrdinal(status: number) {
-        const fetched = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-            if (init?.method === 'POST') return Promise.resolve({ ok: true, json: async () => commandResult() });
-            if (String(input).includes('get-work-item')) return Promise.resolve({ ok: true, json: async () => (queryResult({ data: { workItemId, status } })) });
-            return Promise.resolve({ ok: false, json: async () => ({}) });
-        });
+    it.each([['draft', '/api/send'], ['sent', '/api/reopen']])('executes exactly the selected command for %s', async (status, commandRoute) => {
+        registerTestQueries(routes.queries);
+        for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { invoiceId: { type: 'string' } });
+        const fetched = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve({ ok: true,
+            json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: { id: 'invoice-1', status } }),
+        } as Response));
         vi.stubGlobal('fetch', fetched);
-        return fetched;
-    }
+        render(<PrimeReactProvider><StageDataProvider routes={routes}><ThroughScene /></StageDataProvider></PrimeReactProvider>);
 
-    it('offers Close for the ordinal of the member the guard names', async () => {
-        respondWithOrdinal(0);
-        renderThroughScene(details(enumerated));
+        fireEvent.click(await screen.findByRole('button', { name: 'Process' }));
 
-        const close = await screen.findByRole('button', { name: 'Close' });
-        expect((close as HTMLButtonElement).disabled).toBe(false);
-    });
-
-    it('offers nothing for the ordinal of another member', async () => {
-        const fetched = respondWithOrdinal(1);
-        renderThroughScene(details(enumerated));
-
-        await waitFor(() => expect(fetched.mock.calls.some(([input]) => String(input).includes('get-work-item'))).toBe(true));
-        await new Promise(resolve => setTimeout(resolve, 50));
-        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
-    });
-
-    it('does not hold for an ordinal without the enumeration', async () => {
-        const fetched = respondWithOrdinal(0);
-        renderThroughScene(details(emittedClose));
-
-        await waitFor(() => expect(fetched.mock.calls.some(([input]) => String(input).includes('get-work-item'))).toBe(true));
-        await new Promise(resolve => setTimeout(resolve, 50));
-        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+        await waitFor(() => expect(fetched.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1));
+        const [url, request] = fetched.mock.calls.find(([, init]) => init?.method === 'POST')!;
+        expect(String(url)).toBe(`http://localhost:3000${commandRoute}`);
+        expect(request?.body).toBe(JSON.stringify({ invoiceId: 'invoice-1' }));
     });
 });

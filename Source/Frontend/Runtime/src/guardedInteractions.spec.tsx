@@ -11,10 +11,11 @@ import { InteractionTriggerKind, type Behavior, type SceneElement } from '@crati
 import { InteractionScope } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
 import { StageAction } from './stageComponents';
+import { QueryFor } from '@cratis/arc/queries';
+import { registerQuery } from '@cratis/scene.components';
 import { RegisteredTable as StageTable } from './testing/queries';
 import { StageDataProvider } from './stageData';
 import { bindDataSources } from './stageDataSources';
-import { guardPath } from './stageGuards';
 import { doubleClickWindow } from './stageRowInteractions';
 import { element } from './testElements';
 import { registerTestCommand, commandResult } from './testing/commands';
@@ -24,13 +25,21 @@ const routes = {
     commands: { CloseWorkItem: '/api/close-work-item', ReopenWorkItem: '/api/reopen-work-item' },
     queries: { GetWorkItem: '/api/get-work-item', AllWorkItems: '/api/all-work-items' },
 };
-const isOpen = { kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: 'open' };
+const isOpen = { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'open' };
+
+class GetWorkItem extends QueryFor<unknown, { workItemId?: string }> {
+    readonly route = '/api/get-work-item';
+    readonly defaultValue = undefined;
+    readonly requiredRequestParameters = [];
+    readonly parameterDescriptors = [{ name: 'workItemId', type: String, isEnumerable: false }];
+    constructor() { super(Object, false); }
+}
 
 function closeAction(properties: Record<string, unknown> = {}) {
-    return element('close', 'core:action', {
+    return element('close', 'core:guarded-action', {
         label: 'Close',
         navigateToScreen: 'WorkItemList',
-        alternatives: [{ command: 'CloseWorkItem', condition: isOpen, arguments: { workItemId: { path: 'item.workItemId' } } }],
+        alternatives: [{ command: 'CloseWorkItem', condition: isOpen, arguments: { workItemId: { subject: 'item.workItemId' } } }],
         otherwise: { outcome: 'Hidden', arguments: {} },
         ...properties,
     });
@@ -48,6 +57,7 @@ function details(action: SceneElement): SceneElement {
 
 function withData(ui: ReactElement) {
     registerTestQueries(routes.queries);
+    registerQuery('GetWorkItem', GetWorkItem);
     for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { workItemId: { type: 'string' } });
     globalThis.location.hash = `#/WorkItemDetails?workItemId=${workItemId}`;
     return render(
@@ -70,7 +80,7 @@ function respond(status: string) {
 function actionIn(tree: SceneElement): SceneElement {
     const found = (node: SceneElement): SceneElement | undefined => {
         const component = node as { componentName?: string; slots?: Record<string, SceneElement[]> };
-        if (component.componentName === 'core:action') return node;
+        if (component.componentName === 'core:guarded-action') return node;
         for (const children of Object.values(component.slots ?? {})) for (const child of children) {
             const match = found(child);
             if (match) return match;
@@ -102,6 +112,20 @@ describe('a guarded action', () => {
         await waitFor(() => expect(globalThis.location.hash).toBe('#/WorkItemList'));
     });
 
+    it.each(['query', 'route', 'arguments'])('keeps the same executable subject through the %s source', async mode => {
+        const fetched = respond('open');
+        const data = mode === 'route'
+            ? { typeName: 'WorkItemDetails', route: '/api/get-work-item', isCollection: false }
+            : { typeName: 'WorkItemDetails', query: 'GetWorkItem', isCollection: false,
+                ...(mode === 'arguments' ? { by: 'workItemId' } : {}) };
+        const page = bindDataSources(element('page', 'core:section', {}, { content: [element('data', 'core:data', data), closeAction()] }));
+        withData(<StageAction element={actionIn(page) as never} slots={{}} />);
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        expect(fetched.mock.calls.find(([, init]) => init?.method === 'POST')?.[1]?.body).toBe(JSON.stringify({ workItemId }));
+        if (mode === 'arguments') expect(String(fetched.mock.calls[0][0])).toContain(`workItemId=${workItemId}`);
+    });
+
     it('renders nothing when the guard does not hold and the fallback is hidden', async () => {
         const fetched = respond('closed');
         withData(<StageAction element={actionIn(details(closeAction())) as never} slots={{}} />);
@@ -113,7 +137,7 @@ describe('a guarded action', () => {
 
     it('offers the fallback command when the guard does not hold and the fallback executes', async () => {
         const fetched = respond('closed');
-        const action = closeAction({ otherwise: { outcome: 'Execute', command: 'ReopenWorkItem', arguments: { workItemId: { path: 'item.workItemId' } } } });
+        const action = closeAction({ otherwise: { outcome: 'Execute', command: 'ReopenWorkItem', arguments: { workItemId: { subject: 'item.workItemId' } } } });
         withData(<StageAction element={actionIn(details(action)) as never} slots={{}} />);
 
         fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
@@ -128,17 +152,17 @@ describe('a guarded action', () => {
 
         const button = await screen.findByRole('button', { name: 'Close' });
         expect(button.hasAttribute('disabled')).toBe(true);
-        expect(screen.getByRole('alert').textContent).toContain('STAGE-SCENE-ACTION-001');
+        expect(screen.getByRole('alert').textContent).toContain('SCENE-GUARD-001');
         fireEvent.click(button);
         expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
     });
 
-    it('stays disabled with the diagnostic when it has no data subject', () => {
+    it('refuses with a named diagnostic when it has no data declaration', () => {
         respond('open');
         withData(<StageAction element={closeAction()} slots={{}} />);
 
-        expect(screen.getByRole('button', { name: 'Close' }).hasAttribute('disabled')).toBe(true);
-        expect(screen.getByRole('alert').textContent).toContain('no data subject');
+        expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+        expect(screen.getByRole('alert').textContent).toContain('STAGE-SCENE-ACTION-001');
     });
 });
 
@@ -147,8 +171,7 @@ describe('a table with a guarded double click', () => {
     const notify = { kind: 'Notify', level: 'info', message: { text: 'This work item is closed' } };
     const behaviors: Behavior[] = [{
         bindings: [
-            { trigger: { kind: InteractionTriggerKind.DoubleClick }, actions: [navigate], condition: { path: guardPath, value: { kind: 'firstMatch', index: 0, alternatives: [isOpen] } } },
-            { trigger: { kind: InteractionTriggerKind.DoubleClick }, actions: [notify], condition: { path: guardPath, value: { kind: 'otherwise', alternatives: [isOpen] } } },
+            { trigger: { kind: InteractionTriggerKind.DoubleClick }, actions: [], alternatives: [{ condition: isOpen, actions: [navigate] }], otherwise: [notify] },
         ],
     } as unknown as Behavior];
     const table = { ...element('list', 'core:table', { route: '/api/all-work-items', typeName: 'WorkItemSummary', navigateOnRowClickToScreen: 'WorkItemDetails', navigateOnRowClickByParameter: 'workItemId' }, {
@@ -215,7 +238,7 @@ describe('a table with a guarded double click', () => {
 
 describe('a guarded action beside a collection', () => {
     const rows = [{ workItemId: 'a', title: 'Open item', status: 'open' }, { workItemId: 'b', title: 'Closed item', status: 'closed' }];
-    const closeSelected = closeAction({ navigateToScreen: undefined, alternatives: [{ command: 'CloseWorkItem', condition: isOpen, arguments: { workItemId: { path: 'item.workItemId' } } }] });
+    const closeSelected = closeAction({ navigateToScreen: undefined, alternatives: [{ command: 'CloseWorkItem', condition: isOpen, arguments: { workItemId: { subject: 'item.workItemId' } } }] });
 
     function renderListWithAction() {
         registerTestCommand('CloseWorkItem', routes.commands.CloseWorkItem, { workItemId: { type: 'string' } });

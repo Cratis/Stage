@@ -46,7 +46,6 @@ static class ArtifactRenderInventoryValidation
         if (construct.SemanticLocator is null) throw new InvalidArtifactRenderContract("A construct requires an exact typed semantic locator.");
         ValidatePath(construct.ModelPath);
         ValidateState(construct);
-        ValidateOmission(construct);
         foreach (var gap in construct.Degradations) ValidateGap(construct, gap);
         if (construct.Degradations.Select(gap => gap.Evidence.Diagnostic.Code).Distinct(StringComparer.Ordinal).Count() != construct.Degradations.Length) throw new InvalidArtifactRenderContract("An owner contains duplicate degradation codes.");
         foreach (var reason in construct.RefusalReasons) ValidateReason(construct, reason);
@@ -88,47 +87,9 @@ static class ArtifactRenderInventoryValidation
 
     static void ValidateReason(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason)
     {
-        if (!IsOwnerError(construct, reason) && !IsOmissionWarning(construct, reason)) throw new InvalidArtifactRenderContract("A refusal requires an original generation error on its owner.");
+        if (!IsOwnerError(construct, reason)) throw new InvalidArtifactRenderContract("A refusal requires an original generation error on its owner.");
         if (string.IsNullOrWhiteSpace(reason.Code) || string.IsNullOrWhiteSpace(reason.Message)) throw new InvalidArtifactRenderContract("Refusal reasons require a code and explanation.");
     }
-
-    static void ValidateOmission(ArtifactRenderConstruct construct)
-    {
-        if (construct.Omission is not { } omission) return;
-        ValidateSpecificationOmissionOwner(construct, omission);
-        ValidateOmissionReasons(construct, omission);
-    }
-
-    static void ValidateSpecificationOmissionOwner(ArtifactRenderConstruct construct, ArtifactRenderRefusal omission)
-    {
-        const string message = "An omission requires a refused specification and its recorded identity and codes.";
-        if (construct.Outcome != ArtifactRenderOutcome.Refused) throw new InvalidArtifactRenderContract(message);
-        if (construct.Kind != ArtifactRenderConstructKind.Specification) throw new InvalidArtifactRenderContract(message);
-        if (omission.Artifact != construct.Identity) throw new InvalidArtifactRenderContract(message);
-        if (!string.Equals(omission.Kind, "specification", StringComparison.Ordinal)) throw new InvalidArtifactRenderContract(message);
-        if (omission.Codes.IsDefaultOrEmpty) throw new InvalidArtifactRenderContract(message);
-    }
-
-    static void ValidateOmissionReasons(ArtifactRenderConstruct construct, ArtifactRenderRefusal omission)
-    {
-        const string message = "An omission requires all of its original warning codes and no safety errors.";
-        if (!construct.RefusalReasons.All(IsWarningReason)) throw new InvalidArtifactRenderContract(message);
-        if (!CoversRecordedOmissionCodes(omission, construct.RefusalReasons)) throw new InvalidArtifactRenderContract(message);
-    }
-
-    static bool IsWarningReason(ArtifactRenderDiagnostic reason) => reason?.Severity == ArtifactRenderDiagnosticSeverity.Warning;
-
-    static bool CoversRecordedOmissionCodes(ArtifactRenderRefusal omission, ImmutableArray<ArtifactRenderDiagnostic> reasons) =>
-        omission.Codes.ToHashSet(StringComparer.Ordinal).SetEquals(reasons.Select(reason => reason.Code));
-
-    static bool IsOmissionWarning(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason) =>
-        IsWarningOnOwner(construct, reason) && HasRecordedWarningCode(construct.Omission, reason);
-
-    static bool IsWarningOnOwner(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason) =>
-        IsWarningReason(reason) && reason.Artifact == construct.Identity;
-
-    static bool HasRecordedWarningCode(ArtifactRenderRefusal? omission, ArtifactRenderDiagnostic reason) =>
-        omission?.Codes.Contains(reason.Code, StringComparer.Ordinal) == true;
 
     static bool HasKnownIdentity(ArtifactRenderConstruct construct) => construct.Identity.IsSet && Enum.IsDefined(construct.Kind) && Enum.IsDefined(construct.Outcome);
     static bool IsOwnerError(ArtifactRenderConstruct construct, ArtifactRenderDiagnostic reason) => reason is not null && reason.Artifact == construct.Identity && reason.Severity == ArtifactRenderDiagnosticSeverity.Error;

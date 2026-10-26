@@ -71,14 +71,6 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return PlanAdmitted(request, options, diagnostics);
         }
-        catch (CSharpImportRejected exception)
-        {
-            diagnostics.Add(Error(CSharpImportRejected.Code, exception.Message, request.Model.Application.Id));
-        }
-        catch (InlineCodeRejected exception)
-        {
-            diagnostics.AddRange(exception.Diagnostics.Select(diagnostic => Error(diagnostic.Code, diagnostic.Message, request.Model.Application.Id)));
-        }
         catch (InvalidTypedContext exception)
         {
             diagnostics.Add(Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id));

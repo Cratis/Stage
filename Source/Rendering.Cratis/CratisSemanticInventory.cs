@@ -34,18 +34,8 @@ static class CratisSemanticInventory
         return distinct[0];
     }
 
-    static ArtifactRenderConstruct Omitted(ArtifactRenderPlan plan, ArtifactRenderConstructKind kind, SemanticAddress address, ArtifactRenderRefusal omission) =>
-        new(omission.Artifact, kind, null, ArtifactRenderOutcome.Refused)
-        {
-            SemanticLocator = address,
-            Omission = omission,
-            RefusalReasons = [.. plan.Diagnostics.Where(diagnostic => diagnostic.Artifact == omission.Artifact && omission.Codes.Contains(diagnostic.Code))]
-        };
-
     static ArtifactRenderConstruct Construct(SemanticId identity, ArtifactRenderConstructKind kind, SemanticAddress address, ArtifactRenderPlan plan)
     {
-        var omission = plan.Refusals.SingleOrDefault(refusal => refusal.Artifact == identity);
-        if (omission is not null) return Omitted(plan, kind, address, omission);
         var evidence = plan.Degradations.Where(gap => gap.Diagnostic.Artifact == identity).ToArray();
         return new(identity, kind, null, evidence.Length == 0 ? ArtifactRenderOutcome.Rendered : ArtifactRenderOutcome.Degraded)
         {

@@ -14,5 +14,5 @@ public class when_an_import_would_bring_an_extension_member_the_file_accesses : 
     void Because() => _result = ImportResolver.Resolve(Request(_scenario) with { MemberAccessNames = ["ShouldHaveAppended"] }, _catalog);
 
     [Fact] void should_not_import_the_namespace() => _result.Usings.ShouldBeEmpty();
-    [Fact] void should_qualify_the_type() => _result.Spell(_scenario).ShouldEqual("StageImport0::EventScenario");
+    [Fact] void should_qualify_the_type() => _result.Spell(_scenario).ShouldEqual("global::Cratis.Chronicle.Testing.EventScenario");
 }

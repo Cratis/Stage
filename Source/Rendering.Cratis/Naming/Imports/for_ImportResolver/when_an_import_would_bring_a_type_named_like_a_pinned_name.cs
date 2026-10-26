@@ -15,5 +15,5 @@ public class when_an_import_would_bring_a_type_named_like_a_pinned_name : given.
     void Because() => _result = ImportResolver.Resolve(Request(_regex) with { PinnedNames = ["Match"] }, _catalog);
 
     [Fact] void should_not_import_the_namespace() => _result.Usings.ShouldBeEmpty();
-    [Fact] void should_qualify_the_type() => _result.Spell(_regex).ShouldEqual("StageImport0::Regex");
+    [Fact] void should_qualify_the_type() => _result.Spell(_regex).ShouldEqual("global::System.Text.RegularExpressions.Regex");
 }

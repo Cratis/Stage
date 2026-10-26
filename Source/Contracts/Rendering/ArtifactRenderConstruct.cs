@@ -19,9 +19,6 @@ public sealed record ArtifactRenderConstruct(SemanticId Identity, ArtifactRender
     /// <summary>Gets every independent or dependent degradation on this owner.</summary>
     public ImmutableArray<ArtifactRenderConstructGap> Degradations { get; init; } = [];
 
-    /// <summary>Gets the recorded specification omission, if this owner was deliberately omitted from a partial plan.</summary>
-    public ArtifactRenderRefusal? Omission { get; init; }
-
-    /// <summary>Gets original errors or recorded omission warnings. These must also occur in the plan's original diagnostics.</summary>
+    /// <summary>Gets original generation errors explaining a refusal. These must also occur in the plan's original diagnostics.</summary>
     public ImmutableArray<ArtifactRenderDiagnostic> RefusalReasons { get; init; } = [];
 }

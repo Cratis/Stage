@@ -286,7 +286,9 @@ public class CSharpCodeBuilder
         unit.Append(body);
         if (_imports is not null)
         {
-            // The splicer proved unchanged placement scopes and recomputed spans after finishing generated text.
+            // A finished body can move authored text, whose spans are then no longer known: such a file keeps every name qualified.
+            if (!string.Equals(skeleton, original, StringComparison.Ordinal) && _inline.Slots.Count > 0) _imports.Unknown();
+
             // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
             return _imports.Rewrite(unit.ToString(), [.. splice.Authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
         }

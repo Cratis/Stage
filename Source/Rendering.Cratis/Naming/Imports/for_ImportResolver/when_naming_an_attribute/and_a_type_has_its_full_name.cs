@@ -15,5 +15,5 @@ public class and_a_type_has_its_full_name : given.a_framework_catalog
 
     void Because() => _result = ImportResolver.Resolve(Request(_key), _catalog);
 
-    [Fact] void should_qualify_the_attribute() => _result.Spell(_key).ShouldEqual("StageImport0::KeyAttribute");
+    [Fact] void should_qualify_the_attribute() => _result.Spell(_key).ShouldEqual("global::Cratis.Chronicle.Keys.KeyAttribute");
 }

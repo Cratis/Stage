@@ -1,33 +1,31 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
-using Cratis.Stage.Rendering.Cratis.Semantics;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration.for_CSharpCodeBuilder;
 
-public class when_two_framework_namespaces_share_a_type_name
+public class when_two_framework_namespaces_share_a_type_name : Specification
 {
-    [Theory]
-    [InlineData("global::System.Threading.Timer First, global::System.Timers.Timer Second")]
-    [InlineData("global::System.Timers.Timer Second, global::System.Threading.Timer First")]
-    void should_bind_the_same_framework_identities_independent_of_reference_order(string parameters)
+    string _forward = null!;
+    string _reversed = null!;
+
+    void Because()
     {
-        var source = new CSharpCodeBuilder(new ImportRequest("Shop.Orders", GeneratedProjects.Application, [], []))
-            .Namespace("Shop.Orders").Line($"public record Order({parameters});").ToString();
-        Assert.Contains("using StageImport0 = global::System.Timers;", source);
-        Assert.DoesNotContain("using System.Timers;", source);
-        Assert.DoesNotContain("global::System.Threading.Timer", source);
-        var tree = CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + source);
-        var compilation = SemanticBodyCompilation.Create("TimerAliases", tree);
-        Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
-        var order = compilation.GetTypeByMetadataName("Shop.Orders.Order")!;
-        var first = (IPropertySymbol)Assert.Single(order.GetMembers("First"));
-        var second = (IPropertySymbol)Assert.Single(order.GetMembers("Second"));
-        Assert.True(SymbolEqualityComparer.Default.Equals(first.Type, compilation.GetTypeByMetadataName("System.Threading.Timer")));
-        Assert.True(SymbolEqualityComparer.Default.Equals(second.Type, compilation.GetTypeByMetadataName("System.Timers.Timer")));
+        _forward = Render("global::System.Threading.Timer First, global::System.Timers.Timer Second");
+        _reversed = Render("global::System.Timers.Timer Second, global::System.Threading.Timer First");
+    }
+
+    [Fact] void should_keep_the_ordinal_winner_short() => _forward.ShouldContain("Order(Timer First, global::System.Timers.Timer Second)");
+    [Fact] void should_keep_the_same_winner_when_reference_order_changes() => _reversed.ShouldContain("Order(global::System.Timers.Timer Second, Timer First)");
+    [Fact] void should_not_leave_both_colliding_types_qualified() => _forward.Contains("global::System.Threading.Timer", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_not_import_the_namespace_of_the_qualified_loser() => _forward.Contains("using System.Timers;", StringComparison.Ordinal).ShouldBeFalse();
+
+    static string Render(string parameters)
+    {
+        var builder = new CSharpCodeBuilder(new ImportRequest("Shop.Orders", GeneratedProjects.Application, [], []));
+        return builder.Namespace("Shop.Orders").Line($"public record Order({parameters});").ToString();
     }
 }

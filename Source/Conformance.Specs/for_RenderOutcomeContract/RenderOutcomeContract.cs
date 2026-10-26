@@ -50,7 +50,7 @@ public static class RenderOutcomeContract
         diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && IsRecorded(plan, diagnostic);
 
     static bool IsRecorded(ArtifactRenderPlan plan, ArtifactRenderDiagnostic diagnostic) =>
-        plan.Degradations.Concat(plan.PlanEvidence).Any(gap => gap.Diagnostic == diagnostic with { Severity = ArtifactRenderDiagnosticSeverity.Warning });
+        plan.Degradations.Any(gap => gap.Diagnostic == diagnostic with { Severity = ArtifactRenderDiagnosticSeverity.Warning });
 
     static void CheckConstructs(ArtifactRenderPlan plan, ArtifactRenderInventory inventory, ImmutableArray<RenderOutcomeSafetyCase> safetyCases, List<string> problems)
     {

@@ -29,9 +29,7 @@ public class when_reporting_inline_degradation : Specification
         var builder = new CSharpCodeBuilder(GeneratedProjects.Application, []).Namespace("Shop").Line("class NotSupportedException {}").OpenBlock("class Host").OpenBlock("void Run()");
         builder.Inline(Code(" ", "java"), Site, reportDegradation: _ => { });
         var output = builder.EndBlock().EndBlock().ToString();
-        Assert.Contains("using StageImport0 = global::System;", output);
-        Assert.Contains("throw new StageImport0::NotSupportedException", output);
-        Assert.DoesNotContain("throw new global::", output);
+        Assert.Contains("throw new global::System.NotSupportedException", output);
     }
 
     [Fact]

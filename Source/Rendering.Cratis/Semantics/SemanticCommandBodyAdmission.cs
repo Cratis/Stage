@@ -117,10 +117,10 @@ internal static class SemanticCommandBodyAdmission
         var events = command.Produces.Select(produced => context.Events[produced.EventContract]).DistinctBy(@event => @event.Id);
         var eventTypes = events.Select(@event => $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)} {{ public record {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", @event.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))}); }}");
         var imports = events.Select(@event => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)).Append(context.CommonNamespace).Distinct(StringComparer.Ordinal);
-        var source = SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
+        var source = string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
             $"namespace {ownNamespace} {{ internal class HandlerProbe {{ {builder} }} }}";
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));
-        var compilation = SemanticBodyCompilation.Create("CommandBodyProbe", tree);
+        var compilation = CSharpCompilation.Create("CommandBodyProbe", [tree], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == SemanticCommandHandlerRendering.Method(command));
         var unavailable = method.DescendantNodes().OfType<ExpressionSyntax>().Any(expression =>
@@ -136,7 +136,7 @@ internal static class SemanticCommandBodyAdmission
             diagnostics.Add(Error("STAGE-ESM-019", "Dynamic values are not part of the typed command handler ABI.", command));
             return;
         }
-        var failures = compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure).ToArray();
+        var failures = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error || diagnostic.Id.StartsWith("CS86", StringComparison.Ordinal)).ToArray();
         if (failures.Length > 0)
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"The command handler does not satisfy its typed event return contract: {string.Join("; ", failures.Select(diagnostic => diagnostic.GetMessage(System.Globalization.CultureInfo.InvariantCulture)))}", command));

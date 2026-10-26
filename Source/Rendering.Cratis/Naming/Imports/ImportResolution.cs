@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 /// Represents the using directives of a generated file and the spelling of every type it names.
 /// </summary>
 /// <param name="Usings">The namespaces to import with directives inside the file-scoped namespace, where a directive above it could not be proven to bind the same; sorted ordinally and usually empty.</param>
-/// <param name="Spellings">The spelling of each reference: its proved short or namespace-alias-qualified name.</param>
+/// <param name="Spellings">The spelling of each reference: its short name, or its fully qualified name when a short name cannot be proven to bind to it.</param>
 internal sealed record ImportResolution(ImmutableArray<string> Usings, ImmutableDictionary<TypeReference, string> Spellings)
 {
     /// <summary>
@@ -17,9 +17,6 @@ internal sealed record ImportResolution(ImmutableArray<string> Usings, Immutable
     /// ordinally. A namespace a global using already imports is never listed.
     /// </summary>
     public ImmutableArray<string> TopLevelUsings { get; init; } = [];
-
-    /// <summary>Gets the deterministic namespace alias directives, without the using keyword or semicolon.</summary>
-    public ImmutableArray<string> Aliases { get; init; } = [];
 
     /// <summary>
     /// Gets the namespaces in <see cref="Usings"/> whose directive needs <c language="csharp">global::</c>, because an
@@ -38,8 +35,6 @@ internal sealed record ImportResolution(ImmutableArray<string> Usings, Immutable
     /// Gets the spelling of a reference.
     /// </summary>
     /// <param name="reference">The reference.</param>
-    /// <returns>The proved spelling.</returns>
-    /// <exception cref="CodeGeneration.CSharpImportRejected">No binding was proved for this reference.</exception>
-    public string Spell(TypeReference reference) => Spellings.GetValueOrDefault(reference) ??
-        throw new CodeGeneration.CSharpImportRejected($"No import binding was proved for '{reference.Qualified}'.");
+    /// <returns>The spelling; the fully qualified name for a reference the request did not include.</returns>
+    public string Spell(TypeReference reference) => Spellings.GetValueOrDefault(reference) ?? reference.Qualified;
 }

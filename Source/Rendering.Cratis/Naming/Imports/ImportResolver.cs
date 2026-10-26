@@ -95,7 +95,7 @@ internal static class ImportResolver
             .ThenByDescending(name => references.Count(reference => reference.Namespace == name))
             .ThenBy(name => name, StringComparer.Ordinal))
         {
-            if (references.Any(reference => reference.Namespace == @namespace && winners.Any(winner => file.Declares(winner, reference.Name))))
+            if (references.Any(reference => reference.Namespace == @namespace && winners.Exists(winner => file.Declares(winner, reference.Name))))
             {
                 continue;
             }
@@ -120,7 +120,7 @@ internal static class ImportResolver
         var shortBefore = best.Spellings.Count(entry => entry.Value != entry.Key.Qualified);
         var shortAfter = finalSpellings.Count(entry => entry.Value != entry.Key.Qualified);
         var safe = KeepsShortNames(current.Spellings, finalSpellings);
-        var better = shortAfter > shortBefore || (shortAfter == shortBefore && winners.Any(file.IsGenerated));
+        var better = shortAfter > shortBefore || (shortAfter == shortBefore && winners.Exists(file.IsGenerated));
         return safe && better ? (finalInner, finalTop, finalSpellings) : best;
     }
 

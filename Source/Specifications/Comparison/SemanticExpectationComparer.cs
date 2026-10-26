@@ -1,9 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Comparison;
@@ -202,7 +202,8 @@ internal static class SemanticExpectationComparer
 
     static bool MatchesRoute(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual, SemanticExecutionPlan plan) =>
         expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
-        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
+        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty &&
+            AreEqual(candidate.Value, value.Value, plan.Events[expected.EventContract].Properties.Single(property => property.Id == value.TargetProperty).Type, plan))) &&
         (expected.Route is null || SemanticRunRoutes.Format(plan, expected.Route) == SemanticRunRoutes.Format(plan, actual.Route)) &&
         (!expected.Unrouted || actual.Route is null) &&
         (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
@@ -211,18 +212,10 @@ internal static class SemanticExpectationComparer
         rows.Any(row => row.ReadModel == state.ReadModel && AreEqual(row.Key, state.Key) &&
             (!(state.Exactly || exactly) || state.Values.Length == row.Values.Length) &&
             state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty &&
-                (AreEqual(actual.Value, expected.Value) || SameInstant(plan, row.ReadModel, actual, expected)))));
+                AreEqual(actual.Value, expected.Value, plan.ReadModels[row.ReadModel].Properties.Single(property => property.Id == actual.TargetProperty).Type, plan))));
 
-    // A DateTime read-model value is materialized as a DateTimeOffset, which renders a zero offset as '+00:00'. The authored spelling of the same
-    // instant and offset ('Z') is accepted for a DateTime property, as the Screenplay reference compares them.
-    static bool SameInstant(SemanticExecutionPlan plan, SemanticId readModel, SemanticPropertyValue actual, SemanticPropertyValue expected) =>
-        actual.Value is SemanticTextValue actualText && expected.Value is SemanticTextValue expectedText &&
-        plan.ReadModels.TryGetValue(readModel, out var model) &&
-        model.Properties.FirstOrDefault(property => property.Id == actual.TargetProperty) is { } property &&
-        !property.Type.IsCollection &&
-        (property.Type.Kind == SemanticTypeReferenceKind.Concept
-            ? plan.Model.Application.Concepts.Single(concept => concept.Id == property.Type.Target).Primitive : property.Type.Primitive) == SemanticPrimitiveType.DateTime &&
-        DateTimeOffset.TryParseExact(actualText.Value, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var left) &&
-        DateTimeOffset.TryParse(expectedText.Value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var right) &&
-        left == right && left.Offset == right.Offset;
+    static bool AreEqual(SemanticValue actual, SemanticValue expected, SemanticTypeReference type, SemanticExecutionPlan plan) =>
+        AreEqual(
+            SemanticDateTimeCanonicalization.Normalize(actual, type, plan.Model.Application),
+            SemanticDateTimeCanonicalization.Normalize(expected, type, plan.Model.Application));
 }

@@ -95,7 +95,7 @@ internal static partial class SemanticCratisAdmission
         produced.Condition is null && produced.When is null && produced.Route is null;
 
     static bool ReactionEventIsRenderable(SemanticApplicationContext context, SemanticEventContract @event) =>
-        @event.Properties.All(property => TypeExists(context, property.Type) && !property.Type.IsOptional);
+        @event.Properties.All(property => TypeExists(context, property.Type, @event.Id) && !property.Type.IsOptional);
 
     static bool ReactionMappingCountMatches(SemanticEventContract target, SemanticProducedEvent produced) =>
         produced.Mappings.Length == target.Properties.Length;

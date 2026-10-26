@@ -171,12 +171,18 @@ For legacy syntax rendering, an inline C# command handler keeps its authored bod
 | Every `return <expression>` constructs the same explicit type with `new T(...)`, and its rightmost name is non-generic | `T` |
 | Anything else, including a generic constructed type, returned variable, array, mixed types or target-typed `new(...)` | `IEnumerable<object>` |
 
-Returns and yields inside lambdas, anonymous methods and local functions do not affect the signature.
+A body mixing `return;` with `return <expression>;` is rejected with `MixedReturns` under
+`STAGE-CRATIS-INLINE-001`: return a value or nothing on every path. Bare returns alone still render as `void`.
+Returns and yields inside lambdas, anonymous methods and local functions do not affect the signature or this check.
 Explicit type names are compared after whitespace normalization; qualified names in the authored body, such as
 `global::Cratis.Chronicle.EventSequences.EventForEventSourceId`, are preserved. A constructed type whose
 rightmost name is generic, such as `List<object>` or `System.Collections.Generic.List<object>`, keeps
 `IEnumerable<object>` so collections retain the collection-of-events signature. Returning a list variable
-also keeps `IEnumerable<object>`. This inference does not add async handler support or change file-backed handlers.
+also keeps `IEnumerable<object>`. A single constructed type is preserved even when it is hand-written:
+unless it names a model-declared event or `EventForEventSourceId` (qualified or unqualified), rendering
+emits a non-fatal warning that the inferred type is unverified. If that type is a collection not implementing
+`IEnumerable<object>`, its events are not appended; return the events as `IEnumerable<object>` or a single event.
+This inference does not add async handler support or change file-backed handlers.
 
 For example, assuming the slice declares an `OrderPlaced` event with no properties, this handler body:
 
@@ -262,6 +268,69 @@ does not change Host or specification-executor admission, and does not add a CLI
 The existing refusal-mode profile input remains accepted and hashed with the profile.
 The output digest adds a `refusals-v1` segment only when `Refusals` is nonempty.
 
+## Strict plan acceptance
+
+Set `CratisPlanOptions.Strict` for source planning, or `CratisRenderingOptions.Strict` when
+creating a direct rendering profile, to reject validated degradation at acceptance time.
+The setting is recorded as the hashed `stage:strict` profile input, version `1`, with
+exact UTF-8 bytes `true` or `false` and no trailing newline. An absent input means false;
+default profile creation omits it to preserve legacy profile bytes. The shared
+`Cratis.Stage.Contracts.Rendering.StrictAcceptanceInput` creates and reads this input.
+
+Unverified query performers retain their generated throwing bodies and implementation-gap
+metadata. Default planning preserves the existing `STAGE-IMPL-006` diagnostics and does not
+add public degradation warnings or acceptance metadata. Default plans with unclassified
+implementation gaps retain their legacy partial outcome and omit the unavailable inventory
+and completeness reports rather than claim those owners are rendered. Only strict planning records
+`STAGE-DEGRADE-002` warning evidence in `ArtifactRenderPlan.Degradations` and promotes that
+recorded warning to an Error, so `Success` becomes false while `Outcome` remains `Degraded` and
+`CanPublishArtifacts` remains true. Genuine generation or integrity Errors still prevent
+safe publication. Strict acceptance is not a request to discard safe artifacts or reports;
+planning itself never publishes files.
+
+`WithAcceptance(plan.Degradations, strict: false)` restores the original warning evidence.
+Release-baseline warnings and source diagnostics retain that evidence across plan
+reconstruction. `WithInventory` accepts a validated construct inventory; its locations carry
+the exact typed `SemanticAddress` as `semanticLocator` and a real portable relative
+`modelPath`, or explicit null when no source filename is available. Semantic locators are
+not filenames and must not be flattened into fabricated paths.
+
+The current provider counts selected identity-bearing commands, produced events, read models,
+queries, projections, reactions, captures, specifications, concepts and composite types. It does
+not claim a complete inventory of every public construct kind: reducers and constraints lack
+independent identities in the current semantic model, and policies, guards, validations and
+screens are not yet independently inventoried. It never invents identities for those owners.
+The shared contract supports their kinds for providers with explicit semantic ownership.
+A refused construct currently requires refusal reasons and no degradation entries; independent
+refused and degraded constructs may coexist in one inventory, with refusal taking precedence.
+
+The shared `STAGE-DEGRADE-001` through `005` codes describe unknown members, unsupported
+constructs, inline mismatches, a newer ESM inside an explicitly declared supported range, and
+dependency degradation. Their availability is not a claim that the Cratis provider emits all
+five today.
+
+### A newer ESM inside the declared range
+
+The Cratis renderer declares the range `>=32.0 <33`. The exact audited pairs are unchanged. A
+language/semantic pair that is not audited, matches in major and minor, and lies inside that range
+(for example 32.1) renders as **Degraded** with plan-level `STAGE-DEGRADE-004` evidence in
+`ArtifactRenderPlan.PlanEvidence`, in the default and the strict mode alike (strict promotes the
+warning to an error, as for any degradation, but the plan still publishes). Members that this
+Stage version has not audited on selected owners add `STAGE-DEGRADE-001` evidence. A member that
+carries security meaning (policies, authorization, claims and similar masks) is never rendered
+around: the render is refused with `STAGE-ESM-016` naming the member. A future major (33 or later),
+an out-of-range pair, a malformed pair and an unknown enumeration value are refused with
+`STAGE-ESM-016`; the runtime and specification executor still support only the exact audited pairs.
+
+Plan-level evidence names no selected construct, so it is excluded from the inventory, the
+completeness score and the construct gaps. It does change the plan digest and the outcome.
+
+When a completeness report is written for such a plan, it is the additive `stage-render-completeness/v2`
+shape: `support` carries the `stage-render-audited-support/v2` version, the
+`AuditedOrNewerWithinDeclaredRange` policy, the typed `declaredRange` (minimum pair and exclusive
+major) and the `effective` policy and versions, and a `planEvidence` array lists the evidence.
+Reports without a declared range keep the exact `v1` bytes and the `AuditedOnly` policy.
+
 ## Release-baseline warnings in artifact plans
 
 An admitted release baseline freezes stored event revisions, including the resolved
@@ -307,7 +376,7 @@ The semantic Cratis renderer maps whole-number primitives and concepts to `long`
 and to `int` for ESM v1–v7. Older models with authored whole-number literals outside the `int` range
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
-Stage uses Screenplay 4.247.3 and admits exact ESM v1–v30 and v32 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. The specification executor runs pinned String `generate rule` values without invoking their bodies and still checks concept rules; missing pins remain `Unsupported(IdentityAllocation)`. The Host refuses commands that generate rule values with `STAGE-ESM-028`, naming the command, property, concept and rule, by design because the interpreter never runs implementation bodies; unused rule concepts do not block the Host or executor. The semantic renderer emits verified C# rule bodies through `IGeneratableInContext<T>.New(GenerationContext context)`, compile-checked against embedded BCL and pinned Fundamentals metadata references without the pure-body walk. Fundamentals is an embedded build-only reference, not a renderer runtime or package dependency. Missing attachments fail `STAGE-ESM-020`, body compile errors and warnings fail `STAGE-ESM-019` at the attachment, and shadowing fails `STAGE-ESM-022`. Any concept rule requires a pin for rule generation; concepts with no validation rules may generate unpinned in rendered specifications. The legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend uses Stage's central Arc pin, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
+Stage uses Screenplay 4.247.3 and admits exact ESM v1–v30 and v32 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. The specification executor runs pinned String `generate rule` values without invoking their bodies and still checks concept rules; missing pins remain `Unsupported(IdentityAllocation)`. The Host refuses commands that generate rule values with `STAGE-ESM-028`, naming the command, property, concept and rule, by design because the interpreter never runs implementation bodies; unused rule concepts do not block the Host or executor. The semantic renderer emits verified C# rule bodies through `IGeneratableInContext<T>.New(GenerationContext context)`, compile-checked against embedded BCL and pinned Fundamentals metadata references without the pure-body walk. Fundamentals is an embedded build-only reference, not a renderer runtime or package dependency. Missing attachments fail `STAGE-ESM-020`, body SHA-256 mismatches against `ContentHash` fail `STAGE-ESM-056`, body compile errors and warnings fail `STAGE-ESM-019` at the attachment, and shadowing fails `STAGE-ESM-022`. Any concept rule requires a pin for rule generation; concepts with no validation rules may generate unpinned in rendered specifications. The legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend uses Stage's central Arc pin, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
 Mixed version pairs, unaudited v31, and versions after v32 are refused with `STAGE-ESM-016`; only the specification executor runs v33 and v34 models (see [A specification runs its own slice only](../docker/spec-runner.md#a-specification-runs-its-own-slice-only)). V32 preserves declared capture event-source identities for required scalar text, UUID and whole-number keys, including non-enumerated concepts over them. Inconsistent or non-convertible identity types fail with `STAGE-ESM-052`, never an implicit text fallback; see [Typed capture keys](translation-rendering.md#typed-capture-keys-esm-v32). The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer renders `command reads protected`, command `reads`, read-backed requirements and read-path mappings as Arc read protection; see [Protected reads rendering](protected-reads-rendering.md). It still refuses the shapes it cannot preserve with `STAGE-ESM-044`, each naming its reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, and reads combined with generated-value freshness scopes. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for how it commits decisions against outside appends. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v22+ models, the semantic renderer supports `reaction batches atomic` when each generated event handler has at most one direct-production trigger: its returned event collection appends as one batch, and each selected invocation refusal branch returns its own event collection. Multiple same-event production triggers in one reaction retain `STAGE-ESM-043`, naming the unsupported shape. Screenplay rejects routes on direct and refusal-branch productions before Stage admission; Stage retains a defensive `STAGE-ESM-043` guard for routed direct productions. Atomic stream closing has no Screenplay ESM representation yet and is not rendered (Screenplay#770). Other reaction admission limits still apply, including `STAGE-ESM-037` for mixed events and invocations. The legacy syntax renderer still refuses the atomic declaration. The semantic Host and specification executor execute each batch all-or-none. See [Atomic batch rendering](reaction-rendering.md#atomic-batch-rendering) and the executor's [Atomic reaction batches](../docker/spec-runner.md#atomic-reaction-batches). The renderer refuses described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId. No stubs are emitted yet, even in Stub mode.
 
 Several same-event production triggers in one atomic reaction stay refused with `STAGE-ESM-043` until Chronicle can return ordered per-trigger append batches from one reactor handler ([Chronicle#5248](https://github.com/Cratis/Chronicle/issues/5248)). A reactor appends what it returns as one batch, so rendering the triggers into one handler would merge their batch boundaries.

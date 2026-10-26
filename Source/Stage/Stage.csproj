@@ -50,6 +50,10 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Semantics/Admission/SemanticTranslationSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticCaptureIdentitySupport.cs" Link="Semantics/Admission/SemanticCaptureIdentitySupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmVersionRange.cs" Link="Semantics/Admission/EsmVersionRange.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmVersionStanding.cs" Link="Semantics/Admission/EsmVersionStanding.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmSupport.cs" Link="Semantics/Admission/EsmSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/CratisEsmSupport.cs" Link="Semantics/Admission/CratisEsmSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Semantics/Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Semantics/Admission/SemanticPatternShape.cs" />

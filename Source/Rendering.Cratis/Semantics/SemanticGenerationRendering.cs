@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using System.Globalization;
 using System.Security.Cryptography;
 using Cratis.Screenplay.Semantics;
@@ -36,16 +35,17 @@ internal static class SemanticGenerationRendering
     internal static void RenderBody(CSharpCodeBuilder builder, SemanticConcept concept, SemanticApplicationContext context)
     {
         if (!IsRule(concept.Generation)) return;
-        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-        if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, concept.Generation!.RequirementId!, concept.Id, diagnostics, out var body))
+        var inline = SemanticInlineCodeRendering.Generation(concept, context);
+        if (inline.Refused)
         {
-            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, diagnostics.Select(diagnostic => diagnostic.Message)));
+            throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
 
         // The raw body binds against this namespace in the compile gate, independent of import shortening.
         builder.Using("Cratis.Concepts")
             .OpenBlock($"static string {BodyMethod(concept)}(global::Cratis.Concepts.GenerationContext context)")
-            .RawVerbatim(body!)
+            .Inline(inline.Code!, inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(
+                new(diagnostic.Code, ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, concept.Id)))
             .EndBlock()
             .BlankLine();
     }

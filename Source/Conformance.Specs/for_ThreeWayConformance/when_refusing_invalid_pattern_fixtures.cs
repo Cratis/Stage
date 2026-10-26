@@ -52,6 +52,7 @@ public class when_refusing_invalid_pattern_fixtures : Specification
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
         rendered.Success.ShouldBeTrue();
         rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Artifacts.ShouldNotBeEmpty();
         rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
         rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
         rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);

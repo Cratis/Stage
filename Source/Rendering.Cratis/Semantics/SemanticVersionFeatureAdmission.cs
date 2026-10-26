@@ -28,6 +28,7 @@ internal static class SemanticVersionFeatureAdmission
         var features = slices.Select(located => located.Slice).SelectMany(slice =>
             SemanticVersionFeatures.InSlice(slice).Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+                .Except(SemanticVersionFeatures.StandaloneReactionBodiesInSlice(slice))
                 .Except(SemanticTranslationAdmission.AdmittedFeatures(slice, context))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
@@ -49,6 +50,11 @@ internal static class SemanticVersionFeatureAdmission
             features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
         }
 
-        return [.. features.Distinct().Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];
+        return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct().Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];
     }
+
+    // Render-only: the execution runtime still sees PendingCommandHandler as unsupported.
+    static bool AdmittedCommandHandler(SemanticVersionFeature feature, SemanticApplicationContext context) =>
+        feature.Code == SemanticVersionFeatures.PendingCommandHandler && context.Commands.TryGetValue(feature.Artifact, out var command) &&
+        SemanticCommandBodyAdmission.IsCSharp(command, context);
 }

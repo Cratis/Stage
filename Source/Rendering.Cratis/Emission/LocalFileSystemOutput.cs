@@ -14,7 +14,7 @@ public class LocalFileSystemOutput : ICodeOutput
     /// <inheritdoc/>
     public async Task Write(RenderedFile file, DirectoryInfo targetDirectory, TextWriter output)
     {
-        var fullPath = Path.Combine(targetDirectory.FullName, file.RelativePath);
+        var fullPath = OutputRootContainment.Resolve(targetDirectory, file.RelativePath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory))
         {

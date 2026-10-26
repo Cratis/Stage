@@ -31,8 +31,20 @@ internal static partial class SemanticSpecificationAdmission
 
     static void ValidateReactionAppend(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (ReactionAppendRejection(context, specification, diagnostics) is not { } reason) return;
+        if ((NativeReactionBodyRejection(context, specification) ?? ReactionAppendRejection(context, specification, diagnostics)) is not { } reason) return;
         diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: {reason}", specification.Id));
+    }
+
+    static string? NativeReactionBodyRejection(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        var inputs = specification.GivenEvents.Select(given => new SemanticSpecificationAppend(given.EventContract, given.Values)
+        {
+            EventSource = given.EventSource,
+            Route = given.Route
+        }).Append(SemanticReactionSpecification.Input(specification));
+        var selected = inputs.SelectMany(input => SemanticReactionSpecification.Candidates(context, specification, input))
+            .FirstOrDefault(candidate => candidate.Trigger.RequirementId is not null);
+        return selected is null ? null : $"Stage cannot execute native reaction bodies in generated specs (reaction '{selected.Reaction.Name}').";
     }
 
     static string? ReactionAppendRejection(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)

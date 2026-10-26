@@ -61,7 +61,17 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
     /// <param name="authored">The spans of authored text, which keep their bytes.</param>
     /// <param name="required">The namespaces the renderer asked to import.</param>
     /// <returns>The rewritten source, its using directives in place.</returns>
-    internal string Rewrite(string source, IReadOnlyList<TextSpan> authored, IEnumerable<string> required)
+    internal string Rewrite(string source, IReadOnlyList<TextSpan> authored, IEnumerable<string> required) => Rewrite(source, authored, required, out _);
+
+    /// <summary>
+    /// Rewrites a compilation unit and reports why its scope could not be proven, if it could not.
+    /// </summary>
+    /// <param name="source">The source, with at most one file-scoped namespace and no using directives of its own.</param>
+    /// <param name="authored">The spans of authored text, which keep their bytes.</param>
+    /// <param name="required">The namespaces the renderer asked to import.</param>
+    /// <param name="reason">Why every type stayed qualified, or <see cref="UnknownScopeReason.None"/>.</param>
+    /// <returns>The rewritten source, its using directives in place.</returns>
+    internal string Rewrite(string source, IReadOnlyList<TextSpan> authored, IEnumerable<string> required, out UnknownScopeReason reason)
     {
         var tree = CSharpSyntaxTree.ParseText(SourceText.From(source), _parseOptions);
         var root = tree.GetCompilationUnitRoot();
@@ -74,9 +84,8 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
         var inventory = generated.Concat(declared).Distinct().ToArray();
         var references = new QualifiedReferences(root, inventory, project, authored).Find();
         var scope = FileScope.Read(root, name, inventory, project, [.. references.Select(reference => reference.Span)]);
-        var unknown = _unknown || scope.IsUnknown || (namespaces.Length > 0 && fileNamespace is null) || root.Usings.Count > 0 ||
-            tree.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error) ||
-            root.DescendantTrivia().Any(trivia => trivia.IsKind(SyntaxKind.IfDirectiveTrivia));
+        reason = Classify(tree, root, namespaces.Length > 0 && fileNamespace is null, scope);
+        var unknown = reason != UnknownScopeReason.None;
         var resolution = ImportResolver.Resolve(new ImportRequest(name, project, inventory, references.Select(reference => reference.Type))
         {
             RequiredImports = required,
@@ -104,5 +113,27 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
         foreach (var @using in resolution.TopLevelUsings) text.Append("using ").Append(@using).Append(';').AppendLine();
         if (text.Length > 0) text.AppendLine();
         return text.Append(SourceText.From(source).WithChanges(changes.OrderBy(change => change.Span.Start))).ToString();
+    }
+
+    /// <summary>
+    /// Names why a source file has an unknown scope, without rewriting it.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="authored">The spans of authored text.</param>
+    /// <returns>The reason, or <see cref="UnknownScopeReason.None"/> when the scope is known.</returns>
+    internal UnknownScopeReason Classify(string source, IReadOnlyList<TextSpan> authored)
+    {
+        Rewrite(source, authored, [], out var reason);
+        return reason;
+    }
+
+    UnknownScopeReason Classify(SyntaxTree tree, CompilationUnitSyntax root, bool notFileScoped, FileScope scope)
+    {
+        if (_unknown) return UnknownScopeReason.Declared;
+        if (scope.IsUnknown) return UnknownScopeReason.UnknownBase;
+        if (notFileScoped) return UnknownScopeReason.NotFileScopedNamespace;
+        if (root.Usings.Count > 0) return UnknownScopeReason.OwnUsings;
+        if (tree.GetDiagnostics().Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)) return UnknownScopeReason.ParseError;
+        return root.DescendantTrivia().Any(trivia => trivia.IsKind(SyntaxKind.IfDirectiveTrivia)) ? UnknownScopeReason.ConditionalDirective : UnknownScopeReason.None;
     }
 }

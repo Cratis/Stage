@@ -57,7 +57,8 @@ internal static partial class SemanticCratisAdmission
                 var affected = constraint.Targets.Select(target => target.EventContract).Concat(constraint.ReleasedBy).ToHashSet();
                 if (command.Produces.Count(produced => affected.Contains(produced.EventContract)) > 1)
                 {
-                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' cannot preserve changes to multiple claims or releases in one command '{command.Name}' batch.", command.Id));
+                    var events = command.Produces.Where(produced => affected.Contains(produced.EventContract)).Select(produced => context.Events[produced.EventContract].Name);
+                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' cannot preserve changes to multiple claims or releases in one command '{command.Name}' batch ({string.Join(", ", events)}).", command.Id));
                 }
             }
 
@@ -68,15 +69,17 @@ internal static partial class SemanticCratisAdmission
                 if (properties.Any(_ => _.Type.IsOptional))
                 {
                     // Chronicle #4122: null writes an empty-string claim to the index even though validation skips it.
-                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' targets an optional property on '{@event.Name}'; Chronicle #4122 indexes null as an empty-string claim.", slice.Id));
+                    var optional = string.Join(", ", properties.Where(property => property.Type.IsOptional).Select(property => property.Name));
+                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' targets optional properties ({optional}) on '{@event.Name}'; Chronicle #4122 indexes null as an empty-string claim.", slice.Id));
                 }
 
-                if (properties.Length != 1 || properties.Any(property =>
-                    property.Type.IsCollection || SemanticValidationRendering.UnderlyingPrimitive(property.Type, context) != SemanticPrimitiveType.Text))
+                if (properties.Length != 1)
                 {
-                    // Chronicle joins composite values with '-' and calls ToString on nontext values; Screenplay compares
-                    // typed values by component, so a delimiter collision or a stringified typed value is not equivalent.
-                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' targets a composite or nontext value on '{@event.Name}'; Chronicle's string hash can collide with distinct Screenplay values.", slice.Id));
+                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' targets composite properties ({string.Join(", ", properties.Select(property => property.Name))}) on '{@event.Name}'; Chronicle's string hash can collide with distinct Screenplay values.", slice.Id));
+                }
+                else if (properties.Any(property => property.Type.IsCollection || SemanticValidationRendering.UnderlyingPrimitive(property.Type, context) != SemanticPrimitiveType.Text))
+                {
+                    diagnostics.Add(Error("STAGE-ESM-014", $"Constraint '{constraint.Name}' targets nontext or collection property '{properties[0].Name}' on '{@event.Name}'; Chronicle's string hash can collide with distinct Screenplay values.", slice.Id));
                 }
             }
         }

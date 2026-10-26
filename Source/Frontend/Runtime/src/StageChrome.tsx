@@ -8,6 +8,8 @@ import { useEffect } from 'react';
 import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
+import { externalRouteHref } from './externalRouteHref';
+import { StageScreenTables } from './stageScreenTables';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -84,18 +86,21 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
     const navigation = useContext(SceneNavigationContextInternal);
     const mode = node.presentation === 'icon' || node.presentation === 'text' ? node.presentation : 'both';
     const destination = node.destination;
-    const external = destination?.kind === 'external' && destination.route !== undefined;
+    const external = destination?.kind === 'external';
     const execute = destination && navigation && !external && opensElsewhere(destination)
         ? (event: { preventDefault: () => void }) => {
             event.preventDefault();
             navigation.navigate(destination);
         }
         : undefined;
+    const href = external ? externalRouteHref(destination.route) : screenHash(screen);
+    const refused = external && href === undefined;
 
     return (
         <a
-            href={external ? destination.route : screenHash(screen)}
-            rel={external ? 'noreferrer' : undefined}
+            href={href}
+            rel={external && !refused ? 'noreferrer' : undefined}
+            aria-disabled={refused ? 'true' : undefined}
             aria-current={screen === activeScreen ? 'page' : undefined}
             aria-label={mode === 'icon' ? node.label : undefined}
             data-presentation={node.presentation}
@@ -131,7 +136,7 @@ export function StageOutlet({ element }: RegisteredComponentProps) {
                     <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
                 </div>
             )}
-            {screen && outlets && <SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} />}
+            {screen && outlets && <StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables>}
         </div>
     );
 }

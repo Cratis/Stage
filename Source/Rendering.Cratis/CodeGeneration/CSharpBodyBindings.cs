@@ -36,7 +36,10 @@ internal static class CSharpBodyBindings
         MemberBindingExpressionSyntax => false,
         NameColonSyntax => false,
         NameEqualsSyntax => false,
-        AssignmentExpressionSyntax { Parent: InitializerExpressionSyntax } assignment => assignment.Left != name,
+        AssignmentExpressionSyntax { Parent: InitializerExpressionSyntax initializer } assignment when IsMemberInitializer(initializer) => assignment.Left != name,
         _ => true
     };
+
+    static bool IsMemberInitializer(InitializerExpressionSyntax initializer) =>
+        initializer.IsKind(SyntaxKind.ObjectInitializerExpression) || initializer.IsKind(SyntaxKind.WithInitializerExpression);
 }

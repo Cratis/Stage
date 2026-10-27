@@ -31,6 +31,18 @@ public class when_selecting_referenced_bindings : Specification
         CSharpBodyBindings.Referenced("return [new Notify(Amount: 1) { Title = \"x\" }];", Candidates).Count.ShouldEqual(0);
 
     [Fact]
+    void should_count_an_assignment_target_inside_an_array_initializer() =>
+        CSharpBodyBindings.Referenced("var titles = new[] { Title += \"!\" }; return [new Notify(titles[0])];", Candidates).Single().ShouldEqual("Title");
+
+    [Fact]
+    void should_count_a_simple_assignment_target_inside_an_implicit_array_initializer() =>
+        CSharpBodyBindings.Referenced("int[] amounts = { Amount = 2 }; return null;", Candidates).Single().ShouldEqual("Amount");
+
+    [Fact]
+    void should_not_count_a_with_initializer_member() =>
+        CSharpBodyBindings.Referenced("var copy = other with { Title = \"x\" }; return null;", Candidates).Count.ShouldEqual(0);
+
+    [Fact]
     void should_count_a_name_used_inside_an_interpolation() =>
         CSharpBodyBindings.Referenced("var text = $\"{Amount} items\"; return null;", Candidates).Single().ShouldEqual("Amount");
 

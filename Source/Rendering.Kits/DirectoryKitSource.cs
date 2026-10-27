@@ -43,7 +43,9 @@ public sealed class DirectoryKitSource(string root) : IKitSource
     // blocks. The tar writer reads the real file type from the file system without opening anything but regular files.
     static bool IsRegularFile(FileInfo file)
     {
-        if (!file.Exists || file.Length > 0)
+        // Windows has no FIFOs or device nodes in the file system and its TarWriter refuses some valid files (such as an
+        // empty read-only file), so only Unix probes.
+        if (OperatingSystem.IsWindows() || !file.Exists || file.Length > 0)
         {
             // A missing file fails when it is opened, which reports it as unreadable.
             return true;

@@ -22,7 +22,15 @@ public class when_loading_from_disk : Specification
         }
     }
 
-    void Destroy() => Directory.Delete(_root, true);
+    void Destroy()
+    {
+        foreach (var file in new DirectoryInfo(_root).EnumerateFiles("*", SearchOption.TopDirectoryOnly))
+        {
+            file.Attributes = FileAttributes.Normal;
+        }
+
+        Directory.Delete(_root, true);
+    }
 
     [Fact] void should_match_the_memory_source() => KitLoader.Load(new DirectoryKitSource(_root), given.kit.Capabilities).Kit!.Digest.ShouldEqual(given.kit.Load(given.kit.Manifest).Kit!.Digest);
 
@@ -72,6 +80,15 @@ public class when_loading_from_disk : Specification
         // Opening a FIFO without a writer blocks, so the load must finish without touching it.
         var result = await Task.Run(() => KitLoader.Load(new DirectoryKitSource(_root), given.kit.Capabilities)).WaitAsync(TimeSpan.FromSeconds(10));
         result.Diagnostics.ShouldContain(new KitDiagnostic(KitCodes.LoadLimit, "Unsafe or unsupported source entry.", "pipe"));
+    }
+
+    [Fact]
+    void should_treat_an_empty_read_only_file_as_a_regular_file()
+    {
+        var path = Path.Combine(_root, "empty");
+        File.WriteAllBytes(path, []);
+        File.SetAttributes(path, FileAttributes.ReadOnly);
+        new DirectoryKitSource(_root).Enumerate().Single(entry => entry.Path == "empty").Kind.ShouldEqual(KitSourceEntryKind.File);
     }
 
     [Fact]

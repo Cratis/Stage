@@ -24,5 +24,7 @@
   href: plan-from-sources.md
 - name: Template profile v1 helpers
   href: template-profile-v1.md
+- name: Template helper catalogue
+  href: template-helpers.md
 - name: Canonical corpus conformance
   href: corpus-conformance.md

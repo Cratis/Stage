@@ -7,4 +7,8 @@ The prerelease `stage-templates/v1` profile renders JSON through declared, in-me
 
 All STAGE-TPL codes are safety refusals: trust, integrity or budget failures. A refused plan has no usable outputs, including artifacts returned before refusal. The caller must discard them all.
 
-Helper bytes, signatures and semantics are frozen once released. Changing them requires a new helper name or `templates/v2`. Frozen vectors and the surface digest only grow.
+Only allowlisted standard-library members and declared helpers are available; there is no clock, randomness, environment access, dynamic evaluation or JSON parsing. Scope values are JSON, never arbitrary host objects.
+
+Default aggregate budgets are 2,000,000 steps, 8 MiB UTF-8 output, 2,000 artifacts, 2,000 fan-out items, 256 KiB string length, recursion depth 64 and a 10-second deadline. Preparation limits each template to 64 KiB UTF-8 and nesting depth 32. The caller owns the process-level CPU and memory sandbox.
+
+Helper bytes, signatures and semantics are frozen once released. Changing them requires a new helper name or `templates/v2`. Frozen vectors only grow; the surface digest pins the versioned contract. `HelperCatalogue.GenerateReference()` generates the checked-in [helper reference](../../Documentation/reference/template-helpers.md) from those vectors, codes, allowlist and defaults.

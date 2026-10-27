@@ -9,7 +9,9 @@ public class a_symbol_plan : Specification
 {
     protected static readonly TypeName KnownType = new("example", "Outer", ["Inner"]);
 
-    protected static SymbolPlan WithSegment(SymbolSegment segment) => new([new("file", "example", [segment])], []);
+    protected static SymbolPlan WithSegment(SymbolSegment segment) => WithSegments(segment);
+
+    protected static SymbolPlan WithSegments(params SymbolSegment[] segments) => new([new("file", "example", segments)], []);
 
     protected static IEnumerable<SymbolPlan> WithEachField(string value)
     {

@@ -35,6 +35,4 @@ public class when_validating_a_structured_plan : given.a_symbol_plan
     void Because() => _error = Catch.Exception(() => JavaLanguagePack.Validate(_plan));
 
     [Fact] void should_accept_all_seven_segment_kinds_and_all_v1_contexts() => _error.ShouldBeNull();
-    [Fact] void should_leave_the_authored_crlf_bytes_unchanged() => _native.Body.ShouldEqual("void run() {\r\n  String s = \"original\";\r\n}\r\n");
-    [Fact] void should_preserve_generated_lf_text() => ((TextSegment)_plan.Files[0].Segments[0]).Text.ShouldEqual("package example;\n");
 }

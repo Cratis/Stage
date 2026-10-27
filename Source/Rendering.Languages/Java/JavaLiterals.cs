@@ -38,8 +38,8 @@ public static class JavaLiterals
             result.Append(character switch
             {
                 '\\' => "\\\\",
-                '\r' or '\n' or '\u2028' or '\u2029' or '\u0085' => " ",
-                _ when character < 0x20 => " ",
+                '\u2028' or '\u2029' => " ",
+                _ when char.IsControl(character) => " ",
                 _ => character.ToString(),
             });
         }

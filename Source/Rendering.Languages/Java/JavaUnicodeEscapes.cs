@@ -17,27 +17,19 @@ public static class JavaUnicodeEscapes
     /// <param name="text">The raw Java input.</param>
     /// <returns>The translated UTF-16 input.</returns>
     /// <exception cref="LanguagePackRefusal">An eligible escape is malformed.</exception>
-    public static string Decode(string text)
+    public static string Decode(string text) => Translate(text, out _);
+
+    /// <summary>
+    /// Determines whether the final raw backslash could start an escape when more output is appended.
+    /// Eligibility includes backslashes produced by earlier Unicode escapes, matching javac's UnicodeReader.
+    /// </summary>
+    /// <param name="text">The raw Java input.</param>
+    /// <returns>Whether a continuation starting with 'u' could extend the final backslash into an escape.</returns>
+    /// <exception cref="LanguagePackRefusal">An eligible escape is malformed.</exception>
+    public static bool EndsWithEligibleBackslash(string text)
     {
-        var result = new StringBuilder(text.Length);
-        var backslashes = 0;
-        var previousWasEscape = false;
-        for (var index = 0; index < text.Length; index++)
-        {
-            var character = text[index];
-            var eligible = previousWasEscape || backslashes % 2 == 0;
-            var escaped = character == '\\' && eligible && IsEscapeIntroducer(text, index);
-            if (escaped)
-            {
-                character = ReadEscape(text, ref index);
-            }
-
-            result.Append(character);
-            backslashes = character == '\\' ? backslashes + 1 : 0;
-            previousWasEscape = escaped;
-        }
-
-        return result.ToString();
+        Translate(text, out var endsWithEligibleBackslash);
+        return endsWithEligibleBackslash;
     }
 
     /// <summary>
@@ -57,6 +49,32 @@ public static class JavaUnicodeEscapes
         }
 
         return false;
+    }
+
+    static string Translate(string text, out bool endsWithEligibleBackslash)
+    {
+        var result = new StringBuilder(text.Length);
+        var backslashes = 0;
+        var previousWasEscape = false;
+        endsWithEligibleBackslash = false;
+        for (var index = 0; index < text.Length; index++)
+        {
+            var character = text[index];
+            var eligible = previousWasEscape || backslashes % 2 == 0;
+            var eligibleBackslash = character == '\\' && eligible;
+            var escaped = eligibleBackslash && IsEscapeIntroducer(text, index);
+            endsWithEligibleBackslash = eligibleBackslash && !escaped;
+            if (escaped)
+            {
+                character = ReadEscape(text, ref index);
+            }
+
+            result.Append(character);
+            backslashes = character == '\\' ? backslashes + 1 : 0;
+            previousWasEscape = escaped;
+        }
+
+        return result.ToString();
     }
 
     static bool IsEscapeIntroducer(string text, int index) => index + 1 < text.Length && text[index + 1] == 'u';

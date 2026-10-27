@@ -3,6 +3,7 @@
 
 using System.Collections;
 using System.Globalization;
+using Scriban;
 using Scriban.Functions;
 using Scriban.Runtime;
 
@@ -38,7 +39,7 @@ internal static class LockedBuiltins
             }
 
             if (name == "string") ReplaceStrings(functions);
-            if (name == "array") Replace(functions, "sort", new Func<object?, string?, ScriptArray>(Sort));
+            if (name == "array") Replace(functions, "sort", new Func<TemplateContext, object?, string?, ScriptArray>(Sort));
             functions.IsReadOnly = true;
             root.SetValue(name, functions, true);
         }
@@ -55,7 +56,7 @@ internal static class LockedBuiltins
         Replace(functions, "ends_with", new Func<string?, string?, bool>((text, value) => text is not null && value is not null && text.EndsWith(value, StringComparison.Ordinal)));
         Replace(functions, "equals_ignore_case", new Func<string?, string?, bool>((text, value) => string.Equals(text, value, StringComparison.OrdinalIgnoreCase)));
         Replace(functions, "capitalize", new Func<string?, string?>(text => string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text[1..]));
-        Replace(functions, "capitalizewords", new Func<string?, string?>(CapitalizeWords));
+        Replace(functions, "capitalizewords", new Func<TemplateContext, string?, string?>(CapitalizeWords));
     }
 
     static void Replace(ScriptObject functions, string name, Delegate implementation)
@@ -72,29 +73,50 @@ internal static class LockedBuiltins
         return text.IndexOf(search, offset, Math.Clamp(count ?? (text.Length - offset), 0, text.Length - offset), StringComparison.Ordinal);
     }
 
-    static string? CapitalizeWords(string? text)
+    static string? CapitalizeWords(TemplateContext context, string? text)
     {
         if (string.IsNullOrEmpty(text)) return text;
+        if (text.Length > context.LoopLimit) throw PlanMeter.Exceeded(TemplateCodes.Steps, "Plan step budget exceeded.");
         var chars = text.ToCharArray();
         for (var index = 0; index < chars.Length; index++)
         {
+            ((LockedContext)context).StepBuiltin();
             if (char.IsLetter(chars[index]) && (index == 0 || char.IsWhiteSpace(chars[index - 1]))) chars[index] = char.ToUpperInvariant(chars[index]);
         }
 
         return new(chars);
     }
 
-    static ScriptArray Sort(object? value, string? member = null)
+    static ScriptArray Sort(TemplateContext context, object? value, string? member = null)
     {
         if (value is not IEnumerable list || value is string) throw new TemplateRefusal(new(TemplateCodes.Input, "array.sort requires an array.", string.Empty, 0, 0));
-        object? Key(object? item)
+        var locked = (LockedContext)context;
+        var items = Materialize(locked, list);
+        object? Key(object? item) => member is null ? item : (item as ScriptObject)?[member];
+        var comparer = Comparer<object?>.Create((left, right) =>
         {
-            if (member is null) return item;
-            return item is ScriptObject data ? data[member] : null;
-        }
+            locked.StepBuiltin();
+            return Compare(left, right);
+        });
         var sorted = new ScriptArray();
-        foreach (var item in list.Cast<object?>().OrderBy(Key, Comparer<object?>.Create(Compare))) sorted.Add(item);
+        foreach (var item in items.OrderBy(Key, comparer))
+        {
+            locked.StepBuiltin();
+            sorted.Add(item);
+        }
         return sorted;
+    }
+
+    static List<object?> Materialize(LockedContext context, IEnumerable values)
+    {
+        var items = new List<object?>();
+        foreach (var item in values)
+        {
+            context.StepBuiltin();
+            if (items.Count >= context.LoopLimit) throw PlanMeter.Exceeded(TemplateCodes.Steps, "Plan step budget exceeded.");
+            items.Add(item);
+        }
+        return items;
     }
 
     static int Compare(object? left, object? right)

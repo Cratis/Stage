@@ -72,6 +72,12 @@ internal sealed class LockedContext : TemplateContext
         throw TemplateRefusal.At(TemplateCodes.HostValue, "Host values cannot be rendered.", CurrentSpan);
     }
 
+    internal void StepBuiltin()
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        _meter.Step();
+    }
+
     protected override IObjectAccessor? GetMemberAccessorImpl(object target)
     {
         if (target is SymbolHandle or SegmentHandle) throw SymbolHandle.NotText();

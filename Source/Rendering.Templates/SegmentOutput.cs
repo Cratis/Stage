@@ -29,6 +29,26 @@ internal sealed class SegmentOutput(PlanMeter meter) : IScriptOutput
         _segments.Add(new TemplateSymbolUseSegment(descriptor));
     }
 
+    internal void Emit(ImmutableArray<TemplateSegment> segments)
+    {
+        foreach (var segment in segments)
+        {
+            if (segment is TemplateTextSegment text)
+            {
+                if (TemplatePreScan.HasPrivateUse(text.Text)) throw JsonScriptValues.Invalid("Language seam emitted private-use text.");
+                Write(text.Text, 0, text.Text.Length);
+            }
+            else if (segment is TemplateSymbolUseSegment symbol)
+            {
+                Symbol(symbol.Symbol);
+            }
+            else
+            {
+                throw JsonScriptValues.Invalid("Unknown language segment.");
+            }
+        }
+    }
+
     internal ImmutableArray<TemplateSegment> Finish()
     {
         Flush();

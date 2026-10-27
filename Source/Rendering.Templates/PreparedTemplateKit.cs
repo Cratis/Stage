@@ -10,14 +10,17 @@ namespace Cratis.Stage.Rendering.Templates;
 /// <summary>An immutable parsed kit, shareable between independent plan sessions.</summary>
 internal sealed class PreparedTemplateKit
 {
-    internal PreparedTemplateKit(LoadedKit kit, ImmutableDictionary<string, Template> templates, ImmutableDictionary<string, Template> expressions)
+    internal PreparedTemplateKit(LoadedKit kit, ImmutableDictionary<string, Template> templates, ImmutableDictionary<string, Template> expressions, OperatorTable? operators = null)
     {
         Kit = kit;
         Templates = templates;
         Expressions = expressions;
+        Operators = operators ?? OperatorTable.Empty;
     }
 
     internal LoadedKit Kit { get; }
+
+    internal OperatorTable Operators { get; }
 
     internal ImmutableDictionary<string, Template> Templates { get; }
 

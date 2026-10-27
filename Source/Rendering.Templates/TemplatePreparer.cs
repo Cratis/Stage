@@ -39,7 +39,9 @@ internal static class TemplatePreparer
             }
 
             foreach (var template in templates.Values.Concat(expressions.Values)) new TemplateLint(kit).Visit(template.Page);
-            return TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable()));
+            var operatorSource = kit.Manifest.Tables.FirstOrDefault(table => table.Name == "operators");
+            var operators = operatorSource is null ? OperatorTable.Empty : OperatorTable.Parse(kit.Files[operatorSource.Path].AsSpan());
+            return TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable(), operators));
         }
         catch (TemplateRefusal refusal)
         {

@@ -8,7 +8,7 @@ using Scriban.Syntax;
 namespace Cratis.Stage.Rendering.Templates;
 
 /// <summary>A single-use plan context. A refusal invalidates every output from this session.</summary>
-public sealed class TemplatePlanSession : IDisposable
+public sealed partial class TemplatePlanSession : IDisposable
 {
     readonly PreparedTemplateKit _prepared;
     readonly TemplateBudget _budget;
@@ -38,7 +38,11 @@ public sealed class TemplatePlanSession : IDisposable
         symbols.Import("ref", new Func<object?, SymbolHandle>(value => new(SymbolHandle.Parse(value))));
         symbols.IsReadOnly = true;
         helpers.SetValue("sym", symbols, true);
-        if (language is not null) LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
+        if (language is not null)
+        {
+            LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
+            InstallSemantics(helpers, language);
+        }
         _context.PushGlobal(helpers);
     }
 
@@ -56,6 +60,7 @@ public sealed class TemplatePlanSession : IDisposable
     {
         var result = Run(() =>
         {
+            _gaps.Clear();
             _meter.Artifact();
             if (!_prepared.Templates.TryGetValue(templatePath, out var template)) throw JsonScriptValues.Invalid("Template is not declared.");
             PushScope(scope);
@@ -65,7 +70,7 @@ public sealed class TemplatePlanSession : IDisposable
                 _context.PushOutput(output);
                 try { template.Render(_context); }
                 finally { _context.PopOutput(); }
-                return new TemplateOutput(output.Finish(), []);
+                return new TemplateOutput(output.Finish(), [.. _gaps]);
             }
             finally { _context.PopGlobal(); }
         });

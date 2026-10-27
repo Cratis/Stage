@@ -1,0 +1,13 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Templates</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Templates</RootNamespace>
+        <Description>Locked target-neutral templates for declarative Stage kits.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Rendering.Kits/Rendering.Kits.csproj" />
+        <PackageReference Include="Scriban" />
+    </ItemGroup>
+</Project>

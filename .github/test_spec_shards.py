@@ -70,7 +70,7 @@ class SpecShardsTests(unittest.TestCase):
     def test_small_projects_shard_runs_exactly_the_seven_merged_projects_with_unchanged_filters(self):
         expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
                     "Source/Contracts/Contracts.csproj", "Source/Rendering.Kits/Rendering.Kits.csproj",
-                    "Source/Stage/Stage.csproj",
+                    "Source/Rendering.Templates/Rendering.Templates.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
                     "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
         for lane in (False, True):

@@ -370,6 +370,15 @@ source location, rather than dropping it or appending an event instead. The sema
 same constructs with Screenplay's `PLAY0268`; operations are not admitted by any supported executable
 model (ESM) version yet (Cratis/Stage#176, Cratis/Screenplay#301).
 
+## Explicit action subjects
+
+A toolbar item or screen action with an explicit `for item` or `for screen` subject refuses
+with `STAGE-ESM-058` before any output is written. The diagnostic names the construct and
+its source location: explicit action subjects are not yet rendered
+([Screenplay decision 0110](https://github.com/Cratis/Screenplay/blob/v4.250.0/decisions/0110-explicit-action-subjects-and-selection.md),
+[Cratis/Stage#855](https://github.com/Cratis/Stage/issues/855)). Omitting the subject keeps
+existing output unchanged.
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,

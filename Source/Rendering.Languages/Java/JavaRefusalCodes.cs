@@ -48,4 +48,9 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0008: a declaration identity or inferred enclosing declaration is ambiguous.
     /// </summary>
     public const string AmbiguousDeclaration = "STAGE-JAVA-0008";
+
+    /// <summary>
+    /// STAGE-JAVA-0009: a native Java block comment, text block, string, or character literal is unterminated.
+    /// </summary>
+    public const string UnterminatedNativeConstruct = "STAGE-JAVA-0009";
 }

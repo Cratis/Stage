@@ -188,13 +188,17 @@ public class StateChangeSliceRenderer : ISliceRenderer
     static string? ResolveInlineReturnType(string inferred, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
         var name = inferred.StartsWith("global::", StringComparison.Ordinal) ? inferred[8..] : inferred;
-        if (_inlineReturnContracts.TryGetValue(name, out var contract)) return contract;
         var matches = applicationSet.Slices.Append(slice)
             .SelectMany(declaration => declaration.Slice.Events.Select(@event => (
                 Short: Identifiers.ToPascalCase(@event.Name),
                 Qualified: $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}")))
             .Where(candidate => string.Equals(name, candidate.Short, StringComparison.Ordinal) || string.Equals(name, candidate.Qualified, StringComparison.Ordinal))
             .Select(candidate => candidate.Qualified).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        if (matches.Length > 0 && _inlineReturnContracts.ContainsKey(name))
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between a modeled event type and a framework contract.");
+        }
+        if (_inlineReturnContracts.TryGetValue(name, out var contract)) return contract;
         if (matches.Length > 1)
         {
             throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between modeled event types.");

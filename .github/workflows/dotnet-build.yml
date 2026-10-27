@@ -267,6 +267,8 @@ jobs:
       && needs.routing.outputs.reducer-mongo == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout code
@@ -298,12 +300,163 @@ jobs:
       - name: Start pinned Chronicle with bundled MongoDB
         run: |
           image=$(python3 -c 'import pathlib, runpy; policy = runpy.run_path("Verification/verify-runtime-compatibility.py"); print(policy["host_base"](pathlib.Path("Source/Host/Dockerfile").read_text()).group(1))')
-          docker run --detach --name stage-reducer-mongo \
+          docker run --detach --name "$REDUCER_MONGO_CONTAINER" \
             --publish 127.0.0.1:35000:35000 "$image"
           # Only the local development kernel uses a self-signed certificate.
           curl --insecure --fail --retry 30 --retry-all-errors --retry-delay 2 \
             --connect-timeout 5 --max-time 10 --retry-max-time 120 \
             https://localhost:35000/health
+
+      # Setup/health is not runtime evidence. This separate gate requires the two exact MongoFacts.
+      - name: Run default and atomic mixed-refusal runtime proofs
+        id: mixed342
+        # Allow 5 minutes for bounded preflight, evidence validation and cleanup around the 600-second test.
+        timeout-minutes: 15
+        env:
+          STAGE_CHRONICLE_MONGO_CONNECTION: chronicle://localhost:35000
+          AI_WORK_KEEP: ${{ github.workspace }}/.ai-work/342/ci
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import signal
+          import subprocess
+          import tempfile
+          import threading
+          import time
+          import xml.etree.ElementTree as ET
+
+          gib = 1024 ** 3
+          floor, preflight, growth_limit = 25 * gib, 37 * gib, 6 * gib
+          evidence = Path(os.environ["AI_WORK_KEEP"])
+          evidence.mkdir(parents=True, exist_ok=True)
+          prefix = "Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_verifying_mixed_reaction_refusals_against_the_pinned_kernel."
+          expected = {prefix + "should_match_default_refusal_and_redelivery_when_configured",
+                      prefix + "should_match_atomic_refusal_and_redelivery_when_configured"}
+
+          def require_runtime_results(path):
+              ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+              root = ET.parse(path).getroot()
+              results = root.findall("t:Results/t:UnitTestResult", ns)
+              counters = root.find("t:ResultSummary/t:Counters", ns)
+              required = {"total": 2, "executed": 2, "passed": 2, "failed": 0, "error": 0,
+                          "timeout": 0, "aborted": 0, "notExecuted": 0, "notRunnable": 0}
+              if (len(results) != 2 or {r.get("testName") for r in results} != expected
+                      or any(r.get("outcome") != "Passed" for r in results)
+                      or counters is None
+                      or any(int(counters.get(k, "-1")) != v for k, v in required.items())):
+                  raise RuntimeError("Stage 342 requires exactly default+atomic runtime proofs: 2 passed, 0 skipped; compile-only rows do not count.")
+
+          def checked(command):
+              result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=10)
+              if len(result.stdout) > 65536:
+                  raise RuntimeError("Filesystem evidence exceeded its diagnostic bound.")
+              return result.stdout
+
+          kernel = json.loads(checked(["docker", "inspect", os.environ["REDUCER_MONGO_CONTAINER"]]))[0]
+          if not kernel["State"]["Running"]:
+              raise RuntimeError("The job-owned pinned kernel must already be running.")
+          mounts = kernel["Mounts"]
+          if len(mounts) > 16 or any(m["Type"] not in ("bind", "volume") for m in mounts):
+              raise RuntimeError("Unsupported kernel storage mapping; cannot establish disk evidence.")
+          writable = [m["Destination"] for m in mounts if m["RW"]]
+          if not {"/data/db", "/data/configdb"}.issubset(writable):
+              raise RuntimeError("Bundled MongoDB writable volume evidence is unavailable.")
+          runner_paths = list(dict.fromkeys([os.environ["GITHUB_WORKSPACE"], os.environ["RUNNER_TEMP"],
+                              os.environ["HOME"], os.environ.get("TMPDIR", "/tmp")]
+                              + ([os.environ["NUGET_PACKAGES"]] if os.environ.get("NUGET_PACKAGES") else [])))
+          locations = {"runner": runner_paths, "kernel": ["/"] + writable}
+
+          def measure():
+              filesystems = {}
+              for domain, paths in locations.items():
+                  command = ["stat", "-f", "-c", "%i %S %a %b", "--", *paths]
+                  if domain == "kernel":
+                      command = ["docker", "exec", kernel["Id"], *command]
+                  rows = checked(command).splitlines()
+                  if len(rows) != len(paths):
+                      raise RuntimeError("Incomplete runner/kernel filesystem evidence.")
+                  for path, row in zip(paths, rows):
+                      fsid, fragment, available, total = row.split()
+                      fragment, available, total = int(fragment), int(available), int(total)
+                      if int(fsid, 16) == 0 or fragment <= 0 or not 0 <= available <= total or total <= 0:
+                          raise RuntimeError("Invalid filesystem capacity/identity evidence.")
+                      key = f"{domain}:{path}:{fsid}:{fragment}:{total}"
+                      filesystems[key] = available * fragment
+              return filesystems
+
+          baseline = measure()
+          (evidence / "disk-baseline.json").write_text(json.dumps({"locations": locations, "availableBytes": baseline}, indent=2))
+          if not baseline or min(baseline.values()) < preflight:
+              raise RuntimeError("Stage 342 needs >=37 GiB free on every actual writable filesystem (25 GiB floor + 12 GiB headroom).")
+          peak_growth = 0
+
+          def check_disk():
+              global peak_growth
+              current = measure()
+              if current.keys() != baseline.keys():
+                  raise RuntimeError("Writable filesystem mapping changed during the runtime proof.")
+              # Each actual location is counted separately. Shared backing disks can be overcounted;
+              # no guessed host/container mapping or filesystem-id deduplication can hide growth.
+              growth = sum(max(0, baseline[k] - current[k]) for k in baseline)
+              peak_growth = max(peak_growth, growth)
+              (evidence / "disk-latest.json").write_text(json.dumps({"availableBytes": current, "peakGrowthUpperBoundBytes": peak_growth}, indent=2))
+              if min(current.values()) < floor or peak_growth > growth_limit:
+                  raise RuntimeError("Stage 342 exceeded its 25 GiB floor or 6 GiB task-growth upper bound.")
+
+          def interrupted(signum, frame):
+              raise SystemExit(f"Stage 342 interrupted by signal {signum}.")
+
+          signal.signal(signal.SIGTERM, interrupted)
+          signal.signal(signal.SIGINT, interrupted)
+          output = Path(tempfile.mkdtemp(prefix="stage342-", dir=os.environ["RUNNER_TEMP"]))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as step_output:
+              step_output.write(f"generated-root={output}\n")
+          process = None
+          try:
+              env = dict(os.environ, AI_WORK_OUTPUT=str(output))
+              command = ["timeout", "--kill-after=10s", "600s", "dotnet", "test",
+                         "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug",
+                         "--filter", "|".join("FullyQualifiedName=" + name for name in sorted(expected)),
+                         "--logger", "trx;LogFileName=stage342-runtime.trx", "--results-directory", str(evidence)]
+              with (evidence / "runtime.log").open("wb") as log:
+                  process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+
+                  def capture():
+                      remaining = 8 * 1024 * 1024
+                      for chunk in iter(lambda: process.stdout.read(65536), b""):
+                          log.write(chunk[:remaining])
+                          remaining = max(0, remaining - len(chunk))
+                      log.flush()
+
+                  reader = threading.Thread(target=capture, daemon=True)
+                  reader.start()
+                  while process.poll() is None:
+                      check_disk()
+                      time.sleep(1)
+                  reader.join(timeout=10)
+                  if reader.is_alive():
+                      raise RuntimeError("Runtime output did not close within the cleanup budget.")
+                  if process.returncode != 0:
+                      raise RuntimeError(f"Stage 342 dotnet test exited {process.returncode}; see bounded runtime.log.")
+              check_disk()
+              require_runtime_results(evidence / "stage342-runtime.trx")
+              print("Stage 342 runtime proofs: exactly default+atomic passed, zero skipped.")
+          finally:
+              if process is not None:
+                  try:
+                      os.killpg(process.pid, signal.SIGTERM)
+                  except ProcessLookupError:
+                      pass
+                  try:
+                      process.wait(timeout=10)
+                  except subprocess.TimeoutExpired:
+                      os.killpg(process.pid, signal.SIGKILL)
+                      process.wait(timeout=5)
+              # The fixture owns its generated children; do not delete partially live/authored output.
+              output.rmdir()
+          PY
 
       - name: Run Billing deletion, scoped-projection, routed-append, reducer-filter, reducer-migration and reaction persistence probes
         env:
@@ -312,7 +465,7 @@ jobs:
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
-          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured"
+          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured|FullyQualifiedName~when_verifying_application_trigger_reactions_against_the_pinned_kernel.should_append_once_per_namespace_and_skip_a_receipted_redelivery_when_configured|FullyQualifiedName~when_verifying_application_trigger_invocations_against_the_pinned_kernel.should_resume_commands_and_retain_refusals_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
       - name: Run Stage projection reconnect probe
@@ -340,6 +493,8 @@ jobs:
               prefix + "when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured",
               prefix + "when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured",
               prefix + "when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured",
+              prefix + "when_verifying_application_trigger_reactions_against_the_pinned_kernel.should_append_once_per_namespace_and_skip_a_receipted_redelivery_when_configured",
+              prefix + "when_verifying_application_trigger_invocations_against_the_pinned_kernel.should_resume_commands_and_retain_refusals_when_configured",
               prefix + "when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured",
               prefix + "when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured",
               prefix + "when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured",
@@ -357,17 +512,32 @@ jobs:
 
       - name: Capture kernel logs
         if: always()
+        timeout-minutes: 1
         run: |
           mkdir -p TestResults/reducer-mongo
-          if docker container inspect stage-reducer-mongo > /dev/null 2>&1; then
-            docker logs stage-reducer-mongo > TestResults/reducer-mongo/chronicle.log 2>&1
+          if docker container inspect "$REDUCER_MONGO_CONTAINER" > /dev/null 2>&1; then
+            docker logs --tail 2000 "$REDUCER_MONGO_CONTAINER" > TestResults/reducer-mongo/chronicle.log 2>&1
           fi
 
       - name: Stop kernel and remove MongoDB volumes
         if: always()
+        timeout-minutes: 1
         run: |
-          if docker container inspect stage-reducer-mongo > /dev/null 2>&1; then
-            docker rm --force --volumes stage-reducer-mongo
+          if docker container inspect "$REDUCER_MONGO_CONTAINER" > /dev/null 2>&1; then
+            docker rm --force --volumes "$REDUCER_MONGO_CONTAINER"
+          fi
+
+      - name: Clean remaining mixed-refusal generated output
+        if: always()
+        timeout-minutes: 1
+        env:
+          STAGE342_OUTPUT: ${{ steps.mixed342.outputs.generated-root }}
+        run: |
+          # Remove only an empty task root; a partial output fails cleanup instead of deleting records.
+          if [[ -n "$STAGE342_OUTPUT" && -d "$STAGE342_OUTPUT" ]]; then
+            test "$(dirname "$STAGE342_OUTPUT")" = "$RUNNER_TEMP"
+            [[ "$(basename "$STAGE342_OUTPUT")" == stage342-* && ! -L "$STAGE342_OUTPUT" ]]
+            rmdir -- "$STAGE342_OUTPUT"
           fi
 
       - name: Upload probe results and kernel logs
@@ -375,9 +545,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: reducer-mongo-results
-          path: TestResults/reducer-mongo
+          path: |
+            TestResults/reducer-mongo
+            .ai-work/342/ci
           if-no-files-found: error
-          retention-days: 7
+          include-hidden-files: true
+          retention-days: 3
 
   # Compiles renderer output for every generated-name row with Roslyn; admission must reject exactly the
   # names whose generated C# does not compile or serialize. It takes about as long as the rest of the

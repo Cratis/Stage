@@ -76,10 +76,8 @@ public static class SceneGuards
     public static bool CanRunAction(JsonObject? properties)
     {
         if (properties?["alternatives"] is not JsonArray { Count: > 0 } alternatives) return false;
-        if (!alternatives.All(branch => branch?["command"]?.GetValue<string>() is { Length: > 0 } && CanEvaluate(branch?["condition"]))) return false;
-        return properties["otherwise"] is not JsonObject fallback ||
-            fallback["outcome"]?.GetValue<string>() == "Hidden" ||
-            (fallback["outcome"]?.GetValue<string>() == "Execute" && fallback["command"]?.GetValue<string>() is { Length: > 0 });
+        if (!alternatives.All(CanRunBranch)) return false;
+        return CanRunFallback(properties["otherwise"]);
     }
 
     /// <summary>Checks a serialized Scene for unsupported guards.</summary>
@@ -91,13 +89,30 @@ public static class SceneGuards
     /// <param name="element">The component.</param>
     /// <returns>Whether it carries guarded branches.</returns>
     public static bool IsGuardedAction(JsonObject element) =>
-        (element["componentName"]?.GetValue<string>() == "core:guarded-action" || element["componentName"]?.GetValue<string>() == "core:action") &&
+        (Text(element["componentName"]) == "core:guarded-action" || Text(element["componentName"]) == "core:action") &&
         element["properties"] is JsonObject properties && (properties.ContainsKey("alternatives") || properties.ContainsKey("otherwise"));
 
     /// <summary>Refuses legacy guard envelopes.</summary>
     /// <param name="condition">The binding.</param>
     /// <returns>Whether it is not a legacy guard envelope.</returns>
-    public static bool CanRunBinding(JsonNode? condition) => condition?["path"]?.GetValue<string>() != "$guard";
+    public static bool CanRunBinding(JsonNode? condition) => condition is not JsonObject binding || Text(binding["path"]) != "$guard";
+
+    static bool CanRunBranch(JsonNode? node) =>
+        node is JsonObject branch && Text(branch["command"]) is { Length: > 0 } && CanEvaluate(branch["condition"]);
+
+    static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    static bool CanRunFallback(JsonNode? node) => node switch
+    {
+        null => true,
+        JsonObject fallback => Text(fallback["outcome"]) switch
+        {
+            "Hidden" => true,
+            "Execute" => Text(fallback["command"]) is { Length: > 0 },
+            _ => false
+        },
+        _ => false
+    };
 
     static JsonElement Serialize(object? condition) => condition is GuardCondition guard
         ? JsonSerializer.SerializeToElement(guard, _options)

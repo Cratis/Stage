@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text;
 using System.Text.Json;
 using Scriban.Runtime;
 using Scriban.Syntax;
@@ -35,6 +34,10 @@ public sealed class TemplatePlanSession : IDisposable
         _context = new(budget, _meter, _deadline.Token);
         var helpers = new ScriptObject();
         helpers.Import("render", new Func<string, object?, object?>(RenderPartial));
+        var symbols = new ScriptObject();
+        symbols.Import("ref", new Func<object?, SymbolHandle>(value => new(SymbolHandle.Parse(value))));
+        symbols.IsReadOnly = true;
+        helpers.SetValue("sym", symbols, true);
         _context.PushGlobal(helpers);
     }
 
@@ -57,9 +60,11 @@ public sealed class TemplatePlanSession : IDisposable
             PushScope(scope);
             try
             {
-                var text = template.Render(_context);
-                _meter.Bytes(Encoding.UTF8.GetByteCount(text));
-                return new TemplateOutput([new TemplateTextSegment(text)], []);
+                var output = new SegmentOutput(_meter);
+                _context.PushOutput(output);
+                try { template.Render(_context); }
+                finally { _context.PopOutput(); }
+                return new TemplateOutput(output.Finish(), []);
             }
             finally { _context.PopGlobal(); }
         });

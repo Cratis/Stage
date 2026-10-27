@@ -32,17 +32,35 @@ internal sealed class LockedContext : TemplateContext
     public override object? Evaluate(ScriptNode? scriptNode, bool aliasReturnedFunction)
     {
         if (scriptNode is not null) _meter.Step();
-        return base.Evaluate(scriptNode, aliasReturnedFunction);
+        var value = base.Evaluate(scriptNode, aliasReturnedFunction);
+        if (value is SymbolHandle && scriptNode is not ScriptExpressionStatement && scriptNode?.Parent is not (ScriptExpressionStatement or ScriptAssignExpression)) throw SymbolHandle.NotText();
+        return value;
+    }
+
+    public override TemplateContext Write(SourceSpan span, object? textAsObject)
+    {
+        if (textAsObject is not SymbolHandle handle) return base.Write(span, textAsObject);
+        if (OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
+        segments.Symbol(handle.Descriptor);
+        return this;
+    }
+
+    public override bool ToBool(SourceSpan span, object? value)
+    {
+        if (value is SymbolHandle) throw SymbolHandle.NotText();
+        return base.ToBool(span, value);
     }
 
     public override string? ObjectToString(object? value, bool nested = false)
     {
+        if (value is SymbolHandle) throw SymbolHandle.NotText();
         if (value is null or string or IScriptObject or bool or int or long or decimal or double or float or ScriptRange) return base.ObjectToString(value, nested);
         throw TemplateRefusal.At(TemplateCodes.HostValue, "Host values cannot be rendered.", CurrentSpan);
     }
 
     protected override IObjectAccessor? GetMemberAccessorImpl(object target)
     {
+        if (target is SymbolHandle) throw SymbolHandle.NotText();
         if (target is IScriptObject) return base.GetMemberAccessorImpl(target);
         throw TemplateRefusal.At(TemplateCodes.HostValue, "CLR members are not accessible.", CurrentSpan);
     }

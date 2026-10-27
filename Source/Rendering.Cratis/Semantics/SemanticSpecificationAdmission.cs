@@ -213,7 +213,8 @@ internal static partial class SemanticSpecificationAdmission
             if (reason is not null)
             {
                 var eventName = context.Events.TryGetValue(transition.EventContract, out var @event) ? @event.Name : transition.EventContract.ToString();
-                return $"Reducer '{reducer.Name}' for read model '{context.ReadModels[readModel].Name}' triggered by '{eventName}' cannot be verified: {reason}";
+                var readModelName = context.ReadModels.TryGetValue(readModel, out var model) ? model.Name : readModel.ToString();
+                return $"Reducer '{reducer.Name}' for read model '{readModelName}' triggered by '{eventName}' cannot be verified: {reason}";
             }
         }
 
@@ -223,8 +224,8 @@ internal static partial class SemanticSpecificationAdmission
     static string? ReducerTransitionRejectionReason(SemanticApplicationContext context, SemanticId readModel, string requirementId, SemanticId eventContract)
     {
         var descriptor = context.Request.TypedContextDescriptors.SingleOrDefault(_ => _.RequirementId == requirementId && _.OperationId == readModel);
-        if (descriptor is null) return "The typed context descriptor is missing.";
         var requirement = context.Request.ImplementationRequirements.SingleOrDefault(_ => _.RequirementId == requirementId);
+        if (descriptor is null) return "The typed context descriptor is missing.";
         if (requirement is null) return "The implementation requirement is missing.";
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirementId, readModel, diagnostics, out var body))

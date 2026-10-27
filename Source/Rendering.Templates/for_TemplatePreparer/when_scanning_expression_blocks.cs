@@ -18,19 +18,19 @@ public class when_scanning_expression_blocks : given.a_kit
     }
 
     [Theory]
-    [InlineData("if")]
-    [InlineData("for")]
-    [InlineData("while")]
-    [InlineData("do")]
-    [InlineData("func")]
-    [InlineData("capture")]
-    [InlineData("case")]
-    [InlineData("with")]
-    [InlineData("wrap")]
-    [InlineData("tablerow")]
-    public void should_conservatively_count_possible_openers_in_expressions(string keyword)
+    [InlineData("if true;")]
+    [InlineData("for value in [1];")]
+    [InlineData("while false;")]
+    [InlineData("f = do;")]
+    [InlineData("func f;")]
+    [InlineData("capture captured;")]
+    [InlineData("case 1; when 1;")]
+    [InlineData("with model;")]
+    [InlineData("wrap f;")]
+    [InlineData("tablerow value in [1];")]
+    public void should_count_semantic_block_nodes(string opener)
     {
-        var text = "{{ x = (" + string.Concat(Enumerable.Repeat(keyword + " ", 33)) + ") }}";
+        var text = "{{ " + string.Concat(Enumerable.Repeat(opener, 33)) + " 1; " + string.Concat(Enumerable.Repeat("end;", 33)) + " }}";
         var result = TemplatePreparer.Prepare(Kit(text));
         result.Diagnostics.Length.ShouldEqual(1);
         result.Diagnostics[0].Code.ShouldEqual(TemplateCodes.Nesting);
@@ -39,7 +39,7 @@ public class when_scanning_expression_blocks : given.a_kit
     [Fact]
     public void should_not_let_expression_identifiers_close_conditions()
     {
-        var text = "{{ " + string.Concat(Enumerable.Repeat("if true; x =\nend;", 33)) + string.Concat(Enumerable.Repeat("end;", 33)) + " }}";
+        var text = "{{ " + string.Concat(Enumerable.Repeat("if true; x = model.end;", 33)) + string.Concat(Enumerable.Repeat("end;", 33)) + " }}";
         var result = TemplatePreparer.Prepare(Kit(text));
         result.Diagnostics.Length.ShouldEqual(1);
         result.Diagnostics[0].Code.ShouldEqual(TemplateCodes.Nesting);

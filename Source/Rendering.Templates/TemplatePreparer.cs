@@ -79,10 +79,15 @@ internal static class TemplatePreparer
 
     static Template Parse(string path, string text, bool expression)
     {
-        TemplatePreScan.Check(path, text, expression);
-        var template = Template.Parse(text, path, new ParserOptions { ExpressionDepthLimit = TemplatePreScan.MaxDepth * 2 }, new LexerOptions { Mode = expression ? ScriptMode.ScriptOnly : ScriptMode.Default });
-        if (!template.HasErrors) return template;
-        var error = template.Messages[0];
-        throw TemplateRefusal.At(TemplateCodes.Parse, error.Message, error.Span);
+        TemplatePreScan.Check(path, text);
+        var template = Template.Parse(text, path, new ParserOptions { ExpressionDepthLimit = 64 }, new LexerOptions { Mode = expression ? ScriptMode.ScriptOnly : ScriptMode.Default });
+        if (template.HasErrors)
+        {
+            var error = template.Messages.FirstOrDefault(message => TemplateNesting.IsParserLimit(message.Message)) ?? template.Messages[0];
+            throw TemplateNesting.ParserFailure(error);
+        }
+
+        TemplateNesting.Check(template.Page);
+        return template;
     }
 }

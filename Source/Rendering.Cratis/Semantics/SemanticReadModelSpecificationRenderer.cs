@@ -123,30 +123,7 @@ internal static class SemanticReadModelSpecificationRenderer
             builder.Line($"[global::Xunit.FactAttribute] void should_project_the_expected_instance() => {instance}.ShouldNotBeNull();");
         }
 
-        foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
-        {
-            var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
-            if (property.Type.IsCollection && value.Value is SemanticArrayValue array)
-            {
-                var elementType = property.Type with { IsCollection = false, IsOptional = false };
-                needsCommon |= SemanticTypeSystem.DeclarationNeedsCommon(elementType) ||
-                    SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
-                var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
-                var name = Identifiers.ToSnakeCase(property.Name);
-                var optionalAccess = reducer is null ? "!" : "!.Value";
-                builder.Line($"static readonly {types.Type(elementType)}[] _expected_{name} = [{elements}];")
-                    .Line($"[global::Xunit.FactAttribute] void should_project_{name}() => " +
-                        $"global::Xunit.Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
-                        (property.Type.IsOptional ? optionalAccess : string.Empty) + $", _expected_{name}));");
-            }
-            else
-            {
-                needsCommon |= SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
-                builder.Line(
-                    $"[global::Xunit.FactAttribute] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
-                    $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
-            }
-        }
+        RenderExpectedProperties();
 
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
         if (needsCommon)
@@ -164,6 +141,34 @@ internal static class SemanticReadModelSpecificationRenderer
         }
 
         return new(path, content);
+
+        void RenderExpectedProperties()
+        {
+            foreach (var value in expected.Values.OrderBy(value => value.TargetProperty.ToString(), StringComparer.Ordinal))
+            {
+                var property = readModel.Properties.Single(_ => _.Id == value.TargetProperty);
+                if (property.Type.IsCollection && value.Value is SemanticArrayValue array)
+                {
+                    var elementType = property.Type with { IsCollection = false, IsOptional = false };
+                    needsCommon |= SemanticTypeSystem.DeclarationNeedsCommon(elementType) ||
+                        SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
+                    var elements = string.Join(", ", array.Values.Select(element => types.Value(element, elementType)));
+                    var name = Identifiers.ToSnakeCase(property.Name);
+                    var optionalAccess = reducer is null ? "!" : "!.Value";
+                    builder.Line($"static readonly {types.Type(elementType)}[] _expected_{name} = [{elements}];")
+                        .Line($"[global::Xunit.FactAttribute] void should_project_{name}() => " +
+                            $"global::Xunit.Assert.True(global::System.Linq.Enumerable.SequenceEqual({instance}.{Identifiers.ToPascalCase(property.Name)}" +
+                            (property.Type.IsOptional ? optionalAccess : string.Empty) + $", _expected_{name}));");
+                }
+                else
+                {
+                    needsCommon |= SemanticTypeSystem.ValueNeedsCommon(value.Value, property.Type);
+                    builder.Line(
+                        $"[global::Xunit.FactAttribute] void should_project_{Identifiers.ToSnakeCase(property.Name)}() => " +
+                        $"{instance}.{Identifiers.ToPascalCase(property.Name)}.ShouldEqual({types.Value(value.Value, property.Type)});");
+                }
+            }
+        }
 
         bool RenderGivenEvents()
         {

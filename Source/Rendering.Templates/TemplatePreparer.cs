@@ -38,6 +38,7 @@ public static class TemplatePreparer
                 if (output.ForEach is not null) expressions.Add(output.Id + ":forEach", Parse(output.Template + ":forEach", output.ForEach, true));
             }
 
+            foreach (var template in templates.Values.Concat(expressions.Values)) new TemplateLint(kit).Visit(template.Page);
             return TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable()));
         }
         catch (TemplateRefusal refusal)

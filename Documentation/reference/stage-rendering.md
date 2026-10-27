@@ -213,6 +213,12 @@ Lines that start inside a multi-line raw, verbatim or interpolated string litera
 The presentation is verified when the body is issued: the token sequence and the containment result must match the authored body. If either differs, Stage splices the authored text verbatim instead of refusing the body.
 Compiler diagnostics from the generated code are mapped back to the authored body, so reported lines and columns refer to your source.
 
+## Bindings for inline reaction bodies and handlers
+
+A reaction body declares a local for a triggering event property only when the body references it by simple name, so an unused property no longer produces an unused-variable warning. Each local is `var Name = @event.Name;`.
+A body that only reads another object's member of the same name, such as `other.Title`, does not count as a reference.
+A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter

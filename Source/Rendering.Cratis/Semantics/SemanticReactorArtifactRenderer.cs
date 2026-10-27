@@ -106,9 +106,8 @@ internal static class SemanticReactorArtifactRenderer
         var types = new SemanticTypeSystem(context);
         builder.BlankLine()
             .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object>? {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)");
-        foreach (var property in source.Properties)
+        foreach (var name in CSharpBodyBindings.Referenced(inline.Code!.Text, source.Properties.Select(property => Identifiers.ToPascalCase(property.Name))))
         {
-            var name = Identifiers.ToPascalCase(property.Name);
             builder.Line($"var {name} = @event.{name};");
         }
 

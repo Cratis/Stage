@@ -52,6 +52,15 @@ internal static class SemanticCommandHandlerRendering
     internal static void Prepare(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
     {
         if (command.Handler is null) return;
+        builder.Line($"var {locals.Name("handlerPayloads")} = {Call(command, context)};");
+    }
+
+    /// <summary>Renders the call that runs the authored handler body against the command snapshot.</summary>
+    /// <param name="command">Command owning the payload handler.</param>
+    /// <param name="context">Semantic application and generated type context.</param>
+    /// <returns>The call expression.</returns>
+    internal static string Call(SemanticCommand command, SemanticApplicationContext context)
+    {
         var values = command.Properties.Select(property =>
         {
             var value = SemanticCommandResultRendering.PropertyValue(property, context);
@@ -59,7 +68,7 @@ internal static class SemanticCommandHandlerRendering
             var snapshot = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({value})";
             return property.Type.IsOptional ? $"{value} is null ? null : {snapshot}" : snapshot;
         });
-        builder.Line($"var {locals.Name("handlerPayloads")} = {Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})));");
+        return $"{Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})))";
     }
 
     internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticHandleLocals locals)

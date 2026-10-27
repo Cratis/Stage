@@ -166,6 +166,14 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(_oldRawHashes["TypedContexts/PolicyContext.cs"], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
     }
 
+    [Fact]
+    public void should_spell_no_type_with_global_outside_using_directives()
+    {
+        var files = _rawPlan.Artifacts.Where(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs" || artifact.RelativePath == "GeneratedPolicies/PolicyBodies.cs" || (artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal) && artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))).ToArray();
+        Assert.NotEmpty(files);
+        Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
+    }
+
     IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
 
     void AssertReducerBinding(Assembly assembly)

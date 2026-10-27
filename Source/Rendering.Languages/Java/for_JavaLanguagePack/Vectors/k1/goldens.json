@@ -1,0 +1,13 @@
+{
+  "oracle/orders/src/main/java/corpusorders/orders/events/EventTags.java": "corpusorders.orders.events.EventTags.java",
+  "oracle/orders/src/main/java/corpusorders/orders/events/OrderPlaced.java": "corpusorders.orders.events.OrderPlaced.java",
+  "oracle/orders/src/main/java/corpusorders/orders/orders/placeorder/PlaceOrder.java": "corpusorders.orders.orders.placeorder.PlaceOrder.java",
+  "oracle/orders/src/main/java/corpusorders/orders/orders/placeorder/PlaceOrderHandler.java": "corpusorders.orders.orders.placeorder.PlaceOrderHandler.java",
+  "oracle-reactions/orders-reactions/src/main/java/sampleordersreactions/orders/fulfilment/acknowledgeneworders/AcknowledgeNewOrdersReaction.java": "sampleordersreactions.orders.fulfilment.acknowledgeneworders.AcknowledgeNewOrdersReaction.java",
+  "collision-lower": "case-collision-lower.java",
+  "collision-upper": "case-collision-upper.java",
+  "inheritance": "case-inheritance.java",
+  "nesting": "case-nesting.java",
+  "obscured": "case-obscured.java",
+  "unknown": "case-unknown.java"
+}

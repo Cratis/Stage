@@ -7,4 +7,8 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <EmbeddedResource Include="Java/for_JavaLanguagePack/Vectors/k1/*.json" />
+    <EmbeddedResource Include="Java/for_JavaLanguagePack/Vectors/k1/*.java" />
+  </ItemGroup>
 </Project>

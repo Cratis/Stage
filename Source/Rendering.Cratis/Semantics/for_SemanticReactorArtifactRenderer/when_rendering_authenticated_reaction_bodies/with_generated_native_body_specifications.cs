@@ -30,6 +30,7 @@ public class with_generated_native_body_specifications
     public void should_omit_a_given_event_driving_a_native_body()
     {
         var source = reaction_body_model.Source(reaction_body_model.Body)
+            .Replace("      event TicketOpened", "      command OpenTicket\n        id String identifier\n        title String\n        produces TicketOpened\n          for id\n          title = title\n      event TicketOpened", StringComparison.Ordinal)
             .Replace("      reaction Notifier", "      event Heartbeat\n      reaction Notifier", StringComparison.Ordinal) + "\n" + """
                   specification Notifying
                     given TicketOpened

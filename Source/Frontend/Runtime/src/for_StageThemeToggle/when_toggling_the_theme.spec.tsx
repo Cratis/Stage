@@ -4,10 +4,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LayoutConfigProvider } from '@cratis/scene.blueprint.default';
-import type { SceneElement } from '@cratis/scene.model';
+import type { ExternalComponent } from '@cratis/scene.model';
 import { StageThemeToggle } from '../StageChrome';
 
-const element = { id: 'topbar-theme', properties: { label: 'Theme' } } as unknown as SceneElement;
+const element = { id: 'topbar-theme', properties: { label: 'Theme' } } as unknown as ExternalComponent;
 const draw = (themeName: string) => render(<LayoutConfigProvider storage={null} initialConfig={{ themeName }}><StageThemeToggle element={element} slots={{}} /></LayoutConfigProvider>);
 
 describe('in a light theme', () => {

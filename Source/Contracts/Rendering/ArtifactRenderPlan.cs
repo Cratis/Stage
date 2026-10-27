@@ -422,7 +422,7 @@ public sealed partial class ArtifactRenderPlan
 
         var header = ArtifactFileHeader.Apply(request.Profile, normalized, request.CommentSyntaxes, request.Model.Application.Id);
         normalized = header.Artifacts;
-        diagnostics = [.. diagnostics, .. header.Diagnostics];
+        diagnostics = [.. diagnostics, .. header.Diagnostics.Where(diagnostic => !diagnostics.Contains(diagnostic))];
         implementationGaps = header.Rebase(implementationGaps);
         requiredRemovals = header.Retain(requiredRemovals);
 

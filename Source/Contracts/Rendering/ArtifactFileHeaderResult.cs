@@ -37,7 +37,7 @@ public sealed record ArtifactFileHeaderResult(ImmutableArray<PlannedArtifact> Ar
     ArtifactImplementationStub Rebase(ArtifactImplementationStub stub)
     {
         if (stub?.BodyLocator is null) return stub!;
-        return Prepended.TryGetValue(stub.RelativePath, out var length)
+        return Prepended.TryGetValue(PlannedArtifact.NormalizePath(stub.RelativePath), out var length)
             ? stub with { BodyLocator = stub.BodyLocator with { Start = stub.BodyLocator.Start + length } }
             : stub;
     }

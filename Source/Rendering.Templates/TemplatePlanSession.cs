@@ -34,6 +34,7 @@ public sealed partial class TemplatePlanSession : IDisposable
         _context = new(budget, _meter, _deadline.Token);
         var helpers = new ScriptObject();
         helpers.Import("render", new Func<string, object?, object?>(RenderPartial));
+        helpers.Import("section", new Func<string, string, object?>((name, fallback) => RenderPartial(_prepared.Sections.GetValueOrDefault(_context.CurrentSpan.FileName + "#" + name, fallback))));
         var symbols = new ScriptObject();
         symbols.Import("ref", new Func<object?, SymbolHandle>(value => new(SymbolHandle.Parse(value))));
         symbols.IsReadOnly = true;
@@ -110,7 +111,7 @@ public sealed partial class TemplatePlanSession : IDisposable
         _context.PushGlobal(bindings);
     }
 
-    object? RenderPartial(string name, object? argument)
+    object? RenderPartial(string name, object? argument = null)
     {
         var partial = _prepared.Kit.Manifest.Partials.FirstOrDefault(partial => partial.Name == name)
             ?? throw TemplateRefusal.At(TemplateCodes.Partial, "Partial is not declared.", _context.CurrentSpan);

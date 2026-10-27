@@ -33,7 +33,7 @@ public static class TemplateProfile
             }
         }
 
-        var prepared = TemplatePreparer.Prepare(kit);
+        var prepared = TemplatePreparer.Prepare(kit, contractOverrides);
         errors.AddRange(prepared.Diagnostics);
         return errors.Count > 0 ? new(null, errors.ToImmutable()) : new(new(prepared.Value!, language), []);
     }

@@ -15,7 +15,7 @@ internal static class TemplatePreparer
     /// <summary>Checks the templates/v1 contract, pre-scans and parses every declared source.</summary>
     /// <param name="kit">A validated, fully loaded kit.</param>
     /// <returns>The prepared kit, or stable safety refusals.</returns>
-    internal static TemplateResult<PreparedTemplateKit> Prepare(LoadedKit kit)
+    internal static TemplateResult<PreparedTemplateKit> Prepare(LoadedKit kit, ContractOverrides? overrides = null)
     {
         if (!kit.Manifest.Requires.Any(contract => contract.Name == "templates" && contract.Major == 1 && contract.Minor == 0))
         {
@@ -38,10 +38,16 @@ internal static class TemplatePreparer
                 if (output.ForEach is not null) expressions.Add(output.Id + ":forEach", Parse(output.Template + ":forEach", output.ForEach, true));
             }
 
-            foreach (var template in templates.Values.Concat(expressions.Values)) new TemplateLint(kit).Visit(template.Page);
+            var sections = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var template in templates.Values.Concat(expressions.Values)) new TemplateLint(kit, sections).Visit(template.Page);
+            foreach (var section in overrides?.Sections ?? [])
+            {
+                if (!sections.ContainsKey(section.Key) || !kit.Manifest.Partials.Any(partial => partial.Name == section.Value)) throw new TemplateRefusal(new(TemplateCodes.Override, "Unknown section or replacement partial: " + section.Key, string.Empty, 0, 0));
+                sections[section.Key] = section.Value;
+            }
             var operatorSource = kit.Manifest.Tables.FirstOrDefault(table => table.Name == "operators");
             var operators = operatorSource is null ? OperatorTable.Empty : OperatorTable.Parse(kit.Files[operatorSource.Path].AsSpan());
-            return TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable(), operators));
+            return TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable(), operators, sections.ToImmutableDictionary(StringComparer.Ordinal)));
         }
         catch (TemplateRefusal refusal)
         {

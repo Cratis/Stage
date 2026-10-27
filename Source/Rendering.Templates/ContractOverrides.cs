@@ -9,6 +9,9 @@ namespace Cratis.Stage.Rendering.Templates;
 /// <summary>Caller compatibility constraints; these cannot make an unsupported contract compatible.</summary>
 public sealed record ContractOverrides(ImmutableArray<ContractVersion> Supported)
 {
+    /// <summary>Gets section replacements keyed by template-path#section-name, with declared partial names as values.</summary>
+    public ImmutableDictionary<string, string> Sections { get; init; } = [];
+
     /// <summary>Gets no additional constraints.</summary>
     public static ContractOverrides None { get; } = new([]);
 }

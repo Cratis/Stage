@@ -6,7 +6,7 @@ using Scriban.Syntax;
 
 namespace Cratis.Stage.Rendering.Templates;
 
-internal sealed class TemplateLint(LoadedKit kit) : ScriptVisitor
+internal sealed class TemplateLint(LoadedKit kit, Dictionary<string, string>? sections = null) : ScriptVisitor
 {
     static readonly HashSet<string> _roots = new(["model", "item", "for", "while", "empty", "blank"], StringComparer.Ordinal);
     static readonly Dictionary<string, string[]> _helpers = new(StringComparer.Ordinal)
@@ -91,9 +91,12 @@ internal sealed class TemplateLint(LoadedKit kit) : ScriptVisitor
                 throw Refuse(call, TemplateCodes.Partial, "render requires a literal declared partial name and optional argument.");
             }
 
-            if (global.Name == "section" && (call.Arguments.Count != 2 || call.Arguments[0] is not ScriptLiteral { Value: string } || call.Arguments[1] is not ScriptLiteral { Value: string }))
+            if (global.Name == "section")
             {
-                throw Refuse(call, TemplateCodes.Helper, "section requires literal section and partial names.");
+                if (call.Arguments.Count != 2 || call.Arguments[0] is not ScriptLiteral { Value: string section } || call.Arguments[1] is not ScriptLiteral { Value: string partial } || !kit.Manifest.Partials.Any(candidate => candidate.Name == partial)) throw Refuse(call, TemplateCodes.Helper, "section requires literal section and declared partial names.");
+                var key = call.Span.FileName + "#" + section;
+                if (sections is not null && sections.TryGetValue(key, out var previous) && previous != partial) throw Refuse(call, TemplateCodes.Override, "Conflicting section defaults.");
+                sections?[key] = partial;
             }
         }
         else

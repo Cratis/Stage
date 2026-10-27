@@ -14,7 +14,7 @@ internal static class LockedBuiltins
     internal static readonly IReadOnlyDictionary<string, string[]> Members = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
         ["string"] = ["append", "prepend", "capitalize", "capitalizewords", "contains", "downcase", "upcase", "empty", "whitespace", "ends_with", "starts_with", "equals_ignore_case", "handleize", "literal", "escape", "lstrip", "rstrip", "strip", "pluralize", "remove", "remove_first", "remove_last", "replace", "replace_first", "size", "slice", "slice1", "split", "to_int", "to_long", "to_float", "to_double", "truncate", "pad_left", "pad_right", "index_of"],
-        ["array"] = ["compact", "concat", "first", "join", "last", "limit", "offset", "reverse", "size", "sort", "uniq", "contains"],
+        ["array"] = ["add", "add_range", "compact", "concat", "cycle", "any", "each", "filter", "first", "join", "last", "limit", "map", "offset", "remove_at", "reverse", "size", "sort", "uniq", "contains"],
         ["math"] = ["abs", "ceil", "divided_by", "floor", "is_number", "minus", "modulo", "plus", "round", "times"],
         ["object"] = ["default", "has_key", "has_value", "keys", "size", "typeof", "kind", "values"]
     };
@@ -31,6 +31,7 @@ internal static class LockedBuiltins
                 "math" => new MathFunctions(),
                 _ => new ObjectFunctions()
             };
+            if (members.Any(member => !functions.ContainsKey(member))) throw new InvalidOperationException("Pinned builtin allowlist contains an unknown member.");
             foreach (var key in functions.Keys.ToArray())
             {
                 if (!members.Contains(key, StringComparer.Ordinal)) functions.Remove(key);

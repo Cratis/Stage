@@ -11,12 +11,13 @@ internal sealed class TemplateLint(LoadedKit kit) : ScriptVisitor
     static readonly HashSet<string> _roots = new(["model", "item", "for", "while", "empty", "blank"], StringComparer.Ordinal);
     static readonly Dictionary<string, string[]> _helpers = new(StringComparer.Ordinal)
     {
-        ["name"] = ["words", "pascal", "camel", "snake", "kebab", "flat", "custom"],
-        ["lit"] = ["escape", "wrap", "encode"],
-        ["sym"] = ["type", "member", "package"],
-        ["code"] = ["emit_expr", "splice"]
+        ["name"] = ["words", "pascal", "camel", "snake", "kebab", "constant"],
+        ["lit"] = ["string", "integer", "decimal", "boolean", "null", "comment", "identifier"],
+        ["sym"] = ["decl", "ref", "imports"],
+        ["type"] = ["ref"],
+        ["expr"] = ["supported", "lower"]
     };
-    static readonly HashSet<string> _calls = new(["render", "section", "refuse", "unsupported", "require"], StringComparer.Ordinal);
+    static readonly HashSet<string> _calls = new(["render", "section", "refuse", "gap"], StringComparer.Ordinal);
     readonly HashSet<string> _locals = new(StringComparer.Ordinal);
 
     public override void Visit(ScriptNode? node)

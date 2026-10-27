@@ -42,7 +42,7 @@ function check(name, actual, expected) {
         check('the module overrides the sidebar', await items('Sidebar'), ['Orders', 'Customers']);
         check('the module is active in the topbar', await active('Modules'), ['Sales']);
         check('the feature is active in the sidebar', await active('Sidebar'), ['Orders']);
-        check('the address records where the user is', new URL(page.url()).hash, '#/List');
+        check('the address records where the user is', new URL(page.url()).pathname, '/List');
         if (shots) await page.screenshot({ path: `${shots}/live-sales.png` });
 
         await page.getByRole('button', { name: 'New order' }).click();
@@ -66,14 +66,14 @@ function check(name, actual, expected) {
         check('a deep link restores the page', (await second.locator('[data-scene-outlet="primary"] h1').allInnerTexts()).includes('Orders'), true);
 
         await page.locator('nav[aria-label="Sidebar"]').getByText('Customers').click();
-        await page.waitForFunction(() => location.hash === '#/CustomerScreen');
+        await page.waitForFunction(() => location.pathname === '/CustomerScreen');
         check('another feature of the module becomes active', await active('Sidebar'), ['Customers']);
         await page.goBack();
-        await page.waitForFunction(() => location.hash === '#/List');
+        await page.waitForFunction(() => location.pathname === '/List');
         check('back returns to the previous feature', await active('Sidebar'), ['Orders']);
 
         await page.locator('nav[aria-label="Modules"]').getByText('Support', { exact: true }).click();
-        await page.waitForFunction(() => location.hash === '#/TicketScreen');
+        await page.waitForFunction(() => location.pathname === '/TicketScreen');
         check('a module that overrides nothing inherits the application sidebar', await items('Sidebar'), ['Home']);
         check('no error was raised in the page', errors, []);
     } catch (error) {

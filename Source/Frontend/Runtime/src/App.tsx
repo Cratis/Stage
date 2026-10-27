@@ -15,6 +15,7 @@ import {
     SliceCommandFieldsProvider,
     SliceInvokerProvider,
     createBrowserDispatcher,
+    createBrowserSceneHistory,
     createHashSceneHistory,
     useSceneNavigation,
     type ComponentRegistry,
@@ -36,6 +37,11 @@ import {
 // The tokens (z-index scale, shadows, spacing) every Cratis Components overlay reads: a dialog or drawer is portaled to `body`, outside the
 // shell, so without them its stacking falls back to `auto` and the page content paints over it.
 import '@cratis/components/tokens';
+// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages.
+import '@cratis/components/CommandForm/styles';
+import '@cratis/components/Dropdown/styles';
+import '@cratis/components/Common/styles';
+import '@cratis/components/Display/styles';
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
@@ -49,7 +55,7 @@ import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageS
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
-import { navigateToScreen, screenArguments } from './stageNavigation';
+import { navigateToScreen, screenArguments, useStageRouting, type StageRouting } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
@@ -194,6 +200,12 @@ function browserStorage(): Storage | null {
 }
 
 export interface AppProps {
+    /**
+     * How the address says which screen is open. `hash` (the default) keeps it in the fragment, which works wherever the page is served
+     * from; `path` makes it a regular route (`/TalkList`), which needs the host to answer every path with the page.
+     */
+    routing?: StageRouting;
+
     /** Components the host adds to the registry, beneath the Stage's own. */
     components?: ComponentRegistry;
 
@@ -213,7 +225,7 @@ export interface AppProps {
     isVisible?: (item: EffectiveNavItem) => boolean;
 }
 
-export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
+export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible, routing = 'hash' }: AppProps = {}) {
     const source = useStageSource();
     const [scene, setScene] = useState<StageSceneApplication>();
     const [error, setError] = useState('');
@@ -237,11 +249,12 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
+    return <StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
 }
 
 interface StageApplicationProps {
     scene: StageSceneApplication;
+    routing: StageRouting;
     registry: ComponentRegistry;
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
@@ -257,8 +270,16 @@ interface StageApplicationProps {
  * topbar and sidebar are the effective navigation regions. The Stage supplies what is its own: the shell chrome, the data and
  * the commands the screens run against.
  */
-function StageApplication({ scene, registry, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
-    const history = useMemo(() => createHashSceneHistory(), []);
+function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
+    const history = useMemo(() => {
+        useStageRouting(routing);
+        if (routing === 'hash') return createHashSceneHistory();
+
+        // An address written the earlier way (`/#/TalkList`) keeps working: it becomes the regular route it stands for.
+        const legacy = /^#\/(.+)$/.exec(globalThis.location.hash);
+        if (legacy) globalThis.history.replaceState(null, '', `/${legacy[1]}`);
+        return createBrowserSceneHistory(window, '/');
+    }, [routing]);
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
     const initial = scene.screens[0]?.name ?? '';
     const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);

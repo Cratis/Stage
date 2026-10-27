@@ -289,7 +289,7 @@ describe('when driving the two-item screen composition corpus', () => {
         const workItemId = await screen.findByLabelText('workItemId') as HTMLInputElement;
         expect(workItemId.value).toEqual(workItemB.workItemId);
         fireEvent.change(screen.getByLabelText('New title'), { target: { value: 'Renamed bravo' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Rename' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(1));
         const posted = JSON.parse(backend.requests.find(request => request.method === 'POST')!.body!) as Record<string, unknown>;
@@ -308,13 +308,13 @@ describe('when driving the two-item screen composition corpus', () => {
         expect(commentId.value).toEqual('');
         expect((screen.getByLabelText('workItemId') as HTMLInputElement).value).toEqual(workItemB.workItemId);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Execute AddComment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
         await waitFor(() => expect(commentId.getAttribute('aria-invalid')).toEqual('true'));
         expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(0);
 
         fireEvent.change(commentId, { target: { value: '33333333-3333-3333-3333-333333333333' } });
         fireEvent.change(screen.getByLabelText('text'), { target: { value: 'Native comment on bravo' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute AddComment' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(1));
         const posted = JSON.parse(backend.requests.find(request => request.method === 'POST')!.body!) as Record<string, unknown>;
@@ -329,7 +329,7 @@ describe('when driving the two-item screen composition corpus', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'CreateWorkItem' }));
         expect(((await screen.findByLabelText('workItemId')) as HTMLInputElement).value).toEqual('');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute CreateWorkItem' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
         await waitFor(() => expect(screen.getByLabelText('title').getAttribute('aria-invalid')).toEqual('true'));
         expect(backend.requests.filter(request => request.method === 'POST')).toHaveLength(0);
     });

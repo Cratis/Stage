@@ -1,7 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -27,6 +28,9 @@ export type { SchemaProperty };
  */
 export const StageDialogContext = createContext<(() => void) | undefined>(undefined);
 
+/** The footer of the dialog a form sits in, where its submit button belongs beside Cancel; absent outside a dialog. */
+export const StageDialogFooterContext = createContext<HTMLElement | null>(null);
+
 interface NativeFormProperties {
     command: string;
     label: string;
@@ -48,11 +52,14 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
+    const footer = useContext(StageDialogFooterContext);
+    const section = useRef<HTMLElement>(null);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
+    const submitLabel = text(element, 'submitLabel') || 'Submit';
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const answered = usePopulatedValues(element, schema, data);
 
@@ -78,7 +85,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
 
     return (
-        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
+        <section ref={section} className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
                 key={populationKey}
                 command={commandType}
@@ -103,7 +110,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
+                {footer
+                    // In a dialog the submit sits in the footer beside Cancel; it submits the form it belongs to.
+                    ? createPortal(<button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</button>, footer)
+                    : <button type='submit' className='stage-command-form__submit'>{submitLabel}</button>}
             </NativeCommandForm>
         </section>
     );

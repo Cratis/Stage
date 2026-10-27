@@ -99,11 +99,8 @@ public sealed class JavaDeclarations
         if (lexicalOwner.Length == 0 || target.Nested.Count == 0) return false;
         var enclosing = InFile(file).Where(declaration => declaration.Owner == lexicalOwner).ToArray();
         if (enclosing.Length != 1) return false;
-        var parent = enclosing[0];
-        var scope = parent.Final.EnclosingScope.Length == 0 ? parent.Name : parent.Final.EnclosingScope + "." + parent.Name;
 
-        return parent.Package == target.Package && scope == target.EnclosingScope && _all.Count(declaration =>
-            declaration.Package == target.Package && declaration.AllocatedScope == scope && declaration.Name == target.SimpleName) == 1;
+        return HasUniqueMember(enclosing[0], target);
     }
 
     static int Depth(string scope) => scope.Length == 0 ? 0 : scope.Count(character => character == '.') + 1;
@@ -114,12 +111,22 @@ public sealed class JavaDeclarations
 
     static DeclaredType Requested(SymbolFile file, DeclarationSegment segment) => new(segment.Type.Package, Scope(segment), segment.Type.SimpleName, JavaIdentifiers.Sanitize(segment.Type.SimpleName), segment.Owner, file.Id, false, segment.ParentOwner, Scope(segment));
 
+    static bool IsParentOf(DeclaredType parent, DeclaredType child) => parent.Package == child.Package &&
+        (parent.Scope.Length == 0 ? parent.Preferred : parent.Scope + "." + parent.Preferred) == child.Scope &&
+        (child.ParentOwner.Length > 0 ? parent.Owner == child.ParentOwner : parent.File == child.File);
+
+    bool HasUniqueMember(DeclaredType parent, TypeName target)
+    {
+        var scope = parent.Final.EnclosingScope.Length == 0 ? parent.Name : parent.Final.EnclosingScope + "." + parent.Name;
+
+        return parent.Package == target.Package && scope == target.EnclosingScope && _all.Count(declaration =>
+            declaration.Package == target.Package && declaration.AllocatedScope == scope && declaration.Name == target.SimpleName) == 1;
+    }
+
     DeclaredType BindParent(DeclaredType child)
     {
         if (child.Scope.Length == 0 || child.External) return child;
-        var candidates = _all.Where(parent => parent.Package == child.Package &&
-            (parent.Scope.Length == 0 ? parent.Preferred : parent.Scope + "." + parent.Preferred) == child.Scope &&
-            (child.ParentOwner.Length > 0 ? parent.Owner == child.ParentOwner : parent.File == child.File)).ToArray();
+        var candidates = _all.Where(parent => IsParentOf(parent, child)).ToArray();
         if (candidates.Length != 1)
         {
             throw new LanguagePackRefusal(

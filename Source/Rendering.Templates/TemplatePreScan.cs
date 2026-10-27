@@ -25,7 +25,7 @@ internal static class TemplatePreScan
         var blocks = 0;
         var brackets = 0;
         var unary = 0;
-        var previous = string.Empty;
+        var statementStart = true;
         var options = new LexerOptions { Mode = expression ? ScriptMode.ScriptOnly : ScriptMode.Default };
         foreach (var token in new Lexer(text, path, options))
         {
@@ -35,18 +35,36 @@ internal static class TemplatePreScan
             else if (token.Type is TokenType.Exclamation or TokenType.Minus or TokenType.Plus) unary++;
             else if (token.Type is not (TokenType.Whitespace or TokenType.NewLine or TokenType.Comment or TokenType.CommentMulti)) unary = 0;
 
-            if (word == "end") blocks = Math.Max(0, blocks - 1);
-            else if (previous != "else" && _openers.Contains(word)) blocks++;
+            blocks = CountBlocks(blocks, word, statementStart);
             if (blocks + brackets + unary > MaxDepth)
             {
                 throw new TemplateRefusal(new(TemplateCodes.Nesting, "Template nesting exceeds 32.", path, token.Start.Line + 1, token.Start.Column + 1));
             }
 
-            if (token.Type != TokenType.Whitespace) previous = word;
+            statementStart = AtStatementStart(token.Type, brackets, statementStart);
         }
     }
 
     internal static bool HasPrivateUse(string text) => text.EnumerateRunes().Any(rune => Rune.GetUnicodeCategory(rune) == UnicodeCategory.PrivateUse);
+
+    static int CountBlocks(int blocks, string word, bool statementStart)
+    {
+        if (!statementStart) return blocks;
+        return word switch
+        {
+            "end" => Math.Max(0, blocks - 1),
+            _ when _openers.Contains(word) => blocks + 1,
+            _ => blocks
+        };
+    }
+
+    static bool AtStatementStart(TokenType token, int brackets, bool previous) => token switch
+    {
+        TokenType.CodeEnter => true,
+        TokenType.NewLine or TokenType.SemiColon when brackets == 0 => true,
+        TokenType.Whitespace or TokenType.Comment or TokenType.CommentMulti => previous,
+        _ => false
+    };
 
     static void CheckPrivateUse(string path, string text)
     {

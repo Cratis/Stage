@@ -1,0 +1,9 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Kits</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Kits</RootNamespace>
+        <Description>Strict target kit manifests, immutable kit loading and deterministic archives for Cratis Stage.</Description>
+    </PropertyGroup>
+</Project>

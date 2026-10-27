@@ -125,9 +125,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
-        var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
-            .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
-            .ToHashSet();
+        var selectedReducers = SemanticReducerTypedContexts.Selected(context, slices)
+            .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
         foreach (var descriptor in descriptors)
         {
             try

@@ -134,7 +134,8 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices)),
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices))
+                .Concat(SemanticReducerTypedContexts.Declarations(context, slices)),
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),

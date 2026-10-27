@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Languages.Java.for_JavaLanguagePack;
 
-public class when_an_eligible_trailing_backslash_precedes_other_unresolved_segments : given.a_symbol_plan
+public class when_a_trailing_backslash_precedes_other_unresolved_segments : given.a_symbol_plan
 {
     Exception?[] _errors = [];
 

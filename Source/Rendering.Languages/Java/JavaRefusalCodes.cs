@@ -20,12 +20,12 @@ public static class JavaRefusalCodes
     public const string MalformedUnicodeEscape = "STAGE-JAVA-0002";
 
     /// <summary>
-    /// STAGE-JAVA-0003: a raw field, literal stream, or its JLS 3.3 translation contains a private-use code point.
+    /// STAGE-JAVA-0003: raw input or complete output, or its JLS 3.3 translation, contains a private-use code point.
     /// </summary>
     public const string PrivateUseCodePoint = "STAGE-JAVA-0003";
 
     /// <summary>
-    /// STAGE-JAVA-0004: a raw field, literal stream, or its JLS 3.3 translation contains a lone UTF-16 surrogate.
+    /// STAGE-JAVA-0004: raw input or complete output, or its JLS 3.3 translation, contains a lone UTF-16 surrogate.
     /// </summary>
     public const string LoneSurrogate = "STAGE-JAVA-0004";
 
@@ -35,7 +35,7 @@ public static class JavaRefusalCodes
     public const string UnsupportedContext = "STAGE-JAVA-0005";
 
     /// <summary>
-    /// STAGE-JAVA-0006: a literal stream ends in an eligible raw backslash before a segment with unresolved output.
+    /// STAGE-JAVA-0006: a Text/Native span ends in a raw or decoded backslash when any segment follows it.
     /// </summary>
     public const string UnsafeLiteralBoundary = "STAGE-JAVA-0006";
 }

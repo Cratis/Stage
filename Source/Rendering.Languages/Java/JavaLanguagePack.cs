@@ -1,12 +1,11 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text;
-
 namespace Cratis.Stage.Rendering.Languages.Java;
 
 /// <summary>
-/// Validates the structured, sentinel-free java@1 input contract. Name and import resolution are separate work.
+/// Conservatively pre-validates the structured, sentinel-free java@1 input contract as defense in depth.
+/// Resolved output integrity is guaranteed only by <see cref="JavaOutputIntegrity"/>.
 /// </summary>
 public static class JavaLanguagePack
 {
@@ -14,7 +13,7 @@ public static class JavaLanguagePack
     /// Validates every input field, including metadata and external types, without modifying the plan.
     /// </summary>
     /// <param name="plan">The structured symbol plan.</param>
-    /// <exception cref="LanguagePackRefusal">Input fields or literal streams violate integrity, a literal boundary is unsafe, or a gap/native context is unknown.</exception>
+    /// <exception cref="LanguagePackRefusal">An input field violates integrity, a literal boundary is unsafe, or a gap/native context is unknown.</exception>
     public static void Validate(SymbolPlan plan)
     {
         foreach (var field in plan.ExternalTypes.SelectMany(type => type.Fields)) PrivateUseCodePoints.Validate(field);
@@ -22,9 +21,10 @@ public static class JavaLanguagePack
         {
             PrivateUseCodePoints.Validate(file.Id);
             PrivateUseCodePoints.Validate(file.Package);
-            foreach (var segment in file.Segments)
+            for (var index = 0; index < file.Segments.Count; index++)
             {
-                foreach (var field in MetadataFields(segment)) PrivateUseCodePoints.Validate(field);
+                var segment = file.Segments[index];
+                foreach (var field in segment.Fields) PrivateUseCodePoints.Validate(field);
                 switch (segment)
                 {
                     case NativeSegment native:
@@ -34,42 +34,20 @@ public static class JavaLanguagePack
                         ValidateContext(gap.Context);
                         break;
                 }
-            }
 
-            ValidateLiteralStreams(file.Segments);
+                if (index + 1 < file.Segments.Count) ValidateLiteralBoundary(segment);
+            }
         }
     }
 
-    static IEnumerable<string> MetadataFields(SymbolSegment segment) => segment switch
+    static void ValidateLiteralBoundary(SymbolSegment segment)
     {
-        TextSegment => [],
-        NativeSegment native => new[] { native.Language, native.Owner, native.Context }.Concat(native.Scope.SelectMany(type => type.Fields)),
-        _ => segment.Fields,
-    };
-
-    static void ValidateLiteralStreams(IReadOnlyList<SymbolSegment> segments)
-    {
-        var stream = new StringBuilder();
-        foreach (var segment in segments)
+        var literal = LiteralText(segment);
+        if (literal is null) return;
+        if (literal.EndsWith('\\') || JavaUnicodeEscapes.Decode(literal).EndsWith('\\'))
         {
-            var literal = LiteralText(segment);
-            if (literal is not null)
-            {
-                stream.Append(literal);
-                continue;
-            }
-
-            var literalStream = stream.ToString();
-            PrivateUseCodePoints.Validate(literalStream);
-            if (JavaUnicodeEscapes.EndsWithEligibleBackslash(literalStream))
-            {
-                throw new LanguagePackRefusal(JavaRefusalCodes.UnsafeLiteralBoundary, "A Java literal stream must not end in an eligible backslash before an unresolved segment.");
-            }
-
-            stream.Clear();
+            throw new LanguagePackRefusal(JavaRefusalCodes.UnsafeLiteralBoundary, "A Java literal span must not end in a raw or decoded backslash when another segment follows.");
         }
-
-        PrivateUseCodePoints.Validate(stream.ToString());
     }
 
     static string? LiteralText(SymbolSegment segment) => segment switch

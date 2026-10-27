@@ -14,17 +14,16 @@ public class when_literal_boundaries_are_safe : given.a_symbol_plan
     {
         SymbolPlan[] plans =
         [
-            WithSegments(new TextSegment(@"\\"), new ReferenceSegment(new("example", "uE000", []))),
-            WithSegments(new TextSegment("\\"), new TextSegment("\\"), new ReferenceSegment(new("example", "uE000", []))),
             WithSegments(new TextSegment("\\")),
-            WithSegments(new TextSegment(@"\u00"), new NativeSegment("java", "41", "owner", "member", [])),
-            WithSegments(new TextSegment("\ud83d"), new NativeSegment("java", "\ude00", "owner", "member", [])),
-            WithSegments(new TextSegment(@"\ud83d"), new NativeSegment("java", @"\ude00", "owner", "member", [])),
-            WithSegments(new TextSegment(@"\u005c"), new ReferenceSegment(new("example", "uE000", []))),
+            WithSegments(new TextSegment(@"\u005c")),
+            WithSegments(new TextSegment(@"\u0041"), new ReferenceSegment(new("example", "uE000", []))),
+            WithSegments(new TextSegment("\ud83d\ude00"), new NativeSegment("java", "body", "owner", "member", [])),
+            WithSegments(new TextSegment(@"\ud83d\ude00"), new NativeSegment("java", "body", "owner", "member", [])),
+            WithSegments(new TextSegment(@"\u005cx"), new ReferenceSegment(new("example", "uE000", []))),
             new([new("first", "example", [new TextSegment("\\")]), new("second", "example", [new TextSegment("uE000")])], []),
         ];
         _errors = [.. plans.Select(plan => Catch.Exception(() => JavaLanguagePack.Validate(plan)))];
     }
 
-    [Fact] void should_validate_literal_runs_once_and_keep_files_separate() => _errors.ShouldEachConformTo(error => error == null);
+    [Fact] void should_allow_safe_complete_spans_and_trailing_backslashes_only_at_the_end_of_a_file() => _errors.ShouldEachConformTo(error => error == null);
 }

@@ -92,3 +92,34 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
     padding: 0.55rem 1.1rem;
 }
 .stage-confirm-dialog button[type='submit']:focus-visible { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); outline: none; }
+
+/* Cratis Components size a field with Tailwind utilities (`cratis:w-full`) the Stage does not compile: a field fills its column. */
+.stage-command-form__field > div,
+.stage-command-form__field .cratis-dropdown,
+.stage-command-form__field .cratis-field-input { width: 100%; box-sizing: border-box; }
+.stage-command-form__field .cratis-dropdown__select { width: 100%; }
+.stage-command-form__field .cratis-dropdown__trigger { width: 100%; }
+
+/* The submit of a form outside a dialog looks like the dialog's: the primary action. */
+.stage-command-form__submit,
+.scene-slice-dialog-submit {
+    padding: 0.55rem 1.1rem;
+    font: inherit;
+    cursor: pointer;
+    color: var(--scene-primary-contrast-color, #fff);
+    background: var(--scene-primary-color, #4f46e5);
+    border: 1px solid var(--scene-primary-color, #4f46e5);
+    border-radius: var(--scene-content-border-radius, 0.5rem);
+}
+.stage-command-form__submit { margin-top: 1rem; }
+.scene-slice-dialog-footer { margin-top: 1rem; }
+
+.stage-theme-toggle { display: flex; flex-direction: column; align-items: center; }
+.stage-theme-toggle .layout-config-section-title { margin: 0 0 0.15rem; }
+.stage-theme-toggle__button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.25rem; height: 2.25rem; padding: 0; cursor: pointer;
+    color: var(--layout-text, inherit); background: var(--layout-card, #fff);
+    border: 1px solid var(--layout-border, #e2e5e9); border-radius: 50%;
+}
+.stage-theme-toggle__button:hover { background: var(--layout-hover, #eceef1); }

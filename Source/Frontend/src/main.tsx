@@ -69,7 +69,7 @@ async function start() {
                 */}
                 <Arc queryDirectMode apiBasePath={hostedBasePath()}>
                     <StageSourceProvider source={source}>
-                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} />
+                        <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} routing={hostedBasePath() === '' ? 'path' : 'hash'} />
                     </StageSourceProvider>
                 </Arc>
             </CratisComponentsProvider>

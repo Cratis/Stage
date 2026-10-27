@@ -49,8 +49,11 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("a09710e28afae20990adf6477a6f4e95c99073a44abe56b0d2378bdb28231c10");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23972);
+    // Re-frozen for Cratis/Stage#209: Scene-native guarded Close and double-click branches, omitted null properties, and empty form onSubmit defaults.
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("09703bb69ea1cb4633d1dd53799ba36b8679f250153b6dc473fcfcc0c42a3a3a");
+
+    // Re-frozen for Cratis/Stage#209: guarded Close (-34), native interaction branches (-273), and two form onSubmit defaults (+28).
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23693);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"actions\":[],\"alternatives\":[");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -63,15 +66,19 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
 
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("678501681fc8441c62d9cdc8c14b621e34e6baafad47fb45773e50e2112758ea");
+    // Re-frozen for Cratis/Stage#209: only the four Scene artifacts change for native guarded actions/branches and empty form onSubmit defaults; package pins normalize away.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("c01391494e57940e17a888cb5e79465b15baa4ea4d9b5f3e0d5cbc87ddf3a5ba");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("893048b30eebce79336bc521fac76eaefb1f1fc0c3bbd81866a1401317ac91a7");
+    // Re-frozen for Cratis/Stage#209: only the four Scene artifacts change for native guarded actions/branches and empty form onSubmit defaults; package pins normalize away.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("82ca79f84c510a3234cc38701157fc082f7606e438aee3de36d6c756ea405461");
+
+    // Re-frozen for Cratis/Stage#209: Details carries native guarded Close and List carries native interaction branches; both gain empty form onSubmit defaults.
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793
-        Workspaces/Tracking/WorkItemList/Screens.scene.json ebb54a4bc9dc126e98bb1ff94dd6452824637224c57939c33e1215edae93b4e3 6661
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json beb6616b4597f8f90e001027a004130fc03c44dba1909fa6a8c58ee7c38cf347 9773
+        Workspaces/Tracking/WorkItemList/Screens.scene.json 31bb4871537700e7be2383d82a6530d73d1e4d20495fbf6bbac85daf7ea1ed51 6402
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName);

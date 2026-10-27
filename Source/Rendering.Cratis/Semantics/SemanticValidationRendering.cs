@@ -47,7 +47,7 @@ internal static class SemanticValidationRendering
         var ruleFor = conceptRendering.RuleFor;
         var validation = rule.Kind switch
         {
-            SemanticValidationRuleKind.NotEmpty when primitive == SemanticPrimitiveType.Text && !collection && !optional && conceptRendering.OptionalType is null => ".NotEmpty()",
+            SemanticValidationRuleKind.NotEmpty when conceptRendering.RendersNotEmpty(primitive, collection, optional) => ".NotEmpty()",
             SemanticValidationRuleKind.Matches => PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value),
             _ => $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})"
         };
@@ -199,6 +199,9 @@ internal static class SemanticValidationRendering
     {
         // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
         internal string RuleFor => OptionalType is null ? "RuleFor" : $"RuleFor<{OptionalType}>";
+
+        internal bool RendersNotEmpty(SemanticPrimitiveType primitive, bool collection, bool optional) =>
+            primitive == SemanticPrimitiveType.Text && !collection && !optional && OptionalType is null;
 
         internal string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional, CSharpCodeBuilder? builder) =>
             EnumOperand is null

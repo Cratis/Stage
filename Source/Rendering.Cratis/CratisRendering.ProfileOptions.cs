@@ -41,13 +41,13 @@ public static partial class CratisRendering
 
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) PrepareFileHeader(CratisPlanOptions options, ArtifactRenderProfile profile, string domain)
     {
-        if (!FileHeaderInput.IsValid(options.FileHeader))
+        if (!ArtifactFileHeader.IsValid(options.FileHeader))
         {
-            return (null, CratisPlanResult.Error("STAGE-PLAN-023", "Every file header line must be non-null plain text without line breaks."));
+            return (null, CratisPlanResult.Error("STAGE-PLAN-023", "Every file header line must be non-null plain text without line breaks, control, private-use or bidirectional formatting characters."));
         }
         if (!options.FileHeader.IsDefaultOrEmpty)
         {
-            if (profile.Inputs.Any(input => input.Name == FileHeaderInput.Name))
+            if (profile.Inputs.Any(ArtifactFileHeader.IsInput))
             {
                 return (null, ProfileError("The caller's profile must omit the file header when the FileHeader option is set."));
             }

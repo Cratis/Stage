@@ -536,6 +536,25 @@ Any artifact present in two scopes must have the same normalized path, kind, and
 
 ## Produce deterministic artifacts
 
+### Never write a file header
+
+Targets and templates must not write the caller's file header. `ArtifactRenderPlan.Create`
+applies it once to final content, after symbol resolution, and shifts implementation stub
+locators to address the published bytes. Exact profile admission must ignore inputs matched
+by `ArtifactFileHeader.IsInput`; the core validates those inputs. Declare language syntax through
+`ArtifactRenderRequest.CommentSyntaxes`, never in templates. The default table and refusal rules
+are in [File header option](../reference/plan-from-sources.md#file-header-option).
+
+Header ownership is explicit: authored text that happens to match the header is still authored
+text and receives another header. Recreating a plan from its own artifacts preserves the
+`PlannedArtifact.AppliedFileHeaderSha256` marker and does not prepend again. Pipelines rebuilding
+artifacts after planning must preserve both the headed bytes and this marker. A pipeline that
+publishes without an `ArtifactRenderPlan` can use `ArtifactFileHeader.Apply` instead; planners
+must not call it themselves. These contracts do not change Axon's profile admission; adoption
+there is a separate target update.
+
+### Normalize output
+
 Create every output in memory with the public factories:
 
 ```csharp
@@ -660,6 +679,7 @@ Before declaring a target ready:
 - [ ] Admit all selected and reachable semantics before dependent emission.
 - [ ] Keep `Plan(...)` free of filesystem, process, network, clock, random, and ambient-state access.
 - [ ] Emit all artifacts in memory through `PlannedArtifact` factories.
+- [ ] Leave headers to Stage, ignore header inputs in target admission, and declare comment syntax on the request.
 - [ ] Make ordering, names, paths, text encoding, line endings, and hashes deterministic.
 - [ ] Preserve diagnostic ownership and use stable target-owned codes.
 - [ ] Verify profile, admission, scope, collision, and determinism behavior with specifications.
@@ -674,5 +694,8 @@ The renderer-facing public contracts are defined in:
 - `Source/Contracts/Rendering/IArtifactRenderPlanner.cs`
 - `Source/Contracts/Rendering/ArtifactRenderProfile.cs`
 - `Source/Contracts/Rendering/ArtifactRenderPlan.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeader.cs`
+- `Source/Contracts/Rendering/ArtifactCommentSyntax.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeaderResult.cs`
 
 Use the Screenplay `SemanticModelCompiler` and `SemanticExecutionPlan` APIs shown above to build the request. Renderer-specific files under `Source/Rendering.Cratis` can illustrate one target's decisions, but they are not a shared helper library or an extension contract for other targets.

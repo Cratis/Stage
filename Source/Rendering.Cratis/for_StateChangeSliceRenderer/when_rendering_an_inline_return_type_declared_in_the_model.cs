@@ -26,7 +26,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
 
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
 
-        AssertReturnBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", new RenderedFile("Event.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
+        AssertBodyBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", "InvoiceRegistered", new RenderedFile("Event.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
         file.Content.ShouldContain(command.Handler.Code.Code);
         file.Diagnostics.ShouldBeEmpty();
     }
@@ -61,7 +61,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var original = InlineSlice($"global::{identity}");
         var slice = original with { Slice = original.Slice with { Events = _registerInvoice.Slice.Events } };
         var file = new StateChangeSliceRenderer().Render(slice, OrderedApplications(reverse), "CratisApp");
-        AssertReturnBinding(file, identity, new RenderedFile("RemoteEvent.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
+        AssertBodyBinding(file, identity, "StageImport0::InvoiceRegistered", new RenderedFile("RemoteEvent.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
         Assert.Contains(slice.Slice.Commands.Single().Handler!.Code!.Code, file.Content);
         Assert.Empty(file.Diagnostics);
     }
@@ -83,7 +83,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var command = InlineSlice("InvoiceRegistered").Slice.Commands.Single();
         var slice = _registerInvoice with { Slice = _registerInvoice.Slice with { Commands = [command] } };
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
-        AssertReturnBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered");
+        AssertBodyBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", "InvoiceRegistered");
         Assert.Contains(command.Handler!.Code!.Code, file.Content);
         Assert.Empty(file.Diagnostics);
     }
@@ -100,6 +100,22 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         Assert.Equal(CandidateReason.None, model.GetSymbolInfo(method.ReturnType).CandidateReason);
         Assert.Empty(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Location.SourceTree == tree && diagnostic.Location.SourceSpan.IntersectsWith(method.ReturnType.Span)));
         Assert.DoesNotContain(method.ReturnType.DescendantNodesAndSelf().OfType<AliasQualifiedNameSyntax>(), alias => alias.Alias.Identifier.ValueText == "global");
+    }
+
+    internal static void AssertBodyBinding(RenderedFile file, string metadataName, string returnTypeText, params RenderedFile[] declarations)
+    {
+        AssertReturnBinding(file, metadataName, declarations);
+        var compilation = RenderedOutput.CreateCompilation([file, .. declarations]);
+        var tree = compilation.SyntaxTrees.Single(tree => tree.FilePath == file.RelativePath);
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == "Handle");
+        var model = compilation.GetSemanticModel(tree);
+        var expected = compilation.GetTypeByMetadataName(metadataName);
+        Assert.Empty(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+        var creation = method.Body!.DescendantNodes().OfType<ObjectCreationExpressionSyntax>().Single();
+        Assert.True(SymbolEqualityComparer.Default.Equals(expected, model.GetTypeInfo(creation).Type));
+        Assert.True(SymbolEqualityComparer.Default.Equals(expected, model.GetTypeInfo(creation.Type).Type));
+        Assert.Equal(CandidateReason.None, model.GetSymbolInfo(creation.Type).CandidateReason);
+        Assert.Equal(returnTypeText, method.ReturnType.ToString());
     }
 
     LocatedSlice InlineSlice(string typeName)

@@ -17,8 +17,9 @@ static class CratisPlanReports
         plan = plan.WithInventory(CratisSemanticInventory.Create(request, plan, options));
         var context = new ArtifactRenderReportContext(plan.InputVersions!, Support(plan), [new(request.Profile.Renderer, request.Profile.RendererVersion)]);
         var reports = ArtifactRenderReports.Create(plan, context);
+        var placedReports = ServiceLayout.Apply(request.Profile, [reports.Completeness, reports.Unsupported]);
         var original = plan.WithAcceptance(plan.Degradations);
-        return ArtifactRenderPlan.Create(request, [.. plan.Artifacts, reports.Completeness, reports.Unsupported], original.Diagnostics, plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals)
+        return ArtifactRenderPlan.Create(request, [.. plan.Artifacts, .. placedReports], original.Diagnostics, plan.ImplementationGaps, plan.Refusals, plan.RequiredRemovals)
             .WithInventory(plan.Inventory!).WithPlanEvidence(plan.PlanEvidence).WithAcceptance(plan.Degradations, plan.Strict);
     }
 

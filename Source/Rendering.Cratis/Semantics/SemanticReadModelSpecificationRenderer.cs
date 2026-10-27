@@ -83,23 +83,7 @@ internal static class SemanticReadModelSpecificationRenderer
             .BlankLine()
             .OpenBlock(givenEvents.Count == 0 && replay.Count == 0 && seeds.Length == 0 ? "void Establish()" : "async global::System.Threading.Tasks.Task Establish()");
         if (seeds.Length > 0) SemanticProjectionSpecificationSeeds.Render(builder, specification, readModel, types);
-        foreach (var given in givenEvents)
-        {
-            var givenEvent = context.Events[given.EventContract];
-            var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
-            if (!string.Equals(givenNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
-            {
-                builder.Using(givenNamespace);
-            }
-
-            var givenArguments = givenEvent.Properties.Select(property =>
-                types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            var givenSource = given.EventSource;
-            needsCommon |= (givenSource is not null && SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type)) ||
-                givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
-                    given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({SemanticSpecificationEventSources.Expression(context, types, given)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
-        }
+        needsCommon |= RenderGivenEvents();
 
         foreach (var (produced, expectedEvent) in replay)
         {
@@ -180,6 +164,30 @@ internal static class SemanticReadModelSpecificationRenderer
         }
 
         return new(path, content);
+
+        bool RenderGivenEvents()
+        {
+            var givenNeedsCommon = false;
+            foreach (var given in givenEvents)
+            {
+                var givenEvent = context.Events[given.EventContract];
+                var givenNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(given.EventContract).Path);
+                if (!string.Equals(givenNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
+                {
+                    builder.Using(givenNamespace);
+                }
+
+                var givenArguments = givenEvent.Properties.Select(property =>
+                    types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+                var givenSource = given.EventSource;
+                givenNeedsCommon |= (givenSource is not null && SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type)) ||
+                    givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
+                        given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
+                builder.Line($"await _scenario.Given.ForEventSource({SemanticSpecificationEventSources.Expression(context, types, given)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            }
+
+            return givenNeedsCommon;
+        }
     }
 
     static string CompositeInstance(SemanticReadModel model, SemanticCompositeValue key, SemanticTypeSystem types)

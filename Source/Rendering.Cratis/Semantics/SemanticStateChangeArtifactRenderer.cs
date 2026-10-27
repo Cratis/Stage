@@ -298,6 +298,11 @@ internal static class SemanticStateChangeArtifactRenderer
             return expression;
         }
 
+        return CompatibleConceptValue(sourceConcept, targetConcept, expression);
+    }
+
+    static string CompatibleConceptValue(SemanticConcept sourceConcept, SemanticConcept targetConcept, string expression)
+    {
         var compatible = sourceConcept.Primitive == targetConcept.Primitive ||
             (sourceConcept.Primitive, targetConcept.Primitive) is (SemanticPrimitiveType.WholeNumber, SemanticPrimitiveType.DecimalNumber);
         return compatible ? $"new {Identifiers.ToPascalCase(targetConcept.Name)}({expression}.Value)" : expression;

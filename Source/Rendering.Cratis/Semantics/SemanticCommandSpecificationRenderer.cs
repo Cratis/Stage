@@ -191,8 +191,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         var types = scope.Types;
         var @event = context.Events[given.EventContract];
         var source = given.EventSource;
-        if ((source is not null && SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type)) ||
-            PropertyValuesNeedCommon(@event.Properties, given.Values))
+        if (SourceNeedsCommon(source) || PropertyValuesNeedCommon(@event.Properties, given.Values))
         {
             builder.Using(context.CommonNamespace);
         }
@@ -212,6 +211,9 @@ internal static partial class SemanticCommandSpecificationRenderer
             ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
             : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
     }
+
+    static bool SourceNeedsCommon(SemanticEventSourceIdentity? source) =>
+        source is not null && SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type);
 
     static void RenderBecause(SpecificationScope scope)
     {

@@ -7,13 +7,14 @@ import { LayoutConfigProvider } from '@cratis/scene.blueprint.default';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { StageThemeToggle } from '../StageChrome';
 
-const element = { id: 'topbar-theme', properties: { label: 'Theme' } } as unknown as ExternalComponent;
+const element = { id: 'topbar-theme', properties: {} } as unknown as ExternalComponent;
 const draw = (themeName: string) => render(<LayoutConfigProvider storage={null} initialConfig={{ themeName }}><StageThemeToggle element={element} slots={{}} /></LayoutConfigProvider>);
 
 describe('in a light theme', () => {
-    it('offers one button to go dark, under a Theme headline', () => {
+    it('offers one button to go dark, and no headline', () => {
         draw('Scene Default Light');
-        expect(screen.getByRole('heading', { name: 'Theme' })).toBeTruthy();
+        expect(screen.queryByRole('heading')).toBeNull();
+        expect(screen.queryByText('Theme')).toBeNull();
         expect(screen.getAllByRole('button')).toHaveLength(1);
         expect(screen.getByRole('button', { name: 'Switch to a dark theme' })).toBeTruthy();
     });

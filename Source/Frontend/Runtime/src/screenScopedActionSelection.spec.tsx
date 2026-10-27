@@ -92,7 +92,7 @@ async function submitDispatch() {
     fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
 }
 
 async function submittedBody(fetched: ReturnType<typeof renderScreens>) {

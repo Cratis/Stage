@@ -17,7 +17,7 @@ public sealed class TemplatePlanSession : IDisposable
     readonly LockedContext _context;
     bool _disposed;
 
-    internal TemplatePlanSession(PreparedTemplateKit prepared, TemplateBudget budget)
+    internal TemplatePlanSession(PreparedTemplateKit prepared, TemplateBudget budget, ITemplateLanguage? language = null)
     {
         _prepared = prepared;
         _budget = budget;
@@ -38,6 +38,7 @@ public sealed class TemplatePlanSession : IDisposable
         symbols.Import("ref", new Func<object?, SymbolHandle>(value => new(SymbolHandle.Parse(value))));
         symbols.IsReadOnly = true;
         helpers.SetValue("sym", symbols, true);
+        if (language is not null) LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
         _context.PushGlobal(helpers);
     }
 

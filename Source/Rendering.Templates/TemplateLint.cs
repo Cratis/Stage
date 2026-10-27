@@ -45,6 +45,8 @@ internal sealed class TemplateLint(LoadedKit kit) : ScriptVisitor
             case ScriptFunctionCall call:
                 CheckCall(call);
                 return;
+            case ScriptIndexerExpression { Target: ScriptVariableGlobal { Name: "lit" }, Index: ScriptLiteral { Value: "null" } }:
+                return;
             case ScriptMemberExpression { Target: ScriptVariableGlobal root } member when IsNamespace(root.Name):
                 throw Refuse(member, TemplateCodes.Allowlist, "Builtin and helper functions are callable only, never values.");
             case ScriptMemberExpression member:

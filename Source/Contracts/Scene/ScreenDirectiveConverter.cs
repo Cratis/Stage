@@ -242,33 +242,23 @@ public static class ScreenDirectiveConverter
 
     static SceneElements.ExternalComponent ConvertGuardedAction(ScreenplaySyntax.ScreenGuardedActionSyntax action, string id, BehaviorScope scope)
     {
-        var properties = new Dictionary<string, object?>
-        {
-            ["label"] = action.Label,
-            ["navigateToScreen"] = action.Navigate?.Screen,
-            ["navigateByParameter"] = action.Navigate?.By,
-            ["alternatives"] = action.Alternatives.Select(alternative => new Dictionary<string, object?>
-            {
-                ["command"] = alternative.Command,
-                ["condition"] = SceneGuards.Convert(alternative.Condition, scope.EnumerationOf),
-                ["arguments"] = ConvertArguments(alternative.Arguments),
-            }).ToList(),
-        };
-
-        if (action.Otherwise is not null)
-        {
-            properties["otherwise"] = new Dictionary<string, object?>
-            {
-                ["outcome"] = action.Otherwise.Outcome.ToString(),
-                ["command"] = action.Otherwise.Command,
-                ["arguments"] = ConvertArguments(action.Otherwise.Arguments),
-            };
-        }
-
-        return SceneElementFactory.Component(id, "core:action", properties);
+        var properties = new Cratis.Scene.Model.Guards.GuardedActionProperties(
+            action.Label,
+            [.. action.Alternatives.Select(alternative => new Cratis.Scene.Model.Guards.GuardedActionAlternative(
+                alternative.Command,
+                SceneGuards.Convert(alternative.Condition, scope.EnumerationOf),
+                ConvertArguments(alternative.Arguments)))],
+            Otherwise: action.Otherwise is { } otherwise ? new Cratis.Scene.Model.Guards.GuardedActionFallback(
+                Enum.TryParse<Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome>(otherwise.Outcome.ToString(), out var outcome) ? outcome : (Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome)(-1),
+                otherwise.Command,
+                ConvertArguments(otherwise.Arguments)) : null,
+            NavigateToScreen: action.Navigate?.Screen,
+            NavigateByParameter: action.Navigate?.By);
+        var propertyBag = new Dictionary<string, object?>(properties.ToProperties()) { ["label"] = action.Label };
+        return SceneElementFactory.Component(id, Cratis.Scene.Model.Guards.GuardedActionProperties.ComponentName, propertyBag);
     }
 
-    static Dictionary<string, IDictionary<string, object?>> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
+    static Dictionary<string, Cratis.Scene.Model.Guards.SubjectReference> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
         arguments.ToDictionary(argument => argument.Name, argument => SceneGuards.Subject(argument.Binding), StringComparer.Ordinal);
 
     static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)

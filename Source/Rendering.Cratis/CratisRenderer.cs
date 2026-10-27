@@ -47,9 +47,9 @@ public class CratisRenderer : IRenderer
 
     /// <summary>
     /// Gets whether concept rendering emits compliance details and secret reasons.
-    /// Defaults to false to omit free-text registration metadata; secret encryption scope is always honored.
+    /// Defaults to true; set to false to omit free-text compliance details. Secret encryption scope is always honored.
     /// </summary>
-    public bool ComplianceDetails { get; init; }
+    public bool ComplianceDetails { get; init; } = true;
 
     /// <summary>
     /// Creates a <see cref="CratisRenderer"/> wired with the slice renderers and local file system output,
@@ -61,10 +61,10 @@ public class CratisRenderer : IRenderer
     /// engine it needs cannot be hosted beside MSBuild.
     /// </remarks>
     /// <returns>The <see cref="CratisRenderer"/>.</returns>
-    public static CratisRenderer CreateDefault() => CreateDefault(false);
+    public static CratisRenderer CreateDefault() => CreateDefault(true);
 
     /// <summary>
-    /// Creates the default syntax renderer with optional registration-changing compliance details.
+    /// Creates the default syntax renderer with compliance details enabled or disabled.
     /// </summary>
     /// <param name="complianceDetails">Whether to emit personal-data qualifiers/reasons and secret reasons.</param>
     /// <returns>The configured renderer.</returns>
@@ -328,13 +328,13 @@ public class CratisRenderer : IRenderer
             return;
         }
 
-        if (file.Content.Contains($"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues.Translate", StringComparison.Ordinal) &&
+        if (file.Content.Contains("PortableTenantValues.Translate(", StringComparison.Ordinal) &&
             runtimeArtifacts.Add("tenant translation"))
         {
             await WriteFile(TenantTranslationSource.Render(rootNamespace), targetDirectory, output, error, failures);
         }
 
-        if (file.Content.Contains($"global::{rootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt", StringComparison.Ordinal) &&
+        if (file.Content.Contains("CommandReceiptTime.OccurredAtReceipt(", StringComparison.Ordinal) &&
             runtimeArtifacts.Add("command receipt time"))
         {
             await WriteFile(CommandReceiptTimeRendering.Render(rootNamespace), targetDirectory, output, error, failures);

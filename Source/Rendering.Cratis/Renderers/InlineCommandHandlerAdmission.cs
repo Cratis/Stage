@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -53,19 +54,22 @@ internal static class InlineCommandHandlerAdmission
             return InlineCommandHandlerRejectionReason.UnsupportedLanguage;
         }
 
-        // Parse the entire input as ONE block, not as interpolated members of a compilation unit.
-        // consumeFullText retains trailing/skipped tokens; the closing brace must be ours, not authored.
-        var text = "{\n" + code.Code + "\n}";
-        var statement = SyntaxFactory.ParseStatement(text, options: new CSharpParseOptions(), consumeFullText: true);
-        if (statement.DescendantTrivia(descendIntoTrivia: true).Any(trivia => trivia.IsDirective))
+        var proof = CSharpBodyContainment.Analyze(code.Code);
+        if (proof.HasDirectives)
         {
             return InlineCommandHandlerRejectionReason.Directives;
         }
 
-        if (statement is not BlockSyntax body || body.ContainsDiagnostics || body.ContainsSkippedText ||
-            body.CloseBraceToken.IsMissing || body.CloseBraceToken.SpanStart != text.Length - 1)
+        if (proof.Block is not { } body || !proof.Supported)
         {
             return InlineCommandHandlerRejectionReason.MalformedBody;
+        }
+
+        var returns = body.DescendantNodes(node => node is not AnonymousFunctionExpressionSyntax and not LocalFunctionStatementSyntax)
+            .OfType<ReturnStatementSyntax>().ToArray();
+        if (returns.Any(@return => @return.Expression is null) && returns.Any(@return => @return.Expression is not null))
+        {
+            return InlineCommandHandlerRejectionReason.MixedReturns;
         }
 
         // The parameter needs an identity, not either framework's context type. No member mapping is assumed.

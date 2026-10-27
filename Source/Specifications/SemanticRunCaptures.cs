@@ -160,7 +160,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
             {
                 return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
             }
-            if (SemanticRunAdmission.CheckProjectionFact(plan, produced) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+            if (SemanticRunAdmission.CheckProjectionFact(plan, produced, SemanticRunRoutes.Format(plan, produced.Route)) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
             if (context.Facts.Count - _historyCount >= SemanticRunReactions.MaximumFacts) return SemanticRunReactions.FactLimit();
             await context.Append(produced, key, context.Occurrences[index], cancellationToken);
             if (await settle(cancellationToken) is { } failure) return failure;

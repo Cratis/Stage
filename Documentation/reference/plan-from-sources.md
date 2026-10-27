@@ -98,7 +98,7 @@ var scaffold = CratisRendering.PlanScaffold(options);
 The scaffold includes application configuration at `.cratis/stage/rendering.json`:
 
 ```json
-{"version":1,"application":"Shop","reducerConvention":"self"}
+{"version":3,"application":"Shop","reducerConvention":"self","projectionConvention":"model-bound"}
 ```
 
 On subsequent renders, the host reads that file and resolves it back into the profile:
@@ -114,8 +114,13 @@ the destination. `WithReducerConvention` also accepts a profile carrying Scene,
 strings, and authoring metadata. Pass the resulting profile to both `PlanFrom`
 overloads through `CratisPlanOptions.Profile`, and to scaffold planning.
 
-The canonical input is named `cratis-rendering:reducer-convention`, version `1`.
-Its application name must match; its convention must be `classic` or `self`.
+The canonical input is named `cratis-rendering:reducer-convention`.
+Its application name must match; its reducer convention must be `classic` or `self`.
+Versions `1` and `2` retain fluent scoped projections and their existing bytes.
+Version `3` requires `projectionConvention: "model-bound"`. It optionally carries the
+same non-empty, sorted `readModels` overrides as version `2`; the canonical property
+order is `version`, `application`, `reducerConvention`, `projectionConvention`, then
+`readModels` when present.
 `ReducerConventionInput.Read` refuses malformed, duplicate-field, unknown-version,
 and unsupported configuration with `InvalidArtifactRenderContract`. Invalid inputs
 submitted directly to planning produce `STAGE-CRATIS-001` and no artifacts.
@@ -128,6 +133,24 @@ Do not switch an existing classic application to `self` wholesale: every classic
 reducer would get a new observer identity and its old file would remain. Migrate
 existing read models one at a time instead (below). Existing CLI and Studio callers
 that do not pass the input continue to render classic models.
+
+### Model-bound scoped projections
+
+New applications select version `3`. A From-only scoped projection with flat property
+or event-source-id assignments renders `[FromEvent<T>]`, `[NoAutoMap]`, and explicit
+`[SetFrom<T>]` or `[SetFromContext<T>]` attributes on its read model instead of a separate
+`IProjectionFor<T>` class. Shapes not expressible by these attributes—including joins,
+children, removals, every/all mappings, counters, nested paths, and composite keys—keep
+the fluent renderer. Selecting this convention does not turn projections into reducers.
+
+Existing applications can opt in by editing `.cratis/stage/rendering.json`: set
+`version` to `3`, add `"projectionConvention":"model-bound"`, and keep their existing
+`reducerConvention` and any `readModels` overrides. This changes eligible projections'
+observer identity from the fluent projection type to the read model's full type name.
+Plan a rebuild/replay and remove obsolete generated fluent projection files before
+using the new output; Stage does not migrate projection observer state or remove those
+files automatically. Keep version `1` or `2` to preserve existing projection identity.
+Older Stage versions refuse version `3` configuration rather than silently ignoring it.
 
 ### Migrating a classic read model
 
@@ -607,6 +630,8 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-025` | A user interface domain is invalid or collides with a reserved root path. |
 | `STAGE-PLAN-026` | A user interface domain is the plan's own domain or is named twice. |
 | `STAGE-PLAN-027` | A slice is named under two user interface domains. |
+| `STAGE-PLAN-028` | `ServiceLayout` is combined with `RepositoryRoot`. See [Multi-service repository layout](stage-rendering.md#multi-service-repository-layout). |
+| `STAGE-PLAN-029` | Invalid `PlanRepository` options. |
 | `STAGE-PLAN-030` | Invalid application, project, or namespace options. |
 | `STAGE-PLAN-031` | Information: a scaffold profile carries Scene input; Scene artifacts are produced only by application-scope plans. |
 

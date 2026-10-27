@@ -18,6 +18,7 @@ import type { StageDataState } from './stageData';
 import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
+import { useScreenRows } from './stageScreenTables';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -66,8 +67,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const rowAction = element.properties.rowAction === true;
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);

@@ -99,6 +99,13 @@ internal sealed class NameScope
     }
 
     /// <summary>
+    /// Gets a value indicating whether the renderer declares a type in exactly this namespace.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <returns><see langword="true"/> when a generated type lives there.</returns>
+    public bool DeclaresGeneratedTypes(string @namespace) => _generatedNames.ContainsKey(@namespace);
+
+    /// <summary>
     /// Gets the names of every top-level type in a namespace, generated or referenced.
     /// </summary>
     /// <param name="namespace">The namespace.</param>

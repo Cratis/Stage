@@ -55,7 +55,7 @@ public class when_executing_performed_queries
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
         Assert.Contains($"Query 'FindPeople' (requirement {requirement.RequirementId}) is not runnable:", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerformer_", rendered, StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         Assert.Empty(RenderedOutput.Errors(files));
@@ -104,6 +104,18 @@ public class when_executing_performed_queries
         await task;
         var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
         Assert.Same(row, Assert.Single(result.Cast<object>()));
+    }
+
+    [Fact]
+    public async Task should_keep_the_performer_out_of_the_read_model_so_arcs_analyzer_does_not_take_it_for_a_query()
+    {
+        var loaded = await Load(Body);
+        var request = Request(loaded);
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains("static class StagePerformer_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.Contains(".Perform(", rendered, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -271,7 +283,7 @@ public class when_executing_performed_queries
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
         Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerformer_", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
     }
 

@@ -27,13 +27,17 @@ public static partial class CratisRendering
         }
 
         var removed = plan.RequiredRemovals.Select(removal => removal.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var folder = ServiceLayout.SharedFolder(plan.Artifacts.Select(artifact => artifact.RelativePath));
         foreach (var (readModel, pinned) in PublishedOverrides(plan, readExistingFile).OrderBy(entry => entry.Value.PreviousPath, StringComparer.Ordinal))
         {
-            if (!removed.Contains(pinned.PreviousPath) && readExistingFile(pinned.PreviousPath) is { } leftover)
+            // The convention records application-relative paths; a service layout keeps the application in its folder.
+            // There is no migration from the repository root: a service layout reads only the prefixed path.
+            var previousPath = folder + pinned.PreviousPath;
+            if (!removed.Contains(previousPath) && readExistingFile(previousPath) is { } leftover)
             {
-                var removal = new ArtifactRemoval(pinned.PreviousPath, Sha256Of(pinned.PreviousPath, leftover), readModel);
+                var removal = new ArtifactRemoval(previousPath, Sha256Of(previousPath, leftover), readModel);
                 unsafeRemovals.Add(removal);
-                diagnostics.Add(RemovalError($"'{pinned.PreviousPath}' still holds the classic reducer of a migrated read model and the plan does not remove it; publishing would register two builders.", removal));
+                diagnostics.Add(RemovalError($"'{previousPath}' still holds the classic reducer of a migrated read model and the plan does not remove it; publishing would register two builders.", removal));
             }
         }
 
@@ -45,15 +49,16 @@ public static partial class CratisRendering
     static ImmutableDictionary<SemanticId, ReducerOverride> PublishedOverrides(ArtifactRenderPlan plan, Func<string, string?> readExistingFile)
     {
         // An application plan carries the configuration it persists; a scoped plan that writes reducers publishes beside the destination's.
-        var planned = plan.Artifacts.SingleOrDefault(artifact => artifact.RelativePath == ReducerConventionInput.RelativePath);
-        var json = planned is not null ? Encoding.UTF8.GetString(planned.Bytes.AsSpan()) : DestinationConvention(plan, readExistingFile);
+        var folder = ServiceLayout.SharedFolder(plan.Artifacts.Select(artifact => artifact.RelativePath));
+        var planned = plan.Artifacts.SingleOrDefault(artifact => artifact.RelativePath == folder + ReducerConventionInput.RelativePath);
+        var json = planned is not null ? Encoding.UTF8.GetString(planned.Bytes.AsSpan()) : DestinationConvention(plan, readExistingFile, folder);
         return json is not null && ReducerConventionInput.TryParse(json, plan.ApplicationName, out var convention)
             ? convention.Overrides
             : [];
     }
 
-    static string? DestinationConvention(ArtifactRenderPlan plan, Func<string, string?> readExistingFile) =>
-        plan.Scope.Kind != ArtifactRenderScopeKind.Application && WritesReducers(plan) ? readExistingFile(ReducerConventionInput.RelativePath) : null;
+    static string? DestinationConvention(ArtifactRenderPlan plan, Func<string, string?> readExistingFile, string folder) =>
+        plan.Scope.Kind != ArtifactRenderScopeKind.Application && WritesReducers(plan) ? readExistingFile(folder + ReducerConventionInput.RelativePath) : null;
 
     // Generated files name Chronicle reducer types by their short names where that binds, so a reducer is recognized by
     // the classic interface, the reducer attribute or a qualified reference.

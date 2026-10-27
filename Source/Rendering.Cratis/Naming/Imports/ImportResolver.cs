@@ -63,6 +63,8 @@ internal static class ImportResolver
             }
         }
 
+        if (!request.HasScaffoldGlobalUsings) top = [.. top.Concat(file.ScaffoldImports(required, spellings, inner)).Distinct(StringComparer.Ordinal)];
+
         return new([.. inner.Order(StringComparer.Ordinal)], spellings)
         {
             TopLevelUsings = [.. top.Order(StringComparer.Ordinal)],

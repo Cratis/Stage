@@ -439,7 +439,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+
+        // The layout is applied last: the checks above and the renderers work on application-relative paths.
+        var plan = ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        return ServiceLayout.Plan(request, plan);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

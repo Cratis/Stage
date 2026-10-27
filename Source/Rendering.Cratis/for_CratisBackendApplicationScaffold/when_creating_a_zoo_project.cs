@@ -24,6 +24,7 @@ public class when_creating_a_zoo_project : Specification
             "Directory.Build.targets",
             "Directory.Packages.props",
             "GeneratedPolicyRegistration.cs",
+            "GlobalUsings.cs",
             "Program.cs",
             "README.md",
             "Zoo.csproj",

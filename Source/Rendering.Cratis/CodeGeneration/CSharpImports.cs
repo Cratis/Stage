@@ -19,7 +19,8 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 /// <param name="project">The project the file compiles into.</param>
 /// <param name="generated">The complete renderer-owned declaration inventory.</param>
-internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated)
+/// <param name="hasScaffoldGlobalUsings">Whether the file compiles with the scaffold-owned GlobalUsings.cs; see <see cref="ImportRequest.HasScaffoldGlobalUsings"/>.</param>
+internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated, bool hasScaffoldGlobalUsings)
 {
     static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
 
@@ -83,7 +84,8 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
             ScopeValueNames = [.. scope.ValueNames, .. _values],
             PinnedNames = [.. scope.PinnedNames, .. _pinned],
             MemberAccessNames = [.. scope.MemberAccessNames, .. _accessed],
-            HasUnknownScope = unknown
+            HasUnknownScope = unknown,
+            HasScaffoldGlobalUsings = hasScaffoldGlobalUsings
         });
 
         var changes = new List<TextChange>();

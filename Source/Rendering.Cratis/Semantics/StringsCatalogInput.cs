@@ -152,7 +152,7 @@ internal static class StringsCatalogInput
     {
         // The scaffold renders this file before the model's declarations are known; the class it declares is enough to
         // decide its spellings, because nothing it names is generated.
-        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, []).Namespace(rootNamespace).Using("System.Globalization")
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, [], false).Namespace(rootNamespace).Using("System.Globalization")
             .OpenBlock("public static class GeneratedStrings")
             .Line($"const string DefaultLocale = {CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)};")
             .Line("static readonly global::System.Collections.Generic.Dictionary<string, global::System.Collections.Generic.Dictionary<string, string>> Locales = new(global::System.StringComparer.OrdinalIgnoreCase)")

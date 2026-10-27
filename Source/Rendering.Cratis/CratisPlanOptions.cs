@@ -37,6 +37,16 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public bool RepositoryRoot { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the application is one service of a multi-service repository. When true, every
+    /// artifact is placed under <c language="csharp">Source/{ProjectName}/</c> and the repository-shared files (.editorconfig,
+    /// Directory.Build.props, Directory.Build.targets, Directory.Packages.props, the solution and docker-compose.yml) are left
+    /// out, because <see cref="CratisRendering.PlanRepository(CratisRepositoryPlanOptions)"/> owns them. The default, false, keeps
+    /// the single-application layout and every byte of its output. Planning never moves an existing repository: the caller decides
+    /// to switch layouts. It cannot be combined with <see cref="RepositoryRoot"/> (STAGE-PLAN-028).
+    /// </summary>
+    public bool ServiceLayout { get; init; }
+
+    /// <summary>
     /// Gets the plain-text lines every generated code file starts with. Empty, the default, writes no header at all.
     /// Stage writes each line as a comment in the file's language (<c language="csharp">// line</c> for C#, TypeScript and
     /// JavaScript; an empty line becomes <c language="csharp">//</c>), followed by one blank line. Lines carry no comment

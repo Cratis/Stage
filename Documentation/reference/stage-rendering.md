@@ -294,6 +294,13 @@ see [semantic sandbox execution](../docker/index.md#opt-in-to-semantic-execution
 can instead render the supported inbox capture and outbox publication subset; see
 [Translation rendering](translation-rendering.md) for its mappings, added-state approximation and refusals.
 
+Systems, operation declarations and phases, inline `produces operation`, `given operation … fails`,
+`then operation` and `then compensated` are syntax-only authoring constructs. The legacy renderer, Host
+and structural specification runner refuse them with `STAGE-ESM-057`, naming the construct and its
+source location, rather than dropping it or appending an event instead. The semantic path refuses the
+same constructs with Screenplay's `PLAY0268`; operations are not admitted by any supported executable
+model (ESM) version yet (Cratis/Stage#176, Cratis/Screenplay#301).
+
 ## Generated C# whole numbers
 
 The semantic Cratis renderer maps whole-number primitives and concepts to `long` for ESM v8 and later,
@@ -323,6 +330,16 @@ including reaction cascades, or by an assertion or query on its read model. The 
 includes possible reaction effects without evaluating runtime guards. Reducer refusals carry the Projection
 capability; validation refusals carry Command. This does not change live-world history rebuilding or the
 renderer's implementation-body admission.
+
+Pure reducer bodies may use Stage's generated primitive-to-concept implicit conversion: for example,
+`Reason reason = context.Key;` when `Reason` is a String concept, or a Guid value passed to a Uuid
+identifier concept. The primitive must match the modeled type, and the operator must belong to the
+exact generated Common concept symbol. Positional and named constructor arguments and typed locals
+use the same admission rule. Null-literal and null-default operands converted to concepts remain
+refused. Concept-to-primitive conversion still requires `.Value`; projection-source concept-to-concept
+operators, record equality, inherited operators and arbitrary user-defined operators are not admitted.
+Production analysis mirrors only the allowed operator, and Debug parity specs compare its full bound
+identity against the real rendered compilation for classic and self-reducer profiles.
 
 The renderer admits verified pure C# Boolean named rule bodies and code-validation iterators on commands and concepts,
 using generated app-local contexts and Arc validators without a Screenplay runtime dependency.
@@ -418,6 +435,16 @@ arithmetic. Generated fractions use C# `decimal`, not the full binary expansion 
 Moving an existing model from v7 to v8 widens stored event schemas from int32 to int64. Chronicle refuses
 that change within the same generation; plan a new event generation before upgrading
 ([Stage #204](https://github.com/Cratis/Stage/issues/204)). TypeScript properties remain `number`.
+
+## Generated C# global usings
+
+An application render writes `GlobalUsings.cs` at the backend root with `global using` directives for
+`Cratis.Arc.MongoDB`, `Cratis.Chronicle.Keys`, `MongoDB.Driver` and `System.Reactive.Subjects`. Generated
+files then leave out per-file usings for those namespaces. Where a name exists in two of them, such as `Tag`,
+it is qualified only as far as needed to resolve the collision. A scoped render keeps the per-file usings.
+
+`GlobalUsings.cs` is owned by Stage, like `Program.cs`, and is regenerated on every application render, so
+edits to it are overwritten. Put application-specific global usings in a separate file, for example `Usings.cs`.
 
 ## Generated C# member names
 
@@ -731,3 +758,29 @@ document of an application without toolbar slice references. Query reads still u
 A model with no `screen` still renders. The Stage synthesizes one screen per slice that carries a command or a
 read model and places it in the same shell. That is a fallback for a model that has not designed its screens yet;
 as soon as the model declares its own screens they are what is drawn.
+
+## Multi-service repository layout
+
+`CratisPlanOptions.ServiceLayout` (and `CratisRepositoryPlanOptions` for the repository root) renders one
+application as a service of a repository that holds several. It defaults to `false`, and then every plan is
+byte-identical to the plan without the option: no path changes, no input joins the profile, and the
+digest is unchanged.
+
+With `ServiceLayout = true` the profile carries the hashed input `cratis-render:service-layout`, version
+`1`, with exact UTF-8 bytes `service`. Every artifact moves, byte for byte, into `Source/{ProjectName}/`,
+including scaffold, source plans, scoped plans, implementation-gap stubs and required removals. The files
+the repository owns are left out: `.editorconfig`, `Directory.Build.props`, `Directory.Build.targets`,
+`Directory.Packages.props`, `{ProjectName}.slnx` and `docker-compose.yml`. Files with those names in a
+sub-folder are application files and stay. Pass the same options, together with the same `Profile`, to
+every planning call. Planning never moves an existing repository; the caller decides to switch layouts.
+
+`CratisRendering.PlanRepository` plans those repository files: the shared build files, a solution that
+lists every service and `Source/Composition`, `docker-compose.yml`, and an Aspire application host that
+starts Chronicle and every service. `Composition` is reserved for the host.
+
+| Diagnostic | Severity | Meaning |
+| --- | --- | --- |
+| `STAGE-PLAN-028` | Error | `ServiceLayout` is combined with `RepositoryRoot`, which would give one application the repository-root files it must leave to the repository plan. |
+| `STAGE-PLAN-029` | Error | `PlanRepository` options are invalid: no services, a name that is not a dot-separated C# identifier, `Composition`, a service whose Aspire resource name is `chronicle` (any casing), which the application host reserves for Chronicle, a duplicate service ignoring case, or two services that map to the same Aspire resource name. |
+
+Both codes are raised only for invalid option combinations, never for model constructs.

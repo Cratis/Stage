@@ -223,13 +223,13 @@ internal sealed class SemanticApplicationContext
     /// names wherever that provably binds the same and decides the file's using directives.
     /// </summary>
     /// <returns>The builder.</returns>
-    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes);
+    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application);
 
     /// <summary>
     /// Creates a builder for a generated specification file.
     /// </summary>
     /// <returns>The builder.</returns>
-    internal CSharpCodeBuilder SpecificationBuilder() => new(GeneratedProjects.Specifications, GeneratedTypes);
+    internal CSharpCodeBuilder SpecificationBuilder() => new(GeneratedProjects.Specifications, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application);
 
     internal SemanticCaptureMemberPlan CaptureMembers(SemanticCapture capture)
     {

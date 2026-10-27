@@ -23,4 +23,39 @@ public static class JavaIdentifiers
     /// <param name="name">The case-sensitive name.</param>
     /// <returns>Whether generated identifiers must avoid this name.</returns>
     public static bool IsReserved(string name) => _reserved.Contains(name);
+
+    /// <summary>
+    /// Determines whether a name satisfies java@1's ASCII identifier policy without '$'.
+    /// </summary>
+    /// <param name="name">The name to check.</param>
+    /// <returns>Whether the name is non-reserved, at most 255 characters, and syntactically valid.</returns>
+    public static bool IsIdentifier(string name) =>
+        name.Length is > 0 and <= 255 && !IsReserved(name) &&
+        (char.IsAsciiLetter(name[0]) || name[0] == '_') &&
+        name.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+
+    /// <summary>
+    /// Sanitizes a model name to the java@1 ASCII identifier policy.
+    /// </summary>
+    /// <param name="name">The model name.</param>
+    /// <returns>A non-reserved Java identifier.</returns>
+    /// <exception cref="LanguagePackRefusal">The input contains '$' or the result exceeds 255 characters.</exception>
+    public static string Sanitize(string name)
+    {
+        if (name.Contains('$', StringComparison.Ordinal))
+        {
+            throw new LanguagePackRefusal(JavaRefusalCodes.InvalidIdentifier, "Java identifiers must not contain '$'.");
+        }
+
+        var sanitized = new string([.. name.Select(character => char.IsAsciiLetterOrDigit(character) || character == '_' ? character : '_')]);
+        if (sanitized.Length == 0) sanitized = "Generated";
+        if (char.IsAsciiDigit(sanitized[0])) sanitized = "_" + sanitized;
+        if (IsReserved(sanitized)) sanitized += "_";
+        if (!IsIdentifier(sanitized))
+        {
+            throw new LanguagePackRefusal(JavaRefusalCodes.InvalidIdentifier, "Java identifiers must not exceed 255 characters.");
+        }
+
+        return sanitized;
+    }
 }

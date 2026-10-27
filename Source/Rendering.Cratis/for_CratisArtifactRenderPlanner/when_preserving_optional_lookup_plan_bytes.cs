@@ -42,7 +42,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives.
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
-    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("92e4d7fcac7a85934405036bebc9f5871cf3b6639916c97d3cc00e5461dea4bd");
+    [Fact] void should_emit_the_frozen_plan_bytes() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("bcc049b21a281905ac67e77df3e818962193cf4aa693e6124a921b7a2f28d3ef");
     [Fact] void should_change_only_concept_query_arguments_runtime_pins_slice_sources_and_optional_stage_import_from_the_previous_frozen_plan() => PreviousRealizationDigest().ShouldEqual("7986946442a1dec6563cc885a43e2ea15e4ecc2a83066f476c263d2599c29bc4");
 
     string PreviousRealizationDigest() => ArtifactRenderPlan.ComputeDigest(

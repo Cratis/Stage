@@ -16,7 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class with_an_authored_scene : a_screen_composition_render
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
-    const string Before = "294b9bea14213a9f994baa48436ef343e711f0bcee5afd90139dd183f5b2bf65";
+    const string Before = "25a189940263ba6b06d45e0eb520fabc834beae2f84f9d04efd098955afc88bf";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -16,7 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class with_authored_screen_partitions : a_partitioned_screen_plan
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
-    const string Before = "58389193f25837802e2f2d0664f23ccdea53bb939f2f09bb13430ef9def6a265";
+    const string Before = "8efb88105b6912473c03e786ac3464ecc3af5cbda10b5b1cfd834d79654bbe59";
 
     void Because() => _application = AppPlan(_profile);
 

@@ -4,11 +4,29 @@
 namespace Cratis.Stage.Rendering.Languages.Java;
 
 /// <summary>
-/// Conservatively pre-validates the structured, sentinel-free java@1 input contract as defense in depth.
-/// Resolved output integrity is guaranteed only by <see cref="JavaOutputIntegrity"/>.
+/// Resolves the structured, sentinel-free java@1 contract with conservative binding and final output integrity checks.
 /// </summary>
 public static class JavaLanguagePack
 {
+    /// <summary>
+    /// Validates and resolves a complete plan without normalizing authored native bytes.
+    /// </summary>
+    /// <param name="plan">The structured, sentinel-free input supplied by the planner.</param>
+    /// <returns>Resolved files, allocated primary types, and caller-coded semantic-gap diagnostics in deterministic order.</returns>
+    /// <exception cref="LanguagePackRefusal">The input contract, a binding, or final output integrity cannot be proved.</exception>
+    public static LanguagePackResolution Resolve(SymbolPlan plan)
+    {
+        Validate(plan);
+        var resolver = new JavaFileResolver(new JavaDeclarations(plan));
+        var files = plan.Files.OrderBy(file => file.Id, StringComparer.Ordinal).Select(resolver.Resolve).ToArray();
+        var diagnostics = plan.Files.SelectMany(file => file.Segments.Select((segment, index) => (segment, index))
+            .Where(item => item.segment is GapSegment).Select(item => Diagnostic(file.Id, item.index, (GapSegment)item.segment)))
+            .OrderBy(diagnostic => diagnostic.File, StringComparer.Ordinal).ThenBy(diagnostic => diagnostic.Segment)
+            .ThenBy(diagnostic => diagnostic.Code, StringComparer.Ordinal).ToArray();
+
+        return new(files, diagnostics);
+    }
+
     /// <summary>
     /// Validates every input field, including metadata and external types, without modifying the plan.
     /// </summary>
@@ -41,6 +59,8 @@ public static class JavaLanguagePack
             InlineBodyScanner.ValidateDeclarations(file);
         }
     }
+
+    static LanguagePackDiagnostic Diagnostic(string file, int index, GapSegment gap) => new(file, index, gap.Code, gap.Construct, gap.Intent, gap.Context);
 
     static void ValidateLiteralBoundary(SymbolSegment segment)
     {

@@ -109,19 +109,33 @@ public static class SceneGuards
         {
             return null;
         }
-        if (condition.TryGetProperty("kind", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == "logical")
+        if (IsLogical(condition))
         {
-            return (condition.TryGetProperty("left", out var left) ? EnumerationMembershipDiagnostic(left) : null) ??
-                (condition.TryGetProperty("right", out var right) ? EnumerationMembershipDiagnostic(right) : null);
+            return LogicalSideDiagnostic(condition, "left") ?? LogicalSideDiagnostic(condition, "right");
         }
-        if (!condition.TryGetProperty("enumeration", out var enumeration) || enumeration.ValueKind != JsonValueKind.Array ||
-            enumeration.GetArrayLength() == 0 || enumeration.EnumerateArray().Any(member => member.ValueKind != JsonValueKind.String) ||
-            !condition.TryGetProperty("right", out var literal) || literal.ValueKind == JsonValueKind.Null)
+        if (!TryGetEnumerationComparison(condition, out var enumeration, out var literal))
         {
             return null;
         }
         return IsEnumerationMember(literal, enumeration) ? null : UnknownEnumerationLiteralDiagnosticCode;
     }
+
+    static bool IsLogical(JsonElement condition) => condition.TryGetProperty("kind", out var kind) &&
+        kind.ValueKind == JsonValueKind.String && kind.GetString() == "logical";
+
+    static string? LogicalSideDiagnostic(JsonElement condition, string side) =>
+        condition.TryGetProperty(side, out var value) ? EnumerationMembershipDiagnostic(value) : null;
+
+    static bool TryGetEnumerationComparison(JsonElement condition, out JsonElement enumeration, out JsonElement literal)
+    {
+        literal = default;
+        if (!condition.TryGetProperty("enumeration", out enumeration)) return false;
+        if (!IsStringEnumeration(enumeration)) return false;
+        return condition.TryGetProperty("right", out literal) && literal.ValueKind != JsonValueKind.Null;
+    }
+
+    static bool IsStringEnumeration(JsonElement enumeration) => enumeration.ValueKind == JsonValueKind.Array &&
+        enumeration.GetArrayLength() > 0 && !enumeration.EnumerateArray().Any(member => member.ValueKind != JsonValueKind.String);
 
     static bool IsEnumerationMember(JsonElement literal, JsonElement enumeration) => literal.ValueKind switch
     {

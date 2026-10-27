@@ -164,34 +164,54 @@ public class a_screen_composition_render : Specification
         }
     }
 
-    protected static IEnumerable<string> RejectedGuards(JsonNode? node, string jsonPath = "")
+    protected static IEnumerable<string> RejectedGuards(JsonNode? node, string jsonPath = "") => node switch
     {
-        if (node is JsonObject element)
+        JsonObject element => RejectedObjectGuards(element, jsonPath),
+        JsonArray array => RejectedItems(array, jsonPath),
+        _ => []
+    };
+
+    static IEnumerable<string> RejectedObjectGuards(JsonObject element, string jsonPath)
+    {
+        if (IsTriggeredBindingRejected(element))
         {
-            if (element.ContainsKey("trigger") && element["condition"] is JsonObject bindingCondition && !SceneGuards.CanRunBinding(bindingCondition))
-            {
-                yield return $"{jsonPath}/condition: kind={Spelling(bindingCondition["kind"])}, operator={Spelling(bindingCondition["operator"])}";
-            }
-            if (element["alternatives"] is JsonArray alternatives)
-            {
-                for (var index = 0; index < alternatives.Count; index++)
-                {
-                    var condition = alternatives[index] is JsonObject branch ? branch["condition"] : null;
-                    foreach (var rejection in RejectedCondition(condition, $"{jsonPath}/alternatives/{index}/condition")) yield return rejection;
-                }
-            }
-            foreach (var property in element)
-            {
-                var segment = property.Key.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
-                foreach (var rejection in RejectedGuards(property.Value, $"{jsonPath}/{segment}")) yield return rejection;
-            }
+            var bindingCondition = element["condition"]!;
+            yield return $"{jsonPath}/condition: kind={Spelling(bindingCondition["kind"])}, operator={Spelling(bindingCondition["operator"])}";
         }
-        else if (node is JsonArray array)
+        foreach (var rejection in RejectedAlternatives(element, jsonPath).Concat(RejectedChildren(element, jsonPath))) yield return rejection;
+    }
+
+    static bool IsTriggeredBindingRejected(JsonObject element)
+    {
+        if (!element.ContainsKey("trigger")) return false;
+        if (element["condition"] is not JsonObject bindingCondition) return false;
+        return !SceneGuards.CanRunBinding(bindingCondition);
+    }
+
+    static IEnumerable<string> RejectedAlternatives(JsonObject element, string jsonPath)
+    {
+        if (element["alternatives"] is not JsonArray alternatives) yield break;
+        for (var index = 0; index < alternatives.Count; index++)
         {
-            for (var index = 0; index < array.Count; index++)
-            {
-                foreach (var rejection in RejectedGuards(array[index], $"{jsonPath}/{index}")) yield return rejection;
-            }
+            var condition = alternatives[index] is JsonObject branch ? branch["condition"] : null;
+            foreach (var rejection in RejectedCondition(condition, $"{jsonPath}/alternatives/{index}/condition")) yield return rejection;
+        }
+    }
+
+    static IEnumerable<string> RejectedChildren(JsonObject element, string jsonPath)
+    {
+        foreach (var property in element)
+        {
+            var segment = property.Key.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
+            foreach (var rejection in RejectedGuards(property.Value, $"{jsonPath}/{segment}")) yield return rejection;
+        }
+    }
+
+    static IEnumerable<string> RejectedItems(JsonArray array, string jsonPath)
+    {
+        for (var index = 0; index < array.Count; index++)
+        {
+            foreach (var rejection in RejectedGuards(array[index], $"{jsonPath}/{index}")) yield return rejection;
         }
     }
 
@@ -200,11 +220,18 @@ public class a_screen_composition_render : Specification
         if (SceneGuards.CanEvaluate(condition)) yield break;
         var guard = condition as JsonObject;
         yield return $"{jsonPath}: kind={Spelling(guard?["kind"])}, operator={Spelling(guard?["operator"])}";
-        if (guard?["kind"] is not JsonValue kind || !kind.TryGetValue<string>(out var name) || name != "logical") yield break;
+        if (guard is null) yield break;
+        if (!IsLogical(guard)) yield break;
         foreach (var side in new[] { "left", "right" })
         {
             foreach (var rejection in RejectedCondition(guard[side], $"{jsonPath}/{side}")) yield return rejection;
         }
+    }
+
+    static bool IsLogical(JsonObject guard)
+    {
+        if (guard["kind"] is not JsonValue kind) return false;
+        return kind.TryGetValue<string>(out var name) && name == "logical";
     }
 
     static string Spelling(JsonNode? value) => value switch

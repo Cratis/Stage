@@ -11,11 +11,11 @@ namespace Cratis.Stage.Rendering.Templates.for_TemplateProfile;
 public class when_sorting_with_a_budget : for_TemplatePreparer.given.a_kit
 {
     [Theory]
-    [InlineData(100)]
-    [InlineData(50)]
-    public void should_meter_materialization_and_comparisons_and_drop_partial_output(int size)
+    [InlineData(100, 100)]
+    [InlineData(50, 200)] // Materialization and result construction alone fit; comparisons must exhaust the budget.
+    public void should_meter_materialization_and_comparisons_and_drop_partial_output(int size, int maxSteps)
     {
-        using var plan = TemplateProfile.Prepare(Kit("before{{ sorted = array.sort (1.." + size + ") }}after"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default with { MaxSteps = 100 });
+        using var plan = TemplateProfile.Prepare(Kit("before{{ sorted = array.sort (1.." + size + ") }}after"), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default with { MaxSteps = maxSteps });
         var clock = Stopwatch.StartNew();
         var result = plan.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { } }));
         result.Refusal.ShouldNotBeNull();

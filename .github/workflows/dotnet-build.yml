@@ -312,7 +312,7 @@ jobs:
           AI_WORK_KEEP: ${{ github.workspace }}/TestResults/reducer-mongo
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
-          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured"
+          --filter "FullyQualifiedName~when_verifying_billing_mongo_deletion.mongo_container_matches_model_bound_read_model_query_when_configured|FullyQualifiedName~when_verifying_scoped_projections_against_mongo.should_report_both_mongo_shapes_when_configured|FullyQualifiedName~when_verifying_routed_appends_against_mongo.should_append_all_routes_when_configured|FullyQualifiedName~when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured|FullyQualifiedName~when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured|FullyQualifiedName~when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured|FullyQualifiedName~when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured"
           --logger "trx;LogFileName=billing-mongo.trx" --results-directory ./TestResults/reducer-mongo
 
       - name: Run Stage projection reconnect probe
@@ -341,6 +341,8 @@ jobs:
               prefix + "when_verifying_reducer_filters_against_mongo.should_filter_reducer_appends_when_configured",
               prefix + "when_verifying_reactions_against_the_pinned_kernel.should_settle_event_reactions_when_configured",
               prefix + "when_verifying_reducer_migration_against_the_pinned_kernel.should_keep_one_builder_with_the_previous_observer_id_when_configured",
+              prefix + "when_verifying_inline_code_against_the_pinned_kernel.should_verify_demo_when_configured",
+              prefix + "when_verifying_inline_code_against_the_pinned_kernel.should_verify_min_a3_when_configured",
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_reconnecting_against_the_pinned_kernel.should_keep_stage_projections_updating_when_configured",
               "Cratis.Stage.Host.for_CratisServiceConfiguration.when_encrypting_against_the_pinned_kernel.should_encrypt_and_release_concepts_when_configured",
           }

@@ -122,6 +122,6 @@ on a worker timeout, kill it, refuse the whole plan and discard its artifacts. A
 is not a security boundary. The profile exposes no file loader, clock, environment, regex, dynamic evaluation
 or unrestricted CLR access, but does not provide process isolation.
 
-See the generated [v1 helper reference](../reference/template-profile-v1.md) for exact signatures and the
+See the generated [v1 helper reference](../reference/template-helpers.md) for exact signatures and the
 closed standard-library allowlist. Changing a frozen signature, default, allowlist or vector requires an
 explicit compatible contract/profile version decision; do not silently regenerate a released v1 freeze.

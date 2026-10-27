@@ -7,7 +7,7 @@ Reference material for a model Stage is performing, and for the targets it resol
 
 ## Topics
 
-- [Template profile v1 helpers](template-profile-v1.md) — the locked declarative-kit helper signatures and standard-library allowlist.
+- [Template helper catalogue](template-helpers.md) — the generated v1 catalogue of the locked declarative-kit helper signatures and standard-library allowlist.
 
 - [Event reaction rendering](reaction-rendering.md) — Automation artifacts, reactor identity, side effects, retry behavior and remaining refusals.
 

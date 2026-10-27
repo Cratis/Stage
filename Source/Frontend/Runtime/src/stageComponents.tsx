@@ -11,7 +11,7 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -282,6 +282,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
     const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
+    const [footer, setFooter] = useState<HTMLElement | null>(null);
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
     const fromSelectedRow = (property: SchemaProperty) => property.identifier && property.required && carriedBy(property, selectableRows) && selectedIdentifier(property, selectedRows) !== undefined;
@@ -299,8 +300,8 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     return (
         <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command}>
             <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{title}</h2></header>
-            <StageDialogContext.Provider value={close}><StageCommandForm element={form} /></StageDialogContext.Provider>
-            <footer className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
+            <StageDialogContext.Provider value={close}><StageDialogFooterContext.Provider value={footer}><StageCommandForm element={form} /></StageDialogFooterContext.Provider></StageDialogContext.Provider>
+            <footer ref={setFooter} className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
         </section>
     );
 }

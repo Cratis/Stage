@@ -18,4 +18,19 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0002: an eligible JLS 3.3 Unicode escape lacks four hexadecimal digits.
     /// </summary>
     public const string MalformedUnicodeEscape = "STAGE-JAVA-0002";
+
+    /// <summary>
+    /// STAGE-JAVA-0003: a raw field or its JLS 3.3 translation contains a private-use code point.
+    /// </summary>
+    public const string PrivateUseCodePoint = "STAGE-JAVA-0003";
+
+    /// <summary>
+    /// STAGE-JAVA-0004: a raw field or its JLS 3.3 translation contains a lone UTF-16 surrogate.
+    /// </summary>
+    public const string LoneSurrogate = "STAGE-JAVA-0004";
+
+    /// <summary>
+    /// STAGE-JAVA-0005: a gap or native segment has a context other than type, member, or statement.
+    /// </summary>
+    public const string UnsupportedContext = "STAGE-JAVA-0005";
 }

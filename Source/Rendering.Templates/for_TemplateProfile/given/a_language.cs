@@ -3,30 +3,45 @@
 
 using System.Globalization;
 using System.Text.Json;
+using Cratis.Stage.Rendering.Kits;
 
 namespace Cratis.Stage.Rendering.Templates.for_TemplateProfile.given;
 
-internal sealed class a_language(string id = "stub") : ITemplateLanguage
+internal sealed class a_language : ITemplateLanguage, ITypeDirectory
 {
-    public string LanguageId => id;
+    public LanguagePackVersion Pack => new("test", "1.0.0");
 
-    public string EscapeString(string value) => JsonSerializer.Serialize(value);
+    public string String(string value) => JsonSerializer.Serialize(value);
 
-    public string FormatInteger(long value) => value.ToString(CultureInfo.InvariantCulture);
+    public string Integer(long value) => value.ToString(CultureInfo.InvariantCulture);
 
-    public string FormatDecimal(decimal value) => value.ToString(CultureInfo.InvariantCulture);
+    public string Decimal(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 
-    public string FormatBoolean(bool value) => value ? "yes" : "no";
+    public string Boolean(bool value) => value ? "yes" : "no";
 
-    public string FormatNull() => "nil";
+    public string Null() => "nil";
 
-    public string EscapeComment(string value) => value.Replace("*/", "* /", StringComparison.Ordinal).Replace('\n', ' ');
+    public string Comment(string value) => value.Replace("*/", "* /", StringComparison.Ordinal).Replace('\n', ' ');
 
-    public string EscapeIdentifier(string value) => "@" + value;
+    public string Identifier(string value) => "@" + value;
 
-    public TemplateSegment[]? RenderType(TemplateType type) => type.Kind == "unsupported" ? null : [new TemplateTextSegment(id + ":" + type.Kind)];
+    public TypeSpelling Primitive(string primitive) => primitive switch
+    {
+        "text" => new([new TemplateTextSegment("string")]),
+        "wholeNumber" => new([new TemplateTextSegment("long")]),
+        "uuid" => new([new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("System", "Guid"))]),
+        _ => throw new TemplateLanguageRefusal("Unknown primitive.")
+    };
 
-    public string FormatImports(IReadOnlyList<SymbolDescriptor> symbols) => string.Join(',', symbols.Select(symbol => symbol.Identity));
+    public TypeSpelling Collection(TypeSpelling element) => new([.. element.Parts, new TemplateTextSegment("[]")]);
 
-    public TemplateSegment[] EmitGap(TemplateGap gap) => [new TemplateTextSegment("FAIL[" + gap.Role + ":" + gap.Code + "]")];
+    public TypeSpelling Optional(TypeSpelling element) => new([.. element.Parts, new TemplateTextSegment("?")]);
+
+    public string Placeholder(GapRole role, string code, string intent) => "FAIL[" + role + ":" + code + "]";
+
+    public bool TryGet(string semanticId, out TemplateSymbol symbol)
+    {
+        symbol = new(semanticId == "other" ? "Other" : "Domain", "Customer");
+        return semanticId == "customer" || semanticId == "other";
+    }
 }

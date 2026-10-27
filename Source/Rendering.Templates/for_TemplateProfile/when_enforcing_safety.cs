@@ -33,40 +33,42 @@ public class when_enforcing_safety : for_TemplatePreparer.given.a_kit
     [Fact]
     public void should_bound_deadline_and_drop_partial_output()
     {
-        using var plan = TemplateProfile.Prepare(Kit("before{{ while true }}x{{ end }}"), new given.a_language()).Prepared!.BeginPlan(TemplateBudget.Default with { Deadline = TimeSpan.FromTicks(1) });
+        using var plan = TemplateProfile.Prepare(Kit("before{{ while true }}x{{ end }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default with { Deadline = TimeSpan.FromTicks(1) });
         var result = plan.Render("main.scriban", Scope);
         result.Refusal!.Code.ShouldEqual(TemplateCodes.Deadline);
         result.Output.ShouldBeNull();
     }
 
-    [Fact]
-    public void should_reject_symbol_paths()
+    [Theory]
+    [InlineData("{{ sym.ref 'Domain' 'Customer' }}")]
+    [InlineData("{{ sym.imports }}")]
+    [InlineData("{{ gap 'throwing_operation_body' 'Missing' 'model' }}")]
+    public void should_reject_structured_paths(string path)
     {
-        using var plan = TemplateProfile.Prepare(Kit(path: "{{ sym.ref model.symbol }}"), new given.a_language()).Prepared!.BeginPlan(TemplateBudget.Default);
-        using var scope = JsonDocument.Parse("""{"model":{"symbol":{"$symbol":true,"identity":"A"}}}""");
-        var result = plan.RenderPath("main", scope.RootElement);
-        result.Diagnostics[0].Code.ShouldEqual(TemplateCodes.Symbol);
+        using var plan = TemplateProfile.Prepare(Kit(path: path), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        var result = plan.RenderPath("main", Scope);
+        result.Refusal!.Code.ShouldEqual(TemplateCodes.Input);
         result.Value.ShouldBeNull();
     }
 
     [Fact]
     public void should_keep_fan_out_types_strict()
     {
-        using var plan = TemplateProfile.Prepare(Kit(forEach: "model.name"), new given.a_language()).Prepared!.BeginPlan(TemplateBudget.Default);
-        plan.EvaluateForEach("main", Scope).Diagnostics[0].Code.ShouldEqual(TemplateCodes.Input);
+        using var plan = TemplateProfile.Prepare(Kit(forEach: "model.name"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        plan.EvaluateForEach("main", Scope).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
     }
 
     [Fact]
     public void should_keep_conditions_strict()
     {
-        using var plan = TemplateProfile.Prepare(Kit(when: "model.name"), new given.a_language()).Prepared!.BeginPlan(TemplateBudget.Default);
-        plan.EvaluateWhen("main", Scope).Diagnostics[0].Code.ShouldEqual(TemplateCodes.Input);
+        using var plan = TemplateProfile.Prepare(Kit(when: "model.name"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        plan.EvaluateWhen("main", Scope).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
     }
 
     [Fact]
     public void should_support_local_functions_without_host_bindings()
     {
-        using var plan = TemplateProfile.Prepare(Kit("{{ func greet(x); 'Hello ' + x; end; greet model.name }}"), new given.a_language()).Prepared!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(Kit("{{ func greet(x); 'Hello ' + x; end; greet model.name }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
         var result = plan.Render("main.scriban", Scope);
         result.Refusal.ShouldBeNull();
         ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual("Hello data");

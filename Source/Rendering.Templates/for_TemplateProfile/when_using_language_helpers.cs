@@ -9,25 +9,46 @@ namespace Cratis.Stage.Rendering.Templates.for_TemplateProfile;
 
 public class when_using_language_helpers : for_TemplatePreparer.given.a_kit
 {
-    [Theory]
-    [InlineData("HTTPServer2_value", "http_server_2_value", "HttpServer2Value", "httpServer2Value")]
-    [InlineData(" déjà__Vu ", "déjà_vu", "DéjàVu", "déjàVu")]
-    [InlineData("a---B", "a_b", "AB", "aB")]
-    public void should_apply_frozen_naming_vectors(string source, string snake, string pascal, string camel)
+    [Fact]
+    public void should_use_invariant_word_arrays_and_target_owned_literals()
     {
-        TemplateNames.Apply("snake", source).ShouldEqual(snake);
-        TemplateNames.Apply("pascal", source).ShouldEqual(pascal);
-        TemplateNames.Apply("camel", source).ShouldEqual(camel);
+        using var plan = TemplateProfile.Prepare(Kit("{{ name.pascal model.words }}|{{ name.camel model.words }}|{{ name.snake model.words }}|{{ lit.identifier 'class' }}|{{ lit.string model.text }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var json = JsonDocument.Parse("""{"model":{"words":["order","iD","eMail"],"text":"quote\""}}""");
+        var result = plan.Render("main.scriban", json.RootElement);
+        result.Refusal.ShouldBeNull();
+        ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual("OrderIDEMail|orderIDEMail|order_id_email|@class|\"quote\\u0022\"");
+    }
+
+    [Theory]
+    [InlineData("\"raw text\"")]
+    [InlineData("[]")]
+    [InlineData("[\"\"]")]
+    [InlineData("[1]")]
+    public void should_reject_nonword_inputs(string input)
+    {
+        using var plan = TemplateProfile.Prepare(Kit("{{ name.pascal model.words }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var json = JsonDocument.Parse("{\"model\":{\"words\":" + input + "}}");
+        plan.Render("main.scriban", json.RootElement).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
+    }
+
+    [Theory]
+    [InlineData("{{ lit.integer '42' }}")]
+    [InlineData("{{ lit.boolean 'true' }}")]
+    [InlineData("{{ lit.string 42 }}")]
+    public void should_reject_literal_coercions(string template)
+    {
+        using var plan = TemplateProfile.Prepare(Kit(template), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        plan.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { } })).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
     }
 
     [Fact]
-    public void should_use_the_public_profile_and_language_seam()
+    public void should_preserve_symbol_types_and_wrapper_order()
     {
-        var prepared = TemplateProfile.Prepare(Kit("{{ lit.boolean model.flag }} {{ lit['null'] }} {{ name.constant 'HTTPServer' }}"), new given.a_language());
-        prepared.Diagnostics.ShouldBeEmpty();
-        using var plan = prepared.Prepared!.BeginPlan(TemplateBudget.Default);
-        var result = plan.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { flag = true } }));
+        using var plan = TemplateProfile.Prepare(Kit("{{ type.ref model.type }}"), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var json = JsonDocument.Parse("""{"model":{"type":{"kind":"primitive","primitive":"uuid","isCollection":true,"isOptional":true}}}""");
+        var result = plan.Render("main.scriban", json.RootElement);
         result.Refusal.ShouldBeNull();
-        ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual("yes nil HTTP_SERVER");
+        result.Output!.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("System", "Guid")));
+        ((TemplateTextSegment)result.Output.Segments[1]).Text.ShouldEqual("[]?");
     }
 }

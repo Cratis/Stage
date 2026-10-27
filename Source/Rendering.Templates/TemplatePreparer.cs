@@ -11,13 +11,15 @@ namespace Cratis.Stage.Rendering.Templates;
 
 internal static class TemplatePreparer
 {
-    internal static TemplateResult<PreparedTemplateKit> Prepare(LoadedKit kit, ContractOverrides? overrides = null)
+    internal static TemplatePreparation Prepare(LoadedKit kit, TemplateSectionOverrides? overrides = null)
     {
         var errors = new List<TemplateDiagnostic>();
-        if (!kit.Manifest.Requires.Any(contract => contract.Name == "templates" && contract.Major == 1 && contract.Minor == 0)) errors.Add(new(TemplateCodes.MissingContract, "Kit must require templates/v1.0.", string.Empty, 0, 0));
+        if (!kit.Manifest.Requires.Any(contract => contract.Name == "templates" && contract.Major == 1)) errors.Add(new(TemplateCodes.MissingContract, "Kit must require templates/v1.x.", string.Empty, 0, 0));
         var templates = ImmutableDictionary.CreateBuilder<string, Template>(StringComparer.Ordinal);
         var expressions = ImmutableDictionary.CreateBuilder<string, Template>(StringComparer.Ordinal);
-        var sections = new Dictionary<string, string>(StringComparer.Ordinal);
+        var sections = ImmutableDictionary.CreateBuilder<string, ImmutableArray<string>>(StringComparer.Ordinal);
+        var replacements = ImmutableDictionary.CreateBuilder<(string Template, string Section), Template>();
+        var operators = ImmutableDictionary.CreateBuilder<string, OperatorTable>(StringComparer.Ordinal);
         foreach (var path in kit.Manifest.Outputs.Select(output => output.Template).Concat(kit.Manifest.Partials.Select(partial => partial.Template)).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
         {
             Attempt(() => templates.Add(path, Parse(path, new UTF8Encoding(false, true).GetString(kit.Files[path].AsSpan()), false)), path, errors);
@@ -32,23 +34,43 @@ internal static class TemplatePreparer
             void AddExpression(string kind, string text, bool expression) => Attempt(() => expressions.Add(output.Id + ":" + kind, Parse(output.Template + ":" + kind, text, expression)), output.Template, errors);
         }
 
-        foreach (var template in templates.Values.Concat(expressions.Values).OrderBy(template => template.SourceFilePath, StringComparer.Ordinal)) Attempt(() => new TemplateLint(kit, sections).Visit(template.Page), template.SourceFilePath, errors);
-        foreach (var section in overrides?.Sections ?? [])
+        foreach (var template in templates.Values.Concat(expressions.Values).OrderBy(template => template.SourceFilePath, StringComparer.Ordinal))
         {
-            if (!sections.ContainsKey(section.Key) || !kit.Manifest.Partials.Any(partial => partial.Name == section.Value)) errors.Add(new(TemplateCodes.Override, "Unknown section or replacement partial: " + section.Key, string.Empty, 0, 0));
-            else sections[section.Key] = section.Value;
+            var lint = new TemplateLint(kit, errors);
+            lint.Visit(template.Page);
+            if (templates.ContainsKey(template.SourceFilePath!)) sections[template.SourceFilePath!] = [.. lint.Sections];
         }
 
-        var operators = OperatorTable.Empty;
-        var operatorSource = kit.Manifest.Tables.FirstOrDefault(table => table.Name == "operators");
-        if (operatorSource is not null) Attempt(() => operators = OperatorTable.Parse(kit.Files[operatorSource.Path].AsSpan()), operatorSource.Path, errors);
-        return errors.Count > 0 ? TemplateResult<PreparedTemplateKit>.Refused([.. errors]) : TemplateResult<PreparedTemplateKit>.Success(new(kit, templates.ToImmutable(), expressions.ToImmutable(), operators, sections.ToImmutableDictionary(StringComparer.Ordinal)));
+        foreach (var body in overrides?.Bodies ?? new Dictionary<(string, string), string>())
+        {
+            var (path, section) = body.Key;
+            if (!sections.TryGetValue(path, out var names) || !names.Contains(section, StringComparer.Ordinal))
+            {
+                errors.Add(new(TemplateCodes.Override, "Unknown template or section: " + section, path, 0, 0));
+            }
+            else
+            {
+                Attempt(
+                    () =>
+                    {
+                        var replacement = Parse(path, body.Value, false);
+                        new TemplateLint(kit, errors, true).Visit(replacement.Page);
+                        replacements.Add(body.Key, replacement);
+                    },
+                    path,
+                    errors);
+            }
+        }
+
+        foreach (var table in kit.Manifest.Tables) Attempt(() => operators.Add(table.Name, OperatorTable.Parse(kit.Files[table.Path].AsSpan())), table.Path, errors);
+        var diagnostics = errors.OrderBy(error => error.Code, StringComparer.Ordinal).ThenBy(error => error.Path, StringComparer.Ordinal).ThenBy(error => error.Line).ThenBy(error => error.Message, StringComparer.Ordinal).ToImmutableArray();
+        return new(diagnostics.IsEmpty ? new(kit, templates.ToImmutable(), expressions.ToImmutable(), operators.ToImmutable(), replacements.ToImmutable(), sections.ToImmutable()) : null, diagnostics);
     }
 
     static void Attempt(Action action, string? path, List<TemplateDiagnostic> errors)
     {
         try { action(); }
-        catch (TemplateRefusal refusal) { errors.Add(refusal.Diagnostic); }
+        catch (TemplateRefusal refusal) { errors.Add(refusal.Diagnostic with { Path = path ?? string.Empty }); }
         catch (Exception error) when (error is DecoderFallbackException or KeyNotFoundException)
         {
             errors.Add(new(TemplateCodes.Parse, "Missing source or invalid UTF-8.", path ?? string.Empty, 0, 0));

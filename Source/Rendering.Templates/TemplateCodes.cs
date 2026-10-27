@@ -6,7 +6,7 @@ namespace Cratis.Stage.Rendering.Templates;
 /// <summary>
 /// Stable safety refusal codes for stage-templates/v1.
 /// </summary>
-public static class TemplateCodes
+internal static class TemplateCodes
 {
     /// <summary>Missing templates/v1 requirement.</summary>
     public const string MissingContract = "STAGE-TPL-001";

@@ -6,4 +6,4 @@ using System.Collections.Immutable;
 namespace Cratis.Stage.Rendering.Templates;
 
 /// <summary>Prepared sources or safety refusals. Refusals have no usable preparation.</summary>
-public sealed record TemplatePrepareResult(PreparedTemplates? Prepared, ImmutableArray<TemplateDiagnostic> Diagnostics);
+public sealed record TemplatePrepareResult(PreparedTemplates? Templates, ImmutableArray<TemplateDiagnostic> Diagnostics);

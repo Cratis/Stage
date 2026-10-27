@@ -7,20 +7,33 @@ namespace Cratis.Stage.Rendering.Templates;
 
 internal static class TypeDescriptors
 {
-    internal static TemplateType Parse(object? value)
+    internal static TypeSpelling Spell(object? value, ITemplateLanguage language, ITypeDirectory types)
     {
-        if (value is not JsonScriptValues.JsonObject data) throw JsonScriptValues.Invalid("type.ref requires a JSON type descriptor.");
-        return ParseType(data.Source, 0);
+        if (value is not JsonScriptValues.JsonObject data) throw JsonScriptValues.Invalid("type.ref requires a JSON type reference.");
+        var source = data.Source;
+        OperatorTable.Fields(source, ["kind", "primitive", "target", "isCollection", "isOptional"], true);
+        var kind = Text(source, "kind");
+        var element = kind switch
+        {
+            "primitive" => language.Primitive(Text(source, "primitive")),
+            "concept" or "composite" => Resolve(types, Text(source, "target")),
+            _ => throw JsonScriptValues.Invalid("Unknown type kind.")
+        };
+        if (Flag(source, "isCollection")) element = language.Collection(element);
+        if (Flag(source, "isOptional")) element = language.Optional(element);
+        return element;
     }
 
-    static TemplateType ParseType(JsonElement value, int depth)
+    static TypeSpelling Resolve(ITypeDirectory types, string target) => types.TryGet(target, out var symbol)
+        ? new([new TemplateSymbolSegment(TemplateSymbolKind.Reference, symbol)])
+        : throw JsonScriptValues.Invalid("Unknown semantic type identity: " + target);
+
+    static string Text(JsonElement source, string name) => source.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text ? text : throw JsonScriptValues.Invalid("Type reference requires " + name + ".");
+
+    static bool Flag(JsonElement source, string name) => source.GetProperty(name).ValueKind switch
     {
-        if (depth >= 64) throw PlanMeter.Exceeded(TemplateCodes.Recursion, "Type descriptor nesting exceeded.");
-        if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("kind", out var kind) || kind.ValueKind != JsonValueKind.String) throw JsonScriptValues.Invalid("Type descriptor requires kind.");
-        if (value.EnumerateObject().Any(property => property.Name is not ("kind" or "element" or "optional"))) throw JsonScriptValues.Invalid("Unknown type descriptor field.");
-        var optional = value.TryGetProperty("optional", out var flag) && flag.ValueKind switch { JsonValueKind.True => true, JsonValueKind.False => false, _ => throw JsonScriptValues.Invalid("optional must be Boolean.") };
-        var element = value.TryGetProperty("element", out var item) ? ParseType(item, depth + 1) : null;
-        if (kind.GetString() == "array" && element is null) throw JsonScriptValues.Invalid("Array type requires an element.");
-        return new(kind.GetString()!, element, optional);
-    }
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        _ => throw JsonScriptValues.Invalid("Type reference requires Boolean " + name + ".")
+    };
 }

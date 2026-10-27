@@ -7,6 +7,8 @@ Reference material for a model Stage is performing, and for the targets it resol
 
 ## Topics
 
+- [Template profile v1 helpers](template-profile-v1.md) — the locked declarative-kit helper signatures and standard-library allowlist.
+
 - [Event reaction rendering](reaction-rendering.md) — Automation artifacts, reactor identity, side effects, retry behavior and remaining refusals.
 
 - [Generated values and command responses](generated-values-rendering.md) — UUID concepts, generation fixtures, response contracts and limits.

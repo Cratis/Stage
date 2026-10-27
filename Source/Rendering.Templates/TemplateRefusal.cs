@@ -5,6 +5,7 @@ using Scriban.Parsing;
 
 namespace Cratis.Stage.Rendering.Templates;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public", Justification = "The profile contract keeps the internal engine exception out of its public API.")]
 internal sealed class TemplateRefusal(TemplateDiagnostic diagnostic) : Exception(diagnostic.Message)
 {
     internal TemplateDiagnostic Diagnostic { get; } = diagnostic;

@@ -12,6 +12,7 @@ internal static class TemplateErrorMap
         for (var inner = error; inner is not null; inner = inner.InnerException)
         {
             if (inner is TemplateRefusal refusal) return refusal.Diagnostic;
+            if (inner is TemplateLanguageRefusal language) return new(TemplateCodes.Input, language.Message, string.Empty, 0, 0);
             if (inner is OperationCanceledException) return new(TemplateCodes.Deadline, "Plan deadline exceeded.", string.Empty, 0, 0);
         }
 

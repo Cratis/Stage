@@ -10,5 +10,6 @@
         <ProjectReference Include="../Rendering.Kits/Rendering.Kits.csproj" />
         <PackageReference Include="Scriban" />
         <EmbeddedResource Include="v1.*" />
+    <EmbeddedResource Include="../../Documentation/reference/template-profile-v1.md" LogicalName="template-profile-v1.md" />
     </ItemGroup>
 </Project>

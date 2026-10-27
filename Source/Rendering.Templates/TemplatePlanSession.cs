@@ -17,7 +17,7 @@ public sealed partial class TemplatePlanSession : IDisposable
     readonly LockedContext _context;
     bool _disposed;
 
-    internal TemplatePlanSession(PreparedTemplateKit prepared, TemplateBudget budget, ITemplateLanguage? language = null)
+    internal TemplatePlanSession(PreparedTemplateKit prepared, TemplateBudget budget, ITemplateLanguage language, ITypeDirectory types)
     {
         _prepared = prepared;
         _budget = budget;
@@ -34,16 +34,15 @@ public sealed partial class TemplatePlanSession : IDisposable
         _context = new(budget, _meter, _deadline.Token);
         var helpers = new ScriptObject();
         helpers.Import("render", new Func<string, object?, object?>(RenderPartial));
-        helpers.Import("section", new Func<string, string, object?>((name, fallback) => RenderPartial(_prepared.Sections.GetValueOrDefault(_context.CurrentSpan.FileName + "#" + name, fallback))));
+        _context.Section = RenderSection;
         var symbols = new ScriptObject();
-        symbols.Import("ref", new Func<object?, SymbolHandle>(value => new(SymbolHandle.Parse(value))));
+        symbols.Import("decl", new Func<object?, object?, SymbolHandle>((ns, name) => SymbolHandle.Create(TemplateSymbolKind.Declaration, ns, name)));
+        symbols.Import("ref", new Func<object?, object?, SymbolHandle>((ns, name) => SymbolHandle.Create(TemplateSymbolKind.Reference, ns, name)));
+        symbols.Import("imports", new Func<SymbolHandle>(() => new(new(TemplateSymbolKind.Imports, null))));
         symbols.IsReadOnly = true;
         helpers.SetValue("sym", symbols, true);
-        if (language is not null)
-        {
-            LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
-            InstallSemantics(helpers, language);
-        }
+        LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
+        InstallSemantics(helpers, language, types);
         _context.PushGlobal(helpers);
     }
 
@@ -75,7 +74,7 @@ public sealed partial class TemplatePlanSession : IDisposable
             }
             finally { _context.PopGlobal(); }
         });
-        return new(result.Value, result.Diagnostics.IsEmpty ? null : result.Diagnostics[0]);
+        return new(result.Value, result.Refusal);
     }
 
     /// <inheritdoc/>
@@ -95,7 +94,7 @@ public sealed partial class TemplatePlanSession : IDisposable
             _meter.CheckDeadline();
             return TemplateResult<T>.Success(action());
         }
-        catch (Exception error) when (error is TemplateRefusal or ScriptRuntimeException or OperationCanceledException or ArgumentException or OverflowException or InvalidOperationException)
+        catch (Exception error) when (error is TemplateRefusal or TemplateLanguageRefusal or ScriptRuntimeException or OperationCanceledException or ArgumentException or OverflowException or InvalidOperationException or KeyNotFoundException)
         {
             Refusal = TemplateErrorMap.Map(error);
             return TemplateResult<T>.Refused(Refusal);
@@ -109,6 +108,14 @@ public sealed partial class TemplatePlanSession : IDisposable
         var bindings = new ScriptObject();
         foreach (var key in data.Keys) bindings.SetValue(key, data[key], true);
         _context.PushGlobal(bindings);
+    }
+
+    object? RenderSection(ScriptWrapStatement wrap)
+    {
+        var call = (ScriptFunctionCall)wrap.Target!;
+        var name = (string)((ScriptLiteral)call.Arguments[0]).Value!;
+        var body = _prepared.Overrides.TryGetValue((wrap.Span.FileName, name), out var replacement) ? replacement.Page!.Body : wrap.Body;
+        return _context.Evaluate(body, false);
     }
 
     object? RenderPartial(string name, object? argument = null)

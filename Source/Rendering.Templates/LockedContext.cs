@@ -29,23 +29,26 @@ internal sealed class LockedContext : TemplateContext
         PushCulture(CultureInfo.InvariantCulture);
     }
 
+    internal Func<ScriptWrapStatement, object?>? Section { get; set; }
+
     internal bool AllowStructuredOutput { get; set; } = true;
 
     public override object? Evaluate(ScriptNode? scriptNode, bool aliasReturnedFunction)
     {
         if (scriptNode is not null) _meter.Step();
-        var value = base.Evaluate(scriptNode, aliasReturnedFunction);
-        if (value is SymbolHandle or SegmentHandle && scriptNode is not ScriptExpressionStatement && scriptNode?.Parent is not (ScriptExpressionStatement or ScriptAssignExpression)) throw SymbolHandle.NotText();
+        var value = scriptNode is ScriptWrapStatement wrap ? Section!(wrap) : base.Evaluate(scriptNode, aliasReturnedFunction);
+        if (value is SymbolHandle or SegmentHandle && scriptNode is not ScriptExpressionStatement && scriptNode?.Parent is not (ScriptExpressionStatement or ScriptAssignExpression or ScriptIfStatement) && !IsNullTest(scriptNode?.Parent)) throw SymbolHandle.NotText();
         return value;
     }
 
     public override TemplateContext Write(SourceSpan span, object? textAsObject)
     {
         if (textAsObject is not (SymbolHandle or SegmentHandle)) return base.Write(span, textAsObject);
-        if (!AllowStructuredOutput || OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
+        if (!AllowStructuredOutput) throw JsonScriptValues.Invalid("A path cannot contain structured symbols.");
+        if (OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
         if (textAsObject is SymbolHandle symbol)
         {
-            segments.Symbol(symbol.Descriptor);
+            segments.Symbol(symbol.Segment);
         }
         else
         {
@@ -58,7 +61,7 @@ internal sealed class LockedContext : TemplateContext
 
     public override bool ToBool(SourceSpan span, object? value)
     {
-        if (value is SymbolHandle or SegmentHandle) throw SymbolHandle.NotText();
+        if (value is SymbolHandle or SegmentHandle) return true;
         return base.ToBool(span, value);
     }
 
@@ -75,4 +78,6 @@ internal sealed class LockedContext : TemplateContext
         if (target is IScriptObject) return base.GetMemberAccessorImpl(target);
         throw TemplateRefusal.At(TemplateCodes.HostValue, "CLR members are not accessible.", CurrentSpan);
     }
+
+    static bool IsNullTest(ScriptNode? node) => node is ScriptBinaryExpression { Operator: ScriptBinaryOperator.CompareEqual or ScriptBinaryOperator.CompareNotEqual } binary && (binary.Left is ScriptLiteral { Value: null } || binary.Right is ScriptLiteral { Value: null });
 }

@@ -22,11 +22,15 @@ internal sealed class SegmentOutput(PlanMeter meter) : IScriptOutput
         return ValueTask.CompletedTask;
     }
 
-    internal void Symbol(SymbolDescriptor descriptor)
+    internal void Symbol(TemplateSymbolSegment segment)
     {
         Flush();
-        meter.Bytes(Encoding.UTF8.GetByteCount(descriptor.Identity) + Encoding.UTF8.GetByteCount(descriptor.Namespace ?? string.Empty) + Encoding.UTF8.GetByteCount(descriptor.Name ?? string.Empty));
-        _segments.Add(new TemplateSymbolUseSegment(descriptor));
+        if (segment.Symbol is { } symbol)
+        {
+            if (string.IsNullOrEmpty(symbol.Namespace) || string.IsNullOrEmpty(symbol.Name) || TemplatePreScan.HasPrivateUse(symbol.Namespace) || TemplatePreScan.HasPrivateUse(symbol.Name)) throw JsonScriptValues.Invalid("Invalid symbol spelling.");
+            meter.Bytes(Encoding.UTF8.GetByteCount(symbol.Namespace) + Encoding.UTF8.GetByteCount(symbol.Name));
+        }
+        _segments.Add(segment);
     }
 
     internal void Emit(ImmutableArray<TemplateSegment> segments)
@@ -38,9 +42,9 @@ internal sealed class SegmentOutput(PlanMeter meter) : IScriptOutput
                 if (TemplatePreScan.HasPrivateUse(text.Text)) throw JsonScriptValues.Invalid("Language seam emitted private-use text.");
                 Write(text.Text, 0, text.Text.Length);
             }
-            else if (segment is TemplateSymbolUseSegment symbol)
+            else if (segment is TemplateSymbolSegment symbol)
             {
-                Symbol(symbol.Symbol);
+                Symbol(symbol);
             }
             else
             {

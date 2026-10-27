@@ -8,11 +8,11 @@ namespace Cratis.Stage.Rendering.Templates.for_TemplatePreparer;
 
 public class when_preparing : given.a_kit
 {
-    TemplateResult<PreparedTemplateKit> _valid = null!;
-    TemplateResult<PreparedTemplateKit> _oversized = null!;
-    TemplateResult<PreparedTemplateKit> _nested = null!;
-    TemplateResult<PreparedTemplateKit> _invalid = null!;
-    TemplateResult<PreparedTemplateKit> _privateUse = null!;
+    TemplatePreparation _valid = null!;
+    TemplatePreparation _oversized = null!;
+    TemplatePreparation _nested = null!;
+    TemplatePreparation _invalid = null!;
+    TemplatePreparation _privateUse = null!;
 
     void Because()
     {

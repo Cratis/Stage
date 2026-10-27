@@ -1,67 +1,70 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace Cratis.Stage.Rendering.Templates;
 
-internal sealed class ExpressionLowerer(OperatorTable operators, ITemplateLanguage language, PlanMeter meter, int recursion)
+internal sealed class ExpressionLowerer(OperatorTable table, ITemplateLanguage language, PlanMeter meter, int recursion)
 {
-    internal SegmentHandle? Lower(object? value)
-    {
-        if (value is not JsonScriptValues.JsonObject expression) throw JsonScriptValues.Invalid("Expected an expression JSON object.");
-        var lowered = Visit(expression.Source, 0);
-        return lowered is null ? null : new(lowered.Segments);
-    }
+    internal static JsonElement Input(object? value) => value is JsonScriptValues.JsonObject expression ? expression.Source : throw JsonScriptValues.Invalid("Expected an expression JSON object.");
 
-    static ImmutableArray<TemplateSegment> Child(Node child, OperatorTable.Row parent, bool right)
-    {
-        var group = child.Precedence < parent.Precedence || (child.Precedence == parent.Precedence &&
-            (parent.Position == "unary" || parent.Associativity == "none" || child.Associativity != parent.Associativity || (right ? parent.Associativity == "left" : parent.Associativity == "right")));
-        return group ? [new TemplateTextSegment("("), .. child.Segments, new TemplateTextSegment(")")] : child.Segments;
-    }
+    internal static string Kind(JsonElement value) => value.ValueKind == JsonValueKind.Object && value.TryGetProperty("$kind", out var kind) && kind.ValueKind == JsonValueKind.String ? kind.GetString()! : throw JsonScriptValues.Invalid("Expression needs a $kind.");
 
-    Node? Visit(JsonElement value, int depth)
+    internal bool Supported(JsonElement value, int depth = 0)
     {
-        meter.Step();
-        if (depth >= recursion) throw PlanMeter.Exceeded(TemplateCodes.Recursion, "Expression recursion limit exceeded.");
-        if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("kind", out var kind)) throw JsonScriptValues.Invalid("Expression needs a kind.");
-        switch (kind.GetString())
+        Check(depth);
+        var kind = Kind(value);
+        return kind switch
         {
-            case "literal":
-                OperatorTable.Fields(value, ["kind", "value"]);
-                return new([new TemplateTextSegment(Literal(value.GetProperty("value")))], 1001, "none");
-            case "symbol":
-                OperatorTable.Fields(value, ["kind", "symbol"]);
-                return new([new TemplateSymbolUseSegment(SymbolHandle.Parse(JsonScriptValues.Convert(value.GetProperty("symbol"), 256 * 1024)))], 1001, "none");
-            case "unary":
-                OperatorTable.Fields(value, ["kind", "operator", "operand"]);
-                var operand = Visit(value.GetProperty("operand"), depth + 1);
-                if (!operators.TryGet("unary", OperatorTable.Text(value, "operator"), out var unary) || operand is null) return null;
-                return new([new TemplateTextSegment(unary.Token + " "), .. Child(operand, unary, true)], unary.Precedence, unary.Associativity);
-            case "binary":
-                OperatorTable.Fields(value, ["kind", "operator", "left", "right"]);
-                var left = Visit(value.GetProperty("left"), depth + 1);
-                var right = Visit(value.GetProperty("right"), depth + 1);
-                if (!operators.TryGet("binary", OperatorTable.Text(value, "operator"), out var binary) || left is null || right is null) return null;
-                return new([.. Child(left, binary, false), new TemplateTextSegment(" " + binary.Token + " "), .. Child(right, binary, true)], binary.Precedence, binary.Associativity);
-            default:
-                // Unknown well-shaped kinds are semantic unsupported nodes, not approximations.
-                return null;
+            "comparison" or "logical" => table.Rows.ContainsKey(OperatorTable.Text(value, "operator")) && Supported(value.GetProperty("left"), depth + 1) && Supported(value.GetProperty("right"), depth + 1),
+            "value" => new[] { "text", "number", "boolean", "null", "array", "composite" }.Contains(Kind(value.GetProperty("literal")), StringComparer.Ordinal),
+            "resolved" or "eventContext" or "refusal" or "readPath" => true,
+            _ => false
+        };
+    }
+
+    internal void Write(JsonElement value, Action<string> text, Action<JsonElement> leaf, int depth = 0, int parent = 0, bool right = false)
+    {
+        Check(depth);
+        if (new[] { "comparison", "logical" }.Contains(Kind(value), StringComparer.Ordinal))
+        {
+            var row = table.Rows[OperatorTable.Text(value, "operator")];
+            var group = row.Precedence < parent || (right && row.Precedence == parent);
+            if (group) text(table.Open);
+            Write(value.GetProperty("left"), text, leaf, depth + 1, row.Precedence);
+            text(row.Text);
+            Write(value.GetProperty("right"), text, leaf, depth + 1, row.Precedence, true);
+            if (group) text(table.Close);
+        }
+        else if (Kind(value) == "value" && !new[] { "array", "composite" }.Contains(Kind(value.GetProperty("literal")), StringComparer.Ordinal))
+        {
+            text(Literal(value.GetProperty("literal")));
+        }
+        else
+        {
+            leaf(value);
         }
     }
 
-    string Literal(JsonElement value) => value.ValueKind switch
+    void Check(int depth)
     {
-        JsonValueKind.String => language.EscapeString(value.GetString()!),
-        JsonValueKind.Number when value.TryGetInt64(out var integer) => language.FormatInteger(integer),
-        JsonValueKind.Number when value.TryGetDecimal(out var number) => language.FormatDecimal(number),
-        JsonValueKind.True => language.FormatBoolean(true),
-        JsonValueKind.False => language.FormatBoolean(false),
-        JsonValueKind.Null => language.FormatNull(),
-        _ => throw JsonScriptValues.Invalid("Expression literal must be a primitive JSON value.")
-    };
+        meter.Step();
+        if (depth >= recursion) throw PlanMeter.Exceeded(TemplateCodes.Recursion, "Expression recursion limit exceeded.");
+    }
 
-    sealed record Node(ImmutableArray<TemplateSegment> Segments, int Precedence, string Associativity);
+    string Literal(JsonElement literal)
+    {
+        var kind = Kind(literal);
+        if (kind == "null") return language.Null();
+        var value = literal.GetProperty("value");
+        return kind switch
+        {
+            "text" => language.String(value.GetString()!),
+            "number" when value.GetDecimal() is var number && decimal.Truncate(number) == number && number >= long.MinValue && number <= long.MaxValue => language.Integer((long)number),
+            "number" => language.Decimal(value.GetDecimal()),
+            "boolean" => language.Boolean(value.GetBoolean()),
+            _ => throw JsonScriptValues.Invalid("Unknown expression literal.")
+        };
+    }
 }

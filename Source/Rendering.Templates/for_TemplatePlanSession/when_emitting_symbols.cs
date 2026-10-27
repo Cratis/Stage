@@ -9,28 +9,28 @@ namespace Cratis.Stage.Rendering.Templates.for_TemplatePlanSession;
 
 public class when_emitting_symbols : for_TemplatePreparer.given.a_kit
 {
-    static JsonElement Scope => JsonSerializer.SerializeToElement(new { model = new { symbol = new Dictionary<string, object> { ["$symbol"] = true, ["identity"] = "domain.Customer", ["namespace"] = "domain", ["name"] = "Customer" } } });
+    static JsonElement Scope => JsonSerializer.SerializeToElement(new { model = new { name = "Customer" } });
 
     [Fact]
-    public void should_emit_structured_symbol_segments()
+    public void should_emit_declarations_references_and_imports_in_order()
     {
-        using var session = TemplatePreparer.Prepare(Kit("A{{ sym.ref model.symbol }}B")).Value!.BeginPlan(TemplateBudget.Default);
+        using var session = TemplatePreparer.Prepare(Kit("A{{ sym.decl 'Domain' model.name }}{{ sym.ref 'Other' model.name }}{{ sym.imports }}B")).Value!.BeginPlan(TemplateBudget.Default);
         var result = session.Render("main.scriban", Scope);
         result.Refusal.ShouldBeNull();
         var output = result.Output!;
-        output.Segments.Length.ShouldEqual(3);
-        ((TemplateTextSegment)output.Segments[0]).Text.ShouldEqual("A");
-        ((TemplateSymbolUseSegment)output.Segments[1]).Symbol.Identity.ShouldEqual("domain.Customer");
-        ((TemplateTextSegment)output.Segments[2]).Text.ShouldEqual("B");
+        output.Segments.Length.ShouldEqual(5);
+        ((TemplateSymbolSegment)output.Segments[1]).ShouldEqual(new(TemplateSymbolKind.Declaration, new("Domain", "Customer")));
+        ((TemplateSymbolSegment)output.Segments[2]).ShouldEqual(new(TemplateSymbolKind.Reference, new("Other", "Customer")));
+        ((TemplateSymbolSegment)output.Segments[3]).ShouldEqual(new(TemplateSymbolKind.Imports, null));
     }
 
     [Theory]
-    [InlineData("{{ capture x; sym.ref model.symbol; end }}")]
-    [InlineData("{{ (sym.ref model.symbol) + 'text' }}")]
-    [InlineData("{{ (sym.ref model.symbol) == 'text' }}")]
-    [InlineData("{{ (sym.ref model.symbol) | string.upcase }}")]
-    [InlineData("{{ x = [sym.ref model.symbol]; x }}")]
-    [InlineData("{{ x = sym.ref model.symbol; if x; 'x'; end }}")]
+    [InlineData("{{ capture x; sym.ref 'Domain' 'Customer'; end }}")]
+    [InlineData("{{ (sym.ref 'Domain' 'Customer') + 'text' }}")]
+    [InlineData("{{ (sym.ref 'Domain' 'Customer') == 'text' }}")]
+    [InlineData("{{ (sym.ref 'Domain' 'Customer') | string.upcase }}")]
+    [InlineData("{{ x = [sym.ref 'Domain' 'Customer']; x }}")]
+    [InlineData("{{ x = sym.ref 'Domain' 'Customer'; x.name }}")]
     public void should_refuse_text_and_container_coercion(string text)
     {
         using var session = TemplatePreparer.Prepare(Kit(text)).Value!.BeginPlan(TemplateBudget.Default);
@@ -40,10 +40,9 @@ public class when_emitting_symbols : for_TemplatePreparer.given.a_kit
     }
 
     [Fact]
-    public void should_not_interpret_similar_plain_json_as_a_symbol()
+    public void should_allow_opaque_assignment_and_null_test()
     {
-        using var session = TemplatePreparer.Prepare(Kit("{{ sym.ref model.symbol }}")).Value!.BeginPlan(TemplateBudget.Default);
-        var scope = JsonSerializer.SerializeToElement(new { model = new { symbol = new { identity = "domain.Customer" } } });
-        session.Render("main.scriban", scope).Refusal!.Code.ShouldEqual(TemplateCodes.Input);
+        using var session = TemplatePreparer.Prepare(Kit("{{ x = sym.ref 'Domain' 'Customer'; if x != null; x; end }}")).Value!.BeginPlan(TemplateBudget.Default);
+        session.Render("main.scriban", Scope).Output!.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
     }
 }

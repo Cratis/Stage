@@ -6,32 +6,29 @@ using System.Text.Json;
 
 namespace Cratis.Stage.Rendering.Templates;
 
-internal sealed class OperatorTable(ImmutableDictionary<string, OperatorTable.Row> rows)
+internal sealed record OperatorTable(string Open, string Close, ImmutableDictionary<string, OperatorTable.Row> Rows)
 {
-    internal static OperatorTable Empty { get; } = new([]);
+    internal static readonly string[] Names = ["and", "or", "equal", "notEqual", "greaterThan", "greaterThanOrEqual", "lessThan", "lessThanOrEqual"];
 
     internal static OperatorTable Parse(ReadOnlySpan<byte> bytes)
     {
         try
         {
-            if (bytes.Length > TemplatePreScan.MaxBytes) throw JsonScriptValues.Invalid("Operator table exceeds 65536 bytes.");
+            if (bytes.Length > TemplateProfile.MaxTemplateBytes) throw JsonScriptValues.Invalid("Operator table exceeds 65536 bytes.");
             using var document = JsonDocument.Parse(bytes.ToArray());
-            Fields(document.RootElement, ["operators"]);
-            var entries = document.RootElement.GetProperty("operators");
-            if (entries.ValueKind != JsonValueKind.Array) throw JsonScriptValues.Invalid("operators must be an array.");
+            var root = document.RootElement;
+            Fields(root, ["open", "close", "operators"]);
+            var entries = root.GetProperty("operators");
+            Fields(entries, Names);
             var rows = ImmutableDictionary.CreateBuilder<string, Row>(StringComparer.Ordinal);
-            foreach (var entry in entries.EnumerateArray())
+            foreach (var entry in entries.EnumerateObject())
             {
-                Fields(entry, ["operator", "position", "token", "precedence", "associativity"]);
-                var name = Text(entry, "operator");
-                var position = Text(entry, "position");
-                var token = Text(entry, "token");
-                var associativity = Text(entry, "associativity");
-                if (position is not ("unary" or "binary") || associativity is not ("left" or "right" or "none") || !entry.GetProperty("precedence").TryGetInt32(out var precedence) || precedence is < 0 or > 1000 || token.Any(char.IsControl)) throw JsonScriptValues.Invalid("Invalid operator row.");
-                if (!rows.TryAdd(position + ":" + name, new(name, position, token, precedence, associativity))) throw JsonScriptValues.Invalid("Duplicate operator row.");
+                Fields(entry.Value, ["text", "precedence"]);
+                if (!entry.Value.GetProperty("precedence").TryGetInt32(out var precedence) || precedence is < 1 or > 100) throw JsonScriptValues.Invalid("Precedence must be 1..100.");
+                rows.Add(entry.Name, new(Text(entry.Value, "text"), precedence));
             }
 
-            return new(rows.ToImmutable());
+            return new(Text(root, "open"), Text(root, "close"), rows.ToImmutable());
         }
         catch (Exception error) when (error is JsonException or KeyNotFoundException or InvalidOperationException or TemplateRefusal)
         {
@@ -39,21 +36,19 @@ internal sealed class OperatorTable(ImmutableDictionary<string, OperatorTable.Ro
         }
     }
 
-    internal static void Fields(JsonElement value, string[] names)
+    internal static void Fields(JsonElement value, string[] names, bool optional = false)
     {
         if (value.ValueKind != JsonValueKind.Object) throw JsonScriptValues.Invalid("Expected a JSON object.");
         var properties = value.EnumerateObject().Select(property => property.Name).ToArray();
-        if (properties.Length != names.Length || properties.Distinct(StringComparer.Ordinal).Count() != properties.Length || properties.Any(property => !names.Contains(property, StringComparer.Ordinal))) throw JsonScriptValues.Invalid("Unknown, duplicate or missing JSON field.");
+        if ((!optional && properties.Length != names.Length) || properties.Distinct(StringComparer.Ordinal).Count() != properties.Length || properties.Any(property => !names.Contains(property, StringComparer.Ordinal))) throw JsonScriptValues.Invalid("Unknown, duplicate or missing JSON field.");
     }
 
     internal static string Text(JsonElement value, string field)
     {
         var text = value.GetProperty(field).GetString();
-        if (string.IsNullOrWhiteSpace(text) || TemplatePreScan.HasPrivateUse(text)) throw JsonScriptValues.Invalid("Expected nonempty ordinary text.");
+        if (string.IsNullOrEmpty(text) || text.Contains('\n') || text.Contains('\r') || TemplatePreScan.HasPrivateUse(text)) throw JsonScriptValues.Invalid("Expected nonempty single-line ordinary text.");
         return text;
     }
 
-    internal bool TryGet(string position, string name, out Row row) => rows.TryGetValue(position + ":" + name, out row!);
-
-    internal sealed record Row(string Name, string Position, string Token, int Precedence, string Associativity);
+    internal sealed record Row(string Text, int Precedence);
 }

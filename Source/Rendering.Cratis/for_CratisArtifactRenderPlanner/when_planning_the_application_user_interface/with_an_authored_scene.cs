@@ -17,7 +17,8 @@ public class with_an_authored_scene : a_screen_composition_render
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-frozen for Cratis/Stage#209: Scene 4.84.0 packages, native guarded actions/interactions and empty Form.OnSubmit; capability-reverted bytes match.
-    const string Before = "3b991ad6714813be5f79e07dc1dc97a6cc3a61e5da83db565195e5a718bb00f7";
+    // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
+    const string Before = "9c58811bca89d3bffa24b9617a0da545d14685c6c0eee91c66d75a9468c2045d";
 
     ArtifactRenderPlan _plan = null!;
 

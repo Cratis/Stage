@@ -511,7 +511,7 @@ The backend scaffold contains:
 | --- | --- |
 | `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, Debug-only test packages, and the optional `Customizations/Dependencies.props` import. |
 | `{Project}.slnx` | Solution containing the application project. |
-| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, compiler/analyzer warnings as errors, and build-time code style. |
+| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, Arc read protection `On`, compiler/analyzer warnings as errors, and build-time code style. |
 | `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
 | `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
 | `.editorconfig` | Root C# formatting and style conventions, with BDD naming exceptions for specifications. |

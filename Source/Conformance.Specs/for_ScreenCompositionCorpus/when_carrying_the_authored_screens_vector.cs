@@ -74,7 +74,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for Cratis/Stage#209: only the four Scene artifacts change for native guarded actions/branches and empty form onSubmit defaults; package pins normalize away.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("cc6a59bee1786c84a8bc2eb8b479da56506e91edd6f4635f83889bd3b67c0441");
+    // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("374a2cb8e8b191c1dd65f4a9b36d8f746bfa78e2e190558ad4378fb4bd52c99e");
 
     // Re-frozen for Cratis/Stage#209: Details carries native guarded Close and List carries native interaction branches; both gain empty form onSubmit defaults.
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
@@ -83,7 +84,13 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         Workspaces/Tracking/WorkItemList/Screens.scene.json 31bb4871537700e7be2383d82a6530d73d1e4d20495fbf6bbac85daf7ea1ed51 6402
         """);
 
-    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName);
+    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)
+        .Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+            ? PlannedArtifact.CreateText(
+                artifact.RelativePath,
+                LegacyReadProtection.Restore(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
+                artifact.Sources)
+            : artifact);
 
     public static TheoryData<string> Forms => [.. ScreenCompositionCorpus.V1.SourceForms.Select(form => form.Name)];
 

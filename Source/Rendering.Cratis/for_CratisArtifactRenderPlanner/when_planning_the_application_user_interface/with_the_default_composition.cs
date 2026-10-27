@@ -17,7 +17,8 @@ public class with_the_default_composition : a_register_project_render_request
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-frozen for Cratis/Stage#209: generated package.json pins Scene 4.84.0; capability-reverted bytes match.
-    const string Before = "76285712421cbc14421ed95e924223d73ee211d0b005727c3890a1ac3ec4b4ae";
+    // Re-frozen for #497 (NotEmpty) and #660 (Directory.Build.props CratisReadProtection On).
+    const string Before = "48e698c53266cb9a232afb9883a922a0fd1c8ee89ae549cf92f30cdf7fcce490";
 
     ArtifactRenderPlan _plan = null!;
 

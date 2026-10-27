@@ -135,10 +135,6 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
         context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
-        if (results.Reads.HasReads)
-        {
-            builder.Attribute(SemanticDecisionReadRendering.ProtectionAttribute);
-        }
         if (command.Route is { } route)
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);

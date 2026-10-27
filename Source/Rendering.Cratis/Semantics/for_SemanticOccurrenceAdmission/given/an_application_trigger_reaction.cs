@@ -27,6 +27,9 @@ public class an_application_trigger_reaction : Specification
                     batchId = batchId
         """;
 
+    internal static string InvocationSource => Source.Replace("      reaction ProcessBatch", "      command FinishBatch\n        batchId String identifier\n        produces event BatchFinished\n          for batchId\n          batchId String = batchId\n      reaction ProcessBatch", StringComparison.Ordinal)
+        .Replace("          produces BatchStarted\n            for batchId\n            batchId = batchId", "          invokes FinishBatch\n            batchId = batchId", StringComparison.Ordinal);
+
     private protected ExecutableSemanticModel _model = null!;
     private protected SemanticApplicationContext _context = null!;
     private protected LocatedSemanticSlice _located = null!;

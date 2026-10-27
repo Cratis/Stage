@@ -8,7 +8,7 @@ using Cratis.Stage.Rendering.Cratis.Naming;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Renders one receipted, namespace-bound occurrence effect containing only direct event productions.
+/// Renders namespace-bound occurrence productions and separately receipted command invocations.
 /// </summary>
 internal static class SemanticOccurrenceHandlerArtifactRenderer
 {
@@ -19,25 +19,60 @@ internal static class SemanticOccurrenceHandlerArtifactRenderer
         var name = Identifiers.ToPascalCase(reaction.Name);
         var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         var types = new SemanticTypeSystem(context);
+        var reactionTrigger = reaction.Triggers[0];
+        var parameters = new List<string>();
+        if (!reactionTrigger.Produces.IsEmpty)
+            parameters.Add("global::Cratis.Chronicle.IChronicleClient client, global::Cratis.Chronicle.IEventStore eventStore");
+        if (!reactionTrigger.Invokes.IsEmpty)
+            parameters.Add("global::Cratis.Arc.Chronicle.Occurrences.IOccurrenceCommandExecutor commands");
         context.Docs(reaction.Id).Render(builder)
-            .OpenBlock($"public class {name}(global::Cratis.Chronicle.IChronicleClient client, global::Cratis.Chronicle.IEventStore eventStore) : global::Cratis.Chronicle.Occurrences.IOccurrenceHandler<{Identifiers.ToPascalCase(trigger.Name)}>")
+            .OpenBlock($"public class {name}({string.Join(", ", parameters)}) : global::Cratis.Chronicle.Occurrences.IOccurrenceHandler<{Identifiers.ToPascalCase(trigger.Name)}>")
             .Line("/// <inheritdoc/>")
             .OpenBlock($"public async global::System.Threading.Tasks.Task Handle({Identifiers.ToPascalCase(trigger.Name)} occurrence, global::Cratis.Chronicle.Occurrences.OccurrenceContext context, global::System.Threading.CancellationToken cancellationToken)");
+        var scope = new RenderingScope(trigger, context, types);
+        if (!reactionTrigger.Produces.IsEmpty) RenderProductionEffect(reactionTrigger, reaction, scope, builder);
+        RenderInvocations(reactionTrigger, reaction, scope, builder);
+        builder.EndBlock().EndBlock();
+        yield return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id, trigger.Id] };
+    }
+
+    static void RenderProductionEffect(SemanticReactionTrigger reactionTrigger, SemanticReaction reaction, RenderingScope scope, CSharpCodeBuilder builder)
+    {
         builder.Line("var store = context.Namespace is { } @namespace ? await client.GetEventStore(eventStore.Name, @namespace) : eventStore;")
-            .Line($"var effect = context.EffectKey({CSharpCodeBuilder.StringLiteral($"stage:reaction:{reaction.Id}:productions")});")
-            .Line("if (await store.Occurrences.GetEffectReceipt(effect) is not null) return;")
-            .Line("var unitOfWork = store.UnitOfWorkManager.Begin(global::Cratis.Execution.CorrelationId.New());")
+            .Line($"var effect = context.EffectKey({CSharpCodeBuilder.StringLiteral($"stage:reaction:{reaction.Id}:productions")});");
+        if (reactionTrigger.Invokes.IsEmpty) builder.Line("if (await store.Occurrences.GetEffectReceipt(effect) is not null) return;");
+        else builder.OpenBlock("if (await store.Occurrences.GetEffectReceipt(effect) is null)");
+        builder.Line("var unitOfWork = store.UnitOfWorkManager.Begin(global::Cratis.Execution.CorrelationId.New());")
             .OpenBlock("try")
             .Line("unitOfWork.UseEffectReceipt(effect, null);");
-        RenderProductions(reaction.Triggers[0], new(trigger, context, types), builder)
+        RenderProductions(reactionTrigger, scope, builder)
             .Line("await unitOfWork.Commit();")
             .Line("if (!unitOfWork.IsSuccess) throw new global::System.InvalidOperationException(\"The occurrence effect could not be committed.\");")
             .EndBlock()
             .OpenBlock("catch")
             .Line("if (!unitOfWork.IsCompleted) await unitOfWork.Rollback();")
             .Line("throw;").EndBlock();
-        builder.EndBlock().EndBlock();
-        yield return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id, trigger.Id] };
+        if (!reactionTrigger.Invokes.IsEmpty) builder.EndBlock();
+    }
+
+    static void RenderInvocations(SemanticReactionTrigger trigger, SemanticReaction reaction, RenderingScope scope, CSharpCodeBuilder builder)
+    {
+        for (var index = 0; index < trigger.Invokes.Length; index++)
+        {
+            var invocation = trigger.Invokes[index];
+            var command = scope.Context.Commands[invocation.Command];
+            var arguments = command.Properties.Where(property => !property.IsGenerated).Select(property =>
+                invocation.Mappings.FirstOrDefault(mapping => mapping.TargetProperty == property.Id) is { } mapping
+                    ? Expression(mapping.Source, property.Type, scope)
+                    : "null");
+            var effect = CSharpCodeBuilder.StringLiteral($"stage:reaction:{reaction.Id}:invocation:{index}:{command.Id}");
+            var roles = reaction.RunsAs is { } identity ? $"[{string.Join(", ", identity.Roles.Select(CSharpCodeBuilder.StringLiteral))}], " : string.Empty;
+            var failure = CSharpCodeBuilder.StringLiteral($"Reaction '{reaction.Name}' command '{command.Name}' from application trigger '{scope.Trigger.Name}' did not settle.");
+            var refusal = CSharpCodeBuilder.StringLiteral($"Reaction '{reaction.Name}' command '{command.Name}' from application trigger '{scope.Trigger.Name}' was refused.");
+            builder.Line($"var invocation{index} = await commands.Execute(new {scope.Types.SliceType(command.Id, command.Name)}({string.Join(", ", arguments)}), context, {effect}, {roles}cancellationToken);")
+                .Line($"if (!invocation{index}.IsSettled) throw new global::System.InvalidOperationException({failure});")
+                .Line($"if (invocation{index}.Outcome is global::Cratis.Chronicle.Occurrences.Refused) throw new global::System.InvalidOperationException({refusal});");
+        }
     }
 
     static CSharpCodeBuilder RenderProductions(SemanticReactionTrigger reactionTrigger, RenderingScope scope, CSharpCodeBuilder builder)

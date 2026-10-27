@@ -69,8 +69,11 @@ internal static partial class SemanticOccurrenceAdmission
             return $"Reaction '{reaction.Name}' collides with the generated occurrence handler method (Cratis/Stage#343).";
         if (reaction.Triggers.Length != 1)
             return $"Reaction '{reaction.Name}' combines application trigger '{source.Name}' with other triggers; the Cratis target renders one application trigger per reaction (Cratis/Stage#343).";
-        return ReactionReason(reaction, trigger, source, context) ?? PayloadReason(source, context) ?? ProductionsReason(reaction, trigger, source, context);
+        return ReactionReason(reaction, trigger, source, context) ?? PayloadReason(source, context) ?? EffectsReason(reaction, trigger, source, context);
     }
+
+    static string? EffectsReason(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticApplicationTrigger source, SemanticApplicationContext context) =>
+        ProductionsReason(reaction, trigger, source, context) ?? InvocationsReason(reaction, trigger, source, context);
 
     static string? TriggerKindReason(SemanticReaction reaction, SemanticReactionTrigger trigger) => trigger.Kind switch
     {
@@ -84,8 +87,6 @@ internal static partial class SemanticOccurrenceAdmission
     {
         if (HandlerCount(source, context) != 1)
             return $"Application trigger '{source.Name}' is handled by more than one reaction; Chronicle attaches one handler per trigger (Cratis/Stage#343).";
-        if (!trigger.Invokes.IsEmpty)
-            return $"Reaction '{reaction.Name}' invokes command '{context.Commands[trigger.Invokes[0].Command].Name}' from application trigger '{source.Name}'; occurrence command execution is not rendered yet (Cratis/Stage#343).";
         var option = UnsupportedOption(reaction, trigger);
         return option is null ? null : $"Reaction '{reaction.Name}' uses '{option}' with application trigger '{source.Name}', which the Cratis target does not render yet (Cratis/Stage#343).";
     }
@@ -93,7 +94,7 @@ internal static partial class SemanticOccurrenceAdmission
     static string? UnsupportedOption(SemanticReaction reaction, SemanticReactionTrigger trigger)
     {
         if (trigger.Where is not null) return "where";
-        if (reaction.RunsAs is not null) return "runs as";
+        if (reaction.RunsAs is not null && trigger.Invokes.IsEmpty) return "runs as";
         return reaction.From is not null ? "from" : null;
     }
 
@@ -120,7 +121,7 @@ internal static partial class SemanticOccurrenceAdmission
 
     static string? ProductionsReason(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticApplicationTrigger source, SemanticApplicationContext context)
     {
-        if (trigger.Produces.IsEmpty)
+        if (trigger.Produces.IsEmpty && trigger.Invokes.IsEmpty)
             return $"Reaction '{reaction.Name}' has no direct productions for application trigger '{source.Name}' (Cratis/Stage#343).";
         foreach (var produced in trigger.Produces)
         {

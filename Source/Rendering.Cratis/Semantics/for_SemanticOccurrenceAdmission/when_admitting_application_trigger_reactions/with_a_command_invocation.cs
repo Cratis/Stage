@@ -16,6 +16,5 @@ public class with_a_command_invocation : given.an_application_trigger_reaction
     }
 
     [Fact]
-    void should_refuse_a_command_invocation() =>
-        _diagnostics.Single(item => item.Artifact == _reaction.Id && item.Code == "STAGE-ESM-024").Message.ShouldContain("invokes command 'FinishBatch'");
+    void should_admit_a_command_invocation() => _diagnostics.ShouldBeEmpty();
 }

@@ -7,6 +7,42 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 internal static partial class SemanticOccurrenceAdmission
 {
+    static string? InvocationsReason(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticApplicationTrigger source, SemanticApplicationContext context)
+    {
+        foreach (var invocation in trigger.Invokes)
+        {
+            if (InvocationReason(reaction, invocation, source, context) is { } reason) return reason;
+        }
+        return null;
+    }
+
+    static string? InvocationReason(SemanticReaction reaction, SemanticInvocation invocation, SemanticApplicationTrigger source, SemanticApplicationContext context)
+    {
+        var command = context.Commands[invocation.Command];
+        if (!invocation.OnRefused.IsEmpty)
+            return $"Reaction '{reaction.Name}' handles refusals of '{command.Name}' from application trigger '{source.Name}'; occurrence receipts do not preserve the refusal kind (Cratis/Stage#343).";
+        if (reaction.RunsAs is null && command.Authorization is not null)
+            return $"Reaction '{reaction.Name}' invokes authorized command '{command.Name}' from application trigger '{source.Name}' without 'runs as'; occurrence commands always run as system (Cratis/Stage#343).";
+        var invalid = invocation.Mappings.FirstOrDefault(mapping => !InvocationMappingMatches(mapping, command, source, context));
+        if (invalid is not null)
+            return $"Reaction '{reaction.Name}' maps '{Describe(invalid.Source)}' from application trigger '{source.Name}', which the Cratis target cannot preserve for an occurrence (Cratis/Stage#343).";
+        return command.Properties.Any(property => !InvocationPropertyMatches(property, invocation, context))
+            ? $"Reaction '{reaction.Name}' invokes '{command.Name}' with a shape the Cratis target cannot preserve for an occurrence (Cratis/Stage#343)."
+            : null;
+    }
+
+    static bool InvocationMappingMatches(SemanticPropertyMapping mapping, SemanticCommand command, SemanticApplicationTrigger source, SemanticApplicationContext context) =>
+        command.Properties.FirstOrDefault(property => property.Id == mapping.TargetProperty) is { IsGenerated: false } property &&
+        ExpressionMatches(mapping.Source, property.Type, source, context);
+
+    static bool InvocationPropertyMatches(SemanticProperty property, SemanticInvocation invocation, SemanticApplicationContext context)
+    {
+        if (property.IsGenerated) return true;
+        if (!SemanticCratisAdmission.TypeExists(context, property.Type)) return false;
+        var count = invocation.Mappings.Count(mapping => mapping.TargetProperty == property.Id);
+        return count == 1 || (count == 0 && property.Type.IsOptional);
+    }
+
     static bool ValueMatches(SemanticValue value, SemanticTypeReference type, SemanticApplicationContext context)
     {
         if (value is SemanticNullValue) return type.IsOptional;

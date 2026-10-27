@@ -9,11 +9,11 @@ Stage renders event-triggered reactions in Automation slices as Chronicle reacto
 | --- | --- |
 | Semantic Stage Host | Settles productions, invocations and cascades with the command; appends all facts in one tail-guarded batch or refuses the entire command |
 | Rendered Chronicle reactors | Independent, eventually consistent observers; a failed partition can retry after the initiating command has committed |
-| Rendered application-trigger handlers | Discover a `[Trigger]` payload record and `IOccurrenceHandler<T>`; commit direct event productions with one atomic occurrence effect receipt |
+| Rendered application-trigger handlers | Discover a `[Trigger]` payload record and `IOccurrenceHandler<T>`; commit direct productions with one receipt and invoke commands with separate per-command receipts |
 | In-memory specification executor | Settles event reactions after commands and direct appends, fires application, startup and shutdown triggers (`when trigger`) and due clock occurrences (`when clock`) with its own deterministic loop; stops at the first rejection or unsupported capability |
 
 An application-trigger reaction renders only when it has one named trigger, one handler for that trigger,
-and at least one direct `produces` with an explicit `for`. Mappings use trigger properties or literals.
+and at least one direct `produces` with an explicit `for` or one `invokes`. Mappings use trigger properties or literals.
 The payload must contain no personal or protected values, including inside composites or collections.
 The handler selects the recording namespace, derives a stable effect key from the reaction's semantic id,
 and enrolls that key with `UseEffectReceipt` before one `AppendMany` unit-of-work commit. Receipt and
@@ -22,9 +22,24 @@ not exactly-once delivery and is not a server-startup hook. Event-triggered reac
 Application code records the payload with `IOccurrences.Record(payload, idempotencyId)`; Stage renders no
 public trigger endpoint. Missing kernel receipt support fails with `EffectReceiptsNotSupported`, not an
 unreceipted fallback. External side effects still require their own idempotency.
-Application-trigger invocations, `where`, `runs as`, `from`, event-context mappings and implicit destinations
-remain refused with a narrowed `STAGE-ESM-024` diagnostic. Startup/shutdown triggers still need an activation
-identity and namespace policy; interval/schedule triggers still need Chronicle schedule and due-time parity.
+Invocations run after the productions commit, in modeled order, through Arc's `IOccurrenceCommandExecutor`.
+Each command has its own atomic effect receipt, separate from the productions receipt. A receipted
+production batch is skipped on redelivery without skipping the invocations; each invocation resumes
+through its own receipt. Effect names include the reaction id, invocation index and command id:
+reordering invocations changes their keys and can run those commands again.
+
+Commands always run as system, with the roles declared by `runs as system`. Without `runs as`, only
+commands without authorization gates render; explicit and inherited authorization otherwise receive
+`STAGE-ESM-024`. Claim-reading or opaque gates under `runs as` retain `STAGE-ESM-034`.
+Terminal business refusals are recorded. With no `on refused` branch, the handler stops later invocations
+and throws, including on redelivery of the stored refusal: there is no implicit acknowledgement.
+Authorization failures and exceptions leave no receipt and can be retried. Kernel `effect-receipts`
+support is required for both production and command effects.
+
+Application-trigger `on refused`, `where`, `from`, event-context mappings, implicit destinations and
+production-only `runs as` remain refused with a narrowed `STAGE-ESM-024`. Startup/shutdown triggers still
+need an activation identity and namespace policy; interval/schedule triggers still need Chronicle
+schedule and due-time parity.
 
 The Host applies `where`, `runs as` and `from` through Screenplay's reference settlement. Clock,
 application, startup and shutdown triggers and opaque bodies remain unsupported in the Host. The renderer's
@@ -96,7 +111,7 @@ claim that this reproduces the legacy reference executor's per-production partia
 
 Within a handler, Stage collects effects in authored trigger and mapping order. Arc executes a returned command collection in order and stops at its first failure. Separate reactors are independent observers: do not rely on the order in which their follow-up events arrive.
 
-`runs as system` supplies Arc's system principal only to returned commands. Role-only and authenticated-only authorization gates render. A claim-reading gate, including a claim under `not` or `or`, or an opaque gate under `runs as` fails with `STAGE-ESM-034`: Screenplay treats system claims as unknown, while Arc supplies `[System]` subject claims. Generated policies are unchanged.
+For event reactions, `runs as system` supplies Arc's system principal only to returned commands. Role-only and authenticated-only authorization gates render. A claim-reading gate, including a claim under `not` or `or`, or an opaque gate under `runs as` fails with `STAGE-ESM-034`: Screenplay treats system claims as unknown, while Arc supplies `[System]` subject claims. Generated policies are unchanged.
 
 A denied, rejected or throwing invoked command fails the live reactor partition and can be retried. Screenplay's reference execution instead ends the scenario at that failure. A reaction without `runs as` can render while invoking an authorization-gated command, but the live invocation has no principal and can leave a failed partition. Rendering is not proof of successful authorization or settlement.
 
@@ -126,7 +141,7 @@ Refusal branches reuse the same occurrence; the first matching branch wins, and 
 is not offered to a later branch. The clock supplies time only: `runs as system` does not manufacture audit
 identity, and `$eventSourceId` (also spelled `$eventContext.eventSourceId`) and `$context.causedBy.*`
 retain `STAGE-ESM-013`. `$context.eventSourceId` is not a valid reaction mapping.
-Generated clock/trigger/capture specification actions and scheduling triggers remain unsupported; application-trigger production rendering does not add generated `when trigger` scenarios.
+Generated clock/trigger/capture specification actions and scheduling triggers remain unsupported; application-trigger occurrence rendering does not add generated `when trigger` scenarios.
 
 Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. Givens establish history and are not delivered to the reactor. A production-only scenario checks the exact effect count, payloads, destinations and all three unrouted metadata values (`EventSourceType.Default`, `EventStreamType.All`, `EventStreamId.Default`), with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
 
@@ -156,7 +171,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-024` | Application-trigger reactions outside the direct-production occurrence subset above; startup/shutdown triggers pending an activation identity and namespace policy; interval/schedule triggers pending due-time parity; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture specification actions; generated append/redelivery specifications with clock fixtures |
+| `STAGE-ESM-024` | Application-trigger reactions outside the occurrence subset above (including `on refused`, authorized commands without `runs as`, and production-only `runs as`); startup/shutdown triggers pending an activation identity and namespace policy; interval/schedule triggers pending due-time parity; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture specification actions; generated append/redelivery specifications with clock fixtures |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |

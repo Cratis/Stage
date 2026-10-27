@@ -91,6 +91,37 @@ describe('a kanban board with an on change', () => {
         expect(dispatcher.executeCommand).not.toHaveBeenCalled();
     });
 
+    it('puts the card back when the branch ran no command', async () => {
+        const dispatcher = { executeCommand: vi.fn().mockResolvedValue({ isSuccess: true, validationErrors: [] }), notify: vi.fn() };
+        renderBoard(dispatcher, board({ behaviors: [{ bindings: [{ trigger: { kind: InteractionTriggerKind.Change }, actions: [notify] }] }] as unknown as Behavior[] }));
+
+        moveTo('First talk', 'accepted');
+
+        await waitFor(() => expect(dispatcher.notify).toHaveBeenCalled());
+        await waitFor(() => expect((screen.getByLabelText(/First talk/) as HTMLSelectElement).value).toBe('submitted'));
+    });
+
+    it('puts the card back when the command was refused', async () => {
+        const dispatcher = { executeCommand: vi.fn().mockResolvedValue({ isSuccess: false, validationErrors: [] }), notify: vi.fn() };
+        renderBoard(dispatcher);
+
+        moveTo('First talk', 'accepted');
+
+        await waitFor(() => expect(dispatcher.executeCommand).toHaveBeenCalled());
+        await waitFor(() => expect((screen.getByLabelText(/First talk/) as HTMLSelectElement).value).toBe('submitted'));
+    });
+
+    it('leaves the card where it was dropped when the command was applied', async () => {
+        const dispatcher = { executeCommand: vi.fn().mockResolvedValue({ isSuccess: true, validationErrors: [] }), notify: vi.fn() };
+        renderBoard(dispatcher);
+
+        moveTo('First talk', 'accepted');
+
+        await waitFor(() => expect(dispatcher.executeCommand).toHaveBeenCalled());
+        await new Promise(resolve => setTimeout(resolve, 50));
+        expect((screen.getByLabelText(/First talk/) as HTMLSelectElement).value).toBe('accepted');
+    });
+
     it('does not run anything for data that arrives without the user moving a card', () => {
         const dispatcher = { executeCommand: vi.fn(), notify: vi.fn() };
         const outputs = renderBoard(dispatcher);

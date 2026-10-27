@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { useCallback, useMemo, useRef, type ComponentType } from 'react';
+import { useCallback, useMemo, useRef, useState, type ComponentType } from 'react';
 import type { BindingExpression, ExternalComponent } from '@cratis/scene.model';
 import { InteractionTriggerKind } from '@cratis/scene.model';
 import { resolveBehaviors, runBindings } from '@cratis/scene.engine';
@@ -120,6 +120,9 @@ export interface ItemChangeHandlers {
 
     /** Wraps the outputs the component publishes, running the bindings when the user's change is reported. */
     outputs: ComponentBindingOutputs | undefined;
+
+    /** Changes whenever the component must be shown the data again, because the change was not applied. Use it as the component's `key`. */
+    revision: number;
 }
 
 /**
@@ -131,8 +134,9 @@ export interface ItemChangeHandlers {
  * under the component, which is not the user and so runs nothing.
  *
  * The bindings are the element's own, resolved and run by the Scene interaction engine - the same engine that runs
- * every other interaction. Once they have run the data is read again, so a change the command refused is shown as
- * the data says it is rather than as the user left it.
+ * every other interaction. Once they have run the data is read again. A change that no command applied (the
+ * `otherwise` branch only notified, or the command was refused) is shown as the data says it is rather than as the
+ * user left it: the `revision` changes, and the component, keyed by it, starts again from the data.
  *
  * @param binding What the component is and which of its row properties identify and change an item.
  * @param outputs The outputs the component publishes.
@@ -147,6 +151,7 @@ export function useItemChange(binding: ItemChangeBinding, outputs: ComponentBind
         [element.behaviors, element.id]);
     const reported = useRef<unknown>(undefined);
     const userChange = useRef(false);
+    const [revision, setRevision] = useState(0);
     const latest = useRef({ scope, data, element, bindings });
     latest.current = { scope, data, element, bindings };
 
@@ -157,9 +162,20 @@ export function useItemChange(binding: ItemChangeBinding, outputs: ComponentBind
         const change = itemChangeOf(owner.properties[rowsProperty], changed, idField, valueField);
         if (change === undefined) return;
         const context = { ...current.context, resolve: resolveChange(change, current.context.resolve) };
-        void runBindings(toRun, current.dispatcher, context).then(result => {
+        let applied = false;
+        let refused = false;
+        const dispatcher = {
+            ...current.dispatcher,
+            executeCommand: async (command: string, args: Record<string, unknown>) => {
+                const outcome = await current.dispatcher.executeCommand(command, args);
+                if (outcome?.isSuccess) applied = true; else refused = true;
+                return outcome;
+            },
+        };
+        void runBindings(toRun, dispatcher, context).then(result => {
             if (result.findings.length > 0) current.onFindings?.(result.findings);
             stage.refreshAfterCommand();
+            if (!applied || refused) setRevision(current => current + 1);
         });
     }, [rowsProperty, idField, valueField]);
 
@@ -177,7 +193,7 @@ export function useItemChange(binding: ItemChangeBinding, outputs: ComponentBind
         },
     }, [outputs, run]);
 
-    return { declared: bindings.length > 0, onChange, outputs: wrapped };
+    return { declared: bindings.length > 0, onChange, outputs: wrapped, revision };
 }
 
 type Kanban = ComponentType<RegisteredComponentProps>;
@@ -195,7 +211,7 @@ export function StageKanbanBoard(props: RegisteredComponentProps) {
     const change = useItemChange({ element, rowsProperty: 'cards', idField: cardId, valueField: cardColumn }, props.bindingOutputs);
     const Board = KanbanBoard as Kanban;
     if (!change.declared) return <Board {...props} />;
-    return <Board {...props} interactions={{ ...props.interactions, onChange: change.onChange }} bindingOutputs={change.outputs} />;
+    return <Board key={change.revision} {...props} interactions={{ ...props.interactions, onChange: change.onChange }} bindingOutputs={change.outputs} />;
 }
 
 /** The registry key the default blueprint's kanban board is registered under, which the Stage's own board replaces. */

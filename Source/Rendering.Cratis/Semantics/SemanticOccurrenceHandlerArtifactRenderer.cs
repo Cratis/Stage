@@ -20,8 +20,8 @@ internal static class SemanticOccurrenceHandlerArtifactRenderer
         var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         var types = new SemanticTypeSystem(context);
         context.Docs(reaction.Id).Render(builder)
-            .OpenBlock($"public class {name}(global::Cratis.Chronicle.IChronicleClient client, global::Cratis.Chronicle.IEventStore eventStore) : global::Cratis.Chronicle.Occurrences.IOccurrenceHandler<{Identifiers.ToPascalCase(trigger.Name)}>");
-        builder.Line("/// <inheritdoc/>")
+            .OpenBlock($"public class {name}(global::Cratis.Chronicle.IChronicleClient client, global::Cratis.Chronicle.IEventStore eventStore) : global::Cratis.Chronicle.Occurrences.IOccurrenceHandler<{Identifiers.ToPascalCase(trigger.Name)}>")
+            .Line("/// <inheritdoc/>")
             .OpenBlock($"public async global::System.Threading.Tasks.Task Handle({Identifiers.ToPascalCase(trigger.Name)} occurrence, global::Cratis.Chronicle.Occurrences.OccurrenceContext context, global::System.Threading.CancellationToken cancellationToken)");
         builder.Line("var store = context.Namespace is { } @namespace ? await client.GetEventStore(eventStore.Name, @namespace) : eventStore;")
             .Line($"var effect = context.EffectKey({CSharpCodeBuilder.StringLiteral($"stage:reaction:{reaction.Id}:productions")});")
@@ -29,8 +29,8 @@ internal static class SemanticOccurrenceHandlerArtifactRenderer
             .Line("var unitOfWork = store.UnitOfWorkManager.Begin(global::Cratis.Execution.CorrelationId.New());")
             .OpenBlock("try")
             .Line("unitOfWork.UseEffectReceipt(effect, null);");
-        RenderProductions(reaction.Triggers[0], new(trigger, context, types), builder);
-        builder.Line("await unitOfWork.Commit();")
+        RenderProductions(reaction.Triggers[0], new(trigger, context, types), builder)
+            .Line("await unitOfWork.Commit();")
             .Line("if (!unitOfWork.IsSuccess) throw new global::System.InvalidOperationException(\"The occurrence effect could not be committed.\");")
             .EndBlock()
             .OpenBlock("catch")
@@ -40,7 +40,7 @@ internal static class SemanticOccurrenceHandlerArtifactRenderer
         yield return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id, trigger.Id] };
     }
 
-    static void RenderProductions(SemanticReactionTrigger reactionTrigger, RenderingScope scope, CSharpCodeBuilder builder)
+    static CSharpCodeBuilder RenderProductions(SemanticReactionTrigger reactionTrigger, RenderingScope scope, CSharpCodeBuilder builder)
     {
         builder.OpenBlock("unitOfWork.AddEvents(global::Cratis.Chronicle.EventSequences.EventSequenceId.Log, new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[]");
         foreach (var produced in reactionTrigger.Produces)
@@ -52,7 +52,7 @@ internal static class SemanticOccurrenceHandlerArtifactRenderer
             var suffix = tags.Length == 0 ? string.Empty : $" {{ Tags = [{string.Join(", ", tags.Select(CSharpCodeBuilder.StringLiteral))}] }}";
             builder.Line($"new({destination}, new {scope.Types.EventType(target)}({string.Join(", ", arguments)})){suffix},");
         }
-        builder.EndBlock().Line(", []);");
+        return builder.EndBlock().Line(", []);");
     }
 
     static string Argument(SemanticProducedEvent produced, SemanticEventContract target, SemanticProperty property, RenderingScope scope)

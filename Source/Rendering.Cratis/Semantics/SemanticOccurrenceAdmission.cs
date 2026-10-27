@@ -39,6 +39,9 @@ internal static partial class SemanticOccurrenceAdmission
         slices.Where(located => located.Slice.Kind == SemanticSliceKind.Automation).SelectMany(located =>
             located.Slice.Reactions.Where(reaction => IsAdmitted(reaction, context)).Select(reaction => Declaration(located, reaction, context)));
 
+    internal static SemanticApplicationTrigger Trigger(SemanticReaction reaction, SemanticApplicationContext context) =>
+        context.Application.Triggers.Single(trigger => trigger.Id == reaction.Triggers[0].Source);
+
     static GeneratedTypeDeclaration Declaration(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
     {
         var trigger = Trigger(reaction, context);
@@ -54,9 +57,6 @@ internal static partial class SemanticOccurrenceAdmission
 
     static int HandlerCount(SemanticApplicationTrigger source, SemanticApplicationContext context) =>
         context.AllSlices.SelectMany(located => located.Slice.Reactions).Count(candidate => candidate.Triggers.Any(item => item.Kind == SemanticReactionTriggerKind.ApplicationTrigger && item.Source == source.Id));
-
-    internal static SemanticApplicationTrigger Trigger(SemanticReaction reaction, SemanticApplicationContext context) =>
-        context.Application.Triggers.Single(trigger => trigger.Id == reaction.Triggers[0].Source);
 
     static string? Reason(SemanticReaction reaction, SemanticApplicationContext context)
     {
@@ -86,8 +86,15 @@ internal static partial class SemanticOccurrenceAdmission
             return $"Application trigger '{source.Name}' is handled by more than one reaction; Chronicle attaches one handler per trigger (Cratis/Stage#343).";
         if (!trigger.Invokes.IsEmpty)
             return $"Reaction '{reaction.Name}' invokes command '{context.Commands[trigger.Invokes[0].Command].Name}' from application trigger '{source.Name}'; occurrence command execution is not rendered yet (Cratis/Stage#343).";
-        var option = trigger.Where is not null ? "where" : reaction.RunsAs is not null ? "runs as" : reaction.From is not null ? "from" : null;
+        var option = UnsupportedOption(reaction, trigger);
         return option is null ? null : $"Reaction '{reaction.Name}' uses '{option}' with application trigger '{source.Name}', which the Cratis target does not render yet (Cratis/Stage#343).";
+    }
+
+    static string? UnsupportedOption(SemanticReaction reaction, SemanticReactionTrigger trigger)
+    {
+        if (trigger.Where is not null) return "where";
+        if (reaction.RunsAs is not null) return "runs as";
+        return reaction.From is not null ? "from" : null;
     }
 
     static string? PayloadReason(SemanticApplicationTrigger source, SemanticApplicationContext context)

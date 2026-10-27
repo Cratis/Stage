@@ -36,7 +36,7 @@ public static class CommandValidatorRenderer
         var validatorName = $"{typeName}Validator";
         var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, CodeBlockSyntax Code)>();
 
-        builder.BlankLine().OpenBlock($"public class {validatorName} : CommandValidator<{typeName}>");
+        builder.BlankLine().OpenBlock($"public class {validatorName} : global::Cratis.Arc.Commands.CommandValidator<{typeName}>");
         ValidationRuleRenderer.RenderMatchFields(builder, rules, typeName);
         builder.OpenBlock($"public {validatorName}()");
 

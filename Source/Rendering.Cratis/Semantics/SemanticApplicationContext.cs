@@ -67,14 +67,14 @@ internal sealed class SemanticApplicationContext
         [
             new(string.Empty, "Program"),
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
         _responseTypes = new(ResolveResponseTypes);
         _generatedTypes = new(() =>
         [
             .. _generatedTypeSeed.Value,
             .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
     }
 

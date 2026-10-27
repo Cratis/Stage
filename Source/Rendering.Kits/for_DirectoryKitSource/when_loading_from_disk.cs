@@ -12,13 +12,8 @@ public class when_loading_from_disk : Specification
 
     void Establish()
     {
-        var repository = new DirectoryInfo(AppContext.BaseDirectory);
-        while (!File.Exists(Path.Combine(repository.FullName, "Stage.slnx")))
-        {
-            repository = repository.Parent!;
-        }
-
-        _root = Path.Combine(repository.FullName, ".ai-work", "stage-794", "directory-specs", Guid.NewGuid().ToString());
+        _root = Directory.CreateTempSubdirectory("stage-kit-specs-").FullName;
+        Directory.CreateDirectory(Path.Combine(_root, "templates"));
         Directory.CreateDirectory(Path.Combine(_root, "templates"));
         foreach (var file in given.kit.Files())
         {
@@ -52,11 +47,18 @@ public class when_loading_from_disk : Specification
                 root = link;
                 break;
             case "ancestor":
-                Directory.CreateSymbolicLink(link, _root);
-                root = Path.Combine(link, "templates");
+                Directory.CreateDirectory(Path.Combine(_root, "nested"));
+                Directory.CreateSymbolicLink(Path.Combine(_root, "nested", "link"), Path.Combine(_root, "templates"));
                 break;
         }
 
         KitLoader.Load(new DirectoryKitSource(root), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.SymbolicLink);
+    }
+
+    [Fact]
+    void should_refuse_reading_through_a_linked_directory_below_the_root()
+    {
+        Directory.CreateSymbolicLink(Path.Combine(_root, "link"), Path.Combine(_root, "templates"));
+        (Catch.Exception(() => new DirectoryKitSource(_root).Read("link/main.sbn")) as KitSourceException)!.Code.ShouldEqual(KitCodes.SymbolicLink);
     }
 }

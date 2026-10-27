@@ -34,7 +34,19 @@ public class when_reading_untrusted_archives : Specification
         KitLoader.Load(KitArchive.Read([.. stream.ToArray()]), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
     }
 
-    [Fact] void should_refuse_malformed_archive_bytes() => KitLoader.Load(KitArchive.Read([1, 2, 3]), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.LoadLimit);
+    [Fact] void should_refuse_malformed_archive_bytes() => KitLoader.Load(KitArchive.Read([1, 2, 3]), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.UnreadableSource);
+
+    [Fact]
+    void should_refuse_a_malformed_header_without_throwing()
+    {
+        var archive = KitArchive.Write(new KitFiles(new Dictionary<string, ImmutableArray<byte>> { ["file"] = [1, 2, 3] })).ToArray();
+
+        // The ustar size field starts at offset 124; a non-octal digit makes the header invalid.
+        archive[124] = (byte)'9';
+        archive[125] = (byte)'z';
+
+        KitLoader.Load(KitArchive.Read([.. archive]), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.UnreadableSource);
+    }
 
     [Fact]
     void should_preserve_portable_long_ustar_paths()

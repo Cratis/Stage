@@ -65,4 +65,7 @@ public static class KitCodes
 
     /// <summary>A source exceeds a load limit or contains a special file.</summary>
     public const string LoadLimit = "STAGE-KIT-020";
+
+    /// <summary>A source cannot be read, for example a malformed archive or an inaccessible file.</summary>
+    public const string UnreadableSource = "STAGE-KIT-021";
 }

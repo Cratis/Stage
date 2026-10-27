@@ -39,18 +39,25 @@ public sealed class DirectoryKitSource(string root) : IKitSource
         return entry.LinkTarget is not null || entry.Attributes.HasFlag(FileAttributes.ReparsePoint);
     }
 
-    static bool HasLinkedAncestor(FileSystemInfo entry)
+    // Only the kit root and the components below it are checked: links above the root (such as /var or /tmp on macOS)
+    // belong to the host's filesystem layout, not to the kit.
+    bool HasLinkedAncestor(FileSystemInfo entry)
     {
         if (IsLink(entry))
         {
             return true;
         }
 
+        if (string.Equals(Path.TrimEndingDirectorySeparator(entry.FullName), Path.TrimEndingDirectorySeparator(_root), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         var parent = entry is DirectoryInfo directory ? directory.Parent : ((FileInfo)entry).Directory;
         return parent is not null && HasLinkedAncestor(parent);
     }
 
-    static void RefuseLinks(FileSystemInfo entry, string path)
+    void RefuseLinks(FileSystemInfo entry, string path)
     {
         if (HasLinkedAncestor(entry))
         {

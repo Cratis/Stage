@@ -54,9 +54,9 @@ sealed class KitSourceReader(IKitSource source, KitLoadLimits limits, List<KitDi
         {
             diagnostics.Add(new(exception.Code, exception.Message, exception.EntryPath));
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or FormatException)
         {
-            diagnostics.Add(new(KitCodes.LoadLimit, exception.Message, "$"));
+            diagnostics.Add(new(KitCodes.UnreadableSource, exception.Message, "$"));
         }
 
         return _files;

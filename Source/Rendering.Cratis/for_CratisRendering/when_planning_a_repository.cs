@@ -12,12 +12,16 @@ public class when_planning_a_repository : Specification
     CratisPlanResult _result = null!;
     CratisPlanResult _scaffold = null!;
     CratisPlanResult _reordered = null!;
+    CratisPlanResult _frameworkNames = null!;
+    CratisPlanResult _aliasNames = null!;
 
     void Because()
     {
         _result = CratisRendering.PlanRepository(new("Acme", ["Orders", "Billing"]));
         _reordered = CratisRendering.PlanRepository(new("Acme", ["Billing", "Orders"]));
         _scaffold = CratisRendering.PlanScaffold(new("Acme", "Acme", "Acme"));
+        _frameworkNames = CratisRendering.PlanRepository(new("Acme", ["System", "Task"]));
+        _aliasNames = CratisRendering.PlanRepository(new("Acme", ["Foo", "FooProject"]));
     }
 
     [Fact] void should_succeed() => _result.Success.ShouldBeTrue();
@@ -79,6 +83,8 @@ public class when_planning_a_repository : Specification
     [Fact]
     void should_compose_every_service_with_chronicle() => Text(_result, "Source/Composition/Program.cs").ShouldEqual(
         """
+        using BillingProject = Projects.Billing;
+        using OrdersProject = Projects.Orders;
         using Cratis.Chronicle.Aspire;
 
         var builder = DistributedApplication.CreateBuilder(args);
@@ -94,7 +100,7 @@ public class when_planning_a_repository : Specification
         // so hand it the address Aspire assigned, with the development client credentials.
         var chronicleGrpc = chronicle.GetEndpoint("grpc");
 
-        builder.AddProject<Projects.Billing>("billing")
+        builder.AddProject<BillingProject>("billing")
             .WithReference(chronicle)
             .WithEnvironment(
                 "Cratis__Chronicle__ConnectionString",
@@ -104,7 +110,7 @@ public class when_planning_a_repository : Specification
                 ReferenceExpression.Create($"mongodb://{mongoDB.Property(EndpointProperty.Host)}:{mongoDB.Property(EndpointProperty.Port)}/?directConnection=true"))
             .WaitFor(chronicle);
 
-        builder.AddProject<Projects.Orders>("orders")
+        builder.AddProject<OrdersProject>("orders")
             .WithReference(chronicle)
             .WithEnvironment(
                 "Cratis__Chronicle__ConnectionString",
@@ -118,6 +124,18 @@ public class when_planning_a_repository : Specification
 
         """);
 
+    [Fact] void should_not_qualify_project_type_arguments() => Text(_result, "Source/Composition/Program.cs").ShouldNotContain("AddProject<Projects.");
+    [Fact] void should_not_use_global_qualifiers_in_the_composition() => Text(_result, "Source/Composition/Program.cs").ShouldNotContain("global::");
+    [Fact] void should_accept_framework_type_names() => _frameworkNames.Success.ShouldBeTrue();
+    [Fact] void should_alias_system() => Text(_frameworkNames, "Source/Composition/Program.cs").ShouldContain("using SystemProject = Projects.System;\n");
+    [Fact] void should_alias_task() => Text(_frameworkNames, "Source/Composition/Program.cs").ShouldContain("using TaskProject = Projects.Task;\n");
+    [Fact] void should_compose_system_through_its_alias() => Text(_frameworkNames, "Source/Composition/Program.cs").ShouldContain("builder.AddProject<SystemProject>(\"system\")");
+    [Fact] void should_compose_task_through_its_alias() => Text(_frameworkNames, "Source/Composition/Program.cs").ShouldContain("builder.AddProject<TaskProject>(\"task\")");
+    [Fact] void should_accept_names_ending_in_project() => _aliasNames.Success.ShouldBeTrue();
+    [Fact] void should_alias_foo() => Text(_aliasNames, "Source/Composition/Program.cs").ShouldContain("using FooProject = Projects.Foo;\n");
+    [Fact] void should_alias_foo_project_distinctly() => Text(_aliasNames, "Source/Composition/Program.cs").ShouldContain("using FooProjectProject = Projects.FooProject;\n");
+    [Fact] void should_compose_foo_through_its_alias() => Text(_aliasNames, "Source/Composition/Program.cs").ShouldContain("builder.AddProject<FooProject>(\"foo\")");
+    [Fact] void should_compose_foo_project_through_its_alias() => Text(_aliasNames, "Source/Composition/Program.cs").ShouldContain("builder.AddProject<FooProjectProject>(\"fooproject\")");
     [Fact] void should_use_short_names() => _result.Artifacts.Any(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("global::", StringComparison.Ordinal)).ShouldBeFalse();
 
     [Theory]

@@ -8,6 +8,11 @@ namespace Cratis.Stage.Rendering.Languages;
 /// The default value is <see cref="Unknown"/>, never <see cref="None"/>. Callers must check
 /// <see cref="IsKnown"/> before reading <see cref="Values"/>; unknown metadata cannot be enumerated as empty.
 /// </summary>
+/// <remarks>
+/// None is an assertion that the complete set is empty, never a fallback for missing metadata.
+/// Kits must declare implicit supertypes (for example an enum's java.lang.Enum ancestry).
+/// Unknown dependency metadata cannot prove either a shortened binding or an unobscured qualified package prefix.
+/// </remarks>
 /// <typeparam name="T">A structured type name or a member type simple name.</typeparam>
 public readonly record struct KnownTypes<T>
 {

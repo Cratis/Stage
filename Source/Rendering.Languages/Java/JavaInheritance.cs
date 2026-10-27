@@ -57,6 +57,31 @@ public sealed class JavaInheritance
     public bool ObscuresName(string file, string owner, string name) => LexicalOwners(file, owner).Types.Any(type =>
         DirectMembers(type).Contains(name, StringComparer.Ordinal) || Inherited(type).Names.Contains(name));
 
+    /// <summary>Proves absence of a member name on one actual lexical declaration and its complete ancestry.</summary>
+    /// <param name="file">The stable file identity.</param>
+    /// <param name="owner">The actual declaration identity, not an inferred caller owner.</param>
+    /// <param name="name">The package-prefix identifier to protect.</param>
+    /// <returns>False for incomplete or ambiguous dependency metadata.</returns>
+    public bool ProvesNoMemberName(string file, string owner, string name)
+    {
+        var types = _owners.GetValueOrDefault((file, owner), []);
+        return types.Length == 1 && ProvesNoMemberName(types[0], name);
+    }
+
+    /// <summary>Proves absence of a member name on a classified anonymous base and its ancestry.</summary>
+    /// <param name="owner">The erased, unambiguous dependency identity.</param>
+    /// <param name="name">The package-prefix identifier to protect.</param>
+    /// <returns>False when the external dependency or its ancestry is unknown.</returns>
+    public bool ProvesNoMemberName(TypeName owner, string name)
+    {
+        var types = _types.Where(type => type.Final.QualifiedName == owner.QualifiedName).ToArray();
+        return types.Length == 1 && ProvesNoMemberName(types[0], name);
+    }
+
+    bool ProvesNoMemberName(DeclaredType type, string name) => HasKnownMembers(type) && Inherited(type).Known &&
+        !(type.External ? DirectMembers(type).Contains(name, StringComparer.Ordinal) : _types.Any(child => !child.External && child.File == type.File && child.ParentOwner == type.Owner && child.Name == name)) &&
+        !Inherited(type).Names.Contains(name);
+
     static bool HasKnownMembers(DeclaredType type) => !type.External || type.DeclaredMemberTypes.IsKnown;
 
     static (bool Known, DeclaredType[] Types) ResolveEdges(DeclaredType type, Dictionary<(string Package, string Scope, string Name), DeclaredType[]> preferred)

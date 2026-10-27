@@ -18,6 +18,7 @@ public static class JavaLanguagePack
     {
         Validate(plan);
         var resolver = new JavaFileResolver(new JavaDeclarations(plan));
+        foreach (var file in plan.Files) resolver.Prepare(file);
         var files = plan.Files.OrderBy(file => file.Id, StringComparer.Ordinal).Select(resolver.Resolve).ToArray();
         var diagnostics = plan.Files.SelectMany(file => file.Segments.Select((segment, index) => (segment, index))
             .Where(item => item.segment is GapSegment).Select(item => Diagnostic(file.Id, item.index, (GapSegment)item.segment)))
@@ -50,13 +51,13 @@ public static class JavaLanguagePack
                         break;
                     case GapSegment gap:
                         ValidateContext(gap.Context);
+                        JavaPlaceholders.ValidateCode(gap.Code);
                         break;
                 }
 
                 if (index + 1 < file.Segments.Count) ValidateLiteralBoundary(segment);
             }
 
-            InlineBodyScanner.ValidateDeclarations(file);
         }
     }
 

@@ -23,13 +23,14 @@ public sealed class JavaFileScope
     /// <param name="file">The structured file, including its native bodies.</param>
     /// <param name="declarations">The plan's allocated declarations.</param>
     /// <param name="references">Every allocated type referenced by the file, before any shortening.</param>
+    /// <param name="reservedNames">Identifiers from authoritative complete-output analysis, when available.</param>
     /// <exception cref="LanguagePackRefusal">A native body cannot be scanned safely.</exception>
-    public JavaFileScope(SymbolFile file, JavaDeclarations declarations, IEnumerable<TypeName> references)
+    public JavaFileScope(SymbolFile file, JavaDeclarations declarations, IEnumerable<TypeName> references, IReadOnlySet<string>? reservedNames = null)
     {
         _file = file;
         _declarations = declarations;
         _references = [.. references.DistinctBy(type => type.QualifiedName, StringComparer.Ordinal)];
-        _nativeNames = InlineBodyScanner.Identifiers(file).ToHashSet(StringComparer.Ordinal);
+        _nativeNames = (reservedNames ?? InlineBodyScanner.Identifiers(file)).ToHashSet(StringComparer.Ordinal);
         _declaredNames = declarations.InFile(file.Id).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
         _memberNames = declarations.InFile(file.Id).Where(type => type.Scope.Length > 0).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
         foreach (var type in _references.Where(NeedsTopLevelImport))
@@ -39,6 +40,9 @@ public sealed class JavaFileScope
 
         ReserveObscuredImports();
     }
+
+    /// <summary>Gets the file's declared package.</summary>
+    public string Package => _file.Package;
 
     /// <summary>
     /// Gets the complete, ordinally sorted single-type imports.

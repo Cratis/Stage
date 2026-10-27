@@ -73,4 +73,13 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0013: generated Java code declares a type without a structured DeclarationSegment.
     /// </summary>
     public const string UnstructuredDeclaration = "STAGE-JAVA-0013";
+
+    /// <summary>STAGE-JAVA-0014: emitted structure or a symbol's code-token placement is unproven.</summary>
+    public const string UnprovenStructure = "STAGE-JAVA-0014";
+
+    /// <summary>STAGE-JAVA-0015: a qualified reference or placeholder lacks a proven unobscured package prefix.</summary>
+    public const string UnprovenQualifiedBinding = "STAGE-JAVA-0015";
+
+    /// <summary>STAGE-JAVA-0016: a gap lacks a non-empty STAGE-DEGRADE suffix or uses #807's reserved 001–005 range.</summary>
+    public const string InvalidGapCode = "STAGE-JAVA-0016";
 }

@@ -24,6 +24,18 @@ public static class JavaPlaceholders
             _ => throw new LanguagePackRefusal(JavaRefusalCodes.UnsupportedContext, $"Unknown Java grammar context '{gap.Context}'."),
         };
 
+        ValidateCode(gap.Code);
         return "// TODO " + JavaLiterals.EscapeLineComment(gap.Code + ": " + gap.Construct + ": " + gap.Intent) + "\n" + placeholder;
+    }
+
+    /// <summary>Validates caller-owned degradation codes without accepting #807's reserved renderer codes.</summary>
+    /// <param name="code">The existing degradation code.</param>
+    /// <exception cref="LanguagePackRefusal">The code is empty, outside the namespace, or reserved by #807.</exception>
+    public static void ValidateCode(string code)
+    {
+        const string prefix = "STAGE-DEGRADE-";
+        if (!code.StartsWith(prefix, StringComparison.Ordinal) || string.IsNullOrWhiteSpace(code[prefix.Length..]) ||
+            int.TryParse(code[prefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) && number is >= 1 and <= 5)
+            throw new LanguagePackRefusal(JavaRefusalCodes.InvalidGapCode, "A Java gap requires a non-empty STAGE-DEGRADE code outside #807's reserved 001–005 range.");
     }
 }

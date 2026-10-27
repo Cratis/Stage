@@ -17,13 +17,23 @@ public static class JavaUnicodeEscapes
     /// <param name="text">The raw Java input.</param>
     /// <returns>The translated UTF-16 input.</returns>
     /// <exception cref="LanguagePackRefusal">An eligible escape is malformed.</exception>
-    public static string Decode(string text)
+    public static string Decode(string text) => Decode(text, (_, _) => { });
+
+    /// <summary>
+    /// Decodes the input while reporting the raw UTF-16 interval responsible for each translated character.
+    /// </summary>
+    /// <param name="text">The raw Java input.</param>
+    /// <param name="translatedSpan">Receives the inclusive start and exclusive end in the raw input.</param>
+    /// <returns>The JLS 3.3 translation, without recursive decoding.</returns>
+    /// <exception cref="LanguagePackRefusal">An eligible escape is malformed.</exception>
+    public static string Decode(string text, Action<int, int> translatedSpan)
     {
         var result = new StringBuilder(text.Length);
         var backslashes = 0;
         var previousWasEscape = false;
         for (var index = 0; index < text.Length; index++)
         {
+            var start = index;
             var character = text[index];
             var eligible = previousWasEscape || backslashes % 2 == 0;
             var escaped = character == '\\' && eligible && IsEscapeIntroducer(text, index);
@@ -33,6 +43,7 @@ public static class JavaUnicodeEscapes
             }
 
             result.Append(character);
+            translatedSpan(start, index + 1);
             backslashes = character == '\\' ? backslashes + 1 : 0;
             previousWasEscape = escaped;
         }

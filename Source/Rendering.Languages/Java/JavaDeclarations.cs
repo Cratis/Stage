@@ -44,6 +44,9 @@ public sealed class JavaDeclarations
     /// </summary>
     public JavaInheritance Inheritance { get; }
 
+    /// <summary>Gets generated declarations and explicitly supplied external dependency metadata.</summary>
+    public IReadOnlyList<DeclaredType> Types => _all;
+
     /// <summary>
     /// Enumerates the allocated declarations in a file.
     /// </summary>

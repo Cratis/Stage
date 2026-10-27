@@ -40,6 +40,12 @@ internal static partial class KitManifestValidator
 
     static void ValidateBindings(KitManifest manifest, KitEngineCapabilities capabilities, List<KitDiagnostic> diagnostics)
     {
+        ValidatePacks(manifest, capabilities, diagnostics);
+        ValidateContracts(manifest, capabilities, diagnostics);
+    }
+
+    static void ValidatePacks(KitManifest manifest, KitEngineCapabilities capabilities, List<KitDiagnostic> diagnostics)
+    {
         foreach (var pack in manifest.LanguagePacks)
         {
             if (!LanguagePackVersion.TryParse(pack.ToString(), out _))
@@ -51,7 +57,10 @@ internal static partial class KitManifestValidator
                 diagnostics.Add(new(KitCodes.MissingLanguagePack, $"The engine does not provide {pack}.", "$.languagePacks"));
             }
         }
+    }
 
+    static void ValidateContracts(KitManifest manifest, KitEngineCapabilities capabilities, List<KitDiagnostic> diagnostics)
+    {
         foreach (var required in manifest.Requires)
         {
             var matches = capabilities.Contracts.Where(contract => string.Equals(contract.Name, required.Name, StringComparison.Ordinal) && contract.Major == required.Major).ToArray();

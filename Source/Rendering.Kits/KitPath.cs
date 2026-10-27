@@ -11,17 +11,17 @@ public static class KitPath
     /// <returns>The rejection code, if any.</returns>
     public static string? Validate(string path)
     {
-        if (path.StartsWith('/') || path.StartsWith('\\') || (path.Length >= 2 && path[1] == ':'))
+        if (IsRooted(path))
         {
             return KitCodes.RootedPath;
         }
 
-        if (path.Split('/').Any(segment => segment.Length == 0 || string.Equals(segment, ".", StringComparison.Ordinal) || string.Equals(segment, "..", StringComparison.Ordinal)))
+        if (path.Split('/').Any(IsTraversalSegment))
         {
             return KitCodes.Traversal;
         }
 
-        if (path.Length > 255 || path.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('/' or '.' or '_' or '-')) || !FitsArchive(path))
+        if (!IsPortable(path))
         {
             return KitCodes.NonPortablePath;
         }
@@ -30,4 +30,12 @@ public static class KitPath
     }
 
     internal static bool FitsArchive(string path) => path.Length <= 100 || path.Select((character, index) => (character, index)).Any(part => part.character == '/' && part.index <= 155 && path.Length - part.index - 1 <= 100);
+
+    static bool IsTraversalSegment(string segment) => segment.Length == 0 || string.Equals(segment, ".", StringComparison.Ordinal) || string.Equals(segment, "..", StringComparison.Ordinal);
+
+    static bool IsRooted(string path) => path.StartsWith('/') || path.StartsWith('\\') || (path.Length >= 2 && path[1] == ':');
+
+    static bool IsPortable(string path) => path.Length <= 255 && path.All(IsPortableCharacter) && FitsArchive(path);
+
+    static bool IsPortableCharacter(char character) => char.IsAsciiLetterOrDigit(character) || character is '/' or '.' or '_' or '-';
 }

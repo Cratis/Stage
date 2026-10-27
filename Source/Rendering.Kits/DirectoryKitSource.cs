@@ -69,27 +69,35 @@ public sealed class DirectoryKitSource(string root) : IKitSource
 
         foreach (var entry in directory.EnumerateFileSystemInfos())
         {
-            var path = Path.GetRelativePath(_root, entry.FullName).Replace(Path.DirectorySeparatorChar, '/');
-            if (IsLink(entry))
+            foreach (var descendant in EnumerateEntry(entry))
             {
-                yield return new(path, KitSourceEntryKind.SymbolicLink, 0);
+                yield return descendant;
             }
-            else if (entry is DirectoryInfo child)
+        }
+    }
+
+    IEnumerable<KitSourceEntry> EnumerateEntry(FileSystemInfo entry)
+    {
+        var path = Path.GetRelativePath(_root, entry.FullName).Replace(Path.DirectorySeparatorChar, '/');
+        if (IsLink(entry))
+        {
+            yield return new(path, KitSourceEntryKind.SymbolicLink, 0);
+        }
+        else if (entry is DirectoryInfo child)
+        {
+            yield return new(path, KitSourceEntryKind.Directory, 0);
+            foreach (var descendant in EnumerateDirectory(child))
             {
-                yield return new(path, KitSourceEntryKind.Directory, 0);
-                foreach (var descendant in EnumerateDirectory(child))
-                {
-                    yield return descendant;
-                }
+                yield return descendant;
             }
-            else if (entry.Attributes.HasFlag(FileAttributes.Device))
-            {
-                yield return new(path, KitSourceEntryKind.Other, 0);
-            }
-            else
-            {
-                yield return new(path, KitSourceEntryKind.File, ((FileInfo)entry).Length);
-            }
+        }
+        else if (entry.Attributes.HasFlag(FileAttributes.Device))
+        {
+            yield return new(path, KitSourceEntryKind.Other, 0);
+        }
+        else
+        {
+            yield return new(path, KitSourceEntryKind.File, ((FileInfo)entry).Length);
         }
     }
 }

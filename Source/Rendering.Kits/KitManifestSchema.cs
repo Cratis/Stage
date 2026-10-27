@@ -41,21 +41,29 @@ public static class KitManifestSchema
             schema["additionalProperties"] = false;
         }
 
-        if (context.TypeInfo.Type == typeof(ImmutableArray<ContractVersion>) || context.TypeInfo.Type == typeof(ImmutableArray<LanguagePackVersion>))
+        AddVersionItems(context.TypeInfo.Type, schema);
+        AddPropertyPattern(context, schema);
+        return schema;
+    }
+
+    static void AddVersionItems(Type type, JsonNode schema)
+    {
+        if (type == typeof(ImmutableArray<ContractVersion>) || type == typeof(ImmutableArray<LanguagePackVersion>))
         {
             schema["items"] = new JsonObject
             {
                 ["type"] = "string",
-                ["pattern"] = context.TypeInfo.Type == typeof(ImmutableArray<ContractVersion>) ? ContractVersion.Pattern : LanguagePackVersion.Pattern
+                ["pattern"] = type == typeof(ImmutableArray<ContractVersion>) ? ContractVersion.Pattern : LanguagePackVersion.Pattern
             };
         }
+    }
 
+    static void AddPropertyPattern(JsonSchemaExporterContext context, JsonNode schema)
+    {
         var pattern = context.PropertyInfo?.AttributeProvider?.GetCustomAttributes(typeof(KitPatternAttribute), true).OfType<KitPatternAttribute>().FirstOrDefault();
         if (pattern is not null)
         {
             schema["pattern"] = pattern.Pattern;
         }
-
-        return schema;
     }
 }

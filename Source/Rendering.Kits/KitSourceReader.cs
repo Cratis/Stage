@@ -5,60 +5,18 @@ using System.Collections.Immutable;
 
 namespace Cratis.Stage.Rendering.Kits;
 
-static class KitSourceReader
+sealed class KitSourceReader(IKitSource source, KitLoadLimits limits, List<KitDiagnostic> diagnostics)
 {
-    internal static Dictionary<string, ImmutableArray<byte>> Read(IKitSource source, KitLoadLimits limits, List<KitDiagnostic> diagnostics)
-    {
-        var files = new Dictionary<string, ImmutableArray<byte>>(StringComparer.Ordinal);
-        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        long total = 0;
-        var count = 0;
-        try
-        {
-            foreach (var entry in source.Enumerate())
-            {
-                var code = EntryCode(entry, paths);
-                if (code is not null)
-                {
-                    diagnostics.Add(new(code, "Unsafe or unsupported source entry.", entry.Path));
-                    continue;
-                }
+    readonly Dictionary<string, ImmutableArray<byte>> _files = new(StringComparer.Ordinal);
+    readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+    long _total;
+    int _count;
 
-                if (entry.Kind == KitSourceEntryKind.Directory)
-                {
-                    continue;
-                }
+    internal static Dictionary<string, ImmutableArray<byte>> Read(IKitSource source, KitLoadLimits limits, List<KitDiagnostic> diagnostics) => new KitSourceReader(source, limits, diagnostics).ReadSource();
 
-                if (++count > limits.MaxFiles || entry.Length < 0 || entry.Length > limits.MaxFileBytes || entry.Length > limits.MaxTotalBytes - total)
-                {
-                    diagnostics.Add(new(KitCodes.LoadLimit, "Kit load limit exceeded.", entry.Path));
-                    continue;
-                }
+    static bool LengthChanged(ImmutableArray<byte> bytes, KitSourceEntry entry) => bytes.IsDefault || bytes.Length != entry.Length;
 
-                var bytes = source.Read(entry.Path);
-                if (bytes.IsDefault || bytes.Length != entry.Length || bytes.Length > limits.MaxFileBytes || bytes.Length > limits.MaxTotalBytes - total)
-                {
-                    diagnostics.Add(new(KitCodes.LoadLimit, "Source length changed or exceeds kit load limits.", entry.Path));
-                    continue;
-                }
-
-                total += bytes.Length;
-                files.Add(entry.Path, bytes);
-            }
-        }
-        catch (KitSourceException exception)
-        {
-            diagnostics.Add(new(exception.Code, exception.Message, exception.EntryPath));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            diagnostics.Add(new(KitCodes.LoadLimit, exception.Message, "$"));
-        }
-
-        return files;
-    }
-
-    static string? EntryCode(KitSourceEntry entry, HashSet<string> paths)
+    string? EntryCode(KitSourceEntry entry)
     {
         if (entry.Kind == KitSourceEntryKind.SymbolicLink)
         {
@@ -70,6 +28,58 @@ static class KitSourceReader
             return KitCodes.LoadLimit;
         }
 
-        return KitPath.Validate(entry.Path) ?? (paths.Add(entry.Path) ? null : KitCodes.DuplicatePath);
+        return KitPath.Validate(entry.Path) ?? (_paths.Add(entry.Path) ? null : KitCodes.DuplicatePath);
     }
+
+    Dictionary<string, ImmutableArray<byte>> ReadSource()
+    {
+        try
+        {
+            foreach (var entry in source.Enumerate())
+            {
+                var code = EntryCode(entry);
+                if (code is not null)
+                {
+                    diagnostics.Add(new(code, "Unsafe or unsupported source entry.", entry.Path));
+                    continue;
+                }
+
+                if (entry.Kind == KitSourceEntryKind.File)
+                {
+                    ReadFile(entry);
+                }
+            }
+        }
+        catch (KitSourceException exception)
+        {
+            diagnostics.Add(new(exception.Code, exception.Message, exception.EntryPath));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            diagnostics.Add(new(KitCodes.LoadLimit, exception.Message, "$"));
+        }
+
+        return _files;
+    }
+
+    void ReadFile(KitSourceEntry entry)
+    {
+        if (++_count > limits.MaxFiles || ExceedsBudget(entry.Length))
+        {
+            diagnostics.Add(new(KitCodes.LoadLimit, "Kit load limit exceeded.", entry.Path));
+            return;
+        }
+
+        var bytes = source.Read(entry.Path);
+        if (LengthChanged(bytes, entry) || ExceedsBudget(bytes.Length))
+        {
+            diagnostics.Add(new(KitCodes.LoadLimit, "Source length changed or exceeds kit load limits.", entry.Path));
+            return;
+        }
+
+        _total += bytes.Length;
+        _files.Add(entry.Path, bytes);
+    }
+
+    bool ExceedsBudget(long length) => length < 0 || length > limits.MaxFileBytes || length > limits.MaxTotalBytes - _total;
 }

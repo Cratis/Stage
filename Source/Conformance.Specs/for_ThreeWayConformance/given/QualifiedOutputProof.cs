@@ -141,7 +141,7 @@ static class QualifiedOutputProof
         return failures;
     }
 
-    static (CSharpCompilation Application, CSharpCompilation Specifications) Compile(IReadOnlyList<RenderedFile> files, bool legacyImports = false)
+    internal static (CSharpCompilation Application, CSharpCompilation Specifications) Compile(IReadOnlyList<RenderedFile> files, bool legacyImports = false)
     {
         var application = CSharpCompilation.Create(
             $"RenderedApplication_{Guid.NewGuid():N}",

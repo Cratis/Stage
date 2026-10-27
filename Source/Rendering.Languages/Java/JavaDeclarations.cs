@@ -25,9 +25,11 @@ public sealed class JavaDeclarations
             throw new LanguagePackRefusal(JavaRefusalCodes.AmbiguousDeclaration, "A Java declaration identity is duplicated.");
         }
 
+        ValidatePackageCase(plan.Files.Select(file => file.Package).Concat(requested.Select(declaration => declaration.Package)));
         foreach (var level in requested.GroupBy(declaration => Depth(declaration.Scope)).OrderBy(group => group.Key))
         {
-            foreach (var declarations in level.Select(BindParent).GroupBy(declaration => (declaration.Package, Scope: declaration.AllocatedScope.ToUpperInvariant())))
+            foreach (var declarations in level.Select(BindParent).GroupBy(declaration => declaration.Package, StringComparer.Ordinal)
+                .SelectMany(package => package.GroupBy(declaration => declaration.AllocatedScope, StringComparer.OrdinalIgnoreCase)))
             {
                 _all.AddRange(JavaDeclarationNames.Allocate(declarations));
             }
@@ -105,15 +107,32 @@ public sealed class JavaDeclarations
 
     static int Depth(string scope) => scope.Length == 0 ? 0 : scope.Count(character => character == '.') + 1;
 
-    static string Scope(DeclarationSegment segment) => segment.Scope.Length == 0 ? segment.Type.EnclosingScope : segment.Scope;
+    static string Scope(DeclarationSegment segment)
+    {
+        if (segment.Scope is not null && !string.Equals(segment.Scope, segment.Type.EnclosingScope, StringComparison.Ordinal))
+        {
+            throw new LanguagePackRefusal(JavaRefusalCodes.InvalidDeclarationScope, $"Declaration '{segment.Owner}' has a scope that disagrees with its structured type.");
+        }
+
+        return segment.Type.EnclosingScope;
+    }
+
+    static void ValidatePackageCase(IEnumerable<string> packages)
+    {
+        var paths = packages.SelectMany(package => package.Split('.').Select((_, index) => string.Join('.', package.Split('.').Take(index + 1))));
+        if (paths.GroupBy(path => path, StringComparer.OrdinalIgnoreCase).Any(group => group.Distinct(StringComparer.Ordinal).Skip(1).Any()))
+        {
+            throw new LanguagePackRefusal(JavaRefusalCodes.CaseConflictingPackage, "Java packages must not differ only by ordinal case, including directory prefixes.");
+        }
+    }
 
     static DeclaredType External(TypeName type) => new(type.Package, type.EnclosingScope, type.SimpleName, type.SimpleName, "external:" + type.QualifiedName, string.Empty, true, string.Empty, type.EnclosingScope);
 
     static DeclaredType Requested(SymbolFile file, DeclarationSegment segment) => new(segment.Type.Package, Scope(segment), segment.Type.SimpleName, JavaIdentifiers.Sanitize(segment.Type.SimpleName), segment.Owner, file.Id, false, segment.ParentOwner, Scope(segment));
 
-    static bool IsParentOf(DeclaredType parent, DeclaredType child) => parent.Package == child.Package &&
+    static bool IsParentOf(DeclaredType parent, DeclaredType child) => parent.File == child.File && parent.Package == child.Package &&
         (parent.Scope.Length == 0 ? parent.Preferred : parent.Scope + "." + parent.Preferred) == child.Scope &&
-        (child.ParentOwner.Length > 0 ? parent.Owner == child.ParentOwner : parent.File == child.File);
+        (child.ParentOwner.Length == 0 || parent.Owner == child.ParentOwner);
 
     bool HasUniqueMember(DeclaredType parent, TypeName target)
     {

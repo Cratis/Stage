@@ -58,4 +58,14 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0010: no simple or qualified type spelling has a proven binding in the file scope.
     /// </summary>
     public const string ObscuredReference = "STAGE-JAVA-0010";
+
+    /// <summary>
+    /// STAGE-JAVA-0011: a declaration's explicit scope disagrees with its structured type.
+    /// </summary>
+    public const string InvalidDeclarationScope = "STAGE-JAVA-0011";
+
+    /// <summary>
+    /// STAGE-JAVA-0012: packages or their directory prefixes differ only by ordinal case.
+    /// </summary>
+    public const string CaseConflictingPackage = "STAGE-JAVA-0012";
 }

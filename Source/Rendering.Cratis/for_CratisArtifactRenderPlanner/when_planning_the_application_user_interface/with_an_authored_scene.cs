@@ -15,7 +15,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 /// </summary>
 public class with_an_authored_scene : a_screen_composition_render
 {
-    const string Before = "ada41bdbd3fe652fd2c82439493fc50a3b41a86d6cec9a4b8cb8bb20edcaef83";
+    // Re-frozen for Cratis/Stage#209: Scene 4.84.0 packages, native guarded actions/interactions and empty Form.OnSubmit; capability-reverted bytes match.
+    const string Before = "0cee846e568e33e5fe3fd8dbfdd23b3772c15340616e535ad0c728950ab192e7";
 
     ArtifactRenderPlan _plan = null!;
 

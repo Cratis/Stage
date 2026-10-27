@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using System.Formats.Tar;
 
 namespace Cratis.Stage.Rendering.Kits;
 
@@ -24,6 +25,11 @@ public sealed class DirectoryKitSource(string root) : IKitSource
 
         var fullPath = Path.Combine(_root, path.Replace('/', Path.DirectorySeparatorChar));
         RefuseLinks(new FileInfo(fullPath), path);
+        if (!IsRegularFile(new FileInfo(fullPath)))
+        {
+            throw new KitSourceException(KitCodes.LoadLimit, path);
+        }
+
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
 
         // Recheck after opening: author mode does not promise an atomic filesystem snapshot.
@@ -31,6 +37,35 @@ public sealed class DirectoryKitSource(string root) : IKitSource
         using var output = new MemoryStream();
         stream.CopyTo(output);
         return [.. output.ToArray()];
+    }
+
+    // On Unix, FIFOs, sockets and device nodes carry no FileAttributes.Device and report no length; opening a FIFO
+    // blocks. The tar writer reads the real file type from the file system without opening anything but regular files.
+    static bool IsRegularFile(FileInfo file)
+    {
+        if (!file.Exists || file.Length > 0)
+        {
+            // A missing file fails when it is opened, which reports it as unreadable.
+            return true;
+        }
+
+        try
+        {
+            using var probe = new MemoryStream();
+            using (var writer = new TarWriter(probe, TarEntryFormat.Pax, true))
+            {
+                writer.WriteEntry(file.FullName, "probe");
+            }
+
+            probe.Position = 0;
+            using var reader = new TarReader(probe);
+            return reader.GetNextEntry()?.EntryType == TarEntryType.RegularFile;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // A file type the tar writer cannot represent (such as a socket) is not a regular file.
+            return false;
+        }
     }
 
     static bool IsLink(FileSystemInfo entry)
@@ -98,7 +133,7 @@ public sealed class DirectoryKitSource(string root) : IKitSource
                 yield return descendant;
             }
         }
-        else if (entry.Attributes.HasFlag(FileAttributes.Device))
+        else if (entry.Attributes.HasFlag(FileAttributes.Device) || !IsRegularFile((FileInfo)entry))
         {
             yield return new(path, KitSourceEntryKind.Other, 0);
         }

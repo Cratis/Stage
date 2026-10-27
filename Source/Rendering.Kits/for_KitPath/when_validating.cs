@@ -19,6 +19,13 @@ public class when_validating : Specification
     [InlineData("a\\b", KitCodes.NonPortablePath)]
     [InlineData("café.sbn", KitCodes.NonPortablePath)]
     [InlineData("a b", KitCodes.NonPortablePath)]
+    [InlineData("templates/a.", KitCodes.NonPortablePath)]
+    [InlineData("CON", KitCodes.NonPortablePath)]
+    [InlineData("templates/nul.txt", KitCodes.NonPortablePath)]
+    [InlineData("lpt1/a.sbn", KitCodes.NonPortablePath)]
+    [InlineData("com9.sbn", KitCodes.NonPortablePath)]
+    [InlineData("console.sbn", null)]
+    [InlineData("com10.sbn", null)]
     [InlineData("templates/a.sbn", null)]
     void should_validate_portable_relative_paths(string path, string? code) => KitPath.Validate(path).ShouldEqual(code);
 

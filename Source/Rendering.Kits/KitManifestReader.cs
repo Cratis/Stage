@@ -28,6 +28,12 @@ static class KitManifestReader
             diagnostics.Add(new(KitCodes.InvalidManifest, exception.Message, exception.Path ?? "$"));
             return null;
         }
+        catch (InvalidOperationException exception)
+        {
+            // System.Text.Json reports undecodable text, such as a lone surrogate escape in a property name, this way.
+            diagnostics.Add(new(KitCodes.InvalidManifest, exception.Message, "$"));
+            return null;
+        }
     }
 
     static void Inspect(JsonElement element, Type type, string path, List<KitDiagnostic> diagnostics)

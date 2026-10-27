@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
 using Cratis.Specifications;
 using Xunit;
 
@@ -53,6 +54,24 @@ public class when_loading_from_disk : Specification
         }
 
         KitLoader.Load(new DirectoryKitSource(root), given.kit.Capabilities).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(KitCodes.SymbolicLink);
+    }
+
+    [Fact]
+    async Task should_refuse_a_named_pipe_without_opening_it()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using (var mkfifo = Process.Start("mkfifo", Path.Combine(_root, "pipe")))
+        {
+            await mkfifo.WaitForExitAsync();
+        }
+
+        // Opening a FIFO without a writer blocks, so the load must finish without touching it.
+        var result = await Task.Run(() => KitLoader.Load(new DirectoryKitSource(_root), given.kit.Capabilities)).WaitAsync(TimeSpan.FromSeconds(10));
+        result.Diagnostics.ShouldContain(new KitDiagnostic(KitCodes.LoadLimit, "Unsafe or unsupported source entry.", "pipe"));
     }
 
     [Fact]

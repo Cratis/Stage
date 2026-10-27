@@ -17,6 +17,8 @@ public class when_reading_manifests : Specification
     [InlineData("{\"apiVersion\":\"stage-target/v1.0\",\"apiVersion\":\"stage-target/v1.0\"}", KitCodes.InvalidManifest)]
     [InlineData("{/* comment */}", KitCodes.InvalidManifest)]
     [InlineData("{\"target\":{},}", KitCodes.InvalidManifest)]
+    [InlineData("{\"\\uD800\":0}", KitCodes.InvalidManifest)]
+    [InlineData("{\"apiVersion\":\"\\uDC00\"}", KitCodes.InvalidManifest)]
     void should_refuse_invalid_json(string manifest, string code) => given.kit.Load(manifest).Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
 
     [Theory]

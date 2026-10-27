@@ -27,7 +27,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 {
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    const string Digest = "9da10c0f900edf5143e6bb93a8ef31fdbb88256a775ed22461fdd40dbd5af972";
+    // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
+    const string Digest = "9182711bc3ec246f568c32fa5b69603343d3e6f04a59b17383c7a741ed76c778";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -43,7 +44,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/CommentId.cs 57e703a97b83c6715cf6bbe082a6987bfecde236fa550cd589f38d4ab1cfda73 382
         Common/WorkItemId.cs 10002af59d1071f61a44e7d32c6b04abe03ec6cb7cbb96a9c0b65a5844c5bd5e 389
         Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
-        Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
+        Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
@@ -90,7 +91,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
         Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
-        Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
+        Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
@@ -163,7 +164,6 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         // Rebaselined for the @cratis/stage.runtime package (#499): beyond the original invariant, the previous plan's vendored
         // .frontend/stage/* runtime and styledPrimeReact.ts are no longer emitted and the entry point, vite config and package.json import/depend on the package. The
         // shell also declares Vite's client types in .frontend/vite-env.d.ts, which the vendored runtime used to carry.
-
         var sourceForm = ScreenCompositionCorpus.V1.SourceForms.Single(candidate => candidate.Name == form);
         var planned = Plan(sourceForm.Documents, sourceForm.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var plan = planned.Plan;
@@ -181,7 +181,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("b4a77291ec09b2bade1d3ae9b0decc1c7f056869caf72449413dc2aae397a2a0");
+            plan.Diagnostics).ShouldEqual("9dc204a0cec035fca7840156d42462bca6556c27f03eb16de007033962663413");
     }
 
     [Theory]
@@ -202,7 +202,13 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     static string[] Pinned(string manifest) => [.. manifest.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(line => line.Trim())];
 
-    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName);
+    static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)
+        .Select(artifact => artifact.Kind == PlannedArtifactKind.Text
+            ? PlannedArtifact.CreateText(
+                artifact.RelativePath,
+                LegacyReadProtection.Restore(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),
+                artifact.Sources)
+            : artifact);
 
     static ArtifactRenderPlan PlanOf(string name)
     {

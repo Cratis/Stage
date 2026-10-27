@@ -15,6 +15,9 @@ public class and_a_guarded_action_has_no_fallback : given.a_guarded_action
 
     [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:guarded-action");
     [Fact] void should_carry_the_label() => _result.Properties["label"].ShouldEqual(_action.Label);
+    [Fact] void should_keep_the_direct_label_a_clr_string() => _result.Properties["label"].ShouldBeOfExactType<string>();
+    [Fact] void should_preserve_the_label_when_read_by_the_native_model() => Cratis.Scene.Model.Guards.GuardedActionProperties.Read(_result).Label.ShouldEqual(_action.Label);
+    [Fact] void should_serialize_the_label_as_a_string() => System.Text.Json.JsonSerializer.SerializeToElement(_result.Properties).GetProperty("label").GetString().ShouldEqual(_action.Label);
     [Fact] void should_carry_the_alternatives() => Alternatives.Count.ShouldEqual(1);
     [Fact] void should_carry_the_alternative_command() => Alternatives[0].Command.ShouldEqual("SendInvoice");
     [Fact] void should_carry_the_condition() => ((Cratis.Scene.Model.Guards.ComparisonGuardCondition)Alternatives[0].Condition).Operator.ShouldEqual(Cratis.Scene.Model.Guards.GuardOperator.Equal);

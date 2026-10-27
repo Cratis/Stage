@@ -92,7 +92,9 @@ public class when_loading_guarded_scene_runtime : given.a_model_path
         var sceneJson = System.Text.Json.JsonSerializer.Serialize(scene, StageJson.Options);
         sceneJson.ShouldContain("Overview");
         sceneJson.ShouldContain("\"alternatives\":[");
-        sceneJson.ShouldContain("\"subject\":\"item.status\"");
+        sceneJson.ShouldContain("\"subject\":\"item.name\"");
+        sceneJson.ShouldNotContain("\"path\":\"item.name\"");
+        sceneJson.ShouldNotContain("\"path\":\"$guard\"");
         sceneJson.ShouldContain("\"otherwise\":[");
         sceneJson.ShouldContain("Not ready");
     }

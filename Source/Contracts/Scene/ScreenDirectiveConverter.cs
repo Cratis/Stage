@@ -254,7 +254,8 @@ public static class ScreenDirectiveConverter
                 ConvertArguments(otherwise.Arguments)) : null,
             NavigateToScreen: action.Navigate?.Screen,
             NavigateByParameter: action.Navigate?.By);
-        return SceneElementFactory.Component(id, Cratis.Scene.Model.Guards.GuardedActionProperties.ComponentName, properties.ToProperties());
+        var propertyBag = new Dictionary<string, object?>(properties.ToProperties()) { ["label"] = action.Label };
+        return SceneElementFactory.Component(id, Cratis.Scene.Model.Guards.GuardedActionProperties.ComponentName, propertyBag);
     }
 
     static Dictionary<string, Cratis.Scene.Model.Guards.SubjectReference> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>

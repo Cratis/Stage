@@ -15,6 +15,9 @@ public static class SceneGuards
 {
     /// <summary>The prefix of a reference to the interaction's subject.</summary>
     public const string SubjectPrefix = "item.";
+
+    /// <summary>The Stage validation diagnostic for a literal outside its declared enumeration.</summary>
+    public const string UnknownEnumerationLiteralDiagnosticCode = "STAGE-SCENE-GUARD-001";
     static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter<GuardOperator>(), new JsonStringEnumConverter<LogicalGuardOperator>() }
@@ -48,12 +51,19 @@ public static class SceneGuards
     /// <returns>Whether it is evaluable.</returns>
     public static bool CanEvaluate(ScreenplaySyntax.ConditionSyntax condition) => CanEvaluate(Convert(condition));
 
-    /// <summary>Whether Scene understands a converted predicate.</summary>
+    /// <summary>Whether Scene understands a converted predicate and it passes Stage's authored enumeration validation.</summary>
     /// <param name="condition">The predicate or its JSON representation.</param>
     /// <returns>Whether it is evaluable.</returns>
-    public static bool CanEvaluate(object? condition) => condition is GuardCondition guard
-        ? GuardConditions.CanEvaluate(JsonSerializer.SerializeToElement(guard, _options))
-        : GuardConditions.CanEvaluate(JsonSerializer.SerializeToElement(condition, _options));
+    public static bool CanEvaluate(object? condition)
+    {
+        var serialized = Serialize(condition);
+        return GuardConditions.CanEvaluate(serialized) && EnumerationMembershipDiagnostic(serialized) is null;
+    }
+
+    /// <summary>Validates Stage's stricter authored enumeration membership contract, separately from Scene capability.</summary>
+    /// <param name="condition">The predicate or its JSON representation.</param>
+    /// <returns>The Stage diagnostic code for an unknown literal, or null when no membership violation is present.</returns>
+    public static string? EnumerationMembershipDiagnostic(object? condition) => EnumerationMembershipDiagnostic(Serialize(condition));
 
     /// <summary>Whether the component's branches can be run by Scene.</summary>
     /// <param name="properties">The component properties.</param>
@@ -88,6 +98,37 @@ public static class SceneGuards
     /// <param name="condition">The binding.</param>
     /// <returns>Whether it is not a legacy guard envelope.</returns>
     public static bool CanRunBinding(JsonNode? condition) => condition?["path"]?.GetValue<string>() != "$guard";
+
+    static JsonElement Serialize(object? condition) => condition is GuardCondition guard
+        ? JsonSerializer.SerializeToElement(guard, _options)
+        : JsonSerializer.SerializeToElement(condition, _options);
+
+    static string? EnumerationMembershipDiagnostic(JsonElement condition)
+    {
+        if (condition.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        if (condition.TryGetProperty("kind", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == "logical")
+        {
+            return (condition.TryGetProperty("left", out var left) ? EnumerationMembershipDiagnostic(left) : null) ??
+                (condition.TryGetProperty("right", out var right) ? EnumerationMembershipDiagnostic(right) : null);
+        }
+        if (!condition.TryGetProperty("enumeration", out var enumeration) || enumeration.ValueKind != JsonValueKind.Array ||
+            enumeration.GetArrayLength() == 0 || enumeration.EnumerateArray().Any(member => member.ValueKind != JsonValueKind.String) ||
+            !condition.TryGetProperty("right", out var literal) || literal.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        return IsEnumerationMember(literal, enumeration) ? null : UnknownEnumerationLiteralDiagnosticCode;
+    }
+
+    static bool IsEnumerationMember(JsonElement literal, JsonElement enumeration) => literal.ValueKind switch
+    {
+        JsonValueKind.String => enumeration.EnumerateArray().Any(member => string.Equals(member.GetString(), literal.GetString(), StringComparison.OrdinalIgnoreCase)),
+        JsonValueKind.Number => literal.TryGetDouble(out var ordinal) && double.IsFinite(ordinal) && ordinal == Math.Truncate(ordinal) && ordinal >= 0 && ordinal < enumeration.GetArrayLength(),
+        _ => false
+    };
 
     static bool HasUnevaluableGuard(JsonNode? node) => node switch
     {

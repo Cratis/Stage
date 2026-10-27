@@ -49,7 +49,7 @@ public class with_v1_explicit_source_identity : Specification
         result.Trace.Facts[^1].EventContract.ShouldEqual(plan.Events.Values.Single(contract => contract.Name == (factCount == 1 ? "ProjectRegistered" : "ProjectFollowed")).Id.ToString());
         Assert.All(result.Trace.Facts, fact =>
         {
-            fact.EventSourceType.ShouldEqual(nameof(SemanticPrimitiveType.Text));
+            fact.EventSourceType.ShouldEqual(plan.Model.SemanticVersion == SemanticVersion.V1 ? null : nameof(SemanticPrimitiveType.Text));
             fact.EventSource.ShouldEqual("\"project-1\"");
         });
         var readModel = plan.ReadModels.Values.Single();

@@ -8,7 +8,7 @@ using Scriban;
 namespace Cratis.Stage.Rendering.Templates;
 
 /// <summary>An immutable parsed kit, shareable between independent plan sessions.</summary>
-public sealed class PreparedTemplateKit
+internal sealed class PreparedTemplateKit
 {
     internal PreparedTemplateKit(LoadedKit kit, ImmutableDictionary<string, Template> templates, ImmutableDictionary<string, Template> expressions)
     {
@@ -22,4 +22,6 @@ public sealed class PreparedTemplateKit
     internal ImmutableDictionary<string, Template> Templates { get; }
 
     internal ImmutableDictionary<string, Template> Expressions { get; }
+
+    internal TemplatePlanSession BeginPlan(TemplateBudget budget) => new(this, budget);
 }

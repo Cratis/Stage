@@ -10,12 +10,12 @@ using Scriban.Parsing;
 namespace Cratis.Stage.Rendering.Templates;
 
 /// <summary>Prepares all declared templates and output expressions without executing any of them.</summary>
-public static class TemplatePreparer
+internal static class TemplatePreparer
 {
     /// <summary>Checks the templates/v1 contract, pre-scans and parses every declared source.</summary>
     /// <param name="kit">A validated, fully loaded kit.</param>
     /// <returns>The prepared kit, or stable safety refusals.</returns>
-    public static TemplateResult<PreparedTemplateKit> Prepare(LoadedKit kit)
+    internal static TemplateResult<PreparedTemplateKit> Prepare(LoadedKit kit)
     {
         if (!kit.Manifest.Requires.Any(contract => contract.Name == "templates" && contract.Major == 1 && contract.Minor == 0))
         {

@@ -47,6 +47,9 @@ internal sealed class TemplateLint(LoadedKit kit) : ScriptVisitor
                 return;
             case ScriptMemberExpression { Target: ScriptVariableGlobal root } member when IsNamespace(root.Name):
                 throw Refuse(member, TemplateCodes.Allowlist, "Builtin and helper functions are callable only, never values.");
+            case ScriptMemberExpression member:
+                Visit(member.Target);
+                return;
             case ScriptVariableGlobal variable when IsNamespace(variable.Name) || _calls.Contains(variable.Name):
                 throw Refuse(variable, TemplateCodes.Allowlist, "Namespaces and helper functions cannot be aliased.");
             case ScriptVariableGlobal variable when !_roots.Contains(variable.Name) && !_locals.Contains(variable.Name):

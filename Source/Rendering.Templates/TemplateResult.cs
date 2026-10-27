@@ -14,7 +14,7 @@ public sealed record TemplateResult<T>(T? Value, TemplateDiagnostic? Refusal)
     /// <summary>
     /// Gets whether evaluation succeeded.
     /// </summary>
-    internal bool Succeeded => Refusal is null;
+    public bool Succeeded => Refusal is null;
 
     internal static TemplateResult<T> Success(T value) => new(value, null);
 

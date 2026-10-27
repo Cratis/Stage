@@ -110,8 +110,8 @@ the current result has no usable output, `IsRefused` becomes true, and later cal
 
 ## Bound the worker process too
 
-The default plan budget is 100,000 steps, recursion depth 64, fan-out 10,000, string length 1,048,576 UTF-16 units,
-16,777,216 emitted UTF-8 bytes, 10,000 artifacts and a five-second deadline. Limits aggregate across the plan,
+The default plan budget is 2,000,000 steps, recursion depth 64, fan-out 2,000, string length 262,144 UTF-16 units,
+8,388,608 emitted UTF-8 bytes, 2,000 artifacts and a ten-second deadline. Limits aggregate across the plan,
 including partials and output expressions. Source files are limited to 65,536 UTF-8 bytes and pre-scan nesting 32.
 Budget refusals are 030–036. Preparation uses 001–010; ingress/host/symbol/input failures use 020–024;
 explicit refusal is 040 and already-refused is 041, all prefixed `STAGE-TPL-`.

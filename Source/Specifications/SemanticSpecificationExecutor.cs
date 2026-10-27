@@ -213,6 +213,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static async Task<SemanticInvocationOutcome> ExecuteCommand(SemanticCommandRun run, CancellationToken cancellationToken, bool collectRefusalDetails = false)
     {
         var context = run.Context;
+        context.ProjectionLoweringRefusal = null;
         var specification = context.Specification;
         var command = context.Command;
         if (SemanticVersionFeatures.UnsupportedReadRequirements(command).FirstOrDefault() is { } feature)
@@ -262,6 +263,10 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     static SemanticSpecificationRunRecord? CommandOutcome(SemanticCommandRun run, CommandResult result, bool allowed, int priorFacts)
     {
         var (slice, expected) = (run.Slice, run.Expected);
+        if (run.Context.ProjectionLoweringRefusal is { } refusal)
+        {
+            return Unsupported(slice, expected, new(StageExecutionCapability.Projection, refusal.Projection.ToString(), refusal.Message));
+        }
         if (result.HasExceptions) return Failed(slice, expected, [.. result.ExceptionMessages]);
         if (!result.IsAuthorized)
         {
@@ -415,7 +420,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var trace = new SemanticExecutionTrace(
             [.. facts.Select((fact, index) => new SemanticTraceFact(
                 fact.EventContract.ToString(),
-                fact.EventSource?.Type.Kind == SemanticTypeReferenceKind.Concept ? fact.EventSource.Type.Target.ToString() : fact.EventSource?.Type.Primitive.ToString(),
+                TraceEventSourceType(plan.Model.SemanticVersion, fact),
                 SemanticRunContext.Canonical(destinations[index]),
                 fact.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(
                     value.Value, plan.Events[fact.EventContract].Properties.Single(property => property.Id == value.TargetProperty).Type, new SemanticApplicationContext(plan))))
@@ -428,6 +433,26 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 entry => JsonSerializer.Serialize(SemanticRunQueries.Select(plan, entry.query, projected).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),
             null);
         return Settled(slice, specification, failures, trace);
+    }
+
+    static string? TraceEventSourceType(SemanticVersion version, SemanticSpecificationEvent fact)
+    {
+        if (version == SemanticVersion.V1)
+        {
+            return null;
+        }
+
+        if (fact.EventSource is null)
+        {
+            return null;
+        }
+
+        if (fact.EventSource.Type.Kind == SemanticTypeReferenceKind.Concept)
+        {
+            return fact.EventSource.Type.Target.ToString();
+        }
+
+        return fact.EventSource.Type.Primitive.ToString();
     }
 
     static (IReadOnlyList<SemanticRunProjections.Projected> Rows, SemanticUnsupportedCapability? Blocker, IEnumerable<string> Failures) ProjectWorld(SemanticRunContext context, SemanticRuntimeTypes runtimeTypes, Defaults defaults)

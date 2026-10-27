@@ -14,6 +14,6 @@ public class when_a_nested_type_has_the_name : given.a_framework_catalog
 
     void Because() => _result = ImportResolver.Resolve(Request(_string, _guid) with { ScopeTypeNames = ["String", "Guid"] }, _catalog);
 
-    [Fact] void should_qualify_the_type() => _result.Spell(_guid).ShouldEqual("global::System.Guid");
+    [Fact] void should_qualify_the_type() => _result.Spell(_guid).ShouldEqual("StageImport0::Guid");
     [Fact] void should_use_the_keyword_that_no_nested_type_can_hide() => _result.Spell(_string).ShouldEqual("string");
 }

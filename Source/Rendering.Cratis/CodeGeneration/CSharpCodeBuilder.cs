@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Microsoft.CodeAnalysis.Text;
 
@@ -17,7 +18,8 @@ public class CSharpCodeBuilder
 {
     readonly HashSet<string> _usings = new(StringComparer.Ordinal);
     readonly StringBuilder _body = new();
-    readonly List<TextSpan> _authored = [];
+    readonly InlineCodeTokens _inline = new();
+    readonly List<InlineCodeDiagnostic> _inlineDiagnostics = [];
     readonly CSharpImports? _imports;
     string? _namespace;
     int _indent;
@@ -176,7 +178,7 @@ public class CSharpCodeBuilder
         }
         else
         {
-            _body.Append(' ', _indent * 4).AppendLine(text);
+            _body.Append(' ', _indent * 4).AppendLine(text.AsSpan().TrimStart().StartsWith("//", StringComparison.Ordinal) ? NormalizeLineComment(text) : text);
         }
 
         return this;
@@ -197,10 +199,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder Raw(string text)
     {
-        var start = _body.Length;
-        Fragment(text);
-        _authored.Add(TextSpan.FromBounds(start, _body.Length));
-        return this;
+        return Authored(text, false);
     }
 
     /// <summary>
@@ -227,14 +226,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder RawVerbatim(string text)
     {
-        _authored.Add(new(_body.Length, text.Length));
-        _body.Append(text);
-        if (!text.EndsWith('\n'))
-        {
-            _body.AppendLine();
-        }
-
-        return this;
+        return Authored(text, true);
     }
 
     /// <summary>
@@ -282,7 +274,9 @@ public class CSharpCodeBuilder
     public string ToString(Func<string, string> finish)
     {
         var original = _body.ToString();
-        var body = finish(original);
+        var skeleton = finish(original);
+        var splice = InlineCodeSplicer.Splice(skeleton, _inline, original);
+        var body = Complete(splice);
         var unit = new StringBuilder();
         if (_namespace is not null)
         {
@@ -293,11 +287,9 @@ public class CSharpCodeBuilder
         unit.Append(body);
         if (_imports is not null)
         {
-            // A finished body can move authored text, whose spans are then no longer known: such a file keeps every name qualified.
-            if (!string.Equals(body, original, StringComparison.Ordinal) && _authored.Count > 0) _imports.Unknown();
-
+            // The splicer proved unchanged placement scopes and recomputed spans after finishing generated text.
             // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
-            return _imports.Rewrite(unit.ToString(), [.. _authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
+            return _imports.Rewrite(unit.ToString(), [.. splice.Authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
         }
 
         var result = new StringBuilder();
@@ -314,11 +306,37 @@ public class CSharpCodeBuilder
         return result.Append(unit).ToString();
     }
 
+    internal static string NormalizeLineComment(string text) => text.ReplaceLineEndings(" ");
+
     internal static string NormalizeDocumentation(string text) => string.Join(
         '\n',
         text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n')
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
+
+    internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true, Action<InlineCodeDiagnostic>? reportDegradation = null)
+    {
+        var issued = _inline.Issue(code, placement, _indent, verbatim);
+        foreach (var diagnostic in issued.Diagnostics)
+        {
+            if (diagnostic.Code == "STAGE-DEGRADE-003" && reportDegradation is not null) reportDegradation(diagnostic);
+            else _inlineDiagnostics.Add(diagnostic);
+        }
+
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
+    }
+
+    internal CSharpCodeBuilder Validation(CodeBlockSyntax source, string owner, string member) =>
+        AuthoredBody(source, new("validation", owner, member));
+
+    internal CSharpCodeBuilder AuthoredBody(CodeBlockSyntax source, InlineCodePlacement placement)
+    {
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(source.Code)));
+        var verified = InlineCode.VerifyUtf8Text(source.Code, new(hash, source.Language, placement, $"{placement.Owner}/{placement.Member}"));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        return verified.Value is { } code ? Inline(code, placement, verbatim: false) : this;
+    }
 
     internal string Type(TypeReference reference) => reference.Qualified;
 
@@ -326,6 +344,32 @@ public class CSharpCodeBuilder
     internal void Pin(params string[] names) => _imports?.Pin(names);
     internal void Access(params string[] names) => _imports?.Access(names);
     internal void Inherits(string fullName) => _imports?.Inherits(fullName);
+
+    string Complete(InlineCodeSplice splice)
+    {
+        if (_inlineDiagnostics.Count > 0 || splice.Text is null)
+        {
+            throw new InlineCodeRejected([.. _inlineDiagnostics, .. splice.Diagnostics]);
+        }
+
+        return splice.Text;
+    }
+
+    CSharpCodeBuilder Authored(string text, bool verbatim)
+    {
+        // Legacy callers supply strings, not compiler identities or original disk bytes.
+        var id = $"builder-{_inline.Slots.Count}";
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        var placement = new InlineCodePlacement("builder", "builder", id);
+        var verified = InlineCode.VerifyUtf8Text(text, new(hash, "csharp", placement, id));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        if (verified.Value is not { } code) return this;
+        var options = new InlineCodePresentationOptions(_indent, verbatim, CSharpBodyContainment.ScopeAtEnd(_body));
+        var issued = _inline.IssueLegacy(code, options);
+        _inlineDiagnostics.AddRange(issued.Diagnostics);
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
+    }
 
     void TextDocumentation(string tag, string text)
     {

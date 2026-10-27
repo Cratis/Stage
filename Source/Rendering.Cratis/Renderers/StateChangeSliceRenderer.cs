@@ -7,6 +7,7 @@ using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Types;
 using Cratis.Stage.Rendering.Cratis.Validation;
 
@@ -20,6 +21,14 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
+    static readonly Dictionary<string, string> _inlineReturnContracts = new(StringComparer.Ordinal)
+    {
+        ["void"] = "void",
+        ["IEnumerable<object>"] = "IEnumerable<object>",
+        ["EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId",
+        ["Cratis.Chronicle.EventSequences.EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId"
+    };
+
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
@@ -44,14 +53,14 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false).Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)
         {
-            RenderCommand(builder, command, applicationSet, diagnostics, rootNamespace);
+            RenderCommand(builder, command, slice, applicationSet, diagnostics, rootNamespace);
         }
 
         foreach (var @event in slice.Slice.Events)
@@ -73,7 +82,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             .Concat(EventRenderer.ReferencedNames(slice.Events))
             .Concat(slice.Commands.SelectMany(command => command.Produces).Select(produces => produces.Event));
 
-    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         var typeName = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
@@ -89,18 +98,28 @@ public class StateChangeSliceRenderer : ISliceRenderer
         builder.BlankLine().Documentation(command.Description, command.Documentation).Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
-        RenderHandle(builder, command, applicationSet, diagnostics, rootNamespace);
+        RenderHandle(builder, command, slice, applicationSet, diagnostics, rootNamespace);
 
         builder.EndBlock();
     }
 
-    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         if (command.Handler?.Code is not null)
         {
+            var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
+            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
+            if (returnType is null)
+            {
+                diagnostics.Add(
+                    $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{inferred}'. " +
+                    "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.");
+                returnType = inferred;
+            }
+
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
-                .OpenBlock($"public {InlineHandlerReturnType.Infer(command.Handler.Code.Code)} Handle(CommandContext context)")
+                .OpenBlock($"public {returnType} Handle(CommandContext context)")
                 .Raw(command.Handler.Code.Code)
                 .EndBlock();
             return;
@@ -164,6 +183,27 @@ public class StateChangeSliceRenderer : ISliceRenderer
         }
 
         builder.Line("return events;").EndBlock();
+    }
+
+    static string? ResolveInlineReturnType(string inferred, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
+    {
+        var name = inferred.StartsWith("global::", StringComparison.Ordinal) ? inferred[8..] : inferred;
+        var matches = applicationSet.Slices.Append(slice)
+            .SelectMany(declaration => declaration.Slice.Events.Select(@event => (
+                Short: Identifiers.ToPascalCase(@event.Name),
+                Qualified: $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}")))
+            .Where(candidate => string.Equals(name, candidate.Short, StringComparison.Ordinal) || string.Equals(name, candidate.Qualified, StringComparison.Ordinal))
+            .Select(candidate => candidate.Qualified).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        if (matches.Length > 0 && _inlineReturnContracts.ContainsKey(name))
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between a modeled event type and a framework contract.");
+        }
+        if (_inlineReturnContracts.TryGetValue(name, out var contract)) return contract;
+        if (matches.Length > 1)
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between modeled event types.");
+        }
+        return matches.Length == 1 ? $"global::{matches[0]}" : null;
     }
 
     static string WrappedEvent(string eventName, string arguments, string destination) =>

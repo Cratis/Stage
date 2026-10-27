@@ -19,6 +19,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
     /// <exception cref="InvalidEventModel">Thrown when the application requires behavior the legacy engines cannot preserve.</exception>
     public static void EnsureBehaviorSupported(ApplicationSyntax syntax)
     {
+        new ActionSubjectSyntaxAdmission().VisitApplication(syntax);
         new OperationSyntaxAdmission().VisitApplication(syntax);
         if (syntax.ReactionProductionMode is not null)
         {

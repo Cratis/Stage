@@ -33,6 +33,9 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// </summary>
     public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
 
+    /// <summary>Gets whether validated degradation fails acceptance without discarding safe generated artifacts.</summary>
+    public bool Strict { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether the application root is the repository root, which adds the repository's
     /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
@@ -421,7 +424,7 @@ public static partial class CratisRendering
         var inputs = backend
             .Concat(frontend)
             .Concat(composed)
-            .Concat(strings)
+            .Concat(strings.Concat(CratisStrictProfileInput.Create(options.Strict)))
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 

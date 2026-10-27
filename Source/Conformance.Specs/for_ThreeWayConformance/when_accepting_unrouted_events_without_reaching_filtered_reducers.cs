@@ -10,12 +10,12 @@ using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
-public class when_preserving_reducer_filter_runtime_refusals
+public class when_accepting_unrouted_events_without_reaching_filtered_reducers
 {
     [Theory]
     [InlineData("OrdersSource")]
     [InlineData("OrdersSource.Entries")]
-    public async Task should_render_the_filter_but_keep_host_and_executor_refusals(string filter)
+    public async Task should_render_the_filter_and_accept_unrouted_events_without_reaching_filtered_reducers(string filter)
     {
         const string specification = """
               specification RecordingAnOrder
@@ -31,11 +31,9 @@ public class when_preserving_reducer_filter_runtime_refusals
         var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan!;
         var rendered = when_rendering_a_pure_reducer.Plan(loaded);
         Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
-        var hostFeature = Assert.Single(SemanticRunAdmission.ModelFeatures(loaded.Model));
-        Assert.StartsWith("STAGE-ESM-035:", hostFeature.Details, StringComparison.Ordinal);
+        Assert.Empty(SemanticRunAdmission.ModelFeatures(loaded.Model));
         var report = await new SemanticSpecificationExecutor().Run(plan, new([.. plan.Specifications.Keys]), new());
         var result = Assert.Single(report.Results);
-        Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
-        Assert.StartsWith("STAGE-ESM-035:", result.Unsupported!.Details, StringComparison.Ordinal);
+        Assert.Equal(SemanticSpecificationOutcome.Passed, result.Outcome);
     }
 }

@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Types;
 
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
@@ -29,7 +30,7 @@ public static class TypeRenderer
         var folderSegments = placement.Count == 0 ? ["Common"] : SliceNaming.FolderPath(placement);
         var ownNamespace = ReferencedNamespaces.ForPlacement(rootNamespace, placement);
 
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false).Namespace(ownNamespace);
         var referencedNames = type.Properties.Select(property => property.Type.Name);
         foreach (var @namespace in ReferencedNamespaces.Resolve(referencedNames, applicationSet, rootNamespace, ownNamespace))
         {

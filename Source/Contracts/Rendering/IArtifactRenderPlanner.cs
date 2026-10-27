@@ -79,6 +79,12 @@ public sealed record ArtifactRenderRequest(
     /// </summary>
     public ImmutableArray<ArtifactRenderScope> AdditionalScopes { get; init; } = [];
 
+    /// <summary>Gets actual typed semantic address assignments from the source compilation. Empty means unavailable, never inferred.</summary>
+    public ImmutableArray<SemanticIdentityAssignment> SemanticIdentities { get; init; } = [];
+
+    /// <summary>Gets the original compiler catalog when available; null leaves direct ESM inventory unavailable.</summary>
+    public SemanticIdentityCatalog? IdentityCatalog { get; init; }
+
     /// <summary>Compiler requirements for the model; the planner verifies their content revisions before using a body.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 

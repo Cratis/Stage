@@ -103,6 +103,11 @@ internal static partial class CratisRepositoryScaffold
     static string CompositionProgram(string[] services)
     {
         var builder = new StringBuilder();
+        foreach (var service in services)
+        {
+            var name = service.Replace('.', '_');
+            builder.Append($"using {name}Project = Projects.{name};\n");
+        }
         builder.Append(
             """
             using Cratis.Chronicle.Aspire;
@@ -127,7 +132,7 @@ internal static partial class CratisRepositoryScaffold
                 $$"""
 
 
-                builder.AddProject<Projects.{{service.Replace('.', '_')}}>("{{ResourceName(service)}}")
+                builder.AddProject<{{service.Replace('.', '_')}}Project>("{{ResourceName(service)}}")
                     .WithReference(chronicle)
                     .WithEnvironment(
                         "Cratis__Chronicle__ConnectionString",

@@ -33,19 +33,22 @@ public class with_literal_every_and_join : a_projected_specification
               event CompanyNamed
                 name String
               specification JoiningAnInvoice
-                given actor "Staff"
+                given caller
+                  authenticated
+                  role "Staff"
                 {{givens}}
-                when command RegisterInvoice
-                  invoiceId "invoice-other"
-                  description "Other"
-                then event InvoiceRegistered for "invoice-other"
-                  description "Other"
-                then readmodel InvoiceView for "invoice-1"
-                  invoiceId "invoice-1"
-                  company "company"
-                  joined "Joined"
-                  label "fixed"
-                  score 12.5
+                when RegisterInvoice
+                  invoiceId = "invoice-other"
+                  description = "Other"
+                then InvoiceRegistered
+                  for "invoice-other"
+                  description = "Other"
+                then readmodel InvoiceView
+                  invoiceId = "invoice-1"
+                  company = "company"
+                  joined = "Joined"
+                  label = "fixed"
+                  score = 12.5
             slice StateView Lookup
               readmodel InvoiceView
                 invoiceId String
@@ -85,8 +88,8 @@ public class with_literal_every_and_join : a_projected_specification
     static SemanticExecutionPlan PlanFor(bool joinedBeforeFrom)
     {
         // The when command creates a different instance, so it cannot repair a missing backfill on invoice-1.
-        const string registration = "given event InvoiceRegistered for \"invoice-1\"\n          description \"local\"";
-        const string joined = "given event CompanyNamed for \"company\"\n          name \"Joined\"";
+        const string registration = "given InvoiceRegistered\n          for \"invoice-1\"\n          description = \"local\"";
+        const string joined = "given CompanyNamed\n          for \"company\"\n          name = \"Joined\"";
         var givens = joinedBeforeFrom ? $"{joined}\n        {registration}" : $"{registration}\n        {joined}";
         return Compile(Source.Replace("{{givens}}", givens, StringComparison.Ordinal));
     }

@@ -328,13 +328,13 @@ public class CratisRenderer : IRenderer
             return;
         }
 
-        if (file.Content.Contains($"global::{rootNamespace}.GeneratedTenancy.PortableTenantValues.Translate", StringComparison.Ordinal) &&
+        if (file.Content.Contains("PortableTenantValues.Translate(", StringComparison.Ordinal) &&
             runtimeArtifacts.Add("tenant translation"))
         {
             await WriteFile(TenantTranslationSource.Render(rootNamespace), targetDirectory, output, error, failures);
         }
 
-        if (file.Content.Contains($"global::{rootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt", StringComparison.Ordinal) &&
+        if (file.Content.Contains("CommandReceiptTime.OccurredAtReceipt(", StringComparison.Ordinal) &&
             runtimeArtifacts.Add("command receipt time"))
         {
             await WriteFile(CommandReceiptTimeRendering.Render(rootNamespace), targetDirectory, output, error, failures);

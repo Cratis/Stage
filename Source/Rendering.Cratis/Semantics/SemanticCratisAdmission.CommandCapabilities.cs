@@ -51,7 +51,7 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var property in @event.Properties)
             {
-                if (!TypeExists(context, property.Type))
+                if (!TypeExists(context, property.Type, @event.Id))
                 {
                     diagnostics.Add(CommandCapability(command, $"event '{@event.Name}' property '{property.Name}' has an unresolved type; Stage cannot emit its C# type. Declare a supported primitive, concept, or composite type."));
                 }

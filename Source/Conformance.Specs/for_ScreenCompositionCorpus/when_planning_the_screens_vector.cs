@@ -27,7 +27,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 {
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
-    const string Digest = "a11b43dc2b0cc3582ee8547419577b3a21eb28480197ce16b5623943c3b693c6";
+    // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
+    const string Digest = "73a72d1b88aaa4185b170816237b174d89751ccce715a50525bafc36610d1a63";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -61,16 +62,16 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 5d7080b6fdd423c625d5b3c122dcf20c6bae565982e63b5b55ebcb37340b39e6 479
         Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 5fa0a9440faf0fa2a32922c3b2e253ff04b0ae697fbde3944240d7aebc759dc4 1381
         Workspaces/Tracking/WorkItemComments/WorkItemComments.cs aab31b30fd1319fec7f8874b45da27d31d29e6374cc6d14740a1abb81287ffba 1363
-        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 598a7e484bdc0109942398fbc17646d0cfa5d7809fc036d914bc31a188dfff7a 1913
+        Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 24cb3f8a2d89bfe8210cfdde60761cc1837f7255a06ee57e7edf70b9e66128d7 1985
         Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs f694a593f3d9ab31da4e9aac65caedd6bc93cd6412e1c1320dbbf53a6bf463ac 2059
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs a1d3b07ad309cd796f9862a567ac6a5c8127c60cc5083d520c17322f94a716e4 1690
         Workspaces/Tracking/WorkItemList/WorkItemList.cs e3de173ced957343633e25af2dbf9127e5b376f34723ec7ae363676d129d56c5 2202
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
-        package.json 6eb19e79f8836f665353688575a6bf74694f7df6c4142f915455abdc6bacf697 1194
+        package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
-        src/bindings.ts 26c5414114643e1a95d6cae0ac550193813053efead2fc81624791a290a001f7 2173
+        src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
@@ -115,9 +116,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml 15878b8a6b7a4ca7f5888f2c9c380ad66d9c133514cba9a264f5520a52c32558 259
-        package.json 6eb19e79f8836f665353688575a6bf74694f7df6c4142f915455abdc6bacf697 1194
+        package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
-        src/bindings.ts 26c5414114643e1a95d6cae0ac550193813053efead2fc81624791a290a001f7 2173
+        src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
         src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
@@ -181,7 +182,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("9dc204a0cec035fca7840156d42462bca6556c27f03eb16de007033962663413");
+            plan.Diagnostics).ShouldEqual("8dfc5243e76802f4e26cf4220b270168e37b58b1a59005f12ed23b5f801f7b27");
     }
 
     [Theory]
@@ -191,8 +192,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
 
     [Fact] void should_cover_every_source_form() => Forms.Count.ShouldEqual(4);
 
+    // Cratis/Stage#816 and Cratis/Stage#757 are the only changes to src/bindings.ts and package.json since the previous plan was frozen.
     static string PreviousPins(string relativePath, string text) =>
-        FrozenScaffoldPins.Normalize(relativePath, PreviousFrontendEntryPoint.Restore(relativePath, text), previous: true);
+        PreviousSceneBindingsAndResolutions.Restore(relativePath, FrozenScaffoldPins.Normalize(relativePath, PreviousFrontendEntryPoint.Restore(relativePath, text), previous: true));
 
     // The previous frozen plan predates single-letter word splitting in snake-cased names (Cratis/Stage#417), which
     // rendered "AWorkItem" as "awork_item".

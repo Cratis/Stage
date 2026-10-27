@@ -84,7 +84,7 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         const dialog = screen.getByRole('dialog');
         expect(within(dialog).getByRole('heading', { name: 'Decision' })).toBeDefined();
         expect(within(dialog).getAllByRole('button').map(_ => _.textContent)).toEqual(['Approve order', 'Reject order', 'Cancel']);
-        expect(screen.queryByText(/Execute/)).toBeNull();
+        expect(screen.queryByText(/Submit/)).toBeNull();
         expect(screen.queryByText('ApproveOrder')).toBeNull();
         expect(field('Order')).toBeNull();
         expect(document.querySelector('form')).toBeNull();
@@ -98,7 +98,7 @@ describe('the decision dialog of a ConfirmDialog screen', () => {
         expect(document.querySelectorAll('form')).toHaveLength(1);
         expect(field('Reason')).not.toBeNull();
         expect(field('Order')).toBeNull();
-        expect(screen.queryByText(/Execute/)).toBeNull();
+        expect(screen.queryByText(/Submit/)).toBeNull();
     });
 
     it('submits the command with the order and then goes to the screen the action names', async () => {

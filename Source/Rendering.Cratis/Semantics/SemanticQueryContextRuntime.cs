@@ -29,7 +29,7 @@ internal static class SemanticQueryContextRuntime
         string body)
     {
         var arguments = Arguments(query).ToArray();
-        var invocation = $"StagePerformer_{method}.Invoke(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
+        var invocation = $"StagePerformer_{method}.Perform(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
         builder.OpenBlock($"public static async {returnType} {method}({Parameters(query, types)})")
             .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);")
             .Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
@@ -163,8 +163,11 @@ internal static class SemanticQueryContextRuntime
         RenderContextDeclarations(builder, query, method, types);
         var parameters = Arguments(query).Select(argument => Parameter(argument, types));
         var result = query.Cardinality == SemanticQueryCardinality.Many ? $"global::System.Collections.Generic.IEnumerable<{model}>" : $"{model}?";
+
+        // The performer lives in a type of its own: a non-public static method on the read model that returns read models is what Arc's analyzer
+        // takes for a query that was forgotten to be made public (ARC0029).
         builder.OpenBlock($"static class StagePerformer_{method}")
-            .OpenBlock($"public static {result} Invoke(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})")
+            .OpenBlock($"public static {result} Perform(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})")
             .RawVerbatim(body)
             .EndBlock()
             .EndBlock();

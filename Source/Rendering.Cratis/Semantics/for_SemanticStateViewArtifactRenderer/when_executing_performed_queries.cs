@@ -57,7 +57,7 @@ public class when_executing_performed_queries
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
         Assert.Contains($"Query 'FindPeople' (requirement {requirement.RequirementId}) is not runnable:", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerformer_", rendered, StringComparison.Ordinal);
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         Assert.Empty(RenderedOutput.Errors(files));
@@ -130,14 +130,26 @@ public class when_executing_performed_queries
         var methods = model.Members.OfType<MethodDeclarationSyntax>().Where(method => method.Modifiers.Any(modifier => modifier.ValueText == "static"));
         Assert.Equal("FindPeople", Assert.Single(methods).Identifier.ValueText);
         Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
-        Assert.Contains("StagePerformer_FindPeople.Invoke(", rendered, StringComparison.Ordinal);
+        Assert.Contains("StagePerformer_FindPeople.Perform(", rendered, StringComparison.Ordinal);
         var method = Method(loaded);
         var helper = method.DeclaringType!.GetNestedType("StagePerformer_FindPeople", BindingFlags.NonPublic)!;
         Assert.NotNull(helper);
         Assert.True(helper.IsNestedPrivate);
         Assert.True(helper.IsAbstract && helper.IsSealed);
         Assert.DoesNotContain(helper.GetCustomAttributesData(), attribute => attribute.AttributeType.Name == "ReadModelAttribute");
-        Assert.Equal("Invoke", Assert.Single(helper.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Name);
+        Assert.Equal("Perform", Assert.Single(helper.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)).Name);
+    }
+
+    [Fact]
+    public async Task should_keep_the_performer_out_of_the_read_model_so_arcs_analyzer_does_not_take_it_for_a_query()
+    {
+        var loaded = await Load(Body);
+        var request = Request(loaded);
+        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
+        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
+        Assert.Contains("static class StagePerformer_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.Contains(".Perform(", rendered, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -321,7 +333,7 @@ public class when_executing_performed_queries
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
         Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("StagePerformer_", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
     }
 

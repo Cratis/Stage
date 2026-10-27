@@ -1,4 +1,5 @@
 [
+  {"id":"render-partial","template":"{{ render 'leaf' model }}","operators":true,"scope":{"model":{"identifier":"Customer"}},"segments":["Reference:Domain.Customer"]},
   {"id":"ordinary-text","template":"hello {{ model.name }}","scope":{"model":{"name":"World"}},"text":"hello World"},
   {"id":"word-arrays","template":"{{ name.words model.words }}|{{ name.pascal model.words }}|{{ name.camel model.words }}|{{ name.snake model.words }}|{{ name.kebab model.words }}|{{ name.constant model.words }}","scope":{"model":{"words":["order","iD","eMail"]}},"text":"order id email|OrderIDEMail|orderIDEMail|order_id_email|order-id-email|ORDER_ID_EMAIL"},
   {"id":"unicode-scalar","template":"{{ name.pascal model.words }}|{{ name.snake model.words }}","scope":{"model":{"words":["𐐨tail","I"]}},"text":"𐐀tailI|𐐨tail_i"},

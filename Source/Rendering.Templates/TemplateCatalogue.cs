@@ -35,5 +35,5 @@ internal static class TemplateCatalogue
         refusal:latches-plan;outputs-null;subsequent-already-refused;gaps-not-refusals
         """;
 
-    internal static readonly IReadOnlyDictionary<string, string[]> Helpers = HelperCatalogue.Entries.Where(entry => entry.Name.Contains('.', StringComparison.Ordinal)).GroupBy(entry => entry.Name[..entry.Name.IndexOf('.', StringComparison.Ordinal)], StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Select(entry => entry.Name[(entry.Name.IndexOf('.', StringComparison.Ordinal) + 1)..]).ToArray(), StringComparer.Ordinal);
+    internal static readonly IReadOnlyDictionary<string, string[]> Helpers = HelperCatalogue.All.Where(entry => entry.Name.Contains('.', StringComparison.Ordinal)).GroupBy(entry => entry.Name[..entry.Name.IndexOf('.', StringComparison.Ordinal)], StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Select(entry => entry.Name[(entry.Name.IndexOf('.', StringComparison.Ordinal) + 1)..]).ToArray(), StringComparer.Ordinal);
 }

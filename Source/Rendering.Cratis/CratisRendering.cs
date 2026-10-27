@@ -358,9 +358,9 @@ public static partial class CratisRendering
             throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
         }
 
-        if (!FileHeaderInput.IsValid(options.FileHeader))
+        if (!ArtifactFileHeader.IsValid(options.FileHeader))
         {
-            throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks.");
+            throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks, control, private-use or bidirectional formatting characters.");
         }
 
         if (scene is not null)

@@ -79,6 +79,11 @@ public sealed record ArtifactRenderRequest(
     /// </summary>
     public ImmutableArray<ArtifactRenderScope> AdditionalScopes { get; init; } = [];
 
+    /// <summary>
+    /// Gets the language comment syntaxes used by Stage to apply the final file header.
+    /// </summary>
+    public ArtifactCommentSyntaxes CommentSyntaxes { get; init; } = ArtifactCommentSyntaxes.Default;
+
     /// <summary>Compiler requirements for the model; the planner verifies their content revisions before using a body.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 

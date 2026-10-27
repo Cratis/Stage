@@ -15,6 +15,20 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 public static class InlineBodyScanner
 {
     /// <summary>
+    /// Scans generated text and native bodies as one literal stream. Structured placeholders are
+    /// separated by whitespace; comment and literal state is retained across text fragments.
+    /// </summary>
+    /// <param name="file">The file whose literal identifiers must be reserved.</param>
+    /// <returns>Identifiers outside comments and literals in the file's literal stream.</returns>
+    /// <exception cref="LanguagePackRefusal">A Unicode escape or a comment or literal is malformed.</exception>
+    public static IReadOnlySet<string> Identifiers(SymbolFile file) => Identifiers(string.Concat(file.Segments.Select(segment => segment switch
+    {
+        TextSegment text => text.Text,
+        NativeSegment native => native.Body,
+        _ => " ",
+    })));
+
+    /// <summary>
     /// Scans a native body in one forward pass over the decoded source.
     /// </summary>
     /// <param name="body">The raw Java source, possibly containing eligible Unicode escapes.</param>

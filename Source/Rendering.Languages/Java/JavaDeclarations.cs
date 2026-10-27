@@ -18,14 +18,15 @@ public sealed class JavaDeclarations
     /// <exception cref="LanguagePackRefusal">A declaration or enclosing identity is missing or ambiguous.</exception>
     public JavaDeclarations(SymbolPlan plan)
     {
-        var requested = plan.ExternalTypes.DistinctBy(type => type.QualifiedName, StringComparer.Ordinal).Select(External)
+        var requested = ExternalDeclarations(plan)
             .Concat(plan.Files.SelectMany(file => file.Segments.OfType<DeclarationSegment>().Select(segment => Requested(file, segment)))).ToArray();
         if (requested.Distinct().Count() != requested.Length)
         {
             throw new LanguagePackRefusal(JavaRefusalCodes.AmbiguousDeclaration, "A Java declaration identity is duplicated.");
         }
 
-        ValidatePackageCase(plan.Files.Select(file => file.Package).Concat(requested.Select(declaration => declaration.Package)));
+        ValidatePackageCase(plan.Files.Select(file => file.Package).Concat(requested.Select(declaration => declaration.Package))
+            .Concat(requested.SelectMany(declaration => declaration.Supertypes.Select(type => type.Package))));
         foreach (var level in requested.GroupBy(declaration => Depth(declaration.Scope)).OrderBy(group => group.Key))
         {
             foreach (var declarations in level.Select(BindParent).GroupBy(declaration => declaration.Package, StringComparer.Ordinal)
@@ -34,7 +35,14 @@ public sealed class JavaDeclarations
                 _all.AddRange(JavaDeclarationNames.Allocate(declarations));
             }
         }
+
+        Inheritance = new(_all, plan.Files);
     }
+
+    /// <summary>
+    /// Gets inherited member binding information, retaining unknown external member sets.
+    /// </summary>
+    public JavaInheritance Inheritance { get; }
 
     /// <summary>
     /// Enumerates the allocated declarations in a file.
@@ -128,9 +136,29 @@ public sealed class JavaDeclarations
 
     static DeclaredType External(TypeName type) => new(type.Package, type.EnclosingScope, type.SimpleName, type.SimpleName, "external:" + type.QualifiedName, string.Empty, true, string.Empty, type.EnclosingScope);
 
-    static DeclaredType Requested(SymbolFile file, DeclarationSegment segment) => new(segment.Type.Package, Scope(segment), segment.Type.SimpleName, JavaIdentifiers.Sanitize(segment.Type.SimpleName), segment.Owner, file.Id, false, segment.ParentOwner, Scope(segment));
+    static DeclaredType Requested(SymbolFile file, DeclarationSegment segment) => new(segment.Type.Package, Scope(segment), segment.Type.SimpleName, JavaIdentifiers.Sanitize(segment.Type.SimpleName), segment.Owner, file.Id, false, segment.ParentOwner, Scope(segment))
+    {
+        Supertypes = segment.Supertypes,
+    };
 
-    static bool IsParentOf(DeclaredType parent, DeclaredType child) => parent.File == child.File && parent.Package == child.Package &&
+    static IEnumerable<DeclaredType> ExternalDeclarations(SymbolPlan plan)
+    {
+        var metadata = new Dictionary<string, ExternalType>(StringComparer.Ordinal);
+        foreach (var type in plan.ExternalDeclarations)
+        {
+            if (!metadata.TryAdd(type.Type.QualifiedName, type))
+            {
+                throw new LanguagePackRefusal(JavaRefusalCodes.AmbiguousDeclaration, $"External member metadata for '{type.Type.QualifiedName}' is duplicated.");
+            }
+        }
+
+        return plan.ExternalTypes.Concat(plan.ExternalDeclarations.Select(type => type.Type)).DistinctBy(type => type.QualifiedName, StringComparer.Ordinal)
+            .Select(type => metadata.TryGetValue(type.QualifiedName, out var details)
+                ? External(type) with { DeclaredMemberTypes = details.DeclaredMemberTypes, Supertypes = details.Supertypes }
+                : External(type));
+    }
+
+    static bool IsParentOf(DeclaredType parent, DeclaredType child) => !parent.External && parent.File == child.File && parent.Package == child.Package &&
         (parent.Scope.Length == 0 ? parent.Preferred : parent.Scope + "." + parent.Preferred) == child.Scope &&
         (child.ParentOwner.Length == 0 || parent.Owner == child.ParentOwner);
 

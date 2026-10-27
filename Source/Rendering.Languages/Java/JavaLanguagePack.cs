@@ -16,7 +16,7 @@ public static class JavaLanguagePack
     /// <exception cref="LanguagePackRefusal">An input field violates integrity, a literal boundary is unsafe, or a gap/native context is unknown.</exception>
     public static void Validate(SymbolPlan plan)
     {
-        foreach (var field in plan.ExternalTypes.SelectMany(type => type.Fields)) PrivateUseCodePoints.Validate(field);
+        foreach (var field in plan.ExternalTypes.SelectMany(type => type.Fields).Concat(plan.ExternalDeclarations.SelectMany(type => type.Fields))) PrivateUseCodePoints.Validate(field);
         foreach (var file in plan.Files)
         {
             PrivateUseCodePoints.Validate(file.Id);

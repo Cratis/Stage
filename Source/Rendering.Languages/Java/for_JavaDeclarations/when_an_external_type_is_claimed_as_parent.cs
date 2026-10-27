@@ -8,10 +8,10 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaDeclarations;
 
 public class when_an_external_type_is_claimed_as_parent : given.a_declaration_plan
 {
-    Exception _error = null!;
+    Exception[] _errors = [];
 
-    void Establish() => _plan = new([new("file", "example", [new DeclarationSegment(new("example", "Outer", ["Child"]), "child", ParentOwner: "external:example.Outer")])], [new("example", "Outer", [])]);
-    void Because() => _error = Catch.Exception(() => _declarations = new(_plan));
+    void Because() => _errors = [.. new[] { "file", string.Empty }.Select(file => Catch.Exception(() =>
+        _declarations = new(new([new(file, "example", [new DeclarationSegment(new("example", "Outer", ["Child"]), "child", ParentOwner: "external:example.Outer")])], [new("example", "Outer", [])]))))];
 
-    [Fact] void should_not_graft_a_generated_member_onto_an_external_parent() => ((LanguagePackRefusal)_error).Code.ShouldEqual(JavaRefusalCodes.MissingDeclaration);
+    [Fact] void should_not_graft_a_generated_member_onto_an_external_parent() => _errors.ShouldEachConformTo(error => ((LanguagePackRefusal)error).Code == JavaRefusalCodes.MissingDeclaration);
 }

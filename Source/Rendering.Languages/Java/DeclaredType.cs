@@ -18,6 +18,16 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 public sealed record DeclaredType(string Package, string Scope, string Preferred, string Name, string Owner, string File, bool External, string ParentOwner, string AllocatedScope)
 {
     /// <summary>
+    /// Gets the structured preferred superclass and interface names.
+    /// </summary>
+    public IReadOnlyList<TypeName> Supertypes { get; init; } = [];
+
+    /// <summary>
+    /// Gets an external type's direct member names, or null for unknown. Generated members are obtained from declaration identities.
+    /// </summary>
+    public IReadOnlyList<string>? DeclaredMemberTypes { get; init; }
+
+    /// <summary>
     /// Gets the final structured type name, including allocated parents.
     /// </summary>
     public TypeName Final => AllocatedScope.Length == 0

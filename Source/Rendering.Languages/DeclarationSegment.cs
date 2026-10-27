@@ -12,5 +12,10 @@ namespace Cratis.Stage.Rendering.Languages;
 /// <param name="ParentOwner">The enclosing declaration's owner, or an empty string when not supplied.</param>
 public sealed record DeclarationSegment(TypeName Type, string Owner, string? Scope = null, string ParentOwner = "") : SymbolSegment
 {
-    internal override IEnumerable<string> Fields => Type.Fields.Concat([Owner, Scope ?? string.Empty, ParentOwner]);
+    /// <summary>
+    /// Gets the structured superclass and interfaces. No explicit supertypes are assumed when empty.
+    /// </summary>
+    public IReadOnlyList<TypeName> Supertypes { get; init; } = [];
+
+    internal override IEnumerable<string> Fields => Type.Fields.Concat([Owner, Scope ?? string.Empty, ParentOwner]).Concat(Supertypes.SelectMany(type => type.Fields));
 }

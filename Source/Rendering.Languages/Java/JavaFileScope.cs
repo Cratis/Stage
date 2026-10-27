@@ -29,7 +29,7 @@ public sealed class JavaFileScope
         _file = file;
         _declarations = declarations;
         _references = [.. references.DistinctBy(type => type.QualifiedName, StringComparer.Ordinal)];
-        _nativeNames = file.Segments.OfType<NativeSegment>().SelectMany(segment => InlineBodyScanner.Identifiers(segment.Body)).ToHashSet(StringComparer.Ordinal);
+        _nativeNames = InlineBodyScanner.Identifiers(file).ToHashSet(StringComparer.Ordinal);
         _declaredNames = declarations.InFile(file.Id).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
         _memberNames = declarations.InFile(file.Id).Where(type => type.Scope.Length > 0).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
         foreach (var type in _references.Where(NeedsTopLevelImport))
@@ -55,9 +55,9 @@ public sealed class JavaFileScope
     public string Spell(TypeName type, string lexicalOwner = "")
     {
         if (type.Package.Length == 0 && _file.Package.Length > 0) throw Obscured(type);
-        if (CanUseSimple(type, lexicalOwner) || _imports.ContainsKey(type.QualifiedName)) return type.SimpleName;
-        if (!IsObscured(type)) return type.QualifiedName;
-        if (CanUseEnclosingType(type))
+        if (CanUseShortName(type, lexicalOwner)) return type.SimpleName;
+        if (!IsObscured(type, lexicalOwner)) return type.QualifiedName;
+        if (CanUseEnclosingType(type, lexicalOwner))
         {
             return string.Join('.', new[] { type.Name }.Concat(type.Nested));
         }
@@ -66,6 +66,9 @@ public sealed class JavaFileScope
     }
 
     static LanguagePackRefusal Obscured(TypeName type) => new(JavaRefusalCodes.ObscuredReference, $"Cannot prove a Java spelling for '{type.QualifiedName}' without obscuring its binding.");
+
+    bool CanUseShortName(TypeName type, string lexicalOwner) => !_declarations.Inheritance.BlocksShortening(_file.Id, lexicalOwner, type) &&
+        (CanUseSimple(type, lexicalOwner) || _imports.ContainsKey(type.QualifiedName));
 
     bool CanUseSimple(TypeName type, string lexicalOwner)
     {
@@ -78,8 +81,7 @@ public sealed class JavaFileScope
         return type.Package == "java.lang" && JavaLangTypes.Names.Contains(type.Name);
     }
 
-    bool CanUseEnclosingType(TypeName type) => type.Nested.Count > 0 &&
-        (CanUseSimple(type.TopLevel, string.Empty) || _imports.ContainsKey(type.TopLevel.QualifiedName));
+    bool CanUseEnclosingType(TypeName type, string lexicalOwner) => type.Nested.Count > 0 && CanUseShortName(type.TopLevel, lexicalOwner);
 
     bool NeedsTopLevelImport(TypeName type) => type.Nested.Count == 0 && type.Package != _file.Package && type.Package != "java.lang" && CanImport(type);
 
@@ -95,13 +97,17 @@ public sealed class JavaFileScope
             reference.SimpleName == type.SimpleName && reference.QualifiedName != type.QualifiedName);
     }
 
-    bool IsObscured(TypeName type)
+    bool CanImportUnshadowed(TypeName type) => CanImport(type) && !_declarations.Inheritance.BlocksShortening(_file.Id, string.Empty, type);
+
+    bool IsObscured(TypeName type) => IsObscured(type, string.Empty);
+
+    bool IsObscured(TypeName type, string lexicalOwner)
     {
         var first = type.QualifiedName.Split('.')[0];
 
         return _nativeNames.Contains(first) || _declaredNames.Contains(first) ||
             _declarations.PackageDeclares(_file.Package, first) || JavaLangTypes.Names.Contains(first) ||
-            _imports.Values.Any(import => import.SimpleName == first);
+            _imports.Values.Any(import => import.SimpleName == first) || _declarations.Inheritance.ObscuresName(_file.Id, lexicalOwner, first);
     }
 
     void ReserveObscuredImports()
@@ -112,8 +118,8 @@ public sealed class JavaFileScope
             added = false;
             foreach (var type in _references.Where(IsObscured))
             {
-                if (CanImport(type)) added |= _imports.TryAdd(type.QualifiedName, type);
-                else if (type.Nested.Count > 0 && CanImport(type.TopLevel)) added |= _imports.TryAdd(type.TopLevel.QualifiedName, type.TopLevel);
+                if (CanImportUnshadowed(type)) added |= _imports.TryAdd(type.QualifiedName, type);
+                else if (type.Nested.Count > 0 && CanImportUnshadowed(type.TopLevel)) added |= _imports.TryAdd(type.TopLevel.QualifiedName, type.TopLevel);
             }
         }
     }

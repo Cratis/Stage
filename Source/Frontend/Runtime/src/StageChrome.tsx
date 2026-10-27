@@ -5,7 +5,8 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
 import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
 import { useEffect } from 'react';
-import { screenHash, stageLocaleComponent, stageNavigationTreeComponent } from './blueprint';
+import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/scene.blueprint.default';
+import { screenHash, stageLocaleComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
 import { externalRouteHref } from './externalRouteHref';
@@ -40,6 +41,38 @@ export function StageLocale() {
         <select className='stage-locale' aria-label='Locale' value={locale} onChange={event => setLocale(event.target.value)}>
             {locales.map(candidate => <option key={candidate} value={candidate}>{candidate}</option>)}
         </select>
+    );
+}
+
+/**
+ * The theme as one toggle: an icon button that shows a moon in a light theme and a sun in a dark one, and switches to the other, under a
+ * `Theme` headline. The themes it switches between are the light and the dark one the Stage ships.
+ */
+export function StageThemeToggle({ element }: RegisteredComponentProps) {
+    const { config, setThemeName, setColorScheme } = useLayoutConfig();
+    const label = typeof element.properties.label === 'string' ? element.properties.label : 'Theme';
+    const current = defaultBlueprintThemes.find(theme => theme.name === config.themeName);
+    const dark = current?.isDark ?? config.colorScheme === ColorScheme.Dark;
+    const target = defaultBlueprintThemes.find(theme => (theme.isDark ?? false) !== dark);
+    if (!target) return null;
+
+    const action = dark ? 'Switch to a light theme' : 'Switch to a dark theme';
+    return (
+        <div className='stage-theme-toggle' data-scene-id={element.id}>
+            <h3 className='layout-config-section-title'>{label}</h3>
+            <button
+                type='button'
+                className='stage-theme-toggle__button'
+                aria-label={action}
+                title={action}
+                onClick={() => { setThemeName(target.name); setColorScheme(target.isDark ? ColorScheme.Dark : ColorScheme.Light); }}>
+                <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+                    {dark
+                        ? <><circle cx='12' cy='12' r='4' /><path d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41' /></>
+                        : <path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z' />}
+                </svg>
+            </button>
+        </div>
     );
 }
 
@@ -172,6 +205,7 @@ export function ColorSchemeMirror() {
 /** The Stage's own components, to merge over the blueprint's. */
 export const stageChromeComponents: ComponentRegistry = {
     [stageLocaleComponent]: StageLocale,
+    [stageThemeToggleComponent]: StageThemeToggle,
     [stageNavigationTreeComponent]: StageNavigationTree,
     [stageActivityComponent]: StageActivity,
     'core:outlet': StageOutlet,

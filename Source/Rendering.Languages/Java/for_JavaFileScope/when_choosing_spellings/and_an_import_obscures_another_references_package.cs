@@ -16,7 +16,7 @@ public class and_an_import_obscures_another_references_package : given.a_file_sc
         _reversed = new(_file, new(new([_file], [])), [new("com.library", "Outer", ["Inner"]), new("other", "com", [])]);
     }
 
-    [Fact] void should_avoid_the_obscured_package() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Inner");
+    [Fact] void should_avoid_the_obscured_package() => _scope.Spell(new("com.library", "Outer", ["Inner"]), "container").ShouldEqual("Inner");
     [Fact] void should_reserve_fallback_imports_before_spelling() => JavaImportBlock.Render(_scope.Imports).ShouldEqual("import com.library.Outer.Inner;\nimport other.com;\n");
     [Fact] void should_have_no_reference_order_winner() => JavaImportBlock.Render(_scope.Imports).ShouldEqual(JavaImportBlock.Render(_reversed.Imports));
 }

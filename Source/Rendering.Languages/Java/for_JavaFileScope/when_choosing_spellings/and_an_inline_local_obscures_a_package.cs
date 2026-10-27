@@ -11,6 +11,6 @@ public class and_an_inline_local_obscures_a_package : given.a_file_scope
     void Establish() => _file = _file with { Segments = [.. _file.Segments, new NativeSegment("java", "int \\u0063om = 0;", "native", "statement", [])] };
     void Because() => CreateScope(new TypeName("com.library", "Widget", []));
 
-    [Fact] void should_not_emit_an_obscured_qualified_name() => _scope.Spell(new("com.library", "Widget", [])).ShouldEqual("Widget");
+    [Fact] void should_not_emit_an_obscured_qualified_name() => _scope.Spell(new("com.library", "Widget", []), "container").ShouldEqual("Widget");
     [Fact] void should_import_the_binding() => JavaImportBlock.Render(_scope.Imports).ShouldEqual("import com.library.Widget;\n");
 }

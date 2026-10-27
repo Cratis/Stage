@@ -14,6 +14,8 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 /// </summary>
 public static class InlineBodyScanner
 {
+    static readonly FrozenSet<string> _typeDeclarationKeywords = new[] { "class", "interface", "enum", "record" }.ToFrozenSet(StringComparer.Ordinal);
+
     /// <summary>
     /// Scans generated text and native bodies as one literal stream. Structured placeholders are
     /// separated by whitespace; comment and literal state is retained across text fragments.
@@ -36,8 +38,44 @@ public static class InlineBodyScanner
     /// <exception cref="LanguagePackRefusal">A Unicode escape or a comment or literal is malformed.</exception>
     public static IReadOnlySet<string> Identifiers(string body)
     {
-        var source = JavaUnicodeEscapes.Decode(body);
-        var names = new HashSet<string>(StringComparer.Ordinal);
+        return Tokens(JavaUnicodeEscapes.Decode(body)).Where(token => token.Identifier).Select(token => token.Text).ToFrozenSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Refuses type declarations authored in generated text rather than structured declaration segments.
+    /// Comments and literals retain their lexical state across segments; native declarations only reserve names.
+    /// </summary>
+    /// <param name="file">The file whose generated declarations must be structured.</param>
+    /// <exception cref="LanguagePackRefusal">Generated code declares an unstructured type or cannot be scanned safely.</exception>
+    public static void ValidateDeclarations(SymbolFile file)
+    {
+        var parts = file.Segments.Select(segment => (Text: DeclarationText(segment), Generated: segment is TextSegment)).ToArray();
+        var generated = parts.SelectMany(part => Enumerable.Repeat(part.Generated, part.Text.Length)).ToArray();
+        var tokens = Tokens(string.Concat(parts.Select(part => part.Text))).Where(token => !string.IsNullOrWhiteSpace(token.Text)).ToArray();
+        for (var index = 0; index + 1 < tokens.Length; index++)
+        {
+            var token = tokens[index];
+            if (generated[token.Start] && IsTypeDeclaration(tokens, index))
+            {
+                throw new LanguagePackRefusal(JavaRefusalCodes.UnstructuredDeclaration, "Java type declarations in generated text must use DeclarationSegment.");
+            }
+        }
+    }
+
+    static string DeclarationText(SymbolSegment segment) => segment switch
+    {
+        TextSegment literal => JavaUnicodeEscapes.Decode(literal.Text),
+        NativeSegment native => JavaUnicodeEscapes.Decode(native.Body),
+        DeclarationSegment => " \0 ",
+        _ => " __structured ",
+    };
+
+    static bool IsTypeDeclaration((string Text, int Start, bool Identifier)[] tokens, int index) =>
+        _typeDeclarationKeywords.Contains(tokens[index].Text) && tokens[index + 1].Identifier &&
+        (index == 0 || tokens[index - 1].Text != ".");
+
+    static IEnumerable<(string Text, int Start, bool Identifier)> Tokens(string source)
+    {
         var position = 0;
         while (position < source.Length)
         {
@@ -55,27 +93,28 @@ public static class InlineBodyScanner
             }
             else if (IsIdentifierStart(source, position))
             {
-                position = ReserveIdentifier(source, position, names);
+                var identifier = ReadIdentifier(source, position);
+                yield return (identifier.Name, position, true);
+                position = identifier.End;
             }
             else
             {
+                yield return (source[position].ToString(), position, false);
                 position++;
             }
         }
-
-        return names.ToFrozenSet(StringComparer.Ordinal);
     }
 
-    static bool IsIdentifierStart(string source, int position) => Rune.TryGetRuneAt(source, position, out var rune) && IsStart(rune);
-
-    static int ReserveIdentifier(string source, int position, HashSet<string> names)
+    static (string Name, int End) ReadIdentifier(string source, int position)
     {
         var start = position;
         while (position < source.Length && Rune.TryGetRuneAt(source, position, out var rune) && IsPart(rune)) position += rune.Utf16SequenceLength;
-        names.Add(string.Concat(source[start..position].EnumerateRunes().Where(value => !IsIgnorable(value)).Select(value => value.ToString())));
+        var name = string.Concat(source[start..position].EnumerateRunes().Where(value => !IsIgnorable(value)).Select(value => value.ToString()));
 
-        return position;
+        return (name, position);
     }
+
+    static bool IsIdentifierStart(string source, int position) => Rune.TryGetRuneAt(source, position, out var rune) && IsStart(rune);
 
     static bool IsStart(Rune rune) => Rune.GetUnicodeCategory(rune) is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or
         UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.LetterNumber or

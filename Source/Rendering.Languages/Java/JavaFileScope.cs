@@ -97,9 +97,13 @@ public sealed class JavaFileScope
             reference.SimpleName == type.SimpleName && reference.QualifiedName != type.QualifiedName);
     }
 
-    bool CanImportUnshadowed(TypeName type) => CanImport(type) && !_declarations.Inheritance.BlocksShortening(_file.Id, string.Empty, type);
+    // Reserve candidates for proven owners up front. Spell still checks the actual reference owner;
+    // the existence of this import never proves an omitted owner's binding.
+    bool CanImportUnshadowed(TypeName type) => CanImport(type) && _declarations.InFile(_file.Id).Any(owner =>
+        !_declarations.Inheritance.BlocksShortening(_file.Id, owner.Owner, type));
 
-    bool IsObscured(TypeName type) => IsObscured(type, string.Empty);
+    bool IsObscured(TypeName type) => IsObscured(type, string.Empty) ||
+        _declarations.InFile(_file.Id).Any(owner => IsObscured(type, owner.Owner));
 
     bool IsObscured(TypeName type, string lexicalOwner)
     {

@@ -68,4 +68,9 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0012: packages or their directory prefixes differ only by ordinal case.
     /// </summary>
     public const string CaseConflictingPackage = "STAGE-JAVA-0012";
+
+    /// <summary>
+    /// STAGE-JAVA-0013: generated Java code declares a type without a structured DeclarationSegment.
+    /// </summary>
+    public const string UnstructuredDeclaration = "STAGE-JAVA-0013";
 }

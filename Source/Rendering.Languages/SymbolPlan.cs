@@ -6,6 +6,11 @@ namespace Cratis.Stage.Rendering.Languages;
 /// <summary>
 /// Supplies structured, sentinel-free input to a language pack. Sentinel decoding and authenticity belong to the planner.
 /// </summary>
+/// <remarks>
+/// Kits (#797/#795) must emit every generated type as a DeclarationSegment with KnownTypes supertype metadata,
+/// and supply each ReferenceSegment's lexical owner. Text-declared types are refused by java@1;
+/// omitted owners or ancestry are unknown and never justify shortening.
+/// </remarks>
 /// <param name="Files">The files in the plan.</param>
 /// <param name="ExternalTypes">Types available outside the plan. Their member sets are unknown unless supplied through <see cref="ExternalDeclarations"/>.</param>
 public sealed record SymbolPlan(IReadOnlyList<SymbolFile> Files, IReadOnlyList<TypeName> ExternalTypes)

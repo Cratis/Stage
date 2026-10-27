@@ -11,6 +11,6 @@ public class and_an_inline_field_obscures_a_nested_types_package : given.a_file_
     void Establish() => _file = _file with { Segments = [.. _file.Segments, new NativeSegment("java", "int com; class Inner {}", "native", "member", [])] };
     void Because() => CreateScope(new TypeName("com.library", "Outer", ["Inner"]));
 
-    [Fact] void should_use_an_unobscured_enclosing_type_qualification() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Outer.Inner");
+    [Fact] void should_use_an_unobscured_enclosing_type_qualification() => _scope.Spell(new("com.library", "Outer", ["Inner"]), "container").ShouldEqual("Outer.Inner");
     [Fact] void should_import_the_enclosing_type() => JavaImportBlock.Render(_scope.Imports).ShouldEqual("import com.library.Outer;\n");
 }

@@ -37,7 +37,7 @@ public sealed class JavaInheritance
     /// Determines whether a simple type name lacks a proven binding in an owner's lexical chain.
     /// </summary>
     /// <param name="file">The stable file identity.</param>
-    /// <param name="owner">The lexical declaration identity, or empty to check every declaration in the file.</param>
+    /// <param name="owner">The lexical declaration identity, or empty for unknown scope.</param>
     /// <param name="target">The allocated target type.</param>
     /// <returns>True for a conflicting member type or incomplete inheritance evidence.</returns>
     public bool BlocksShortening(string file, string owner, TypeName target)
@@ -51,7 +51,7 @@ public sealed class JavaInheritance
     /// Determines whether a known member type obscures the first segment of a qualified spelling.
     /// </summary>
     /// <param name="file">The stable file identity.</param>
-    /// <param name="owner">The lexical declaration identity, or empty to check every declaration in the file.</param>
+    /// <param name="owner">The lexical declaration identity, or empty for unknown scope.</param>
     /// <param name="name">The first segment of the qualification.</param>
     /// <returns>Whether a known lexical or inherited member uses that name.</returns>
     public bool ObscuresName(string file, string owner, string name) => LexicalOwners(file, owner).Types.Any(type =>
@@ -69,12 +69,7 @@ public sealed class JavaInheritance
 
     (bool Known, DeclaredType[] Types) LexicalOwners(string file, string owner)
     {
-        if (owner.Length == 0)
-        {
-            var declarations = _types.Where(type => !type.External && type.File == file).ToArray();
-
-            return (declarations.Length > 0, declarations);
-        }
+        if (owner.Length == 0) return (false, []);
 
         var result = new HashSet<DeclaredType>();
         var candidates = _owners.GetValueOrDefault((file, owner), []);

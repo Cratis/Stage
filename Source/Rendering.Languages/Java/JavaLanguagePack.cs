@@ -37,6 +37,8 @@ public static class JavaLanguagePack
 
                 if (index + 1 < file.Segments.Count) ValidateLiteralBoundary(segment);
             }
+
+            InlineBodyScanner.ValidateDeclarations(file);
         }
     }
 

@@ -14,6 +14,6 @@ public class and_another_files_type_obscures_a_package : given.a_file_scope
         _scope = new(_file, new(new([_file, other], [])), [new("com.library", "Outer", ["Inner"])]);
     }
 
-    [Fact] void should_not_qualify_through_the_same_package_type() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Inner");
+    [Fact] void should_not_qualify_through_the_same_package_type() => _scope.Spell(new("com.library", "Outer", ["Inner"]), "container").ShouldEqual("Inner");
     [Fact] void should_import_the_member() => JavaImportBlock.Render(_scope.Imports).ShouldEqual("import com.library.Outer.Inner;\n");
 }

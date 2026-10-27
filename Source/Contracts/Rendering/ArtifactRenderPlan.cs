@@ -161,6 +161,18 @@ public sealed class PlannedArtifact
     public static PlannedArtifact CreateBinary(string relativePath, ImmutableArray<byte> bytes, ImmutableArray<SemanticId> sources) =>
         CreateBinary(relativePath, bytes).WithSources(sources);
 
+    /// <summary>
+    /// Creates a relocated artifact, preserving its content, semantic sources and applied file header.
+    /// </summary>
+    /// <param name="relativePath">The new normalized destination-relative path.</param>
+    /// <returns>The artifact at the validated destination path.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The destination path is not valid.</exception>
+    public PlannedArtifact WithRelativePath(string relativePath) => new(Kind, NormalizePath(relativePath), Bytes, Sha256)
+    {
+        Sources = Sources,
+        AppliedFileHeaderSha256 = AppliedFileHeaderSha256
+    };
+
     internal static ImmutableArray<SemanticId> NormalizeSources(ImmutableArray<SemanticId> sources)
     {
         if (sources.IsDefault || sources.Any(_ => !_.IsSet))

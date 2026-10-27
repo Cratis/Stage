@@ -35,15 +35,18 @@ static class QualifiedFileRewrite
             .OfType<QualifiedReference>()
             .ToArray();
         var namespaces = root.DescendantNodes().OfType<BaseNamespaceDeclarationSyntax>().ToArray();
+        var aliases = root.Usings.Where(@using => @using.Alias is not null).ToArray();
         var scope = QualifiedFileScope.Read(model, project, [.. references.SelectMany(reference => reference.Spans)]);
         var request = new ImportRequest(namespaces.Length == 1 ? namespaces[0].Name.ToString() : string.Empty, project, generated, references.Select(reference => reference.Type))
         {
             RequiredImports = root.Usings.Where(@using => @using.Alias is null && @using.StaticKeyword.IsKind(SyntaxKind.None)).Select(@using => @using.NamespaceOrType.ToString()),
             ScopeTypeNames = scope.TypeNames,
             ScopeValueNames = scope.ValueNames,
-            PinnedNames = scope.PinnedNames,
+            PinnedNames = scope.PinnedNames.Concat(aliases.Select(@using => @using.Alias!.Name.Identifier.ValueText)),
             MemberAccessNames = scope.MemberAccessNames,
-            HasUnknownScope = scope.IsUnknown || namespaces.Length > 1 || root.Usings.Any(@using => @using.Alias is not null || !@using.StaticKeyword.IsKind(SyntaxKind.None))
+            HasUnknownScope = scope.IsUnknown || namespaces.Length > 1 ||
+                aliases.Any(@using => model.GetDeclaredSymbol(@using)?.Target is not INamespaceSymbol) ||
+                root.Usings.Any(@using => !@using.StaticKeyword.IsKind(SyntaxKind.None))
         };
         var resolution = ImportResolver.Resolve(request);
         var changes = new List<TextChange>();
@@ -65,13 +68,14 @@ static class QualifiedFileRewrite
 
         // Directives above the file-scoped namespace replace the ones the file already has.
         var existing = root.Usings.Where(@using => @using.Alias is null && @using.StaticKeyword.IsKind(SyntaxKind.None)).ToArray();
-        if (existing.Length > 0 || resolution.TopLevelUsings.Length > 0)
+        if (existing.Length > 0 || resolution.TopLevelUsings.Length > 0 || resolution.Aliases.Length > 0)
         {
             var start = existing.Length > 0 ? existing[0].FullSpan.Start : root.FullSpan.Start;
-            var end = existing.Length > 0 ? existing[^1].FullSpan.End : root.FullSpan.Start;
-            var text = string.Concat(resolution.TopLevelUsings.Select(@namespace => $"using {@namespace};\n"));
+            var end = existing.Length > 0 ? existing[0].FullSpan.End : root.FullSpan.Start;
+            var text = string.Concat(resolution.TopLevelUsings.Concat(resolution.Aliases).Select(@namespace => $"using {@namespace};\n"));
             if (existing.Length == 0 && text.Length > 0) text += "\n";
             changes.Add(new(TextSpan.FromBounds(start, end), text));
+            changes.AddRange(existing.Skip(1).Select(@using => new TextChange(@using.FullSpan, string.Empty)));
         }
         return ([.. changes.Where(change => change.Span.Length > 0 || change.NewText!.Length > 0).OrderBy(change => change.Span.Start)], spelledShort);
     }

@@ -30,7 +30,6 @@ public class when_preserving_state_view_bytes : given.an_automation
         var parameters = string.Join(", ", model.Properties.OrderBy(property => property.Id.ToString(), StringComparer.Ordinal)
             .Select(property => property.Name == "id" ? "[Key] string Id" : "decimal Amount"));
         _expected = $$"""
-            using Cratis.Chronicle.Keys;
             using Reactions.Work.Processing.Start;
 
             namespace Reactions.Work.Processing.Summary;

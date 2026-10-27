@@ -10,7 +10,6 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class with_a_sourceless_given_event : Specification
 {
     string[] _errors = null!;
-    string[] _reasons = null!;
     int _artifacts;
 
     void Because()
@@ -21,13 +20,10 @@ public class with_a_sourceless_given_event : Specification
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         _errors = [.. plan.Diagnostics.Select(_ => _.Code)];
-        _reasons = [.. plan.Diagnostics.Select(_ => _.Message)];
         _artifacts = plan.Artifacts.Length;
     }
 
-    [Fact] void should_reject_the_unrepresentable_null_destination() => _errors.ShouldContain("STAGE-ESM-051");
+    [Fact] void should_admit_the_unobserved_destination() => _errors.ShouldNotContain("STAGE-ESM-051");
     [Fact] void should_not_use_the_generic_refusal() => _errors.ShouldNotContain("STAGE-ESM-011");
-    [Fact] void should_name_the_specification_and_event() => _reasons.Any(_ => _.Contains("'IssuingFirstInvoice'", StringComparison.Ordinal) && _.Contains("'InvoiceIssued'", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_explain_the_null_destination() => _reasons.Any(_ => _.Contains("null destination", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_preserve_the_application_artifacts() => _artifacts.ShouldBeGreaterThan(0);
+    [Fact] void should_emit_the_artifacts() => _artifacts.ShouldBeGreaterThan(0);
 }

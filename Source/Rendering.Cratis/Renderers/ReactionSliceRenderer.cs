@@ -140,7 +140,7 @@ public class ReactionSliceRenderer : ISliceRenderer
                 builder.Line($"var ({string.Join(", ", propertyNames)}) = @event;");
             }
 
-            builder.Raw(trigger.Code.Code);
+            builder.AuthoredBody(trigger.Code, new("reaction", slice.Name, eventTypeName));
         }
         else if (trigger.File is not null)
         {

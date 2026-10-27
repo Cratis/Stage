@@ -91,7 +91,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
-        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved.
+        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor
+        // returns one append batch, and ordered per-trigger batches that are not duplicated on redelivery need Cratis/Chronicle#5248.
         Add(entries, "SemanticApplication", rendered, "ReactionProductionMode");
         Add(entries, "SemanticReactionProductionMode", rendered, "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
@@ -115,7 +116,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticGeneration", rendered, "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
-        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
+        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via [ComplianceDetails] on the syntax renderer (#259)."), "Special Criminal");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
@@ -209,17 +210,19 @@ internal static class SemanticSurfaceLedger
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite type keys remain rejected; read models with several key parts render through parts keys, but Stage
-        // cannot issue single-instance lookups by key parts (Chronicle#4265). Every literals lower to from
-        // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. All literals and
-        // text literals outside Chronicle's fluent $value grammar, expression-like event-property
-        // names (including derived functions), unsafe read-model property paths and camel-case
-        // collisions, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.
-        // Identity-only all renders as FromAll; literals in all remain rejected (Chronicle#4663), because
-        // lowering onto from blocks would miss unrelated event types and sources.
+        // cannot issue single-instance lookups by key parts (Chronicle#4265). Safe scalar all literals render
+        // natively through FromAll.ToValue, including unrelated event types/sources. Root every literals at
+        // join levels render through FromEvery.ToValue and preserve original from mappings for join backfill.
+        // Join-free every literals still lower to from Set mappings; prefix overlaps and non-Set collisions
+        // remain refused. Clear in every/all, empty all, unsafe fluent text and expression-like event-property
+        // names (including derived functions), unsafe read-model paths and camel-case collisions, and
+        // unvalidated $eventSourceId targets fail STAGE-ESM-017. Every-with-join at child/nested levels and
+        // IncludeChildren remain unverified by Stage and refused; Screenplay rejects synthetic null Sets.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
-        // Chronicle#4263 and Screenplay#563; joins/children inside nested by Chronicle#4125. Nested clear requires a matching root from
-        // and identical key.
+        // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
+        // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
+        // a matching root from and identical key.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -309,7 +312,7 @@ internal static class SemanticSurfaceLedger
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
 
-        // ESM v31 anonymous access: Stage admits ESM v1-v30 pairs only, so a model that uses it is refused whole (STAGE-ESM-016) before any condition renders.
+        // Public admission remains exact. The prospective range finder treats anonymous access as a security-relevant unknown.
         Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
@@ -425,11 +428,12 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");
+        Add(entries, "SemanticTranslationDirection", rendered, "Inbound Outbound");
         Add(entries, "SemanticCapture", foreign, "EventsSource");
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
-        // Stage admits neither version pair yet, so a model that uses them is refused whole (STAGE-ESM-016) before any of them renders.
+        // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
         Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");

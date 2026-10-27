@@ -11,8 +11,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_ana
 public class with_a_body
 {
     const string IssueBody = "return new ChangeRequest(context.Key, context.Event.Reason, context.Event.RequestedAt);";
-    const string ConstructedBody = "return new ChangeRequest(TalkId: new TalkId(Guid.Parse(context.Key)), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
-    const string Source = """
+    internal const string ConstructedBody = "return new ChangeRequest(TalkId: new TalkId(Guid.Parse(context.Key)), Reason: context.Event.Reason, RequestedAt: context.Event.RequestedAt);";
+    internal const string Source = """
         concept TalkId : Uuid
         concept Reason : String
         module Talks
@@ -78,7 +78,7 @@ public class with_a_body
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task should_report_the_original_body_conversion_as_a_body_error(bool performer)
+    public async Task should_suggest_named_arguments_in_generated_order_for_the_positional_body(bool performer)
     {
         var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(IssueBody, performer)), self: true);
         Assert.False(plan.Success);
@@ -87,7 +87,30 @@ public class with_a_body
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
             diagnostic.Message.Contains("Reducer body", StringComparison.Ordinal) && diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("Use new Reason(...)", StringComparison.Ordinal));
+            diagnostic.Message.Contains(" Use named arguments: new ChangeRequest(Reason: ..., TalkId: ..., RequestedAt: ...); generated constructor parameters follow semantic order, not declaration order.", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("return new ChangeRequest(context.Key, context.Event.Reason, context.Event.RequestedAt) { };", true)]
+    [InlineData("return new(context.Key, context.Event.Reason, context.Event.RequestedAt);", true)]
+    public async Task should_handle_constructor_expression_shapes_without_throwing_or_misplacing_the_named_argument_hint(string body, bool expectHint)
+    {
+        var request = await when_rendering_a_pure_reducer.Load(Model(body, performer: false));
+        ArtifactRenderPlan? plan = null;
+        var exception = Record.Exception(() =>
+        {
+            plan = when_rendering_a_pure_reducer.Plan(request, self: true);
+        });
+        Assert.Null(exception);
+        Assert.NotNull(plan);
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        AssertNoInternalReducerError(plan);
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(candidate => candidate.Code == "STAGE-ESM-019" &&
+            candidate.Message.Contains("Reducer body", StringComparison.Ordinal) && candidate.Message.Contains("CS1503", StringComparison.Ordinal)));
+        Assert.Equal(expectHint, diagnostic.Message.Contains(
+            "Use named arguments: new ChangeRequest(Reason: ..., TalkId: ..., RequestedAt: ...); generated constructor parameters follow semantic order, not declaration order.",
+            StringComparison.Ordinal));
     }
 
     [Theory]
@@ -110,8 +133,6 @@ public class with_a_body
     [Theory]
     [InlineData(false, "Uuid", "Use new TalkId(Guid.Parse(...))")]
     [InlineData(true, "Uuid", "Use new TalkId(Guid.Parse(...))")]
-    [InlineData(false, "String", "Use new TalkId(...)")]
-    [InlineData(true, "String", "Use new TalkId(...)")]
     public async Task should_suggest_explicit_talk_id_construction_for_the_named_implicit_argument(bool performer, string primitive, string hint)
     {
         var body = ConstructedBody.Replace("new TalkId(Guid.Parse(context.Key))", "context.Key", StringComparison.Ordinal);
@@ -123,6 +144,36 @@ public class with_a_body
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022");
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
             diagnostic.Message.Contains("CS1503", StringComparison.Ordinal) && diagnostic.Message.Contains(hint, StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("Use named arguments:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_admit_a_string_for_the_string_backed_identifier_concept(bool performer)
+    {
+        var body = ConstructedBody.Replace("new TalkId(Guid.Parse(context.Key))", "context.Key", StringComparison.Ordinal);
+        var source = Model(body, performer).Replace("concept TalkId : Uuid", "concept TalkId : String", StringComparison.Ordinal);
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(source), self: true);
+        AssertNoInternalReducerError(plan);
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" ||
+            diagnostic.Message.StartsWith("Reducer 'OpenChangeRequests'", StringComparison.Ordinal));
+        if (!performer) Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_not_suggest_named_arguments_for_a_bcl_constructor(bool performer)
+    {
+        var body = "_ = new DateTime(context.Key, 1, 1); return context.State;";
+        var plan = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Model(body, performer)), self: true);
+        Assert.False(plan.Success);
+        Assert.Empty(plan.Artifacts);
+        AssertNoInternalReducerError(plan);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" &&
+            diagnostic.Message.Contains("CS1503", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Message.Contains("Use named arguments:", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -136,6 +187,8 @@ public class with_a_body
     [InlineData(true, "Guid.Parse(default(ReadOnlySpan<char>), null)", "Parse")]
     [InlineData(false, "Guid.NewGuid()", "NewGuid")]
     [InlineData(true, "Guid.NewGuid()", "NewGuid")]
+    [InlineData(false, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
+    [InlineData(true, "Guid.Parse(context.Key).ToByteArray()", "ToByteArray")]
     public async Task should_keep_refusing_impure_calls_in_the_body(bool performer, string expression, string member)
     {
         var body = $"_ = {expression}; return context.State;";
@@ -180,6 +233,6 @@ public class with_a_body
 
     // A plain keyed query uses IReadModels only. Include a performed sibling to exercise the
     // Arc dependency signatures retained by self-reducer analysis, without changing that query.
-    static string Model(string body, bool performer) => Source.Replace(IssueBody, body, StringComparison.Ordinal) + (performer ? "\n" + PerformerQuery : string.Empty);
+    internal static string Model(string body, bool performer) => Source.Replace(IssueBody, body, StringComparison.Ordinal) + (performer ? "\n" + PerformerQuery : string.Empty);
 }
 #endif

@@ -15,7 +15,12 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_executing_localized_rejection_specifications(when_executing_localized_rejection_specifications.context fixture) : IClassFixture<when_executing_localized_rejection_specifications.context>
 {
     [Fact] void should_configure_request_culture() => fixture.HostUsesRequestLocalization.ShouldBeTrue();
-    [Fact] void should_qualify_the_resolver_across_nested_namespaces() => fixture.ValidatorsUseQualifiedResolver.ShouldBeTrue();
+    [Fact]
+    void should_use_the_short_resolver_across_nested_namespaces()
+    {
+        fixture.ValidatorContent.ShouldContain("GeneratedStrings.Resolve(\"$strings.invoice.descriptionRequired\")");
+        fixture.ValidatorContent.ShouldNotContain("global::Invoices.GeneratedStrings");
+    }
     [Fact] void should_escape_line_separators_in_generated_catalog() => fixture.CatalogEscapesSeparators.ShouldBeTrue();
     [Fact] void should_build_without_debug_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_without_release_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
@@ -25,7 +30,7 @@ public class when_executing_localized_rejection_specifications(when_executing_lo
     public class context : a_generated_invoice_application
     {
         public bool HostUsesRequestLocalization { get; private set; }
-        public bool ValidatorsUseQualifiedResolver { get; private set; }
+        public string ValidatorContent { get; private set; } = string.Empty;
         public bool CatalogEscapesSeparators { get; private set; }
 
         protected override string InvoiceSource => invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)
@@ -61,8 +66,9 @@ public class when_executing_localized_rejection_specifications(when_executing_lo
         async Task Because()
         {
             HostUsesRequestLocalization = ReadGeneratedFile("Program.cs").Contains("app.UseRequestLocalization(", StringComparison.Ordinal);
-            ValidatorsUseQualifiedResolver = CreatePlan().Artifacts.Any(artifact =>
-                Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("global::Invoices.GeneratedStrings.Resolve", StringComparison.Ordinal));
+            ValidatorContent = string.Join('\n', CreatePlan().Artifacts
+                .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))
+                .Where(content => content.Contains("GeneratedStrings.Resolve(", StringComparison.Ordinal)));
             CatalogEscapesSeparators = ReadGeneratedFile("GeneratedStrings.cs").Contains("First\\u2028Second\\u2029Third", StringComparison.Ordinal);
             AddGeneratedSpecification("GeneratedStringsSpecifications.cs", """
                 // Copyright (c) Cratis. All rights reserved.

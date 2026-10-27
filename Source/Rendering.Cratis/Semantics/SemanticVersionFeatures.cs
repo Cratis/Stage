@@ -150,8 +150,7 @@ internal static class SemanticVersionFeatures
     /// <param name="model">The executable model.</param>
     /// <returns>Whether Stage supports the version pair.</returns>
     public static bool Supports(ExecutableSemanticModel model) =>
-        EsmSchemaV30Support.Supports(model.LanguageVersion, model.SemanticVersion) ||
-        (model.LanguageVersion == LanguageVersion.V32 && model.SemanticVersion == SemanticVersion.V32);
+        CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion) == EsmVersionStanding.Audited;
 
     /// <summary>
     /// Gets every slice in the application in model order, including slices of nested features.
@@ -198,7 +197,7 @@ internal static class SemanticVersionFeatures
             foreach (var group in reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event).GroupBy(trigger => trigger.Source)
                 .Where(group => group.Count(trigger => !trigger.Produces.IsDefaultOrEmpty) > 1))
             {
-                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches.");
+                yield return new(AtomicReactionBatches, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Atomic reaction '{reaction.Name}' has multiple same-event production triggers for '{group.Key}'; they would share one append batch instead of retaining separate trigger batches. A Chronicle reactor appends its returned events as one batch and cannot yet return ordered per-trigger batches that survive redelivery (Cratis/Chronicle#5248).");
             }
             if (reaction.Triggers.SelectMany(trigger => trigger.Produces)
                 .Any(produced => produced.Route is not null))
@@ -359,7 +358,7 @@ internal static class SemanticVersionFeatures
             {
                 if (trigger.RequirementId is not null)
                 {
-                    yield return new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
+                    yield return ReactionBodyFeature(reaction, trigger);
                 }
 
                 foreach (var feature in NonEventTrigger(reaction, trigger)) yield return feature;
@@ -615,6 +614,18 @@ internal static class SemanticVersionFeatures
             yield return new(ProtectedReadRequirementSeverity, StageExecutionCapability.Command, command.Id, "command", $"Command '{command.Name}' has a non-Error requirement on protected reads; Stage refuses this severity until Screenplay defines its semantics.");
         }
     }
+
+    internal static bool HasStandaloneEventBody(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
+        trigger.Kind == SemanticReactionTriggerKind.Event && reaction.Triggers.Length == 1 &&
+        trigger.Produces.IsEmpty && trigger.Invokes.IsEmpty && reaction.RunsAs is null;
+
+    internal static IEnumerable<SemanticVersionFeature> StandaloneReactionBodiesInSlice(SemanticSlice slice) =>
+        (slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers
+            .Where(trigger => trigger.RequirementId is not null && HasStandaloneEventBody(reaction, trigger))
+            .Select(trigger => ReactionBodyFeature(reaction, trigger)));
+
+    static SemanticVersionFeature ReactionBodyFeature(SemanticReaction reaction, SemanticReactionTrigger trigger) =>
+        new(Automation, StageExecutionCapability.Reaction, reaction.Id, "reaction", $"Reaction '{reaction.Name}' has an opaque body for trigger kind '{trigger.Kind}', which Stage does not support yet.");
 
     static IEnumerable<SemanticVersionFeature> UnknownValidationRules(
         IEnumerable<SemanticValidationRule> rules, SemanticId owner, string kind, string name) =>

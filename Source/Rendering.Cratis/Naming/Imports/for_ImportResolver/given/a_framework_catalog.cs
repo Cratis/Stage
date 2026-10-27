@@ -31,7 +31,7 @@ public class a_framework_catalog : Specification
             ],
             ["Cratis", "System", "Xunit"],
             [.. new[] { "System", "System.Linq", "System.Text", "System.Text.RegularExpressions", "Cratis", "Cratis.Arc", "Cratis.Arc.Identity", "Cratis.Chronicle",
-                "Cratis.Chronicle.Identities", "Cratis.Chronicle.Keys", "Cratis.Chronicle.Testing", "Xunit", "Unrecorded" }
+                "Cratis.Chronicle.Identities", "Cratis.Chronicle.Events", "Cratis.Chronicle.Alpha", "Cratis.Chronicle.Beta", "Cratis.Chronicle.Keys", "Cratis.Chronicle.Testing", "Xunit", "Unrecorded" }
                 .Select(name => new CatalogNamespace(GeneratedProjects.Both, name))],
             [
                 Type("System", "Guid", "struct"),
@@ -44,6 +44,13 @@ public class a_framework_catalog : Specification
                 Type("Cratis.Arc.Identity", "IIdentityProvider", "interface"),
                 Type("Cratis.Chronicle.Identities", "IIdentityProvider", "interface"),
                 Type("Cratis.Chronicle.Identities", "Identity"),
+                Type("Cratis.Chronicle.Events", "EventType"),
+                Type("Cratis.Chronicle.Events", "EventContext"),
+                Type("Cratis.Chronicle.Alpha", "Shared"),
+                Type("Cratis.Chronicle.Alpha", "AlphaOnly"),
+                Type("Cratis.Chronicle.Alpha", "AlphaExtra"),
+                Type("Cratis.Chronicle.Beta", "Shared"),
+                Type("Cratis.Chronicle.Beta", "BetaOnly"),
                 Type("Cratis.Chronicle.Keys", "KeyAttribute", "attribute"),
                 Type("Cratis.Chronicle.Keys", "KeyType", "enum"),
                 Type("Cratis.Chronicle.Testing", "EventScenario`1"),

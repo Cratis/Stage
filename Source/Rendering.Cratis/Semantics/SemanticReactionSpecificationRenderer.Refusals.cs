@@ -48,7 +48,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             var contract = context.Events[given.EventContract];
             var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-            var source = types.EventSourceExpression(types.Value(given.EventSource!.Value, given.EventSource.Type), given.EventSource.Type);
+            var source = SemanticSpecificationEventSources.Expression(context, types, given);
             builder.Line(decision
                 ? $"_scenario.Given.ForEventSource({source}).Events(new {types.EventType(contract)}({string.Join(", ", arguments)}));"
                 : $"await _scenario.EventScenario.Given.ForEventSource({source}).Events(new {types.EventType(contract)}({string.Join(", ", arguments)}));");

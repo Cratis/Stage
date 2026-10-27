@@ -51,6 +51,10 @@ internal static class SemanticProjectionSpecificationSeeds
         SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } =>
             Equals(fact.Values.SingleOrDefault(value => value.TargetProperty == property)?.Value, key),
         SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => Equals(literal.Value, key),
+        SemanticProjectionPartsKey parts when key is SemanticCompositeValue composite =>
+            parts.Parts.Length == composite.Properties.Length && parts.Parts.All(part =>
+                composite.Properties.SingleOrDefault(property => property.TargetProperty == part.Property) is { } expected &&
+                KeyIdentifies(new SemanticProjectionValueKey(part.Value), fact, expected.Value)),
         _ => false
     };
 

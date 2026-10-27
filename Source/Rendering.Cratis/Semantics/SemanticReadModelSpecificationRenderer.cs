@@ -94,11 +94,11 @@ internal static class SemanticReadModelSpecificationRenderer
 
             var givenArguments = givenEvent.Properties.Select(property =>
                 types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            var givenSource = given.EventSource!;
-            needsCommon |= SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type) ||
+            var givenSource = given.EventSource;
+            needsCommon |= (givenSource is not null && SemanticTypeSystem.ValueNeedsCommon(givenSource.Value, givenSource.Type)) ||
                 givenEvent.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(
                     given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-            builder.Line($"await _scenario.Given.ForEventSource({types.EventSourceExpression(types.Value(givenSource.Value, givenSource.Type), givenSource.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
+            builder.Line($"await _scenario.Given.ForEventSource({SemanticSpecificationEventSources.Expression(context, types, given)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(givenEvent)}({string.Join(", ", givenArguments)}));");
         }
 
         foreach (var (produced, expectedEvent) in replay)
@@ -121,9 +121,14 @@ internal static class SemanticReadModelSpecificationRenderer
 
         builder.EndBlock()
             .BlankLine();
-        var keyProperty = readModel.Properties.Single(_ => _.IsIdentifier);
-        needsCommon |= SemanticTypeSystem.ValueNeedsCommon(expected.Key, keyProperty.Type);
-        var instance = $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
+        var keyProperties = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
+        var keyProperty = keyProperties[0];
+        needsCommon |= expected.Key is SemanticCompositeValue compositeKey
+            ? keyProperties.Any(property => SemanticTypeSystem.ValueNeedsCommon(compositeKey.Properties.Single(part => part.TargetProperty == property.Id).Value, property.Type))
+            : SemanticTypeSystem.ValueNeedsCommon(expected.Key, keyProperty.Type);
+        var instance = expected.Key is SemanticCompositeValue composite
+            ? CompositeInstance(readModel, composite, types)
+            : $"_scenario.InstanceForEventSourceId({types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type)})!";
         if (absentIndex is not null)
         {
             var key = types.EventSourceExpression(types.Value(expected.Key, keyProperty.Type), keyProperty.Type);
@@ -175,6 +180,14 @@ internal static class SemanticReadModelSpecificationRenderer
         }
 
         return new(path, content);
+    }
+
+    static string CompositeInstance(SemanticReadModel model, SemanticCompositeValue key, SemanticTypeSystem types)
+    {
+        var parts = model.Properties.Where(property => property.IsIdentifier).OrderBy(property => property.Id.ToString(), StringComparer.Ordinal);
+        var values = parts.Select(property => types.Value(key.Properties.Single(part => part.TargetProperty == property.Id).Value, property.Type));
+        var keyType = types.SliceType(model.Id, Projections.SemanticCompositeKeyAdmission.KeyTypeName(model));
+        return $"global::System.Linq.Enumerable.SingleOrDefault(_scenario.Instances.Values, instance => instance.Id == new {keyType}({string.Join(", ", values)}))!";
     }
 
     static CSharpCodeBuilder Builder(

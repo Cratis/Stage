@@ -49,6 +49,7 @@ import { useComponentOutputsPublisher } from './stageComponentOutputs';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
+import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
@@ -59,7 +60,6 @@ import { navigateToScreen, screenArguments, useStageRouting, type StageRouting }
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
-import { standaloneScreenTemplates } from './standaloneScreenTemplates';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
 import { stageIconAdapters } from './stageIcons';
@@ -128,7 +128,7 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     const first = scene.screens[0];
     return effectiveShellOf(scene as ApplicationDocument, first, {
         profile: stageProfile(scene.uiProfiles),
-        blueprintTemplates: standaloneScreenTemplates(screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates),
+        blueprintTemplates: screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates,
     });
 }
 
@@ -143,8 +143,9 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
         // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
-        // A template that fits inside another one is composed on its own: a Screenplay screen fills only the template it names (standaloneScreenTemplates).
-        blueprintTemplates: standaloneScreenTemplates(blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates),
+        // A modeled screen fills only the slots of the template it names, so Stage composes just that template (Scene namedTemplateOnly).
+        blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates,
+        namedTemplateOnly: true,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
             ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
             : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
@@ -490,10 +491,10 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
     return (
-        <>
+        <StageScreenTables element={element}>
             <StageQueryBindings element={element} />
             <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
-        </>
+        </StageScreenTables>
     );
 }
 
@@ -524,7 +525,10 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
-                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                {/* Template dialogs own their table scope; only ConfirmDialog decisions preserve the originating list selection. */}
+                <StageScreenTables element={resolved}>
+                    <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                </StageScreenTables>
             </section>
         </div>
     );

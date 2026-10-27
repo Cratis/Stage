@@ -16,7 +16,7 @@ internal static class TenantTranslationSource
             Read("AmbiguousTenant.cs").Replace("namespace Cratis.Stage.Runtime;", string.Empty, StringComparison.Ordinal);
 
         // Stage compiles the same source with its own imports, so the copy is respelled for the application.
-        if (generated is not null && !QualifiedSpelling.IsActive) source = new CSharpImports(GeneratedProjects.Application, generated).Rewrite(source, [], []);
+        if (generated is not null && !QualifiedSpelling.IsActive) source = new CSharpImports(GeneratedProjects.Application, generated, false).Rewrite(source, [], []);
         return new(Path.Combine("GeneratedTenancy", "PortableTenantValues.cs"), source);
     }
 

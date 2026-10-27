@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static partial class SemanticSpecificationAdmission
 {
     /// <summary>
-    /// The code that refuses a specification whose given or appended event has no event source.
+    /// The code that refuses a specification whose given or appended event has an observable missing source.
     /// </summary>
     internal const string SourcelessGivenCode = "STAGE-ESM-051";
     const string SourcelessGivenReason = "A sourceless given fact has a null destination in the reference world; Chronicle scenario events require an event source id.";
@@ -29,8 +29,13 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in WithoutReactionCascades(context, slice, diagnostics))
+        foreach (var specification in SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics))
         {
+            if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
+            {
+                diagnostics.Add(RefusalDiagnostic(context, specification, SourcelessGivenReason));
+                continue;
+            }
             if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
             {
                 if (!CanRenderProjectedFacts(context, facts))
@@ -284,7 +289,7 @@ internal static partial class SemanticSpecificationAdmission
             return "Given read-model state replaces projected state before the action in the reference world. Chronicle's scenario seed serves lookup interception but cannot initialize each projected instance for subsequent command events; only a query-only lookup of one complete seeded record is supported.";
         }
 
-        if (specification.GivenEvents.Any(_ => _.EventSource is null))
+        if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
         {
             return SourcelessGivenReason;
         }
@@ -308,6 +313,9 @@ internal static partial class SemanticSpecificationAdmission
         return "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
 
+    static bool MissingObservableSource(SemanticApplicationContext context, SemanticSpecificationEvent fact) =>
+        fact.EventSource is null && SemanticSpecificationEventSources.RequiresSource(context, fact.EventContract, fact.Route is not null);
+
     // A sourceless given fact has its own code so it is not lost in the generic STAGE-ESM-011 bucket.
     static ArtifactRenderDiagnostic RefusalDiagnostic(SemanticApplicationContext context, SemanticSpecification specification, string reason)
     {
@@ -317,7 +325,7 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         // Projected facts lower a sourceless 'when append' into the givens, so the event may be the appended one.
-        var (role, contract) = specification.GivenEvents.FirstOrDefault(_ => _.EventSource is null) is { } given
+        var (role, contract) = specification.GivenEvents.FirstOrDefault(fact => MissingObservableSource(context, fact)) is { } given
             ? ("given", given.EventContract)
             : ("appended", specification.WhenAppended?.EventContract);
         var eventName = contract is { } id && context.Events.TryGetValue(id, out var @event) ? $"'{@event.Name}'" : "an event";

@@ -254,20 +254,28 @@ class RoutingTests(unittest.TestCase):
                 self.assertIn(DRAFT_GATE, definition)
 
     def test_pull_requests_start_heavy_lanes_only_after_build_and_specs(self):
-        gate = f"""    needs: [preflight, routing, dotnet-build, specs]
+        live_packages_gate = f"""    needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
+        # Lanes that reuse the Debug build output cannot run without it, on any trigger.
+        gate = f"""    needs: [preflight, routing, dotnet-build, specs]
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
+    if: >-
+      !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')"""
         standalone_gate = f"""    needs: [preflight, routing, dotnet-build]
     # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
     # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
+      && needs.dotnet-build.result == 'success'"""
         heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
         self.assertEqual(5, len(heavy))
-        for job in heavy:
+        self.assertIn("live-custom-packages", heavy)
+        self.assertTrue(JOBS["live-custom-packages"].startswith(live_packages_gate), "live-custom-packages")
+        for job in heavy - {"live-custom-packages"}:
             self.assertTrue(JOBS[job].startswith(gate), job)
         self.assertTrue(JOBS["generated-react"].startswith(gate + "\n    runs-on:"), "generated-react")
         self.assertTrue(

@@ -677,7 +677,7 @@ async function assertAddComment(page, result, network) {
 }
 
 async function assertNavigationAndTheme(page, result) {
-    // The theme is one toggle: a button that goes dark from a light theme, under a Theme headline.
+    // The theme is one toggle: a button that goes dark from a light theme.
     const toggle = page.getByRole('button', { name: 'Switch to a dark theme' });
     if (await toggle.first().waitFor({ timeout: 10_000 }).then(() => true, () => false)) record(result, 'browser.navigation.themeToggle', 'passed', 'Switch to a dark theme');
     else block(result, 'browser.navigation.themeToggle', 'the topbar has no theme toggle');

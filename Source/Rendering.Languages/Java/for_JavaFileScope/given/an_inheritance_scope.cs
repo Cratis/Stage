@@ -10,8 +10,8 @@ public class an_inheritance_scope : a_file_scope
 
     void Establish()
     {
-        _file = new("file", "p", [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = [_baseType] }]);
-        _plan = new([_file], []) { ExternalDeclarations = [new(_baseType, ["String", "Widget"])] };
+        _file = new("file", "p", [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = KnownTypes<TypeName>.Of([_baseType]) }]);
+        _plan = new([_file], []) { ExternalDeclarations = [new(_baseType, KnownTypes<string>.Of(["String", "Widget"])) { Supertypes = KnownTypes<TypeName>.None }] };
     }
 
     protected void CreateInheritedScope(params TypeName[] references) => _scope = new(

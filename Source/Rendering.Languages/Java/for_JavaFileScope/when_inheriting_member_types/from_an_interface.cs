@@ -11,8 +11,8 @@ public class from_an_interface : given.an_inheritance_scope
     void Establish()
     {
         var contract = new TypeName("lib", "Contract", []);
-        _file = _file with { Segments = [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = [contract] }] };
-        _plan = _plan with { ExternalDeclarations = [new(contract, ["String", "Widget"])] };
+        _file = _file with { Segments = [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = KnownTypes<TypeName>.Of([contract]) }] };
+        _plan = _plan with { ExternalDeclarations = [new(contract, KnownTypes<string>.Of(["String", "Widget"])) { Supertypes = KnownTypes<TypeName>.None }] };
     }
 
     void Because() => CreateInheritedScope(new("java.lang", "String", []), new("foreign", "Widget", []));

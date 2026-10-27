@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_choosing_
 
 public class and_the_type_is_in_the_same_package : given.a_file_scope
 {
-    void Establish() => _file = _file with { Segments = [new DeclarationSegment(new("example", "Order", []), "order")] };
+    void Establish() => _file = _file with { Segments = [new DeclarationSegment(new("example", "Order", []), "order") { Supertypes = KnownTypes<TypeName>.None }] };
     void Because() => CreateScope(new("example", "Order", []), new("elsewhere", "Order", []));
 
     [Fact] void should_shorten_the_same_package_type() => _scope.Spell(new("example", "Order", [])).ShouldEqual("Order");

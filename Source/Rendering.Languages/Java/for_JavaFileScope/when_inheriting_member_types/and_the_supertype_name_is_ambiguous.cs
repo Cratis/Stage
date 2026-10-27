@@ -11,8 +11,8 @@ public class and_the_supertype_name_is_ambiguous : given.an_inheritance_scope
     void Establish() => _plan = new(
         [
             _file,
-            new("first-base", "lib", [new DeclarationSegment(_baseType, "first")]),
-            new("second-base", "lib", [new DeclarationSegment(_baseType, "second")]),
+            new("first-base", "lib", [new DeclarationSegment(_baseType, "first") { Supertypes = KnownTypes<TypeName>.None }]),
+            new("second-base", "lib", [new DeclarationSegment(_baseType, "second") { Supertypes = KnownTypes<TypeName>.None }]),
         ],
         []);
 

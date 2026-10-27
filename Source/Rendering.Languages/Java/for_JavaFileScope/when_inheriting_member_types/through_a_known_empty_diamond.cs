@@ -17,10 +17,10 @@ public class through_a_known_empty_diamond : given.an_inheritance_scope
         {
             ExternalDeclarations =
             [
-                new(_baseType, []) { Supertypes = [left, right] },
-                new(left, []) { Supertypes = [root] },
-                new(right, []) { Supertypes = [root] },
-                new(root, []),
+                new(_baseType, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([left, right]) },
+                new(left, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([root]) },
+                new(right, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([root]) },
+                new(root, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.None },
             ],
         };
     }

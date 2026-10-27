@@ -57,18 +57,25 @@ public sealed class JavaInheritance
     public bool ObscuresName(string file, string owner, string name) => LexicalOwners(file, owner).Types.Any(type =>
         DirectMembers(type).Contains(name, StringComparer.Ordinal) || Inherited(type).Names.Contains(name));
 
-    static bool HasKnownMembers(DeclaredType type) => !type.External || type.DeclaredMemberTypes is not null;
+    static bool HasKnownMembers(DeclaredType type) => !type.External || type.DeclaredMemberTypes.IsKnown;
 
     static (bool Known, DeclaredType[] Types) ResolveEdges(DeclaredType type, Dictionary<(string Package, string Scope, string Name), DeclaredType[]> preferred)
     {
-        var matches = type.Supertypes.Select(supertype => preferred.GetValueOrDefault((supertype.Package, supertype.EnclosingScope, supertype.SimpleName), [])).ToArray();
+        if (!type.Supertypes.IsKnown) return (false, []);
+        var matches = type.Supertypes.Values.Select(supertype => preferred.GetValueOrDefault((supertype.Package, supertype.EnclosingScope, supertype.SimpleName), [])).ToArray();
 
         return (matches.All(candidates => candidates.Length == 1), [.. matches.Where(candidates => candidates.Length == 1).Select(candidates => candidates[0])]);
     }
 
     (bool Known, DeclaredType[] Types) LexicalOwners(string file, string owner)
     {
-        if (owner.Length == 0) return (true, [.. _types.Where(type => !type.External && type.File == file)]);
+        if (owner.Length == 0)
+        {
+            var declarations = _types.Where(type => !type.External && type.File == file).ToArray();
+
+            return (declarations.Length > 0, declarations);
+        }
+
         var result = new HashSet<DeclaredType>();
         var candidates = _owners.GetValueOrDefault((file, owner), []);
         while (candidates.Length == 1 && result.Add(candidates[0]))
@@ -85,9 +92,12 @@ public sealed class JavaInheritance
         member.ParentOwner == owner.Owner && member.Name == target.SimpleName &&
         (member.Package != target.Package || member.Final.EnclosingScope != target.EnclosingScope));
 
-    IEnumerable<string> DirectMembers(DeclaredType type) => type.External
-        ? type.DeclaredMemberTypes ?? []
-        : _types.Where(member => !member.External && member.File == type.File && member.ParentOwner == type.Owner).Select(member => member.Name);
+    IEnumerable<string> DirectMembers(DeclaredType type)
+    {
+        if (type.External) return type.DeclaredMemberTypes.IsKnown ? type.DeclaredMemberTypes.Values : [];
+
+        return _types.Where(member => !member.External && member.File == type.File && member.ParentOwner == type.Owner).Select(member => member.Name);
+    }
 
     (bool Known, HashSet<string> Names) Inherited(DeclaredType type) => _inherited.GetOrAdd(type, CollectInherited);
 

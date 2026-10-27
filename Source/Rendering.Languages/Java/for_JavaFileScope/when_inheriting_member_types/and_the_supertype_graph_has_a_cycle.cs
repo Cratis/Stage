@@ -11,7 +11,7 @@ public class and_the_supertype_graph_has_a_cycle : given.an_inheritance_scope
     void Establish()
     {
         var other = new TypeName("lib", "Other", []);
-        _plan = _plan with { ExternalDeclarations = [new(_baseType, []) { Supertypes = [other] }, new(other, []) { Supertypes = [_baseType] }] };
+        _plan = _plan with { ExternalDeclarations = [new(_baseType, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([other]) }, new(other, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([_baseType]) }] };
     }
 
     void Because() => CreateInheritedScope(new("java.lang", "String", []), new("foreign", "Widget", []));

@@ -12,9 +12,9 @@ public class from_a_declared_superclass : given.an_inheritance_scope
     {
         SymbolSegment[] members =
         [
-            new DeclarationSegment(_baseType, "base"),
-            new DeclarationSegment(new("lib", "Base", ["String"]), "string", ParentOwner: "base"),
-            new DeclarationSegment(new("lib", "Base", ["Widget"]), "widget", ParentOwner: "base"),
+            new DeclarationSegment(_baseType, "base") { Supertypes = KnownTypes<TypeName>.None },
+            new DeclarationSegment(new("lib", "Base", ["String"]), "string", ParentOwner: "base") { Supertypes = KnownTypes<TypeName>.None },
+            new DeclarationSegment(new("lib", "Base", ["Widget"]), "widget", ParentOwner: "base") { Supertypes = KnownTypes<TypeName>.None },
         ];
         _plan = new([_file, new("base-file", "lib", members)], []);
     }

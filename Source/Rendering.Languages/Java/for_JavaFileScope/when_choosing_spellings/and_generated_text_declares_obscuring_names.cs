@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_choosing_
 
 public class and_generated_text_declares_obscuring_names : given.a_file_scope
 {
-    void Establish() => _file = _file with { Segments = [new TextSegment("int \\u0063om; class List {} ")] };
+    void Establish() => _file = _file with { Segments = [.. _file.Segments, new TextSegment("int \\u0063om; class List {} ")] };
     void Because() => CreateScope(new("com.library", "Outer", ["Inner"]), new("java.util", "List", []));
 
     [Fact] void should_not_qualify_through_the_generated_field() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Inner");

@@ -7,13 +7,16 @@ namespace Cratis.Stage.Rendering.Languages;
 /// Supplies an external type's direct member types and structured superclass/interface edges.
 /// </summary>
 /// <param name="Type">The external type.</param>
-/// <param name="DeclaredMemberTypes">Direct member type simple names. Null means unknown; an empty list proves there are no direct member types.</param>
-public sealed record ExternalType(TypeName Type, IReadOnlyList<string>? DeclaredMemberTypes = null)
+/// <param name="DeclaredMemberTypes">Direct member type simple names. Omitted/default metadata is unknown; only explicit <see cref="KnownTypes{T}.None"/> proves there are no direct member types.</param>
+public sealed record ExternalType(TypeName Type, KnownTypes<string> DeclaredMemberTypes = default)
 {
     /// <summary>
-    /// Gets the superclass and interfaces. An empty list declares no supertype edges.
+    /// Gets superclass and interface metadata keyed by erased structured names, not generic argument lists.
+    /// Omitted/default metadata is unknown, independently of the member set. Only explicit
+    /// <see cref="KnownTypes{T}.None"/> proves there are no supertype edges.
     /// </summary>
-    public IReadOnlyList<TypeName> Supertypes { get; init; } = [];
+    public KnownTypes<TypeName> Supertypes { get; init; }
 
-    internal IEnumerable<string> Fields => Type.Fields.Concat(DeclaredMemberTypes ?? []).Concat(Supertypes.SelectMany(type => type.Fields));
+    internal IEnumerable<string> Fields => Type.Fields.Concat(DeclaredMemberTypes.IsKnown ? DeclaredMemberTypes.Values : [])
+        .Concat(Supertypes.IsKnown ? Supertypes.Values.SelectMany(type => type.Fields) : []);
 }

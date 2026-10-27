@@ -26,7 +26,7 @@ public sealed class JavaDeclarations
         }
 
         ValidatePackageCase(plan.Files.Select(file => file.Package).Concat(requested.Select(declaration => declaration.Package))
-            .Concat(requested.SelectMany(declaration => declaration.Supertypes.Select(type => type.Package))));
+            .Concat(requested.Where(declaration => declaration.Supertypes.IsKnown).SelectMany(declaration => declaration.Supertypes.Values.Select(type => type.Package))));
         foreach (var level in requested.GroupBy(declaration => Depth(declaration.Scope)).OrderBy(group => group.Key))
         {
             foreach (var declarations in level.Select(BindParent).GroupBy(declaration => declaration.Package, StringComparer.Ordinal)
@@ -107,6 +107,7 @@ public sealed class JavaDeclarations
     public bool CanShortenMember(string file, string lexicalOwner, TypeName target)
     {
         if (lexicalOwner.Length == 0 || target.Nested.Count == 0) return false;
+        if (Inheritance.BlocksShortening(file, lexicalOwner, target)) return false;
         var enclosing = InFile(file).Where(declaration => declaration.Owner == lexicalOwner).ToArray();
         if (enclosing.Length != 1) return false;
 

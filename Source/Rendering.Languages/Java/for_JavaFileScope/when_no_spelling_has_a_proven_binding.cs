@@ -12,7 +12,7 @@ public class when_no_spelling_has_a_proven_binding : given.a_file_scope
 
     void Establish()
     {
-        _file = _file with { Segments = [new NativeSegment("java", "int com; class Widget {}", "native", "member", [])] };
+        _file = _file with { Segments = [.. _file.Segments, new NativeSegment("java", "int com; class Widget {}", "native", "member", [])] };
         CreateScope(new TypeName("com.library", "Widget", []));
     }
 

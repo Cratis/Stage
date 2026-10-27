@@ -12,9 +12,9 @@ public class and_a_sibling_declares_a_member_with_the_same_name : given.a_file_s
     {
         Segments =
         [
-            new DeclarationSegment(new("example", "First", []), "first"),
-            new DeclarationSegment(new("example", "First", ["String"]), "member", ParentOwner: "first"),
-            new DeclarationSegment(new("example", "Second", []), "second"),
+            new DeclarationSegment(new("example", "First", []), "first") { Supertypes = KnownTypes<TypeName>.None },
+            new DeclarationSegment(new("example", "First", ["String"]), "member", ParentOwner: "first") { Supertypes = KnownTypes<TypeName>.None },
+            new DeclarationSegment(new("example", "Second", []), "second") { Supertypes = KnownTypes<TypeName>.None },
         ],
     };
 

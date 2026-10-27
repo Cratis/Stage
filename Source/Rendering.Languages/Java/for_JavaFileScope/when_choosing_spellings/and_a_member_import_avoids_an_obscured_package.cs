@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_choosing_
 
 public class and_a_member_import_avoids_an_obscured_package : given.a_file_scope
 {
-    void Establish() => _file = _file with { Segments = [new NativeSegment("java", "int com;", "native", "statement", [])] };
+    void Establish() => _file = _file with { Segments = [.. _file.Segments, new NativeSegment("java", "int com;", "native", "statement", [])] };
     void Because() => CreateScope(new TypeName("com.library", "Outer", ["Inner"]));
 
     [Fact] void should_use_the_imported_member_name() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Inner");

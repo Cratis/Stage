@@ -11,7 +11,7 @@ public class transitively_through_an_external_superclass : given.an_inheritance_
     void Establish()
     {
         var ancestor = new TypeName("lib", "Ancestor", []);
-        _plan = _plan with { ExternalDeclarations = [new(_baseType, []) { Supertypes = [ancestor] }, new(ancestor, ["String", "Widget"])] };
+        _plan = _plan with { ExternalDeclarations = [new(_baseType, KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([ancestor]) }, new(ancestor, KnownTypes<string>.Of(["String", "Widget"])) { Supertypes = KnownTypes<TypeName>.None }] };
     }
 
     void Because() => CreateInheritedScope(new("java.lang", "String", []), new("foreign", "Widget", []));

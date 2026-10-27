@@ -15,10 +15,10 @@ public class when_inheritance_metadata_contains_private_use : given.a_symbol_pla
         var invalid = new TypeName("lib", "Invalid\uE000", []);
         SymbolPlan[] plans =
         [
-            new([], []) { ExternalDeclarations = [new(invalid, [])] },
-            new([], []) { ExternalDeclarations = [new(new("lib", "Base", []), ["Invalid\uE000"])] },
-            new([], []) { ExternalDeclarations = [new(new("lib", "Base", []), []) { Supertypes = [invalid] }] },
-            new([new("file", "p", [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = [invalid] }])], []),
+            new([], []) { ExternalDeclarations = [new(invalid, KnownTypes<string>.None)] },
+            new([], []) { ExternalDeclarations = [new(new("lib", "Base", []), KnownTypes<string>.Of(["Invalid\uE000"]))] },
+            new([], []) { ExternalDeclarations = [new(new("lib", "Base", []), KnownTypes<string>.None) { Supertypes = KnownTypes<TypeName>.Of([invalid]) }] },
+            new([new("file", "p", [new DeclarationSegment(new("p", "C", []), "C") { Supertypes = KnownTypes<TypeName>.Of([invalid]) }])], []),
         ];
         _errors = [.. plans.Select(plan => Catch.Exception(() => JavaLanguagePack.Validate(plan)))];
     }

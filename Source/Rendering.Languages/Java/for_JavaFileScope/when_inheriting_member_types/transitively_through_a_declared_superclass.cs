@@ -11,8 +11,8 @@ public class transitively_through_a_declared_superclass : given.an_inheritance_s
     void Establish()
     {
         var middle = new TypeName("p", "B", []);
-        _file = _file with { Segments = [new DeclarationSegment(new("p", "A", []), "A") { Supertypes = [middle] }] };
-        var other = new SymbolFile("middle", "p", [new DeclarationSegment(middle, "B") { Supertypes = [_baseType] }]);
+        _file = _file with { Segments = [new DeclarationSegment(new("p", "A", []), "A") { Supertypes = KnownTypes<TypeName>.Of([middle]) }] };
+        var other = new SymbolFile("middle", "p", [new DeclarationSegment(middle, "B") { Supertypes = KnownTypes<TypeName>.Of([_baseType]) }]);
         _plan = _plan with { Files = [_file, other] };
     }
 

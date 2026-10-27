@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_inheritin
 
 public class through_a_lexically_enclosing_owner : given.an_inheritance_scope
 {
-    void Establish() => _file = _file with { Segments = [.. _file.Segments, new DeclarationSegment(new("p", "C", ["Inner"]), "inner", ParentOwner: "C")] };
+    void Establish() => _file = _file with { Segments = [.. _file.Segments, new DeclarationSegment(new("p", "C", ["Inner"]), "inner", ParentOwner: "C") { Supertypes = KnownTypes<TypeName>.None }] };
     void Because() => CreateInheritedScope(new("java.lang", "String", []), new("foreign", "Widget", []));
 
     [Fact] void should_walk_the_outer_owners_supertypes() => _scope.Spell(new("java.lang", "String", []), "inner").ShouldEqual("java.lang.String");

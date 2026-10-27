@@ -18,14 +18,14 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 public sealed record DeclaredType(string Package, string Scope, string Preferred, string Name, string Owner, string File, bool External, string ParentOwner, string AllocatedScope)
 {
     /// <summary>
-    /// Gets the structured preferred superclass and interface names.
+    /// Gets preferred, erased superclass and interface names. Omitted/default metadata remains unknown.
     /// </summary>
-    public IReadOnlyList<TypeName> Supertypes { get; init; } = [];
+    public KnownTypes<TypeName> Supertypes { get; init; }
 
     /// <summary>
-    /// Gets an external type's direct member names, or null for unknown. Generated members are obtained from declaration identities.
+    /// Gets an external type's direct member metadata, unknown by default. Generated members are obtained from declaration identities and literal source.
     /// </summary>
-    public IReadOnlyList<string>? DeclaredMemberTypes { get; init; }
+    public KnownTypes<string> DeclaredMemberTypes { get; init; }
 
     /// <summary>
     /// Gets the final structured type name, including allocated parents.

@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_choosing_
 
 public class and_an_inline_field_obscures_a_nested_types_package : given.a_file_scope
 {
-    void Establish() => _file = _file with { Segments = [new NativeSegment("java", "int com; class Inner {}", "native", "member", [])] };
+    void Establish() => _file = _file with { Segments = [.. _file.Segments, new NativeSegment("java", "int com; class Inner {}", "native", "member", [])] };
     void Because() => CreateScope(new TypeName("com.library", "Outer", ["Inner"]));
 
     [Fact] void should_use_an_unobscured_enclosing_type_qualification() => _scope.Spell(new("com.library", "Outer", ["Inner"])).ShouldEqual("Outer.Inner");

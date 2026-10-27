@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaFileScope.when_inheritin
 
 public class and_the_member_set_is_unknown : given.an_inheritance_scope
 {
-    void Establish() => _plan = _plan with { ExternalDeclarations = [new(_baseType)] };
+    void Establish() => _plan = _plan with { ExternalDeclarations = [new(_baseType) { Supertypes = KnownTypes<TypeName>.None }] };
     void Because() => CreateInheritedScope(new("java.lang", "String", []), new("foreign", "Widget", []));
 
     [Fact] void should_qualify_the_implicit_type() => _scope.Spell(new("java.lang", "String", []), "C").ShouldEqual("java.lang.String");

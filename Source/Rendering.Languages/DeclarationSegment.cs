@@ -13,9 +13,12 @@ namespace Cratis.Stage.Rendering.Languages;
 public sealed record DeclarationSegment(TypeName Type, string Owner, string? Scope = null, string ParentOwner = "") : SymbolSegment
 {
     /// <summary>
-    /// Gets the structured superclass and interfaces. No explicit supertypes are assumed when empty.
+    /// Gets superclass and interface metadata, keyed by erased structured type names (for example,
+    /// lib.Base for lib.Base&lt;T&gt;). Omitted/default metadata is unknown and prevents shortening.
+    /// Use <see cref="KnownTypes{T}.None"/> only to explicitly prove there are no supertype edges.
     /// </summary>
-    public IReadOnlyList<TypeName> Supertypes { get; init; } = [];
+    public KnownTypes<TypeName> Supertypes { get; init; }
 
-    internal override IEnumerable<string> Fields => Type.Fields.Concat([Owner, Scope ?? string.Empty, ParentOwner]).Concat(Supertypes.SelectMany(type => type.Fields));
+    internal override IEnumerable<string> Fields => Type.Fields.Concat([Owner, Scope ?? string.Empty, ParentOwner])
+        .Concat(Supertypes.IsKnown ? Supertypes.Values.SelectMany(type => type.Fields) : []);
 }

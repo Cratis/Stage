@@ -363,6 +363,8 @@ internal static class SemanticStateChangeArtifactRenderer
             }
         }
 
+        RenderInlineConceptRules(builder, command, context);
+
         foreach (var validation in command.CodeValidations)
         {
             SemanticValidationContextRuntime.RenderIterator(builder, context, validation.RequirementId, command.Id);
@@ -380,6 +382,49 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.EndBlock().EndBlock();
+    }
+
+    static void RenderInlineConceptRules(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
+    {
+        if (command.Requirements.IsEmpty) return;
+        if (!command.Reads.IsEmpty) return;
+        if (!command.CodeValidations.IsEmpty) return;
+
+        var types = new SemanticTypeSystem(context, builder);
+        foreach (var (property, concept) in InlineProperties())
+        {
+            var member = context.MemberNames.Property(property);
+            builder.Line($"RuleFor(_ => _.{member}{(property.Type.IsOptional ? "!" : string.Empty)}).IgnoreConceptRules();");
+            foreach (var rule in concept.Validations)
+            {
+                var rendering = CommandConceptRendering(rule, property, context);
+                rendering = rendering with { OptionalType = rendering.OptionalType is null ? null : types.Type(property.Type) };
+                SemanticValidationRendering.Render(
+                    builder,
+                    rule,
+                    property.Name,
+                    concept.Primitive,
+                    false,
+                    false,
+                    wrapped: true,
+                    optional: property.Type.IsOptional,
+                    rootNamespace: context.RootNamespace,
+                    conceptRendering: rendering,
+                    typeBuilder: builder,
+                    generatedMember: member,
+                    conceptMessage: true);
+            }
+        }
+
+        IEnumerable<(SemanticProperty Property, SemanticConcept Concept)> InlineProperties() =>
+            from property in command.Properties
+            where !property.IsGenerated && property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsCollection: false }
+            let concept = context.Concepts[property.Type.Target]
+            where !concept.Validations.IsEmpty &&
+                concept.Values.IsEmpty &&
+                concept.Primitive is not (SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime) &&
+                concept.Validations.All(rule => rule.Kind != SemanticValidationRuleKind.Checksum && SemanticValidationRendering.CanRender(rule, context))
+            select (property, concept);
     }
 
     static SemanticValidationRendering.ConceptRendering CommandConceptRendering(SemanticValidationRule rule, SemanticProperty property, SemanticApplicationContext context)

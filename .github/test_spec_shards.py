@@ -344,7 +344,7 @@ class SpecShardsTests(unittest.TestCase):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
             run.return_value.stdout = "true\n"
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(9, run.call_count)
+            self.assertEqual(10, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])

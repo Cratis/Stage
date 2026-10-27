@@ -109,10 +109,19 @@ public class with_an_attachment_boundary
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
         var builder = new CSharpCodeBuilder();
         SemanticCommandHandlerRendering.Render(builder, context.Commands.Values.Single(), context);
-        Assert.Contains(body, builder.ToString(), StringComparison.Ordinal);
+
+        // Re-frozen for Cratis/Stage#848: the body is re-indented to its block; literal lines and every CRLF stay byte-identical.
+        var rendered = builder.ToString();
+        var indent = System.Text.RegularExpressions.Regex.Match(rendered, "\n( +)// preserve this trivia\r\n").Groups[1].Value;
+        Assert.NotEmpty(indent);
+        Assert.Equal(0, indent.Length % 4);
+        Assert.Contains($"{indent}// preserve this trivia\r\n{indent}var text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\n{indent}return new OrderPlaced(text);", rendered, StringComparison.Ordinal);
 
         // PlannedArtifact.Text normalizes CRLF by contract; the authenticated splice does not.
-        Assert.Contains(body.Replace("\r\n", "\n", StringComparison.Ordinal), Source(plan), StringComparison.Ordinal);
+        var planned = Source(plan);
+        var plannedIndent = System.Text.RegularExpressions.Regex.Match(planned, "\n( +)// preserve this trivia\n").Groups[1].Value;
+        Assert.NotEmpty(plannedIndent);
+        Assert.Contains($"{plannedIndent}// preserve this trivia\n{plannedIndent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\n{plannedIndent}return new OrderPlaced(text);", planned, StringComparison.Ordinal);
     }
 
     [Fact]

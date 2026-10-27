@@ -53,4 +53,9 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0009: a native Java block comment, text block, string, or character literal is unterminated.
     /// </summary>
     public const string UnterminatedNativeConstruct = "STAGE-JAVA-0009";
+
+    /// <summary>
+    /// STAGE-JAVA-0010: no simple or qualified type spelling has a proven binding in the file scope.
+    /// </summary>
+    public const string ObscuredReference = "STAGE-JAVA-0010";
 }

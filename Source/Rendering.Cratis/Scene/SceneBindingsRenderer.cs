@@ -55,9 +55,10 @@ internal static class SceneBindingsRenderer
     /// </remarks>
     public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Module: Module(slice))))
+        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Export: GeneratedPascalCase.From(command.Name), Module: Module(slice))))
             .DistinctBy(_ => _.Name, StringComparer.Ordinal)
             .OrderBy(_ => _.Name, StringComparer.Ordinal)
+            .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__sceneCommand{index}"))
             .ToArray();
         var queries = slices.SelectMany(slice => slice.Slice.Queries.Select(query => (Query: context.Queries[query.Id], Slice: slice)))
             .OrderBy(_ => _.Query.Name, StringComparer.Ordinal)
@@ -73,9 +74,9 @@ internal static class SceneBindingsRenderer
                 ? "import { registerCommands, registerQueryIdentity } from '@cratis/scene.components';\n"
                 : "import { registerCommands } from '@cratis/scene.components';\n");
 
-        foreach (var (name, module) in commands)
+        foreach (var (_, export, module, alias) in commands)
         {
-            builder.Append("import { ").Append(name).Append(" } from '").Append(module).Append("';\n");
+            builder.Append("import { ").Append(export).Append(" as ").Append(alias).Append(" } from '").Append(module).Append("';\n");
         }
 
         foreach (var query in queries)
@@ -86,7 +87,7 @@ internal static class SceneBindingsRenderer
 
         builder.Append('\n')
             .Append("registerCommands({")
-            .AppendJoin(", ", commands.Select(_ => _.Name))
+            .AppendJoin(", ", commands.Select(_ => $"{JsonSerializer.Serialize(_.Name)}: {_.Alias}"))
             .Append("});\n");
         foreach (var query in queries)
         {

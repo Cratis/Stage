@@ -17,4 +17,6 @@ public class when_checking_an_unhandled_type_reference : a_register_project_rend
         new((SemanticTypeReferenceKind)99, SemanticPrimitiveType.Unknown, default, false, false)));
 
     [Fact] void should_fail_instead_of_reporting_a_missing_type() => _error.ShouldBeOfExactType<UnsupportedSemanticRendering>();
+    [Fact] void should_leave_the_owner_unspecified() => ((UnsupportedSemanticRendering)_error!).Owner.ShouldBeNull();
+    [Fact] void should_not_mark_other_type_checks_as_whole_render_only() => ((UnsupportedSemanticRendering)_error!).WholeRenderOnly.ShouldBeFalse();
 }

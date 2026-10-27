@@ -163,6 +163,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
+            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, locals);
             var @event = context.Events[produced.EventContract];
             var arguments = @event.Properties.Select(property =>
             {
@@ -214,12 +215,18 @@ internal static class SemanticStateChangeArtifactRenderer
                 var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
                 builder.OpenBlock($"public {result} Handle({(hasOccurrence ? $"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}" : string.Empty)})");
                 routing.RenderChecks(builder, result);
+                SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
                 if (hasOccurrence)
                 {
                     builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
                 }
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
+            }
+            else if (command.Handler is not null)
+            {
+                var bare = command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides;
+                new SemanticCommandHandlerHandleRendering(command, context, locals, hasOccurrence).Render(builder, bare, EventValue, WrappedEvent);
             }
             else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides)
             {
@@ -260,6 +267,7 @@ internal static class SemanticStateChangeArtifactRenderer
             }
         });
 
+        SemanticCommandHandlerRendering.Render(builder, command, context);
         builder.EndBlock().BlankLine();
         results.RenderResponseType(builder);
     }

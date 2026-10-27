@@ -55,7 +55,10 @@ public class when_auditing_the_ui_surface : Specification
     [InlineData(typeof(NavigationItemSyntax), "Children Icon Id Slot Target Title")]
     [InlineData(typeof(NavigationTargetSyntax), "Feature Module")]
     [InlineData(typeof(NavigationLogoSyntax), "Image Title")]
-    [InlineData(typeof(ToolbarItemSyntax), "Confirm Icon Kind Label Name Parameters Presentation Target")]
+
+    // Screenplay decision 0110 / Cratis/Stage#855: explicit subjects refuse with STAGE-ESM-058 until rendered.
+    [InlineData(typeof(ToolbarItemSyntax), "Confirm Icon Kind Label Name Parameters Presentation Subject Target")]
+    [InlineData(typeof(ScreenActionSyntax), "Command Inputs Label Navigate Subject")]
     [InlineData(typeof(ScreenNavigationParameterSyntax), "Binding Name")]
     [InlineData(typeof(TemplateAssignmentSyntax), "Blueprint Name Version")]
     [InlineData(typeof(RootTemplateSyntax), "Blueprint Name Options Version")]

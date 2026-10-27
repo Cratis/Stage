@@ -86,6 +86,19 @@ public static class ExpressionRenderer
         _ => throw new UnsupportedCondition(condition),
     };
 
+    internal static string RenderValidationValue(ExpressionSyntax expression)
+    {
+        if (ContainsRawExpression(expression)) throw new UnsupportedExpression(expression);
+        return Render(expression);
+    }
+
+    static bool ContainsRawExpression(ExpressionSyntax expression) => expression switch
+    {
+        RawExpressionSyntax => true,
+        TemplateExpressionSyntax template => template.Parts.OfType<TemplateInterpolationSyntax>().Any(part => ContainsRawExpression(part.Expression)),
+        _ => false
+    };
+
     static string RenderComparand(ComparisonConditionSyntax comparison, IExpressionContext context, Func<string, string?>? enumTypeOf) =>
         comparison.Right is LiteralExpressionSyntax { Value: string text } && enumTypeOf?.Invoke(comparison.Left) is { } enumName
             ? $"{enumName}.{Identifiers.ToPascalCase(text)}"

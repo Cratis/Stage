@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
@@ -354,14 +355,13 @@ internal static partial class PureTransitionAdmission
         // PlannedArtifact.CreateText normalizes CR even inside verbatim literals. Refuse it so
         // the published body is exactly the text analysed here.
         if (body.Contains('\r')) return (null, Reject("STAGE-ESM-022", $"Carriage return in {role} body changes emitted text."));
-        var text = "{\n" + body + "\n}";
-        var statement = SyntaxFactory.ParseStatement(text, consumeFullText: true);
-        if (statement.DescendantTrivia(descendIntoTrivia: true).Any(trivia => trivia.IsDirective))
+        var proof = CSharpBodyContainment.Analyze(body);
+        if (proof.HasDirectives)
         {
             return (null, Reject("STAGE-ESM-022", "directive"));
         }
 
-        if (statement is not BlockSyntax block || !IsCompleteBlock(block, text))
+        if (proof.Block is not { } block || !proof.Supported)
         {
             return (null, Reject("STAGE-ESM-019", $"The {role} body is not a complete C# statement block."));
         }
@@ -518,10 +518,6 @@ internal static partial class PureTransitionAdmission
         RecursivePatternSyntax when body.Contains("context", StringComparison.Ordinal) => "TypedContext_",
         _ => forbidden.Kind().ToString()
     };
-
-    static bool IsCompleteBlock(BlockSyntax block, string text) =>
-        !block.ContainsDiagnostics && !block.ContainsSkippedText &&
-        !block.CloseBraceToken.IsMissing && block.CloseBraceToken.SpanStart == text.Length - 1;
 
     static bool IsForbiddenNode(SyntaxNode node) =>
         IsForbiddenSyntax(node) || IsForbiddenDecoration(node) || node.IsKind(SyntaxKind.CoalesceAssignmentExpression);

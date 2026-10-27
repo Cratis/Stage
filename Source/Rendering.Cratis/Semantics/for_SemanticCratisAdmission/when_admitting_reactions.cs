@@ -67,6 +67,7 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
         Plan();
         _plan.Success.ShouldBeTrue();
         _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        _plan.Artifacts.ShouldNotBeEmpty();
         _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
         _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-PLAN-007");
         _plan.Refusals.Single().Artifact.ShouldEqual(_located.Slice.Specifications.Single().Id);

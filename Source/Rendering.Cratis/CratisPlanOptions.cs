@@ -29,6 +29,9 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     /// </summary>
     public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
 
+    /// <summary>Gets whether validated degradation fails acceptance while retaining safe generated artifacts.</summary>
+    public bool Strict { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether the application root is the repository root. When true, the first-run scaffold
     /// also contains the repository's continuous integration files in the .github folder; the default adds none.

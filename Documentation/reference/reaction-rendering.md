@@ -3,17 +3,32 @@ title: Event reaction rendering
 description: How Stage renders event-triggered Automation slices, their side effects and their remaining limits.
 ---
 
-Stage renders event-triggered reactions in Automation slices as Chronicle reactors. The semantic Stage Host and the independent in-memory specification executor also run event reactions.
+Stage renders event-triggered reactions in Automation slices as Chronicle reactors. It also renders a narrow application-trigger subset as Chronicle occurrence handlers. The semantic Stage Host and the independent in-memory specification executor also run event reactions.
 
 | Execution path | Event reaction behavior |
 | --- | --- |
 | Semantic Stage Host | Settles productions, invocations and cascades with the command; appends all facts in one tail-guarded batch or refuses the entire command |
 | Rendered Chronicle reactors | Independent, eventually consistent observers; a failed partition can retry after the initiating command has committed |
+| Rendered application-trigger handlers | Discover a `[Trigger]` payload record and `IOccurrenceHandler<T>`; commit direct event productions with one atomic occurrence effect receipt |
 | In-memory specification executor | Settles event reactions after commands and direct appends, fires application, startup and shutdown triggers (`when trigger`) and due clock occurrences (`when clock`) with its own deterministic loop; stops at the first rejection or unsupported capability |
 
+An application-trigger reaction renders only when it has one named trigger, one handler for that trigger,
+and at least one direct `produces` with an explicit `for`. Mappings use trigger properties or literals.
+The payload must contain no personal or protected values, including inside composites or collections.
+The handler selects the recording namespace, derives a stable effect key from the reaction's semantic id,
+and enrolls that key with `UseEffectReceipt` before one `AppendMany` unit-of-work commit. Receipt and
+productions commit together; retrying that occurrence in that namespace does not append again. This is
+not exactly-once delivery and is not a server-startup hook. Event-triggered reactors are unchanged.
+Application code records the payload with `IOccurrences.Record(payload, idempotencyId)`; Stage renders no
+public trigger endpoint. Missing kernel receipt support fails with `EffectReceiptsNotSupported`, not an
+unreceipted fallback. External side effects still require their own idempotency.
+Application-trigger invocations, `where`, `runs as`, `from`, event-context mappings and implicit destinations
+remain refused with a narrowed `STAGE-ESM-024` diagnostic. Startup/shutdown triggers still need an activation
+identity and namespace policy; interval/schedule triggers still need Chronicle schedule and due-time parity.
+
 The Host applies `where`, `runs as` and `from` through Screenplay's reference settlement. Clock,
-application, startup and shutdown triggers and opaque bodies remain unsupported in the Host; only the
-specification executor runs non-event triggers. Host execution does not
+application, startup and shutdown triggers and opaque bodies remain unsupported in the Host. The renderer's
+occurrence subset does not change that boundary or the executor's broader support. Host execution does not
 relax renderer admission: the diagnostics below describe generated reactors, not the live semantic Host
 or the specification executor. The executor also applies `where`, `runs as`, `from` and mixed effects;
 invocations use declared system roles or no caller, never the specification's `given caller`. System
@@ -111,7 +126,7 @@ Refusal branches reuse the same occurrence; the first matching branch wins, and 
 is not offered to a later branch. The clock supplies time only: `runs as system` does not manufacture audit
 identity, and `$eventSourceId` (also spelled `$eventContext.eventSourceId`) and `$context.causedBy.*`
 retain `STAGE-ESM-013`. `$context.eventSourceId` is not a valid reaction mapping.
-Clock/trigger/capture actions and scheduling triggers remain unsupported.
+Generated clock/trigger/capture specification actions and scheduling triggers remain unsupported; application-trigger production rendering does not add generated `when trigger` scenarios.
 
 Stage renders single-hop `when append` reaction specifications through `ReactorScenario`. Givens establish history and are not delivered to the reactor. A production-only scenario checks the exact effect count, payloads, destinations and all three unrouted metadata values (`EventSourceType.Default`, `EventStreamType.All`, `EventStreamId.Default`), with assignment matching for any-order expectations. An invocation scenario executes the one returned command through `CommandScenario`, reading the system identity from the reactor's attribute rather than forwarding `given caller`. Screenplay requires an outcome: a `when append` specification always asserts the reaction's produced events or the invoked command's outcome.
 
@@ -141,7 +156,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
+| `STAGE-ESM-024` | Application-trigger reactions outside the direct-production occurrence subset above; startup/shutdown triggers pending an activation identity and namespace policy; interval/schedule triggers pending due-time parity; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture specification actions; generated append/redelivery specifications with clock fixtures |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |

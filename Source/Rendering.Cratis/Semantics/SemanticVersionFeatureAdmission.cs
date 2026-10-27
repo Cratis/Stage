@@ -29,7 +29,9 @@ internal static class SemanticVersionFeatureAdmission
             SemanticVersionFeatures.InSlice(slice).Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
                 .Except(SemanticTranslationAdmission.AdmittedFeatures(slice, context))
+                .Except(SemanticOccurrenceAdmission.ReplacedFeatures(slice))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
+                .Concat(SemanticOccurrenceAdmission.RefusalsInSlice(slice, context))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
                 .Where(feature => feature.Kind != "event" || feature.Code is not (SemanticVersionFeatures.PublicEvents or SemanticVersionFeatures.ForeignEvents) || !SemanticTranslationAdmission.AdmitsEvent(feature.Artifact, slice, context))
                 .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
@@ -46,7 +48,8 @@ internal static class SemanticVersionFeatureAdmission
         // Application triggers belong to no slice; only an application render would otherwise drop them.
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
+            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application))
+                .Except(SemanticOccurrenceAdmission.AdmittedTriggers(context)).Concat(features);
         }
 
         return [.. features.Distinct().Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];

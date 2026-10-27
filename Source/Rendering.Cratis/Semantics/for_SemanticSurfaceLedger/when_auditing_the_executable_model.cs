@@ -84,15 +84,22 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_supported_identities_and_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
-    [InlineData("SemanticApplication.Triggers")]
     [InlineData("SemanticReactionTrigger.RequirementId")]
     [InlineData("SemanticReactionTriggerKind.Unknown")]
-    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
     [InlineData("SemanticReactionTriggerKind.Interval")]
     [InlineData("SemanticReactionTriggerKind.Schedule")]
     [InlineData("SemanticReactionTriggerKind.Startup")]
     [InlineData("SemanticReactionTriggerKind.Shutdown")]
-    public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+    public void should_keep_other_trigger_kinds_and_opaque_bodies_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Theory]
+    [InlineData("SemanticApplication.Triggers")]
+    [InlineData("SemanticApplicationTrigger.Id")]
+    [InlineData("SemanticApplicationTrigger.Name")]
+    [InlineData("SemanticApplicationTrigger.Properties")]
+    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
+    [InlineData("SemanticExpressionRootKind.Trigger")]
+    public void should_render_the_application_occurrence_subset(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData(false, false)]

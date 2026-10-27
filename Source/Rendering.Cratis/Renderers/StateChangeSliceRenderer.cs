@@ -108,8 +108,14 @@ public class StateChangeSliceRenderer : ISliceRenderer
         if (command.Handler?.Code is not null)
         {
             var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
-            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace) ??
-                throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is not a verified model or handler contract type.");
+            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
+            if (returnType is null)
+            {
+                diagnostics.Add(
+                    $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{inferred}'. " +
+                    "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.");
+                returnType = inferred;
+            }
 
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
@@ -189,6 +195,10 @@ public class StateChangeSliceRenderer : ISliceRenderer
                 Qualified: $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}")))
             .Where(candidate => string.Equals(name, candidate.Short, StringComparison.Ordinal) || string.Equals(name, candidate.Qualified, StringComparison.Ordinal))
             .Select(candidate => candidate.Qualified).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        if (matches.Length > 1)
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between modeled event types.");
+        }
         return matches.Length == 1 ? $"global::{matches[0]}" : null;
     }
 

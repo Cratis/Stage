@@ -66,6 +66,7 @@ internal sealed class SemanticApplicationContext
         _generatedTypeSeed = new(() =>
         [
             new(string.Empty, "Program"),
+            .. CaptureSourceTypes(),
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
                 new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
@@ -380,6 +381,20 @@ internal sealed class SemanticApplicationContext
                     .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)
                     .Select(append => append.EventSourceType.Target)
                 : [])];
+
+    IEnumerable<GeneratedTypeName> CaptureSourceTypes()
+    {
+        var sources = _slices.Values.SelectMany(located => located.Slice.Captures)
+            .Where(capture => capture.EventsSource is not null)
+            .SelectMany(capture => capture.EventsSource!.Events).Distinct();
+        foreach (var id in sources)
+        {
+            var contract = Events[id];
+            yield return new(
+                SliceNaming.Namespace(RootNamespace, DeclaringSlice(id).Path),
+                SemanticCaptureIdentifier.Decode(Identifiers.ToPascalCase(contract.Name)));
+        }
+    }
 
     Dictionary<SemanticId, string> ResolveResponseTypes()
     {

@@ -35,13 +35,20 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
     [InlineData("UncatalogedResult")]
     [InlineData("Uncataloged.Result")]
     [InlineData("Uncataloged.EventForEventSourceId")]
-    public void should_refuse_an_unproved_generated_signature_without_rewriting_its_authored_expression(string typeName)
+    public void should_warn_for_an_unproved_generated_signature_without_rewriting_its_authored_expression(string typeName)
     {
         var command = _processBatch.Slice.Commands.Single();
         var body = $"return new {typeName}(string.Empty);";
         command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
-        Assert.Throws<CSharpImportRejected>(() => new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp"));
+        var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
+        Assert.Equal(
+            $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{typeName}'. " +
+            "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.",
+            Assert.Single(file.Diagnostics));
+        Assert.Contains($"public {typeName} Handle(CommandContext context)", file.Content);
+        Assert.Contains(body, file.Content);
+        Assert.DoesNotContain("global::", file.Content);
         Assert.Equal(body, command.Handler.Code.Code);
     }
 

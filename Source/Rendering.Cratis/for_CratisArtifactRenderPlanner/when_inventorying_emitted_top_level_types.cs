@@ -49,6 +49,28 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         Assert.True(_missing.Count == 0, string.Join('\n', _missing));
     }
 
+    [Theory]
+    [InlineData("@class")]
+    [InlineData("ShipmentDispat\\u0063hed")]
+    [InlineData("ShipmentDispat\u200cched")]
+    public void should_catalog_decoded_capture_source_event_declarations(string name)
+    {
+        var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
+        var module = model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        var slices = feature.Slices.Select(slice => slice with
+        {
+            Specifications = [],
+            Events = [.. slice.Events.Select(contract => contract.Name == "ShipmentDispatched" ? contract with { Name = name } : contract)]
+        });
+        model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
+        {
+            Modules = [module with { Features = [feature with { Slices = [.. slices] }] }]
+        });
+        Check(name, new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, _options), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        should_catalog_every_emitted_top_level_type();
+    }
+
     void Check(string fixture, ArtifactRenderRequest request)
     {
         var context = new SemanticApplicationContext(request, _options);
@@ -78,7 +100,7 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
     static string DeclarationName(MemberDeclarationSyntax declaration)
     {
         var ns = string.Join('.', declaration.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().Reverse().Select(node => node.Name.ToString()));
-        var name = declaration is BaseTypeDeclarationSyntax baseType ? baseType.Identifier.ValueText : ((DelegateDeclarationSyntax)declaration).Identifier.ValueText;
+        var name = SemanticCaptureIdentifier.Decode(declaration is BaseTypeDeclarationSyntax baseType ? baseType.Identifier.Text : ((DelegateDeclarationSyntax)declaration).Identifier.Text);
         var arity = declaration switch
         {
             TypeDeclarationSyntax type => type.TypeParameterList?.Parameters.Count ?? 0,

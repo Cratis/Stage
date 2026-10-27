@@ -136,7 +136,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "rxjs=7.8.2",
             "tsyringe=4.10.0",
             "typescript=7.0.2",
-            "vite=8.3.2"
+            "vite=8.3.5"
         }.Order(StringComparer.Ordinal));
 
     string ProxiedPaths() => string.Join(

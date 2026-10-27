@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -36,7 +37,17 @@ public static class KitManifestSchema
         }
         else if (context.TypeInfo.Kind == JsonTypeInfoKind.Object && schema is JsonObject)
         {
+            schema["type"] = "object";
             schema["additionalProperties"] = false;
+        }
+
+        if (context.TypeInfo.Type == typeof(ImmutableArray<ContractVersion>) || context.TypeInfo.Type == typeof(ImmutableArray<LanguagePackVersion>))
+        {
+            schema["items"] = new JsonObject
+            {
+                ["type"] = "string",
+                ["pattern"] = context.TypeInfo.Type == typeof(ImmutableArray<ContractVersion>) ? ContractVersion.Pattern : LanguagePackVersion.Pattern
+            };
         }
 
         var pattern = context.PropertyInfo?.AttributeProvider?.GetCustomAttributes(typeof(KitPatternAttribute), true).OfType<KitPatternAttribute>().FirstOrDefault();

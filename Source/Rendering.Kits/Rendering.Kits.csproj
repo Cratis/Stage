@@ -6,4 +6,7 @@
         <RootNamespace>Cratis.Stage.Rendering.Kits</RootNamespace>
         <Description>Strict target kit manifests, immutable kit loading and deterministic archives for Cratis Stage.</Description>
     </PropertyGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="stage-target.v1.schema.json" />
+    </ItemGroup>
 </Project>

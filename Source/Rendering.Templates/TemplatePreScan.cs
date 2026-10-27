@@ -42,7 +42,7 @@ internal static class TemplatePreScan
                 throw new TemplateRefusal(new(TemplateCodes.Nesting, "Template nesting exceeds 32.", path, token.Start.Line + 1, token.Start.Column + 1));
             }
 
-            if (word.Length > 0) previous = word;
+            if (token.Type != TokenType.Whitespace) previous = word;
         }
     }
 

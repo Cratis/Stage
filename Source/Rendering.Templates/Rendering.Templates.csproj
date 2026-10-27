@@ -9,5 +9,6 @@
     <ItemGroup>
         <ProjectReference Include="../Rendering.Kits/Rendering.Kits.csproj" />
         <PackageReference Include="Scriban" />
+        <EmbeddedResource Include="v1.*" />
     </ItemGroup>
 </Project>

@@ -43,8 +43,16 @@ internal sealed class LockedContext : TemplateContext
     {
         if (textAsObject is not (SymbolHandle or SegmentHandle)) return base.Write(span, textAsObject);
         if (!AllowStructuredOutput || OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
-        if (textAsObject is SymbolHandle symbol) segments.Symbol(symbol.Descriptor);
-        else segments.Emit(((SegmentHandle)textAsObject).Segments);
+        if (textAsObject is SymbolHandle symbol)
+        {
+            segments.Symbol(symbol.Descriptor);
+        }
+        else
+        {
+            var emitted = ((SegmentHandle)textAsObject).Segments;
+            if (emitted.OfType<TemplateTextSegment>().Any(text => text.Text.Length > LimitToString)) throw PlanMeter.Exceeded(TemplateCodes.StringLength, "Structured helper string limit exceeded.");
+            segments.Emit(emitted);
+        }
         return this;
     }
 

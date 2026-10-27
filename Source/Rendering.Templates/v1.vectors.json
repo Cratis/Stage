@@ -1,0 +1,6 @@
+[
+  { "input": "HTTPServer2_value", "pascal": "HttpServer2Value", "camel": "httpServer2Value", "snake": "http_server_2_value", "kebab": "http-server-2-value", "constant": "HTTP_SERVER_2_VALUE" },
+  { "input": "déjà__Vu", "pascal": "DéjàVu", "camel": "déjàVu", "snake": "déjà_vu", "kebab": "déjà-vu", "constant": "DÉJÀ_VU" },
+  { "input": "123mIxedÉclair", "pascal": "123MIxedÉclair", "camel": "123MIxedÉclair", "snake": "123_m_ixed_éclair", "kebab": "123-m-ixed-éclair", "constant": "123_M_IXED_ÉCLAIR" },
+  { "input": "__---", "pascal": "", "camel": "", "snake": "", "kebab": "", "constant": "" }
+]

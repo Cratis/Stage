@@ -3,7 +3,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SceneElementView } from '@cratis/scene.react';
+import { createBrowserDispatcher, SceneElementView } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
 import { stageApplicationRegistry } from './App';
 import { StageDataProvider, useStageData } from './stageData';
@@ -11,6 +11,11 @@ import { bindDataSources } from './stageDataSources';
 import { element } from './testElements';
 import { commandResult, registerTestCommand } from './testing/commands';
 import { queryResult, registerTestQueries } from './testing/queries';
+
+vi.mock('@cratis/scene.react', async importOriginal => {
+    const scene = await importOriginal<typeof import('@cratis/scene.react')>();
+    return { ...scene, createBrowserDispatcher: vi.fn(scene.createBrowserDispatcher) };
+});
 
 const tree = bindDataSources(element('screen', 'core:section', {}, { content: [
     element('subject', 'core:data', { typeName: 'Invoice', query: 'GetInvoice', isCollection: false }),
@@ -29,6 +34,25 @@ function ThroughScene() {
 
 describe('a guarded action rendered through Scene and Stage', () => {
     afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+    it('should preserve executor failure messages in the fallback dispatcher outcome', async () => {
+        const createDispatcher = vi.mocked(createBrowserDispatcher);
+        registerTestQueries(routes.queries);
+        vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true,
+            json: async () => queryResult({ data: { id: 'invoice-1', status: 'draft' } }),
+        } as Response)));
+        render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene /></StageDataProvider></PrimeReactProvider>);
+        const executeCommand = createDispatcher.mock.calls.at(-1)![0]!.executeCommand!;
+
+        const outcome = await executeCommand('UnregisteredGuardedCommand', { invoiceId: 'invoice-1' });
+
+        expect(outcome).toEqual({
+            isSuccess: false,
+            response: undefined,
+            validationErrors: [],
+            exceptionMessages: ['The modeled command “UnregisteredGuardedCommand” is not registered by this Stage.'],
+        });
+    });
 
     it.each([['draft', '/api/send'], ['sent', '/api/reopen']])('executes exactly the selected command for %s', async (status, commandRoute) => {
         registerTestQueries(routes.queries);

@@ -93,8 +93,12 @@ public class with_completed_inventory
         var context = new SemanticApplicationContext(response_inventory_model.Request(model), response_inventory_model.Options);
         var command = response_inventory_model.Command(context);
         Assert.Equal(2, context.GeneratedTypes.Count(type => type.Name == context.ResponseType(command)));
+        var declarations = SemanticCratisAdmission.GeneratedResponseDeclarations(context, context.SelectedSlices()).ToArray();
+        Assert.Equal(context.Commands.Keys.OrderBy(owner => owner.ToString(), StringComparer.Ordinal), declarations.Select(declaration => declaration.Artifact).OrderBy(owner => owner.ToString(), StringComparer.Ordinal));
+        Assert.All(declarations, declaration => Assert.Equal(context.ResponseType(command), declaration.Name));
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
-        Assert.All(context.Commands.Keys, owner => Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == owner));
+        var collidingOwner = context.Commands.Values.Single(candidate => candidate.Name == "Place_Order").Id;
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Artifact == collidingOwner);
     }
 
     [Theory]

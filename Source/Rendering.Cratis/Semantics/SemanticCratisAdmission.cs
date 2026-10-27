@@ -144,6 +144,15 @@ internal static partial class SemanticCratisAdmission
             policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
             .Concat(SemanticTranslationAdmission.Declarations(context, slices));
 
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedResponseDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Commands
+            .Where(command => command.Response is SemanticRecordCommandResponse)
+            .Select(command => new GeneratedTypeDeclaration(
+                command.Id,
+                "Response",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase)),
+                context.ResponseType(command))));
+
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         var descriptors = SemanticValidationContextRuntime.Selected(context, slices).ToArray();

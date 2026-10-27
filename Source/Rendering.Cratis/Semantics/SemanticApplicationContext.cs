@@ -18,6 +18,7 @@ internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
+    readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypeSeed;
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
@@ -62,13 +63,19 @@ internal sealed class SemanticApplicationContext
         Specifications = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Specifications), _ => _.Id, "specification");
         IdentifierConcepts = FindIdentifierConcepts();
         Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
-        _generatedTypes = new(() =>
+        _generatedTypeSeed = new(() =>
         [
             new(string.Empty, "Program"),
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
                 new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
         _responseTypes = new(ResolveResponseTypes);
+        _generatedTypes = new(() =>
+        [
+            .. _generatedTypeSeed.Value,
+            .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
+                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+        ]);
     }
 
     /// <summary>
@@ -376,7 +383,7 @@ internal sealed class SemanticApplicationContext
 
     Dictionary<SemanticId, string> ResolveResponseTypes()
     {
-        var declared = GeneratedTypes.Select(type => $"{type.Namespace}.{type.Name}").ToHashSet(StringComparer.Ordinal);
+        var declared = _generatedTypeSeed.Value.Select(type => $"{type.Namespace}.{type.Name}").ToHashSet(StringComparer.Ordinal);
         var namespaces = NamespacePaths.ToHashSet(StringComparer.Ordinal);
         var names = new Dictionary<SemanticId, string>();
         foreach (var located in _slices.Values)

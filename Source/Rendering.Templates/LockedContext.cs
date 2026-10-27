@@ -29,6 +29,8 @@ internal sealed class LockedContext : TemplateContext
         PushCulture(CultureInfo.InvariantCulture);
     }
 
+    internal bool AllowStructuredOutput { get; set; } = true;
+
     public override object? Evaluate(ScriptNode? scriptNode, bool aliasReturnedFunction)
     {
         if (scriptNode is not null) _meter.Step();
@@ -40,7 +42,7 @@ internal sealed class LockedContext : TemplateContext
     public override TemplateContext Write(SourceSpan span, object? textAsObject)
     {
         if (textAsObject is not (SymbolHandle or SegmentHandle)) return base.Write(span, textAsObject);
-        if (OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
+        if (!AllowStructuredOutput || OutputCount != 2 || Output is not SegmentOutput segments) throw SymbolHandle.NotText();
         if (textAsObject is SymbolHandle symbol) segments.Symbol(symbol.Descriptor);
         else segments.Emit(((SegmentHandle)textAsObject).Segments);
         return this;

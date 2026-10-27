@@ -38,4 +38,14 @@ public static class JavaRefusalCodes
     /// STAGE-JAVA-0006: a Text/Native span ends in a raw or decoded backslash when any segment follows it.
     /// </summary>
     public const string UnsafeLiteralBoundary = "STAGE-JAVA-0006";
+
+    /// <summary>
+    /// STAGE-JAVA-0007: a requested declaration or enclosing declaration is missing.
+    /// </summary>
+    public const string MissingDeclaration = "STAGE-JAVA-0007";
+
+    /// <summary>
+    /// STAGE-JAVA-0008: a declaration identity or inferred enclosing declaration is ambiguous.
+    /// </summary>
+    public const string AmbiguousDeclaration = "STAGE-JAVA-0008";
 }

@@ -13,38 +13,21 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
     static readonly HashSet<string> _calls = new(["render", "section", "refuse", "gap"], StringComparer.Ordinal);
     readonly HashSet<string> _locals = new(StringComparer.Ordinal);
     readonly TemplatePartialLint _partials = new(kit);
-    readonly List<string> _sections = [];
-    bool _inSection;
+    readonly TemplateSectionLint _sections = new(isOverride);
 
-    internal string[] Sections => [.. _sections];
+    internal string[] Sections => _sections.Names;
 
     public override void Visit(ScriptNode? node)
     {
         if (node is null) return;
         try
         {
-            if (node is ScriptWrapStatement wrap)
-            {
-                VisitSection(wrap);
-                return;
-            }
-            if (VisitExpression(node)) return;
-            CheckDeclaration(node);
-            CheckForbiddenNode(node);
-            if (node is ScriptVariableGlobal variable) CheckGlobal(variable);
-            base.Visit(node);
+            VisitNode(node);
         }
         catch (TemplateRefusal refusal) when (diagnostics is not null)
         {
             diagnostics.Add(refusal.Diagnostic);
-            if (node is ScriptFunctionCall call)
-            {
-                foreach (var argument in call.Arguments) Visit(argument);
-            }
-            else if (node is ScriptAssignExpression assign)
-            {
-                Visit(assign.Value);
-            }
+            VisitRejectedChildren(node);
         }
     }
 
@@ -53,8 +36,6 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
     static bool IsReserved(string name) => _roots.Contains(name) || IsNamespace(name) || _calls.Contains(name);
 
     static TemplateRefusal Refuse(ScriptNode node, string code, string reason) => TemplateRefusal.At(code, reason, node.Span);
-
-    static bool ValidSectionName(string name) => name.Length is > 0 and <= 64 && name[0] is >= 'a' and <= 'z' && name.All(character => character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-');
 
     static void CheckForbiddenNode(ScriptNode node)
     {
@@ -69,13 +50,37 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
         }
     }
 
-    void VisitSection(ScriptWrapStatement wrap)
+    static bool IsImports(ScriptMemberExpression member)
     {
-        if (isOverride || _inSection || wrap.Target is not ScriptFunctionCall { Target: ScriptVariableGlobal { Name: "section" }, Arguments.Count: 1 } call || call.Arguments[0] is not ScriptLiteral { Value: string name } || !ValidSectionName(name) || _sections.Contains(name, StringComparer.Ordinal)) throw Refuse(wrap, TemplateCodes.Helper, "Invalid, duplicate or nested section.");
-        _sections.Add(name);
-        _inSection = true;
-        try { Visit(wrap.Body); }
-        finally { _inSection = false; }
+        if (member.Target is not ScriptVariableGlobal variable) return false;
+        if (variable.Name != "sym") return false;
+        return member.Member?.Name == "imports";
+    }
+
+    void VisitNode(ScriptNode node)
+    {
+        if (node is ScriptWrapStatement wrap)
+        {
+            _sections.Visit(wrap, Visit);
+            return;
+        }
+        if (VisitExpression(node)) return;
+        CheckDeclaration(node);
+        CheckForbiddenNode(node);
+        if (node is ScriptVariableGlobal variable) CheckGlobal(variable);
+        base.Visit(node);
+    }
+
+    void VisitRejectedChildren(ScriptNode node)
+    {
+        if (node is ScriptFunctionCall call)
+        {
+            foreach (var argument in call.Arguments) Visit(argument);
+        }
+        else if (node is ScriptAssignExpression assign)
+        {
+            Visit(assign.Value);
+        }
     }
 
     bool VisitExpression(ScriptNode node)
@@ -91,14 +96,18 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
                 return true;
             case ScriptIndexerExpression { Target: ScriptVariableGlobal { Name: "lit" }, Index: ScriptLiteral { Value: "null" } }:
                 return true;
-            case ScriptMemberExpression { Target: ScriptVariableGlobal { Name: "sym" }, Member.Name: "imports" }:
-                return true;
             case ScriptMemberExpression member:
-                if (member.Target is ScriptVariableGlobal root && IsNamespace(root.Name)) throw Refuse(member, TemplateCodes.Allowlist, "Builtin and helper functions are callable only, never values.");
-                Visit(member.Target);
+                VisitMember(member);
                 return true;
             default: return false;
         }
+    }
+
+    void VisitMember(ScriptMemberExpression member)
+    {
+        if (IsImports(member)) return;
+        if (member.Target is ScriptVariableGlobal root && IsNamespace(root.Name)) throw Refuse(member, TemplateCodes.Allowlist, "Builtin and helper functions are callable only, never values.");
+        Visit(member.Target);
     }
 
     void CheckDeclaration(ScriptNode node)
@@ -145,6 +154,6 @@ internal sealed class TemplateLint(LoadedKit kit, List<TemplateDiagnostic>? diag
     {
         if (name.Name == "render") _partials.Render(call);
         if (name.Name == "section") throw Refuse(call, TemplateCodes.Helper, "section requires wrap.");
-        if (name.Name == "refuse" && (call.Arguments.Count != 2 || call.Arguments[0] is not ScriptLiteral { Value: string category } || !TemplatePartialLint.Categories.Contains(category, StringComparer.Ordinal))) throw Refuse(call, TemplateCodes.Helper, "Unknown or nonliteral refusal category.");
+        if (name.Name == "refuse") TemplatePartialLint.CheckRefusal(call);
     }
 }

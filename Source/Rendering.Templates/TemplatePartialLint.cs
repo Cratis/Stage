@@ -10,6 +10,12 @@ internal sealed class TemplatePartialLint(LoadedKit kit)
 {
     internal static readonly string[] Categories = ["trust", "integrity", "budget", "authorization", "event_stream"];
 
+    internal static void CheckRefusal(ScriptFunctionCall call)
+    {
+        if (call.Arguments.Count != 2) throw Refuse(call, TemplateCodes.Helper, "Unknown or nonliteral refusal category.");
+        if (call.Arguments[0] is not ScriptLiteral { Value: string category } || !Categories.Contains(category, StringComparer.Ordinal)) throw Refuse(call, TemplateCodes.Helper, "Unknown or nonliteral refusal category.");
+    }
+
     internal void Render(ScriptFunctionCall call)
     {
         if (call.Arguments.Count is < 1 or > 2 || call.Arguments[0] is not ScriptLiteral { Value: string name } || !HasPartial(name)) throw Refuse(call, TemplateCodes.Partial, "render requires a literal declared partial name and optional argument.");

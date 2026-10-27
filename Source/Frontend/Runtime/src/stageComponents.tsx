@@ -10,8 +10,8 @@ import type { ComponentType, ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, suppliedWithoutAsking } from './StageCommandForm';
-import { humanize, schemaPropertiesOf } from './stageFormSchema';
+import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsFor, suppliedWithoutAsking } from './StageCommandForm';
+import { createsEntity, humanize, schemaPropertiesOf } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
 import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
@@ -300,6 +300,8 @@ function StageToolbarItem(props: RegisteredProps) {
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
+ * A command that creates the entity it appends to (`x-creates`) is about no row: it never waits for a selection, asks for what a row would
+ * otherwise supply, and never takes a selected row's key.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
@@ -309,12 +311,14 @@ function StageToolbarCommand(props: RegisteredProps) {
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
+    const creates = createsEntity(schema ?? '');
+    const selectableRows = useMemo(() => selectableRowsFor(schema ?? '', queries), [schema, queries]);
     const selectedRows = useMemo(() => Object.values(selections).filter((row): row is Record<string, unknown> => row !== undefined), [selections]);
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const intent = creates ? { createsEntity: true } : { rowAction: true };
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...intent, ...askedFields } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

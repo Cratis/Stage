@@ -47,6 +47,20 @@ interface JsonSchemaDefinition {
 const maximumDepth = 8;
 
 /**
+ * Whether a command's schema says it creates the entity it appends to (`x-creates`): the runtime allocates its identity - a generated identifier,
+ * or none - so an action that executes it never waits for, nor takes the key of, a selected row.
+ */
+export function createsEntity(schema: string): boolean {
+    if (!schema) return false;
+    try {
+        const parsed: unknown = JSON.parse(schema);
+        return isRecord(parsed) && parsed['x-creates'] === true;
+    } catch {
+        return false;
+    }
+}
+
+/**
  * The properties a command's JSON schema declares, with the type the native form gives each and whether it is required. A toolbar
  * slice's task dialog is built from the same reading, so a command is the same fields wherever it is presented.
  */

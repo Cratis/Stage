@@ -55,6 +55,16 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// </remarks>
     public const string IdentityKeyword = "x-identity";
 
+    /// <summary>
+    /// The schema keyword, on the schema itself, marking a command that creates the entity it appends to rather than acting on one that exists.
+    /// </summary>
+    /// <remarks>
+    /// The model says so when the runtime allocates the command's identity: its <c language="csharp">identifier</c> is <c language="csharp">generated</c>,
+    /// or the command declares none. A caller-supplied identifier names an entity the caller already holds - on a list, the row the person selected -
+    /// so it carries no mark (see <see cref="Creating"/>).
+    /// </remarks>
+    public const string CreatesKeyword = "x-creates";
+
     readonly HashSet<string> _expanding = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -80,6 +90,22 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
         }
 
         property[IdentityKeyword] = true;
+        return parsed.ToJsonString();
+    }
+
+    /// <summary>
+    /// Marks a command's schema with <see cref="CreatesKeyword"/>: the command creates the entity it appends to, whose identity the runtime allocates.
+    /// </summary>
+    /// <param name="schema">The command's JSON Schema text, as <see cref="ForProperties"/> synthesizes it.</param>
+    /// <returns>The schema with the mark; unchanged when the text is not a schema object.</returns>
+    public static string Creating(string schema)
+    {
+        if (JsonNode.Parse(schema) is not JsonObject parsed)
+        {
+            return schema;
+        }
+
+        parsed[CreatesKeyword] = true;
         return parsed.ToJsonString();
     }
 

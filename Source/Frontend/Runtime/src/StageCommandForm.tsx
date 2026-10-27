@@ -14,7 +14,7 @@ import { navigateToScreen } from './stageNavigation';
 import { useStageData, useStageQuery } from './stageData';
 import { heldSessionIdentity, sessionIdentity } from './stageSession';
 import type { StageDataState } from './stageData';
-import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
+import { asCommandValue, createsEntity, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 
@@ -59,8 +59,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [data.selections]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
+    // An action that creates the entity it appends to is about no row: a selected row supplies none of its identifiers.
+    const creates = element.properties.createsEntity === true;
+    const selectedRows = useMemo(() => creates ? [] : Object.values(data.selections).filter((row): row is Record<string, unknown> => row !== undefined), [creates, data.selections]);
+    const selectableRows = useMemo(() => creates ? [] : selectableRowsOf(data.queries), [creates, data.queries]);
     const rowAction = element.properties.rowAction === true;
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
@@ -325,6 +327,19 @@ export function carriedBy(property: SchemaProperty, rows: Record<string, unknown
 /** The rows of every query the screen has read: the rows a table shows and the person could select. */
 export function selectableRowsOf(queries: StageDataState['queries']): Record<string, unknown>[] {
     return Object.values(queries).flatMap(query => query.rows);
+}
+
+/**
+ * The rows an action that executes this command could act on: none for a command that creates the entity it appends to (`x-creates`) - it is
+ * about no row, so it never waits for a selection and a row supplies none of its identifiers - otherwise every row the screen has read.
+ * Give these to {@link identifiersAwaitingSelection} so every action shares the exemption.
+ *
+ * @param schema The command's JSON schema text.
+ * @param queries The screen's queries.
+ * @returns The rows the action could act on.
+ */
+export function selectableRowsFor(schema: string, queries: StageDataState['queries']): Record<string, unknown>[] {
+    return createsEntity(schema) ? [] : selectableRowsOf(queries);
 }
 
 /**

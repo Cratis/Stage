@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -17,6 +18,23 @@ internal static class SemanticBodyDeclarations
     {
         var types = new SemanticTypeSystem(context);
         return events.Select(@event => $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)} {{ public record {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", @event.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))}); }}");
+    }
+
+    /// <summary>
+    /// Renders each event with the same renderer the generated application uses, so the declaration keeps every member the real
+    /// event has (such as the computed members a projection adds), its attributes and its constructor.
+    /// </summary>
+    /// <param name="context">The application being rendered.</param>
+    /// <returns>One source file per event, each in its declaring slice namespace.</returns>
+    internal static IEnumerable<string> GeneratedEvents(SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        return context.Events.Values.Select(@event =>
+        {
+            var builder = new CSharpCodeBuilder().Using(context.CommonNamespace).Namespace(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path));
+            SemanticStateChangeArtifactRenderer.RenderEvent(builder, @event, types, context);
+            return builder.ToString();
+        });
     }
 
     /// <summary>The namespaces that hold the events, plus the common namespace.</summary>

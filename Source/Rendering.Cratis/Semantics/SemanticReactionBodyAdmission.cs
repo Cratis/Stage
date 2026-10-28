@@ -62,9 +62,7 @@ internal static class SemanticReactionBodyAdmission
 
     static IEnumerable<SyntaxTree> Supporting(SemanticApplicationContext context)
     {
-        var events = context.Events.Values;
-        var declarations = string.Join('\n', SemanticBodyDeclarations.Events(context, events)
-            .Concat(SemanticBodyDeclarations.RealConcepts(context))
+        var declarations = string.Join('\n', SemanticBodyDeclarations.RealConcepts(context)
             .Append($"namespace {context.CommonNamespace} {{ {string.Join('\n', SemanticBodyDeclarations.CompositeTypes(context))} }}")
             .Append(SemanticBodyDeclarations.Commands(context)));
 
@@ -72,6 +70,12 @@ internal static class SemanticReactionBodyAdmission
         var globals = FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).Select(@namespace => $"global using {@namespace};");
         yield return CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + string.Join('\n', globals), _parseOptions);
         yield return CSharpSyntaxTree.ParseText(declarations, _parseOptions);
+
+        // The events are the generated ones, not property-only stubs: members the real event carries stay available to the body.
+        foreach (var @event in SemanticBodyDeclarations.GeneratedEvents(context))
+        {
+            yield return CSharpSyntaxTree.ParseText(@event, _parseOptions);
+        }
     }
 
     static HashSet<UsingDirectiveSyntax> UnboundUsings(SyntaxTree tree, SemanticModel model) =>

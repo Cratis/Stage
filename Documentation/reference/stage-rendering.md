@@ -469,6 +469,13 @@ An unsupported body cannot select an invocation refusal branch. The Host lists t
 without blocking the live model. Executor details use `STAGE-IMPL-002:`; live Host details retain Screenplay's
 message without that prefix. Both name the command and RequirementId.
 
+Generated application specifications execute verified synchronous C# command handlers through the command
+scenario and assert the authored `then` outcomes, not the declarative `produces` mappings. These specifications
+no longer receive `STAGE-ESM-011` merely because they reach a C# handler. Existing body admission still applies:
+only the immutable `Command` snapshot is available; ambient context reads remain refused with `STAGE-ESM-015`.
+Specifications reaching unsupported handler kinds retain `STAGE-ESM-011`. This does not enable handler-body
+execution in the semantic Host or reference specification executor.
+
 The `stage-spec-run/1` report schema is unchanged, but its capability names now include `ImplementationBody`.
 An older reader rejects that unknown enum name; update report readers before consuming these results.
 

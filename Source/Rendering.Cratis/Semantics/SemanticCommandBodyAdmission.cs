@@ -64,9 +64,9 @@ internal static class SemanticCommandBodyAdmission
     {
         foreach (var specification in specifications)
         {
-            if (ReachesBody(specification, context))
+            if (ReachesUnsupportedBody(specification, context))
             {
-                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command handler bodies are not executed by the reference specification runtime.", specification.Id));
+                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: only verified C# command handler bodies can execute in generated command scenarios.", specification.Id));
                 continue;
             }
             yield return specification;
@@ -76,6 +76,9 @@ internal static class SemanticCommandBodyAdmission
     static bool IsCommandDescriptorProbe(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context) =>
         descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.OperationId is { } owner &&
         context.Commands.TryGetValue(owner, out var command) && IsCSharp(command, context);
+
+    static bool ReachesUnsupportedBody(SemanticSpecification specification, SemanticApplicationContext context) =>
+        ReachesBody(specification, context) && !IsCSharp(context.Commands[specification.When!.Command], context);
 
     static bool ReachesBody(SemanticSpecification specification, SemanticApplicationContext context) =>
         specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command) && command.Handler is not null;

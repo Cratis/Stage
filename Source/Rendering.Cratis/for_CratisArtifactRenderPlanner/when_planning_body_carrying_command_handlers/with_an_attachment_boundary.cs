@@ -144,7 +144,7 @@ public class with_an_attachment_boundary
     }
 
     [Fact]
-    public void should_skip_a_generated_specification_that_reaches_the_body_without_dropping_the_command()
+    public void should_render_a_generated_specification_that_reaches_the_body_without_dropping_the_command()
     {
         const string specification = """
 
@@ -156,25 +156,17 @@ public class with_an_attachment_boundary
                   name = "ALICE"
         """;
 
-        // Stage#828 degrades specification execution gaps, not application contracts.
         var request = handler_model.Request(source: handler_model.Source + specification);
         var slice = request.Model.Application.Modules.Single().Features.Single().Slices.Single();
-        var omitted = slice.Specifications.Single();
+        var specificationModel = slice.Specifications.Single();
         var command = slice.Commands.Single();
         var plan = handler_model.Plan(request);
 
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         Assert.Equal(ArtifactRenderOutcome.Complete, plan.Outcome);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" &&
-            diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Artifact == omitted.Id &&
-            diagnostic.Message.Contains("Placing", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("STAGE-ESM-011", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("command handler bodies are not executed", StringComparison.Ordinal));
-        var refusal = Assert.Single(plan.Refusals);
-        Assert.Equal(omitted.Id, refusal.Artifact);
-        Assert.Equal("specification", refusal.Kind);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(refusal.Codes));
-        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(omitted.Id));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011");
+        Assert.Empty(plan.Refusals);
+        Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(specificationModel.Id));
         Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(command.Id));
         Assert.Contains("HandlerBody_", Source(plan), StringComparison.Ordinal);
     }

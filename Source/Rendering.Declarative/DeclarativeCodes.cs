@@ -47,4 +47,9 @@ public static class DeclarativeCodes
     /// A fan-out item has no string identity.
     /// </summary>
     public const string ItemWithoutId = "STAGE-DECL-008";
+
+    /// <summary>
+    /// Generated text contains sentinel-shaped residue, which the structural substitution must never leave behind.
+    /// </summary>
+    public const string SentinelResidue = "STAGE-DECL-009";
 }

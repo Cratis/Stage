@@ -16,3 +16,9 @@ A language pack implements `IDeclarativeLanguage`: the template language and typ
 ## Output expansion
 
 Outputs expand in manifest order. An output without `forEach` renders once with the scope `{ model }`. With `forEach`, items are ordered ordinally by their string `id` and each renders with `{ model, item }`; `when` decides inclusion. An item without a string `id`, or any template refusal, refuses the whole plan.
+
+## Rendering, symbols and gaps
+
+Each expanded output renders its path and its template. The template segments become `DeclarativeSegment` handles and the language `Resolve`s them into pieces; text is never searched or patched. A language refusal (for example an ambiguous short name) refuses the whole plan with the language's own code. Generated text that contains sentinel-shaped residue (`/*__stage_`) refuses the plan with `STAGE-DECL-009`.
+
+A template gap is not a refusal. The gap belongs to the fan-out item whose output reported it, or, for a single output, to the construct its `modelPath` names. The planner emits the language placeholder, a `STAGE-DEGRADE-*` warning owned by that construct and its degradation evidence. A gap that names no construct is recorded as plan evidence owned by the application. Gap roles map one to one onto placeholder kinds.

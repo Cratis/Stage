@@ -69,6 +69,19 @@ public class a_declarative_planner : Specification
         return new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }
 
+    internal static ArtifactRenderPlan PlanWith(Dictionary<string, string> templates)
+    {
+        var files = KitFiles();
+        foreach (var (path, text) in templates)
+        {
+            files[path] = Bytes(text);
+        }
+
+        return Plan(Profile(Archive(files)));
+    }
+
+    internal static string Text(ArtifactRenderPlan plan, string path) => Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath == path).Bytes.AsSpan());
+
     internal static DeclarativeArtifactRenderPlanner Planner(params IDeclarativeLanguage[] languages) => new(languages.Length == 0 ? [new a_test_language()] : languages);
 
     internal static ArtifactRenderPlan Plan(ArtifactRenderProfile profile, params IDeclarativeLanguage[] languages) => Planner(languages).Plan(Request(profile));

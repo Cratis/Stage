@@ -49,9 +49,15 @@ public sealed class DeclarativeArtifactRenderPlanner(IEnumerable<IDeclarativeLan
         using (var session = admission.Templates!.BeginPlan(_options.Budget ?? Templates.TemplateBudget.Default, admission.Language!))
         {
             var expansion = DeclarativeOutputExpansion.Expand(session, admission.Kit!.Manifest, model!.RootElement);
-            return expansion.Refusal is not null
-                ? Refuse(request, [expansion.Refusal])
-                : ArtifactRenderPlan.Create(request, [], []).WithInputComponents(admission.Components);
+            if (expansion.Refusal is not null)
+            {
+                return Refuse(request, [expansion.Refusal]);
+            }
+
+            var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement);
+            return rendering.Refusal is not null
+                ? Refuse(request, [rendering.Refusal])
+                : DeclarativePlanAssembly.Assemble(request, rendering.Files, admission.Components);
         }
     }
 

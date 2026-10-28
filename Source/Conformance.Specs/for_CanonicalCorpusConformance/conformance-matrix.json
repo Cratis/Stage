@@ -2727,12 +2727,8 @@
     },
     "EventRoutesCorpus.ObserverFiltersV10": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "capability:Projection[a-mapping-free-from-block]", "artifact": "sem1:d4f86c078dd9e1b841b7393ad8412b82efb1c9db158fa3d03b78d8826e1d255a", "issue": 843 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "capability:Projection[a-mapping-free-from-block]", "kind": "specification", "artifact": "sem1:5a09b827ed2194dedc643611fb3d586ce2797703a49d2dcd96e02abcffd231b5", "issue": 843 },
-        { "code": "capability:Projection[a-mapping-free-from-block]", "kind": "specification", "artifact": "sem1:801dbad00cf1fecfaad3c2edb6a365436edc0f16fab91d68e635899e86c0ac77", "issue": 843 },
-        { "code": "capability:Projection[a-mapping-free-from-block]", "kind": "specification", "artifact": "sem1:d1fa0d0ae5372f2f88634644a3aa8232e7d8e4c3b497b9f3942952c30af56e5b", "issue": 843 } ] },
+      "executor": { "outcome": "expected-refusal" },
+      "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-011", "artifact": "sem1:4ba776aca20c40264547310fb8df1082c642fc1c0fddfa5aefc7c9f348376250", "issue": 14 },
         { "code": "STAGE-ESM-011", "artifact": "sem1:5a09b827ed2194dedc643611fb3d586ce2797703a49d2dcd96e02abcffd231b5", "issue": 14 },

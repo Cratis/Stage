@@ -24,7 +24,7 @@ internal static class CratisScaffoldArtifacts
             }
 
             yield return artifact!.RelativePath == "Program.cs" && strings is not null
-                ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings))
+                ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings, rootNamespace))
                 : artifact;
         }
 

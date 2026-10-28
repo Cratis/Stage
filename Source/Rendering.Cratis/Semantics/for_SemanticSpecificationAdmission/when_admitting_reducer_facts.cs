@@ -40,6 +40,24 @@ public class when_refusing_unstable_reducer_facts
     }
 
     [Fact]
+    public async Task should_refuse_a_cast_context_read_with_the_conversion_reason()
+    {
+        var source = a_reducer_fact_specification.Source.Replace(
+            a_reducer_fact_specification.Body,
+            "return new TalkScore(Guid.Parse(context.Key), (int)context.SequenceNumber);",
+            StringComparison.Ordinal);
+        var plan = await a_reducer_fact_specification.Plan(source);
+        var refusals = plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-011").ToArray();
+        Assert.Equal(3, refusals.Length);
+        Assert.All(refusals, refusal =>
+        {
+            Assert.Contains("STAGE-ESM-022", refusal.Message, StringComparison.Ordinal);
+            Assert.Contains("Conversion to 'int' is outside the pure allowlist", refusal.Message, StringComparison.Ordinal);
+        });
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath.Contains("/when_score_", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task should_not_claim_an_unreached_instance()
     {
         var source = a_reducer_fact_specification.Source.Replace(

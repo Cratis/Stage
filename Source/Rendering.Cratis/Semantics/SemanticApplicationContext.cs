@@ -177,7 +177,7 @@ internal sealed class SemanticApplicationContext
     internal List<ArtifactRenderDegradation> Degradations { get; } = [];
 
     /// <summary>
-    /// Gets the <c>$eventContext</c> paths whose projection mappings were omitted, by read model.
+    /// Gets the $eventContext paths whose projection mappings were omitted, by read model.
     /// </summary>
     internal Dictionary<SemanticId, ImmutableArray<string>> OmittedEventContextMappings { get; } = [];
 

@@ -7,7 +7,7 @@ using Cratis.Screenplay.Semantics;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Strips projection mappings of <c>$eventContext</c> values the renderer cannot express (Stage#876) from a read model nothing decides on.
+/// Strips projection mappings of $eventContext values the renderer cannot express (Stage#876) from a read model nothing decides on.
 /// </summary>
 internal static class SemanticEventContextDegradation
 {
@@ -34,7 +34,7 @@ internal static class SemanticEventContextDegradation
         paths =
         [
             .. Mappings(scope).Where(IsUnsupported)
-                .Select(mapping => ((SemanticProjectionEventContextValue)mapping.Source).Path)
+                .Select(mapping => ((SemanticProjectionEventContextValue)mapping.Source!).Path)
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
         ];
@@ -78,7 +78,7 @@ internal static class SemanticEventContextDegradation
         var queries = context.Queries.Values.Where(query => query.ReadModel == readModel.Id).ToArray();
         return !ReadByCommand(readModel, context) &&
             !queries.Any(query => UsesProperty(query, properties)) &&
-            !queries.Any(query => SemanticCratisAdmission.OpaquePolicies(query.Authorization, context.Application.Policies).Any());
+            !queries.Any(query => query.Authorization is { } authorization && SemanticCratisAdmission.OpaquePolicies(authorization, context.Application.Policies).Any());
     }
 
     static bool ReadByCommand(SemanticReadModel readModel, SemanticApplicationContext context) =>

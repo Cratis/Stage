@@ -27,7 +27,7 @@ public sealed partial class ArtifactRenderPlan
     /// <exception cref="InvalidArtifactRenderContract">A component is malformed or duplicated.</exception>
     public ArtifactRenderPlan WithInputComponents(ImmutableArray<ArtifactRenderComponent> components)
     {
-        if (components.IsDefault || components.Any(IsMalformed))
+        if (components.IsDefault || components.Any(_ => _?.IsWellFormed != true))
         {
             throw new InvalidArtifactRenderContract("Input components require a defined kind, a name, a version and an optional lowercase SHA-256 digest.");
         }
@@ -51,11 +51,6 @@ public sealed partial class ArtifactRenderPlan
         ValidateRefusalEvidence(inventory);
         return ApplyAcceptance(inventory.Evidence, Strict, inventory);
     }
-
-    static bool IsMalformed(ArtifactRenderComponent? component) =>
-        component is null || !Enum.IsDefined(component.Kind) || component.Kind == ArtifactRenderComponentKind.Unknown ||
-        string.IsNullOrWhiteSpace(component.Name) || string.IsNullOrWhiteSpace(component.Version) ||
-        (component.Digest is not null && (component.Digest.Length != 64 || !component.Digest.All(char.IsAsciiHexDigitLower)));
 
     void ValidateRefusalEvidence(ArtifactRenderInventory inventory)
     {

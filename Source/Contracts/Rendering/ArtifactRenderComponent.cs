@@ -10,4 +10,10 @@ namespace Cratis.Stage.Contracts.Rendering;
 /// <param name="Name">The component name, unique within its kind.</param>
 /// <param name="Version">The exact component version.</param>
 /// <param name="Digest">The optional lowercase SHA-256 of the component content, or <see langword="null"/> when it has none.</param>
-public sealed record ArtifactRenderComponent(ArtifactRenderComponentKind Kind, string Name, string Version, string? Digest = null);
+public sealed record ArtifactRenderComponent(ArtifactRenderComponentKind Kind, string Name, string Version, string? Digest = null)
+{
+    internal bool IsWellFormed =>
+        Enum.IsDefined(Kind) && Kind != ArtifactRenderComponentKind.Unknown &&
+        !string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(Version) &&
+        (Digest is null || (Digest.Length == 64 && Digest.All(char.IsAsciiHexDigitLower)));
+}

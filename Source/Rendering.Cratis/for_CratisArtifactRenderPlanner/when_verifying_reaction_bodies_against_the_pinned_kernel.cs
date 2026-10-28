@@ -206,14 +206,19 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
     // The pinned kernel's /health includes Storage.MongoDB's named mongodb health check.
     static async Task WaitForKernelAndMongo()
     {
-        var connection = new Uri(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")!);
+        var connection = new Uri(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION"));
         var health = new UriBuilder("https", connection.Host, connection.IsDefaultPort ? 35000 : connection.Port, "/health").Uri;
         using var handler = new HttpClientHandler
         {
             AllowAutoRedirect = false,
-            // Only the local development kernel uses a self-signed certificate.
-            ServerCertificateCustomValidationCallback = (request, _, _, errors) => errors == System.Net.Security.SslPolicyErrors.None || request.RequestUri!.IsLoopback
+            CheckCertificateRevocationList = true
         };
+
+        // Only the local development kernel uses a self-signed certificate; redirects are disabled.
+        if (health.IsLoopback)
+        {
+            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        }
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var last = "No health response received.";

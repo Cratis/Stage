@@ -69,10 +69,10 @@ public class with_the_rendered_handler_invoked
         var observed = Assert.Single(Assert.IsType<IEnumerable<object>>(result, exactMatch: false));
         var type = assembly.GetTypes().Single(candidate => candidate.Name == "HandlerObserved");
         Assert.Equal(type, observed.GetType());
-        Assert.Equal("Broken", type.GetProperty("LocalTitle")!.GetValue(observed));
-        Assert.Equal("Broken", type.GetProperty("EventTitle")!.GetValue(observed));
-        Assert.Equal("one", type.GetProperty("SourceId")!.GetValue(observed));
-        Assert.Equal(42, type.GetProperty("SequenceNumber")!.GetValue(observed));
+        Assert.Equal("Broken", type.GetProperty("LocalTitle").GetValue(observed));
+        Assert.Equal("Broken", type.GetProperty("EventTitle").GetValue(observed));
+        Assert.Equal("one", type.GetProperty("SourceId").GetValue(observed));
+        Assert.Equal(42, type.GetProperty("SequenceNumber").GetValue(observed));
     }
 
     [Theory]

@@ -9,6 +9,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_inventorying_reducer_typed_contexts;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.when_rendering_reaction_cascades.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationAdmission.when_validating_append_refusals;
@@ -99,6 +100,22 @@ internal static class inventory_fixtures
 
         var policy = opaque_policy_model.Load(opaque_policy_model.Source(PolicyBody));
         yield return (TypedContextNames[2], Loaded(policy), _invoiceOptions);
+    }
+
+    /// <summary>
+    /// Builds a context the way the planner does after admission: the refused specifications are assigned, so the inventory names exactly the rendered ones.
+    /// </summary>
+    /// <param name="request">The render request.</param>
+    /// <param name="options">The rendering options.</param>
+    /// <returns>The admitted context.</returns>
+    internal static SemanticApplicationContext Admitted(ArtifactRenderRequest request, CratisRenderingOptions options)
+    {
+        var context = new SemanticApplicationContext(request, options);
+        context.ScopeFlatProjections();
+        var diagnostics = new List<ArtifactRenderDiagnostic>();
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices(), diagnostics);
+        context.RefusedSpecifications = [.. SemanticRefusalScope.Degrade(context, diagnostics).Select(refusal => refusal.Artifact)];
+        return context;
     }
 
     static string ReducerFixturePath([CallerFilePath] string path = "") =>

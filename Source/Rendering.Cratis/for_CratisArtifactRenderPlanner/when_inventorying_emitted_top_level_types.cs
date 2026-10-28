@@ -73,8 +73,7 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
 
     void Check(string fixture, ArtifactRenderRequest request, CratisRenderingOptions options)
     {
-        var context = new SemanticApplicationContext(request, options);
-        context.ScopeFlatProjections();
+        var context = inventory_fixtures.Admitted(request, options);
         var inventory = context.GeneratedTypes.Select(type => CatalogNames.Qualify(type.Namespace, CatalogNames.MetadataName(type.Name, type.Arity))).ToHashSet(StringComparer.Ordinal);
         var plan = _planner.Plan(request);
         Assert.True(plan.Success, $"{fixture}: {string.Join('\n', plan.Diagnostics)}");

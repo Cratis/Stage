@@ -20,6 +20,8 @@ internal sealed class SemanticApplicationContext
     readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypeSeed;
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
+    Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
+    ImmutableHashSet<SemanticId> _refusedSpecifications = [];
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
 
@@ -75,9 +77,7 @@ internal sealed class SemanticApplicationContext
         [
             .. _generatedTypeSeed.Value,
             .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name)),
-            .. SemanticCratisAdmission.GeneratedSpecificationDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
     }
 
@@ -147,7 +147,20 @@ internal sealed class SemanticApplicationContext
     /// <summary>
     /// Gets specification identities explicitly omitted from this render.
     /// </summary>
-    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; set; } = [];
+    public ImmutableHashSet<SemanticId> RefusedSpecifications
+    {
+        get => _refusedSpecifications;
+        set
+        {
+            _refusedSpecifications = value;
+            _admittedGeneratedTypes = new(() =>
+            [
+                .. _generatedTypes.Value,
+                .. SemanticCratisAdmission.GeneratedSpecificationDeclarations(this, SelectedSlices()).Select(type =>
+                    new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+            ]);
+        }
+    }
 
     /// <summary>
     /// Gets concept identities used as modeled runtime identifiers.
@@ -174,10 +187,10 @@ internal sealed class SemanticApplicationContext
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
     /// <summary>
-    /// Gets the generated-type inventory: the admitted declarations, the command response types and the generated specification classes.
-    /// Specification classes of specifications that are refused later stay in the inventory, which is a harmless leaf superset.
+    /// Gets the generated-type inventory: the admitted declarations and the command response types and, once admission has assigned
+    /// <see cref="RefusedSpecifications"/>, the classes of exactly the specifications that are rendered.
     /// </summary>
-    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
+    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => (_admittedGeneratedTypes ?? _generatedTypes).Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
 

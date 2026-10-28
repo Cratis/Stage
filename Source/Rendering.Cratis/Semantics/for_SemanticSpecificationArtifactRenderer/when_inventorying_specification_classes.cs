@@ -22,12 +22,11 @@ public class when_inventorying_specification_classes
     {
         foreach (var (name, request, options) in inventory_fixtures.All())
         {
-            var context = new SemanticApplicationContext(request, options);
-            context.ScopeFlatProjections();
+            var context = inventory_fixtures.Admitted(request, options);
             var inventory = context.GeneratedTypes.Select(type => CatalogNames.Qualify(type.Namespace, type.Name)).ToHashSet(StringComparer.Ordinal);
-            foreach (var located in context.AllSlices)
+            foreach (var located in context.SelectedSlices())
             {
-                foreach (var specification in located.Slice.Specifications)
+                foreach (var specification in located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)))
                 {
                     Compare(name, specification, located, context, inventory);
                 }
@@ -44,18 +43,7 @@ public class when_inventorying_specification_classes
 
     void Compare(string fixture, Screenplay.Semantics.SemanticSpecification specification, LocatedSemanticSlice located, SemanticApplicationContext context, HashSet<string> inventory)
     {
-        IReadOnlyList<RenderedFile> files;
-        try
-        {
-            files = SemanticSpecificationArtifactRenderer.Render(specification, context);
-        }
-        catch (Exception exception) when (exception is UnsupportedSemanticRendering or NullReferenceException)
-        {
-            // A specification admission refuses renders nothing; the inventory over-approximates it, which is a harmless leaf superset.
-            return;
-        }
-
-        var emitted = files
+        var emitted = SemanticSpecificationArtifactRenderer.Render(specification, context)
             .SelectMany(file => CSharpSyntaxTree.ParseText(file.Content).GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
                 .Where(type => type.BaseList?.Types.Any(baseType => baseType.Type.ToString().EndsWith("Specification", StringComparison.Ordinal)) == true)
                 .Select(type => $"{type.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First().Name}.{type.Identifier.Text}"))

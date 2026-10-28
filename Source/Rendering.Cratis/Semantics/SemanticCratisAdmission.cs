@@ -154,7 +154,7 @@ internal static partial class SemanticCratisAdmission
                 context.ResponseType(command))));
 
     internal static IEnumerable<GeneratedTypeDeclaration> GeneratedSpecificationDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
-        slices.SelectMany(located => located.Slice.Specifications.SelectMany(specification =>
+        slices.SelectMany(located => located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)).SelectMany(specification =>
             SemanticSpecificationArtifactRenderer.ClassNames(specification, context).Select(name => new GeneratedTypeDeclaration(
                 specification.Id,
                 "Specification",

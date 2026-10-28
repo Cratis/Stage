@@ -37,14 +37,14 @@ Billing/
       Invoices.play                the feature
       RegisterInvoice/             StateChange - command, event, constraint, specifications, screen
       IssueInvoice/                StateChange - reads state, requirements, state projection
-      CancelInvoice/               StateChange - authorization, context mapping
+      CancelInvoice/               StateChange - authorization, occurrence-time mapping
       InvoiceList/                 StateView - readmodel, projection, queries, two screens
     Reminders/
-      Reminders.play               Automation - scheduled and event-driven reactions
+      Reminders.play               Automation - an event-driven reaction
   Ledger/
     Ledger.play                    a second module, so cross-module navigation is real
-    Payments/                      inline C# - a handler, a performer, a reducer rule, a validation block
-    Integration/                   Translate - a capture (CDL) over a legacy system
+    Payments/                      declarative payment decisions and validation, inline C# reducer
+    Integration/                   Translate - an inbound capture of a legacy system's events
 ```
 
 The split is deliberate. A slice is a folder, so the events, the command, the read model and the screen that
@@ -54,14 +54,26 @@ that a legacy system is still the system of record for payments.
 
 ### What it covers
 
-**112 of the language's constructs**, verified by a coverage check rather than claimed: every slice type,
-both sub-languages (PDL projections and CDL captures), both arrangement kinds, all ten interaction actions
-reachable from a document, inline C# in each of the four places it is allowed, and the three forms a
-localizable message can take.
+The sample covers state changes, protected decision reads, projections, an inline C# reducer, queries,
+event-driven automation, inbound event translation, authorization, validation and localized screens.
+`InvoiceState` is keyed by event source; cancellation removes it, so issuing an unknown or cancelled invoice
+is refused. The payment specification exercises the declarative command and its reducer-built read model.
 
-Two constructs are deliberately absent: a `file` directive, because it would point at implementation files
-this repository does not carry, and inline `typescript`/`react`/`html`/`sql` blocks, because `csharp` already
-demonstrates the mechanism and four more would be repetition rather than coverage.
+Some language showcases remain follow-up work rather than executable Billing behavior:
+
+- Scheduled reminders: [Stage #343](https://github.com/Cratis/Stage/issues/343). The sample sends a reminder
+  when an invoice is issued; clock triggers cannot supply a per-invoice identity.
+- API polling, CDL split/translate maps and child captures: deferred beyond the
+  [supported inbound event translation subset](../Documentation/reference/translation-rendering.md).
+- Audit-identity fixtures, imperative command bodies and live performer bodies: deferred beyond the
+  [specification fixture contract](../Documentation/docker/spec-runner.md). Audit identity fields are not
+  fabricated; Chronicle still records event context. Payments use declarative productions and queries.
+- Identical localization keys are centralized at the root because the strings catalog rejects duplicates.
+  The reducer uses named constructor arguments because generated parameter order is not declaration order.
+
+The unbound `concurrency` block, scalar next-number query/form population, context-sourced minimum filter
+and redundant tenant scope were removed. Tenant isolation and the positive-amount validation rules remain.
+No `file` directive points at absent implementation files, and no extra inline languages repeat the C# example.
 
 ### Running it
 

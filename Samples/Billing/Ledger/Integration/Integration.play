@@ -4,40 +4,20 @@ module Ledger
     description "Where the legacy invoicing system is turned into events this application understands"
 
     slice Translate LegacyInvoiceImport
+      direction inbound
+
+      event LegacyInvoiceChanged from "LegacyInvoicing"
+        id InvoiceId
+        status String
 
       capture LegacyInvoiceCapture
-        source api
-          api LegacyInvoicingApi
-          route /invoices
-          poll 5m
+        source events
+          from LegacyInvoiceChanged
         key id
-        map
-          split contactName by ","
-            firstName
-            lastName
-          status = status translate
-            "utkast"     => draft
-            "sendt"      => issued
-            "betalt"     => paid
-            "kansellert" => cancelled
         append LegacyInvoiceObserved
-          when status
-            invoiceId = $.id
-            status = $.status
-            observedAt = $context.occurred
-        children lineItems identified by lineNumber
-          append LegacyInvoiceLineObserved
-            when added
-              invoiceId = $parent.id
-              lineNumber = $.lineNumber
-              amount = $.amount
-
-      event LegacyInvoiceLineObserved
-        invoiceId InvoiceId
-        lineNumber Int
-        amount Money
+          invoiceId = $.id
+          legacyStatus = $.status
 
       event LegacyInvoiceObserved
         invoiceId InvoiceId
-        status InvoiceStatus
-        observedAt DateTime
+        legacyStatus String

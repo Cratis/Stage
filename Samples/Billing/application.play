@@ -1,6 +1,5 @@
 domain Cratis.Samples.Billing
-
-import Cratis.Samples.Shared
+command reads protected
 
 concept PaymentId : Uuid
 
@@ -44,7 +43,7 @@ policy IsBillingManager
   require authenticated and role "billing-manager"
 
 policy OwnsTheCustomer
-  require authenticated and claim "customerId" matches $context.command.customerId
+  require authenticated and claim "customerId" matches customerId
 
 persona BillingClerk
   description "Registers and issues invoices, but cannot write off what is owed"

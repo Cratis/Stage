@@ -77,10 +77,13 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
             """ + "\n" + Section(billing, "      readmodel PaymentSummary\n", "\n      query Payments =>") + "\n";
         if (deleteOnNegative)
         {
+            const string transition = "return new PaymentSummary(PaymentId: context.Event.PaymentId, InvoiceId: context.Event.InvoiceId, Amount: context.Event.Amount);";
+            Assert.Contains(transition, source, StringComparison.Ordinal);
             source = source.Replace(
-                "return new PaymentSummary(context.Event.PaymentId, context.Event.InvoiceId, context.Event.Amount);",
-                "if (context.Event.Amount.Value < 0m) return null; return new PaymentSummary(context.Event.PaymentId, context.Event.InvoiceId, context.Event.Amount);",
+                transition,
+                "if (context.Event.Amount.Value < 0m) return null; return new PaymentSummary(PaymentId: context.Event.PaymentId, InvoiceId: context.Event.InvoiceId, Amount: context.Event.Amount);",
                 StringComparison.Ordinal);
+            Assert.Contains("if (context.Event.Amount.Value < 0m) return null;", source, StringComparison.Ordinal);
         }
 
         return when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult();

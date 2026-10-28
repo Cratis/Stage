@@ -30,6 +30,7 @@ internal sealed class SemanticDependencyProductions
         SemanticProducedEvent produced => produced.EventContract,
         SemanticCaptureAppend append => append.EventContract,
         SemanticProjection { Target: SemanticProjectionTargetKind.Event } projection => projection.ReadModel,
+        SemanticReducer { Target: SemanticProjectionTargetKind.Event } reducer => reducer.ReadModel,
         SemanticSpecificationAppend append => append.EventContract,
         _ => null
     };

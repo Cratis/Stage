@@ -12,6 +12,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 // A deliberately bounded syntax proof, not a C# evaluator. Unknown expressions fail closed.
 internal sealed class SemanticReactionReturnShape(SemanticEventContract source, SemanticApplicationContext context)
 {
+    static readonly HashSet<string> _collectionNames = new(StringComparer.Ordinal)
+    {
+        "List", "IEnumerable", "ICollection", "IList", "IReadOnlyCollection", "IReadOnlyList"
+    };
+
     readonly Dictionary<string, Shape> _types = TypeShapes(context);
     BlockSyntax _body = null!;
 
@@ -60,6 +65,15 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
     static bool IsList(TypeSyntax type) => type is GenericNameSyntax generic
         ? generic.Identifier.ValueText == "List"
         : Normalize(type.ToString()).StartsWith("System.Collections.Generic.List<", StringComparison.Ordinal);
+
+    static TypeSyntax? CollectionElement(TypeSyntax type)
+    {
+        var name = type as GenericNameSyntax ?? (type as QualifiedNameSyntax)?.Right as GenericNameSyntax;
+        if (name is not { TypeArgumentList.Arguments: [var element] }) return null;
+        if (!_collectionNames.Contains(name.Identifier.ValueText)) return null;
+        if (type is QualifiedNameSyntax qualified && Normalize(qualified.Left.ToString()) != "System.Collections.Generic") return null;
+        return element;
+    }
 
     // Only result-container paths are proven; a call inside a return condition can still mutate a local.
     static bool IsReturnUse(IdentifierNameSyntax use, VariableDeclaratorSyntax declaration)
@@ -147,10 +161,26 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
 
     Shape Local(VariableDeclaratorSyntax declaration)
     {
-        if (declaration.Parent is not VariableDeclarationSyntax { Type.IsVar: true }) return Shape.Unknown;
+        if (declaration.Parent is not VariableDeclarationSyntax variables) return Shape.Unknown;
         if (declaration.Initializer is null) return Shape.Unknown;
         var uses = _body.DescendantNodes().OfType<IdentifierNameSyntax>().Where(node => node.Identifier.ValueText == declaration.Identifier.ValueText);
         if (uses.Any(use => !IsReturnUse(use, declaration))) return Shape.Unknown;
-        return Expression(declaration.Initializer.Value);
+        return variables.Type.IsVar ? Expression(declaration.Initializer.Value) : Declared(variables.Type);
+    }
+
+    Shape Declared(TypeSyntax type) => type switch
+    {
+        ArrayTypeSyntax array => Declared(array.ElementType),
+        NullableTypeSyntax nullable => Declared(nullable.ElementType),
+        _ => NamedDeclared(type)
+    };
+
+    Shape NamedDeclared(TypeSyntax type)
+    {
+        if (_types.TryGetValue(Normalize(type.ToString()), out var shape))
+        {
+            return shape is Shape.Event or Shape.Command ? shape : Shape.Unknown;
+        }
+        return CollectionElement(type) is { } element ? Declared(element) : Shape.Unknown;
     }
 }

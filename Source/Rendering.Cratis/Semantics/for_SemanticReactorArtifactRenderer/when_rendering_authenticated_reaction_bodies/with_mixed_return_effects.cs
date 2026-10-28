@@ -24,6 +24,7 @@ public class with_mixed_return_effects : Specification
             "return new[] { new TicketOpened(Title), (object)new Notify(\"id\", Title) };",
             "return [new TicketOpened(Title), new Notify(\"id\", Title)];",
             "yield return new TicketOpened(Title); yield return new Notify(\"id\", Title);",
+            "TicketOpened opened = new TicketOpened(Title); Notify command = new Notify(\"id\", Title); yield return opened; yield return command;",
             "if (Title.Length > 0) return new object[] { new TicketOpened(Title) }; return new object[] { new Notify(\"id\", Title) };",
             "return Title.Length > 0 ? new object[] { new TicketOpened(Title) } : new object[] { new Notify(\"id\", Title) };"
         ];

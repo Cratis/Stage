@@ -20,6 +20,11 @@ public class with_undeterminable_return_effects : Specification
         string[] bodies =
         [
             "return BuildEffects();",
+            "string label = Title; yield return label;",
+            "IEnumerable<object> effects = new[] { new TicketOpened(Title) }; return effects;",
+            "TicketOpened opened = new TicketOpened(Title); opened = new TicketOpened(Title); yield return opened;",
+            "TicketOpened[] opened = new[] { new TicketOpened(Title) }; Change(opened); return opened;",
+            "TicketOpened opened = new TicketOpened(Title); TicketOpened Alias() { return opened; } yield return opened;",
             "#if DEBUG\nreturn BuildEffects();\n#else\nreturn null;\n#endif",
             "object effects = new object[] { new TicketOpened(Title) }; return (IEnumerable<object>)effects;",
             "dynamic effects = BuildEffects(); return effects;",

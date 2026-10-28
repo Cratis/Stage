@@ -17,7 +17,7 @@ public class with_the_default_composition : a_register_project_render_request
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-frozen again for the item-change runtime: the only changed artifacts are the runtime sources the application carries.
-    const string Before = "ee756fde262281d5b0e9cddf9367805c0fba45fd584ea64d1b5aff59c0d570ea";
+    const string Before = "cfbb344c592226f7dea248f32a025faf66e652e72a880dd0ec203f7e338cc69a";
 
     ArtifactRenderPlan _plan = null!;
 

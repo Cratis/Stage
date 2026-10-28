@@ -91,25 +91,50 @@ def runner_locations(env):
     return list(dict.fromkeys(str(path) for path in paths))
 
 
+def mount_mapping(kernel):
+    mounts = kernel["Mounts"]
+    mapping = {mount["Destination"]: {field: mount.get(field) for field in ("Type", "Source", "Name", "RW")}
+               for mount in sorted(mounts, key=lambda mount: mount["Destination"])}
+    if len(mapping) != len(mounts):
+        raise RuntimeError("Unknown kernel mount set: duplicate Destination.")
+    return mapping
+
+
+def verify_mounts(mounts):
+    if len(mounts) > 16:
+        raise RuntimeError("Unsupported kernel mount set; cannot establish disk evidence.")
+    for mount in mounts:
+        if mount["Type"] not in ("bind", "volume"):
+            raise RuntimeError(f'Unsupported kernel mount Type for destination {mount["Destination"]}; cannot establish disk evidence.')
+
+
+def compare_mounts(mounts, baseline):
+    if mounts.keys() != baseline.keys():
+        raise RuntimeError("Writable container mapping changed: mount set.")
+    for destination, mount in mounts.items():
+        changed = ", ".join(field for field, value in mount.items() if value != baseline[destination][field])
+        if changed:
+            raise RuntimeError(f"Writable container mapping changed: mount {changed} for destination {destination}.")
+
+
 def writable_mounts(kernel):
     mounts = kernel["Mounts"]
-    if len(mounts) > 16 or any(m["Type"] not in ("bind", "volume") for m in mounts):
-        raise RuntimeError("Unsupported kernel storage mapping; cannot establish disk evidence.")
-    writable = [m["Destination"] for m in mounts if m["RW"]]
+    verify_mounts(mounts)
+    writable = sorted(m["Destination"] for m in mounts if m["RW"])
     if not {"/data/db", "/data/configdb"}.issubset(writable):
-        raise RuntimeError("Bundled MongoDB writable volume evidence is unavailable.")
+        raise RuntimeError("Bundled MongoDB writable mount set evidence is unavailable.")
     return writable
 
 
 def container_locations(kernel):
     if not kernel["State"]["Running"]:
-        raise RuntimeError("The job-owned pinned kernel must already be running.")
+        raise RuntimeError("The job-owned pinned kernel State.Running must be true.")
     configured = [entry.split("=", 1)[1] for entry in kernel["Config"]["Env"]
                   if entry.split("=", 1)[0] in ("TMPDIR", "TMP", "TEMP")]
     paths = ["/", "/tmp"] + writable_mounts(kernel) + configured
     if any(not path.startswith("/") or "\n" in path for path in paths):
-        raise RuntimeError("Unknown container temp/storage mapping.")
-    return list(dict.fromkeys(paths))
+        raise RuntimeError("Unknown container paths: temp/storage mapping.")
+    return sorted(set(paths))
 
 
 def capacity(domain, path, target, row):
@@ -133,24 +158,32 @@ def measure_paths(domain, paths, kernel_id):
 
 class DiskGuard:
     def __init__(self, locations, kernel_id, evidence):
-        self.locations, self.kernel_id, self.evidence = locations, kernel_id, Path(evidence)
+        self.locations = {domain: sorted(set(paths)) if domain == "kernel" else paths for domain, paths in locations.items()}
+        self.kernel_id, self.evidence = kernel_id, Path(evidence)
         self.kernel_mapping = self.inspect_kernel() if "kernel" in locations else None
         self.baseline = self.measure()
         self.peak_growth = 0
         (self.evidence / "disk-baseline.json").write_text(json.dumps({
-            "locations": locations, "availableBytes": self.baseline}, indent=2))
+            "locations": self.locations, "availableBytes": self.baseline}, indent=2))
         if not self.baseline or min(self.baseline.values()) < PREFLIGHT:
             raise RuntimeError("Stage 342 needs >=37 GiB free on every actual writable filesystem (25 GiB floor + 12 GiB headroom).")
 
     def inspect_kernel(self):
         kernel = json.loads(checked(["docker", "inspect", self.kernel_id]))[0]
-        if kernel["Id"] != self.kernel_id or container_locations(kernel) != self.locations["kernel"]:
-            raise RuntimeError("Writable container mapping changed or is unknown.")
-        return {"Mounts": kernel["Mounts"], "Paths": self.locations["kernel"]}
+        if kernel["Id"] != self.kernel_id:
+            raise RuntimeError("Writable container mapping changed: Id.")
+        mounts = mount_mapping(kernel)
+        baseline = getattr(self, "kernel_mapping", None)
+        if baseline is not None:
+            compare_mounts(mounts, baseline["Mounts"])
+        paths = container_locations(kernel)
+        if paths != self.locations["kernel"]:
+            raise RuntimeError("Writable container mapping changed: container paths.")
+        return {"Mounts": mounts, "Paths": paths}
 
     def measure(self):
-        if self.kernel_mapping is not None and self.inspect_kernel() != self.kernel_mapping:
-            raise RuntimeError("Writable container mapping changed during the runtime proof.")
+        if self.kernel_mapping is not None:
+            self.inspect_kernel()
         filesystems = {}
         for domain, paths in self.locations.items():
             filesystems.update(measure_paths(domain, paths, self.kernel_id))

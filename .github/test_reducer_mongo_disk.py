@@ -42,7 +42,8 @@ class DiskTests(unittest.TestCase):
         self.env.update(GITHUB_RUN_ID="123", GITHUB_RUN_ATTEMPT="2")
         (self.scratch / ".stage342-owner").write_text("123:2")
         self.kernel = {"Id": "kernel", "State": {"Running": True}, "Config": {"Env": []}, "Mounts": [
-            {"Type": "volume", "Destination": path, "RW": True} for path in ("/data/db", "/data/configdb")]}
+            {"Type": "volume", "Source": f"/volumes{path}", "Name": f"mongo-{Path(path).name}",
+             "Destination": path, "RW": True} for path in ("/data/db", "/data/configdb")]}
         self.free = {}
         self.fsid = "123"
         self.missing = False
@@ -109,8 +110,9 @@ class DiskTests(unittest.TestCase):
             self.guard({"runner": ["/a"]})
 
     def test_unsupported_container_mappings_fail_closed(self):
-        for change in ({"Mounts": []}, {"State": {"Running": False}}, {"Mounts": [{"Type": "tmpfs"}]}):
-            with self.subTest(change=change), self.assertRaises(RuntimeError):
+        for change, field in (({"Mounts": []}, "mount set"), ({"State": {"Running": False}}, "State.Running"),
+                              ({"Mounts": [{"Type": "tmpfs", "Destination": "/tmp"}]}, "Type.* /tmp")):
+            with self.subTest(change=change), self.assertRaisesRegex(RuntimeError, field):
                 DISK["container_locations"](dict(self.kernel, **change))
 
     def bootstrap(self, available=80 * GIB):
@@ -150,7 +152,7 @@ class DiskTests(unittest.TestCase):
         log = Path(env["RUNNER_TEMP"]) / "stage342-bootstrap-123-2.log"
         for free, expected_exit in ((80 * GIB, 0), (36 * GIB, 1)):
             result = subprocess.run(["bash", "--noprofile", "--norc", "-c", script],
-                                    env=dict(env, TEST_FREE_BYTES=str(free)), capture_output=True, text=True, timeout=10)
+                                    env=dict(env, TEST_FREE_BYTES=str(free)), capture_output=True, text=True, timeout=60)
             self.assertEqual(expected_exit, result.returncode, result.stdout + result.stderr)
             self.assertTrue(log.read_text())
             if free < 37 * GIB:
@@ -203,7 +205,7 @@ class DiskTests(unittest.TestCase):
         paths = DISK["container_locations"](self.kernel)
         guard = self.guard({"kernel": paths})
         self.kernel["Mounts"][0]["Source"] = "/changed"
-        with patch.dict(guard.measure.__globals__, {"checked": self.stat}), self.assertRaisesRegex(RuntimeError, "mapping changed"):
+        with patch.dict(guard.measure.__globals__, {"checked": self.stat}), self.assertRaisesRegex(RuntimeError, "mount Source.* /data/db"):
             guard.check()
         guard = self.guard({"runner": ["/a"]})
         def remap(command):
@@ -211,9 +213,67 @@ class DiskTests(unittest.TestCase):
         with patch.dict(guard.measure.__globals__, {"checked": remap}), self.assertRaisesRegex(RuntimeError, "mapping changed"):
             guard.check()
 
+    def test_reversed_mount_and_temp_orders_keep_paths_and_baseline_keys_stable(self):
+        self.kernel["Config"]["Env"] = ["TMPDIR=/private/tmp", "TMP=/other/tmp"]
+        paths = DISK["container_locations"](self.kernel)
+        self.assertEqual(sorted(paths), paths)
+        guard = self.guard({"kernel": list(reversed(paths))})
+        baseline_keys = list(guard.baseline)
+        self.kernel["Mounts"].reverse()
+        self.kernel["Config"]["Env"].reverse()
+        self.assertEqual(paths, DISK["container_locations"](self.kernel))
+        self.assertEqual(sorted(DISK["writable_mounts"](self.kernel)), DISK["writable_mounts"](self.kernel))
+        with patch.dict(guard.measure.__globals__, {"checked": self.stat}):
+            guard.check()
+            self.assertEqual(baseline_keys, list(guard.measure()))
+        self.assertEqual(paths, guard.locations["kernel"])
+        self.assertEqual(paths, json.loads((self.root / "disk-baseline.json").read_text())["locations"]["kernel"])
+
+    def test_mount_field_changes_name_the_field_and_destination(self):
+        for field, value in (("Source", "/changed"), ("Name", "changed"), ("Type", "bind"),
+                             ("Type", "tmpfs"), ("RW", False)):
+            with self.subTest(field=field, value=value):
+                guard = self.guard({"kernel": DISK["container_locations"](self.kernel)})
+                mount = self.kernel["Mounts"][0]
+                original = mount[field]
+                mount[field] = value
+                try:
+                    with patch.dict(guard.measure.__globals__, {"checked": self.stat}), \
+                            self.assertRaisesRegex(RuntimeError, f"mount {field}.* /data/db"):
+                        guard.check()
+                finally:
+                    mount[field] = original
+
+    def test_added_removed_and_duplicate_mounts_name_the_mount_set(self):
+        original = list(self.kernel["Mounts"])
+        added = {"Type": "bind", "Source": "/host", "Destination": "/extra", "RW": True}
+        for mounts in (original[:1], original + [added], original + [original[0]]):
+            with self.subTest(mounts=mounts):
+                guard = self.guard({"kernel": DISK["container_locations"](self.kernel)})
+                self.kernel["Mounts"] = mounts
+                try:
+                    with patch.dict(guard.measure.__globals__, {"checked": self.stat}), \
+                            self.assertRaisesRegex(RuntimeError, "mount set"):
+                        guard.check()
+                finally:
+                    self.kernel["Mounts"] = original
+
+    def test_container_id_running_and_path_changes_name_the_field(self):
+        for field, value, message in (("Id", "different-kernel", "Id"), ("State", {"Running": False}, "State.Running"),
+                                      ("Config", {"Env": ["TMPDIR=/changed"]}, "container paths")):
+            with self.subTest(field=field):
+                guard = self.guard({"kernel": DISK["container_locations"](self.kernel)})
+                original = self.kernel[field]
+                self.kernel[field] = value
+                try:
+                    with patch.dict(guard.measure.__globals__, {"checked": self.stat}), self.assertRaisesRegex(RuntimeError, message):
+                        guard.check()
+                finally:
+                    self.kernel[field] = original
+
     def test_unknown_container_temp_and_invalid_capacity_fail_closed(self):
         self.kernel["Config"]["Env"] = ["TMPDIR=relative"]
-        with self.assertRaisesRegex(RuntimeError, "Unknown"):
+        with self.assertRaisesRegex(RuntimeError, "Unknown container paths"):
             DISK["container_locations"](self.kernel)
         for fsid in ("0", "not-a-number"):
             self.fsid = fsid

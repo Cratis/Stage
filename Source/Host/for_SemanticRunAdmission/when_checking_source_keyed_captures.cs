@@ -24,7 +24,7 @@ public class when_checking_source_keyed_captures : Specification
     }
 
     [Fact] void should_run_a_capture_keyed_by_event_source_over_a_foreign_event() => _foreign.ShouldBeNull();
-    [Fact] void should_not_admit_a_model_whose_capture_reads_a_local_event_so_the_refusal_cannot_be_reached() => _local.ShouldBeOfExactType<InvalidSemanticContract>();
+    [Fact] void should_reject_a_model_whose_capture_reads_a_local_event_before_admission() => _local.ShouldBeOfExactType<InvalidSemanticContract>();
 
     static SemanticUnsupportedCapability? Check(bool local)
     {

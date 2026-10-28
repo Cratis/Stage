@@ -67,7 +67,7 @@ Inbox deliveries already carry an explicit text source; they are never inferred 
 In-process inbox/runtime specs cover matching sources, mismatch rejection and identical redelivery.
 Subscription transport, checkpoint and service-level differential proofs still require CI; these
 fixture and runtime checks do not establish them. The model validator rejects local-event
-source-keyed captures before Stage admission; Stage also keeps `STAGE-ESM-016` as a defensive check.
+source-keyed captures before Stage admission.
 Existing translation-shape and origin refusals remain in force. This is not admission of every v33
 construct.
 

@@ -33,7 +33,7 @@ public class with_a_graph_proven_omission : given.an_inventory_request
     [Fact] void should_retain_the_original_dependent_evidence() => Dependent.Degradations.Single().Evidence.ShouldEqual(_dependent);
     [Fact] void should_use_the_original_message_as_intent() => Dependent.Degradations.Single().Intent.ShouldEqual(_dependent.Diagnostic.Message);
     [Fact] void should_leave_the_root_without_causes() => Root.Degradations.Single().Roots.ShouldBeEmpty();
-    [Fact] void should_reference_the_root_degradation() => Dependent.Degradations.Single().Roots.ShouldEqual([new ArtifactRenderGapReference(Root.Identity, _root.Diagnostic.Code)]);
+    [Fact] void should_reference_the_root_degradation() => Dependent.Degradations.Single().Roots.SequenceEqual([new ArtifactRenderGapReference(Root.Identity, _root.Diagnostic.Code)]).ShouldBeTrue();
     [Fact] void should_pass_plan_inventory_validation() => Catch.Exception(() => _plan.WithInventory(_inventory)).ShouldBeNull();
-    [Fact] void should_carry_typed_causes_through_report_finalization() => CratisPlanReports.Finalize(_request, _plan, _options, _causes).Inventory!.Constructs.Single(construct => construct.Identity == Dependent.Identity).Degradations.Single().Roots.ShouldEqual(Dependent.Degradations.Single().Roots);
+    [Fact] void should_carry_typed_causes_through_report_finalization() => CratisPlanReports.Finalize(_request, _plan, _options, _causes).Inventory!.Constructs.Single(construct => construct.Identity == Dependent.Identity).Degradations.Single().Roots.SequenceEqual(Dependent.Degradations.Single().Roots).ShouldBeTrue();
 }

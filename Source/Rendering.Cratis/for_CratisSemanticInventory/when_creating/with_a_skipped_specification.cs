@@ -23,7 +23,7 @@ public class with_a_skipped_specification : given.an_inventory_request
     ArtifactRenderConstruct Omitted => _inventory.Constructs.Single(construct => construct.Identity == _warning.Artifact);
 
     [Fact] void should_keep_the_refused_outcome() => Omitted.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
-    [Fact] void should_keep_the_original_warning_reason() => Omitted.RefusalReasons.ShouldEqual([_warning]);
+    [Fact] void should_keep_the_original_warning_reason() => Omitted.RefusalReasons.SequenceEqual([_warning]).ShouldBeTrue();
     [Fact] void should_not_add_degradation_gaps() => Omitted.Degradations.ShouldBeEmpty();
     [Fact] void should_pass_plan_inventory_validation() => Catch.Exception(() => _plan.WithInventory(_inventory)).ShouldBeNull();
 }

@@ -55,7 +55,7 @@ static class CratisSemanticInventory
     {
         var omission = plan.Refusals.SingleOrDefault(refusal => refusal.Artifact == identity);
         var evidence = plan.Degradations.Where(gap => gap.Diagnostic.Artifact == identity).ToArray();
-        if (omission is not null && !omission.Codes.All(code => evidence.Any(gap => gap.Diagnostic.Code == code))) return Omitted(plan, kind, address, omission);
+        if (omission is not null && !IsGraphProvenOmission(omission, evidence)) return Omitted(plan, kind, address, omission);
         var placeholder = omission is null ? ArtifactRenderPlaceholderKind.ThrowingOperationBody : ArtifactRenderPlaceholderKind.GraphProvenOmittedLeaf;
         return new(identity, kind, null, evidence.Length == 0 ? ArtifactRenderOutcome.Rendered : ArtifactRenderOutcome.Degraded)
         {
@@ -68,13 +68,20 @@ static class CratisSemanticInventory
         };
     }
 
+    static bool IsGraphProvenOmission(ArtifactRenderRefusal omission, ArtifactRenderDegradation[] evidence) =>
+        (omission.Codes.Contains(ArtifactRenderDegradationCodes.UnknownOwnerMember) || omission.Codes.Contains(ArtifactRenderDegradationCodes.DependencyDegradation)) &&
+        omission.Codes.All(code => evidence.Any(gap => gap.Diagnostic.Code == code));
+
     static ImmutableArray<ArtifactRenderGapReference> Roots(
         ArtifactRenderDegradation gap,
         ImmutableArray<ArtifactRenderDegradation> evidence,
         IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>>? omissionCauses)
     {
         if (gap.Diagnostic.Code != ArtifactRenderDegradationCodes.DependencyDegradation ||
-            omissionCauses is null || !omissionCauses.TryGetValue(gap.Diagnostic.Artifact, out var roots)) return [];
+            omissionCauses is null || !omissionCauses.TryGetValue(gap.Diagnostic.Artifact, out var roots))
+        {
+            return [];
+        }
         return [.. evidence.Where(root => roots.Contains(root.Diagnostic.Artifact) && root.Diagnostic.Code != ArtifactRenderDegradationCodes.DependencyDegradation)
             .Select(root => new ArtifactRenderGapReference(root.Diagnostic.Artifact, root.Diagnostic.Code)).Distinct()
             .OrderBy(root => root.Owner.ToString(), StringComparer.Ordinal).ThenBy(root => root.Code, StringComparer.Ordinal)];

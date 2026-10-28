@@ -326,6 +326,8 @@ A refused construct requires refusal reasons and no degradation entries; indepen
 degraded constructs may coexist in one inventory, with refusal taking precedence. When supplied
 with graph-proven omission evidence and typed causes, the inventory represents omitted roots and
 dependents as `Degraded` with `GraphProvenOmittedLeaf` gaps, retaining the original warning evidence.
+Only refusals containing `001` or `005` with matching degradation evidence for every refusal code
+receive this omission shape; other degradations retain their throwing-body placeholders.
 Root gaps have no cause references; `005` dependency gaps reference the original root owners and
 codes, deduplicated and sorted by owner and code. Skipped specifications without degradation
 evidence remain `Refused` with their original omission warnings. This inventory support does not

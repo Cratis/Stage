@@ -41,6 +41,7 @@ internal static class ApplicationTriggerProbeSource
         using Cratis.Chronicle;
         using Cratis.Chronicle.Events;
         using Cratis.Chronicle.Occurrences;
+        using Cratis.Chronicle.Registrations;
         using Microsoft.Extensions.DependencyInjection;
         using Reactions.Work.Processing.Batches;
         using Xunit;
@@ -61,8 +62,11 @@ internal static class ApplicationTriggerProbeSource
                     var injectedStore = app.Services.GetRequiredService<IEventStore>();
                     var firstStore = await client.GetEventStore(injectedStore.Name, "recording-one");
                     var secondStore = await client.GetEventStore(injectedStore.Name, "recording-two");
-                    await firstStore.DiscoverAll().WaitAsync(TimeSpan.FromSeconds(90));
-                    await secondStore.DiscoverAll().WaitAsync(TimeSpan.FromSeconds(90));
+                    foreach (var store in new[] { firstStore, secondStore })
+                    {
+                        var registration = await store.WaitForRegistration(TimeSpan.FromSeconds(90));
+                        Assert.True(registration.IsSuccess, $"Registration failed: {registration.Failure}; {string.Join("; ", registration.Failures)}");
+                    }
                     await Verify(firstStore, injectedStore, client);
                     Assert.Empty(await secondStore.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                     await Verify(secondStore, injectedStore, client);

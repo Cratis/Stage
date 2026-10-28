@@ -100,6 +100,7 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
         using Cratis.Chronicle;
         using Cratis.Chronicle.EventSequences;
         using Cratis.Chronicle.Occurrences;
+        using Cratis.Chronicle.Registrations;
         using Microsoft.Extensions.DependencyInjection;
         using Reactions.Work.Processing.Batches;
         using Xunit;
@@ -115,7 +116,7 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
             {
                 var connection = Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION");
                 Assert.False(string.IsNullOrWhiteSpace(connection));
-                await using var app = Stage343Host.Create(connection!, $"stage343-invocations-{Guid.NewGuid():N}");
+                await using var app = Stage343Host.Create(connection!, $"s343i-{Guid.NewGuid():N}");
                 try
                 {
                     await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(90));
@@ -125,8 +126,11 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
                     var handler = ActivatorUtilities.CreateInstance<ProcessBatch>(app.Services);
                     var one = await client.GetEventStore(injected.Name, "recording-one");
                     var two = await client.GetEventStore(injected.Name, "recording-two");
-                    await one.DiscoverAll().WaitAsync(TimeSpan.FromSeconds(90));
-                    await two.DiscoverAll().WaitAsync(TimeSpan.FromSeconds(90));
+                    foreach (var store in new[] { one, two })
+                    {
+                        var registration = await store.WaitForRegistration(TimeSpan.FromSeconds(90));
+                        Assert.True(registration.IsSuccess, $"Registration failed: {registration.Failure}; {string.Join("; ", registration.Failures)}");
+                    }
                     await VerifySuccess(one, handler, executor);
                     Assert.Empty(await two.EventLog.GetFromSequenceNumber(EventSequenceNumber.First));
                     await VerifySuccess(two, handler, executor);

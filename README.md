@@ -311,9 +311,11 @@ npm ci --prefix Source/Frontend
 npm test --prefix Source/Frontend
 npm run build --prefix Source/Frontend
 dotnet build -c Debug
-dotnet test -c Debug
+dotnet test -c Debug --no-build
 dotnet build -c Release
 ```
+
+Inner-loop builds may use `-p:RunAnalyzers=false`, but analyzer-complete Debug and Release gate builds remain mandatory before pushing.
 
 `dotnet test` needs a Chronicle source checkout for the projection conformance specs. They compile Chronicle's actual
 `ProjectionDefinitionSyntaxVisitor` in memory against the released `Cratis.Chronicle.Infrastructure` package and

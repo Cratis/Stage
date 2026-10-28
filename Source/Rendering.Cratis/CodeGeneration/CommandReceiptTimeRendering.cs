@@ -12,7 +12,7 @@ internal static class CommandReceiptTimeRendering
 {
     internal static RenderedFile Render(string rootNamespace, IEnumerable<GeneratedTypeName>? generated = null)
     {
-        var builder = (generated is null ? new CSharpCodeBuilder() : new(GeneratedProjects.Application, generated)).Namespace($"{rootNamespace}.GeneratedCommands")
+        var builder = (generated is null ? new CSharpCodeBuilder() : new(GeneratedProjects.Application, generated, false)).Namespace($"{rootNamespace}.GeneratedCommands")
             .Summary("Reads the receipt time captured by the active Arc dispatch.")
             .OpenBlock("internal static class CommandReceiptTime")
             .Summary("Gets the dispatch receipt at Chronicle's UTC-millisecond precision.")

@@ -9,6 +9,8 @@ import { ColorScheme, useLayoutConfig, defaultBlueprintThemes } from '@cratis/sc
 import { screenHash, stageLocaleComponent, stageNavigationTreeComponent, stageThemeToggleComponent } from './blueprint';
 import { opensElsewhere, type NavigationNode } from './navigationTree';
 import { useStageData } from './stageData';
+import { externalRouteHref } from './externalRouteHref';
+import { StageScreenTables } from './stageScreenTables';
 
 /** What the Stage's own components need that the document itself does not carry. */
 export interface StageChromeState {
@@ -43,12 +45,11 @@ export function StageLocale() {
 }
 
 /**
- * The theme as one toggle: an icon button that shows a moon in a light theme and a sun in a dark one, and switches to the other, under a
- * `Theme` headline. The themes it switches between are the light and the dark one the Stage ships.
+ * The theme as one toggle: an icon button that shows a moon in a light theme and a sun in a dark one, and switches to the other, with
+ * nothing else. The themes it switches between are the light and the dark one the Stage ships.
  */
 export function StageThemeToggle({ element }: RegisteredComponentProps) {
     const { config, setThemeName, setColorScheme } = useLayoutConfig();
-    const label = typeof element.properties.label === 'string' ? element.properties.label : 'Theme';
     const current = defaultBlueprintThemes.find(theme => theme.name === config.themeName);
     const dark = current?.isDark ?? config.colorScheme === ColorScheme.Dark;
     const target = defaultBlueprintThemes.find(theme => (theme.isDark ?? false) !== dark);
@@ -57,7 +58,6 @@ export function StageThemeToggle({ element }: RegisteredComponentProps) {
     const action = dark ? 'Switch to a light theme' : 'Switch to a dark theme';
     return (
         <div className='stage-theme-toggle' data-scene-id={element.id}>
-            <h3 className='layout-config-section-title'>{label}</h3>
             <button
                 type='button'
                 className='stage-theme-toggle__button'
@@ -117,18 +117,21 @@ function NavigationEntryLink({ node, screen, activeScreen }: { node: NavigationN
     const navigation = useContext(SceneNavigationContextInternal);
     const mode = node.presentation === 'icon' || node.presentation === 'text' ? node.presentation : 'both';
     const destination = node.destination;
-    const external = destination?.kind === 'external' && destination.route !== undefined;
+    const external = destination?.kind === 'external';
     const execute = destination && navigation && !external && opensElsewhere(destination)
         ? (event: { preventDefault: () => void }) => {
             event.preventDefault();
             navigation.navigate(destination);
         }
         : undefined;
+    const href = external ? externalRouteHref(destination.route) : screenHash(screen);
+    const refused = external && href === undefined;
 
     return (
         <a
-            href={external ? destination.route : screenHash(screen)}
-            rel={external ? 'noreferrer' : undefined}
+            href={href}
+            rel={external && !refused ? 'noreferrer' : undefined}
+            aria-disabled={refused ? 'true' : undefined}
             aria-current={screen === activeScreen ? 'page' : undefined}
             aria-label={mode === 'icon' ? node.label : undefined}
             data-presentation={node.presentation}
@@ -164,7 +167,7 @@ export function StageOutlet({ element }: RegisteredComponentProps) {
                     <button type='button' className='scene-outlet-close' aria-label='Close' onClick={() => navigation?.closeOutlet(name)}>Close</button>
                 </div>
             )}
-            {screen && outlets && <SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} />}
+            {screen && outlets && <StageScreenTables element={screen}><SceneElementView element={screen} registry={outlets.registry} resolveBinding={data.resolveBinding} /></StageScreenTables>}
         </div>
     );
 }

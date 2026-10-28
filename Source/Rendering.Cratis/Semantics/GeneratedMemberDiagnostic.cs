@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Identifies generated member casing and concept construction mistakes without rewriting the submitted body.
+/// Identifies generated member casing and constructor argument mistakes without rewriting the submitted body.
 /// </summary>
 internal static class GeneratedMemberDiagnostic
 {
@@ -15,15 +15,18 @@ internal static class GeneratedMemberDiagnostic
     {
         if (diagnostic.Location.SourceTree != model.SyntaxTree) return string.Empty;
         var node = model.SyntaxTree.GetRoot().FindNode(diagnostic.Location.SourceSpan);
-        if (diagnostic.Id == "CS1503") return ConceptConstructionHint(node, model);
-        if (diagnostic.Id is not ("CS1061" or "CS0117")) return string.Empty;
-        var access = node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax);
-        var (receiver, name) = access switch
+        return diagnostic.Id switch
         {
-            MemberAccessExpressionSyntax member => (member.Expression, member.Name),
-            MemberBindingExpressionSyntax member => (member.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression, member.Name),
-            _ => (null, null)
+            "CS1503" => ConceptValueHint(node, model) + ConceptConstructionHint(node, model) + GeneratedConstructorHints.NamedArguments(node, model),
+            "CS0029" or "CS0266" => ConceptValueHint(node, model),
+            "CS1061" or "CS0117" => MemberCasingHint(node, model),
+            _ => string.Empty
         };
+    }
+
+    static string MemberCasingHint(SyntaxNode node, SemanticModel model)
+    {
+        var (receiver, name) = MemberAccess(node);
         if (receiver is null || name is null) return string.Empty;
         var type = model.GetTypeInfo(receiver).Type ?? model.GetSymbolInfo(receiver).Symbol as ITypeSymbol;
         if (type?.DeclaringSyntaxReferences.IsEmpty != false) return string.Empty;
@@ -35,6 +38,25 @@ internal static class GeneratedMemberDiagnostic
         return matches.Length == 1
             ? $" Use generated member '{matches[0].Name}' instead of authored name '{authored}'."
             : string.Empty;
+    }
+
+    static (ExpressionSyntax? Receiver, SimpleNameSyntax? Name) MemberAccess(SyntaxNode node) =>
+        node.AncestorsAndSelf().FirstOrDefault(candidate => candidate is MemberAccessExpressionSyntax or MemberBindingExpressionSyntax) switch
+        {
+            MemberAccessExpressionSyntax member => (member.Expression, member.Name),
+            MemberBindingExpressionSyntax member => (member.Ancestors().OfType<ConditionalAccessExpressionSyntax>().FirstOrDefault()?.Expression, member.Name),
+            _ => (null, null)
+        };
+
+    static string ConceptValueHint(SyntaxNode node, SemanticModel model)
+    {
+        var expression = node.AncestorsAndSelf().OfType<ExpressionSyntax>().FirstOrDefault();
+        if (expression is null) return string.Empty;
+        var info = model.GetTypeInfo(expression);
+        return info.Type is INamedTypeSymbol concept && ConceptUnderlyingType(concept) is { } primitive &&
+            SymbolEqualityComparer.Default.Equals(info.ConvertedType, primitive)
+                ? $" Use .Value to read the underlying value of generated concept '{concept.Name}'."
+                : string.Empty;
     }
 
     static string ConceptConstructionHint(SyntaxNode node, SemanticModel model)

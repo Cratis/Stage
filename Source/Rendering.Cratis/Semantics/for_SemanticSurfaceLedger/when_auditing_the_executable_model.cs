@@ -51,6 +51,8 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticProjection.Target")]
     [InlineData("SemanticProjectionTargetKind.Event")]
     [InlineData("SemanticSlice.Direction")]
+    [InlineData("SemanticTranslationDirection.Inbound")]
+    [InlineData("SemanticTranslationDirection.Outbound")]
     [InlineData("SemanticSliceKind.Translate")]
     [InlineData("SemanticCapture.EventsSource")]
     [InlineData("SemanticCaptureEventsSource.Events")]
@@ -239,6 +241,10 @@ public class when_auditing_the_executable_model : Specification
         foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
         {
             yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
+        }
+        foreach (var member in Enum.GetNames<SemanticTranslationDirection>())
+        {
+            yield return $"{nameof(SemanticTranslationDirection)}.{member}";
         }
     }
 

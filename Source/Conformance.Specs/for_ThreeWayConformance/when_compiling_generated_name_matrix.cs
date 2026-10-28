@@ -342,7 +342,7 @@ public class when_compiling_generated_name_matrix
     {
         var proof = QualifiedOutputProof.Verify([new($"Projects/{row}.cs", content)]);
         Assert.True(proof.Failures.Count == 0, string.Join(Environment.NewLine, proof.Failures));
-        Assert.Contains(qualified, proof.Rewritten.Single().Content, StringComparison.Ordinal);
+        FrameworkAliasAssertions.Verify(new($"Projects/{row}.cs", content), proof.Rewritten, qualified);
     }
 
     // Cases that are not model shapes: Cratis.Arc.Identity is a global using and also declares IIdentityProvider, and a

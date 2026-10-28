@@ -28,6 +28,12 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     /// </summary>
     public ImmutableDictionary<SemanticId, EffectiveSpecification> SpecificationOrigins { get; init; } = [];
 
+    /// <summary>Gets the actual typed address assignments retained from this compilation's identity catalog.</summary>
+    public ImmutableArray<SemanticIdentityAssignment> SemanticIdentities { get; init; } = [];
+
+    /// <summary>Gets the authoritative immutable compiler catalog, including native legacy-bootstrap resolution.</summary>
+    public SemanticIdentityCatalog? IdentityCatalog { get; init; }
+
     /// <summary>Requirements emitted by the compilation.</summary>
     public ImmutableArray<SemanticImplementationRequirement> ImplementationRequirements { get; init; } = [];
 

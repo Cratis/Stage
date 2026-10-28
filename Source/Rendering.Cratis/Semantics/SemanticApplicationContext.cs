@@ -19,6 +19,7 @@ internal sealed class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
+    readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypeSeed;
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
@@ -42,8 +43,8 @@ internal sealed class SemanticApplicationContext
         ReducerConvention = reducerConvention;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
-        Concepts = Application.Concepts.ToDictionary(_ => _.Id);
-        Types = Application.Types.ToDictionary(_ => _.Id);
+        Concepts = IndexIdentities(Application.Concepts, _ => _.Id, "concept");
+        Types = IndexIdentities(Application.Types, _ => _.Id, "composite type");
 
         foreach (var module in Application.Modules)
         {
@@ -53,23 +54,30 @@ internal sealed class SemanticApplicationContext
             }
         }
 
-        Events = _slices.Values.SelectMany(_ => _.Slice.Events).ToDictionary(_ => _.Id);
-        Commands = _slices.Values.SelectMany(_ => _.Slice.Commands).ToDictionary(_ => _.Id);
-        ReadModels = _slices.Values.SelectMany(_ => _.Slice.ReadModels).ToDictionary(_ => _.Id);
-        Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+        Events = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Events), _ => _.Id, "event");
+        Commands = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Commands), _ => _.Id, "command");
+        ReadModels = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.ReadModels), _ => _.Id, "read model");
+        Projections = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Projections), _ => _.Id, "projection");
         Reducers = [.. _slices.Values.SelectMany(_ => _.Slice.Reducers)];
-        Queries = _slices.Values.SelectMany(_ => _.Slice.Queries).ToDictionary(_ => _.Id);
+        Queries = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Queries), _ => _.Id, "query");
         MemberNames = new(Commands.Values, ReadModels.Values, Queries.Values);
-        Specifications = _slices.Values.SelectMany(_ => _.Slice.Specifications).ToDictionary(_ => _.Id);
+        Specifications = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Specifications), _ => _.Id, "specification");
         IdentifierConcepts = FindIdentifierConcepts();
         Constraints = [.. _slices.Values.SelectMany(located => located.Slice.Constraints.Select(constraint => (located.Slice, constraint)))];
-        _generatedTypes = new(() =>
+        _generatedTypeSeed = new(() =>
         [
             new(string.Empty, "Program"),
+            .. CaptureSourceTypes(),
             .. SemanticCratisAdmission.GeneratedDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
         _responseTypes = new(ResolveResponseTypes);
+        _generatedTypes = new(() =>
+        [
+            .. _generatedTypeSeed.Value,
+            .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+        ]);
     }
 
     /// <summary>
@@ -162,6 +170,8 @@ internal sealed class SemanticApplicationContext
 
     internal GeneratedMemberNames MemberNames { get; }
 
+    internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
@@ -217,13 +227,13 @@ internal sealed class SemanticApplicationContext
     /// names wherever that provably binds the same and decides the file's using directives.
     /// </summary>
     /// <returns>The builder.</returns>
-    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes);
+    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application);
 
     /// <summary>
     /// Creates a builder for a generated specification file.
     /// </summary>
     /// <returns>The builder.</returns>
-    internal CSharpCodeBuilder SpecificationBuilder() => new(GeneratedProjects.Specifications, GeneratedTypes);
+    internal CSharpCodeBuilder SpecificationBuilder() => new(GeneratedProjects.Specifications, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application);
 
     internal SemanticCaptureMemberPlan CaptureMembers(SemanticCapture capture)
     {
@@ -288,7 +298,7 @@ internal sealed class SemanticApplicationContext
             };
         }
 
-        Projections = _slices.Values.SelectMany(_ => _.Slice.Projections).ToDictionary(_ => _.Id);
+        Projections = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Projections), _ => _.Id, "projection");
 
         // Only a projection whose scope the scoped admission takes is converted: any other keeps its flat refusal.
         SemanticProjectionScope? RenderableScope(SemanticProjection projection) =>
@@ -299,6 +309,20 @@ internal sealed class SemanticApplicationContext
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
             ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
             !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    static Dictionary<SemanticId, T> IndexIdentities<T>(IEnumerable<T> declarations, Func<T, SemanticId> identity, string kind)
+    {
+        var index = new Dictionary<SemanticId, T>();
+        foreach (var declaration in declarations)
+        {
+            var id = identity(declaration);
+            if (!index.TryAdd(id, declaration))
+            {
+                throw UnsupportedSemanticRendering.For($"duplicate {kind} identity", id);
+            }
+        }
+        return index;
     }
 
     static IReadOnlyList<SemanticFeature> FindFeaturePath(SemanticFeature feature, SemanticId slice)
@@ -345,16 +369,30 @@ internal sealed class SemanticApplicationContext
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
             .Select(_ => _.Type.Target)
-            .Concat(Request.Model.SemanticVersion == SemanticVersion.V32
+            .Concat(Request.Model.SemanticVersion.Major == SemanticVersion.V32.Major
                 ? _slices.Values.Where(located => !located.Slice.Captures.IsDefaultOrEmpty)
                     .SelectMany(located => located.Slice.Captures).SelectMany(capture => capture.Appends)
                     .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)
                     .Select(append => append.EventSourceType.Target)
                 : [])];
 
+    IEnumerable<GeneratedTypeName> CaptureSourceTypes()
+    {
+        var sources = _slices.Values.SelectMany(located => located.Slice.Captures)
+            .Where(capture => capture.EventsSource is not null)
+            .SelectMany(capture => capture.EventsSource!.Events).Distinct();
+        foreach (var id in sources)
+        {
+            var contract = Events[id];
+            yield return new(
+                SliceNaming.Namespace(RootNamespace, DeclaringSlice(id).Path),
+                SemanticCaptureIdentifier.Decode(Identifiers.ToPascalCase(contract.Name)));
+        }
+    }
+
     Dictionary<SemanticId, string> ResolveResponseTypes()
     {
-        var declared = GeneratedTypes.Select(type => $"{type.Namespace}.{type.Name}").ToHashSet(StringComparer.Ordinal);
+        var declared = _generatedTypeSeed.Value.Select(type => $"{type.Namespace}.{type.Name}").ToHashSet(StringComparer.Ordinal);
         var namespaces = NamespacePaths.ToHashSet(StringComparer.Ordinal);
         var names = new Dictionary<SemanticId, string>();
         foreach (var located in _slices.Values)

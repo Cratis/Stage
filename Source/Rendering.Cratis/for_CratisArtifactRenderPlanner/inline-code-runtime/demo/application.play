@@ -1,0 +1,13 @@
+domain Cratis.Samples.Billing
+
+concept PaymentId : Uuid
+
+concept InvoiceId : Uuid
+
+concept Money : Decimal
+
+policy IsFinanceStaff
+  ```csharp
+    var department = context.Identity.ClaimValue("department");
+    return department is not null && department.StartsWith("Finance", StringComparison.Ordinal);
+    ```

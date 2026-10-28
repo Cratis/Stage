@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Text;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 namespace Cratis.Stage.Rendering.Cratis;
 
@@ -42,7 +43,7 @@ static class GeneratedFileHeader
         var builder = new StringBuilder();
         foreach (var line in lines)
         {
-            var text = line.TrimEnd();
+            var text = CSharpCodeBuilder.NormalizeLineComment(line.TrimEnd());
             builder.Append(text.Length == 0 ? "//" : $"// {text}").Append('\n');
         }
 

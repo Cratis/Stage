@@ -54,7 +54,7 @@ internal static class SemanticReducerArtifactRenderer
             var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path);
             var eventType = $"global::{eventNamespace}.{Identifiers.ToPascalCase(@event.Name)}";
             var descriptor = context.Request.TypedContextDescriptors.Single(_ => _.RequirementId == transition.RequirementId && _.OperationId == reducer.ReadModel);
-            var wrapper = $"TypedContext_{SemanticTypedContextRenderer.Suffix(descriptor)}";
+            var wrapper = SemanticTypedContextRenderer.WrapperName(descriptor);
             var helper = HelperName(transition.RequirementId);
             var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
             var body = analysisRequirement == transition.RequirementId ? analysisBody : "throw new global::System.NotImplementedException();";

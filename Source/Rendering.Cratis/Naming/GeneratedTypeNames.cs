@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
@@ -148,6 +149,10 @@ internal static class GeneratedTypeNames
             foreach (var readModel in slice.ReadModels)
             {
                 foreach (var name in Names(ns, readModel.Name, readModel.Id, "ReadModel")) yield return name;
+                if (SemanticVersionFeatures.HasCompositeKey(readModel))
+                {
+                    foreach (var name in Names(ns, $"{GeneratedPascalCase.From(readModel.Name)}Key", readModel.Id, "ReadModelKey", generated: true)) yield return name;
+                }
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {

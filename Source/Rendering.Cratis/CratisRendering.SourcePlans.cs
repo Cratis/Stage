@@ -72,11 +72,11 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError(mismatch)]);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot, FileHeader = admittedOptions.FileHeader })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
-        var artifacts = GeneratedFileHeader.Apply(profile, CratisScaffoldArtifacts.Render(profile, options.RootNamespace, []));
+        var artifacts = ServiceLayout.Apply(profile, GeneratedFileHeader.Apply(profile, CratisScaffoldArtifacts.Render(profile, options.RootNamespace, [])));
         ImmutableArray<CratisPlanDiagnostic> diagnostics = SceneCompositionInput.IsCarriedBy(profile)
             ? [new("STAGE-PLAN-031", ArtifactRenderDiagnosticSeverity.Information, "Scene artifacts are produced only by application-scope plans.", default, null)]
             : [];
@@ -121,6 +121,8 @@ public static partial class CratisRendering
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, resolved.Scopes[0])
         {
             AdditionalScopes = resolved.Scopes.RemoveAt(0),
+            SemanticIdentities = loaded.SemanticIdentities,
+            IdentityCatalog = loaded.IdentityCatalog,
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = loaded.ImplementationContents,
             AttachmentDiagnostics = loaded.AttachmentDiagnostics,
@@ -131,7 +133,7 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError(mismatch)], loaded.Model.Revision);
         }
-        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, RepositoryRoot = options.RepositoryRoot, FileHeader = admittedOptions.FileHeader })
+        if (admittedOptions != new CratisRenderingOptions(options.ProjectName, options.RootNamespace) { Refusals = admittedOptions.Refusals, Strict = admittedOptions.Strict, RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout, FileHeader = admittedOptions.FileHeader })
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [.. sourceDiagnostics, ProfileError("The caller's profile project and root namespace must match the plan options.")], loaded.Model.Revision);
         }
@@ -145,14 +147,10 @@ public static partial class CratisRendering
         var diagnostics = sourceDiagnostics.AddRange(plan.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null)));
         if (!sourceDiagnostics.IsEmpty)
         {
-            var removals = sourceDiagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : plan.RequiredRemovals;
-            plan = ArtifactRenderPlan.Create(
+            plan = CratisPlanDiagnosticReconstruction.Append(
                 request,
-                plan.Artifacts,
-                [.. plan.Diagnostics, .. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))],
-                plan.ImplementationGaps,
-                plan.Refusals,
-                removals);
+                plan,
+                [.. sourceDiagnostics.Select(diagnostic => new ArtifactRenderDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Source is null ? diagnostic.Message : $"{diagnostic.Source}: {diagnostic.Message}", diagnostic.Artifact))]);
         }
 
         return CratisPlanResult.Create(plan.ApplicationName, plan.Artifacts, diagnostics, plan.SemanticRevision, plan);
@@ -168,19 +166,25 @@ public static partial class CratisRendering
     static CratisPlanDiagnostic ProfileError(string mismatch) =>
         CratisPlanResult.Error("STAGE-CRATIS-001", $"The artifact render profile is not the exact package-owned Cratis profile. {mismatch}");
 
+    static CratisPlanDiagnostic? OptionsError(CratisPlanOptions options, bool scaffoldOnly)
+    {
+        if (scaffoldOnly && options.Domain.Length > 0) return CratisPlanResult.Error("STAGE-PLAN-022", "Scaffold-only planning does not accept a domain.");
+
+        return options.ServiceLayout && options.RepositoryRoot
+            ? CratisPlanResult.Error("STAGE-PLAN-028", "ServiceLayout and RepositoryRoot cannot be combined; the repository plan owns repository-root files.")
+            : null;
+    }
+
     static (ArtifactRenderProfile? Profile, CratisPlanDiagnostic? Diagnostic) Prepare(CratisPlanOptions options, bool scaffoldOnly)
     {
-        if (scaffoldOnly && options.Domain.Length > 0)
-        {
-            return (null, CratisPlanResult.Error("STAGE-PLAN-022", "Scaffold-only planning does not accept a domain."));
-        }
+        if (OptionsError(options, scaffoldOnly) is { } optionsError) return (null, optionsError);
         if (!DomainPlacementInput.TryNormalize(options.Domain, out var domain))
         {
             return (null, CratisPlanResult.Error("STAGE-PLAN-020", "Domain must contain valid relative C# name segments, without traversal or empty segments."));
         }
         try
         {
-            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot });
+            var profile = CreateProfile(options.ApplicationName, new(options.ProjectName, options.RootNamespace) { RepositoryRoot = options.RepositoryRoot, ServiceLayout = options.ServiceLayout });
             if (DomainPlacementInput.IsReserved(domain, profile))
             {
                 return (null, CratisPlanResult.Error("STAGE-PLAN-021", "Domain collides with an application-root scaffold or reserved folder."));
@@ -195,38 +199,7 @@ public static partial class CratisRendering
                 profile = supplied;
             }
 
-            if (!Enum.IsDefined(options.Refusals))
-            {
-                return (null, ProfileError("The refusal mode is unknown."));
-            }
-            if (options.Refusals != ArtifactRefusalMode.Refuse)
-            {
-                if (profile.Inputs.Any(input => input.Name == RefusalModeInput.Name))
-                {
-                    return (null, ProfileError("The caller's profile must omit refusal mode when the Refusals option is set."));
-                }
-                profile = ArtifactRenderProfile.Create(
-                    profile.Target,
-                    profile.TargetVersion,
-                    profile.Renderer,
-                    profile.RendererVersion,
-                    [.. profile.Inputs, RefusalModeInput.Create(options.Refusals)]);
-            }
-
-            if (!FileHeaderInput.IsValid(options.FileHeader))
-            {
-                return (null, CratisPlanResult.Error("STAGE-PLAN-023", "Every file header line must be non-null plain text without line breaks."));
-            }
-            if (!options.FileHeader.IsDefaultOrEmpty)
-            {
-                if (profile.Inputs.Any(input => input.Name == FileHeaderInput.Name))
-                {
-                    return (null, ProfileError("The caller's profile must omit the file header when the FileHeader option is set."));
-                }
-                profile = FileHeaderInput.With(profile, options.FileHeader);
-            }
-
-            return (DomainPlacementInput.WithDomain(profile, domain), null);
+            return PrepareStrictProfile(options, profile, domain);
         }
         catch (InvalidCratisBackendApplicationScaffold exception)
         {

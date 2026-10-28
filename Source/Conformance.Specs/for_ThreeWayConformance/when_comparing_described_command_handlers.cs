@@ -44,7 +44,7 @@ public class when_comparing_described_command_handlers : Specification
             {
                 unsupported.Capability.ShouldEqual(SemanticExecutionCapability.ImplementationBody);
                 stage.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.ImplementationBody);
-                stage.Unsupported.Details.ShouldEqual($"STAGE-IMPL-002: {unsupported.Details}");
+                stage.Unsupported.Details.ShouldEqual("STAGE-IMPL-002: Command 'ApplyLateFee' is described but not implemented (requirement 3cb555f44dfd593cdbca266c2fa79fcde1604de451ae50b0c233d7ab9420f671); its handler body requires a target.");
             }
             else if (reference.Execution is SemanticRejected rejected)
             {

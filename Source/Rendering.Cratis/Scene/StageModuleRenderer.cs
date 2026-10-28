@@ -32,7 +32,7 @@ internal static class StageModuleRenderer
     /// <returns>The generated module text.</returns>
     public static string Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
-        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Export: command.Name, Module: Module(slice))))
+        var commands = slices.SelectMany(slice => slice.Slice.Commands.Select(command => (command.Name, Export: GeneratedPascalCase.From(command.Name), Module: Module(slice))))
             .DistinctBy(command => command.Name, StringComparer.Ordinal)
             .OrderBy(command => command.Name, StringComparer.Ordinal)
             .Select((command, index) => (command.Name, command.Export, command.Module, Alias: $"__stageCommand{index}"))

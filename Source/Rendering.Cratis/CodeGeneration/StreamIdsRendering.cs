@@ -12,7 +12,7 @@ internal static class StreamIdsRendering
 {
     internal static RenderedFile Render(string rootNamespace, IEnumerable<GeneratedTypeName>? generated = null)
     {
-        var builder = (generated is null ? new CSharpCodeBuilder() : new(GeneratedProjects.Application, generated)).Namespace($"{rootNamespace}.GeneratedEventSources")
+        var builder = (generated is null ? new CSharpCodeBuilder() : new(GeneratedProjects.Application, generated, false)).Namespace($"{rootNamespace}.GeneratedEventSources")
             .Summary("Formats portable stream identities without rewriting text.")
             .OpenBlock("internal static class StreamIds")
             .Summary("Accepts nonempty, well-formed Unicode NFC text unchanged.")

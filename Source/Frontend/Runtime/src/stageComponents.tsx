@@ -13,7 +13,7 @@ import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
-import { type ActionSubject, actionSubjectOf, itemSubjectElement, subjectRow } from './stageActionSubject';
+import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -249,14 +249,14 @@ function StageCommandAction({ element, interactions }: RegisteredProps) {
     const schema = text(element, 'schema');
     const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
     const { selectedRows } = useScreenRows();
-    const row = subject === 'item' ? subjectRow(selectedRows) : undefined;
+    const row = subjectRowOf(subject, selectedRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
     // An explicit `for item` acts on exactly one selected row, even when the screen has no table to select from.
-    if (awaiting.length > 0 || (subject === 'item' && !row)) {
+    if (awaiting.length > 0 || awaitsSubjectRow(subject, row)) {
         return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
     }
 
@@ -388,6 +388,11 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     );
 }
 
+/** Whether the screen's rows supply a required identifier, so the form does not ask for it; a `screen` subject never reads a row. */
+function carriedByRows(property: SchemaProperty, subject: ActionSubject | undefined, selectableRows: Record<string, unknown>[]): boolean {
+    return subject !== 'screen' && Boolean(property.identifier) && property.required && carriedBy(property, selectableRows);
+}
+
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
@@ -405,11 +410,9 @@ function StageToolbarCommand(props: RegisteredProps) {
 
     // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action.
     const awaiting = subject === undefined ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
-    const screenOwned = subject === 'screen';
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && (screenOwned || !(property.identifier && property.required && carriedBy(property, selectableRows))));
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const subjectProperties = subject === undefined ? {} : { actionSubject: subject, subjectInputs: element.properties.subjectInputs };
-    const action = { ...element, componentName: 'core:action', properties: { command, label, ...(screenOwned ? {} : { rowAction: true }), ...askedFields, ...subjectProperties } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

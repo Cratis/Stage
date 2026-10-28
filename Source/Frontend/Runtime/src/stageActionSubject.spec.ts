@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it } from 'vitest';
-import { actionSubjectOf, itemSubjectElement, rowsForSubject, subjectInputValues, subjectRow } from './stageActionSubject';
+import { actionSubjectOf, itemSubjectElement, subjectFormOf, subjectInputValues, subjectRowOf } from './stageActionSubject';
 import { element } from './testElements';
 import { schemaPropertiesOf } from './stageFormSchema';
 
@@ -22,16 +22,20 @@ describe('the subject an action names', () => {
 });
 
 describe('the row an item subject acts on', () => {
-    it('is the only selected row', () => expect(subjectRow([{ id: 1 }])).toEqual({ id: 1 }));
-    it('is nothing with no selected row', () => expect(subjectRow([])).toBeUndefined());
-    it('is nothing with two selected rows', () => expect(subjectRow([{ id: 1 }, { id: 2 }])).toBeUndefined());
+    it('is the only selected row', () => expect(subjectRowOf('item', [{ id: 1 }])).toEqual({ id: 1 }));
+    it('is nothing with no selected row', () => expect(subjectRowOf('item', [])).toBeUndefined());
+    it('is nothing with two selected rows', () => expect(subjectRowOf('item', [{ id: 1 }, { id: 2 }])).toBeUndefined());
+    it('is nothing for a screen subject or an omitted one', () => {
+        expect(subjectRowOf('screen', [{ id: 1 }])).toBeUndefined();
+        expect(subjectRowOf(undefined, [{ id: 1 }])).toBeUndefined();
+    });
 });
 
 describe('the rows a subject reads', () => {
     const rows = { selectableRows: [{ id: 1 }], selectedRows: [{ id: 1 }] };
-    it('are none for a screen subject', () => expect(rowsForSubject('screen', rows)).toEqual({ selectableRows: [], selectedRows: [] }));
-    it('are the screen\'s rows for an item subject', () => expect(rowsForSubject('item', rows)).toBe(rows));
-    it('are the screen\'s rows for an omitted subject', () => expect(rowsForSubject(undefined, rows)).toBe(rows));
+    it('are none for a screen subject', () => expect(subjectFormOf(action({ actionSubject: 'screen' }), rows)).toMatchObject({ selectableRows: [], selectedRows: [], rowAction: false }));
+    it('are the screen\'s rows for an item subject', () => expect(subjectFormOf(action({ actionSubject: 'item' }), rows)).toMatchObject({ ...rows, rowAction: true }));
+    it('are the screen\'s rows for an omitted subject', () => expect(subjectFormOf(action(), rows)).toMatchObject({ ...rows, rowAction: false, subjectValues: {} }));
 });
 
 describe('the inputs bound from the selected row', () => {

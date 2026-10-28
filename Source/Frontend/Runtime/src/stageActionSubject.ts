@@ -17,7 +17,14 @@ export interface ScreenRows {
     selectedRows: Record<string, unknown>[];
 }
 
-const itemPrefix = 'item.';
+/** What a command form reads of its action's subject: the rows it may use, whether it is a row action and the values bound from the row. */
+export interface SubjectForm extends ScreenRows {
+    rowAction: boolean;
+    subjectValues: Record<string, unknown>;
+}
+
+const itemSource = /^item\.(.+)$/;
+const emptyValues: unknown[] = [undefined, null, ''];
 
 /** The explicit subject an action element names, or nothing when the subject was omitted. */
 export function actionSubjectOf(element: ExternalComponent): ActionSubject | undefined {
@@ -25,25 +32,39 @@ export function actionSubjectOf(element: ExternalComponent): ActionSubject | und
     return subject === 'item' || subject === 'screen' ? subject : undefined;
 }
 
-/** The one selected row an `item` subject acts on; two or more selected rows are ambiguous, so they name none. */
-export function subjectRow(selectedRows: Record<string, unknown>[]): Record<string, unknown> | undefined {
-    return selectedRows.length === 1 ? selectedRows[0] : undefined;
+/** The one selected row an `item` subject acts on; no subject, a `screen` subject and two or more selected rows name none. */
+export function subjectRowOf(subject: ActionSubject | undefined, selectedRows: Record<string, unknown>[]): Record<string, unknown> | undefined {
+    return subject === 'item' && selectedRows.length === 1 ? selectedRows[0] : undefined;
 }
 
-/** The rows an action reads: a `screen` subject never reads a selection, every other action reads the screen's rows as they are. */
-export function rowsForSubject(subject: ActionSubject | undefined, rows: ScreenRows): ScreenRows {
-    return subject === 'screen' ? { selectableRows: [], selectedRows: [] } : rows;
+/** Whether an action waits, visible and disabled: a `for item` action without its one selected row. */
+export function awaitsSubjectRow(subject: ActionSubject | undefined, row: Record<string, unknown> | undefined): boolean {
+    return subject === 'item' && !row;
+}
+
+/** What a command form reads: a `screen` subject never reads a selection, and values bound from a row arrive with the opened action. */
+export function subjectFormOf(element: ExternalComponent, rows: ScreenRows): SubjectForm {
+    const subject = actionSubjectOf(element);
+    const values = element.properties.subjectValues;
+    return {
+        ...(subject === 'screen' ? { selectableRows: [], selectedRows: [] } : rows),
+        rowAction: element.properties.rowAction === true || subject === 'item',
+        subjectValues: isRecord(values) ? values : {},
+    };
+}
+
+/** The properties a toolbar item hands the action it becomes: its subject and inputs, and a row action unless the screen is the subject. */
+export function subjectActionProperties(element: ExternalComponent, subject: ActionSubject | undefined): Record<string, unknown> {
+    return {
+        ...(subject === 'screen' ? {} : { rowAction: true }),
+        ...(subject === undefined ? {} : { actionSubject: subject, subjectInputs: element.properties.subjectInputs }),
+    };
 }
 
 /** The command inputs an action binds from the selected row (`with <input> from item.<path>`), by input name. Empty values are dropped. */
 export function subjectInputValues(element: ExternalComponent, row: Record<string, unknown>): Record<string, unknown> {
-    const values: Record<string, unknown> = {};
-    for (const [name, source] of Object.entries(subjectInputsOf(element))) {
-        const value = valueAt(row, source);
-        if (value !== undefined && value !== null && value !== '') values[name] = value;
-    }
-
-    return values;
+    const values = Object.entries(subjectInputsOf(element)).map(([name, path]) => [name, valueAt(row, path)] as const);
+    return Object.fromEntries(values.filter(([, value]) => !emptyValues.includes(value)));
 }
 
 /**
@@ -52,13 +73,10 @@ export function subjectInputValues(element: ExternalComponent, row: Record<strin
  */
 export function itemSubjectElement(element: ExternalComponent, schema: SchemaProperty[], row: Record<string, unknown>): ExternalComponent {
     const bound = new Set(Object.keys(subjectInputsOf(element)));
-    const carried = new Set(schema.filter(property => property.identifier !== undefined && property.required && Object.hasOwn(row, property.name)).map(property => property.name));
-    const isSupplied = (name: string) => bound.has(name) || carried.has(name);
-    const own = Array.isArray(element.properties.fields) ? element.properties.fields as Record<string, unknown>[] : undefined;
-    const fields = own
-        ? own.filter(field => !isSupplied(fieldProperty(field)))
-        : schema.filter(property => !isSupplied(property.name)).map(property => ({ name: property.name, label: humanize(property.name) }));
-    const asked = own || schema.length > 0 ? { fields } : {};
+    const carried = schema.filter(property => property.identifier !== undefined && property.required && Object.hasOwn(row, property.name)).map(property => property.name);
+    const supplied = new Set([...bound, ...carried]);
+    const fields = askedFields(element, schema).filter(field => !supplied.has(fieldProperty(field)));
+    const asked = schema.length > 0 || Array.isArray(element.properties.fields) ? { fields } : {};
 
     return {
         ...element,
@@ -66,31 +84,32 @@ export function itemSubjectElement(element: ExternalComponent, schema: SchemaPro
     } as ExternalComponent;
 }
 
-function fieldProperty(field: Record<string, unknown>): string {
-    if (typeof field.sourceProperty === 'string' && field.sourceProperty !== '') return field.sourceProperty;
-    return typeof field.name === 'string' ? field.name : '';
+function askedFields(element: ExternalComponent, schema: SchemaProperty[]): Record<string, unknown>[] {
+    const own = element.properties.fields;
+    return Array.isArray(own) ? own as Record<string, unknown>[] : schema.map(property => ({ name: property.name, label: humanize(property.name) }));
 }
 
-/** The `item.<path>` source of each bound input, keyed by input name, read from the `{ subject: 'item.x' }` shape the scene carries. */
+function fieldProperty(field: Record<string, unknown>): string {
+    const source = field.sourceProperty || field.name;
+    return typeof source === 'string' ? source : '';
+}
+
+/** The `<path>` of each bound input's `item.<path>` source, keyed by input name, read from the `{ subject: 'item.x' }` shape the scene carries. */
 function subjectInputsOf(element: ExternalComponent): Record<string, string> {
     const inputs = element.properties.subjectInputs;
-    if (inputs === null || typeof inputs !== 'object' || Array.isArray(inputs)) return {};
+    const paths = (isRecord(inputs) ? Object.entries(inputs) : []).map(([name, binding]) => [name, itemPath(binding)] as const);
+    return Object.fromEntries(paths.filter((entry): entry is readonly [string, string] => entry[1] !== undefined));
+}
 
-    const sources: Record<string, string> = {};
-    for (const [name, binding] of Object.entries(inputs as Record<string, unknown>)) {
-        const source = binding !== null && typeof binding === 'object' ? (binding as Record<string, unknown>).subject ?? (binding as Record<string, unknown>).path : undefined;
-        if (typeof source === 'string' && source.startsWith(itemPrefix) && source.length > itemPrefix.length) sources[name] = source.slice(itemPrefix.length);
-    }
-
-    return sources;
+function itemPath(binding: unknown): string | undefined {
+    const source = isRecord(binding) ? binding.subject : undefined;
+    return typeof source === 'string' ? itemSource.exec(source)?.[1] : undefined;
 }
 
 function valueAt(row: Record<string, unknown>, path: string): unknown {
-    let current: unknown = row;
-    for (const segment of path.split('.')) {
-        if (current === null || typeof current !== 'object') return undefined;
-        current = (current as Record<string, unknown>)[segment];
-    }
+    return path.split('.').reduce<unknown>((current, segment) => isRecord(current) ? current[segment] : undefined, row);
+}
 
-    return current;
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

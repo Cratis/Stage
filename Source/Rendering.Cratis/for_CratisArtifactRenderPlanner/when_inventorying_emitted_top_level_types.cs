@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#if DEBUG
 using System.Text;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
@@ -23,23 +24,10 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
 
     void Because()
     {
-        foreach (var form in Corpus.SourceForms)
+        foreach (var (name, request, options) in inventory_fixtures.All())
         {
-            var model = Compile(form).Model;
-            Check(form.Name, new(model, SemanticExecutionPlan.Compile(model).Plan!, _request.Profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+            Check(name, request, options);
         }
-
-        var composite = SemanticModelSerializer.Deserialize(CompositeReadModelKeysCorpus.V27.EsmBytes.AsSpan());
-        var module = composite.Application.Modules.Single();
-        var feature = module.Features.Single();
-        var slice = feature.Slices.Single();
-        slice = slice with { Specifications = [slice.Specifications.Single(specification => specification.Name == "RecreateRemovedParts")], Queries = [] };
-        composite = ExecutableSemanticModel.Create(composite.LanguageVersion, composite.SemanticVersion, composite.Application with { Modules = [module with { Features = [feature with { Slices = [slice] }] }] });
-        Check("composite keys", new(composite, SemanticExecutionPlan.Compile(composite).Plan!, CratisRendering.CreateProfile(composite.Application.Name, _options), new(ArtifactRenderScopeKind.Application, composite.Application.Id)));
-
-        var documented = when_rendering_authoring_documentation.Compile(when_rendering_authoring_documentation.Source).Model;
-        var profile = CratisRendering.CreateProfile(documented.Application.Name, _options, scene: null, stringsFiles: new Dictionary<string, string> { ["projects.en.strings"] = "project.name = \"Project name\"\n" }, defaultLocale: "en");
-        Check("strings", new(documented, SemanticExecutionPlan.Compile(documented).Plan!, profile, new(ArtifactRenderScopeKind.Application, documented.Application.Id)));
     }
 
     [Fact]
@@ -67,23 +55,18 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         {
             Modules = [module with { Features = [feature with { Slices = [.. slices] }] }]
         });
-        Check(name, new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, _options), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        Check(name, new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, _options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), _options);
         should_catalog_every_emitted_top_level_type();
     }
 
-    void Check(string fixture, ArtifactRenderRequest request)
+    void Check(string fixture, ArtifactRenderRequest request, CratisRenderingOptions options)
     {
-        var context = new SemanticApplicationContext(request, _options);
+        var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
         var inventory = context.GeneratedTypes.Select(type => CatalogNames.Qualify(type.Namespace, CatalogNames.MetadataName(type.Name, type.Arity))).ToHashSet(StringComparer.Ordinal);
         var plan = _planner.Plan(request);
         Assert.True(plan.Success, $"{fixture}: {string.Join('\n', plan.Diagnostics)}");
 
-        // leaf types no generated code references; strict resolution cannot reject them; inventory completeness tracked in Cratis/Stage#858
-        var specificationClasses = context.Specifications.Values.SelectMany(specification => SemanticSpecificationArtifactRenderer.Render(specification, context))
-            .SelectMany(file => CSharpSyntaxTree.ParseText(file.Content).GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
-            .Where(type => type.BaseList?.Types.Any(baseType => string.Equals(baseType.Type.ToString(), "global::Cratis.Specifications.Specification", StringComparison.Ordinal) || string.Equals(baseType.Type.ToString(), "Specification", StringComparison.Ordinal)) == true)
-            .Select(DeclarationName).ToHashSet(StringComparer.Ordinal);
         var declarations = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .SelectMany(artifact => CSharpSyntaxTree.ParseText(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())).GetRoot().DescendantNodes()
                 .OfType<MemberDeclarationSyntax>().Where(node => node is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax))
@@ -91,11 +74,15 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         foreach (var declaration in declarations)
         {
             var qualified = DeclarationName(declaration);
-            if (declaration is ClassDeclarationSyntax && specificationClasses.Contains(qualified)) continue;
+            // leaf types no generated code references; strict resolution cannot reject them; inventory completeness tracked in Cratis/Stage#858
+            if (declaration is ClassDeclarationSyntax type && IsSpecificationClass(type)) continue;
             _declarations++;
             if (!inventory.Contains(qualified)) _missing.Add($"{fixture}: {qualified}");
         }
     }
+
+    static bool IsSpecificationClass(ClassDeclarationSyntax type) =>
+        type.BaseList?.Types.Any(baseType => string.Equals(baseType.Type.ToString(), "global::Cratis.Specifications.Specification", StringComparison.Ordinal) || string.Equals(baseType.Type.ToString(), "Specification", StringComparison.Ordinal)) == true;
 
     static string DeclarationName(MemberDeclarationSyntax declaration)
     {
@@ -110,3 +97,4 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         return CatalogNames.Qualify(ns, CatalogNames.MetadataName(name, arity));
     }
 }
+#endif

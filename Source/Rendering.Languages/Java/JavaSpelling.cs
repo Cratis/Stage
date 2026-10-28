@@ -11,7 +11,8 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 /// </summary>
 /// <param name="Heads">The spelling of each top-level type, short or package-qualified.</param>
 /// <param name="Imports">The canonical names to import.</param>
-sealed record JavaSpelling(ImmutableDictionary<TemplateSymbol, string> Heads, ImmutableArray<string> Imports)
+/// <param name="Claims">The simple names that are written short.</param>
+sealed record JavaSpelling(ImmutableDictionary<TemplateSymbol, string> Heads, ImmutableArray<string> Imports, ImmutableHashSet<string> Claims)
 {
     internal static JavaSpelling Compute(
         JavaFileAnalysis file,
@@ -33,7 +34,7 @@ sealed record JavaSpelling(ImmutableDictionary<TemplateSymbol, string> Heads, Im
         }
 
         var imports = shortHeads.Where(head => head.Namespace != file.Package).Select(head => head.Namespace + "." + head.Name);
-        return new(spellings.ToImmutable(), [.. imports]);
+        return new(spellings.ToImmutable(), [.. imports], claims);
     }
 
     static ImmutableHashSet<TemplateSymbol> ChooseShort(JavaFileAnalysis file, TemplateSymbol[] heads, ImmutableHashSet<string> closure, ImmutableHashSet<string> firstSegments)

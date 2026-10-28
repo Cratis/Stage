@@ -66,6 +66,7 @@ static class JavaResolution
             context.Closure.Introduced[path],
             context.PackageTypes.GetValueOrDefault(analysis.Package, []));
         var emitter = new PieceEmitter();
+        var declared = new HashSet<TemplateSymbol>();
         foreach (var segment in analysis.File.Segments)
         {
             switch (segment)
@@ -74,7 +75,13 @@ static class JavaResolution
                     emitter.AppendText(JavaImportBlock.Render(analysis.Package, spelling.Imports));
                     break;
                 case DeclarativeSymbolSegment { Kind: TemplateSymbolKind.Declaration } declaration:
-                    emitter.AppendSpelling(JavaFileAnalysis.Leaf(plan.Declarations[declaration.Value!].Allocated.Name));
+                    var leaf = JavaFileAnalysis.Leaf(plan.Declarations[declaration.Value!].Allocated.Name);
+                    if (!declared.Add(declaration.Value!))
+                    {
+                        RejectCapturedRepeat(analysis, context.Closure.Closures[path], spelling, declaration.Value!, leaf);
+                    }
+
+                    emitter.AppendSpelling(leaf);
                     break;
                 case DeclarativeSymbolSegment reference:
                     emitter.AppendSpelling(spelling.Heads[JavaFileAnalysis.Head(reference.Value!)] + Remainder(plan, reference.Value!));
@@ -86,6 +93,19 @@ static class JavaResolution
         }
 
         return emitter.Finish();
+    }
+
+    // A repeated Declaration is normally a constructor name, but a kit may use it as a type. Written bare it would bind to an inherited
+    // member type (or another type claimed short) of the same name, so such a repeat is refused. The declaration's own nested name is always in the
+    // closure and is not a capture.
+    static void RejectCapturedRepeat(JavaFileAnalysis analysis, ImmutableHashSet<string> closure, JavaSpelling spelling, TemplateSymbol declaration, string leaf)
+    {
+        var ownHead = JavaFileAnalysis.Head(declaration);
+        var claimed = spelling.Heads.Any(entry => entry.Key != ownHead && entry.Key.Name == leaf && entry.Value == leaf);
+        if (claimed || (closure.Contains(leaf) && !analysis.NestedDeclarations.Contains(leaf)))
+        {
+            throw new LanguagePackRefusal(JavaRefusalCodes.Unspellable, $"The repeated declaration '{leaf}' in '{analysis.File.Path}' would bind to an inherited or imported name.");
+        }
     }
 
     static ImmutableArray<DeclarativePiece> EmitCanonical(JavaPlan plan, DeclarativeLanguageFile file)

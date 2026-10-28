@@ -61,6 +61,8 @@ and import policy after collecting parts. A handle may be assigned to a local, t
 to null, then emitted in the body. Capturing, stringifying, comparing with other values, slicing, placing it
 in a container or reading its members causes symbol refusal 022. No placeholder sentinel text is used.
 
+`impl.body <requirementId>` emits an authored-body handle with the same rules. The template never sees the body text: the caller looks the body up by requirement id and substitutes it byte for byte after the generated text is final.
+
 `type.ref` consumes `{kind, primitive?, target?, isCollection, isOptional}`. `kind` is `primitive`, `concept` or
 `composite`. Primitive spelling belongs to the pack; concept/composite `target` is a semantic identity looked
 up through `ITypeDirectory`. Collection wrapping precedes optional wrapping. Unknown identities cause 024.

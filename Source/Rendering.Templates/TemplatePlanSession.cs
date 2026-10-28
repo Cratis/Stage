@@ -41,6 +41,10 @@ public sealed partial class TemplatePlanSession : IDisposable
         symbols.Import("imports", new Func<SymbolHandle>(() => new(new(TemplateSymbolKind.Imports, null))));
         symbols.IsReadOnly = true;
         helpers.SetValue("sym", symbols, true);
+        var implementations = new ScriptObject();
+        implementations.Import("body", new Func<object?, AuthoredHandle>(AuthoredHandle.Create));
+        implementations.IsReadOnly = true;
+        helpers.SetValue("impl", implementations, true);
         LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
         InstallSemantics(helpers, language, types);
         _context.PushGlobal(helpers);
@@ -84,6 +88,15 @@ public sealed partial class TemplatePlanSession : IDisposable
         _disposed = true;
         _deadline.Dispose();
     }
+
+    /// <summary>Charges UTF-8 bytes that a planner substitutes outside the template output against the shared plan output budget.</summary>
+    /// <param name="utf8Bytes">The number of UTF-8 bytes about to be materialized.</param>
+    /// <returns>The budget refusal, or <see langword="null"/> when the bytes fit.</returns>
+    internal TemplateDiagnostic? Charge(long utf8Bytes) => Run(() =>
+    {
+        _meter.Bytes(utf8Bytes);
+        return true;
+    }).Refusal;
 
     internal TemplateResult<T> Run<T>(Func<T> action)
     {

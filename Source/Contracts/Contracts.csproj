@@ -9,6 +9,9 @@
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>Cratis.Stage.Rendering.Cratis</_Parameter1>
         </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage.Rendering.Declarative</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
     <ItemGroup>
         <!-- JSON Schema describing the event model intermediate format, embedded so it ships with the assembly. -->

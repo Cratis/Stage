@@ -48,7 +48,7 @@ public sealed partial class ArtifactRenderPlan
     public ArtifactRenderPlan WithPlanEvidence(ImmutableArray<ArtifactRenderDegradation> evidence) =>
         ApplyAcceptance(Degradations, Strict, Inventory, ArtifactRenderDegradation.Normalize(evidence, GenerationDiagnostics));
 
-    ArtifactRenderPlan ApplyAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict, ArtifactRenderInventory? inventory, ImmutableArray<ArtifactRenderDegradation>? planEvidence = null)
+    ArtifactRenderPlan ApplyAcceptance(ImmutableArray<ArtifactRenderDegradation> degradations, bool strict, ArtifactRenderInventory? inventory, ImmutableArray<ArtifactRenderDegradation>? planEvidence = null, ArtifactRenderInputProvenance? provenance = null)
     {
         var retained = planEvidence ?? PlanEvidence;
         var original = GenerationDiagnostics;
@@ -66,6 +66,7 @@ public sealed partial class ArtifactRenderPlan
             Strict = strict,
             InputVersions = InputVersions,
             InlineCodeFingerprint = InlineCodeFingerprint,
+            InputProvenance = provenance ?? InputProvenance,
             _generationDiagnostics = original,
             Inventory = inventory
         };

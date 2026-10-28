@@ -194,7 +194,7 @@ static bool Supports(ArtifactRenderProfile profile)
 }
 ```
 
-Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions but does not repeat input provenance, so the target's profile contract and support matrix must document the accepted roster.
+Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions and, as prerelease `InputProvenance`, the profile input digests, every implementation input and the planner component versions. Provenance stays outside the output-only `Digest` and has its own digest. The target's profile contract and support matrix must still document the accepted roster.
 
 ### Localized Cratis validation messages
 

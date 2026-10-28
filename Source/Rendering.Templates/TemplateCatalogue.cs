@@ -17,6 +17,7 @@ internal static class TemplateCatalogue
         sym.decl(namespace:string,name:string)->opaque-declaration
         sym.ref(namespace:string,name:string)->opaque-reference
         sym.imports()->opaque-imports
+        impl.body(requirementId:string)->opaque-authored-body
         type.ref({kind:primitive|concept|composite,primitive?:string,target?:semantic-id,isCollection:bool,isOptional:bool})->parts;collection-before-optional
         expr.supported(expression:$kind,table:literal-declared-name)->bool
         expr.lower(expression:$kind,table:literal-declared-name,leaf:literal-partial,role:literal-gap-role)->segments

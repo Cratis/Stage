@@ -23,7 +23,7 @@ internal static class SemanticDependencyVariants
     static readonly HashSet<string> _sources = new(StringComparer.Ordinal)
     {
         "context-contract", "derived", "command", "read-model", "current-event", "event-source-id", "model-property", "concept-value",
-        "validated-property", "validated-artifact", "authorized-operation", "command-identifier", "query-key"
+        "validated-property", "validated-artifact", "authorized-operation", "command-identifier", "query-key", SemanticContextSourceKinds.Unavailable
     };
 
     internal static bool Known(object node) => KnownType(node.GetType()) && KnownValue(node);

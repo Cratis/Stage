@@ -187,7 +187,7 @@ internal static class SemanticQueryContextRuntime
             $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}",
             "namespace Cratis.Chronicle.Events { public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue) where T : global::System.IComparable { public static implicit operator T(EventSourceId<T> value) => value.TypedValue; } }"
         };
-        declarations.AddRange(context.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true, declarationOnly: true).Content));
+        declarations.AddRange(SemanticBodyDeclarations.RealConcepts(context));
 
         foreach (var readModel in context.ReadModels.Values.Where(SemanticVersionFeatures.HasCompositeKey))
         {

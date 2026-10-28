@@ -43,7 +43,7 @@ function useGuardedActionDispatch() {
         executeCommand: async (command, args) => {
             const result = await execute(command, args);
             if (result.isSuccess) data.refreshAfterCommand();
-            return { isSuccess: result.isSuccess, response: result.response, validationErrors: result.validationErrors, exceptionMessages: result.messages };
+            return { isSuccess: result.isSuccess, response: result.response, validationErrors: result.validationErrors };
         },
         navigate: (screen, args) => navigateToScreen(screen, Object.fromEntries(Object.entries(args).map(([name, value]) => [name, String(value)]))),
     });

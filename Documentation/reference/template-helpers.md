@@ -48,6 +48,17 @@ Emits a language-pack placeholder and records a semantic gap, not a safety refus
 | ` gap-003 ` | ` {{ gap 'unregistered_consumer' 'Missing behavior' 'model.x' 'STAGE-DEGRADE-003' }} ` | ` {"model":{}} ` | ` "FAIL[UnregisteredConsumer:STAGE-DEGRADE-003]"; gap: STAGE-DEGRADE-003 ` |
 | ` gap-005 ` | ` {{ gap 'retained_signature_or_type' 'Missing behavior' 'model.x' 'STAGE-DEGRADE-005' }} ` | ` {"model":{}} ` | ` "FAIL[RetainedSignatureOrType:STAGE-DEGRADE-005]"; gap: STAGE-DEGRADE-005 ` |
 
+## impl.body
+
+` (requirementId) -> authored body ` — since v1.
+
+Emits a structured authored-body handle for an implementation requirement; the body text never enters the template output and handles cannot be converted to text or captured.
+
+| Vector | Template | Scope | Expected output |
+| --- | --- | --- | --- |
+| ` authored-body ` | ` A{{ impl.body 'r1' }}B ` | ` {"model":{}} ` | ` ["text:A","Authored:r1","text:B"] ` |
+| ` authored-body-text ` | ` {{ (impl.body 'r1') + 'text' }} ` | ` {"model":{}} ` | ` render refusal: STAGE-TPL-022 ` |
+
 ## lit.boolean
 
 ` (bool) -> text ` — since v1.

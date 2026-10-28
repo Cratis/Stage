@@ -33,6 +33,13 @@ internal sealed class SegmentOutput(PlanMeter meter) : IScriptOutput
         _segments.Add(segment);
     }
 
+    internal void Authored(TemplateAuthoredSegment segment)
+    {
+        Flush();
+        meter.Bytes(Encoding.UTF8.GetByteCount(segment.RequirementId));
+        _segments.Add(segment);
+    }
+
     internal void Emit(ImmutableArray<TemplateSegment> segments)
     {
         foreach (var segment in segments)

@@ -80,6 +80,7 @@ public class when_replaying_frozen_vectors : for_TemplatePreparer.given.a_kit
     {
         TemplateTextSegment text => "text:" + text.Text,
         TemplateSymbolSegment symbol => symbol.Kind + ":" + (symbol.Symbol is null ? string.Empty : symbol.Symbol.Namespace + "." + symbol.Symbol.Name),
+        TemplateAuthoredSegment authored => "Authored:" + authored.RequirementId,
         _ => throw new InvalidOperationException("Unknown segment.")
     };
 }

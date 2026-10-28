@@ -41,6 +41,10 @@ public sealed partial class TemplatePlanSession : IDisposable
         symbols.Import("imports", new Func<SymbolHandle>(() => new(new(TemplateSymbolKind.Imports, null))));
         symbols.IsReadOnly = true;
         helpers.SetValue("sym", symbols, true);
+        var implementations = new ScriptObject();
+        implementations.Import("body", new Func<object?, AuthoredHandle>(AuthoredHandle.Create));
+        implementations.IsReadOnly = true;
+        helpers.SetValue("impl", implementations, true);
         LanguageHelpers.Install(helpers, language, budget.MaxStringLength);
         InstallSemantics(helpers, language, types);
         _context.PushGlobal(helpers);

@@ -5,6 +5,8 @@
   {"id":"unicode-scalar","template":"{{ name.pascal model.words }}|{{ name.snake model.words }}","scope":{"model":{"words":["𐐨tail","I"]}},"text":"𐐀tailI|𐐨tail_i"},
   {"id":"literal-seam","template":"{{ lit.string 'safe' }}|{{ lit.integer model.integer }}|{{ lit.decimal model.fraction }}|{{ lit.boolean false }}|{{ lit['null'] }}|{{ lit.comment 'a*/b' }}|{{ lit.identifier 'class' }}","scope":{"model":{"integer":9223372036854775807,"fraction":1.25}},"text":"\"safe\"|9223372036854775807|1.25|no|nil|a* /b|@class"},
   {"id":"symbols","template":"A{{ sym.decl 'Domain' 'Customer' }}{{ sym.ref 'Other' 'Customer' }}{{ sym.imports }}B","scope":{"model":{}},"segments":["text:A","Declaration:Domain.Customer","Reference:Other.Customer","Imports:","text:B"]},
+  {"id":"authored-body","template":"A{{ impl.body 'r1' }}B","scope":{"model":{}},"segments":["text:A","Authored:r1","text:B"]},
+  {"id":"authored-body-text","template":"{{ (impl.body 'r1') + 'text' }}","scope":{"model":{}},"refusal":"STAGE-TPL-022"},
   {"id":"symbol-null-test","template":"{{ x = sym.ref 'Domain' 'Customer'; if x != null; x; end }}","scope":{"model":{}},"segments":["Reference:Domain.Customer"]},
   {"id":"type-text","template":"{{ type.ref model.type }}","scope":{"model":{"type":{"kind":"primitive","primitive":"text","isCollection":false,"isOptional":false}}},"text":"string"},
   {"id":"type-symbol","template":"{{ type.ref model.type }}","scope":{"model":{"type":{"kind":"primitive","primitive":"uuid","isCollection":true,"isOptional":true}}},"segments":["Reference:System.Guid","text:[]?"]},

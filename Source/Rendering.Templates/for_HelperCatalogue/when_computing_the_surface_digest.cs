@@ -15,13 +15,13 @@ public class when_computing_the_surface_digest : Specification
     {
         var lines = HelperCatalogue.All.Select(helper => helper.Name + "|" + helper.Signature + "|" + helper.Since).Order(StringComparer.Ordinal);
         var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));
-        digest.ShouldEqual("30d4d055d62573a6bd19ba54a5a906e9b48fcadcea3cbcc8afa872ef4eb13f7a");
+        digest.ShouldEqual("c999a5c0e67273cf03ebf03d9fd86a7d607f45f9457692dd4d4f4e5b6e387a5a");
     }
 
     [Fact]
     public void should_expose_frozen_examples_for_every_helper()
     {
-        HelperCatalogue.All.Length.ShouldEqual(23);
+        HelperCatalogue.All.Length.ShouldEqual(24);
         HelperCatalogue.All.All(helper => helper.Since == "v1" && !string.IsNullOrWhiteSpace(helper.Summary) && !helper.Vectors.IsDefaultOrEmpty).ShouldBeTrue();
         HelperCatalogue.All.SelectMany(helper => helper.Vectors).Select(vector => vector.Id).Distinct().Order(StringComparer.Ordinal).ShouldEqual(FrozenHelperVectors.All.Select(vector => vector.Id).Order(StringComparer.Ordinal));
     }

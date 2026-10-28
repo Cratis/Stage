@@ -48,26 +48,44 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
     internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request, long maxOutputBytes)
     {
         var renderer = new FileRenderer(session, Constructs(root), new(request, language, session), maxOutputBytes);
-        var prepared = new List<PreparedFile>();
+        var prepared = PrepareFiles(renderer, outputs);
+        if (prepared.Refusal is not null)
+        {
+            return new([], prepared.Refusal);
+        }
+
+        var resolutions = language.Resolve([.. prepared.Files.Select(_ => new DeclarativeLanguageFile(_.Path, _.Segments))]);
+        if (resolutions.IsDefault || resolutions.Length != prepared.Files.Length)
+        {
+            return new([], DeclarativeOutputExpansion.Refuse(DeclarativeCodes.LanguageContract, $"The language returned {(resolutions.IsDefault ? 0 : resolutions.Length)} resolutions for {prepared.Files.Length} files."));
+        }
+
+        return FinishFiles(renderer, prepared.Files, resolutions);
+    }
+
+    internal static ArtifactRenderPlaceholderKind Placeholder(GapRole role) => Enum.Parse<ArtifactRenderPlaceholderKind>(role.ToString());
+
+    static (ImmutableArray<PreparedFile> Files, ArtifactRenderDiagnostic? Refusal) PrepareFiles(FileRenderer renderer, ImmutableArray<ExpandedOutput> outputs)
+    {
+        var files = ImmutableArray.CreateBuilder<PreparedFile>();
         foreach (var expanded in outputs)
         {
             var preparation = renderer.Prepare(expanded);
             if (preparation.Refusal is not null)
             {
-                return new([], preparation.Refusal);
+                return ([], preparation.Refusal);
             }
 
-            prepared.Add(preparation.File!);
+            files.Add(preparation.File!);
         }
 
-        var resolutions = language.Resolve([.. prepared.Select(_ => new DeclarativeLanguageFile(_.Path, _.Segments))]);
-        if (resolutions.IsDefault || resolutions.Length != prepared.Count)
-        {
-            return new([], DeclarativeOutputExpansion.Refuse(DeclarativeCodes.LanguageContract, $"The language returned {(resolutions.IsDefault ? 0 : resolutions.Length)} resolutions for {prepared.Count} files."));
-        }
+        return (files.ToImmutable(), null);
+    }
 
+    static DeclarativeRendering FinishFiles(FileRenderer renderer, ImmutableArray<PreparedFile> prepared, ImmutableArray<DeclarativeFileResolution> resolutions)
+    {
         var files = new List<DeclarativeRenderedFile>();
-        for (var index = 0; index < prepared.Count; index++)
+        for (var index = 0; index < prepared.Length; index++)
         {
             var refusal = renderer.Finish(prepared[index], resolutions[index], files);
             if (refusal is not null)
@@ -78,8 +96,6 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
         return new([.. files], null);
     }
-
-    internal static ArtifactRenderPlaceholderKind Placeholder(GapRole role) => Enum.Parse<ArtifactRenderPlaceholderKind>(role.ToString());
 
     static ImmutableHashSet<SemanticId> Constructs(JsonElement root)
     {

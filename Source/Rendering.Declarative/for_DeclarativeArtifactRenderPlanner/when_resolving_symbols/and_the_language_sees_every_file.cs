@@ -19,6 +19,6 @@ public class and_the_language_sees_every_file : given.a_recording_language_plann
     }
 
     [Fact] void should_call_the_language_once() => _language.Calls.Count.ShouldEqual(1);
-    [Fact] void should_pass_every_path_in_output_order() => string.Join("|", _language.Calls.SelectMany(_ => _)).ShouldEqual("Commands/Shout.test|Commands/Echo.test|Reactions/EchoReaction.test|Index.test");
+    [Fact] void should_pass_every_path_in_output_order() => string.Join('|', _language.Calls.SelectMany(_ => _)).ShouldEqual("Commands/Shout.test|Commands/Echo.test|Reactions/EchoReaction.test|Index.test");
     [Fact] void should_succeed() => _plan.Success.ShouldBeTrue();
 }

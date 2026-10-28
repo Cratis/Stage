@@ -26,7 +26,6 @@ public class when_executing_performed_queries
 {
     [Theory]
     [InlineData("live", "observable")]
-    [InlineData("language", "language")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]
@@ -36,7 +35,6 @@ public class when_executing_performed_queries
     {
         var source = Source(failure is "compile" or "authorized" ? "return missing;" : "return readModels;", live: failure == "live");
         if (failure == "authorized") source = "policy Buyers\n  require claim \"role\" matches \"buyer\"\n" + source.Replace("module People", "module People\n  authorize Buyers", StringComparison.Ordinal);
-        if (failure == "language") source = source.Replace("```csharp", "```sql", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = GapRequest((loaded, failure));
         var requirement = Assert.Single(request.ImplementationRequirements);
@@ -323,18 +321,17 @@ public class when_executing_performed_queries
     }
 
     [Fact]
-    public async Task should_leave_a_non_csharp_performer_stub_and_report_its_unsupported_language()
+    public async Task should_refuse_a_non_csharp_performer_without_rendering_a_stub()
     {
         var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
         var request = Request(loaded);
         var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
-        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
-        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
-        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
-        Assert.Contains("throw new NotImplementedException(", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerformer_", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-LANGUAGE" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005" || diagnostic.Code == "STAGE-IMPL-006");
+        var plan = new CratisArtifactRenderPlanner().Plan(request);
+        Assert.Equal(ArtifactRenderOutcome.Refused, plan.Outcome);
+        Assert.Empty(plan.Artifacts);
+        Assert.Empty(plan.ImplementationGaps);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { writeThemeChoice } from './stageThemeChoice';
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ComponentRegistry, RegisteredComponentProps } from '@cratis/scene.react';
 import { SceneElementView, SceneNavigationContextInternal, useSceneOutlets, useSceneTheme } from '@cratis/scene.react';
@@ -63,7 +64,7 @@ export function StageThemeToggle({ element }: RegisteredComponentProps) {
                 className='stage-theme-toggle__button'
                 aria-label={action}
                 title={action}
-                onClick={() => { setThemeName(target.name); setColorScheme(target.isDark ? ColorScheme.Dark : ColorScheme.Light); }}>
+                onClick={() => { writeThemeChoice(target.name); setThemeName(target.name); setColorScheme(target.isDark ? ColorScheme.Dark : ColorScheme.Light); }}>
                 <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
                     {dark
                         ? <><circle cx='12' cy='12' r='4' /><path d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41' /></>

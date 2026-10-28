@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Rendering.Model;
 
 namespace Cratis.Stage.Contracts.Rendering;
 
@@ -567,35 +568,11 @@ public sealed partial class ArtifactRenderPlan
         !request.AdditionalScopes.IsDefault &&
         (request.AdditionalScopes.IsEmpty ||
             (request.Scope.Kind != ArtifactRenderScopeKind.Application && request.AdditionalScopes.All(scope => scope is not null && scope.Kind != ArtifactRenderScopeKind.Application))) &&
-        new[] { request.Scope }.Concat(request.AdditionalScopes).All(scope => ScopeMatches(request.Model.Application, scope));
+        new[] { request.Scope }.Concat(request.AdditionalScopes).All(scope => ScopeMatches(request, scope));
 
-    static bool ScopeMatches(SemanticApplication application, ArtifactRenderScope scope)
-    {
-        if (!Enum.IsDefined(scope.Kind) || scope.Kind == ArtifactRenderScopeKind.Unknown || !scope.Artifact.IsSet)
-        {
-            return false;
-        }
-
-        if (scope.Kind == ArtifactRenderScopeKind.Application)
-        {
-            return scope.Artifact == application.Id;
-        }
-
-        var modules = application.Modules;
-        if (scope.Kind == ArtifactRenderScopeKind.Module)
-        {
-            return modules.Any(_ => _.Id == scope.Artifact);
-        }
-
-        var features = AllFeatures(modules.SelectMany(_ => _.Features)).ToArray();
-        return scope.Kind switch
-        {
-            ArtifactRenderScopeKind.Feature => features.Any(_ => _.Id == scope.Artifact),
-            ArtifactRenderScopeKind.Slice => features.SelectMany(_ => _.Slices).Any(_ => _.Id == scope.Artifact),
-            _ => false
-        };
-    }
-
-    static IEnumerable<SemanticFeature> AllFeatures(IEnumerable<SemanticFeature> features) =>
-        features.SelectMany(_ => new[] { _ }.Concat(AllFeatures(_.Features)));
+    static bool ScopeMatches(ArtifactRenderRequest request, ArtifactRenderScope scope) =>
+        Enum.IsDefined(scope.Kind) &&
+        scope.Kind != ArtifactRenderScopeKind.Unknown &&
+        scope.Artifact.IsSet &&
+        RenderScopeSelection.Exists(request, scope);
 }

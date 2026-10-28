@@ -51,7 +51,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel.Id);
         var command = specification.When is null ? null : context.Commands[specification.When.Command];
 
-        // Without a command there is nothing to replay: the facts are all given, and only a projection builds the model from them.
+        // Without a command there is nothing to replay: the facts are all given and the projection or reducer builds the model from them.
         IReadOnlyList<(SemanticProducedEvent Produced, SemanticSpecificationEvent Expected)> replay = [];
         if (command is not null)
         {

@@ -92,6 +92,7 @@ internal static class GeneratedTypeNames
     /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
     /// <param name="selfReduces">Decides, per read model, whether reducer members are emitted on the model rather than as a separate type.</param>
     /// <param name="policyClassName">Gives the policy class of a protected operation; operations that share a policy share the class.</param>
+    /// <param name="validationReceiptTime">Whether validation bodies require the command receipt-time helper.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
         SemanticApplication application,
@@ -104,7 +105,8 @@ internal static class GeneratedTypeNames
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies",
         Func<SemanticId, bool>? selfReduces = null,
-        Func<SemanticId, string>? policyClassName = null)
+        Func<SemanticId, string>? policyClassName = null,
+        bool validationReceiptTime = false)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
@@ -194,7 +196,7 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
         }
-        if (UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        if (validationReceiptTime || UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
         {
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;
@@ -235,8 +237,9 @@ internal static class GeneratedTypeNames
 
     internal static bool UsesProtectedReads(IEnumerable<SemanticCommand> commands) => commands.Any(command => !command.Reads.IsDefaultOrEmpty);
 
-    internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands) =>
-        commands.Any(command => command.Produces.Any(produced => produced.Mappings.Any(mapping =>
+    internal static bool UsesCommandReceiptTime(IEnumerable<SemanticCommand> commands, Func<SemanticCommand, bool>? validationUsesReceipt = null) =>
+        commands.Any(command => (validationUsesReceipt?.Invoke(command) == true) ||
+            command.Produces.Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })));
 
     internal static IEnumerable<(IEnumerable<string> Path, SemanticSlice Slice)> AllSlices(SemanticApplication application) =>

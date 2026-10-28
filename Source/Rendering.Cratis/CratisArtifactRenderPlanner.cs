@@ -168,7 +168,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
-        if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
+        if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands), command => SemanticValidationContextRuntime.CommandReadsOccurred(context, command)))
         {
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }

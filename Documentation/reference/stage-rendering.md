@@ -71,11 +71,6 @@ and `startswith`, including nested `and` and `or` and enumeration membership. Re
 render-time `path` bindings. Unqualified paths are not implicitly prefixed with `item.`; they remain unsupported.
 An unevaluable condition refuses the whole selection rather than taking a different branch or the fallback.
 
-For guarded actions and item-change interactions, `contains` requires both a string field and a string literal.
-An array or any other non-string operand is unevaluable, even inside an `or` whose other condition is true;
-neither the command nor the fallback runs. An explicit null field can match `== null`, but an absent field
-or nested path never matches that comparison. Stage keeps missing values distinct from null.
-
 Unsupported source or Scene JSON stays refused with `STAGE-SCENE-ACTION-001` or `STAGE-SCENE-INTERACTION-001`,
 including inside sections and template slots. The Host records the capability refusal in `/stage/status` and
 returns HTTP 501 rather than executing an unconditional action. A runtime action without a data declaration or

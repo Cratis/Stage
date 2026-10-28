@@ -5,7 +5,6 @@ import { useCallback, useMemo, useRef, useState, type ComponentType } from 'reac
 import type { BindingExpression, ExternalComponent } from '@cratis/scene.model';
 import { InteractionTriggerKind } from '@cratis/scene.model';
 import { createBindingResolver, resolveBehaviors, runBindings } from '@cratis/scene.engine';
-import { screenplayGuardBinding } from './screenplayGuard';
 import { attachmentFor, useInteractionScope, type ComponentBindingOutputs, type RegisteredComponentProps } from '@cratis/scene.react';
 import { defaultBlueprintName, ComponentName, KanbanBoard } from '@cratis/scene.blueprint.default';
 import { componentRegistryKey } from '@cratis/scene.react';
@@ -172,8 +171,7 @@ export function useItemChange(binding: ItemChangeBinding, outputs: ComponentBind
                 return outcome;
             },
         };
-        const admitted = toRun.map(candidate => ({ ...candidate, binding: screenplayGuardBinding(candidate.binding, change.item) }));
-        void runBindings(admitted, dispatcher, context).then(result => {
+        void runBindings(toRun, dispatcher, context).then(result => {
             if (result.findings.length > 0) current.onFindings?.(result.findings);
             stage.refreshAfterCommand();
             if (!applied || refused) setRevision(current => current + 1);

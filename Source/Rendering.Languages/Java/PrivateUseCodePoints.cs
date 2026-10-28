@@ -21,7 +21,7 @@ public static class PrivateUseCodePoints
         ValidateRaw(JavaUnicodeEscapes.Decode(text));
     }
 
-    static void ValidateRaw(string text)
+    internal static void ValidateRaw(string text)
     {
         for (var index = 0; index < text.Length; index++)
         {

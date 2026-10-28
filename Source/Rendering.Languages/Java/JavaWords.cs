@@ -21,12 +21,13 @@ public static class JavaWords
         var decoded = JavaUnicodeEscapes.Decode(assembledRaw);
         var all = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
         var declaring = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-        ScanPass(decoded, all, declaring);
-        ScanPass(JavaIdentifierIgnorables.Remove(decoded), all, declaring);
-        return new(all.ToImmutable(), declaring.ToImmutable());
+        var qualifiers = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
+        ScanPass(decoded, all, declaring, qualifiers);
+        ScanPass(JavaIdentifierIgnorables.Remove(decoded), all, declaring, qualifiers);
+        return new(all.ToImmutable(), declaring.ToImmutable(), qualifiers.ToImmutable());
     }
 
-    static void ScanPass(string text, ImmutableHashSet<string>.Builder all, ImmutableHashSet<string>.Builder declaring)
+    static void ScanPass(string text, ImmutableHashSet<string>.Builder all, ImmutableHashSet<string>.Builder declaring, ImmutableHashSet<string>.Builder qualifiers)
     {
         var index = 0;
         while (index < text.Length)
@@ -45,12 +46,12 @@ public static class JavaWords
 
             if (!char.IsAsciiDigit(text[start]))
             {
-                AddWord(text, start, index, all, declaring);
+                AddWord(text, start, index, all, declaring, qualifiers);
             }
         }
     }
 
-    static void AddWord(string text, int start, int end, ImmutableHashSet<string>.Builder all, ImmutableHashSet<string>.Builder declaring)
+    static void AddWord(string text, int start, int end, ImmutableHashSet<string>.Builder all, ImmutableHashSet<string>.Builder declaring, ImmutableHashSet<string>.Builder qualifiers)
     {
         var word = text[start..end];
         all.Add(word);
@@ -62,6 +63,10 @@ public static class JavaWords
         if (end == text.Length || text[end] != '.')
         {
             declaring.Add(word);
+        }
+        else
+        {
+            qualifiers.Add(word);
         }
     }
 

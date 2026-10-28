@@ -10,4 +10,5 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 /// </summary>
 /// <param name="All">Every maximal ASCII word that does not start with a digit.</param>
 /// <param name="Declaring">The words not followed by a dot after skipping Java whitespace.</param>
-public sealed record JavaWordSet(ImmutableHashSet<string> All, ImmutableHashSet<string> Declaring);
+/// <param name="Qualifiers">The words followed by a dot after skipping Java whitespace.</param>
+public sealed record JavaWordSet(ImmutableHashSet<string> All, ImmutableHashSet<string> Declaring, ImmutableHashSet<string> Qualifiers);

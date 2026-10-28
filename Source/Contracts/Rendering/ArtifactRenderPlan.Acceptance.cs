@@ -65,6 +65,7 @@ public sealed partial class ArtifactRenderPlan
             PlanEvidence = retained,
             Strict = strict,
             InputVersions = InputVersions,
+            InlineCodeFingerprint = InlineCodeFingerprint,
             _generationDiagnostics = original,
             Inventory = inventory
         };

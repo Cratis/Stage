@@ -423,8 +423,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         if (refusals.IsDefault) refusals = [];
 
-        // The header is written before gaps are located, so their stub spans address the published bytes.
-        var (planned, gaps) = AddPerformerGaps(request, GeneratedFileHeader.Apply(request.Profile, artifacts), diagnostics);
+        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))

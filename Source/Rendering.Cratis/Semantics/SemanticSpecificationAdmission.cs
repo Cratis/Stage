@@ -36,13 +36,8 @@ internal static partial class SemanticSpecificationAdmission
                 diagnostics.Add(RefusalDiagnostic(context, specification, SourcelessGivenReason));
                 continue;
             }
-            if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
+            if (TryValidateProjectedFacts(context, specification, diagnostics))
             {
-                if (!CanRenderProjectedFacts(context, facts))
-                {
-                    diagnostics.Add(RefusalDiagnostic(context, specification, ProjectedFactsRejection(context, facts)));
-                }
-
                 continue;
             }
             if (AppendRefusedConstraint(context, specification) is { } refusing)
@@ -54,18 +49,7 @@ internal static partial class SemanticSpecificationAdmission
 
                 continue;
             }
-            if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
-            {
-                ValidateReactionAppend(context, specification, diagnostics);
-                continue;
-            }
-            var valid = CanRenderSpecification(context, specification);
-
-            if (!valid)
-            {
-                var reason = RejectionReason(context, specification);
-                diagnostics.Add(RefusalDiagnostic(context, specification, reason));
-            }
+            ValidateActionSpecification(context, specification, diagnostics);
         }
     }
 
@@ -83,6 +67,39 @@ internal static partial class SemanticSpecificationAdmission
 
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
+
+    static bool TryValidateProjectedFacts(
+        SemanticApplicationContext context,
+        SemanticSpecification specification,
+        ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (!SemanticProjectionFactSpecification.TryLower(context, specification, out var facts)) return false;
+        if (!CanRenderProjectedFacts(context, facts))
+        {
+            diagnostics.Add(RefusalDiagnostic(context, specification, ProjectedFactsRejection(context, facts)));
+        }
+
+        return true;
+    }
+
+    static void ValidateActionSpecification(
+        SemanticApplicationContext context,
+        SemanticSpecification specification,
+        ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
+        {
+            ValidateReactionAppend(context, specification, diagnostics);
+            return;
+        }
+        var valid = CanRenderSpecification(context, specification);
+
+        if (!valid)
+        {
+            var reason = RejectionReason(context, specification);
+            diagnostics.Add(RefusalDiagnostic(context, specification, reason));
+        }
+    }
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||

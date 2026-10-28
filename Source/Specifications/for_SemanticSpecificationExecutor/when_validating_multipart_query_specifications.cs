@@ -35,7 +35,7 @@ public class when_validating_multipart_query_specifications : Specification
         {
             Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [invalid, slice.Specifications.Single(specification => specification.Name == "InvalidAssertedByPart"), valid] }] }] }]
         };
-        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
     }
 
     async Task Because() => _results = (await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results.ToDictionary(result => result.Name);
@@ -45,6 +45,6 @@ public class when_validating_multipart_query_specifications : Specification
     [Fact] void should_pass_both_invalid_key_specifications_and_the_valid_control() => _results.Values.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Passed);
     [Fact] void should_reject_the_invalid_when_query() => _results["InvalidByPart"].ExecutionKind.ShouldEqual(nameof(SemanticExecutionOutcomeKind.Rejected));
     [Fact] void should_reject_the_invalid_asserted_query() => _results["InvalidAssertedByPart"].ExecutionKind.ShouldEqual(nameof(SemanticExecutionOutcomeKind.Rejected));
-    [Fact] void should_preserve_the_exact_validation_message() => _results["InvalidByPart"].Trace!.Rejection.ShouldEqual("Invoice id is too short");
+    [Fact] void should_preserve_the_exact_validation_message() => _results["InvalidByPart"].Trace.Rejection.ShouldEqual("Invoice id is too short");
     [Fact] void should_accept_the_valid_control() => _results["ValidByPart"].ExecutionKind.ShouldEqual(nameof(SemanticExecutionOutcomeKind.Accepted));
 }

@@ -41,7 +41,7 @@ public class a_multipart_query : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("queries"), "queries", "Queries.play", source);
         var compiled = new SemanticModelCompiler().Compile("MultipartQueries", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var query = _plan.Queries.Values.Single();
         var invoice = query.KeyParts.Single(part => part.Name == "invoiceId");
         var method = query.KeyParts.Single(part => part.Name == "method");

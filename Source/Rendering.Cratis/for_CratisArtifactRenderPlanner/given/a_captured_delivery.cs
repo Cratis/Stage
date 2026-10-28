@@ -9,6 +9,7 @@ using Cratis.Chronicle.EventSequences;
 using Cratis.Chronicle.Reactors;
 using Cratis.Chronicle.Reactors.SideEffects;
 using Cratis.Screenplay.CanonicalCorpus;
+using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using NSubstitute;
@@ -35,15 +36,20 @@ public class a_captured_delivery : a_translation_application
         _store.EventLog.Returns(_log.Log);
         _store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
         _store.GetEventSequence(new EventSequenceId("inbox-carrier")).Returns(_inbox);
-        _inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(_ =>
-            Task.FromResult<IImmutableList<AppendedEvent>>([.. _history]));
+        _inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(call =>
+            Task.FromResult<IImmutableList<AppendedEvent>>([.. _history.Where(fact => call.Arg<EventSourceId?>() is null || call.Arg<EventSourceId?>() == EventSourceId.Unspecified || fact.Context.EventSourceId == call.Arg<EventSourceId?>())]));
     }
 
     protected object Reactor() => Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true)!, _store)!;
 
-    protected AppendedEvent Fact(ulong sequence, string status = "sent") => new(
-        EventContext.Empty with { SequenceNumber = sequence, EventSourceId = "foreign-stream" },
-        Arrived(status));
+    protected void MarkSourceKey() => _model = ExecutableSemanticModel.Create(LanguageVersion.V33, SemanticVersion.V33, _model.Application with
+    {
+        Modules = [.. _model.Application.Modules.Select(module => module with { Features = MarkSourceKeys(module.Features) })]
+    });
+
+    protected AppendedEvent Fact(ulong sequence, string status = "sent", string source = "foreign-stream", string key = "parcel") => new(
+        EventContext.Empty with { SequenceNumber = sequence, EventSourceId = source },
+        Arrived(status, key));
 
     protected async Task<EventForEventSourceId[]> Effects(AppendedEvent fact)
     {
@@ -61,10 +67,19 @@ public class a_captured_delivery : a_translation_application
         var result = await new EventsForEventSourceIdResultHandler().Handle(new ReactorContext(fact.Context, reactor, []) { Delivery = delivery }, _store, effects);
         result.IsSuccess.ShouldBeTrue();
     }
-    object Arrived(string status)
+    object Arrived(string status, string key)
     {
         var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true)!.GetConstructors().Single();
-        return constructor.Invoke([.. constructor.GetParameters().Select(parameter => string.Equals(parameter.Name, "Id", StringComparison.OrdinalIgnoreCase) ? "parcel" : status)]);
+        return constructor.Invoke([.. constructor.GetParameters().Select(parameter => string.Equals(parameter.Name, "Id", StringComparison.OrdinalIgnoreCase) ? key : status)]);
     }
+
+    static ImmutableArray<SemanticFeature> MarkSourceKeys(ImmutableArray<SemanticFeature> features) => [.. features.Select(feature => feature with
+    {
+        Features = MarkSourceKeys(feature.Features),
+        Slices = [.. feature.Slices.Select(slice => slice with
+        {
+            Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = capture.EventsSource! with { KeyIsEventSource = true } })]
+        })]
+    })];
 }
 #endif

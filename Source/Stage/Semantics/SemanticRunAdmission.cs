@@ -29,8 +29,8 @@ public static class SemanticRunAdmission
             : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
 
     /// <summary>
-    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v33 and v34, whose only additions
-    /// are captures keyed by event source (refused per capture) and <c language="text">then invokes</c> expectations (compared).
+    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v34, whose only addition
+    /// is <c language="text">then invokes</c> expectations (compared).
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>Whether the executor runs the version pair.</returns>

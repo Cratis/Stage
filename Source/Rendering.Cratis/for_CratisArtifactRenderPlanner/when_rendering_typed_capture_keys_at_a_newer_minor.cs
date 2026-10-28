@@ -74,7 +74,6 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
     }
 
     [Theory]
-    [InlineData(33)]
     [InlineData(34)]
     public void should_not_apply_the_v32_capture_branch_to_a_future_major(uint major)
     {

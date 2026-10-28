@@ -26,6 +26,7 @@ internal static class SemanticEventContextDegradation
             !context.ReadModels.TryGetValue(projection.ReadModel, out var readModel) ||
             !Mappings(scope).Any(mapping => IsUnsupported(mapping, readModel, context)) ||
             Elsewhere(scope) ||
+            Mappings(scope).Any(mapping => LeavesRequiredNestedProperty(mapping, readModel, context)) ||
             !Safe(readModel, scope, context))
         {
             return null;
@@ -84,6 +85,30 @@ internal static class SemanticEventContextDegradation
         }
 
         return false;
+    }
+
+    // A composite type is shared with every other read model, event and command using it, so a required nested leaf is never made nullable for one view: the refusal stays.
+    static bool LeavesRequiredNestedProperty(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        if (!IsEventContext(mapping) || mapping.Target.Length < 2)
+        {
+            return false;
+        }
+
+        IReadOnlyList<SemanticProperty> properties = readModel.Properties;
+        SemanticProperty? property = null;
+        foreach (var id in mapping.Target)
+        {
+            property = properties.SingleOrDefault(candidate => candidate.Id == id);
+            if (property is null)
+            {
+                return false;
+            }
+
+            properties = property.Type.Kind == SemanticTypeReferenceKind.CompositeType && context.Types.TryGetValue(property.Type.Target, out var composite) ? composite.Properties : [];
+        }
+
+        return property is { Type.IsOptional: false, Type.IsCollection: false };
     }
 
     static bool IsUnsupported(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context) =>

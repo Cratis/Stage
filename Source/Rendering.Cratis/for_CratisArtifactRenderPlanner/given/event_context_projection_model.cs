@@ -63,6 +63,55 @@ public static class event_context_projection_model
               query AllContextTotals => ContextTotal[]
         """;
 
+    public const string RequiredNestedLeaf = """
+        type SeenDetails
+          seen DateTime
+          note String
+        module Home
+          feature Ctx
+            slice StateView ContextTotals
+              event ContextRecorded
+                name String
+              readmodel ContextTotal
+                name String key
+                details SeenDetails
+              projection ContextProjection => ContextTotal
+                from ContextRecorded
+                  key "global"
+                  name = "global"
+                  details.seen = $eventContext.occurred
+                  details.note = "x"
+              query AllContextTotals => ContextTotal[]
+        """;
+
+    public const string UnselectedDegradable = Header + """
+
+            slice StateView ContextTotals
+              event ContextRecorded
+                name String
+              readmodel ContextTotal
+                name String key
+                occurred DateTime optional
+                details CounterDetails
+              projection ContextProjection => ContextTotal
+                from ContextRecorded
+                  key "global"
+                  name = "global"
+                  occurred = $eventContext.occurred
+                  details.note = "increased"
+              query AllContextTotals => ContextTotal[]
+            slice StateView Healthy
+              event HealthyRecorded
+                title String
+              readmodel HealthyRow
+                title String key
+              projection HealthyProjection => HealthyRow
+                from HealthyRecorded
+                  key title
+                  title = title
+              query AllHealthyRows => HealthyRow[]
+        """;
+
     public const string NestedThroughOptional = Header + """
 
             slice StateView ContextTotals
@@ -220,7 +269,7 @@ public static class event_context_projection_model
               query AllContextTotals => ContextTotal[]
         """;
 
-    public static ArtifactRenderPlan Plan(string source, bool strict = false)
+    public static ArtifactRenderPlan Plan(string source, bool strict = false, string? slice = null)
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("ContextModel"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("context"), "context", "Context.play", source);
@@ -234,7 +283,9 @@ public static class event_context_projection_model
         var options = new CratisRenderingOptions("ContextApp", "Context") { Strict = strict };
 
         // Screenplay leaves the unexecutable event-context mappings out of the execution plan; the renderer decides what to do with them.
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), slice is null
+            ? new(ArtifactRenderScopeKind.Application, model.Application.Id)
+            : new(ArtifactRenderScopeKind.Slice, model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).Single(candidate => candidate.Name == slice).Id))
         {
             IdentityCatalog = compilation.Value.Documents.IdentityCatalog,
             SemanticIdentities = compilation.Value.Documents.IdentityCatalog.Semantics

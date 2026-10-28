@@ -333,10 +333,17 @@ internal sealed class SemanticApplicationContext
     }
 
     // Event-context mappings the renderer cannot express (Stage#876) are omitted from a read model nothing decides on, so the rest of the view still renders.
+    // Only slices in the requested scope are degraded: a slice that is not rendered must neither warn nor refuse.
     internal void DegradeEventContextMappings(List<ArtifactRenderDiagnostic> diagnostics)
     {
+        var selected = SelectedSlices().Select(slice => slice.Slice.Id).ToHashSet();
         foreach (var (id, located) in _slices.ToArray())
         {
+            if (!selected.Contains(id))
+            {
+                continue;
+            }
+
             var projections = located.Slice.Projections.IsDefaultOrEmpty ? [] : located.Slice.Projections.ToArray();
             var readModels = located.Slice.ReadModels;
             var changed = false;

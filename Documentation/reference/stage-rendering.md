@@ -445,8 +445,23 @@ identity against the real rendered compilation for classic and self-reducer prof
 The renderer admits verified pure C# Boolean named rule bodies and code-validation iterators on commands and concepts,
 using generated app-local contexts and Arc validators without a Screenplay runtime dependency.
 The context supplies `Artifact`, `Value`, `Property` and `IsWholeArtifact`; command shapes exclude
-server-generated properties. `Tenant`, `CausedBy` and `Occurred` reads are refused with
-`STAGE-ESM-015`, not supplied from ambient state. Authored messages and severities are preserved,
+server-generated properties. `ValueAs<T>()` admits the declared realization, a primitive concept's
+underlying value, checked whole-number conversions, and `IEnumerable<T>` with compatible primitive
+elements. Whole-number element conversions use a lazy checked projection, not a copied collection.
+`ArtifactAs<T>()` requires the artifact's exact generated type. Explicit casts on `context.Value`
+follow the same scalar restrictions; unrelated casts and accessor targets are refused with `STAGE-ESM-022`.
+
+Rules admit `Contains(string)`/`Contains(char)`, `Length`, `IsNullOrWhiteSpace`, `char.IsDigit`, and
+string matching with `Ordinal` or `OrdinalIgnoreCase`. Bare `StartsWith(string)` and `EndsWith(string)`
+are validation-only: generated validation bodies pin and restore both current cultures to the invariant
+culture. Integer `Sum` is validation-only. Bodies execute in a checked context; overflow or another body
+exception fails validation rather than escaping the command.
+
+`context.Occurred` reads the Arc operation's receipt time, without a validator constructor dependency or
+wall-clock fallback. Generated specifications for these rules require `given clock`; without it the
+specification is omitted with `STAGE-ESM-011`. Rule-dependent specifications otherwise use their `then`
+blocks as the oracle and execute the rendered validators, including named-rule rejection assertions.
+`Tenant` and `CausedBy` remain refused with `STAGE-ESM-015`. Authored messages and severities are preserved,
 and every failed rule blocks the command regardless of severity. Missing bodies fail
 `STAGE-ESM-020`, envelope or compile errors `STAGE-ESM-019`, descriptor mismatches
 `STAGE-ESM-021`, and forbidden pure-body symbols `STAGE-ESM-022`. Optional validated concepts

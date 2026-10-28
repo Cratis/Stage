@@ -29,7 +29,7 @@ const keyed = rows.map(({ shipmentId, consignee }) => ({ rowId: shipmentId, cons
 
 type Placed = (schema: string) => ReturnType<typeof element>;
 
-function renderScreen(placed: Placed, schema: string, screenRows: Record<string, unknown>[], toolbar: boolean) {
+function renderScreen(placed: Placed, schema: string, screenRows: Record<string, unknown>[], toolbar: boolean, parameters: Record<string, string> = {}) {
     const routes = { commands: { DispatchShipment: '/api/dispatch' }, queries: { AllShipments: '/api/shipments' }, commandSchemas: { DispatchShipment: schema } };
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
@@ -42,7 +42,7 @@ function renderScreen(placed: Placed, schema: string, screenRows: Record<string,
     const Placed = toolbar ? StageToolbarItem : StageAction;
     render(
         <PrimeReactProvider>
-            <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments'>
+            <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments' parameters={parameters}>
                 <Placed element={placed(schema)} slots={{}} />
                 <RegisteredTable element={table} slots={{}} />
             </StageDataProvider>
@@ -53,6 +53,11 @@ function renderScreen(placed: Placed, schema: string, screenRows: Record<string,
 
 const toolbarItem = (subject: string): Placed => () => element('dispatch', 'core:toolbarItem', { name: 'dispatch', kind: 'Action', label: 'Dispatch', target: 'DispatchShipment', actionSubject: subject });
 const plainAction = (properties: Record<string, unknown>): Placed => schema => element('dispatch', 'core:action', { command: 'DispatchShipment', label: 'Dispatch', schema, ...properties });
+const identifierOnly = JSON.stringify({
+    type: 'object',
+    required: ['shipmentId'],
+    properties: { shipmentId: { type: 'string', format: 'uuid', 'x-concept': 'ShipmentId' } },
+});
 const dispatchButton = () => screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement;
 
 async function submit(fetched: ReturnType<typeof renderScreen>, carrier = 'Posten') {
@@ -89,6 +94,40 @@ describe('a toolbar action that names the item as its subject', () => {
         await waitFor(() => expect(dispatchButton().disabled).toBe(false));
 
         expect(await submit(fetched)).toEqual({ shipmentId: rows[1].shipmentId, carrier: 'Posten' });
+    });
+});
+
+describe('a toolbar action that names the item and needs nothing else', () => {
+    afterEach(() => { vi.unstubAllGlobals(); globalThis.localStorage?.clear(); });
+
+    it.each([['toolbar item', true], ['screen action', false]])('asks for nothing and executes with the selected row\'s identifier (%s)', async (_kind, toolbar) => {
+        const fetched = renderScreen(toolbar ? toolbarItem('item') : plainAction({ actionSubject: 'item' }), identifierOnly, rows, toolbar);
+
+        fireEvent.click(await screen.findByText('Norsk Fisk'));
+        await waitFor(() => expect(dispatchButton().disabled).toBe(false));
+        fireEvent.click(dispatchButton());
+        const dialog = await screen.findByRole('dialog');
+        expect(dialog.querySelectorAll('input, select, textarea')).toHaveLength(0);
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId });
+    });
+
+    it('submits the row\'s identifier, not the one the address carries', async () => {
+        const address = '7d1c8f3a-0000-4000-8000-0000000000ff';
+        const fetched = renderScreen(toolbarItem('item'), identifierOnly, rows, true, { shipmentId: address });
+
+        fireEvent.click(await screen.findByText('Norsk Fisk'));
+        await waitFor(() => expect(dispatchButton().disabled).toBe(false));
+        fireEvent.click(dispatchButton());
+        const dialog = await screen.findByRole('dialog');
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ shipmentId: rows[1].shipmentId });
     });
 });
 

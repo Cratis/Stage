@@ -76,11 +76,13 @@ export function itemSubjectElement(element: ExternalComponent, schema: SchemaPro
     const carried = schema.filter(property => property.identifier !== undefined && property.required && Object.hasOwn(row, property.name)).map(property => property.name);
     const supplied = new Set([...bound, ...carried]);
     const fields = askedFields(element, schema).filter(field => !supplied.has(fieldProperty(field)));
-    const asked = schema.length > 0 || Array.isArray(element.properties.fields) ? { fields } : {};
+    // The narrowed list is the form: an empty one stays empty instead of regenerating every schema field.
+    const asked = schema.length > 0 || Array.isArray(element.properties.fields) ? { fields, generationMode: 'manual' } : {};
+    const identifiers = Object.fromEntries(carried.map(name => [name, row[name]]));
 
     return {
         ...element,
-        properties: { ...element.properties, rowAction: true, subjectValues: subjectInputValues(element, row), ...asked },
+        properties: { ...element.properties, rowAction: true, subjectValues: { ...identifiers, ...subjectInputValues(element, row) }, ...asked },
     } as ExternalComponent;
 }
 

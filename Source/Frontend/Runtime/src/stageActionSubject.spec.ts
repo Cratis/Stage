@@ -51,7 +51,8 @@ describe('the action an item subject opens', () => {
         const opened = itemSubjectElement(action({ actionSubject: 'item', subjectInputs: { note: { subject: 'item.text' } } }), schema, { shipmentId: 's1', text: 'hi' });
 
         expect(opened.properties.rowAction).toBe(true);
-        expect(opened.properties.subjectValues).toEqual({ note: 'hi' });
+        expect(opened.properties.subjectValues).toEqual({ shipmentId: 's1', note: 'hi' });
+        expect(opened.properties.generationMode).toBe('manual');
         expect((opened.properties.fields as { name: string }[]).map(field => field.name)).toEqual(['carrier']);
     });
 

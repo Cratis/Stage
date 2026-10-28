@@ -24,7 +24,7 @@ public class when_refusing_unstable_reducer_facts
 {
     [Theory]
     [InlineData("context.Occurred.Year", "Occurred")]
-    [InlineData("(int)context.SequenceNumber", "SequenceNumber")]
+    [InlineData("context.SequenceNumber > 0 ? 1 : 0", "SequenceNumber")]
     [InlineData("context.Tenant.Length", "Tenant")]
     public async Task should_keep_the_context_refusal(string score, string member)
     {

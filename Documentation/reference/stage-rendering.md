@@ -279,8 +279,9 @@ A plan with only skipped specifications has `Success == true` and `Outcome == Co
 Specifications for operations with admitted opaque C# policy bodies execute the
 predicate through Arc's command/query pipeline. Their authored `then` blocks are
 the assertion oracle; the reference evaluator still reports **Unsupported** when
-it reaches an opaque condition and never interprets its C#. Caller identity and
-subject reads use the scenario's caller fixture. An opaque `context.Occurred`
+it reaches an opaque condition and never interprets its C#. Caller identity
+comes from the scenario's caller fixture; the subject comes from the command's or
+query's argument values. An opaque `context.Occurred`
 read requires a command scenario with an authored `given clock`; query scenarios
 and commands without that clock are omitted with `STAGE-ESM-011` rather than
 using an uncontrolled authorization receipt time. Other unsupported scenario

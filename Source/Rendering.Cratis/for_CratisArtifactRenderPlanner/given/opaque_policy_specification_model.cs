@@ -34,6 +34,44 @@ public static class opaque_policy_specification_model
         """,
         StringComparison.Ordinal);
 
+    public static string SubjectSource() => opaque_policy_model.Source("return context.Subject == \"invoice-one\";").Replace(
+        "      event InvoiceIssued\n",
+        """
+              specification AllowingTheSubject
+                given caller
+                  authenticated
+                when IssueInvoice
+                  invoiceId = "invoice-one"
+                  description = "North"
+                then InvoiceIssued
+                  invoiceId = "invoice-one"
+                  description = "North"
+              specification DenyingTheOtherSubject
+                given caller
+                  authenticated
+                when IssueInvoice
+                  invoiceId = "invoice-two"
+                  description = "North"
+                then denied
+              event InvoiceIssued
+
+        """,
+        StringComparison.Ordinal) + "\n" + """
+              specification LookingUpTheSubject
+                given caller
+                  authenticated
+                then query InvoiceById
+                  arguments
+                    invoiceId = "invoice-one"
+              specification LookingUpAnotherSubject
+                given caller
+                  authenticated
+                then query InvoiceById
+                  arguments
+                    invoiceId = "invoice-two"
+                then denied
+        """;
+
     public static string Source(string body = Body) => opaque_policy_model.Source(body).Replace(
         "      event InvoiceIssued\n",
         """

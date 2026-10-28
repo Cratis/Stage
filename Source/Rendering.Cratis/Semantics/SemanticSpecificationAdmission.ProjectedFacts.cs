@@ -44,9 +44,9 @@ internal static partial class SemanticSpecificationAdmission
             return AbsenceRejection;
         }
 
-        if (specification.ThenReadModels.Any(expected => ReducerUsesUnstableContext(context, expected.ReadModel)))
+        foreach (var expected in specification.ThenReadModels)
         {
-            return "A reducer body reads context.Occurred, context.SequenceNumber or context.Tenant, which Chronicle's ReadModelScenario cannot supply deterministically.";
+            if (ReducerRejectionReason(context, expected.ReadModel) is { } reason) return reason;
         }
 
         if (specification.ThenReadModels.Any(expected => !IsProjectedFromFacts(context, specification, expected)))
@@ -63,7 +63,7 @@ internal static partial class SemanticSpecificationAdmission
     {
         if (context.Reducers.SingleOrDefault(reducer => reducer.ReadModel == expected.ReadModel) is { } reducer)
         {
-            return !ReducerUsesUnstableContext(context, expected.ReadModel) &&
+            return ReducerRejectionReason(context, expected.ReadModel) is null &&
                 SemanticReducerSpecificationEvents.Given(specification, expected, reducer).Count > 0;
         }
 

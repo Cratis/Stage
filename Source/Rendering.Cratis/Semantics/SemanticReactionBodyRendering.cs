@@ -42,8 +42,24 @@ internal static class SemanticReactionBodyRendering
             return new(null, placement, diagnostics.ToImmutable());
         }
 
-        return Present(code!, placement, context.Events[reaction.Triggers.Single().Source], diagnostics, reaction.Id);
+        var source = context.Events[reaction.Triggers.Single().Source];
+        if (!new SemanticReactionReturnShape(source, context).IsSeparate(code!.Text))
+        {
+            diagnostics.Add(new(
+                SemanticVersionFeatures.MixedReactionEffects,
+                ArtifactRenderDiagnosticSeverity.Error,
+                $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command.",
+                reaction.Id));
+        }
+
+        return Present(code!, placement, source, diagnostics, reaction.Id);
     }
+
+    internal static IEnumerable<ArtifactRenderDiagnostic> ReturnDiagnostics(LocatedSemanticSlice located, SemanticApplicationContext context) =>
+        (located.Slice.Reactions.IsDefault ? [] : located.Slice.Reactions)
+            .Where(reaction => reaction.Triggers is [var trigger] && trigger.RequirementId is not null && SemanticVersionFeatures.HasStandaloneEventBody(reaction, trigger))
+            .SelectMany(reaction => Inline(located, reaction, context).Diagnostics)
+            .Where(diagnostic => diagnostic.Code == SemanticVersionFeatures.MixedReactionEffects);
 
     static bool EnvelopeMatches(SemanticImplementationRequirement requirement, SemanticId owner) =>
         requirement is { Role: SemanticImplementationRole.ReactionEffect, ContextVersion: 1, ResultVersion: 1 } &&

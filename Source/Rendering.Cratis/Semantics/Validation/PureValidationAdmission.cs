@@ -25,10 +25,20 @@ internal static class PureValidationAdmission
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(code, options);
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks;\n" + SemanticValidationContextRuntime.AnalysisDeclarations(context);
+        MetadataReference[] metadataReferences;
+        try
+        {
+            metadataReferences = PureTransitionAdmission.AnalysisReferences();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Reject("STAGE-ESM-021", exception.Message);
+        }
+
         var compilation = CSharpCompilation.Create(
             "PureValidationAnalysis",
             [CSharpSyntaxTree.ParseText(declarations, options), CSharpSyntaxTree.ParseText(SemanticValidationContextRuntime.RenderWrapper(context, descriptor, analysis: true).Content, options), tree],
-            PureTransitionAdmission.AnalysisReferences(),
+            metadataReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var model = compilation.GetSemanticModel(tree);
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single();

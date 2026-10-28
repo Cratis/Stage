@@ -42,10 +42,11 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var read in command.Reads)
             {
-                var key = context.ReadModels.TryGetValue(read.ReadModel, out var readModel) ? readModel.Properties.FirstOrDefault(property => property.IsIdentifier) : null;
-                if (key is not null && Identifiers.ToPascalCase(key.Name) != "Id")
+                if (context.ReadModels.TryGetValue(read.ReadModel, out var readModel) &&
+                    readModel.Properties.FirstOrDefault(property => property.IsIdentifier) is { } key &&
+                    Identifiers.ToPascalCase(key.Name) != "Id")
                 {
-                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' whose key property is '{key.Name}'; Chronicle's decision-read guard admits only a read model whose key property is named 'id' (a string or Guid, concepts included), so the command could never succeed. Rename the key property, and the query's key argument with it, to 'id'."));
+                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' (read model '{readModel.Name}') whose key property is '{key.Name}'; Chronicle's decision reads find a read model's key only in a property named 'id' and refuse any other with DecisionReadRefusalReason.KeyConversion when the command runs, so the command could never succeed. Rename the key property to 'id' together with the query 'by' and 'filter' arguments, specification expectations and sample data that name it, or read a separate decision-only read model keyed by 'id'."));
                 }
             }
         }

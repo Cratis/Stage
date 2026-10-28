@@ -22,6 +22,9 @@ import {
 /** The qualified name Stage registers its locale picker under. */
 export const stageLocaleComponent = 'Stage:locale';
 
+/** The qualified name Stage registers its light/dark toggle under. */
+export const stageThemeToggleComponent = 'Stage:themeToggle';
+
 /** The package a host renders with when the profile lists no component library: the Cratis component library, built on React Aria. */
 export const stageBaselinePackage = 'Cratis.Components';
 
@@ -157,7 +160,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
     const end: SceneElement[] = [];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
-    end.push(externalComponent('topbar-theme', ComponentName.ThemeSwitcher, { label: 'Theme' }));
+    end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
     const regionNavigation = { regionNavigation: regions };
 
     return {

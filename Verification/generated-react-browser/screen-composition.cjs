@@ -677,8 +677,10 @@ async function assertAddComment(page, result, network) {
 }
 
 async function assertNavigationAndTheme(page, result) {
-    await expectText(page, result, 'browser.navigation.themeLight.label', 'Scene Default Light');
-    await expectText(page, result, 'browser.navigation.themeDark.label', 'Scene Default Dark');
+    // The theme is one toggle: a button that goes dark from a light theme.
+    const toggle = page.getByRole('button', { name: 'Switch to a dark theme' });
+    if (await toggle.first().waitFor({ timeout: 10_000 }).then(() => true, () => false)) record(result, 'browser.navigation.themeToggle', 'passed', 'Switch to a dark theme');
+    else block(result, 'browser.navigation.themeToggle', 'the topbar has no theme toggle');
     await expectText(page, result, 'browser.navigation.menu.CommentThread', 'CommentThread');
 
     const renderState = await page.evaluate(() => ({

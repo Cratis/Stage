@@ -309,7 +309,7 @@ internal static partial class SemanticRunProjectionAdmission
         return IsScalar(identity) && !identity.IsOptional && !identity.IsCollection &&
             Primitive(plan, identity) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
             ChronicleReadModelPropertyNamesAreSafe.Check(properties, rootLevel: false) && SemanticRunAdmission.RuntimePropertyNamesAreUnique(properties) &&
-            properties.All(property => (IsScalar(property.Type) && !property.Type.IsCollection && Primitive(plan, property.Type) != SemanticPrimitiveType.DateTime) || scope.Children.Any(child => child.Property == property.Id)) &&
+            properties.All(property => (IsScalar(property.Type) && !property.Type.IsCollection) || scope.Children.Any(child => child.Property == property.Id)) &&
             scope.Nested.IsEmpty && scope.Children.IsEmpty && scope.JoinRemovals.IsEmpty && scope.Every is null &&
             scope.From.All(from => FromKeySupported(plan, specification, from, identity) && ParentMatches(from.ParentKey, from.EventContract) && from.Mappings.All(MappingSupported)) &&
             scope.Removals.All(removal => RemovalKeySupported(plan, removal, identity) && ParentMatches(removal.ParentKey, removal.EventContract)) &&

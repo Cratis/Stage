@@ -5,7 +5,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 public sealed partial class CratisBackendApplicationScaffold
 {
-    static string EditorConfig() =>
+    internal static string EditorConfig() =>
         """
         root = true
 

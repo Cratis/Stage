@@ -13,7 +13,8 @@ using Xunit;
 
 namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
-// Executor/reference parity only: the renderer deliberately retains STAGE-ESM-043.
+// Executor/reference parity only: the renderer deliberately retains STAGE-ESM-043 for multiple same-event production
+// triggers until Chronicle can return ordered per-trigger batches (Cratis/Chronicle#5248).
 public class when_comparing_atomic_reaction_batch_corpora : Specification
 {
     [Theory]

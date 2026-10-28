@@ -271,7 +271,7 @@ public static class SemanticRunAdmission
     internal static bool HasReadModelProvider(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId readModel) =>
         plan.Projections.Values.Any(projection => projection.ReadModel == readModel) ||
         specification.GivenReadModels.Any(seed => seed.ReadModel == readModel) ||
-        plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices)
+        plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
             .SelectMany(slice => slice.Reducers).Any(reducer => reducer.ReadModel == readModel);
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.

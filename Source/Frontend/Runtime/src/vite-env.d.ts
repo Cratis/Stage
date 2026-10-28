@@ -17,3 +17,7 @@ interface ImportMeta {
 
 // The stylesheet of design tokens Cratis Components publishes without types of its own.
 declare module '@cratis/components/tokens';
+declare module '@cratis/components/CommandForm/styles';
+declare module '@cratis/components/Dropdown/styles';
+declare module '@cratis/components/Common/styles';
+declare module '@cratis/components/Display/styles';

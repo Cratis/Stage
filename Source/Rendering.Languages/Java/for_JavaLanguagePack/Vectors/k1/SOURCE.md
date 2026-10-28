@@ -62,7 +62,7 @@ The #791 lexical lift has no native tokens; its literal spans are retained.
    (S6): the frozen corpus has 2,816 references; 166 are fully qualified (every
    one a reference to a plan record whose own annotation string repeats the
    record name) and 117 explicit `java.lang.*` imports were added. See the
-   golden review in the working notes. To regenerate, resolve `K1Fixture.Files()`
+   golden review in the working notes. The 166 qualified spellings are a known conservative result: the pack cannot prove a referenced plan type is final, so its own simple name (seen as a word, here inside an annotation string) stays in the closure and the reference is written qualified. To regenerate, resolve `K1Fixture.Files()`
    with `K1Fixture.Facts()`, hash each file's UTF-8 text with SHA-256 and rewrite
    `digests.json` and the goldens named in `goldens.json`.
 4. Run `publish.mjs` to copy only the compact plan, digests, golden index,

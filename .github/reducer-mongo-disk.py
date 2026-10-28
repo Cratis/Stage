@@ -95,7 +95,10 @@ def writable_mounts(kernel):
     mounts = kernel["Mounts"]
     if len(mounts) > 16 or any(m["Type"] not in ("bind", "volume") for m in mounts):
         raise RuntimeError("Unsupported kernel storage mapping; cannot establish disk evidence.")
-    writable = [m["Destination"] for m in mounts if m["RW"]]
+    # Docker inspect does not guarantee Mounts order across calls on the same live
+    # container (it is sourced from an internal map); sort so reordering alone
+    # cannot look like a changed mapping.
+    writable = [m["Destination"] for m in sorted(mounts, key=lambda m: m["Destination"]) if m["RW"]]
     if not {"/data/db", "/data/configdb"}.issubset(writable):
         raise RuntimeError("Bundled MongoDB writable volume evidence is unavailable.")
     return writable
@@ -146,7 +149,7 @@ class DiskGuard:
         kernel = json.loads(checked(["docker", "inspect", self.kernel_id]))[0]
         if kernel["Id"] != self.kernel_id or container_locations(kernel) != self.locations["kernel"]:
             raise RuntimeError("Writable container mapping changed or is unknown.")
-        return {"Mounts": kernel["Mounts"], "Paths": self.locations["kernel"]}
+        return {"Mounts": sorted(kernel["Mounts"], key=lambda m: m["Destination"]), "Paths": self.locations["kernel"]}
 
     def measure(self):
         if self.kernel_mapping is not None and self.inspect_kernel() != self.kernel_mapping:

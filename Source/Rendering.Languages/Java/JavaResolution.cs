@@ -14,6 +14,9 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 static class JavaResolution
 {
     internal static ImmutableArray<DeclarativeFileResolution> Resolve(JavaPlan plan, JavaTypeFacts facts)
+        => [.. ResolveWithSites(plan, facts).Select(file => file.Resolution)];
+
+    internal static ImmutableArray<JavaResolvedFile> ResolveWithSites(JavaPlan plan, JavaTypeFacts facts)
     {
         var analyses = new Dictionary<string, JavaFileAnalysis>(StringComparer.Ordinal);
         var refusals = new Dictionary<string, LanguagePackRefusal>(StringComparer.Ordinal);
@@ -37,7 +40,7 @@ static class JavaResolution
         return [.. plan.Files.Select(file => ResolveFile(file, context))];
     }
 
-    static DeclarativeFileResolution ResolveFile(DeclarativeLanguageFile file, Resolving context)
+    static JavaResolvedFile ResolveFile(DeclarativeLanguageFile file, Resolving context)
     {
         try
         {
@@ -46,17 +49,17 @@ static class JavaResolution
                 throw early;
             }
 
-            return DeclarativeFileResolution.Resolved(context.Analyses.TryGetValue(file.Path, out var analysis)
+            return context.Analyses.TryGetValue(file.Path, out var analysis)
                 ? EmitJava(context, analysis)
-                : EmitCanonical(context.Plan, file));
+                : new(DeclarativeFileResolution.Resolved(EmitCanonical(context.Plan, file)), []);
         }
         catch (LanguagePackRefusal refusal)
         {
-            return DeclarativeFileResolution.Refused(refusal.Code, refusal.Message);
+            return new(DeclarativeFileResolution.Refused(refusal.Code, refusal.Message), []);
         }
     }
 
-    static ImmutableArray<DeclarativePiece> EmitJava(Resolving context, JavaFileAnalysis analysis)
+    static JavaResolvedFile EmitJava(Resolving context, JavaFileAnalysis analysis)
     {
         var plan = context.Plan;
         var path = analysis.File.Path;
@@ -84,7 +87,9 @@ static class JavaResolution
                     emitter.AppendSpelling(leaf);
                     break;
                 case DeclarativeSymbolSegment reference:
-                    emitter.AppendSpelling(spelling.Heads[JavaFileAnalysis.Head(reference.Value!)] + Remainder(plan, reference.Value!));
+                    emitter.AppendReference(
+                        spelling.Heads[JavaFileAnalysis.Head(reference.Value!)] + Remainder(plan, reference.Value!),
+                        reference.Value!.Namespace + "." + Allocated(plan, reference.Value!));
                     break;
                 default:
                     emitter.Append(segment);
@@ -92,7 +97,7 @@ static class JavaResolution
             }
         }
 
-        return emitter.Finish();
+        return new(DeclarativeFileResolution.Resolved(emitter.Finish()), emitter.Sites);
     }
 
     // A repeated Declaration is normally a constructor name, but a kit may use it as a type. Written bare it would bind to an inherited
@@ -148,6 +153,15 @@ static class JavaResolution
         readonly List<(int Start, int End)> _spans = [];
         readonly StringBuilder _text = new();
         readonly StringBuilder _generated = new();
+        readonly List<JavaReferenceSite> _sites = [];
+
+        internal ImmutableArray<JavaReferenceSite> Sites => [.. _sites];
+
+        internal void AppendReference(string spelling, string intended)
+        {
+            _sites.Add(new(_text.Length, _text.Length + spelling.Length, intended));
+            AppendSpelling(spelling);
+        }
 
         internal void Append(DeclarativeSegment segment)
         {

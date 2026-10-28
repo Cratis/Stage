@@ -109,4 +109,18 @@ public sealed class JavaLanguagePack(JavaTypeFacts? facts = null) : IDeclarative
             return AuthoredAdmission.Refused(JavaRefusalCodes.AuthoredIntegrity, refusal.Message);
         }
     }
+
+    /// <summary>Resolves files and observes each structured reference's emitted span and intended type.</summary>
+    /// <param name="files">The complete plan files.</param>
+    internal ImmutableArray<JavaResolvedFile> ResolveWithSites(ImmutableArray<DeclarativeLanguageFile> files)
+    {
+        try
+        {
+            return JavaResolution.ResolveWithSites(JavaPlan.Create(files), _facts);
+        }
+        catch (LanguagePackRefusal refusal)
+        {
+            return [.. files.Select(_ => new JavaResolvedFile(DeclarativeFileResolution.Refused(refusal.Code, refusal.Message), []))];
+        }
+    }
 }

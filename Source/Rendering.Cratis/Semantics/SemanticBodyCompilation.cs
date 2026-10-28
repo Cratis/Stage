@@ -11,7 +11,7 @@ internal static class SemanticBodyCompilation
 {
     internal const string ImplicitUsings = "global using System; global using System.Collections.Generic; global using System.IO; global using System.Linq; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks;\n";
 
-    internal static CSharpCompilation Create(string name, SyntaxTree tree) => CSharpCompilation.Create(name, [tree], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, generalDiagnosticOption: ReportDiagnostic.Error, nullableContextOptions: NullableContextOptions.Enable));
+    internal static CSharpCompilation Create(string name, SyntaxTree tree) => Create(name, [tree], PureTransitionAdmission.AnalysisReferences());
 
     internal static CSharpCompilation Create(string name, IEnumerable<SyntaxTree> trees, IEnumerable<MetadataReference> references, params string[] suppressed) =>
         CSharpCompilation.Create(name, trees, references, new CSharpCompilationOptions(

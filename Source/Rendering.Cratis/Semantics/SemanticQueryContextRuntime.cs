@@ -195,10 +195,16 @@ internal static class SemanticQueryContextRuntime
             declarations.Add($"namespace {ns} {{ {SemanticStateViewArtifactRenderer.CompositeKeyRecord(readModel, types)} }}");
         }
 
-        declarations.AddRange(SemanticBodyDeclarations.CompositeTypes(context));
+        foreach (var composite in context.Application.Types)
+        {
+            declarations.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Properties(composite.Properties, types)}); }}");
+        }
 
         return declarations;
     }
+
+    static string Properties(IEnumerable<SemanticProperty> properties, SemanticTypeSystem types) =>
+        string.Join(", ", properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static IEnumerable<SemanticReadModelQueryArgument> Arguments(SemanticKeyedQuery query)
     {

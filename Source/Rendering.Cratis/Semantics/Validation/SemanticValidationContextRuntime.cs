@@ -69,11 +69,9 @@ internal static class SemanticValidationContextRuntime
         var declarations = context.Application.Concepts.Select(concept => concept.Values.IsEmpty
             ? $"public record {Identifiers.ToPascalCase(concept.Name)}({types.Primitive(concept.Primitive)} Value);"
             : $"public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", SemanticEnumMembers.Declarations(concept))} }}")
-            .Concat(context.Application.Types.Select(type => $"public record {Identifiers.ToPascalCase(type.Name)}({Parameters(type.Properties)});"));
+            .Concat(SemanticBodyDeclarations.CompositeTypes(context));
         var code = $"namespace {context.CommonNamespace} {{ {string.Join('\n', declarations)} }}\n";
         return code + SemanticBodyDeclarations.Commands(context);
-
-        string Parameters(IEnumerable<SemanticProperty> properties) => string.Join(", ", properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
     }
 
     internal static void RenderIterator(CSharpCodeBuilder builder, SemanticApplicationContext context, string requirementId, SemanticId owner, SemanticProperty? property = null)

@@ -65,8 +65,9 @@ internal static class SemanticReactionBodyAdmission
         var events = context.Events.Values;
         var declarations = string.Join('\n', SemanticBodyDeclarations.Events(context, events)
             .Concat(SemanticBodyDeclarations.RealConcepts(context))
-            .Concat(SemanticBodyDeclarations.CompositeTypes(context))
+            .Append($"namespace {context.CommonNamespace} {{ {string.Join('\n', SemanticBodyDeclarations.CompositeTypes(context))} }}")
             .Append(SemanticBodyDeclarations.Commands(context)));
+
         // The scaffold turns the Chronicle, Arc and implicit namespaces into global usings, so the renderer writes short names.
         var globals = FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).Select(@namespace => $"global using {@namespace};");
         yield return CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + string.Join('\n', globals), _parseOptions);

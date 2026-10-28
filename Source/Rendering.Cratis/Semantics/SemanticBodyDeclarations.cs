@@ -38,7 +38,7 @@ internal static class SemanticBodyDeclarations
     internal static IEnumerable<string> CompositeTypes(SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
-        return context.Application.Types.Select(composite => $"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({string.Join(", ", composite.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))}); }}");
+        return context.Application.Types.Select(composite => $"public record {Identifiers.ToPascalCase(composite.Name)}({string.Join(", ", composite.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))});");
     }
 
     /// <summary>The command input records in their slice namespaces.</summary>

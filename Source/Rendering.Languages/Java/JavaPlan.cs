@@ -37,7 +37,7 @@ public sealed class JavaPlan
     public static JavaPlan Create(ImmutableArray<DeclarativeLanguageFile> files)
     {
         var declarations = JavaPlanRegistry.Build(files);
-        var words = files.ToImmutableDictionary(file => file.Path, file => JavaWords.Scan(JavaFileStructure.RawText(file.Segments)).All, StringComparer.Ordinal);
+        var words = files.Where(file => file.Path.EndsWith(".java", StringComparison.Ordinal)).ToImmutableDictionary(file => file.Path, file => JavaWords.Scan(JavaFileStructure.RawText(file.Segments)).All, StringComparer.Ordinal);
         return new(files, JavaDeclarationNames.Allocate(declarations, words));
     }
 }

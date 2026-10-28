@@ -55,7 +55,7 @@ which refuses the whole live batch if settlement fails, a specification ends at 
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
 semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.3, admits exact ESM v1–v30 and v32–v34
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v31 and v35 or later) with `STAGE-ESM-016`.
+version pairs (not mixed/noncanonical pairs), plus newer pairs within the declared ESM range (`>=32.0 <33`). Within that range, unaudited members refuse their owning slice or application with `STAGE-ESM-016`; only the specification's own slice is admitted for execution. Pairs outside the range that are not audited or the exact v33/v34 pairs are refused with `STAGE-ESM-016`, naming the range.
 At v33 a capture that keys its records by event source is refused with `STAGE-ESM-016` when the specification's slice runs it;
 at v34 `then invokes` is compared as described below. The renderer and the live semantic Host still refuse v33 and v34 models whole.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).

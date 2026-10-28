@@ -100,6 +100,16 @@ public class with_an_attachment_boundary
     public void should_reject_wrong_tuple_order_and_arity(string body) => AssertBlocked(handler_model.Request(body, handler_model.MultiSource), "STAGE-ESM-019");
 
     [Fact]
+    public void should_return_a_bare_handler_result_without_a_pass_through_local()
+    {
+        var plan = handler_model.Plan(handler_model.Request());
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var source = Source(plan);
+        Assert.DoesNotContain("handlerPayloads", source, StringComparison.Ordinal);
+        Assert.Contains("return HandlerBody_", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void should_preserve_raw_literals_comments_and_crlf()
     {
         const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
@@ -109,10 +119,19 @@ public class with_an_attachment_boundary
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
         var builder = new CSharpCodeBuilder();
         SemanticCommandHandlerRendering.Render(builder, context.Commands.Values.Single(), context);
-        Assert.Contains(body, builder.ToString(), StringComparison.Ordinal);
+
+        // Re-frozen for Cratis/Stage#848: the body is re-indented to its block; literal lines and every CRLF stay byte-identical.
+        var rendered = builder.ToString();
+        var indent = LeadingSpaces(rendered, "// preserve this trivia\r\n");
+        Assert.NotEmpty(indent);
+        Assert.Equal(0, indent.Length % 4);
+        Assert.Contains($"{indent}// preserve this trivia\r\n{indent}var text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\n{indent}return new OrderPlaced(text);", rendered, StringComparison.Ordinal);
 
         // PlannedArtifact.Text normalizes CRLF by contract; the authenticated splice does not.
-        Assert.Contains(body.Replace("\r\n", "\n", StringComparison.Ordinal), Source(plan), StringComparison.Ordinal);
+        var planned = Source(plan);
+        var plannedIndent = LeadingSpaces(planned, "// preserve this trivia\n");
+        Assert.NotEmpty(plannedIndent);
+        Assert.Contains($"{plannedIndent}// preserve this trivia\n{plannedIndent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\n{plannedIndent}return new OrderPlaced(text);", planned, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -159,4 +178,13 @@ public class with_an_attachment_boundary
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
         Assert.Empty(plan.Artifacts);
     }
+
+    static string LeadingSpaces(string text, string marker)
+    {
+        var at = text.IndexOf(marker, StringComparison.Ordinal);
+        var start = at;
+        while (start > 0 && text[start - 1] == ' ') start--;
+        return text[start..at];
+    }
 }
+

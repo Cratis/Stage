@@ -159,7 +159,7 @@ public class when_sharing_reducer_binding_environments
 
                 static {{modelType}}? Transition_{{suffix}}(TypedContext_{{wrapper}} context)
                 {
-            {{Body}}
+                    {{Body}}
                 }
 
             }

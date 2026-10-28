@@ -329,16 +329,16 @@ internal static partial class PureTransitionAdmission
         {
             var error = errors[0];
             var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
-            var methodOffset = code.IndexOf(body, helper.Body!.OpenBraceToken.Span.End, StringComparison.Ordinal);
+            var location = CSharpInlineIndentation.Locate(code, body, helper.Body!.OpenBraceToken.Span.End);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
-            if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
-                error.Location.SourceSpan.Start > methodOffset + body.Length)
+            if (location is null || !error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start ||
+                error.Location.SourceSpan.Start > location.Start + location.Length)
             {
                 return Reject("STAGE-ESM-021", $"Internal reducer analysis compilation error: {detail}");
             }
 
-            var location = SourceLocation(requirement, body, error.Location.SourceSpan.Start - methodOffset);
-            return Reject("STAGE-ESM-019", $"Reducer body {location}: {detail}");
+            var sourceLocation = SourceLocation(requirement, body, location.ToBody(error.Location.SourceSpan.Start - location.Start));
+            return Reject("STAGE-ESM-019", $"Reducer body {sourceLocation}: {detail}");
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));

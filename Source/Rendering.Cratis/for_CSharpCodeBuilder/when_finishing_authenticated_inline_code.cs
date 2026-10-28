@@ -91,7 +91,7 @@ public class when_finishing_authenticated_inline_code : Specification
         else builder.Raw(source);
         if (nested) builder.EndBlock();
         var output = builder.ToString();
-        Assert.Contains((nested && !verbatim ? "    " : string.Empty) + source + "\n", output);
+        Assert.Contains((nested ? "    " : string.Empty) + source + "\n", output);
         Assert.DoesNotContain(InlineCodeTokens.Prefix, output);
     }
 

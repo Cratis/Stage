@@ -60,11 +60,11 @@ internal static class PureValidationAdmission
         var error = compilation.GetDiagnostics().FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error || (diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed));
         if (error is not null)
         {
-            var offset = code.IndexOf(body, method.Body.OpenBraceToken.Span.End, StringComparison.Ordinal);
+            var location = CSharpInlineIndentation.Locate(code, body, method.Body.OpenBraceToken.Span.End);
             var detail = $"{error.Id}: {error.GetMessage(CultureInfo.InvariantCulture)}";
-            if (error.Location.SourceTree != tree || error.Location.SourceSpan.Start < offset || error.Location.SourceSpan.Start > offset + body.Length)
+            if (location is null || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start || error.Location.SourceSpan.Start > location.Start + location.Length)
                 return Reject("STAGE-ESM-021", $"Internal validation analysis compilation error: {detail}");
-            return Reject("STAGE-ESM-019", $"Validation body {PureTransitionAdmission.SourceLocation(requirement, body, error.Location.SourceSpan.Start - offset)}: {detail}");
+            return Reject("STAGE-ESM-019", $"Validation body {PureTransitionAdmission.SourceLocation(requirement, body, location.ToBody(error.Location.SourceSpan.Start - location.Start))}: {detail}");
         }
         var verdict = PureTransitionAdmission.Walk(model, method.Body, descriptor, context.RootNamespace);
         if (!verdict.Accepted || !SemanticValidationContextRuntime.IsIterator(descriptor)) return verdict;

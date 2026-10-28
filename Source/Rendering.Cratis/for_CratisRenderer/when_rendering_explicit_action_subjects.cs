@@ -5,36 +5,25 @@ using System.Text;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
-using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
-using InvalidEventModel = Cratis.Stage.Contracts.InvalidEventModel;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
-public class when_refusing_explicit_action_subjects : given.a_multi_slice_application
+public class when_rendering_explicit_action_subjects : given.a_multi_slice_application
 {
     [Theory]
     [InlineData(true, ScreenActionSubjectKind.Item)]
     [InlineData(true, ScreenActionSubjectKind.Screen)]
     [InlineData(false, ScreenActionSubjectKind.Item)]
     [InlineData(false, ScreenActionSubjectKind.Screen)]
-    public async Task should_refuse_before_writing_any_output(bool toolbar, ScreenActionSubjectKind subject)
+    public async Task should_render_without_failing(bool toolbar, ScreenActionSubjectKind subject)
     {
-        var application = WithAction(toolbar, subject);
-        var expected = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(application));
         var output = new InMemoryCodeOutput();
-        var renderer = Renderer(output);
-        var error = await Catch.Exception(() => renderer.Render([application], new DirectoryInfo("unused-output"), TextWriter.Null, TextWriter.Null));
-        var refusal = Assert.IsType<InvalidEventModel>(Assert.IsType<RenderingFailed>(error).Failures.Single());
-        Assert.Equal(expected.Message, refusal.Message);
-        refusal.Message.ShouldContain("STAGE-ESM-058:");
-        refusal.Message.ShouldContain(toolbar ? "Toolbar item 'register'" : "Screen action 'RegisterInvoice'");
-        refusal.Message.ShouldContain("Subjects.play");
-        refusal.Message.ShouldContain("Line = 7, Column = 11");
-        output.Files.ShouldBeEmpty();
+        await Renderer(output).Render([WithAction(toolbar, subject)], new DirectoryInfo("unused-output"), TextWriter.Null, TextWriter.Null);
         output.FailureMarkerWasWritten.ShouldBeFalse();
+        Assert.NotEmpty(output.Files);
     }
 
     [Theory]

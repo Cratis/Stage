@@ -8,7 +8,7 @@ using Cratis.Stage.Contracts.Rendering;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 /// <summary>
-/// Plans projections that map <c>$eventContext</c> values, as the Axon views sample does for its ContextTotal read model.
+/// Plans projections that map eventContext values, as the Axon views sample does for its ContextTotal read model.
 /// </summary>
 public static class event_context_projection_model
 {
@@ -41,6 +41,76 @@ public static class event_context_projection_model
                   correlation = $eventContext.correlationId
                   details.note = "increased"
               query AllContextTotals => ContextTotal[]
+        """;
+
+    public const string AxonViews = Header + """
+
+            slice StateView ContextTotals
+              event ContextRecorded
+                name String
+              readmodel ContextTotal
+                name String key
+                occurred DateTime
+                correlation Uuid optional
+                details CounterDetails optional
+              projection ContextProjection => ContextTotal
+                from ContextRecorded
+                  key "global"
+                  name = "global"
+                  occurred = $eventContext.occurred
+                  correlation = $eventContext.correlationId
+                  details.note = "increased"
+              query AllContextTotals => ContextTotal[]
+        """;
+
+    public const string NestedThroughOptional = Header + """
+
+            slice StateView ContextTotals
+              event ContextRecorded
+                name String
+              readmodel ContextTotal
+                name String key
+                details CounterDetails optional
+              projection ContextProjection => ContextTotal
+                from ContextRecorded
+                  key "global"
+                  name = "global"
+                  details.note = "increased"
+              query AllContextTotals => ContextTotal[]
+        """;
+
+    public const string NestedThroughOptionalReadByACommand = """
+        command reads protected
+        type CounterDetails
+          note String
+        module Home
+          feature Ctx
+            slice StateView Totals
+              event Counted
+                label String
+              event Uncounted
+              readmodel Total
+                id String key
+                label String
+                details CounterDetails optional
+              projection TotalProjection => Total
+                from Counted
+                  id = $eventSourceId
+                  label = label
+                  details.note = "counted"
+                remove with Uncounted
+              query ById => Total optional
+                by id String
+            slice StateChange Recording
+              event Recorded
+              command Record
+                id String identifier
+                reads Total by id
+                validate
+                  require Total.label == "open"
+                    message "Only an open total may be recorded."
+                produces Recorded
+                  for id
         """;
 
     public const string ReadByACommand = """

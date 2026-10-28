@@ -61,15 +61,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var givenEvents = reducer is null ? SemanticProjectionSpecificationSeeds.Given(specification, projection!) : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
-        if (specification.ThenReadModels.Length > 1)
-        {
-            behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
-        }
-        if (absentIndex is { } index)
-        {
-            behavior += $"_without_{Identifiers.ToSnakeCase(readModel.Name)}_{index + 1}";
-        }
+        var behavior = SemanticSpecificationClassNames.Projected(specification, readModel, absentIndex);
         var builder = Builder(behavior, located, readModel, context);
         var seeds = SemanticProjectionSpecificationSeeds.For(specification, readModel.Id).ToArray();
         var needsCommon = seeds.Any(seed => readModel.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(

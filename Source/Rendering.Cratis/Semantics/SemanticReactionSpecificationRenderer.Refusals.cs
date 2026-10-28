@@ -12,7 +12,7 @@ internal static partial class SemanticReactionSpecificationRenderer
     static RenderedFile RenderRefusals(SemanticSpecification specification, SemanticApplicationContext context, SemanticReactionSpecificationPrelude prelude)
     {
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var invoked = prelude.Selection.Trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
 

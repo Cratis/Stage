@@ -15,7 +15,7 @@ internal static class SemanticAppendRefusalRenderer
     internal static RenderedFile Render(SemanticSpecification specification, SemanticConstraint constraint, SemanticApplicationContext context)
     {
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Chronicle.Testing.Commands")

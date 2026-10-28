@@ -160,7 +160,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
     const end: SceneElement[] = [];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
-    end.push(externalComponent('topbar-theme', stageThemeToggleComponent, { label: 'Theme' }));
+    end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
     const regionNavigation = { regionNavigation: regions };
 
     return {

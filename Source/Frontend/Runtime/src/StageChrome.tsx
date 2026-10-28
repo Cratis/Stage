@@ -45,12 +45,11 @@ export function StageLocale() {
 }
 
 /**
- * The theme as one toggle: an icon button that shows a moon in a light theme and a sun in a dark one, and switches to the other, under a
- * `Theme` headline. The themes it switches between are the light and the dark one the Stage ships.
+ * The theme as one toggle: an icon button that shows a moon in a light theme and a sun in a dark one, and switches to the other, with
+ * nothing else. The themes it switches between are the light and the dark one the Stage ships.
  */
 export function StageThemeToggle({ element }: RegisteredComponentProps) {
     const { config, setThemeName, setColorScheme } = useLayoutConfig();
-    const label = typeof element.properties.label === 'string' ? element.properties.label : 'Theme';
     const current = defaultBlueprintThemes.find(theme => theme.name === config.themeName);
     const dark = current?.isDark ?? config.colorScheme === ColorScheme.Dark;
     const target = defaultBlueprintThemes.find(theme => (theme.isDark ?? false) !== dark);
@@ -59,7 +58,6 @@ export function StageThemeToggle({ element }: RegisteredComponentProps) {
     const action = dark ? 'Switch to a light theme' : 'Switch to a dark theme';
     return (
         <div className='stage-theme-toggle' data-scene-id={element.id}>
-            <h3 className='layout-config-section-title'>{label}</h3>
             <button
                 type='button'
                 className='stage-theme-toggle__button'

@@ -115,7 +115,6 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
 .scene-slice-dialog-footer { margin-top: 1rem; }
 
 .stage-theme-toggle { display: flex; flex-direction: column; align-items: center; }
-.stage-theme-toggle .layout-config-section-title { margin: 0 0 0.15rem; }
 .stage-theme-toggle__button {
     display: inline-flex; align-items: center; justify-content: center;
     width: 2.25rem; height: 2.25rem; padding: 0; cursor: pointer;

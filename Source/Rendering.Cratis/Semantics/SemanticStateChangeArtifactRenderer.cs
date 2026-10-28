@@ -135,10 +135,6 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
         context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
-        if (results.Reads.HasReads)
-        {
-            builder.Attribute(SemanticDecisionReadRendering.ProtectionAttribute);
-        }
         if (command.Route is { } route)
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);
@@ -298,6 +294,11 @@ internal static class SemanticStateChangeArtifactRenderer
             return expression;
         }
 
+        return CompatibleConceptValue(sourceConcept, targetConcept, expression);
+    }
+
+    static string CompatibleConceptValue(SemanticConcept sourceConcept, SemanticConcept targetConcept, string expression)
+    {
         var compatible = sourceConcept.Primitive == targetConcept.Primitive ||
             (sourceConcept.Primitive, targetConcept.Primitive) is (SemanticPrimitiveType.WholeNumber, SemanticPrimitiveType.DecimalNumber);
         return compatible ? $"new {Identifiers.ToPascalCase(targetConcept.Name)}({expression}.Value)" : expression;

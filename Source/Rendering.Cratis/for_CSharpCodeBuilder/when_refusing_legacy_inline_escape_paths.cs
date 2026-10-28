@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Renderers;
@@ -64,9 +65,9 @@ public class when_refusing_legacy_inline_escape_paths : Specification
     [InlineData("\u0085")]
     [InlineData("\u2028")]
     [InlineData("\u2029")]
-    void should_use_the_shared_normalization_for_generated_header_comments(string newline)
+    void should_refuse_unsafe_header_lines_and_normalize_generated_comments(string newline)
     {
-        GeneratedFileHeader.Comment(["Before" + newline + "After"]).ShouldEqual("// Before After\n\n");
+        ArtifactFileHeader.IsValid(["Before" + newline + "After"]).ShouldBeFalse();
         new CSharpCodeBuilder().Line("// Before" + newline + "After").ToString().ShouldEqual("// Before After\n");
     }
 

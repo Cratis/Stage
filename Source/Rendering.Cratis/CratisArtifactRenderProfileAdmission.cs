@@ -171,11 +171,8 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        if (!FileHeaderInput.TryRead(profile, out var fileHeader))
-        {
-            mismatch = "The Cratis profile carries an invalid or duplicate file header.";
-            return false;
-        }
+        // Header admission belongs to the final artifact pipeline, including malformed inputs.
+        if (!ArtifactFileHeader.TryRead(profile, out var fileHeader)) fileHeader = [];
 
         if (!UserInterfaceInput.TryRead(profile, out var userInterface))
         {

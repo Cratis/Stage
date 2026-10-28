@@ -32,3 +32,12 @@ describe('in a dark theme', () => {
         expect(screen.getByRole('button', { name: 'Switch to a light theme' })).toBeTruthy();
     });
 });
+
+describe('after the user chose a theme', () => {
+    it('remembers it in the browser', () => {
+        globalThis.localStorage.clear();
+        draw('Scene Default Light');
+        fireEvent.click(screen.getByRole('button'));
+        expect(globalThis.localStorage.getItem('cratis.stage.theme')).toBe('Scene Default Dark');
+    });
+});

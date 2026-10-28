@@ -43,6 +43,7 @@ public class when_resolving_contains_field_types : Specification
         var at = syntax.Location;
         slice = slice with { Queries = [new QuerySyntax("FindSubject", new("GuardSubject", false, false, at), null, [], null, at)] };
         syntax = syntax with { Modules = [module with { Features = [feature with { Slices = [slice] }] }] };
-        new SceneGuardFieldTypes(syntax).IsStringField("FindSubject", "item.value").ShouldBeTrue();
+        new GuardSubject(new GuardDeclarations(syntax), [], [new("FindSubject", false, false, at)])
+            .Field("item.value").Kind.ShouldEqual(GuardFieldKind.Text);
     }
 }

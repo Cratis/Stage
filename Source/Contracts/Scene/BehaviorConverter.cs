@@ -108,8 +108,11 @@ public static class BehaviorConverter
         return null;
     }
 
+    internal static SceneModel.Behavior ConvertResolved(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, GuardFieldType> field, ConversionDiagnostics? diagnostics, string path) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, null, diagnostics, path, null, condition => SceneGuardConversion.FromResolved(condition, field).ToCondition()))], behavior.Order);
+
     // Scene owns ordered first-match selection for guarded interaction alternatives.
-    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField)
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField, Func<ScreenplaySyntax.ConditionSyntax, global::Cratis.Scene.Model.Guards.GuardCondition>? convertCondition = null)
     {
         var trigger = ConvertTrigger(binding.Trigger, diagnostics, path);
         if (trigger is null) yield break;
@@ -127,7 +130,7 @@ public static class BehaviorConverter
             trigger,
             [],
             Alternatives: [.. alternatives.Select(alternative => new SceneModel.InteractionAlternative(
-                SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf, isStringField),
+                convertCondition is null ? SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf, isStringField) : convertCondition(alternative.Condition),
                 [.. alternative.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]))],
             Otherwise: binding.Otherwise is null ? null : [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]);
     }

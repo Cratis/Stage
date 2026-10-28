@@ -18,7 +18,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-frozen for Cratis/Stage#209: generated package.json pins Scene 4.84.0; capability-reverted bytes match.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string Before = "cc85c270001a36af7acadde2560a48ab066b1d8d5b37ff64c6fe791817c6cfb9";
+    // Re-frozen for #870: only Directory.Packages.props gains Screenplay.Matching 4.251.0.
+    const string Before = "b6a088c3fb85cb73ade7dfd595f143f85f755dc5d667a6b8818725b3baa5436c";
 
     void Because() => _application = AppPlan(_profile);
 

@@ -20,6 +20,7 @@ import { isGuardedAction, StageSceneGuardedAction as StageGuardedAction } from '
 import { useRowInteractions } from './stageRowInteractions';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
+import { StageKanbanBoard, kanbanBoardKey } from './stageItemChange';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -422,6 +423,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
     [stageConfirmDialogComponent]: StageConfirmDialog,
+    [kanbanBoardKey]: StageKanbanBoard,
 };
 
 /** Whether an element tree contains anything the Stage can act on. */

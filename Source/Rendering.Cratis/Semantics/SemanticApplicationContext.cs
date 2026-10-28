@@ -75,7 +75,9 @@ internal sealed class SemanticApplicationContext
         [
             .. _generatedTypeSeed.Value,
             .. SemanticCratisAdmission.GeneratedResponseDeclarations(this, [.. _slices.Values]).Select(type =>
-                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+                new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name)),
+            .. SemanticCratisAdmission.GeneratedSpecificationDeclarations(this, [.. _slices.Values]).Select(type =>
+                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
     }
 
@@ -171,6 +173,10 @@ internal sealed class SemanticApplicationContext
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
+    /// <summary>
+    /// Gets the generated-type inventory: the admitted declarations, the command response types and the generated specification classes.
+    /// Specification classes of specifications that are refused later stay in the inventory, which is a harmless leaf superset.
+    /// </summary>
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];

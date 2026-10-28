@@ -153,6 +153,14 @@ internal static partial class SemanticCratisAdmission
                 string.Join('.', located.Path.Select(Identifiers.ToPascalCase)),
                 context.ResponseType(command))));
 
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedSpecificationDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Specifications.SelectMany(specification =>
+            SemanticSpecificationArtifactRenderer.ClassNames(specification, context).Select(name => new GeneratedTypeDeclaration(
+                specification.Id,
+                "Specification",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase).Append(name)),
+                name))));
+
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         var descriptors = SemanticValidationContextRuntime.Selected(context, slices).ToArray();

@@ -8,7 +8,9 @@ namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
 /// Inventories top-level C# declarations in each emitted namespace, including validators and constraints.
-/// Both render and execution admission use the same inventory.
+/// Both render and execution admission use the same inventory. The context inventory the C# import resolver
+/// resolves against is these declarations plus the command response types and the generated specification classes;
+/// specification classes stay out of the collision admission.
 /// </summary>
 internal static class GeneratedTypeNames
 {

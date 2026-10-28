@@ -20,7 +20,9 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 public class when_inventorying_emitted_top_level_types : a_register_project_render_request
 {
     readonly List<string> _missing = [];
+    readonly Dictionary<string, int> _typedContexts = [];
     int _declarations;
+    int _specificationClasses;
 
     void Because()
     {
@@ -35,6 +37,16 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
     {
         Assert.True(_declarations > 0, "The rendering fixture corpus emitted no top-level declarations.");
         Assert.True(_missing.Count == 0, string.Join('\n', _missing));
+    }
+
+    [Fact]
+    void should_have_exercised_specification_classes_and_every_typed_context_kind()
+    {
+        Assert.True(_specificationClasses > 0, "No fixture emitted a specification class.");
+        foreach (var name in inventory_fixtures.TypedContextNames)
+        {
+            Assert.True(_typedContexts.GetValueOrDefault(name) > 0, $"{name}: no typed-context declaration was emitted.");
+        }
     }
 
     [Theory]
@@ -74,9 +86,9 @@ public class when_inventorying_emitted_top_level_types : a_register_project_rend
         foreach (var declaration in declarations)
         {
             var qualified = DeclarationName(declaration);
-            // leaf types no generated code references; strict resolution cannot reject them; inventory completeness tracked in Cratis/Stage#858
-            if (declaration is ClassDeclarationSyntax type && IsSpecificationClass(type)) continue;
             _declarations++;
+            if (declaration is ClassDeclarationSyntax type && IsSpecificationClass(type)) _specificationClasses++;
+            if (qualified.Contains(".TypedContexts.", StringComparison.Ordinal)) _typedContexts[fixture] = _typedContexts.GetValueOrDefault(fixture) + 1;
             if (!inventory.Contains(qualified)) _missing.Add($"{fixture}: {qualified}");
         }
     }

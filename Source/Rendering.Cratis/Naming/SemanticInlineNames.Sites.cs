@@ -16,14 +16,14 @@ internal sealed partial class SemanticInlineNames
             var scope = $"command:{command.Id}";
             var typeScope = $"command-types:{command.Id}";
             var name = Identifiers.ToPascalCase(command.Name);
-            sites.Add(new(Key("handler-body", command.Id), $"Handle{name}", command.Handler!.RequirementId, scope));
+            sites.Add(new(Key("handler-body", command.Id), $"Handle{name}", command.Handler!.RequirementId, scope, typeScope));
             sites.Add(new(Key("handler-context", command.Id), $"{name}Context", command.Handler.RequirementId, scope, typeScope));
             sites.Add(new(Key("handler-command", command.Id), $"{name}Command", command.Handler.RequirementId, scope, typeScope));
             reservations.AddRange(command.Properties.Select(property => new SemanticInlineNameReservation(scope, context.MemberNames.Property(property))));
             reservations.AddRange(GeneratedPascalCase.RecordMembers.Append(name).Concat(["Handle", "Provide", "GetEventSourceId"])
                 .Select(member => new SemanticInlineNameReservation(scope, member)));
 
-            // Nested helper types must not shadow the model types visible to the authored body.
+            // Generated members must not shadow the model types visible to the authored body.
             var namespaces = command.Produces.Select(produced => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(produced.EventContract).Path))
                 .Append(context.CommonNamespace)
                 .Append(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path))
@@ -34,8 +34,11 @@ internal sealed partial class SemanticInlineNames
         foreach (var concept in context.Concepts.Values.Where(concept => SemanticGenerationRendering.IsRule(concept.Generation)))
         {
             var scope = $"concept:{concept.Id}";
+            var typeScope = $"concept-types:{concept.Id}";
             var name = Identifiers.ToPascalCase(concept.Name);
-            sites.Add(new(Key("generation-body", concept.Id), $"Generate{name}", concept.Generation!.RequirementId!, scope));
+            sites.Add(new(Key("generation-body", concept.Id), $"Generate{name}", concept.Generation!.RequirementId!, scope, typeScope));
+            reservations.AddRange(context.GeneratedTypes.Where(type => type.Namespace == context.CommonNamespace)
+                .Select(type => new SemanticInlineNameReservation(typeScope, type.Name)));
             reservations.AddRange(GeneratedPascalCase.RecordMembers.Concat([name, "Value", "New", "NotSet"])
                 .Select(member => new SemanticInlineNameReservation(scope, member)));
         }

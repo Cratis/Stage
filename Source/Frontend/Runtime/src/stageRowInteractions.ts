@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { BindingExpression, ExternalComponent } from '@cratis/scene.model';
 import { InteractionTriggerKind } from '@cratis/scene.model';
-import { resolveBehaviors, resolveSubjectReference, runBindings } from '@cratis/scene.engine';
+import { resolveBehaviors, resolveSubjectReference } from '@cratis/scene.engine';
+import { runScreenplayBindings } from './screenplayGuard';
 import { attachmentFor, useInteractionScope } from '@cratis/scene.react';
 
 /** How long a row waits for a second click before treating the first as a single click. */
@@ -49,7 +50,7 @@ export function useRowInteractions(element: ExternalComponent): RowInteractions 
             if (binding.path?.startsWith('item.')) return resolveSubjectReference({ subject: binding.path }, row);
             return scope.context.resolve(binding);
         };
-        void runBindings(bindings, scope.dispatcher, { ...scope.context, subject: () => row, resolve }).then(result => {
+        void runScreenplayBindings(bindings, scope.dispatcher, { ...scope.context, subject: () => row, resolve }).then(result => {
             if (result.findings.length > 0) scope.onFindings?.(result.findings);
         });
     }, [bindings, scope]);

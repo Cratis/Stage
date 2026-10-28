@@ -20,6 +20,9 @@ public sealed record BehaviorScope(
     /// </summary>
     public ConversionDiagnostics? Diagnostics { get; init; }
 
+    /// <summary>Gets the declared guard field types.</summary>
+    public SceneGuardFieldTypes? GuardFieldTypes { get; init; }
+
     /// <summary>
     /// Gets the members of every enumeration-typed read model field, by read model and then field.
     /// </summary>
@@ -55,6 +58,11 @@ public sealed record BehaviorScope(
     /// </summary>
     public static BehaviorScope None => new(new Dictionary<string, ScreenplaySyntax.BehaviorSyntax>(StringComparer.Ordinal), []);
 
+    /// <summary>Whether a guard path resolves to a known string field on the nearest data subject.</summary>
+    /// <param name="path">The guard field path.</param>
+    /// <returns>True only for a resolved string field.</returns>
+    public bool IsStringField(string path) => GuardFieldTypes?.IsStringField(Subject, path) == true;
+
     /// <summary>
     /// Creates a scope from a document's declarations.
     /// </summary>
@@ -62,7 +70,7 @@ public sealed record BehaviorScope(
     /// <param name="findings">Where to report an unresolved <c language="csharp">uses</c>.</param>
     /// <returns>The <see cref="BehaviorScope"/>.</returns>
     public static BehaviorScope For(ScreenplaySyntax.ApplicationSyntax syntax, ICollection<RenderFinding> findings) =>
-        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), EnumerationNumbers = EnumerationNumbersIn(syntax), Structure = StructureConverter.Convert(syntax) };
+        new(BehaviorAttachments.Declared(syntax.Behaviors), findings) { Enumerations = EnumerationsIn(syntax), EnumerationNumbers = EnumerationNumbersIn(syntax), GuardFieldTypes = new(syntax), Structure = StructureConverter.Convert(syntax) };
 
     /// <summary>
     /// Gets the members of the enumeration a guard's subject field has, in declared order, which is the order the
@@ -97,7 +105,7 @@ public sealed record BehaviorScope(
         IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
         IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
         string subject) =>
-        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, Diagnostics);
+        BehaviorAttachments.Convert(inline, used, Declared, subject, Findings, EnumerationOf, Diagnostics, IsStringField);
 
     static Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>> EnumerationsIn(ScreenplaySyntax.ApplicationSyntax syntax)
     {

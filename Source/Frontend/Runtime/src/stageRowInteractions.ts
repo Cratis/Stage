@@ -4,8 +4,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { BindingExpression, ExternalComponent } from '@cratis/scene.model';
 import { InteractionTriggerKind } from '@cratis/scene.model';
-import { resolveBehaviors, resolveSubjectReference, runBindings } from '@cratis/scene.engine';
+import { resolveBehaviors, runBindings } from '@cratis/scene.engine';
 import { attachmentFor, useInteractionScope } from '@cratis/scene.react';
+import { guardPath, resolveGuard, subjectValue } from './stageGuards';
 
 /** How long a row waits for a second click before treating the first as a single click. */
 export const doubleClickWindow = 250;
@@ -23,8 +24,9 @@ export interface RowInteractions {
  * Runs a table's `on double click` bindings for the row that was double clicked.
  *
  * The bindings are the table's own, resolved and run by the Scene interaction engine - the same engine that runs
- * every other interaction - with the subject meaning the row. Scene selects the first matching alternative
- * and runs the otherwise actions only when none match.
+ * every other interaction - with `item` meaning the row. A guarded `when ... otherwise` arrives as one binding per
+ * branch whose condition the engine resolves through this context, so exactly the first branch that holds for the
+ * row runs, and the `otherwise` branch runs when none does.
  *
  * A row's single click (selection, or navigation to the row) would otherwise always win the race with a double
  * click, because a double click starts with a click. When the table declares a double click, a single click waits
@@ -46,10 +48,11 @@ export function useRowInteractions(element: ExternalComponent): RowInteractions 
         pending.current = undefined;
         if (!scope) return;
         const resolve = (binding: BindingExpression): unknown => {
-            if (binding.path?.startsWith('item.')) return resolveSubjectReference({ subject: binding.path }, row);
+            if (binding.path === guardPath) return resolveGuard(binding.value, row);
+            if (binding.path?.startsWith('item.')) return subjectValue(binding.path, row);
             return scope.context.resolve(binding);
         };
-        void runBindings(bindings, scope.dispatcher, { ...scope.context, subject: () => row, resolve }).then(result => {
+        void runBindings(bindings, scope.dispatcher, { ...scope.context, resolve }).then(result => {
             if (result.findings.length > 0) scope.onFindings?.(result.findings);
         });
     }, [bindings, scope]);

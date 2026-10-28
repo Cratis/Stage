@@ -75,9 +75,7 @@ internal static class SafeSceneApplication
 
     // A guarded action the Stage runtime can evaluate is served as authored; only one it cannot is left out.
     static bool IsUnsupportedGuardedAction(SceneElements.SceneElement element) =>
-        element is SceneElements.ExternalComponent component &&
-        ((string.Equals(component.ComponentName, "core:action", StringComparison.Ordinal) &&
-          (element.Properties.ContainsKey("alternatives") || element.Properties.ContainsKey("otherwise"))) ||
-         string.Equals(component.ComponentName, "core:guarded-action", StringComparison.Ordinal)) &&
+        element is SceneElements.ExternalComponent component && string.Equals(component.ComponentName, "core:action", StringComparison.Ordinal) &&
+        (element.Properties.ContainsKey("alternatives") || element.Properties.ContainsKey("otherwise")) &&
         !SceneGuards.CanRunAction(element.Properties);
 }

@@ -21,6 +21,6 @@ public class and_a_guarded_action_is_inside_a_template_slot : for_ScreenDirectiv
 
     void Because() => _result = (ExternalComponent)ScreenConverter.Convert(_screen, "AppShell", [], []).SlotContent["actions"][0];
 
-    [Fact] void should_keep_the_guarded_action_in_the_slot() => _result.ComponentName.ShouldEqual("core:guarded-action");
+    [Fact] void should_keep_the_guarded_action_in_the_slot() => _result.ComponentName.ShouldEqual("core:action");
     [Fact] void should_keep_the_guarded_action_alternatives() => _result.Properties.ContainsKey("alternatives").ShouldBeTrue();
 }

@@ -13,17 +13,12 @@ public class and_a_guarded_action_has_no_fallback : given.a_guarded_action
 
     void Because() => _result = (ExternalComponent)ScreenDirectiveConverter.Convert([_action], "InvoiceDetails")[0];
 
-    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:guarded-action");
+    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:action");
     [Fact] void should_carry_the_label() => _result.Properties["label"].ShouldEqual(_action.Label);
-    [Fact] void should_keep_the_direct_label_a_clr_string() => _result.Properties["label"].ShouldBeOfExactType<string>();
-    [Fact] void should_preserve_the_label_when_read_by_the_native_model() => Cratis.Scene.Model.Guards.GuardedActionProperties.Read(_result).Label.ShouldEqual(_action.Label);
-    [Fact] void should_serialize_the_label_as_a_string() => System.Text.Json.JsonSerializer.SerializeToElement(_result.Properties).GetProperty("label").GetString().ShouldEqual(_action.Label);
     [Fact] void should_carry_the_alternatives() => Alternatives.Count.ShouldEqual(1);
-    [Fact] void should_carry_the_alternative_command() => Alternatives[0].Command.ShouldEqual("SendInvoice");
-    [Fact] void should_carry_the_condition() => ((Cratis.Scene.Model.Guards.ComparisonGuardCondition)Alternatives[0].Condition).Operator.ShouldEqual(Cratis.Scene.Model.Guards.GuardOperator.Equal);
-    [Fact] void should_preserve_an_unqualified_path_rather_than_invent_a_subject() => ((Cratis.Scene.Model.Guards.ComparisonGuardCondition)Alternatives[0].Condition).Left.Subject.ShouldEqual("status");
-    [Fact] void should_keep_an_unqualified_path_unevaluable() => SceneGuards.CanEvaluate(Alternatives[0].Condition).ShouldBeFalse();
+    [Fact] void should_carry_the_alternative_command() => Alternatives[0]["command"].ShouldEqual("SendInvoice");
+    [Fact] void should_carry_the_condition() => ((Dictionary<string, object?>)Alternatives[0]["condition"]!)["operator"].ShouldEqual("Equal");
     [Fact] void should_not_invent_a_fallback() => _result.Properties.ContainsKey("otherwise").ShouldBeFalse();
 
-    IReadOnlyList<Cratis.Scene.Model.Guards.GuardedActionAlternative> Alternatives => Cratis.Scene.Model.Guards.GuardedActionProperties.Read(_result).Alternatives;
+    List<Dictionary<string, object?>> Alternatives => (List<Dictionary<string, object?>>)_result.Properties["alternatives"]!;
 }

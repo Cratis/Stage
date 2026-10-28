@@ -26,15 +26,12 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
     Dictionary<string, string> _runtimePeers = null!;
     HashSet<string> _optionalPeers = null!;
     Dictionary<string, string> _primeReactPackages = null!;
-    Dictionary<string, string> _frontendPackages = null!;
-    static readonly string[] _scenePeers = ["@cratis/scene.blueprint.default", "@cratis/scene.components", "@cratis/scene.engine", "@cratis/scene.model", "@cratis/scene.primereact", "@cratis/scene.react"];
 
     void Because()
     {
         _plan = Plan();
         _generatedPackages = Read(Text(_plan, "package.json"), "dependencies", "devDependencies");
         _runtimePeers = Read(File.ReadAllText(RuntimePackage()), "peerDependencies");
-        _frontendPackages = Read(File.ReadAllText(Path.Combine(Path.GetDirectoryName(RuntimePackage())!, "..", "package.json")), "dependencies", "devDependencies");
         _optionalPeers = OptionalPeers(File.ReadAllText(RuntimePackage()));
         _primeReactPackages = Read(Text(PlanWithPrimeReact(), "package.json"), "dependencies", "devDependencies");
     }
@@ -46,17 +43,6 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
     [Fact] void should_pin_every_required_runtime_peer_to_the_version_the_runtime_declares() => Unpinned(_runtimePeers.Where(peer => !_optionalPeers.Contains(peer.Key)), _generatedPackages).ShouldBeEmpty();
     [Fact] void should_not_install_the_optional_runtime_peers_by_default() => _optionalPeers.Where(_generatedPackages.ContainsKey).ShouldBeEmpty();
     [Fact] void should_pin_every_runtime_peer_to_the_version_the_runtime_declares_when_the_application_lists_PrimeReact() => Unpinned(_runtimePeers, _primeReactPackages).ShouldBeEmpty();
-
-    [Fact] void should_cover_the_complete_scene_peer_roster_in_the_runtime() => SceneNames(_runtimePeers).ShouldEqual(_scenePeers);
-    [Fact] void should_cover_the_complete_scene_peer_roster_in_the_frontend() => SceneNames(_frontendPackages).ShouldEqual(_scenePeers);
-    [Fact] void should_pin_every_scene_peer_in_both_frontend_manifests_to_the_scaffold_authority() => _scenePeers.Where(name => _runtimePeers[name] != CratisFrontendPackageSet.Current.ScenePackageVersion || _frontendPackages[name] != CratisFrontendPackageSet.Current.ScenePackageVersion).ShouldBeEmpty();
-    [Fact] void should_mark_only_the_scene_primereact_peer_optional() => _optionalPeers.Where(IsScene).Order(StringComparer.Ordinal).ShouldEqual(["@cratis/scene.primereact"]);
-    [Fact] void should_install_exactly_the_required_scene_peers_by_default() => SceneNames(_generatedPackages).ShouldEqual(_scenePeers.Where(name => !_optionalPeers.Contains(name)));
-    [Fact] void should_install_the_complete_scene_peer_roster_with_primereact() => SceneNames(_primeReactPackages).ShouldEqual(_scenePeers);
-    [Fact] void should_declare_optional_metadata_only_for_real_runtime_peers() => _optionalPeers.Where(name => !_runtimePeers.ContainsKey(name)).ShouldBeEmpty();
-
-    static bool IsScene(string name) => name.StartsWith("@cratis/scene.", StringComparison.Ordinal);
-    static IEnumerable<string> SceneNames(Dictionary<string, string> packages) => packages.Keys.Where(IsScene).Order(StringComparer.Ordinal);
 
     static IEnumerable<string> Unpinned(IEnumerable<KeyValuePair<string, string>> peers, Dictionary<string, string> packages) =>
         peers.Where(peer => !packages.TryGetValue(peer.Key, out var version) || version != peer.Value).Select(peer => $"{peer.Key}: {packages.GetValueOrDefault(peer.Key)} != {peer.Value}");

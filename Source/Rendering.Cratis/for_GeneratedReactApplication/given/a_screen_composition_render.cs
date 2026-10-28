@@ -1,8 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
@@ -58,11 +56,7 @@ public class a_screen_composition_render : Specification
     /// Plans the application from the authored Scene, guarded actions and interactions included.
     /// </summary>
     /// <returns>The plan.</returns>
-    protected ArtifactRenderPlan Plan()
-    {
-        var (plan, inputs) = PlanWithInputs(CanonicalSceneJson.Serialize(_scene));
-        return RequireArtifacts(plan, inputs);
-    }
+    protected ArtifactRenderPlan Plan() => Plan(CanonicalSceneJson.Serialize(_scene));
 
     /// <summary>
     /// Writes every planned artifact beneath a directory, at its relative path.
@@ -84,9 +78,7 @@ public class a_screen_composition_render : Specification
     /// </summary>
     /// <param name="sceneJson">The Scene payload carried as the <c language="json">scene.json</c> input.</param>
     /// <returns>The plan.</returns>
-    protected ArtifactRenderPlan Plan(string sceneJson) => PlanWithInputs(sceneJson).Plan;
-
-    (ArtifactRenderPlan Plan, IEnumerable<ArtifactRenderInput> Inputs) PlanWithInputs(string sceneJson)
+    protected ArtifactRenderPlan Plan(string sceneJson)
     {
         var profile = CratisRendering.CreateProfile(_model.Application.Name, _options);
         var withScene = ArtifactRenderProfile.Create(
@@ -95,12 +87,11 @@ public class a_screen_composition_render : Specification
             profile.Renderer,
             profile.RendererVersion,
             [.. profile.Inputs, CratisArtifactRenderInput.CreateText(SceneCompositionInput.RelativePath, CratisRendering.TargetVersion, sceneJson)]);
-        var plan = new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(
+        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(
             _model,
             _executionPlan,
             withScene,
             new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
-        return (plan, withScene.Inputs);
     }
 
     /// <summary>
@@ -111,12 +102,11 @@ public class a_screen_composition_render : Specification
     {
         var scene = _scene with { UiProfiles = [.. _scene.UiProfiles.Select(profile => profile with { Packages = [.. profile.Packages, "PrimeReact"] })] };
         var profile = CratisRendering.CreateProfile(_model.Application.Name, _options, scene, null, null, null);
-        var plan = new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(
+        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(
             _model,
             _executionPlan,
             profile,
             new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
-        return RequireArtifacts(plan, profile.Inputs);
     }
 
     /// <summary>
@@ -125,121 +115,8 @@ public class a_screen_composition_render : Specification
     /// <param name="plan">The plan.</param>
     /// <param name="relativePath">The artifact's path.</param>
     /// <returns>The UTF-8 text.</returns>
-    protected static string Text(ArtifactRenderPlan plan, string relativePath)
-    {
-        RequireArtifacts(plan, []);
-        var matches = plan.Artifacts.Where(_ => _.RelativePath == relativePath).ToArray();
-        Assert.True(matches.Length == 1, $"Expected one artifact at '{relativePath}', found {matches.Length}.{Environment.NewLine}{Diagnostics(plan)}");
-        return System.Text.Encoding.UTF8.GetString(matches[0].Bytes.AsSpan());
-    }
-
-    /// <summary>
-    /// Requires successful admission and generated artifacts.
-    /// </summary>
-    /// <param name="plan">The plan to check.</param>
-    /// <param name="inputs">The inputs used to plan the artifacts.</param>
-    /// <returns>The successful plan.</returns>
-    protected static ArtifactRenderPlan RequireArtifacts(ArtifactRenderPlan plan, IEnumerable<ArtifactRenderInput> inputs)
-    {
-        if (plan.Success && plan.Artifacts.Length > 0) return plan;
-        var rejected = inputs.Where(input => input.Name == ScreenPartitionsInput.Name || input.Name == $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}")
-            .SelectMany(RejectedGuards);
-        Assert.Fail($"Expected successful admission and generated artifacts.{Environment.NewLine}{Diagnostics(plan)}{Environment.NewLine}" +
-            $"guards rejected by SceneGuards admission (test-side re-evaluation){Environment.NewLine}{string.Join(Environment.NewLine, rejected)}");
-        return plan;
-    }
-
-    static string Diagnostics(ArtifactRenderPlan plan) => string.Join(Environment.NewLine,
-        plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} | {diagnostic.Severity} | {diagnostic.Message} | {diagnostic.Artifact}"));
-
-    static IEnumerable<string> RejectedGuards(ArtifactRenderInput input)
-    {
-        try
-        {
-            return [.. RejectedGuards(JsonNode.Parse(input.Bytes.AsSpan())).Select(guard => $"{input.Name}: {guard}")];
-        }
-        catch (Exception exception) when (exception is JsonException or InvalidOperationException or ArgumentException)
-        {
-            return [$"{input.Name}: guard re-evaluation unavailable ({exception.GetType().Name})"];
-        }
-    }
-
-    protected static IEnumerable<string> RejectedGuards(JsonNode? node, string jsonPath = "") => node switch
-    {
-        JsonObject element => RejectedObjectGuards(element, jsonPath),
-        JsonArray array => RejectedItems(array, jsonPath),
-        _ => []
-    };
-
-    static IEnumerable<string> RejectedObjectGuards(JsonObject element, string jsonPath)
-    {
-        if (IsTriggeredBindingRejected(element))
-        {
-            var bindingCondition = element["condition"]!;
-            yield return $"{jsonPath}/condition: kind={Spelling(bindingCondition["kind"])}, operator={Spelling(bindingCondition["operator"])}";
-        }
-        foreach (var rejection in RejectedAlternatives(element, jsonPath).Concat(RejectedChildren(element, jsonPath))) yield return rejection;
-    }
-
-    static bool IsTriggeredBindingRejected(JsonObject element)
-    {
-        if (!element.ContainsKey("trigger")) return false;
-        if (element["condition"] is not JsonObject bindingCondition) return false;
-        return !SceneGuards.CanRunBinding(bindingCondition);
-    }
-
-    static IEnumerable<string> RejectedAlternatives(JsonObject element, string jsonPath)
-    {
-        if (element["alternatives"] is not JsonArray alternatives) yield break;
-        for (var index = 0; index < alternatives.Count; index++)
-        {
-            var condition = alternatives[index] is JsonObject branch ? branch["condition"] : null;
-            foreach (var rejection in RejectedCondition(condition, $"{jsonPath}/alternatives/{index}/condition")) yield return rejection;
-        }
-    }
-
-    static IEnumerable<string> RejectedChildren(JsonObject element, string jsonPath)
-    {
-        foreach (var property in element)
-        {
-            var segment = property.Key.Replace("~", "~0", StringComparison.Ordinal).Replace("/", "~1", StringComparison.Ordinal);
-            foreach (var rejection in RejectedGuards(property.Value, $"{jsonPath}/{segment}")) yield return rejection;
-        }
-    }
-
-    static IEnumerable<string> RejectedItems(JsonArray array, string jsonPath)
-    {
-        for (var index = 0; index < array.Count; index++)
-        {
-            foreach (var rejection in RejectedGuards(array[index], $"{jsonPath}/{index}")) yield return rejection;
-        }
-    }
-
-    static IEnumerable<string> RejectedCondition(JsonNode? condition, string jsonPath)
-    {
-        if (SceneGuards.CanEvaluate(condition)) yield break;
-        var guard = condition as JsonObject;
-        yield return $"{jsonPath}: kind={Spelling(guard?["kind"])}, operator={Spelling(guard?["operator"])}";
-        if (guard is null) yield break;
-        if (!IsLogical(guard)) yield break;
-        foreach (var side in new[] { "left", "right" })
-        {
-            foreach (var rejection in RejectedCondition(guard[side], $"{jsonPath}/{side}")) yield return rejection;
-        }
-    }
-
-    static bool IsLogical(JsonObject guard)
-    {
-        if (guard["kind"] is not JsonValue kind) return false;
-        return kind.TryGetValue<string>(out var name) && name == "logical";
-    }
-
-    static string Spelling(JsonNode? value) => value switch
-    {
-        null => "<absent>",
-        JsonValue scalar when scalar.TryGetValue<string>(out _) || scalar.TryGetValue<double>(out _) => scalar.ToJsonString(),
-        _ => "<non-scalar>"
-    };
+    protected static string Text(ArtifactRenderPlan plan, string relativePath) =>
+        System.Text.Encoding.UTF8.GetString(plan.Artifacts.Single(_ => _.RelativePath == relativePath).Bytes.AsSpan());
 
     static SceneApplication SceneFor(IEnumerable<CanonicalCorpusDocument> documents)
     {

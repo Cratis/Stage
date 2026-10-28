@@ -16,10 +16,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class with_the_default_composition : a_register_project_render_request
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
-    // Re-frozen for Cratis/Stage#209: generated package.json pins Scene 4.84.0; capability-reverted bytes match.
-    // Re-frozen for #497 (NotEmpty) and #660 (Directory.Build.props CratisReadProtection On).
-    // Re-frozen for #870: only Directory.Packages.props gains Screenplay.Matching 4.251.0.
-    const string Before = "b662698b1adba5e39b9a0ae59941588c1a88f71b9064041783f9fe42c1a856d9";
+    // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
+    const string Before = "26fe030c63d81e51cb5a3cd4f8b92d0b3594dae0ee67b3930ba734d0eb00825c";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -31,8 +31,8 @@
     <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.99.1" />
     <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.99.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="4.84.0" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="4.84.0" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="4.80.2" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="4.80.2" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->

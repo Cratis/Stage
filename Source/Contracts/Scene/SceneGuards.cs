@@ -3,174 +3,249 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using Cratis.Scene.Engine.Guards;
-using Cratis.Scene.Model.Guards;
 using ScreenplaySyntax = Cratis.Screenplay.Syntax;
 
 namespace Cratis.Stage.Contracts.Scene;
 
-/// <summary>Translates Screenplay predicates into Scene's closed guard vocabulary.</summary>
+/// <summary>
+/// Describes the guards of a Screenplay <c language="shell">when ... otherwise</c> as the Stage runtime evaluates them,
+/// and decides which guards it can evaluate.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A guard compares a field of the subject - <c language="shell">item.status</c> - with a literal using one of the
+/// Screenplay comparison operators, and combines comparisons with <c language="shell">and</c> and <c language="shell">or</c>.
+/// That is the shape the Stage frontend runtime evaluates against bound data (<c language="shell">stageGuards.ts</c>).
+/// Any other guard is not evaluable; an action or interaction carrying one is refused with
+/// <see cref="UnsupportedGuardedScreenAction.DiagnosticCode"/> or <see cref="UnsupportedGuardedInteraction.DiagnosticCode"/>
+/// and never reaches the runtime, and the runtime refuses one again if it does.
+/// </para>
+/// <para>
+/// A guarded interaction is carried as one Scene interaction binding per branch, all with the same trigger and in
+/// authored order. Each binding's condition is a <see cref="Cratis.Scene.Model.Common.BindingExpression"/> with the path
+/// <see cref="GuardPath"/> and a value saying which branch it is and which alternatives decide it, so the Scene
+/// interaction engine runs exactly the first branch that holds for the subject, or the <c language="shell">otherwise</c>.
+/// </para>
+/// </remarks>
 public static class SceneGuards
 {
-    /// <summary>The prefix of a reference to the interaction's subject.</summary>
+    /// <summary>
+    /// The binding path of a guarded interaction branch's condition.
+    /// </summary>
+    public const string GuardPath = "$guard";
+
+    /// <summary>
+    /// The prefix every guard field has: the subject the guard is about.
+    /// </summary>
     public const string SubjectPrefix = "item.";
 
-    /// <summary>The Stage validation diagnostic for a literal outside its declared enumeration.</summary>
-    public const string UnknownEnumerationLiteralDiagnosticCode = "STAGE-SCENE-GUARD-001";
-    static readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web)
+    /// <summary>
+    /// The key a guard's subject field is carried under, such as <c language="shell">{ "subject": "item.status" }</c>.
+    /// </summary>
+    /// <remarks>
+    /// Not a binding: Scene resolves every <c language="shell">{ "path": ... }</c> object in a component's properties
+    /// against the data context before the component renders, which would replace a guarded action's field reference
+    /// with its value and leave nothing to evaluate. A guard carried as Scene JSON with a <c language="shell">path</c>
+    /// instead is still read.
+    /// </remarks>
+    public const string SubjectKey = "subject";
+
+    static readonly HashSet<string> _comparisonOperators = new(Enum.GetNames<ScreenplaySyntax.ComparisonOperator>(), StringComparer.Ordinal);
+    static readonly HashSet<string> _logicalOperators = new(Enum.GetNames<ScreenplaySyntax.LogicalOperator>(), StringComparer.Ordinal);
+    static readonly HashSet<string> _selectionKinds = new(["firstMatch", "otherwise"], StringComparer.Ordinal);
+
+    static readonly JsonSerializerOptions _options = new()
     {
-        Converters = { new JsonStringEnumConverter<GuardOperator>(), new JsonStringEnumConverter<LogicalGuardOperator>() }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    /// <summary>Creates a subject reference, not a render-time binding.</summary>
-    /// <param name="path">The authored subject path.</param>
-    /// <returns>The reference.</returns>
-    public static SubjectReference Subject(string path) => new(path);
-
-    /// <summary>Converts a predicate without evaluating it.</summary>
+    /// <summary>
+    /// Converts an authored condition to the form the Scene carries.
+    /// </summary>
     /// <param name="condition">The authored condition.</param>
-    /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
-    /// <returns>The typed predicate; unsupported syntax remains unevaluable.</returns>
-    public static GuardCondition Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf = null) => condition switch
-    {
-        ScreenplaySyntax.ComparisonConditionSyntax comparison => new ComparisonGuardCondition(
-            Subject(comparison.Left),
-            Enum.TryParse<GuardOperator>(comparison.Operator.ToString(), out var operation) ? operation : (GuardOperator)(-1),
-            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new { unsupported = comparison.Right.GetType().Name },
-            enumerationOf?.Invoke(comparison.Left)),
-        ScreenplaySyntax.LogicalConditionSyntax logical => new LogicalGuardCondition(
-            Convert(logical.Left, enumerationOf),
-            Enum.TryParse<LogicalGuardOperator>(logical.Operator.ToString(), out var operation) ? operation : (LogicalGuardOperator)(-1),
-            Convert(logical.Right, enumerationOf)),
-        _ => new ComparisonGuardCondition(Subject(string.Empty), GuardOperator.Equal, null)
-    };
+    /// <returns>The Scene form; an unevaluable condition keeps only its kind, which no runtime evaluates.</returns>
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition) => Convert(condition, null);
 
-    /// <summary>Whether Scene understands an authored predicate.</summary>
-    /// <param name="condition">The authored predicate.</param>
-    /// <returns>Whether it is evaluable.</returns>
-    public static bool CanEvaluate(ScreenplaySyntax.ConditionSyntax condition) => CanEvaluate(Convert(condition));
-
-    /// <summary>Whether Scene understands a converted predicate and it passes Stage's authored enumeration validation.</summary>
-    /// <param name="condition">The predicate or its JSON representation.</param>
-    /// <returns>Whether it is evaluable.</returns>
-    public static bool CanEvaluate(object? condition)
+    /// <summary>
+    /// Converts an authored condition to the form the Scene carries, typing its fields.
+    /// </summary>
+    /// <param name="condition">The authored condition.</param>
+    /// <param name="enumerationOf">Gives the members of an enumeration-typed field, in declared order.</param>
+    /// <returns>The Scene form. A comparison against an enumeration carries its members as <c language="shell">enumeration</c>, because
+    /// the backend sends an enumeration as its ordinal while Screenplay names the member.</returns>
+    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf)
     {
-        var serialized = Serialize(condition);
-        return GuardConditions.CanEvaluate(serialized) && EnumerationMembershipDiagnostic(serialized) is null;
+        switch (condition)
+        {
+            case ScreenplaySyntax.ComparisonConditionSyntax comparison:
+                var converted = new Dictionary<string, object?>
+                {
+                    ["kind"] = "comparison",
+                    ["left"] = Subject(comparison.Left),
+                    ["operator"] = comparison.Operator.ToString(),
+                    ["right"] = comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new Dictionary<string, object?> { ["kind"] = comparison.Right.GetType().Name },
+                };
+                if (enumerationOf?.Invoke(comparison.Left) is { } members)
+                {
+                    converted["enumeration"] = members;
+                }
+
+                return converted;
+            case ScreenplaySyntax.LogicalConditionSyntax logical:
+                return new Dictionary<string, object?>
+                {
+                    ["kind"] = "logical",
+                    ["left"] = Convert(logical.Left, enumerationOf),
+                    ["operator"] = logical.Operator.ToString(),
+                    ["right"] = Convert(logical.Right, enumerationOf),
+                };
+            default:
+                return new Dictionary<string, object?> { ["kind"] = condition.GetType().Name };
+        }
     }
 
-    /// <summary>Validates Stage's stricter authored enumeration membership contract, separately from Scene capability.</summary>
-    /// <param name="condition">The predicate or its JSON representation.</param>
-    /// <returns>The Stage diagnostic code for an unknown literal, or null when no membership violation is present.</returns>
-    public static string? EnumerationMembershipDiagnostic(object? condition) => EnumerationMembershipDiagnostic(Serialize(condition));
+    /// <summary>
+    /// Refers to a field of the guard's subject without the reference being a binding Scene resolves.
+    /// </summary>
+    /// <param name="path">The subject path, such as <c language="shell">item.status</c>.</param>
+    /// <returns>The reference.</returns>
+    public static IDictionary<string, object?> Subject(string path) => new Dictionary<string, object?> { [SubjectKey] = path };
 
-    /// <summary>Whether the component's branches can be run by Scene.</summary>
-    /// <param name="properties">The component properties.</param>
-    /// <returns>Whether the branches and fallback are understood.</returns>
-    public static bool CanRunAction(IReadOnlyDictionary<string, object?> properties) => CanRunAction(JsonSerializer.SerializeToNode(properties, _options) as JsonObject);
+    /// <summary>
+    /// Whether the Stage runtime can evaluate an authored condition.
+    /// </summary>
+    /// <param name="condition">The authored condition.</param>
+    /// <returns>True when it can.</returns>
+    public static bool CanEvaluate(ScreenplaySyntax.ConditionSyntax condition) => condition switch
+    {
+        ScreenplaySyntax.ComparisonConditionSyntax comparison =>
+            comparison.Left.StartsWith(SubjectPrefix, StringComparison.Ordinal) && comparison.Left.Length > SubjectPrefix.Length &&
+            Enum.IsDefined(comparison.Operator) &&
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax { Value: null or string or bool or int or long or double or decimal or float },
+        ScreenplaySyntax.LogicalConditionSyntax logical => Enum.IsDefined(logical.Operator) && CanEvaluate(logical.Left) && CanEvaluate(logical.Right),
+        _ => false,
+    };
 
-    /// <summary>Whether serialized branches can be run by Scene.</summary>
-    /// <param name="properties">The component properties.</param>
-    /// <returns>Whether the branches and fallback are understood.</returns>
+    /// <summary>
+    /// Whether the Stage runtime can evaluate a condition in the form the Scene carries it.
+    /// </summary>
+    /// <param name="condition">The condition: the converted dictionary, or the same shape as JSON.</param>
+    /// <returns>True when it can.</returns>
+    public static bool CanEvaluate(object? condition) => CanEvaluate(ToNode(condition));
+
+    /// <summary>
+    /// Whether a Scene guarded action's alternatives and fallback are all evaluable by the Stage runtime.
+    /// </summary>
+    /// <param name="properties">The action's properties.</param>
+    /// <returns>True when the action can run.</returns>
+    public static bool CanRunAction(IReadOnlyDictionary<string, object?> properties) =>
+        CanRunAction(ToNode(properties) as JsonObject);
+
+    /// <summary>
+    /// Whether a Scene guarded action, as JSON, is evaluable by the Stage runtime.
+    /// </summary>
+    /// <param name="properties">The action's properties.</param>
+    /// <returns>True when the action can run.</returns>
     public static bool CanRunAction(JsonObject? properties)
     {
-        if (properties?["alternatives"] is not JsonArray { Count: > 0 } alternatives) return false;
-        if (!alternatives.All(CanRunBranch)) return false;
-        return CanRunFallback(properties["otherwise"]);
+        if (properties?["alternatives"] is not JsonArray alternatives || alternatives.Count == 0)
+        {
+            return false;
+        }
+
+        var branches = alternatives.All(alternative =>
+            alternative is JsonObject branch && Text(branch["command"]) is { Length: > 0 } && CanEvaluate(branch["condition"]));
+        var otherwise = properties["otherwise"] switch
+        {
+            null => true,
+            JsonObject fallback => Text(fallback["outcome"]) switch
+            {
+                "Hidden" => true,
+                "Execute" => Text(fallback["command"]) is { Length: > 0 },
+                _ => false,
+            },
+            _ => false,
+        };
+        return branches && otherwise;
     }
 
-    /// <summary>Checks a serialized Scene for unsupported guards.</summary>
+    /// <summary>
+    /// Whether a Scene interaction binding's guard, as JSON, is evaluable by the Stage runtime.
+    /// </summary>
+    /// <param name="condition">The binding's condition.</param>
+    /// <returns>True when there is no guard or it can be evaluated.</returns>
+    public static bool CanRunBinding(JsonNode? condition)
+    {
+        if (condition is not JsonObject binding || Text(binding["path"]) != GuardPath)
+        {
+            return true;
+        }
+
+        return binding["value"] is JsonObject selection &&
+            _selectionKinds.Contains(Text(selection["kind"]) ?? string.Empty) &&
+            selection["alternatives"] is JsonArray alternatives && alternatives.Count > 0 &&
+            alternatives.All(CanEvaluate);
+    }
+
+    /// <summary>
+    /// Whether a JSON Scene document carries a guarded action or interaction the Stage runtime cannot evaluate.
+    /// </summary>
     /// <param name="json">The Scene document.</param>
-    /// <returns>Whether any guard is unevaluable.</returns>
+    /// <returns>True when it does.</returns>
     public static bool HasUnevaluableGuard(string json) => HasUnevaluableGuard(JsonNode.Parse(json));
 
-    /// <summary>Recognizes a guarded action component.</summary>
-    /// <param name="element">The component.</param>
-    /// <returns>Whether it carries guarded branches.</returns>
+    /// <summary>
+    /// Whether a JSON element is a guarded action.
+    /// </summary>
+    /// <param name="element">The element.</param>
+    /// <returns>True when it is an action with alternatives or a fallback.</returns>
     public static bool IsGuardedAction(JsonObject element) =>
-        (Text(element["componentName"]) == "core:guarded-action" || Text(element["componentName"]) == "core:action") &&
-        element["properties"] is JsonObject properties && (properties.ContainsKey("alternatives") || properties.ContainsKey("otherwise"));
-
-    /// <summary>Refuses legacy guard envelopes.</summary>
-    /// <param name="condition">The binding.</param>
-    /// <returns>Whether it is not a legacy guard envelope.</returns>
-    public static bool CanRunBinding(JsonNode? condition) => condition is not JsonObject binding || Text(binding["path"]) != "$guard";
-
-    static bool CanRunBranch(JsonNode? node) =>
-        node is JsonObject branch && Text(branch["command"]) is { Length: > 0 } && CanEvaluate(branch["condition"]);
-
-    static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
-
-    static bool CanRunFallback(JsonNode? node) => node switch
-    {
-        null => true,
-        JsonObject fallback => Text(fallback["outcome"]) switch
-        {
-            "Hidden" => true,
-            "Execute" => Text(fallback["command"]) is { Length: > 0 },
-            _ => false
-        },
-        _ => false
-    };
-
-    static JsonElement Serialize(object? condition) => condition is GuardCondition guard
-        ? JsonSerializer.SerializeToElement(guard, _options)
-        : JsonSerializer.SerializeToElement(condition, _options);
-
-    static string? EnumerationMembershipDiagnostic(JsonElement condition)
-    {
-        if (condition.ValueKind != JsonValueKind.Object)
-        {
-            return null;
-        }
-        if (IsLogical(condition))
-        {
-            return LogicalSideDiagnostic(condition, "left") ?? LogicalSideDiagnostic(condition, "right");
-        }
-        if (!TryGetEnumerationComparison(condition, out var enumeration, out var literal))
-        {
-            return null;
-        }
-        return IsEnumerationMember(literal, enumeration) ? null : UnknownEnumerationLiteralDiagnosticCode;
-    }
-
-    static bool IsLogical(JsonElement condition) => condition.TryGetProperty("kind", out var kind) &&
-        kind.ValueKind == JsonValueKind.String && kind.GetString() == "logical";
-
-    static string? LogicalSideDiagnostic(JsonElement condition, string side) =>
-        condition.TryGetProperty(side, out var value) ? EnumerationMembershipDiagnostic(value) : null;
-
-    static bool TryGetEnumerationComparison(JsonElement condition, out JsonElement enumeration, out JsonElement literal)
-    {
-        literal = default;
-        if (!condition.TryGetProperty("enumeration", out enumeration)) return false;
-        if (!IsStringEnumeration(enumeration)) return false;
-        return condition.TryGetProperty("right", out literal) && literal.ValueKind != JsonValueKind.Null;
-    }
-
-    static bool IsStringEnumeration(JsonElement enumeration) => enumeration.ValueKind == JsonValueKind.Array &&
-        enumeration.GetArrayLength() > 0 && !enumeration.EnumerateArray().Any(member => member.ValueKind != JsonValueKind.String);
-
-    static bool IsEnumerationMember(JsonElement literal, JsonElement enumeration) => literal.ValueKind switch
-    {
-        JsonValueKind.String => enumeration.EnumerateArray().Any(member => string.Equals(member.GetString(), literal.GetString(), StringComparison.OrdinalIgnoreCase)),
-        JsonValueKind.Number => literal.TryGetDouble(out var ordinal) && double.IsFinite(ordinal) && ordinal == Math.Truncate(ordinal) && ordinal >= 0 && ordinal < enumeration.GetArrayLength(),
-        _ => false
-    };
+        Text(element["componentName"]) == "core:action" && element["properties"] is JsonObject properties &&
+        (properties.ContainsKey("alternatives") || properties.ContainsKey("otherwise"));
 
     static bool HasUnevaluableGuard(JsonNode? node) => node switch
     {
         JsonObject element when IsGuardedAction(element) && !CanRunAction(element["properties"] as JsonObject) => true,
-        JsonObject binding when HasUnevaluableInteraction(binding) => true,
+        JsonObject binding when binding.ContainsKey("trigger") && !CanRunBinding(binding["condition"]) => true,
         JsonObject element => element.Any(property => HasUnevaluableGuard(property.Value)),
         JsonArray array => array.Any(HasUnevaluableGuard),
-        _ => false
+        _ => false,
     };
 
-    static bool HasUnevaluableInteraction(JsonObject binding) => binding.ContainsKey("trigger") &&
-        (!CanRunBinding(binding["condition"]) || HasUnevaluableAlternatives(binding["alternatives"]));
+    static bool CanEvaluate(JsonNode? condition)
+    {
+        if (condition is not JsonObject node)
+        {
+            return false;
+        }
 
-    static bool HasUnevaluableAlternatives(JsonNode? node) => node is JsonArray alternatives &&
-        alternatives.Any(branch => !CanEvaluate(branch?["condition"]));
+        return Text(node["kind"]) switch
+        {
+            "comparison" =>
+                node["left"] is JsonObject left && (Text(left[SubjectKey]) ?? Text(left["path"])) is { } path && path.StartsWith(SubjectPrefix, StringComparison.Ordinal) && path.Length > SubjectPrefix.Length &&
+                Text(node["operator"]) is { } comparison && _comparisonOperators.Contains(comparison) &&
+                (node["right"] is null || node["right"] is JsonValue) &&
+                IsMemberOfItsEnumeration(node),
+            "logical" =>
+                Text(node["operator"]) is { } logical && _logicalOperators.Contains(logical) && CanEvaluate(node["left"]) && CanEvaluate(node["right"]),
+            _ => false,
+        };
+    }
+
+    // A comparison against an enumeration can only name one of its members; anything else could never hold.
+    static bool IsMemberOfItsEnumeration(JsonObject comparison) =>
+        comparison["enumeration"] is not JsonArray members ||
+        Text(comparison["right"]) is not { } literal ||
+        members.Any(member => string.Equals(Text(member), literal, StringComparison.OrdinalIgnoreCase));
+
+    static JsonNode? ToNode(object? value) => value switch
+    {
+        null => null,
+        JsonNode node => node,
+        JsonElement element => JsonNode.Parse(element.GetRawText()),
+        _ => JsonSerializer.SerializeToNode(value, _options),
+    };
+
+    static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 }

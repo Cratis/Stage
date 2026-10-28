@@ -15,9 +15,9 @@ public class and_a_guarded_action_has_an_executable_fallback : given.a_guarded_a
     void Establish() => _action = _action with { Otherwise = new ScreenActionOtherwiseSyntax(ScreenActionOtherwiseOutcome.Execute, "CancelInvoice", _location) };
     void Because() => _result = (ExternalComponent)ScreenDirectiveConverter.Convert([_action], "InvoiceDetails")[0];
 
-    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:guarded-action");
-    [Fact] void should_carry_the_fallback_outcome() => Otherwise.Outcome.ShouldEqual(Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome.Execute);
-    [Fact] void should_carry_the_fallback_command() => Otherwise.Command.ShouldEqual("CancelInvoice");
+    [Fact] void should_emit_an_action_component() => _result.ComponentName.ShouldEqual("core:action");
+    [Fact] void should_carry_the_fallback_outcome() => Otherwise["outcome"].ShouldEqual("Execute");
+    [Fact] void should_carry_the_fallback_command() => Otherwise["command"].ShouldEqual("CancelInvoice");
 
-    Cratis.Scene.Model.Guards.GuardedActionFallback Otherwise => Cratis.Scene.Model.Guards.GuardedActionProperties.Read(_result).Otherwise!;
+    Dictionary<string, object?> Otherwise => (Dictionary<string, object?>)_result.Properties["otherwise"]!;
 }

@@ -71,14 +71,7 @@ internal static class SemanticValidationContextRuntime
             : $"public enum {Identifiers.ToPascalCase(concept.Name)} {{ {string.Join(", ", SemanticEnumMembers.Declarations(concept))} }}")
             .Concat(context.Application.Types.Select(type => $"public record {Identifiers.ToPascalCase(type.Name)}({Parameters(type.Properties)});"));
         var code = $"namespace {context.CommonNamespace} {{ {string.Join('\n', declarations)} }}\n";
-        foreach (var command in context.Commands.Values)
-        {
-            var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
-            var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property =>
-                $"{SemanticCommandResultRendering.InputType(property, raw, types)} {context.MemberNames.Property(property)}");
-            code += $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path)} {{ public record {Identifiers.ToPascalCase(command.Name)}({string.Join(", ", inputs)}); }}\n";
-        }
-        return code;
+        return code + SemanticBodyDeclarations.Commands(context);
 
         string Parameters(IEnumerable<SemanticProperty> properties) => string.Join(", ", properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
     }

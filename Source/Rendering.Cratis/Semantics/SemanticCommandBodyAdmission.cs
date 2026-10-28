@@ -151,8 +151,8 @@ internal static class SemanticCommandBodyAdmission
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var types = new SemanticTypeSystem(context);
         var events = command.Produces.Select(produced => context.Events[produced.EventContract]).DistinctBy(@event => @event.Id);
-        var eventTypes = events.Select(@event => $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)} {{ public record {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", @event.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))}); }}");
-        var imports = events.Select(@event => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)).Append(context.CommonNamespace).Distinct(StringComparer.Ordinal);
+        var eventTypes = SemanticBodyDeclarations.Events(context, events);
+        var imports = SemanticBodyDeclarations.EventNamespaces(context, events);
         var source = SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
             $"namespace {ownNamespace} {{ internal class HandlerProbe {{ {builder} }} }}";
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));

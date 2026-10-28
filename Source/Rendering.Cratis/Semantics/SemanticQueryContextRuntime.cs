@@ -187,7 +187,7 @@ internal static class SemanticQueryContextRuntime
             $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}",
             "namespace Cratis.Chronicle.Events { public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue) where T : global::System.IComparable { public static implicit operator T(EventSourceId<T> value) => value.TypedValue; } }"
         };
-        declarations.AddRange(context.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true, declarationOnly: true).Content));
+        declarations.AddRange(SemanticBodyDeclarations.RealConcepts(context));
 
         foreach (var readModel in context.ReadModels.Values.Where(SemanticVersionFeatures.HasCompositeKey))
         {
@@ -195,16 +195,10 @@ internal static class SemanticQueryContextRuntime
             declarations.Add($"namespace {ns} {{ {SemanticStateViewArtifactRenderer.CompositeKeyRecord(readModel, types)} }}");
         }
 
-        foreach (var composite in context.Application.Types)
-        {
-            declarations.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Properties(composite.Properties, types)}); }}");
-        }
+        declarations.AddRange(SemanticBodyDeclarations.CompositeTypes(context));
 
         return declarations;
     }
-
-    static string Properties(IEnumerable<SemanticProperty> properties, SemanticTypeSystem types) =>
-        string.Join(", ", properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"));
 
     static IEnumerable<SemanticReadModelQueryArgument> Arguments(SemanticKeyedQuery query)
     {

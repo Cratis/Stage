@@ -17,8 +17,8 @@ internal static class SemanticBodyCompilation
         CSharpCompilation.Create(name, trees, references, new CSharpCompilationOptions(
             OutputKind.DynamicallyLinkedLibrary,
             generalDiagnosticOption: ReportDiagnostic.Error,
-            nullableContextOptions: NullableContextOptions.Enable,
-            specificDiagnosticOptions: suppressed.ToDictionary(id => id, _ => ReportDiagnostic.Suppress)));
+            specificDiagnosticOptions: suppressed.ToDictionary(id => id, _ => ReportDiagnostic.Suppress),
+            nullableContextOptions: NullableContextOptions.Enable));
 
     internal static bool IsFailure(Diagnostic diagnostic) => !diagnostic.IsSuppressed &&
         diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning;

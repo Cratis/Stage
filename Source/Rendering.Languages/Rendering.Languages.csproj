@@ -1,0 +1,18 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Languages</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Languages</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsPackable>false</IsPackable>
+        <Description>Prerelease Stage language packs (java@1).</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Rendering.Declarative/Rendering.Declarative.csproj" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <EmbeddedResource Include="Java/for_JavaLanguagePack/Vectors/k1/*.json" />
+        <EmbeddedResource Include="Java/for_JavaLanguagePack/Vectors/k1/*.java" />
+    </ItemGroup>
+</Project>

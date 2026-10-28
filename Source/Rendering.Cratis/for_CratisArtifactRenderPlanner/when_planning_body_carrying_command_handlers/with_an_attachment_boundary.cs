@@ -110,9 +110,9 @@ public class with_an_attachment_boundary
     }
 
     [Fact]
-    public void should_preserve_raw_literals_comments_and_crlf()
+    public void should_preserve_raw_literals_and_comments_and_normalize_crlf_outside_literals()
     {
-        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\n    spaced\n      value\n    \"\"\";\r\nreturn new OrderPlaced(text);";
         var request = handler_model.Request(body);
         var plan = handler_model.Plan(request);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -120,18 +120,27 @@ public class with_an_attachment_boundary
         var builder = new CSharpCodeBuilder();
         SemanticCommandHandlerRendering.Render(builder, context.Commands.Values.Single(), context);
 
-        // Re-frozen for Cratis/Stage#848: the body is re-indented to its block; literal lines and every CRLF stay byte-identical.
+        // Re-frozen for Cratis/Stage#848 and #846: re-indent the body while retaining LF inside literals and CRLF outside them.
         var rendered = builder.ToString();
         var indent = LeadingSpaces(rendered, "// preserve this trivia\r\n");
         Assert.NotEmpty(indent);
         Assert.Equal(0, indent.Length % 4);
-        Assert.Contains($"{indent}// preserve this trivia\r\n{indent}var text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\n{indent}return new OrderPlaced(text);", rendered, StringComparison.Ordinal);
+        Assert.Contains($"{indent}// preserve this trivia\r\n{indent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\r\n{indent}return new OrderPlaced(text);", rendered, StringComparison.Ordinal);
 
         // PlannedArtifact.Text normalizes CRLF by contract; the authenticated splice does not.
         var planned = Source(plan);
         var plannedIndent = LeadingSpaces(planned, "// preserve this trivia\n");
         Assert.NotEmpty(plannedIndent);
         Assert.Contains($"{plannedIndent}// preserve this trivia\n{plannedIndent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\n{plannedIndent}return new OrderPlaced(text);", planned, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void should_refuse_crlf_inside_a_raw_literal()
+    {
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        var plan = handler_model.Plan(handler_model.Request(body));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        Assert.Empty(plan.Artifacts);
     }
 
     [Fact]

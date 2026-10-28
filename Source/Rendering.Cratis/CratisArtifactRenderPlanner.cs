@@ -71,6 +71,14 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return PlanAdmitted(request, options, diagnostics);
         }
+        catch (CSharpImportRejected exception)
+        {
+            diagnostics.Add(Error(CSharpImportRejected.Code, exception.Message, request.Model.Application.Id));
+        }
+        catch (InlineCodeRejected exception)
+        {
+            diagnostics.AddRange(exception.Diagnostics.Select(diagnostic => Error(diagnostic.Code, diagnostic.Message, request.Model.Application.Id)));
+        }
         catch (InvalidTypedContext exception)
         {
             diagnostics.Add(Error("STAGE-ESM-021", exception.Message, request.Model.Application.Id));
@@ -81,7 +89,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
         catch (InvalidGeneratedIdentifier exception)
         {
-            diagnostics.Add(Error(exception.Code, exception.Message, request.Model.Application.Id));
+            diagnostics.Add(Error(InvalidGeneratedIdentifier.DiagnosticCode, exception.Message, request.Model.Application.Id));
         }
 
         return CreatePlan(request, [], diagnostics);
@@ -90,11 +98,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     static ArtifactRenderPlan PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options, List<ArtifactRenderDiagnostic> diagnostics)
     {
         var artifacts = new List<PlannedArtifact>();
-        if (!SemanticVersionFeatures.Supports(request.Model))
-        {
-            // No audited semantic surface means later gates cannot interpret the model meaningfully.
-            return CreatePlan(request, [], [Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", request.Model.Application.Id)]);
-        }
+        var range = AdmitVersion(request, options);
+        if (!range.IsAdmitted) return CreatePlan(request, [], [.. range.Diagnostics]);
+        diagnostics.AddRange(range.Diagnostics);
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
@@ -119,14 +125,13 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
-        var selectedReducers = slices.SelectMany(_ => _.Slice.Reducers)
-            .SelectMany(reducer => reducer.Transitions.Select(transition => (transition.RequirementId, reducer.ReadModel)))
-            .ToHashSet();
+        var selectedReducers = SemanticReducerTypedContexts.Selected(context, slices)
+            .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
         foreach (var descriptor in descriptors)
         {
             try
             {
-                var wrapper = SemanticTypedContextRenderer.Render(descriptor, context);
+                var wrapper = SemanticCommandBodyAdmission.RenderDescriptor(descriptor, context);
                 if (descriptor.OperationId is { } operation && selectedReducers.Contains((descriptor.RequirementId, operation)))
                 {
                     artifacts.Add(Artifact(wrapper));
@@ -145,7 +150,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
         var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
         var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
-        var refusals = options.Refusals == ArtifactRefusalMode.RenderAround ? SemanticRefusalScope.Classify(context, diagnostics) : [];
+        var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
         {
             return CreatePlan(request, [], diagnostics);
@@ -228,7 +233,19 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
-        return CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
+    }
+
+    // Only a pair inside the declared range is interpreted; every other unaudited pair is refused before any context is built.
+    static CratisEsmRangeVerdict AdmitVersion(ArtifactRenderRequest request, CratisRenderingOptions options)
+    {
+        var standing = SemanticVersionFeatures.Supports(request.Model)
+            ? EsmVersionStanding.Audited
+            : CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
+        return standing == EsmVersionStanding.NewerWithinRange
+            ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
+            : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
     }
 
     static (List<PlannedArtifact> Artifacts, ImmutableArray<ArtifactImplementationGap> Gaps) AddPerformerGaps(ArtifactRenderRequest request, IEnumerable<PlannedArtifact> artifacts, List<ArtifactRenderDiagnostic> diagnostics)
@@ -447,7 +464,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
-        return ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+
+        // The layout is applied last: the checks above and the renderers work on application-relative paths.
+        var plan = ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        return ServiceLayout.Plan(request, plan);
     }
 
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);

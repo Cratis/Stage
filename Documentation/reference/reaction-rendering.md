@@ -51,6 +51,16 @@ The handler adds `new CompleteWork(@event.Id, @event.Amount, null)` only when th
 
 A production without `for` targets the triggering event source. An explicit `for` retains its literal or triggering-event property value. Each envelope defaults to Chronicle's unrouted source and stream metadata. Contract tags precede production tags. A `$context.occurred` payload mapping reads `EventContext.Occurred` and sets the envelope's `Occurred` to that same value; productions without that mapping do not override append time.
 
+## Authored C# bodies (render-only)
+
+The semantic renderer accepts an authenticated inline `csharp` block or resolved `.cs` file on a reaction with exactly one event trigger. Its synchronous handler returns `IEnumerable<object>?` and receives the typed triggering event as `@event` and Chronicle's `EventContext` as `context`. Each event property also has a PascalCase local binding, such as `var Title = @event.Title;`. A body may return `null`, as on the existing legacy statement-body path; a missing implementation is always refused, never replaced with a successful no-op.
+
+Bodies cannot be combined with declarative `produces`, `invokes`, decision `reads`, additional triggers or `runs as`. The compiler refuses body-dependent decision reads; unsupported render shapes retain `STAGE-ESM-024`. Existing renderable `where` guards run before the body, and semantic `from` filters remain reactor attributes. Declarative reactions retain their existing output and restrictions.
+
+Attachments must retain their compiler requirement identity, reaction-effect role, slice owner, language, supported context/result versions and content hash. Authentication covers resolved UTF-8 text, not proof of original disk bytes. Rendering preserves that text through the inline splicer. Structural escapes, unsupported containment and foreign-language bodies are refused. Declarations colliding with generated parameters or property locals are refused without renaming either side. This declaration check includes nested locals, patterns, deconstruction, foreach/catch variables, parameters, local functions and query range variables; other C# binding/type errors remain compilation errors.
+
+Authored C# is trusted native code, not sandboxed code. Reflection calls are not structural escapes. Rendering and compiling a body do not execute it or prove runtime behavior. Screenplay's reference evaluator and the semantic Host still report opaque bodies as Unsupported: their shared admission retains the opaque-body refusal, and only Cratis render admission excludes the supported subset. Successful rendering is not an execution or conformance pass. Generated reaction specifications retain their separate admission limits.
+
 ## Atomic batch rendering
 
 With `reaction batches atomic` (ESM v22+), Stage admits a generated event handler with at most one
@@ -67,7 +77,10 @@ whole-command rollback boundary.
 
 Multiple direct-production triggers on the same event in one reaction fail `STAGE-ESM-043`, even if their
 conditions appear mutually exclusive: combining them into one returned collection would combine their
-modeled batch boundaries. Screenplay rejects routes on direct and refusal-branch productions before
+modeled batch boundaries. A Chronicle reactor appends what it returns as one batch, and appending several
+batches from one handler without hand-written idempotency keys would duplicate the earlier ones when a
+later batch is rejected and the event is redelivered. Stage renders these triggers once Chronicle can return ordered per-trigger batches
+([Chronicle#5248](https://github.com/Cratis/Chronicle/issues/5248)). Screenplay rejects routes on direct and refusal-branch productions before
 Stage admission; Stage also retains a defensive `STAGE-ESM-043` guard for routed direct productions.
 Screenplay does not yet represent atomic stream closing (Screenplay#770), so no closing operation is
 emitted. Existing mixed-effect and specification restrictions still apply. The legacy syntax renderer
@@ -128,7 +141,12 @@ The generated `CommandScenario` does not settle reactions, whereas the reference
 Generated backend `$context.occurred` mappings remain supported through `EventContext.Occurred`, but
 context-dependent generated reaction specifications retain `STAGE-ESM-011`. Authored clocks on generated
 append/redelivery specifications additionally retain `STAGE-ESM-024`; the renderer's clock fixture support
-remains command-only. Independent executor support does not broaden that generated scenario contract.
+remains command-only. These specification-scoped diagnostics are warnings during artifact planning:
+Stage omits the unrenderable specification while preserving renderable specifications and production
+artifacts. Each warning names the specification, original code and reason. A production-scoped
+refusal still fails the whole render. The constraint-target guard remains unchanged. See
+[Render around refused specifications](stage-rendering.md#render-around-refused-specifications).
+Independent executor support does not broaden that generated scenario contract.
 
 Render admission, generated Debug compilation, generated specifications and live execution are separate results. Build and test the generated project rather than treating a published render as runtime evidence. Live verification requires a Chronicle kernel and the generated Arc host wiring, including its reactor result handlers.
 
@@ -136,7 +154,7 @@ Render admission, generated Debug compilation, generated specifications and live
 
 | Diagnostic | Refused shape |
 | --- | --- |
-| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; opaque reaction bodies; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
+| `STAGE-ESM-024` | Clock, application, startup and shutdown triggers; reaction bodies outside the single-event render-only subset above; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture actions; generated append/redelivery specifications with clock fixtures |
 | `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |

@@ -51,7 +51,14 @@ internal static class RenderedOutput
         "RenderedApplication",
         [CSharpSyntaxTree.ParseText(ImplicitUsings, _parseOptions, path: "GlobalUsings.g.cs")],
         _references,
-        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+        new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
+            .WithSpecificDiagnosticOptions(
+            [
+                // The SDK suppresses these by default: a package built against an older framework assembly version
+                // (MongoDB.Driver against System.Linq.Expressions 6.0) binds to the one the host provides.
+                new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),
+                new KeyValuePair<string, ReportDiagnostic>("CS1702", ReportDiagnostic.Suppress)
+            ]));
 
     /// <summary>
     /// Compiles the rendered files and returns every compilation error, each prefixed with the file it came from.

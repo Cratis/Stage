@@ -117,6 +117,7 @@ internal sealed partial class SemanticCommandResultRendering(SemanticCommand com
         {
             builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
         }
+        SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
         renderEvents?.Invoke();
         builder.Line($"return {(checkedResult ? $"{routeResult}.FromT0({result.Value})" : result.Value)};").EndBlock();
     }

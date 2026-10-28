@@ -136,7 +136,7 @@ public class when_sharing_reducer_binding_environments
         var wrapper = SemanticTypedContextRenderer.Suffix(descriptor);
         const string modelType = "Total";
 
-        // The reducer wrappers are not in the generated type inventory, so they keep their qualified names.
+        // The reducer wrappers are in the generated type inventory and use the typed-context import.
         var expected = $$"""
             using Projects.Orders.Ordering.PlaceOrder;
             using Projects.Orders.Ordering.Totals;
@@ -149,7 +149,7 @@ public class when_sharing_reducer_binding_environments
                 public {{modelType}}? On(OrderPlaced @event, {{modelType}}? current, EventContext eventContext)
                 {
                     var originalSourceId = eventContext.EventSourceId.Value;
-                    var result = Transition_{{suffix}}(new global::Projects.TypedContexts.TypedContext_{{wrapper}}(current, @event, originalSourceId, TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
+                    var result = Transition_{{suffix}}(new TypedContext_{{wrapper}}(current, @event, originalSourceId, TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
                     if (result is not null && (!string.Equals(result.Id.ToString(), originalSourceId, StringComparison.Ordinal)))
                     {
                         throw new InvalidOperationException("Reducer returned a read model with an identifier different from the event source.");
@@ -157,7 +157,7 @@ public class when_sharing_reducer_binding_environments
                     return result;
                 }
 
-                static {{modelType}}? Transition_{{suffix}}(global::Projects.TypedContexts.TypedContext_{{wrapper}} context)
+                static {{modelType}}? Transition_{{suffix}}(TypedContext_{{wrapper}} context)
                 {
             {{Body}}
                 }

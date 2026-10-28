@@ -22,7 +22,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
     [Fact] void should_have_no_three_way_differences() => Assert.Empty(fixture.Differences);
 
     [Fact]
-    public async Task should_execute_the_failing_pin_as_a_contract_rejection_but_refuse_to_render_it()
+    public async Task should_execute_the_failing_pin_as_a_contract_rejection_but_omit_its_rendered_specification()
     {
         var model = context.WithoutOpaqueRule(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan()));
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
@@ -38,9 +38,11 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
         stage.Trace!.Rejection.ShouldEqual(rejected.Details);
         stage.Trace.Facts.ShouldBeEmpty();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedConceptRules", "GeneratedConceptRules"));
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
-        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id);
+        rendered.Success.ShouldBeTrue();
+        rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
     }
 
     public class context : a_three_way_application

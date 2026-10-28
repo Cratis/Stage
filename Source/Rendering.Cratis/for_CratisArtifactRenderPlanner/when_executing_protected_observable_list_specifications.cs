@@ -9,31 +9,36 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
-public class when_executing_protected_observable_list_specifications : a_generated_application
+public class when_executing_protected_observable_list_specifications(when_executing_protected_observable_list_specifications.context fixture) : IClassFixture<when_executing_protected_observable_list_specifications.context>
 {
-    string _build = null!;
-    string _tests = null!;
+    [Fact] void should_build_without_warnings() => fixture.BuildWarningLines.ShouldEqual(string.Empty);
+    [Fact] void should_pass_filtered_and_unfiltered_row_expectations() => fixture.Tests.ShouldContain("Passed!");
+    [Fact] void should_use_the_default_query_scenario_store() => fixture.GeneratedFile("Billing/Invoicing/Lookup/when_filtering_invoices_is_queried.cs").ShouldNotContain("Substitute");
 
-    protected override ArtifactRenderPlan CreatePlan()
+    public class context : a_generated_application
     {
-        var source = "policy Clerks\n  require authenticated\n" + a_query_filter_model.Source
-            .Replace("query FilteredInvoices => observable InvoiceSummary[]\n", "query FilteredInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal) + "\n" + a_query_filter_model.Specification
-            .Replace("specification FilteringInvoices\n", "specification FilteringInvoices\n        given caller\n          authenticated\n", StringComparison.Ordinal);
-        var unfiltered = a_query_filter_model.Specification
-            .Replace("specification FilteringInvoices\n", "specification ListingInvoices\n        given caller\n          authenticated\n", StringComparison.Ordinal)
-            .Replace("then query FilteredInvoices\n          arguments\n            status = \"open\"\n            category = \"North\"", "then query AllInvoices", StringComparison.Ordinal) + "\n          result\n            invoiceId = \"two\"\n            status = \"closed\"\n            category = \"North\"\n          result\n            invoiceId = \"three\"\n            status = \"open\"\n            category = \"South\"";
-        source = source.Replace("query AllInvoices => observable InvoiceSummary[]\n", "query AllInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal) + "\n" + unfiltered;
-        return invoice_model.Plan(invoice_model.Compile(source));
-    }
+        protected override ArtifactRenderPlan CreatePlan()
+        {
+            var source = "policy Clerks\n  require authenticated\n" + a_query_filter_model.Source
+                .Replace("query FilteredInvoices => observable InvoiceSummary[]\n", "query FilteredInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal) + "\n" + a_query_filter_model.Specification
+                .Replace("specification FilteringInvoices\n", "specification FilteringInvoices\n        given caller\n          authenticated\n", StringComparison.Ordinal);
+            var unfiltered = a_query_filter_model.Specification
+                .Replace("specification FilteringInvoices\n", "specification ListingInvoices\n        given caller\n          authenticated\n", StringComparison.Ordinal)
+                .Replace("then query FilteredInvoices\n          arguments\n            status = \"open\"\n            category = \"North\"", "then query AllInvoices", StringComparison.Ordinal) + "\n          result\n            invoiceId = \"two\"\n            status = \"closed\"\n            category = \"North\"\n          result\n            invoiceId = \"three\"\n            status = \"open\"\n            category = \"South\"";
+            source = source.Replace("query AllInvoices => observable InvoiceSummary[]\n", "query AllInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal) + "\n" + unfiltered;
+            return invoice_model.Plan(invoice_model.Compile(source));
+        }
 
-    async Task Because()
-    {
-        _build = await Run("protected-list-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo");
-        _tests = await Run("protected-list-tests.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
-    }
+        async Task Because()
+        {
+            Build = await Run("protected-list-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo");
+            Tests = await Run("protected-list-tests.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo");
+        }
 
-    [Fact] void should_build_without_warnings() => BuildWarnings(_build).ShouldEqual(string.Empty);
-    [Fact] void should_pass_filtered_and_unfiltered_row_expectations() => _tests.ShouldContain("Passed!");
-    [Fact] void should_use_the_default_query_scenario_store() => ReadGeneratedFile("Billing/Invoicing/Lookup/when_filtering_invoices_is_queried.cs").ShouldNotContain("Substitute");
+        public string Build { get; private set; } = null!;
+        public string Tests { get; private set; } = null!;
+        public string BuildWarningLines => BuildWarnings(Build);
+        public string GeneratedFile(string relativePath) => ReadGeneratedFile(relativePath);
+    }
 }
 #endif

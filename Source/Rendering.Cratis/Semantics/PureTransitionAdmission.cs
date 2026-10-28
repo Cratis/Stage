@@ -26,15 +26,23 @@ internal static partial class PureTransitionAdmission
         "Field:global::System.Collections.Immutable.ImmutableArray<T>.Empty:global::System.Collections.Immutable.ImmutableArray<T>",
         "Field:global::System.MidpointRounding.ToEven:global::System.MidpointRounding",
         "Field:global::System.StringComparison.Ordinal:global::System.StringComparison",
+        "Field:global::System.TimeSpan.Zero:global::System.TimeSpan",
         "Method:decimal.ToString`0(None:global::System.IFormatProvider):string",
         "Method:global::System.ArgumentException..ctor`0(None:string):void",
         "Method:global::System.Collections.Immutable.ImmutableArray.ToImmutableArray`1(None:global::System.Collections.Generic.IEnumerable<TSource>):global::System.Collections.Immutable.ImmutableArray<TSource>",
         "Method:global::System.Collections.Immutable.ImmutableArray<T>.Enumerator.MoveNext`0():bool",
         "Method:global::System.Collections.Immutable.ImmutableArray<T>.GetEnumerator`0():global::System.Collections.Immutable.ImmutableArray<T>.Enumerator",
+        "Method:global::System.DateTimeOffset..ctor`0(None:int,None:int,None:int,None:int,None:int,None:int,None:global::System.TimeSpan):void",
         "Method:global::System.DateTimeOffset.AddTicks`0(None:long):global::System.DateTimeOffset",
         "Method:global::System.DateTimeOffset.op_Addition`0(None:global::System.DateTimeOffset,None:global::System.TimeSpan):global::System.DateTimeOffset",
+        "Method:global::System.DateTimeOffset.op_Equality`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
+        "Method:global::System.DateTimeOffset.op_GreaterThan`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
         "Method:global::System.DateTimeOffset.op_GreaterThanOrEqual`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
+        "Method:global::System.DateTimeOffset.op_Inequality`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
+        "Method:global::System.DateTimeOffset.op_LessThan`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
+        "Method:global::System.DateTimeOffset.op_LessThanOrEqual`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):bool",
         "Method:global::System.DateTimeOffset.op_Subtraction`0(None:global::System.DateTimeOffset,None:global::System.DateTimeOffset):global::System.TimeSpan",
+        "Method:global::System.Guid.Parse`0(None:string):global::System.Guid",
         "Method:global::System.InvalidOperationException..ctor`0(None:string):void",
         "Method:global::System.Linq.Enumerable.Aggregate`2(None:global::System.Collections.Generic.IEnumerable<TSource>,None:TAccumulate,None:global::System.Func<TAccumulate, TSource, TAccumulate>):TAccumulate",
         "Method:global::System.Linq.Enumerable.All`1(None:global::System.Collections.Generic.IEnumerable<TSource>,None:global::System.Func<TSource, bool>):bool",
@@ -92,7 +100,8 @@ internal static partial class PureTransitionAdmission
         ["generated"] = "Source-declared Stage-owned records, wrappers and concept value members; no anonymous types or generated hash methods.",
         ["primitive"] = "Fixed-width integer and decimal arithmetic, bool and char values, and nullable value access.",
         ["math"] = "Audited integer and decimal Math members only.",
-        ["time"] = "Explicit DateTimeOffset and TimeSpan arithmetic and component reads only.",
+        ["guid"] = "Exactly Guid.Parse(string); a malformed text key throws at runtime.",
+        ["time"] = "Explicit DateTimeOffset construction and comparisons, DateTimeOffset and TimeSpan arithmetic and component reads, and TimeSpan.Zero only.",
         ["string"] = "Ordinal text operations and invariant numeric formatting only.",
         ["collections"] = "ImmutableArray and local array reads; no mutable or hash collection members.",
         ["linq"] = "Audited order-preserving LINQ with expression-only callbacks and no deferred composition.",
@@ -194,11 +203,12 @@ internal static partial class PureTransitionAdmission
             var scalar = types.Primitive(concept.Primitive);
 
             // Mirror the inherited concept getters, including the distinct TypedValue on identifiers.
-            // Synthetic concepts intentionally have no implicit conversions: extra refusals are safe.
+            // Mirror only Stage's primitive-to-concept operator; all other conversions stay refused.
             var baseType = context.IdentifierConcepts.Contains(concept.Id)
                 ? $"global::Cratis.Chronicle.Events.EventSourceId<{scalar}>"
                 : $"global::Cratis.Concepts.ConceptAs<{scalar}>";
-            definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(concept.Name)}({scalar} Value) : {baseType}(Value); }}");
+            var name = Identifiers.ToPascalCase(concept.Name);
+            definitions.Add($"namespace {context.CommonNamespace} {{ public record {name}({scalar} Value) : {baseType}(Value) {{ public static implicit operator {name}({scalar} value) => new(value); }} }}");
         }
 
         foreach (var composite in context.Application.Types)
@@ -246,14 +256,16 @@ internal static partial class PureTransitionAdmission
 
         // Model stubs are compilation peers, not imports into the reducer file. The body has the
         // same namespace and exact using directives as SemanticReducerArtifactRenderer.Render.
-        // The observable interface is a signature-only stand-in, not an admitted pure call surface.
+        // Observable and injected query interfaces are signature-only stand-ins, not admitted pure call surfaces.
         var declarations = "global using System; global using System.Collections.Generic; global using System.Linq; " +
             "global using System.IO; global using System.Net.Http; global using System.Threading; global using System.Threading.Tasks; " +
             (context.Application.Concepts.IsEmpty && context.Application.Types.IsEmpty ? string.Empty : $"using {context.CommonNamespace}; ") +
             "namespace Cratis.Concepts { public record ConceptAs<T>(T Value); } " +
             "namespace Cratis.Chronicle.Events { public class EventContext {} public record EventSourceId(string Value) : global::Cratis.Concepts.ConceptAs<string>(Value); public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue); } " +
             "namespace Cratis.Chronicle.Reducers { public interface IReducerFor<T> {} } " +
-            "namespace Cratis.Arc.Authorization {} namespace Cratis.Arc.Queries.ModelBound {} " +
+            "namespace Cratis.Arc.Authorization { public interface ICurrentPrincipalAccessor {} } " +
+            "namespace Cratis.Arc.Queries { public interface IQueryContextManager {} } " +
+            "namespace Cratis.Arc.Tenancy { public interface ITenantIdAccessor {} } namespace Cratis.Arc.Queries.ModelBound {} " +
             "namespace Cratis.Arc.Commands.ModelBound {} namespace Cratis.Arc.Validation {} namespace Cratis.Chronicle.EventSequences {} " +
             "namespace Cratis.Chronicle.Projections.ModelBound {} namespace Cratis.Chronicle.Keys {} " +
             "namespace Cratis.Chronicle.ReadModels { public interface IReadModels {} } " +
@@ -293,7 +305,13 @@ internal static partial class PureTransitionAdmission
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var semanticModel = compilation.GetSemanticModel(tree);
         var referencedTypes = MethodTypeReferences(tree, semanticModel, $"Transition_{suffix}");
-        var shadow = peers.FirstOrDefault(name => referencedTypes.Any(reference => reference.Name == name) || ShadowsAuditedName(name));
+        var analyzedBody = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Single(declaration => IsTransitionMethod(declaration, $"Transition_{suffix}")).Body!;
+        var boundTypes = analyzedBody.DescendantNodes().OfType<SimpleNameSyntax>()
+            .Select(name => semanticModel.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
+        var shadow = peers.FirstOrDefault(name => ShadowsAuditedName(name) ||
+            (referencedTypes.Any(reference => reference.Name == name) &&
+                !IsUnambiguousCommonType(name, context, compilation, allDeclarations, boundTypes)));
         if (shadow is not null)
             return Reject("STAGE-ESM-022", $"Generated type '{shadow}' shadows a type referenced by the reducer body.");
         var namespaceShadow = namespacePaths.FirstOrDefault(entry => ShadowsAuditedName(entry.Key) ||
@@ -324,7 +342,7 @@ internal static partial class PureTransitionAdmission
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
-        return Walk(semanticModel, method.Body!, descriptor, context.RootNamespace);
+        return Walk(semanticModel, method.Body!, new PureTransitionAnalysisContext(descriptor, context.RootNamespace, GeneratedConceptSymbols(context, compilation)));
 
         string Parameters(IEnumerable<SemanticProperty> properties, bool reducerInput = false) => string.Join(", ", properties.Select(property =>
             $"{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
@@ -371,7 +389,7 @@ internal static partial class PureTransitionAdmission
         return (block, null);
     }
 
-    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor)
+    internal static Verdict AnalyzeRendered(CSharpCompilation compilation, string reducerPath, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext? context = null)
     {
         var tree = compilation.SyntaxTrees.Single(_ => _.FilePath == reducerPath);
         var methodName = "Transition_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
@@ -382,8 +400,24 @@ internal static partial class PureTransitionAdmission
             return Reject("STAGE-ESM-019", "The rendered application does not compile.");
         }
 
-        return Walk(compilation.GetSemanticModel(tree), method.Body!, descriptor);
+        var model = compilation.GetSemanticModel(tree);
+        return context is null
+            ? Walk(model, method.Body!, descriptor)
+            : Walk(model, method.Body!, new PureTransitionAnalysisContext(descriptor, context.RootNamespace, GeneratedConceptSymbols(context, compilation)));
     }
+
+    // Resolve only modeled, non-enum Common concepts in this compilation. Source ownership or
+    // a matching short name alone never grants an operator entry into the allowlist.
+    internal static bool Generated(ITypeSymbol? type, Compilation compilation) => type is INamedTypeSymbol named &&
+        !named.IsAnonymousType && named.ContainingAssembly.Name == compilation.AssemblyName &&
+        named.Locations.Length > 0 && named.Locations.All(location => location.IsInSource &&
+            compilation.SyntaxTrees.Contains(location.SourceTree)) && !named.Name.StartsWith("TypedContext_", StringComparison.Ordinal);
+
+    internal static IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> GeneratedConceptSymbols(SemanticApplicationContext context, Compilation compilation) =>
+        GeneratedConceptConversions.Resolve(context, compilation);
+
+    internal static bool IsGeneratedConceptConversion(ISymbol symbol, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
+        GeneratedConceptConversions.Matches(symbol, trusted);
 
     internal static bool ShadowsAuditedName(string name) =>
         NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
@@ -426,6 +460,50 @@ internal static partial class PureTransitionAdmission
     // The audited pack, or the isolated failure-path override, for every pure body analysis.
     internal static MetadataReference[] AnalysisReferences() =>
         ReferenceDirectoryOverride.Value is { } referenceDirectory ? LoadReferences(referenceDirectory) : _references.Value;
+
+    // Only authored Common concepts/composites can opt out of the conservative name guard.
+    // Referenced types (including primitive CLR names) and slice-local peers never opt out.
+    static bool IsUnambiguousCommonType(
+        string name,
+        SemanticApplicationContext context,
+        CSharpCompilation compilation,
+        IEnumerable<(SemanticId? Id, string Namespace, string Name)> declarations,
+        IEnumerable<INamedTypeSymbol> boundTypes)
+    {
+        if (ShadowsAuditedName(name)) return false;
+        var commonIds = context.Application.Concepts.Where(concept => Identifiers.ToPascalCase(concept.Name) == name).Select(concept => concept.Id)
+            .Concat(context.Application.Types.Where(type => Identifiers.ToPascalCase(type.Name) == name).Select(type => type.Id)).ToHashSet();
+        if (commonIds.Count == 0 || declarations.Any(declaration => declaration.Name == name &&
+            (declaration.Namespace != context.CommonNamespace || declaration.Id is not { } id || !commonIds.Contains(id))))
+        {
+            return false;
+        }
+
+        var commonType = compilation.GetTypeByMetadataName($"{context.CommonNamespace}.{name}");
+        var references = boundTypes.Where(type => type.Name == name).ToArray();
+        if (commonType is null || references.Length == 0 || references.Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType))) return false;
+
+        var imports = compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()).ToArray();
+
+        // Alias/static import lookup is not modeled by this narrow exemption.
+        if (imports.Any(import => import.Alias is not null || import.StaticKeyword.IsKind(SyntaxKind.StaticKeyword))) return false;
+        var namespaces = imports.Select(import => import.Name?.ToString().Replace("global::", string.Empty, StringComparison.Ordinal))
+            .OfType<string>().Append("System").Append(string.Empty).Distinct(StringComparer.Ordinal);
+        foreach (var path in namespaces)
+        {
+            var imported = compilation.GlobalNamespace;
+            foreach (var segment in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
+            {
+                imported = imported?.GetNamespaceMembers().FirstOrDefault(candidate => candidate.Name == segment);
+            }
+
+            // The merged namespace includes referenced assemblies and signature stand-ins.
+            // Ignore only the exact Common declaration being considered, not other source types.
+            if (imported?.GetTypeMembers(name).Any(type => !SymbolEqualityComparer.Default.Equals(type, commonType)) == true) return false;
+        }
+
+        return true;
+    }
 
     static bool IsTransitionMethod(MethodDeclarationSyntax method, string prefix) =>
         method.Identifier.Text.StartsWith(prefix, StringComparison.Ordinal) ||
@@ -708,11 +786,6 @@ internal static partial class PureTransitionAdmission
 
     static bool SafeValueType(ITypeSymbol? type) => Number(type) || type?.SpecialType is SpecialType.System_Boolean or
         SpecialType.System_Char or SpecialType.System_String;
-
-    static bool Generated(ITypeSymbol? type, Compilation compilation) => type is INamedTypeSymbol named &&
-        !named.IsAnonymousType && named.ContainingAssembly.Name == compilation.AssemblyName &&
-        named.Locations.Length > 0 && named.Locations.All(location => location.IsInSource &&
-            compilation.SyntaxTrees.Contains(location.SourceTree)) && !named.Name.StartsWith("TypedContext_", StringComparison.Ordinal);
 
     static bool SafePattern(IPatternOperation pattern, Compilation compilation) => pattern switch
     {

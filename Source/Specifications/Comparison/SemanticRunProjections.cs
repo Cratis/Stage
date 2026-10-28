@@ -91,14 +91,13 @@ internal static class SemanticRunProjections
                 foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, appended)))
                 {
                     var @event = plan.Events[from.EventContract];
-                    var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
-                    var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
-                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key, plan);
+
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), FromMappings(scope, from), model, @event, from.Key, plan);
                 }
                 SemanticRunScopedMappings.DefineRelated(builder, scope, model.Properties, plan, types);
                 if (scope.Every is { } every)
                 {
-                    DefineEvery(builder, every, model);
+                    DefineEvery(builder, scope, every, model);
                 }
                 foreach (var removal in scope.Removals)
                 {
@@ -258,34 +257,76 @@ internal static class SemanticRunProjections
         context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model)
             .GroupBy(seed => SemanticRunContext.Canonical(seed.Key), StringComparer.Ordinal).Select(group => group.Last());
 
-    static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionEvery every, SemanticReadModel model)
+    static SemanticProjectionMapping[] FromMappings(SemanticProjectionScope scope, SemanticProjectionFrom from)
     {
-        void Define(Action<string> set)
+        // Native every/all must preserve original from targets: Chronicle uses them to select join backfills.
+        if (SemanticScopedProjectionSupport.RendersEveryLiteralsNatively(scope))
         {
-            var identifier = model.Properties.Single(property => property.IsIdentifier);
-            if (every.SubscribesToAllEvents && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
-            {
-                set(identifier.Name);
-            }
-            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
-            {
-                var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                set(target.Name);
-            }
+            return [.. from.Mappings];
         }
+
+        var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+        return [.. from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals)];
+    }
+
+    static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionScope scope, SemanticProjectionEvery every, SemanticReadModel model)
+    {
         if (every.SubscribesToAllEvents)
         {
             // FromAll has no child-inclusion switch; child scopes are refused before lowering.
-            builder.FromAll(from => Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId()));
+            builder.FromAll(from => DefineEveryMappings(
+                scope,
+                model,
+                (target, value) => SetEvery(from.Set(Property<TReadModel>(target)), target, value)));
         }
         else
         {
             builder.FromEvery(from =>
             {
                 from.ExcludeChildProjections();
-                Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId());
+                DefineEveryMappings(
+                    scope,
+                    model,
+                    (target, value) => SetEvery(from.Set(Property<TReadModel>(target)), target, value));
             });
         }
+    }
+
+    static void DefineEveryMappings(SemanticProjectionScope scope, SemanticReadModel model, Action<string, SemanticValue?> set)
+    {
+        var every = scope.Every!;
+        var identifier = model.Properties.Single(property => property.IsIdentifier);
+        if (every.SubscribesToAllEvents && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+        {
+            set(identifier.Name, null);
+        }
+
+        foreach (var mapping in SemanticScopedProjectionSupport.NativeEveryMappings(scope))
+        {
+            var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
+            set(target.Name, (mapping.Source as SemanticProjectionLiteral)?.Value);
+        }
+    }
+
+    // A null value represents the event-source mapping, not a supported null literal Set.
+    static void SetEvery<TReadModel, TParent>(IAllSetBuilder<TReadModel, TParent> set, string target, SemanticValue? value)
+    {
+        if (value is null)
+        {
+            set.ToEventSourceId();
+        }
+        else
+        {
+            SetLiteral(set, target, value);
+        }
+    }
+
+    // IAllSetBuilder.ToValue infers its type from the argument, so it is called with the read model property type.
+    static void SetLiteral<TReadModel, TParent>(IAllSetBuilder<TReadModel, TParent> set, string target, SemanticValue value)
+    {
+        var type = typeof(TReadModel).GetProperty(target)!.PropertyType;
+        typeof(IAllSetBuilder<TReadModel, TParent>).GetMethod(nameof(IAllSetBuilder<,>.ToValue))!
+            .MakeGenericMethod(type).Invoke(set, BindingFlags.DoNotWrapExceptions, null, [SemanticRuntimeTypes.ConvertValue(value, type)], null);
     }
 
     static Expression<Func<TReadModel, object>> Property<TReadModel>(string name)

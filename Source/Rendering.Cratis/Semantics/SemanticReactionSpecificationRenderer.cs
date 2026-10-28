@@ -86,7 +86,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         var @event = context.Events[append.EventContract];
         var arguments = @event.Properties.Select(property => types.Value(append.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
         var source = append.EventSource is { } identity
-            ? types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type) : "\"when-append\"";
+            ? types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type) : CSharpCodeBuilder.StringLiteral(SemanticSpecificationEventSources.Placeholder);
         if (append.EventSource is null)
         {
             builder.Line("// The model has no append source; this reaction never uses the trigger destination.");
@@ -102,8 +102,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             var contract = context.Events[given.EventContract];
             var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-            var identity = given.EventSource!;
-            var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
+            var source = SemanticSpecificationEventSources.Expression(context, types, given);
             builder.Line($"var occurrence{index} = await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.History(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
         }
         builder.Line($"await _reactor.Redeliver(occurrence{specification.WhenRedelivered!.Given});");

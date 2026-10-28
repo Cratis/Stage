@@ -30,8 +30,9 @@ internal static partial class SemanticCratisAdmission
         // Standalone admission callers still need the version gates; the planner has already run them.
         if (!SemanticVersionFeatures.Supports(context.Request.Model))
         {
-            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", context.Application.Id));
-            return [.. diagnostics];
+            var range = CratisEsmRangeAdmission.Evaluate(context.Request, context);
+            diagnostics.AddRange(range.Diagnostics);
+            if (!range.IsAdmitted) return [.. diagnostics];
         }
 
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
@@ -133,7 +134,8 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices)),
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices))
+                .Concat(SemanticReducerTypedContexts.Declarations(context, slices)),
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
@@ -141,6 +143,15 @@ internal static partial class SemanticCratisAdmission
             selfReduces: context.SelfReduces,
             policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
             .Concat(SemanticTranslationAdmission.Declarations(context, slices));
+
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedResponseDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Commands
+            .Where(command => command.Response is SemanticRecordCommandResponse)
+            .Select(command => new GeneratedTypeDeclaration(
+                command.Id,
+                "Response",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase)),
+                context.ResponseType(command))));
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {

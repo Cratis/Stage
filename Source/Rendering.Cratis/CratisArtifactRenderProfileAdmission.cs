@@ -24,6 +24,47 @@ static class CratisArtifactRenderProfileAdmission
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(profile, applicationName, null, out admittedOptions, out mismatch);
 
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    {
+        options = null;
+        var projectInputs = profile.Inputs
+            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
+            .ToArray();
+        if (projectInputs.Length != 1)
+        {
+            return false;
+        }
+
+        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
+        if (relativePath.Contains('/') || relativePath.Contains('\\'))
+        {
+            return false;
+        }
+
+        try
+        {
+            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
+            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
+            if (rootNamespaces.Length != 1)
+            {
+                return false;
+            }
+
+            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
+            {
+                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        {
+            return false;
+        }
+    }
+
     static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
         admittedOptions = null;
@@ -149,7 +190,26 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        return CratisStrictProfileInput.TryAdmit(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out admittedOptions, out mismatch);
+        if (!CratisStrictProfileInput.TryAdmit(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out var strictOptions, out mismatch))
+        {
+            return false;
+        }
+
+        return TryAdmitServiceLayout(profile, strictOptions, out admittedOptions, out mismatch);
+    }
+
+    static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        admittedOptions = null;
+        mismatch = string.Empty;
+        if (!ServiceLayoutInput.TryAdmit(profile, options, out var serviceLayout))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate service layout input, or combines it with the repository root.";
+            return false;
+        }
+
+        admittedOptions = options with { ServiceLayout = serviceLayout };
+        return true;
     }
 
     // The approved package set is read first because the frontend that installs and loads those packages is generated
@@ -212,47 +272,6 @@ static class CratisArtifactRenderProfileAdmission
 
     static bool IsComposedScene(ArtifactRenderInput input) =>
         string.Equals(input.Name, $"{ProjectInputPrefix}{Scene.SceneCompositionInput.RelativePath}", StringComparison.Ordinal);
-
-    static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
-    {
-        options = null;
-        var projectInputs = profile.Inputs
-            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
-            .ToArray();
-        if (projectInputs.Length != 1)
-        {
-            return false;
-        }
-
-        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
-        if (relativePath.Contains('/') || relativePath.Contains('\\'))
-        {
-            return false;
-        }
-
-        try
-        {
-            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
-            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
-            if (rootNamespaces.Length != 1)
-            {
-                return false;
-            }
-
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
-            {
-                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
-            };
-            return true;
-        }
-        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
-        {
-            return false;
-        }
-    }
 
     static bool InputMatches((ArtifactRenderInput First, ArtifactRenderInput Second) pair) =>
         string.Equals(pair.First.Name, pair.Second.Name, StringComparison.Ordinal) &&

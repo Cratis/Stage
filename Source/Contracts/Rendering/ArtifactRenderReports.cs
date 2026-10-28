@@ -14,6 +14,9 @@ public sealed record ArtifactRenderReports(PlannedArtifact Completeness, Planned
     /// <summary>The reversible prerelease JSON byte/schema version. UTF-8, no BOM, LF, one terminal newline.</summary>
     public const string SchemaVersion = "stage-render-completeness/v1";
 
+    /// <summary>The additive JSON schema version written only for reports carrying a declared range.</summary>
+    public const string RangeSchemaVersion = "stage-render-completeness/v2";
+
     /// <summary>Creates report artifacts from validated metadata; does not discover leaves, admit versions or publish output.</summary>
     /// <param name="plan">A plan with a validated inventory.</param>
     /// <param name="context">The actual input and provider's effective audited provenance.</param>

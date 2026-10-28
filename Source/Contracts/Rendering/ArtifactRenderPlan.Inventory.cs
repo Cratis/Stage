@@ -21,11 +21,32 @@ public sealed partial class ArtifactRenderPlan
     {
         ArgumentNullException.ThrowIfNull(inventory);
         if (Degradations.Any(gap => !inventory.Evidence.Contains(gap))) throw new InvalidArtifactRenderContract("An inventory cannot hide existing degradation evidence.");
-        foreach (var reason in inventory.Constructs.SelectMany(construct => construct.RefusalReasons))
-        {
-            if (!GenerationDiagnostics.Contains(reason)) throw new InvalidArtifactRenderContract("Inventory refusal evidence does not match an original generation error.");
-        }
+        ValidateRefusalEvidence(inventory);
         return ApplyAcceptance(inventory.Evidence, Strict, inventory);
+    }
+
+    void ValidateRefusalEvidence(ArtifactRenderInventory inventory)
+    {
+        foreach (var construct in inventory.Constructs)
+        {
+            if (construct.Outcome == ArtifactRenderOutcome.Refused &&
+                construct.RefusalReasons.All(reason => reason.Severity == ArtifactRenderDiagnosticSeverity.Warning) && !HasRecordedOmission(construct))
+            {
+                throw new InvalidArtifactRenderContract("Inventory omission evidence does not match an actual recorded omission.");
+            }
+            foreach (var reason in construct.RefusalReasons) ValidateOriginalReason(reason);
+        }
+    }
+
+    bool HasRecordedOmission(ArtifactRenderConstruct construct) => construct.Kind == ArtifactRenderConstructKind.Specification && Refusals.Any(refusal =>
+        refusal.Artifact == construct.Identity && refusal.Kind == "specification" &&
+        refusal.Codes.ToHashSet(StringComparer.Ordinal).SetEquals(construct.RefusalReasons.Select(reason => reason.Code)));
+
+    void ValidateOriginalReason(ArtifactRenderDiagnostic reason)
+    {
+        if (GenerationDiagnostics.Contains(reason)) return;
+        throw new InvalidArtifactRenderContract(reason.Severity == ArtifactRenderDiagnosticSeverity.Error ?
+            "Inventory refusal evidence does not match an original generation error." : "Inventory omission evidence does not match an original generation warning.");
     }
 
     string InventoryDigest(string original)

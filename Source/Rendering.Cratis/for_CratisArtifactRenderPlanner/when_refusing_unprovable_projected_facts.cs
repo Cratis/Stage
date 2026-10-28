@@ -113,7 +113,8 @@ public class when_refusing_unprovable_projected_facts
     void should_refuse_an_append_a_reaction_reacts_to()
     {
         var plan = Plan(Appended, reactingSlice: "LeadList");
-        plan.Success.ShouldBeFalse();
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Reaction append scenarios", StringComparison.Ordinal));
     }
 
@@ -121,7 +122,8 @@ public class when_refusing_unprovable_projected_facts
     void should_refuse_a_sourceless_append_with_its_own_code()
     {
         var plan = Plan(SourcelessAppend);
-        plan.Success.ShouldBeFalse();
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-051" && diagnostic.Message.Contains("appended event 'LeadRegistered'", StringComparison.Ordinal));
     }
 
@@ -129,7 +131,8 @@ public class when_refusing_unprovable_projected_facts
     void should_refuse_an_instance_no_given_event_reaches()
     {
         var plan = Plan(Unreached);
-        plan.Success.ShouldBeFalse();
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("an event it handles on the asserted instance", StringComparison.Ordinal));
     }
 }

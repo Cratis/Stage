@@ -197,7 +197,7 @@ jobs:
       - name: Publish Host
         run: |
           dotnet publish ./Source/Host/Host.csproj \
-            -c Release \
+            -c Release -p:RunAnalyzers=false \
             -p:Version=${{ needs.release.outputs.version }} \
             -p:SourceRevisionId=${{ github.sha }} \
             -p:EnableSourceControlManagerQueries=false \
@@ -229,7 +229,7 @@ jobs:
       - name: Publish SpecRunner
         run: |
           dotnet publish ./Source/SpecRunner/SpecRunner.csproj \
-            -c Release \
+            -c Release -p:RunAnalyzers=false \
             -p:Version=${{ needs.release.outputs.version }} \
             -p:SourceRevisionId=${{ github.sha }} \
             -p:EnableSourceControlManagerQueries=false \

@@ -89,6 +89,10 @@ public class the_executable_surface : Specification
         {
             yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
         }
+        foreach (var member in Enum.GetNames<SemanticTranslationDirection>())
+        {
+            yield return $"{nameof(SemanticTranslationDirection)}.{member}";
+        }
     }
 
     static Type Unwrap(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>)

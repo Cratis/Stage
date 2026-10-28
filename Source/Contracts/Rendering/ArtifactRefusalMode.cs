@@ -9,12 +9,12 @@ namespace Cratis.Stage.Contracts.Rendering;
 public enum ArtifactRefusalMode
 {
     /// <summary>
-    /// Refuse the entire plan when any artifact is refused.
+    /// Refuse the entire plan when any runtime artifact is refused; specifications that cannot be rendered are omitted and reported in Refusals.
     /// </summary>
     Refuse = 0,
 
     /// <summary>
-    /// Render the remaining artifacts when the target can safely omit every refused artifact.
+    /// Currently matches Refuse because only specifications can be omitted; retained for compatibility.
     /// </summary>
     RenderAround = 1
 }

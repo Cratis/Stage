@@ -16,7 +16,7 @@ public class with_a_clocked_specification : given.a_refused_specification
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_render_a_partial_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_render_a_complete_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
     [Fact] void should_list_the_clock_refusal() => _plan.Refusals.ShouldContain(refusal => refusal.Codes.Contains("STAGE-ESM-024"));
     [Fact] void should_omit_all_refused_sources() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).Intersect(_plan.Refusals.Select(refusal => refusal.Artifact)).ShouldBeEmpty();
 }

@@ -18,7 +18,15 @@ static class ArtifactRenderOutcomeClassification
         return result;
     }
 
-    internal static ArtifactRenderOutcome Classify(ArtifactRenderConstruct construct) => Classify(
+    internal static ArtifactRenderOutcome AggregateInventory(IReadOnlyCollection<ArtifactRenderConstruct> constructs)
+    {
+        if (constructs.Count == 0) return ArtifactRenderOutcome.Rendered;
+        if (constructs.Any(construct => construct.Outcome == ArtifactRenderOutcome.Refused && construct.RefusalReasons.Any(reason => reason.Severity == ArtifactRenderDiagnosticSeverity.Error))) return ArtifactRenderOutcome.Refused;
+        if (constructs.All(construct => construct.Outcome == ArtifactRenderOutcome.Refused)) return ArtifactRenderOutcome.Refused;
+        return constructs.All(construct => construct.Outcome == ArtifactRenderOutcome.Rendered) ? ArtifactRenderOutcome.Rendered : ArtifactRenderOutcome.Degraded;
+    }
+
+    internal static ArtifactRenderOutcome Classify(ArtifactRenderConstruct construct) => !construct.RefusalReasons.IsEmpty ? ArtifactRenderOutcome.Refused : Classify(
         [.. construct.Degradations.Select(gap => gap.Evidence.Diagnostic), .. construct.RefusalReasons],
         [.. construct.Degradations.Select(gap => gap.Evidence)]);
 

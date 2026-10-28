@@ -37,7 +37,7 @@ public static class ConceptRenderer
     /// <returns>The <see cref="RenderedFile"/>.</returns>
     /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace) =>
-        Render(concept, applicationSet, rootNamespace, false);
+        Render(concept, applicationSet, rootNamespace, true);
 
     /// <summary>
     /// Renders a concept honoring its secret encryption scope, with optional compliance details and secret reasons.
@@ -45,7 +45,7 @@ public static class ConceptRenderer
     /// <param name="concept">The concept to render.</param>
     /// <param name="applicationSet">The surrounding declarations and placements.</param>
     /// <param name="rootNamespace">The target application's root namespace.</param>
-    /// <param name="complianceDetails">Whether to emit registration-changing protection details; defaults to off through the original overload.</param>
+    /// <param name="complianceDetails">Whether to emit protection details; defaults to on through the original overload.</param>
     /// <returns>The generated concept file.</returns>
     /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace, bool complianceDetails)

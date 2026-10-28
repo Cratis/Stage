@@ -37,13 +37,14 @@ public class CSharpCodeBuilder
     /// </summary>
     /// <param name="project">The project the file compiles into.</param>
     /// <param name="generated">The complete renderer-owned declaration inventory.</param>
-    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated)
+    /// <param name="hasScaffoldGlobalUsings">Whether the file compiles with the scaffold-owned GlobalUsings.cs; see <see cref="ImportRequest.HasScaffoldGlobalUsings"/>.</param>
+    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated, bool hasScaffoldGlobalUsings)
     {
-        if (!QualifiedSpelling.IsActive) _imports = new(project, generated);
+        if (!QualifiedSpelling.IsActive) _imports = new(project, generated, hasScaffoldGlobalUsings);
     }
 
     internal CSharpCodeBuilder(ImportRequest imports)
-        : this(imports.Project, imports.GeneratedTypes)
+        : this(imports.Project, imports.GeneratedTypes, imports.HasScaffoldGlobalUsings)
     {
     }
 
@@ -286,9 +287,7 @@ public class CSharpCodeBuilder
         unit.Append(body);
         if (_imports is not null)
         {
-            // A finished body can move authored text, whose spans are then no longer known: such a file keeps every name qualified.
-            if (!string.Equals(skeleton, original, StringComparison.Ordinal) && _inline.Slots.Count > 0) _imports.Unknown();
-
+            // The splicer proved unchanged placement scopes and recomputed spans after finishing generated text.
             // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
             return _imports.Rewrite(unit.ToString(), [.. splice.Authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
         }

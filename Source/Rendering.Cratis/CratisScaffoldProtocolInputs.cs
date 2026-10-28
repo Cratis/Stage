@@ -20,6 +20,7 @@ internal static class CratisScaffoldProtocolInputs
         RefusalModeInput.Name,
         StrictAcceptanceInput.Name,
         FileHeaderInput.Name,
+        ServiceLayoutInput.Name,
         UserInterfaceInput.Name,
         UserInterfaceDomainsInput.Name
     };

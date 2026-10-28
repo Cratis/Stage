@@ -19,6 +19,8 @@ public class when_running_datetime_read_model_values : Specification
     [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+00:00", true)]
     [InlineData(false, "2026-01-01T00:00:00+00:00", "2026-01-01T00:00:00Z", true)]
     [InlineData(false, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00.0000000Z", true)]
+    [InlineData(false, "2026-01-01T00:00:00.123Z", "2026-01-01T00:00:00.1230000Z", true)]
+    [InlineData(true, "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z", true)]
     public async Task should_agree_with_the_reference_when_one_instant_is_spelled_one_way(bool clock, string authored, string expected, bool passes)
     {
         var plan = Compile(clock, authored, expected);

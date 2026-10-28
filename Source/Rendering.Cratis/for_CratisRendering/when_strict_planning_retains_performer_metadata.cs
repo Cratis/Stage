@@ -180,6 +180,70 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.All(report.Sources, source => Assert.Contains(new[] { plan.Scope }.Concat(plan.AdditionalScopes), scope => scope.Artifact == source));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task should_preserve_the_real_strict_sql_failure_in_each_layout(bool service)
+    {
+        _planOptions = _planOptions with { Strict = true, ServiceLayout = false };
+        var root = await From("performer.play");
+        _planOptions = _planOptions with { ServiceLayout = service };
+        var result = await From("performer.play");
+        var expected = Assert.IsType<ArtifactRenderPlan>(root.Plan);
+        var plan = Assert.IsType<ArtifactRenderPlan>(result.Plan);
+        Assert.False(root.Success);
+        Assert.False(result.Success);
+        Assert.True(plan.CanPublishArtifacts);
+        Assert.True(plan.Strict);
+        Assert.Equal(ArtifactRenderOutcome.Degraded, plan.Outcome);
+        Assert.NotEmpty(plan.Degradations);
+        Assert.NotEmpty(plan.ImplementationGaps);
+        Assert.NotEmpty(result.Artifacts);
+        Assert.Equal(expected.SemanticRevision, plan.SemanticRevision);
+        Assert.Equal(expected.InputVersions, plan.InputVersions);
+        Assert.Equal(expected.Scope, plan.Scope);
+        Assert.True(expected.AdditionalScopes.SequenceEqual(plan.AdditionalScopes));
+        Assert.True(expected.Degradations.SequenceEqual(plan.Degradations));
+        Assert.True(expected.PlanEvidence.SequenceEqual(plan.PlanEvidence));
+        Assert.Equal(JsonSerializer.Serialize(expected.Refusals), JsonSerializer.Serialize(plan.Refusals));
+        Assert.True(expected.RequiredRemovals.SequenceEqual(plan.RequiredRemovals));
+        Assert.True(expected.Diagnostics.SequenceEqual(plan.Diagnostics));
+        Assert.Equal(plan.Digest, result.Digest);
+        Assert.True(result.Artifacts.SequenceEqual(plan.Artifacts));
+        Assert.True(result.ImplementationGaps.SequenceEqual(plan.ImplementationGaps));
+        Assert.True(result.RequiredRemovals.SequenceEqual(plan.RequiredRemovals));
+        Assert.True(result.Refusals.SequenceEqual(plan.Refusals));
+        AssertStrictReports(expected, plan, service ? $"Source/{_planOptions.ProjectName}/" : string.Empty);
+    }
+
+    static void AssertStrictReports(ArtifactRenderPlan root, ArtifactRenderPlan plan, string prefix)
+    {
+        foreach (var path in new[] { ".stage/completeness.json", "UNSUPPORTED.md" })
+        {
+            var expected = root.Artifacts.Single(artifact => artifact.RelativePath == path);
+            var report = plan.Artifacts.Single(artifact => artifact.RelativePath == prefix + path);
+            Assert.NotEmpty(report.Bytes);
+            Assert.True(expected.Bytes.SequenceEqual(report.Bytes));
+            Assert.True(expected.Sources.SequenceEqual(report.Sources));
+            Assert.True(new[] { plan.Scope.Artifact }.Concat(plan.AdditionalScopes.Select(scope => scope.Artifact)).ToHashSet().SetEquals(report.Sources));
+        }
+        Assert.NotEmpty(plan.Inventory!.Constructs.SelectMany(construct => construct.Degradations));
+        using var json = JsonDocument.Parse(plan.Artifacts.Single(artifact => artifact.RelativePath == prefix + ".stage/completeness.json").Bytes.AsMemory());
+        Assert.True(json.RootElement.GetProperty("strict").GetBoolean());
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.True(json.RootElement.GetProperty("canPublishArtifacts").GetBoolean());
+        Assert.Equal("Degraded", json.RootElement.GetProperty("outcome").GetString());
+        Assert.Equal(root.Inventory!.Constructs.Select(construct => (construct.Identity, construct.Outcome)), plan.Inventory.Constructs.Select(construct => (construct.Identity, construct.Outcome)));
+        Assert.Equal(plan.Inventory.Constructs.Length, json.RootElement.GetProperty("inventory").GetProperty("constructs").GetArrayLength());
+        foreach (var artifact in plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)))
+        {
+            Assert.StartsWith(prefix, artifact.RelativePath, StringComparison.Ordinal);
+            var original = root.Artifacts.Single(candidate => prefix + candidate.RelativePath == artifact.RelativePath);
+            Assert.True(original.Bytes.SequenceEqual(artifact.Bytes));
+            Assert.True(original.Sources.SequenceEqual(artifact.Sources));
+        }
+    }
+
     [Fact]
     void should_leave_direct_models_without_catalogs_unreported_without_fabrication()
     {

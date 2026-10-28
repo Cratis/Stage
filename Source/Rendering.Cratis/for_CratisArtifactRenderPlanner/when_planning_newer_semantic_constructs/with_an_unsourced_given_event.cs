@@ -14,6 +14,6 @@ public class with_an_unsourced_given_event : an_invoice_model
         "given InvoiceIssued\n          description = \"Prior payload\"\n        when IssueInvoice\n          description = \"First payload\"",
         StringComparison.Ordinal));
 
-    [Fact] void should_reject_the_ambiguous_destination() => ErrorCodes.ShouldContain("STAGE-ESM-051");
-    [Fact] void should_not_emit_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_admit_the_unobserved_destination() => ErrorCodes.ShouldBeEmpty();
+    [Fact] void should_emit_the_specification() => Artifact("when_issuing_first_invoice.cs").ShouldContain("ForEventSource(\"when-append\")");
 }

@@ -52,8 +52,16 @@ public class when_refusing_a_slice_referencing_a_public_event : Specification
         {
             plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-032" && diagnostic.Artifact == occurrence.EventContract);
         }
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        if (form == "then")
+        {
+            plan.Success.ShouldBeTrue();
+            plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+        }
+        else
+        {
+            plan.Success.ShouldBeFalse();
+            plan.Artifacts.ShouldBeEmpty();
+        }
     }
 
     [Fact]

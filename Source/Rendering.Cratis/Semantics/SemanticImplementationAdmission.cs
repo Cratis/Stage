@@ -250,12 +250,10 @@ internal static class SemanticImplementationAdmission
                 }
             }
 
-            foreach (var reducer in slice.Reducers)
+            foreach (var id in slice.Reducers.SelectMany(reducer => reducer.Transitions).Select(transition => transition.RequirementId)
+                .Concat(SemanticReactionBodyRendering.References(slice)))
             {
-                foreach (var transition in reducer.Transitions)
-                {
-                    yield return (transition.RequirementId, slice.Id);
-                }
+                yield return (id, slice.Id);
             }
         }
     }

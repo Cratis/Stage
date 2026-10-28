@@ -48,6 +48,8 @@ public class when_auditing_the_executable_model : given.the_executable_surface
     [InlineData("SemanticProjection.Target")]
     [InlineData("SemanticProjectionTargetKind.Event")]
     [InlineData("SemanticSlice.Direction")]
+    [InlineData("SemanticTranslationDirection.Inbound")]
+    [InlineData("SemanticTranslationDirection.Outbound")]
     [InlineData("SemanticSliceKind.Translate")]
     [InlineData("SemanticCapture.EventsSource")]
     [InlineData("SemanticCaptureEventsSource.Events")]

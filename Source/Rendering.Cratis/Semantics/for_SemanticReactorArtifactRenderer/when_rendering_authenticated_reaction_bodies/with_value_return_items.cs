@@ -20,7 +20,6 @@ public class with_value_return_items : Specification
             "return [\"unsupported\"];",
             "return [42];",
             "yield return true;",
-            "return [null];",
             "return [typeof(object)];",
             "return [Title];",
             "yield return context;",

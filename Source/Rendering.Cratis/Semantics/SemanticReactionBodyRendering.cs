@@ -49,9 +49,13 @@ internal static class SemanticReactionBodyRendering
             diagnostics.Add(new(
                 SemanticVersionFeatures.MixedReactionEffects,
                 ArtifactRenderDiagnosticSeverity.Error,
-                returnShape.HasValueItems
-                    ? $"Reaction '{reaction.Name}' returns an item that is a value, not a modeled event or command, and would fail at run time. Return modeled events or commands, or an empty result."
-                    : $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command.",
+                returnShape switch
+                {
+                    { HasNestedCollections: true } => $"Reaction '{reaction.Name}' returns a collection as a result item. Reactor side-effect handling does not flatten nested collections. Return a flat collection of modeled events or commands, using spreads only for proven result collections.",
+                    { HasNullItems: true } => $"Reaction '{reaction.Name}' returns a null result item. Reactor side-effect handling does not skip null items. Return modeled events or commands, or a whole null or empty result.",
+                    { HasValueItems: true } => $"Reaction '{reaction.Name}' returns an item that is a value, not a modeled event or command, and would fail at run time. Return modeled events or commands, or an empty result.",
+                    _ => $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command."
+                },
                 reaction.Id));
         }
 

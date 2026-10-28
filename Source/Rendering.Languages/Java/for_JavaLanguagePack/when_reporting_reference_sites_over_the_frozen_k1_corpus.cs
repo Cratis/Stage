@@ -15,7 +15,8 @@ public class when_reporting_reference_sites_over_the_frozen_k1_corpus : Specific
     void Because() => _files = new JavaLanguagePack(K1Fixture.Facts()).ResolveWithSites(K1Fixture.Files());
 
     [Fact] void should_report_every_frozen_reference() => _files.Sum(file => file.Sites.Length).ShouldEqual(2816);
-    [Fact] void should_spell_each_intended_type_or_its_suffix() => _files.All(file => file.Sites.All(site =>
+    [Fact]
+    void should_spell_each_intended_type_or_its_suffix() => _files.All(file => file.Sites.All(site =>
     {
         var slice = given.a_java_pack.Text(file.Resolution)[site.Start..site.End];
         return slice == site.Intended || site.Intended.EndsWith("." + slice, StringComparison.Ordinal);

@@ -16,7 +16,8 @@ public class when_emitting_the_binding_vectors(BindingVectorOutput output) : Spe
     void Because() => output.Emit();
 
     [Fact] void should_emit_every_catalog_case() => Directory.GetDirectories(Path.Combine(_root, "positive")).Length.ShouldEqual(10);
-    [Fact] void should_resolve_every_compiled_file_without_refusal() => JavaBindingVectors.Positive().All(item =>
+    [Fact]
+    void should_resolve_every_compiled_file_without_refusal() => JavaBindingVectors.Positive().All(item =>
         new JavaLanguagePack(JavaTypeFacts.Parse(item.FactsJson)).ResolveWithSites(item.Files).Where((_, index) => !item.ExcludedPaths.Contains(item.Files[index].Path)).All(file => file.Resolution.Refusal is null)).ShouldBeTrue();
     [Fact] void should_report_at_least_one_reference_site_per_case() => Directory.GetFiles(_root, "sites.tsv", SearchOption.AllDirectories).All(path => File.ReadAllLines(path).Length > 0).ShouldBeTrue();
 

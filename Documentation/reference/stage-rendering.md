@@ -38,11 +38,32 @@ and a generated React application both render with, evaluates the guard against 
 - Without an item, the action is not offered at all, even if it has a fallback command.
 - The guard is evaluated again whenever the item changes, so the action follows the data.
 
-Guarded `on click`, `on double click`, and `on select` interactions translate to one Scene interaction binding
+Guarded `on click`, `on double click`, `on select` and `on change` interactions translate to one Scene interaction binding
 per branch, in authored order. The Scene interaction engine runs exactly the branch that holds for the row the
 interaction happened on, or the `otherwise` actions when none does, and runs nothing without a row. A table that
 declares a double click delays its single-row click briefly, so a double click on a row does not first select or
 navigate.
+
+### An item change runs a command
+
+An `on change` on a component that presents items translates to a Scene interaction binding like any other, guarded
+or not. What the component does with it is the Stage frontend runtime's: a component that lets the user change an
+item reports the change, and the runtime runs the bindings for **the item that changed**.
+
+The default blueprint's `kanbanBoard` is the first such component. When the document declares an `on change` for it,
+moving a card, by dragging or from its "Move to" menu, runs the bindings with:
+
+- `item`, the card's row from the query the board reads, with the property named by `cardColumn` already holding the
+  column the card was dropped in. `with talkId from item.talkId` reads the row's own field, and a guard such as
+  `when item.status == "accepted"` is evaluated against the changed row, exactly as for a table row.
+- `value`, the column the card was dropped in, and `previous`, the column it came from.
+
+Everything else is the ordinary interaction engine: the command is executed through the Stage's command route, an
+`on success` or `on failure` continuation runs as written, and a notification appears where every notification does.
+Once the bindings have run, the queries are read again. A move the command refused is therefore shown as the data
+says it is rather than as the user left it, and a move that succeeded shows the figures the command's events
+changed. Data that reaches the board without the user moving a card runs nothing. A board whose document declares no
+`on change` is the blueprint's board unchanged.
 
 ### Guards Stage cannot evaluate
 

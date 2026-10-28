@@ -137,8 +137,8 @@ internal static class SemanticQueryContextRuntime
             diagnostics.FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed);
         if (error is null) return null;
 
-        var offset = code.IndexOf(body, StringComparison.Ordinal);
-        var bodyOffset = Math.Clamp(error.Location.SourceSpan.Start - offset, 0, Math.Max(0, body.Length - 1));
+        var location = CSharpInlineIndentation.Locate(code, body);
+        var bodyOffset = location is null ? 0 : Math.Clamp(location.ToBody(error.Location.SourceSpan.Start - location.Start), 0, Math.Max(0, body.Length - 1));
         return new(
             "STAGE-IMPL-005",
             ArtifactRenderDiagnosticSeverity.Error,

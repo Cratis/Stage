@@ -24,7 +24,23 @@ internal static class RenderModelJson
 
     internal static byte[] Serialize<T>(T value) => CanonicalBytes(JsonSerializer.SerializeToElement(value, Options));
 
-    internal static RenderModel Deserialize(ReadOnlySpan<byte> json) => JsonSerializer.Deserialize<RenderModel>(json, Options)!;
+    internal static RenderModel Deserialize(ReadOnlySpan<byte> json)
+    {
+        using var document = JsonDocument.Parse(json.ToArray());
+        var envelope = document.RootElement;
+        envelope.TryGetProperty("schema", out var schema);
+        if (!IsSupportedSchema(schema))
+        {
+            throw new InvalidRenderModel($"Unsupported render model schema '{schema}'; expected '{RenderModel.Schema}'.");
+        }
+        envelope.TryGetProperty("canonicalization", out var canonicalization);
+        if (!IsSupportedCanonicalization(canonicalization))
+        {
+            throw new InvalidRenderModel($"Unsupported render model canonicalization '{canonicalization}'; expected '{RenderModel.CanonicalizationVersion}'.");
+        }
+
+        return envelope.Deserialize<RenderModel>(Options)!;
+    }
 
     internal static byte[] CanonicalBytes(JsonElement value)
     {
@@ -34,6 +50,15 @@ internal static class RenderModelJson
         writer.Flush();
 
         return System.Text.Encoding.UTF8.GetBytes(NormalizeEscapes(System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan)));
+    }
+
+    static bool IsSupportedSchema(JsonElement schema) => schema.ValueKind == JsonValueKind.String && schema.ValueEquals(RenderModel.Schema);
+
+    static bool IsSupportedCanonicalization(JsonElement canonicalization)
+    {
+        if (canonicalization.ValueKind != JsonValueKind.Number) return false;
+
+        return canonicalization.TryGetInt32(out var version) && version == RenderModel.CanonicalizationVersion;
     }
 
     static JsonSerializerOptions CreateOptions()

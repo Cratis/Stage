@@ -9,13 +9,14 @@ namespace Cratis.Stage.Contracts.Rendering.Model;
 internal sealed record RenderModel(int Minor, RenderModelSource Source, RenderModelScope Scope, RenderModelItems Items)
 {
     internal const string Schema = "stage-render-model/v1";
+    internal const int CanonicalizationVersion = 1;
 
     [System.Text.Json.Serialization.JsonPropertyOrder(-3)]
     [System.Text.Json.Serialization.JsonPropertyName("schema")]
     public string SchemaVersion => Schema;
 
     [System.Text.Json.Serialization.JsonPropertyOrder(-2)]
-    public int Canonicalization => 1;
+    public int Canonicalization => CanonicalizationVersion;
 
     internal byte[] ToCanonicalJson() => RenderModelJson.Serialize(this);
 }
@@ -34,14 +35,21 @@ internal sealed record RenderModelItems(ImmutableArray<RenderCommand> Commands, 
 
 internal sealed record RenderProvenance
 {
-    public string Status => "Absent";
-    public string Reason => "loader does not retain compiler SourceMap";
+    public string Status
+    {
+        get => "Absent";
+        init
+        {
+            if (value != "Absent") throw new InvalidRenderModel($"Unsupported render model provenance status '{value}'; expected 'Absent'.");
+        }
+    }
+    public string Reason { get; init; } = "loader does not retain compiler SourceMap";
     internal static RenderProvenance Absent { get; } = new();
 }
 
 internal abstract record RenderMember
 {
-    public RenderProvenance Provenance => RenderProvenance.Absent;
+    public RenderProvenance Provenance { get; init; } = RenderProvenance.Absent;
 }
 
 internal sealed record RenderCommand(SemanticId Id, string Name, RenderSequence<string> NameWords, RenderLocation Location, RenderFlags Flags, RenderCommandPayload Payload) : RenderMember

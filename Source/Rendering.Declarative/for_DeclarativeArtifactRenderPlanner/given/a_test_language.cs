@@ -21,6 +21,12 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
     public const string UnsupportedBody = "TEST-002";
     public const string RefusedBody = "TEST-003";
 
+    /// <summary>Gets the paths received by each <c lang="text">Resolve</c> call, one entry per call.</summary>
+    public List<ImmutableArray<string>> Calls { get; } = [];
+
+    /// <summary>Gets the language refusals to raise, keyed by file path.</summary>
+    public Dictionary<string, string> RefusedPaths { get; } = new(StringComparer.Ordinal);
+
     public LanguagePackVersion Pack => new(id, version);
 
     public string String(string value) => JsonSerializer.Serialize(value);
@@ -57,8 +63,23 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
         return false;
     }
 
-    public DeclarativeFileResolution Resolve(string path, ImmutableArray<DeclarativeSegment> segments)
+    /// <summary>Gets or sets whether the language answers with one resolution too few, breaking the contract.</summary>
+    public bool DropOneResolution { get; set; }
+
+    public ImmutableArray<DeclarativeFileResolution> Resolve(ImmutableArray<DeclarativeLanguageFile> files)
     {
+        Calls.Add([.. files.Select(_ => _.Path)]);
+        var resolutions = files.Select(file => ResolveFile(file.Path, file.Segments)).ToImmutableArray();
+        return DropOneResolution ? resolutions.RemoveAt(resolutions.Length - 1) : resolutions;
+    }
+
+    DeclarativeFileResolution ResolveFile(string path, ImmutableArray<DeclarativeSegment> segments)
+    {
+        if (RefusedPaths.TryGetValue(path, out var code))
+        {
+            return DeclarativeFileResolution.Refused(code, $"Refused {path}.");
+        }
+
         var symbols = segments.OfType<DeclarativeSymbolSegment>().Where(_ => _.Value is not null).Select(_ => _.Value!).Distinct().ToArray();
         var clash = symbols.GroupBy(_ => _.Name, StringComparer.Ordinal).FirstOrDefault(_ => _.Count() > 1);
         if (clash is not null)

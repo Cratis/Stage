@@ -13,13 +13,12 @@ namespace Cratis.Stage.Rendering.Declarative;
 public interface IDeclarativeLanguage : ITemplateLanguage, ITypeDirectory
 {
     /// <summary>
-    /// Resolves declarations, references and the imports block of one file into ordered pieces.
+    /// Resolves declarations, references and the imports block of every file of the plan into ordered pieces.
     /// </summary>
-    /// <param name="path">The validated relative path of the file.</param>
-    /// <param name="segments">The ordered segments of the file.</param>
-    /// <returns>The resolved pieces, or an integrity refusal such as an ambiguous short name.</returns>
-    /// <remarks>An implementation never emits a fully qualified name.</remarks>
-    DeclarativeFileResolution Resolve(string path, ImmutableArray<DeclarativeSegment> segments);
+    /// <param name="files">Every file of the plan, in output order. The pack sees the whole plan, so it can allocate names across files.</param>
+    /// <returns>One resolution per file, in the same order as <paramref name="files"/>: the resolved pieces, or an integrity refusal such as an ambiguous short name.</returns>
+    /// <remarks>An implementation never emits a fully qualified name unless that is the only provable spelling. The planner refuses a result whose length differs from the number of files.</remarks>
+    ImmutableArray<DeclarativeFileResolution> Resolve(ImmutableArray<DeclarativeLanguageFile> files);
 
     /// <summary>
     /// Judges one authored body. The body is scanned and never rewritten.

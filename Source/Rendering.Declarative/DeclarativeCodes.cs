@@ -72,4 +72,9 @@ public static class DeclarativeCodes
     /// The assembled text of a file cannot be a text artifact, for example because it starts with a byte order mark.
     /// </summary>
     public const string OutputText = "STAGE-DECL-013";
+
+    /// <summary>
+    /// A language pack returned a different number of resolutions than the plan has files.
+    /// </summary>
+    public const string LanguageContract = "STAGE-DECL-014";
 }

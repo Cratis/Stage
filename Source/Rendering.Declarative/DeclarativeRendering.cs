@@ -28,6 +28,15 @@ sealed record DeclarativeOwnedGap(SemanticId? Owner, TemplateGap Gap, ArtifactRe
 sealed record DeclarativeRenderedFile(string Path, string Text, SemanticId? Item, ImmutableArray<DeclarativeOwnedGap> Gaps);
 
 /// <summary>
+/// Represents a file that rendered and mapped, awaiting the language's verdict.
+/// </summary>
+/// <param name="Path">The validated relative path.</param>
+/// <param name="Segments">The mapped segments.</param>
+/// <param name="Item">The owning semantic item, if any.</param>
+/// <param name="Gaps">The owned gaps.</param>
+sealed record PreparedFile(string Path, ImmutableArray<DeclarativeSegment> Segments, SemanticId? Item, ImmutableArray<DeclarativeOwnedGap> Gaps);
+
+/// <summary>
 /// Represents the rendering of every expanded output, or the safety refusal that stopped it.
 /// </summary>
 /// <param name="Files">The rendered files in expansion order.</param>
@@ -38,11 +47,29 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
     internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request, long maxOutputBytes)
     {
-        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language, session), maxOutputBytes);
-        var files = new List<DeclarativeRenderedFile>();
+        var renderer = new FileRenderer(session, Constructs(root), new(request, language, session), maxOutputBytes);
+        var prepared = new List<PreparedFile>();
         foreach (var expanded in outputs)
         {
-            var refusal = renderer.Render(expanded, files);
+            var preparation = renderer.Prepare(expanded);
+            if (preparation.Refusal is not null)
+            {
+                return new([], preparation.Refusal);
+            }
+
+            prepared.Add(preparation.File!);
+        }
+
+        var resolutions = language.Resolve([.. prepared.Select(_ => new DeclarativeLanguageFile(_.Path, _.Segments))]);
+        if (resolutions.IsDefault || resolutions.Length != prepared.Count)
+        {
+            return new([], DeclarativeOutputExpansion.Refuse(DeclarativeCodes.LanguageContract, $"The language returned {(resolutions.IsDefault ? 0 : resolutions.Length)} resolutions for {prepared.Count} files."));
+        }
+
+        var files = new List<DeclarativeRenderedFile>();
+        for (var index = 0; index < prepared.Count; index++)
+        {
+            var refusal = renderer.Finish(prepared[index], resolutions[index], files);
             if (refusal is not null)
             {
                 return new([], refusal);
@@ -84,39 +111,47 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
         }
     }
 
-    sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies, long maxOutputBytes)
+    sealed class FileRenderer(TemplatePlanSession session, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies, long maxOutputBytes)
     {
         readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
         long _finalBytes;
 
-        internal ArtifactRenderDiagnostic? Render(ExpandedOutput expanded, List<DeclarativeRenderedFile> files)
+        // Phase 1: path check, template render and segment mapping. The language is not consulted.
+        internal (PreparedFile? File, ArtifactRenderDiagnostic? Refusal) Prepare(ExpandedOutput expanded)
         {
             var path = session.RenderPath(expanded.Output.Id, expanded.Scope);
             if (path.Refusal is not null)
             {
-                return DeclarativeOutputExpansion.Refuse(path.Refusal.Code, path.Refusal.Message);
+                return (null, DeclarativeOutputExpansion.Refuse(path.Refusal.Code, path.Refusal.Message));
             }
 
             var invalid = DeclarativePaths.Check(path.Value!, _paths);
             if (invalid is not null)
             {
-                return invalid;
+                return (null, invalid);
             }
 
             var rendered = session.Render(expanded.Output.Template, expanded.Scope);
             if (rendered.Refusal is not null)
             {
-                return DeclarativeOutputExpansion.Refuse(rendered.Refusal.Code, rendered.Refusal.Message);
+                return (null, DeclarativeOutputExpansion.Refuse(rendered.Refusal.Code, rendered.Refusal.Message));
             }
 
             var item = expanded.ItemId is null ? (SemanticId?)null : SemanticId.Parse(expanded.ItemId);
             var mapped = Map(rendered.Output!.Segments, item, expanded.Output.Template);
             if (mapped.Refusal is not null)
             {
-                return mapped.Refusal;
+                return (null, mapped.Refusal);
             }
 
-            var resolution = language.Resolve(path.Value!, mapped.Segments);
+            var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role))).Concat(mapped.Gaps);
+            return (new(path.Value!, mapped.Segments, item, [.. gaps]), null);
+        }
+
+        // Phase 2: the language verdict for this file, then the sentinel, byte order mark and aggregate budget checks.
+        internal ArtifactRenderDiagnostic? Finish(PreparedFile prepared, DeclarativeFileResolution resolution, List<DeclarativeRenderedFile> files)
+        {
+            var path = prepared.Path;
             if (resolution.Refusal is not null)
             {
                 return DeclarativeOutputExpansion.Refuse(resolution.Refusal.Code, resolution.Refusal.Message);
@@ -124,13 +159,13 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
             if (GeneratedRuns(resolution.Pieces).Any(_ => _.Contains(SentinelPrefix, StringComparison.Ordinal)))
             {
-                return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.SentinelResidue, $"The generated text of {path.Value} contains sentinel-shaped residue.");
+                return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.SentinelResidue, $"The generated text of {path} contains sentinel-shaped residue.");
             }
 
             var text = Text(resolution.Pieces);
             if (text.StartsWith('\uFEFF'))
             {
-                return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.OutputText, $"The text of {path.Value} starts with a byte order mark, which a text artifact cannot carry.");
+                return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.OutputText, $"The text of {path} starts with a byte order mark, which a text artifact cannot carry.");
             }
 
             // The template session meters what templates emit; language resolution (for example import blocks) adds text it never sees, so the final text of every file is also capped, in aggregate, by the same limit.
@@ -140,8 +175,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
                 return DeclarativeOutputExpansion.Refuse(TemplateCodes.Output, "Plan UTF-8 output budget exceeded.");
             }
 
-            var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role))).Concat(mapped.Gaps);
-            files.Add(new(path.Value!, text, item, [.. gaps]));
+            files.Add(new(path, text, prepared.Item, prepared.Gaps));
             return null;
         }
 

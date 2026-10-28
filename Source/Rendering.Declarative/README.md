@@ -11,7 +11,7 @@ A successful admission records the kit, language pack, template profile, helper 
 
 ## Language seam
 
-A language pack implements `IDeclarativeLanguage`: the template language and type directory contracts, plus `Resolve` (declarations, references and the imports block of one file become ordered generated or authored pieces, or an integrity refusal) and `Admit` (a verdict on one authored body that the planner never rewrites). Segments are handles, never token text.
+A language pack implements `IDeclarativeLanguage`: the template language and type directory contracts, plus `Resolve` (every file of the plan is handed over at once, and each file's declarations, references and imports block become ordered generated or authored pieces, or an integrity refusal) and `Admit` (a verdict on one authored body that the planner never rewrites). Segments are handles, never token text.
 
 ## Output expansion
 
@@ -19,7 +19,7 @@ Outputs expand in manifest order. An output without `forEach` renders once with 
 
 ## Rendering, symbols and gaps
 
-Each expanded output renders its path and its template. The template segments become `DeclarativeSegment` handles and the language `Resolve`s them into pieces; text is never searched or patched. A language refusal (for example an ambiguous short name) refuses the whole plan with the language's own code. Generated text that contains sentinel-shaped residue (`/*__stage_`) refuses the plan with `STAGE-DECL-009`.
+Each expanded output renders its path and its template, and the segments become `DeclarativeSegment` handles. Once every output has rendered, the language `Resolve`s all files in one call (a result of the wrong length refuses with `STAGE-DECL-014`), and each file is then finished in order; text is never searched or patched. A language refusal (for example an ambiguous short name) refuses the whole plan with the language's own code. Generated text that contains sentinel-shaped residue (`/*__stage_`) refuses the plan with `STAGE-DECL-009`.
 
 A template gap is not a refusal. The gap belongs to the fan-out item whose output reported it, or, for a single output, to the construct its `modelPath` names. The planner emits the language placeholder, a `STAGE-DEGRADE-*` warning owned by that construct and its degradation evidence. A gap that names no construct is recorded as plan evidence owned by the application. Gap roles map one to one onto placeholder kinds.
 
@@ -59,6 +59,7 @@ Every selected command and reaction is accounted for in the plan's inventory. A 
 | `STAGE-DECL-011` | A rendered path is rooted, traverses or is not portable |
 | `STAGE-DECL-012` | Two rendered paths are equal ignoring case |
 | `STAGE-DECL-013` | The assembled text of a file cannot be a text artifact (for example a leading byte order mark) |
+| `STAGE-DECL-014` | The language returned a different number of resolutions than the plan has files |
 
 ## Scope
 

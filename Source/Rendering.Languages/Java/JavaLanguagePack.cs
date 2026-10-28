@@ -84,17 +84,8 @@ public sealed class JavaLanguagePack(JavaTypeFacts? facts = null) : IDeclarative
     }
 
     /// <inheritdoc/>
-    public ImmutableArray<DeclarativeFileResolution> Resolve(ImmutableArray<DeclarativeLanguageFile> files)
-    {
-        try
-        {
-            return JavaResolution.Resolve(JavaPlan.Create(files), _facts);
-        }
-        catch (LanguagePackRefusal refusal)
-        {
-            return [.. files.Select(_ => DeclarativeFileResolution.Refused(refusal.Code, refusal.Message))];
-        }
-    }
+    public ImmutableArray<DeclarativeFileResolution> Resolve(ImmutableArray<DeclarativeLanguageFile> files) =>
+        [.. ResolveWithSites(files).Select(file => file.Resolution)];
 
     /// <inheritdoc/>
     public AuthoredAdmission Admit(string requirementId, string body)

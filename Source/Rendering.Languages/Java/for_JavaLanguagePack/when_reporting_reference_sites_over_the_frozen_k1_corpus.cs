@@ -27,16 +27,21 @@ public class when_reporting_reference_sites_over_the_frozen_k1_corpus : Specific
         var offset = 0;
         foreach (var piece in file.Resolution.Pieces)
         {
-            var length = piece switch
-            {
-                DeclarativeGeneratedPiece generated => generated.Text.Length,
-                DeclarativeAuthoredPiece authored => authored.Text.Length,
-                _ => 0
-            };
-            if (piece is DeclarativeGeneratedPiece && site.Start >= offset && site.End <= offset + length) return true;
+            var length = Length(piece);
+            if (Covers(piece, site, offset, length)) return true;
             offset += length;
         }
 
         return false;
     }
+
+    static bool Covers(DeclarativePiece piece, JavaReferenceSite site, int offset, int length) =>
+        piece is DeclarativeGeneratedPiece && site.Start >= offset && site.End <= offset + length;
+
+    static int Length(DeclarativePiece piece) => piece switch
+    {
+        DeclarativeGeneratedPiece generated => generated.Text.Length,
+        DeclarativeAuthoredPiece authored => authored.Text.Length,
+        _ => 0
+    };
 }

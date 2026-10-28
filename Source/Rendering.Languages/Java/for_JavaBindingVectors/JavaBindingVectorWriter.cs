@@ -1,7 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
 using System.Text;
 using Cratis.Stage.Rendering.Declarative;
 using Cratis.Stage.Rendering.Languages.Java.for_JavaLanguagePack.given;
@@ -28,6 +27,16 @@ internal static class JavaBindingVectorWriter
     static (string Name, int Files, int Sites) WriteCase(string root, JavaBindingCase item, bool negative)
     {
         var folder = Child(root, item.Name);
+        var (sources, sites) = ResolvePlan(item);
+        foreach (var source in item.HostSources.Concat(JavaFactStubs.Generate(negative ? a_java_pack.FactsJson : item.FactsJson))) sources.Add(source.Path, source.Text);
+        if (sources.Count == 0 || sites.Count == 0) throw new InvalidOperationException("Empty binding case: " + item.Name);
+        foreach (var source in sources) WriteText(Child(Path.Combine(folder, "src"), source.Key), source.Value);
+        WriteSites(folder, sites, negative);
+        return (item.Name, sources.Count, sites.Count);
+    }
+
+    static (SortedDictionary<string, string> Sources, List<(string Path, JavaReferenceSite Site)> Sites) ResolvePlan(JavaBindingCase item)
+    {
         var sources = new SortedDictionary<string, string>(StringComparer.Ordinal);
         var sites = new List<(string Path, JavaReferenceSite Site)>();
         var resolved = new JavaLanguagePack(JavaTypeFacts.Parse(item.FactsJson)).ResolveWithSites(item.Files);
@@ -41,9 +50,11 @@ internal static class JavaBindingVectorWriter
             sites.AddRange(resolved[i].Sites.Select(site => (path, site)));
         }
 
-        foreach (var source in item.HostSources.Concat(JavaFactStubs.Generate(negative ? a_java_pack.FactsJson : item.FactsJson))) sources.Add(source.Path, source.Text);
-        if (sources.Count == 0 || sites.Count == 0) throw new InvalidOperationException("Empty binding case: " + item.Name);
-        foreach (var source in sources) WriteText(Child(Path.Combine(folder, "src"), source.Key), source.Value);
+        return (sources, sites);
+    }
+
+    static void WriteSites(string folder, List<(string Path, JavaReferenceSite Site)> sites, bool negative)
+    {
         var ordered = sites.OrderBy(site => site.Path, StringComparer.Ordinal).ThenBy(site => site.Site.Start).ToArray();
         WriteText(Path.Combine(folder, "sites.tsv"), string.Concat(ordered.Select(site => $"{site.Path}\t{site.Site.Start}\t{site.Site.End}\t{site.Site.Intended}\n")));
         if (negative)
@@ -51,8 +62,6 @@ internal static class JavaBindingVectorWriter
             var planted = ordered.Single(site => site.Path == "A.java" && site.Site.Intended == "java.lang.String");
             WriteText(Path.Combine(folder, "expected.tsv"), $"{planted.Path}\t{planted.Site.Start}\t{planted.Site.End}\t{planted.Site.Intended}\tlib.Base.String\n");
         }
-
-        return (item.Name, sources.Count, sites.Count);
     }
 
     static string Text(DeclarativeFileResolution resolution) => string.Concat(resolution.Pieces.Select(piece => piece switch
@@ -64,9 +73,13 @@ internal static class JavaBindingVectorWriter
 
     static string Child(string root, string path)
     {
-        if (Path.IsPathRooted(path) || path.Split('/').Any(part => part.Length == 0 || part.Equals(".", StringComparison.Ordinal) || part.Equals("..", StringComparison.Ordinal)) || path.Contains('\\') || path.Contains('\t') || path.Contains('\n')) throw new InvalidOperationException("Unsafe vector path: " + path);
+        var invalidSegments = path.Split('/').Any(InvalidSegment);
+        var invalidPath = Path.IsPathRooted(path) || invalidSegments || path.IndexOfAny(['\\', '\t', '\n']) >= 0;
+        if (invalidPath) throw new InvalidOperationException("Unsafe vector path: " + path);
         return Path.Combine(root, path);
     }
+
+    static bool InvalidSegment(string part) => part.Length == 0 || part.Equals(".", StringComparison.Ordinal) || part.Equals("..", StringComparison.Ordinal);
 
     static void WriteText(string path, string text)
     {

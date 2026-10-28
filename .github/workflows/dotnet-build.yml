@@ -39,6 +39,8 @@ on:
       - ".github/test_spec_shards.py"
       - ".github/ci-routing.py"
       - ".github/test_ci_routing.py"
+      - ".github/reducer-mongo-disk.py"
+      - ".github/test_reducer_mongo_disk.py"
       - ".github/workflows/warm-nuget-cache.yml"
 
 jobs:
@@ -271,13 +273,68 @@ jobs:
       REDUCER_MONGO_CONTAINER: stage-reducer-mongo-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
+      # This cannot use a repository helper: checkout has not run and may clean the workspace.
+      - name: Bootstrap private runner scratch
+        id: scratch
+        timeout-minutes: 1
+        run: |
+          set -euo pipefail
+          {
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import tempfile
+
+          runner = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+          workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          if runner.is_relative_to(workspace) or any("\n" in str(p) for p in (runner, workspace)):
+              raise RuntimeError("RUNNER_TEMP must resolve outside the checkout before bootstrap.")
+          stats = os.statvfs(runner)
+          available = stats.f_bavail * stats.f_frsize
+          print(f"Bootstrap RUNNER_TEMP={runner}; availableBytes={available}", flush=True)
+          if available < 37 * 1024 ** 3:
+              raise RuntimeError("Stage 342 bootstrap needs >=37 GiB free on actual RUNNER_TEMP.")
+          scratch = Path(tempfile.mkdtemp(prefix="stage342-tmp.", dir=runner))
+          (scratch / ".stage342-owner").write_text(f'{os.environ["GITHUB_RUN_ID"]}:{os.environ["GITHUB_RUN_ATTEMPT"]}')
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"scratch={scratch}\n")
+          print(f"Owned scratch={scratch}", flush=True)
+          PY
+            scratch=$(sed -n 's/^scratch=//p' "$GITHUB_OUTPUT")
+            test -n "$scratch"
+            export TMPDIR="$scratch"
+            export TMP="$scratch"
+            export TEMP="$scratch"
+            printf 'TMPDIR=%s\nTMP=%s\nTEMP=%s\n' "$scratch" "$scratch" "$scratch" >> "$GITHUB_ENV"
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import tempfile
+
+          resolved = Path(tempfile.gettempdir()).resolve(strict=True)
+          if resolved != Path(os.environ["TMPDIR"]):
+              raise RuntimeError("Bootstrap Python temp resolver escaped private scratch.")
+          with tempfile.TemporaryFile() as probe:
+              probe.write(b"stage342")
+              probe.flush()
+          print(f"Python temp resolution/write passed: {resolved}", flush=True)
+          PY
+          } 2>&1 | tee "$RUNNER_TEMP/stage342-bootstrap-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log"
+
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Verify scratch survived checkout
+        run: python3 -B .github/reducer-mongo-disk.py verify-temp
 
       - name: Setup .Net
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Probe .NET temp and NuGet locations
+        timeout-minutes: 2
+        run: python3 -B .github/reducer-mongo-disk.py probe-dotnet
 
       - name: Restore NuGet packages
         id: nuget
@@ -323,12 +380,11 @@ jobs:
           import signal
           import subprocess
           import tempfile
+          import runpy
           import threading
           import time
           import xml.etree.ElementTree as ET
 
-          gib = 1024 ** 3
-          floor, preflight, growth_limit = 25 * gib, 37 * gib, 6 * gib
           evidence = Path(os.environ["AI_WORK_KEEP"])
           evidence.mkdir(parents=True, exist_ok=True)
           prefix = "Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_verifying_mixed_reaction_refusals_against_the_pinned_kernel."
@@ -348,62 +404,8 @@ jobs:
                       or any(int(counters.get(k, "-1")) != v for k, v in required.items())):
                   raise RuntimeError("Stage 342 requires exactly default+atomic runtime proofs: 2 passed, 0 skipped; compile-only rows do not count.")
 
-          def checked(command):
-              result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=10)
-              if len(result.stdout) > 65536:
-                  raise RuntimeError("Filesystem evidence exceeded its diagnostic bound.")
-              return result.stdout
-
-          kernel = json.loads(checked(["docker", "inspect", os.environ["REDUCER_MONGO_CONTAINER"]]))[0]
-          if not kernel["State"]["Running"]:
-              raise RuntimeError("The job-owned pinned kernel must already be running.")
-          mounts = kernel["Mounts"]
-          if len(mounts) > 16 or any(m["Type"] not in ("bind", "volume") for m in mounts):
-              raise RuntimeError("Unsupported kernel storage mapping; cannot establish disk evidence.")
-          writable = [m["Destination"] for m in mounts if m["RW"]]
-          if not {"/data/db", "/data/configdb"}.issubset(writable):
-              raise RuntimeError("Bundled MongoDB writable volume evidence is unavailable.")
-          runner_paths = list(dict.fromkeys([os.environ["GITHUB_WORKSPACE"], os.environ["RUNNER_TEMP"],
-                              os.environ["HOME"], os.environ.get("TMPDIR", "/tmp")]
-                              + ([os.environ["NUGET_PACKAGES"]] if os.environ.get("NUGET_PACKAGES") else [])))
-          locations = {"runner": runner_paths, "kernel": ["/"] + writable}
-
-          def measure():
-              filesystems = {}
-              for domain, paths in locations.items():
-                  command = ["stat", "-f", "-c", "%i %S %a %b", "--", *paths]
-                  if domain == "kernel":
-                      command = ["docker", "exec", kernel["Id"], *command]
-                  rows = checked(command).splitlines()
-                  if len(rows) != len(paths):
-                      raise RuntimeError("Incomplete runner/kernel filesystem evidence.")
-                  for path, row in zip(paths, rows):
-                      fsid, fragment, available, total = row.split()
-                      fragment, available, total = int(fragment), int(available), int(total)
-                      if int(fsid, 16) == 0 or fragment <= 0 or not 0 <= available <= total or total <= 0:
-                          raise RuntimeError("Invalid filesystem capacity/identity evidence.")
-                      key = f"{domain}:{path}:{fsid}:{fragment}:{total}"
-                      filesystems[key] = available * fragment
-              return filesystems
-
-          baseline = measure()
-          (evidence / "disk-baseline.json").write_text(json.dumps({"locations": locations, "availableBytes": baseline}, indent=2))
-          if not baseline or min(baseline.values()) < preflight:
-              raise RuntimeError("Stage 342 needs >=37 GiB free on every actual writable filesystem (25 GiB floor + 12 GiB headroom).")
-          peak_growth = 0
-
-          def check_disk():
-              global peak_growth
-              current = measure()
-              if current.keys() != baseline.keys():
-                  raise RuntimeError("Writable filesystem mapping changed during the runtime proof.")
-              # Each actual location is counted separately. Shared backing disks can be overcounted;
-              # no guessed host/container mapping or filesystem-id deduplication can hide growth.
-              growth = sum(max(0, baseline[k] - current[k]) for k in baseline)
-              peak_growth = max(peak_growth, growth)
-              (evidence / "disk-latest.json").write_text(json.dumps({"availableBytes": current, "peakGrowthUpperBoundBytes": peak_growth}, indent=2))
-              if min(current.values()) < floor or peak_growth > growth_limit:
-                  raise RuntimeError("Stage 342 exceeded its 25 GiB floor or 6 GiB task-growth upper bound.")
+          disk = runpy.run_path(".github/reducer-mongo-disk.py")
+          kernel = json.loads(disk["checked"](["docker", "inspect", os.environ["REDUCER_MONGO_CONTAINER"]]))[0]
 
           def interrupted(signum, frame):
               raise SystemExit(f"Stage 342 interrupted by signal {signum}.")
@@ -415,6 +417,10 @@ jobs:
               step_output.write(f"generated-root={output}\n")
           process = None
           try:
+              locations = {"runner": disk["runtime_locations"](os.environ) + [str(output)],
+                           "kernel": disk["container_locations"](kernel)}
+              guard = disk["DiskGuard"](locations, kernel["Id"], evidence)
+              check_disk = guard.check
               env = dict(os.environ, AI_WORK_OUTPUT=str(output))
               command = ["timeout", "--kill-after=10s", "600s", "dotnet", "test",
                          "Source/Rendering.Cratis/Rendering.Cratis.csproj", "--configuration", "Debug",
@@ -539,6 +545,37 @@ jobs:
             [[ "$(basename "$STAGE342_OUTPUT")" == stage342-* && ! -L "$STAGE342_OUTPUT" ]]
             rmdir -- "$STAGE342_OUTPUT"
           fi
+
+      - name: Clean only empty owned host scratch
+        if: ${{ always() && steps.scratch.outputs.scratch != '' }}
+        timeout-minutes: 1
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: python3 -B .github/reducer-mongo-disk.py cleanup
+
+      - name: Upload bootstrap disk diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reducer-mongo-bootstrap
+          path: ${{ runner.temp }}/stage342-bootstrap-${{ github.run_id }}-${{ github.run_attempt }}.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload resolved filesystem probe diagnostics
+        if: ${{ always() && steps.scratch.outputs.scratch != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reducer-mongo-filesystems
+          path: |
+            ${{ steps.scratch.outputs.scratch }}/.stage342-owner
+            ${{ steps.scratch.outputs.scratch }}/disk-*.json
+            ${{ steps.scratch.outputs.scratch }}/nuget-paths.json
+            ${{ steps.scratch.outputs.scratch }}/dotnet-temp.txt
+            ${{ steps.scratch.outputs.scratch }}/dotnet-probe.log
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 3
 
       - name: Upload probe results and kernel logs
         if: always()

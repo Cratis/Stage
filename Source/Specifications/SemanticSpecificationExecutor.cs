@@ -427,7 +427,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             {
                 Route = SemanticRunRoutes.Format(plan, fact.Route)
             })],
-            projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunContext.Canonical(row.Key)}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
+            projected.ToDictionary(row => $"{row.ReadModel}:{SemanticRunTraceKeys.Canonical(row.Key, plan.ReadModels[row.ReadModel])}", row => JsonSerializer.Serialize(row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value)))),
             specification.ThenQueries.Select((query, index) => (query, index)).ToDictionary(
                 entry => $"{entry.index}:{entry.query.Query}:{SemanticRunContext.Canonical(entry.query.Key)}",
                 entry => JsonSerializer.Serialize(SemanticRunQueries.Select(plan, entry.query, projected).Select(row => row.Values.ToDictionary(value => value.TargetProperty.ToString(), value => SemanticRunContext.Canonical(value.Value))))),

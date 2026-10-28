@@ -5,7 +5,8 @@ description: The supported inbox capture and public-event outbox publication sub
 
 Stage renders supported `Translate` slices as Chronicle reactors. Inbound translation turns foreign
 facts into local private facts; outbound translation publishes a public contract to the outbox.
-This describes generated applications, not the live semantic sandbox or the specification executor.
+This primarily describes generated applications. The semantic-run subsection below describes the
+specification executor's corresponding foreign-capture subset.
 
 ## Contracts and routing
 
@@ -47,6 +48,28 @@ Stage will not convert a typed v32 key to text to make an inferred text append f
 text-key translations retain their behavior. The specification executor retains the same typed
 identity in captured facts and typed givens; the live host still refuses foreign inbox contracts
 with `STAGE-ESM-033` rather than claiming transport support.
+
+### Semantic runs with source-keyed foreign captures (ESM v33)
+
+The specification executor admits `key ... is event source` for otherwise supported captures whose
+source contracts are all foreign. For unrouted given events and `when append` fixtures without a
+source, it takes the scalar key as the foreign source: text is preserved, and numeric keys use
+invariant text. Captured local facts retain the key's declared identity type. An explicit source
+must match the key's invariant text exactly, with ordinal comparison; a mismatch is a contract
+rejection before capture state changes or local effects are appended. Missing and null keys retain
+the reference contract rejection.
+
+An explicit fixture route disables source inference, not delivery validation. Both given history
+and the delivered event are checked against their actual source. Capture history stays independent
+per key, and identical redelivery produces no additional local fact.
+
+Inbox deliveries already carry an explicit text source; they are never inferred from their payload.
+In-process inbox/runtime specs cover matching sources, mismatch rejection and identical redelivery.
+Subscription transport, checkpoint and service-level differential proofs still require CI; these
+fixture and runtime checks do not establish them. The model validator rejects local-event
+source-keyed captures before Stage admission.
+Existing translation-shape and origin refusals remain in force. This is not admission of every v33
+construct.
 
 ### Capture state
 

@@ -23,6 +23,9 @@ public sealed record BodyUnitEntry(
 
     /// <summary>Gets the authored-to-wire property mapping used by the rendered wrapper.</summary>
     public ImmutableDictionary<string, string> PropertyNames { get; init; } = [];
+
+    /// <summary>Gets authored property paths normalized through the renderer's wire-name mapping.</summary>
+    public ImmutableDictionary<string, string> PropertyPaths { get; init; } = [];
 }
 
 /// <summary>The immutable compilation result for one model revision.</summary>

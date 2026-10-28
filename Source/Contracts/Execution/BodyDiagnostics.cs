@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.RegularExpressions;
+using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Contracts.Execution;
 
@@ -17,8 +18,24 @@ public static partial class BodyDiagnostics
     /// <summary>The worker failed or is unavailable.</summary>
     public const string WorkerFailed = "STAGE-IMPL-009";
 
+    static readonly Dictionary<SemanticImplementationRole, string> _slices = new()
+    {
+        [SemanticImplementationRole.RulePredicate] = "S1",
+        [SemanticImplementationRole.CommandValidation] = "S2",
+        [SemanticImplementationRole.ConceptValidation] = "S2",
+        [SemanticImplementationRole.ReducerTransition] = "S3",
+        [SemanticImplementationRole.PolicyPredicate] = "S4",
+        [SemanticImplementationRole.CommandHandler] = "S5",
+        [SemanticImplementationRole.ReactionEffect] = "S6",
+        [SemanticImplementationRole.QueryPerformer] = "S7"
+    };
+
     [GeneratedRegex(@"(?:[A-Za-z]:[\\/]|/)[^\s]+", RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)]
     private static partial Regex Paths { get; }
+
+    /// <summary>Names the unexecuted body kind and its planned delivery slice.</summary>
+    public static string NotExecuted(SemanticImplementationRole role) =>
+        $"{role} is not executed by `cratis run` yet (Stage#891 slice {_slices.GetValueOrDefault(role, "not scheduled")}).";
 
     /// <summary>Formats one sanitized line without file paths or stack frames.</summary>
     public static string Format(string code, string message)

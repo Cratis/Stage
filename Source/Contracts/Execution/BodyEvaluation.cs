@@ -10,4 +10,8 @@ namespace Cratis.Stage.Contracts.Execution;
 public sealed record BodyEvaluationRequest(string RequirementId, ImmutableDictionary<string, JsonElement> Members);
 
 /// <summary>The bounded worker verdict; unsupported outcomes are never validation rejections.</summary>
-public sealed record BodyEvaluation(string Outcome, JsonElement? Value = null, ImmutableArray<string> Messages = default, string? Diagnostic = null);
+public sealed record BodyEvaluation(string Outcome, JsonElement? Value = null, ImmutableArray<string> Messages = default, string? Diagnostic = null)
+{
+    /// <summary>Gets a serializable, initialized collection even for non-validation outcomes.</summary>
+    public ImmutableArray<string> Messages { get; init; } = Messages.IsDefault ? [] : Messages;
+}

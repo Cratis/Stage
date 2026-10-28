@@ -5,63 +5,66 @@ using System.Text.Json;
 
 namespace Cratis.Stage.Contracts.Execution;
 
-/// <summary>Supervises one serialized worker pipe. No body assembly is loaded into this process.</summary>
-public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IAsyncDisposable
+/// <summary>Supervises a short-lived compiler and a serialized execute pipe. Never loads body assemblies.</summary>
+public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorkerClient, IAsyncDisposable
 {
     readonly SemaphoreSlim _gate = new(1, 1);
     readonly CancellationTokenSource _lifetime = new();
     readonly Lock _disposeLock = new();
     Task? _disposeTask;
     BodyWorkerProcess? _worker;
-    bool _disposed;
+    BodyUnitManifest? _manifest;
 
-    /// <summary>Gets the running child identity for lifecycle observations, or null after a kill.</summary>
+    /// <summary>Gets the persistent execute child's identity, or null after a kill.</summary>
     public int? ProcessId => _worker?.ProcessId;
 
-    /// <summary>Issues one request. Failed workers are killed; only a subsequent request may start another.</summary>
+    /// <inheritdoc/>
+    public async Task<BodyUnitManifest> CompileAsync(string modelPath, CancellationToken cancellationToken = default)
+    {
+        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "compile") { ModelPath = modelPath, CacheDirectory = options.CacheDirectory }, cancellationToken).ConfigureAwait(false);
+        _manifest = response.Manifest ?? new(string.Empty, [new("*", string.Empty, false, BodyDiagnostics.WorkerFailed, response.Evaluation?.Diagnostic)]);
+        return _manifest;
+    }
+
+    /// <inheritdoc/>
+    public async Task<BodyEvaluation> EvaluateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default)
+    {
+        var unit = _manifest?.Entries.FirstOrDefault(entry => entry.RequirementId == request.RequirementId);
+        if (unit is null) return Failure(string.Empty, BodyDiagnostics.WorkerFailed, "No compiled unit exists for this requirement.").Evaluation!;
+        if (!unit.Admitted) return new("refused", Diagnostic: unit.DiagnosticMessage);
+        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "evaluate") { Unit = unit, Evaluation = request, CacheDirectory = options.CacheDirectory }, cancellationToken).ConfigureAwait(false);
+        return response.Evaluation!;
+    }
+
+    /// <summary>Issues one correlated request. Only a subsequent call can restart a failed execute worker.</summary>
     public async Task<BodyWorkerResponse> SendAsync(BodyWorkerRequest request, CancellationToken cancellationToken = default)
     {
-        if (_disposed) return Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body worker is disposed.");
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetime.Token);
-        var token = linked.Token;
+        using var linked = Link(cancellationToken);
+        if (linked is null) return Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body worker is disposed.");
+        await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
+        BodyWorkerProcess? active = null;
         try
         {
-            await _gate.WaitAsync(token);
+            linked.Token.ThrowIfCancellationRequested();
+            active = Worker(request.Kind);
+            return await ExchangeAsync(active, request, linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            return Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body evaluation was cancelled.");
-        }
-        try
-        {
-            if (_worker is null)
-            {
-                _worker = new(options);
-                using var startup = CancellationTokenSource.CreateLinkedTokenSource(token);
-                startup.CancelAfter(options.CompileTimeoutMs);
-                await _worker.StartAsync(startup.Token);
-            }
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-            deadline.CancelAfter(request.Kind == "compile" ? options.CompileTimeoutMs : options.TimeoutMs);
-            var response = await _worker.ExchangeAsync(request, deadline.Token);
-            if (response.Id != request.Id) throw new IOException("Worker response correlation mismatch.");
-            return response;
-        }
-        catch (OperationCanceledException)
-        {
-            await KillAsync();
-            return token.IsCancellationRequested
-                ? Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body evaluation was cancelled.")
+            await KillAsync(active).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return linked.IsCancellationRequested
+                ? Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body worker is shutting down.")
                 : Failure(request.Id, BodyDiagnostics.ExceededTime, "Body worker exceeded its wall-time limit.");
         }
         catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException or System.ComponentModel.Win32Exception or ArgumentException)
         {
-            var memory = _worker?.ExceededMemory == true;
-            await KillAsync();
-            return Failure(request.Id, memory ? BodyDiagnostics.ExceededMemory : BodyDiagnostics.WorkerFailed, memory ? "Body worker exhausted its memory limit." : "Body worker failed or returned an invalid response.");
+            await KillAsync(active).ConfigureAwait(false);
+            return WorkerFailure(request.Id, active);
         }
         finally
         {
+            if (request.Kind == "compile" && active is not null) await active.DisposeAsync().ConfigureAwait(false);
             _gate.Release();
         }
     }
@@ -74,17 +77,44 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IAsyncDisp
 
     static BodyWorkerResponse Failure(string id, string code, string message) => new(id)
     {
-        Evaluation = new("unsupported", Diagnostic: BodyDiagnostics.Format(code, message))
+        Evaluation = new(code switch { BodyDiagnostics.ExceededTime => "exceeded-time", BodyDiagnostics.ExceededMemory => "exceeded-memory", _ => "faulted" }, Diagnostic: BodyDiagnostics.Format(code, message))
     };
+
+    static bool ValidResponse(BodyWorkerRequest request, BodyWorkerResponse response) => response.Id == request.Id && request.Kind switch
+    {
+        "compile" => response.Manifest is not null || response.Evaluation is not null,
+        "evaluate" => response.Evaluation is not null && new[] { "satisfied", "unsatisfied", "refused", "faulted", "exceeded-time", "exceeded-memory" }.Contains(response.Evaluation.Outcome, StringComparer.Ordinal),
+        _ => true
+    };
+
+    static BodyWorkerResponse WorkerFailure(string id, BodyWorkerProcess? process) => process?.ExceededMemory == true
+        ? Failure(id, BodyDiagnostics.ExceededMemory, "Body worker exhausted its memory limit.")
+        : Failure(id, BodyDiagnostics.WorkerFailed, "Body worker failed or returned an invalid response.");
+
+    BodyWorkerProcess Worker(string kind) => kind == "compile" ? new(options, "compile") : _worker ??= new(options, "execute");
+
+    CancellationTokenSource? Link(CancellationToken caller)
+    {
+        lock (_disposeLock) return _disposeTask is null ? CancellationTokenSource.CreateLinkedTokenSource(caller, _lifetime.Token) : null;
+    }
+
+    async Task<BodyWorkerResponse> ExchangeAsync(BodyWorkerProcess process, BodyWorkerRequest request, CancellationToken token)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(request.Kind == "compile" ? options.CompileTimeoutMs : options.TimeoutMs);
+        await process.StartAsync(deadline.Token).ConfigureAwait(false);
+        var response = await process.ExchangeAsync(request, deadline.Token).ConfigureAwait(false);
+        if (!ValidResponse(request, response)) throw new IOException("Worker response did not match the request.");
+        return response;
+    }
 
     async Task DisposeCoreAsync()
     {
-        _disposed = true;
-        await _lifetime.CancelAsync();
-        await _gate.WaitAsync();
+        await _lifetime.CancelAsync().ConfigureAwait(false);
+        await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
-            await KillAsync();
+            await KillAsync(_worker).ConfigureAwait(false);
         }
         finally
         {
@@ -94,10 +124,10 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IAsyncDisp
         }
     }
 
-    async Task KillAsync()
+    async Task KillAsync(BodyWorkerProcess? process)
     {
-        if (_worker is null) return;
-        await _worker.DisposeAsync();
-        _worker = null;
+        if (process is null) return;
+        await process.DisposeAsync().ConfigureAwait(false);
+        if (ReferenceEquals(process, _worker)) _worker = null;
     }
 }

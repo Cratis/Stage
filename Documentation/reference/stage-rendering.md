@@ -274,6 +274,16 @@ implementation-envelope errors, and `STAGE-ESM-024` attached to a reaction, trig
 capture, or slice. Specification admission guards, including the constraint-target guard,
 remain unchanged; skipping a specification does not prove that it passes.
 
+Event-triggered native reaction specifications can run the rendered reactor through Chronicle's
+reactor scenario helper, for both inline C# and file bodies. The generated tests await the handler
+and assert returned event counts, types, payloads and destinations on the explicit triggering
+source; `then no events` asserts that no side effects were returned. This is not a kernel
+settlement test. The supported deterministic subset constructs modeled events from input
+properties, literals and local decisions. Context reads, calls, deeper reaction cascades,
+append-time constraints and native bodies in given history still omit the specification with
+`STAGE-ESM-011`. Undeterminable or mixed event/command returns retain `STAGE-ESM-037`.
+Startup and schedule reaction bodies remain outside this specification support.
+
 A plan with only skipped specifications has `Success == true` and `Outcome == Complete`.
 Inspect `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult` for the omissions. Each
 refusal lists its semantic `Artifact`, `Kind` (`specification`), and sorted diagnostic

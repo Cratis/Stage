@@ -22,6 +22,7 @@ internal sealed class SemanticApplicationContext
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
+    Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -145,7 +146,7 @@ internal sealed class SemanticApplicationContext
     /// <summary>
     /// Gets specification identities explicitly omitted from this render.
     /// </summary>
-    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; set; } = [];
+    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; private set; } = [];
 
     /// <summary>
     /// Gets concept identities used as modeled runtime identifiers.
@@ -171,7 +172,11 @@ internal sealed class SemanticApplicationContext
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
-    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
+    /// <summary>
+    /// Gets the generated-type inventory: the admitted declarations and the command response types and, once admission has assigned
+    /// <see cref="RefusedSpecifications"/>, the classes of exactly the specifications that are rendered.
+    /// </summary>
+    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => (_admittedGeneratedTypes ?? _generatedTypes).Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
 
@@ -282,6 +287,21 @@ internal sealed class SemanticApplicationContext
 
     internal IEnumerable<SemanticReducer> SelfReducers(LocatedSemanticSlice located) =>
         located.Slice.Reducers.Where(reducer => SelfReduces(reducer.ReadModel));
+
+    /// <summary>
+    /// Records the specifications admission refused, so the generated-type inventory names the classes of exactly the rendered ones.
+    /// </summary>
+    /// <param name="refused">The refused specification identities.</param>
+    internal void RefuseSpecifications(ImmutableHashSet<SemanticId> refused)
+    {
+        RefusedSpecifications = refused;
+        _admittedGeneratedTypes = new(() =>
+        [
+            .. _generatedTypes.Value,
+            .. SemanticCratisAdmission.GeneratedSpecificationDeclarations(this, SelectedSlices()).Select(type =>
+                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+        ]);
+    }
 
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
     internal void ScopeFlatProjections()

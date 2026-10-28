@@ -271,6 +271,22 @@ class DiskTests(unittest.TestCase):
                 finally:
                     self.kernel[field] = original
 
+    def test_container_mount_reordering_between_inspects_is_tolerated(self):
+        # docker inspect does not guarantee Mounts order across calls on the same
+        # live container; a bare reorder of the same mounts must not look like a
+        # changed mapping.
+        paths = DISK["container_locations"](self.kernel)
+        reversed_mounts = list(reversed(self.kernel["Mounts"]))
+
+        def reordering_stat(command):
+            if "inspect" in command:
+                return json.dumps([dict(self.kernel, Mounts=reversed_mounts)])
+            return self.stat(command)
+
+        with patch.dict(DISK["DiskGuard"].measure.__globals__, {"checked": reordering_stat}):
+            guard = DISK["DiskGuard"]({"kernel": paths}, "kernel", self.root)
+            guard.check()
+
     def test_unknown_container_temp_and_invalid_capacity_fail_closed(self):
         self.kernel["Config"]["Env"] = ["TMPDIR=relative"]
         with self.assertRaisesRegex(RuntimeError, "Unknown container paths"):

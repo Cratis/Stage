@@ -47,6 +47,7 @@ internal static partial class SemanticCratisAdmission
     {
         // Keep the audited surface available in Release as well as in the Debug-only specifications.
         _ = SemanticSurfaceLedger.Entries;
+        _ = SemanticDependencyIndex.OutOfIndex;
         PassesPreconditions(context, slices, diagnostics);
 
         ValidatePolicyBindings(context, diagnostics);

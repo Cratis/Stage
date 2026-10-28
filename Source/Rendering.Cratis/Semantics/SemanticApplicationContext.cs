@@ -171,6 +171,11 @@ internal sealed class SemanticApplicationContext
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
+    /// <summary>
+    /// Gets the owners omitted from this render, which context-wide producers must skip.
+    /// </summary>
+    internal ImmutableHashSet<SemanticId> OmittedOwners { get; set; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];

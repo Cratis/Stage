@@ -30,7 +30,7 @@ public class with_model_type_dependencies
     [Fact]
     public void should_compile_a_concept_comparison_using_the_real_generated_conversions()
     {
-        const string body = "return Count > 0 ? new object[] { Title } : null;";
+        const string body = "return Count > 0 ? new object[] { new TicketOpened(Title, Count) } : null;";
         var source = "concept UsageCount : Int\n" + reaction_body_model.Source(body, extraProperty: "        count UsageCount");
         var plan = opaque_policy_model.Plan(reaction_body_model.LoadSource(source));
         AssertRendered(plan, body);

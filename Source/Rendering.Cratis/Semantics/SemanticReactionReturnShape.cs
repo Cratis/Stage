@@ -26,20 +26,25 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         None = 0,
         Event = 1,
         Command = 2,
-        Unknown = 4
+        Unknown = 4,
+        Value = 8
     }
+
+    internal bool HasValueItems { get; private set; }
 
     internal bool IsSeparate(string body)
     {
+        HasValueItems = false;
         _body = (BlockSyntax)SyntaxFactory.ParseStatement("{\n" + body + "\n}");
         if (_body.ContainsDiagnostics || _body.ContainsDirectives) return false;
-        var shape = Combine(_body.DescendantNodes(IsHandler).Select(node => node switch
+        var shape = _body.DescendantNodes(IsHandler).Select(node => node switch
         {
-            ReturnStatementSyntax statement => statement.Expression,
-            YieldStatementSyntax statement => statement.Expression,
-            _ => null
-        }).OfType<ExpressionSyntax>());
-        return !shape.HasFlag(Shape.Unknown) && shape != (Shape.Event | Shape.Command);
+            ReturnStatementSyntax { Expression: { } expression } => Result(expression),
+            YieldStatementSyntax { Expression: { } expression } => Expression(expression),
+            _ => Shape.None
+        }).Aggregate(Shape.None, (shape, item) => shape | item);
+        HasValueItems = shape.HasFlag(Shape.Value);
+        return !HasValueItems && !shape.HasFlag(Shape.Unknown) && shape != (Shape.Event | Shape.Command);
     }
 
     static bool IsHandler(SyntaxNode node) => node is not (LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax);
@@ -49,8 +54,8 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         var types = new SemanticTypeSystem(context);
         var names = context.Events.Values.Select(@event => (Name: types.EventType(@event), Shape: Shape.Event))
             .Concat(context.Commands.Values.Select(command => (Name: types.SliceType(command.Id, command.Name), Shape: Shape.Command)))
-            .Concat(context.Concepts.Values.Select(concept => (Name: types.CommonType(concept.Name), Shape: Shape.None)))
-            .Concat(context.Types.Values.Select(type => (Name: types.CommonType(type.Name), Shape: Shape.None))).ToArray();
+            .Concat(context.Concepts.Values.Select(concept => (Name: types.CommonType(concept.Name), Shape: Shape.Value)))
+            .Concat(context.Types.Values.Select(type => (Name: types.CommonType(type.Name), Shape: Shape.Value))).ToArray();
         var result = names.GroupBy(item => Normalize(item.Name), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count() == 1 ? group.Single().Shape : Shape.Unknown, StringComparer.Ordinal);
         foreach (var group in names.GroupBy(item => item.Name.Split('.')[^1]))
@@ -100,6 +105,15 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
 
     Shape Combine(IEnumerable<ExpressionSyntax> expressions) => expressions.Aggregate(Shape.None, (shape, expression) => shape | Expression(expression));
 
+    Shape Result(ExpressionSyntax expression) => expression switch
+    {
+        LiteralExpressionSyntax literal when literal.IsKind(SyntaxKind.NullLiteralExpression) => Shape.None,
+        ParenthesizedExpressionSyntax parenthesized => Result(parenthesized.Expression),
+        ConditionalExpressionSyntax conditional => Result(conditional.WhenTrue) | Result(conditional.WhenFalse),
+        BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.CoalesceExpression) => Result(binary.Left) | Result(binary.Right),
+        _ => Collection(expression)
+    };
+
     Shape Expression(ExpressionSyntax expression) => expression switch
     {
         ParenthesizedExpressionSyntax parenthesized => Expression(parenthesized.Expression),
@@ -118,7 +132,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
 
     Shape Leaf(ExpressionSyntax expression) => expression switch
     {
-        LiteralExpressionSyntax or TypeOfExpressionSyntax => Shape.None,
+        LiteralExpressionSyntax or TypeOfExpressionSyntax => Shape.Value,
         ObjectCreationExpressionSyntax creation => Creation(creation),
         IdentifierNameSyntax identifier => Binding(identifier),
         MemberAccessExpressionSyntax member => Member(member),
@@ -127,12 +141,11 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
 
     Shape Member(MemberAccessExpressionSyntax member)
     {
-        if (member.Expression is IdentifierNameSyntax identifier && identifier.Identifier.ValueText == "event")
-        {
-            return source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == member.Name.Identifier.ValueText) ? Shape.None : Shape.Unknown;
-        }
-        return _types.TryGetValue(Normalize(member.Expression.ToString()), out var shape) && shape == Shape.None ? Shape.None : Shape.Unknown;
+        if (member.Expression is IdentifierNameSyntax identifier && IsValueBinding(identifier.Identifier.ValueText)) return Shape.Value;
+        return _types.TryGetValue(Normalize(member.Expression.ToString()), out var shape) && shape == Shape.Value ? Shape.Value : Shape.Unknown;
     }
+
+    bool IsValueBinding(string name) => name == "event" || name == "context" || source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == name);
 
     Shape Creation(ObjectCreationExpressionSyntax creation)
     {
@@ -153,7 +166,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         if (declarations.Length == 0)
         {
             if (name == "event") return Shape.Event;
-            if (name == "context" || source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == name)) return Shape.None;
+            if (IsValueBinding(name)) return Shape.Value;
             return Shape.Unknown;
         }
         return declarations is [var declaration] ? Local(declaration) : Shape.Unknown;
@@ -165,7 +178,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         if (declaration.Initializer is null) return Shape.Unknown;
         var uses = _body.DescendantNodes().OfType<IdentifierNameSyntax>().Where(node => node.Identifier.ValueText == declaration.Identifier.ValueText);
         if (uses.Any(use => !IsReturnUse(use, declaration))) return Shape.Unknown;
-        return variables.Type.IsVar ? Expression(declaration.Initializer.Value) : Declared(variables.Type);
+        return variables.Type.IsVar ? Result(declaration.Initializer.Value) : Declared(variables.Type);
     }
 
     Shape Declared(TypeSyntax type) => type switch
@@ -179,7 +192,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
     {
         if (_types.TryGetValue(Normalize(type.ToString()), out var shape))
         {
-            return shape is Shape.Event or Shape.Command ? shape : Shape.Unknown;
+            return shape;
         }
         return CollectionElement(type) is { } element ? Declared(element) : Shape.Unknown;
     }

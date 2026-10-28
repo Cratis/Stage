@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 
 public class and_comparing_a_concept_with_an_int : a_rendered_reaction_body
 {
-    const string Body = "return @event.Amount > 1000 ? new object[] { Title } : null;";
+    const string Body = "return @event.Amount > 1000 ? new object[] { new TicketOpened(Title, @event.Amount) } : null;";
     const string Model = """
         concept Money : Decimal
         module Support

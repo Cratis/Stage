@@ -43,12 +43,15 @@ internal static class SemanticReactionBodyRendering
         }
 
         var source = context.Events[reaction.Triggers.Single().Source];
-        if (!new SemanticReactionReturnShape(source, context).IsSeparate(code!.Text))
+        var returnShape = new SemanticReactionReturnShape(source, context);
+        if (!returnShape.IsSeparate(code!.Text))
         {
             diagnostics.Add(new(
                 SemanticVersionFeatures.MixedReactionEffects,
                 ArtifactRenderDiagnosticSeverity.Error,
-                $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command.",
+                returnShape.HasValueItems
+                    ? $"Reaction '{reaction.Name}' returns an item that is a value, not a modeled event or command, and would fail at run time. Return modeled events or commands, or an empty result."
+                    : $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command.",
                 reaction.Id));
         }
 

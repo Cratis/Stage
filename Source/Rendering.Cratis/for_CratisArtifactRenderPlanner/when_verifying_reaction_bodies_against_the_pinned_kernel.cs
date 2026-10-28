@@ -37,18 +37,16 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         """;
 
     const string Probe = """
-        using Cratis.Chronicle.Observation;
         using Cratis.Chronicle.Reactors;
         using Cratis.Chronicle.Registrations;
         using Microsoft.Extensions.DependencyInjection;
         using __ACCEPTED_NAMESPACE__;
         using __REACTION_NAMESPACE__;
         using Xunit;
-        using Xunit.Abstractions;
 
         namespace Reviews.KernelProbe;
 
-        public class ReactionBodyProbe(ITestOutputHelper output)
+        public class ReactionBodyProbe
         {
             [Fact]
             async Task should_settle_native_reaction_bodies()
@@ -64,13 +62,10 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
                     Assert.True(registration.IsSuccess, $"Registration failed: {registration.Failure}; {string.Join("; ", registration.Failures)}");
                     await Verify("3fa85f64-5717-4562-b3fc-2c963f66afa6", 10, true);
                     await Verify("3fa85f64-5717-4562-b3fc-2c963f66afa7", 5, false);
-                    const string unsupported = "3fa85f64-5717-4562-b3fc-2c963f66afa8";
-                    await Verify(unsupported, 13, true);
-                    await VerifyFailure(unsupported);
                     Assert.Empty(await store.Reactors.GetFailedPartitionsFor<HighlightTopTalk>().WaitAsync(overall.Token));
                     Assert.Empty(await store.Reactors.GetFailedPartitionsFor<RecordReview>().WaitAsync(overall.Token));
                     var all = await store.EventLog.GetFromSequenceNumber(EventSequenceNumber.First).WaitAsync(overall.Token);
-                    Assert.Equal(8, all.Count);
+                    Assert.Equal(5, all.Count);
                     Assert.All(all, fact => Assert.True(fact.Content is TalkAccepted or TalkHighlighted or TalkReviewed));
 
                     async Task Verify(string source, int score, bool highlights)
@@ -89,25 +84,6 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
                         else Assert.Empty(highlighted);
                         Assert.All(facts, fact => Assert.Equal(source, fact.Context.EventSourceId.Value));
                     }
-
-                    async Task VerifyFailure(string source)
-                    {
-                        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-                        FailedPartition[] failures;
-                        do
-                        {
-                            failures = (await store.Reactors.GetFailedPartitionsFor<ReturnUnsupportedValue>().WaitAsync(deadline.Token)).ToArray();
-                            if (failures.Length > 0) break;
-                            await Task.Delay(250, deadline.Token);
-                        }
-                        while (true);
-                        var failure = Assert.Single(failures);
-                        Assert.Equal(source, failure.Partition.Value);
-                        Assert.NotEmpty(failure.Attempts);
-                        var messages = failure.Attempts.SelectMany(attempt => attempt.Messages).ToArray();
-                        Assert.NotEmpty(messages);
-                        output.WriteLine($"Failed partition {source}: {string.Join("; ", messages)}");
-                    }
                 }
                 finally
                 {
@@ -117,13 +93,15 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         }
         """;
 
-    protected override ArtifactRenderPlan CreatePlan()
+    protected override ArtifactRenderPlan CreatePlan() => CreateReactionPlan(Model);
+
+    static ArtifactRenderPlan CreateReactionPlan(string model)
     {
         var folder = Path.Combine(Path.GetTempPath(), "stage-829-reaction-bodies", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(folder, "Reactions"));
         try
         {
-            File.WriteAllText(Path.Combine(folder, "Reaction.play"), Model);
+            File.WriteAllText(Path.Combine(folder, "Reaction.play"), model);
             File.WriteAllText(Path.Combine(folder, "Reactions", "RecordReview.cs"), "return [new TalkReviewed(@event.Score)];");
             var loaded = SemanticModelLoader.LoadFromPathAsync(folder, null, "Reviews").GetAwaiter().GetResult();
             var profile = CratisRendering.CreateProfile("Reviews", new("Reviews", "Reviews") { Strict = true });
@@ -174,6 +152,9 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
               reaction RecordReview
                 when TalkAccepted
                   file Reactions/RecordReview.cs
+        """;
+
+    const string UnsupportedValueReaction = """
               reaction ReturnUnsupportedValue
                 when TalkAccepted
                   ```csharp
@@ -185,6 +166,11 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
     [Fact]
     async Task should_compile_the_reaction_body_probe_without_a_connection()
     {
+        var refused = CreateReactionPlan(Model + "\n" + UnsupportedValueReaction);
+        Assert.False(refused.CanPublishArtifacts);
+        Assert.Empty(refused.Artifacts);
+        Assert.Contains(refused.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-037" &&
+            diagnostic.Message.Contains("a value, not a modeled event or command, and would fail at run time", StringComparison.Ordinal));
         InstallProbe();
         var build = await Run("reaction-bodies-compile.log", "build", "Reviews.csproj", "-c", "Debug", "-warnaserror", "--nologo");
         Assert.Equal(string.Empty, BuildWarnings(build));

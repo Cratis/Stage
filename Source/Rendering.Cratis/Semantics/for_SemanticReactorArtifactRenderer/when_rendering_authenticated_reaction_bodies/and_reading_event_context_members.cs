@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 
 public class and_reading_event_context_members : a_rendered_reaction_body
 {
-    const string Body = "return context.EventSourceId.ToString() == \"\" || context.SequenceNumber.Value == 0 ? null : new object[] { Title };";
+    const string Body = "return context.EventSourceId.ToString() == \"\" || context.SequenceNumber.Value == 0 ? null : new object[] { new TicketOpened(Title) };";
 
     void Because() => Render(reaction_body_model.Source(Body));
 

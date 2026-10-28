@@ -35,7 +35,9 @@ public class with_undeterminable_return_effects : Specification
             "return new object[] { new TicketOpened(Title), Unknown() };",
             "return typeof(object).Assembly.GetTypes();",
             "return Array.Empty<string>();",
-            "return new object[] { context.UnrepresentedMember };"
+            "return [@event.Title.Length];",
+            "return [context.EventSourceId.Value];",
+            "return [Title.ToString()];"
         ];
         _models = [.. bodies.SelectMany(body => new[] { reaction_return_model.Load(body), reaction_return_model.Load(body, file: true) })];
     }

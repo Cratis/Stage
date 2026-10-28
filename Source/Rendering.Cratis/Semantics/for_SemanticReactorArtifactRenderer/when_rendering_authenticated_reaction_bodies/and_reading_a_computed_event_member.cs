@@ -10,10 +10,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 
 public class and_reading_a_computed_event_member : a_rendered_reaction_body
 {
-    const string Body = "return new object[] { @event.UnitPriceTimesQuantity };";
+    const string Body = "return new object[] { new LineTotalComputed(@event.UnitPriceTimesQuantity) };";
 
     void Because() => Render(when_rendering_a_total_that_adds_a_product.Source + "\n" +
         "    slice Automation Notify\n" +
+        "      event LineTotalComputed\n" +
+        "        total Decimal\n" +
         "      reaction Notifier\n" +
         "        when LineAdded\n" +
         "          ```csharp\n" +

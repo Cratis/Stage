@@ -39,7 +39,11 @@ public class with_separate_return_effects : Specification
             "var effects = new object[] { new TicketOpened(Title) }; return [.. effects];",
             "return [new TicketOpened(Title)];",
             "return new List<object> { new Notify(\"id\", Title) };",
-            "return null;"
+            "return null;",
+            "return [];",
+            "var effects = Title.Length > 0 ? new object[] { new TicketOpened(Title) } : null; return effects;",
+            "return new object[] {};",
+            "yield break;"
         ];
         _models = [.. bodies.Select(body => (body, reaction_return_model.Load(body), reaction_return_model.Load(body, file: true)))];
     }

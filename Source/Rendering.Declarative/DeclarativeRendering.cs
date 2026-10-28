@@ -38,7 +38,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
     internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request)
     {
-        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language));
+        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language, session));
         var files = new List<DeclarativeRenderedFile>();
         foreach (var expanded in outputs)
         {
@@ -126,8 +126,14 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
                 return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.SentinelResidue, $"The generated text of {path.Value} contains sentinel-shaped residue.");
             }
 
+            var text = Text(resolution.Pieces);
+            if (text.StartsWith('\uFEFF'))
+            {
+                return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.OutputText, $"The text of {path.Value} starts with a byte order mark, which a text artifact cannot carry.");
+            }
+
             var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role))).Concat(mapped.Gaps);
-            files.Add(new(path.Value!, Text(resolution.Pieces), item, [.. gaps]));
+            files.Add(new(path.Value!, text, item, [.. gaps]));
             return null;
         }
 

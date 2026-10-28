@@ -57,7 +57,20 @@ public sealed class DeclarativeArtifactRenderPlanner(IEnumerable<IDeclarativeLan
             var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement, request);
             return rendering.Refusal is not null
                 ? Refuse(request, [rendering.Refusal])
-                : DeclarativePlanAssembly.Assemble(request, rendering.Files, admission.Components);
+                : Assemble(request, rendering.Files, admission.Components);
+        }
+    }
+
+    // Kit and authored input must never surface as an exception: a contract violation while building artifacts is a refusal.
+    internal static ArtifactRenderPlan Assemble(ArtifactRenderRequest request, ImmutableArray<DeclarativeRenderedFile> files, ImmutableArray<ArtifactRenderComponent> components)
+    {
+        try
+        {
+            return DeclarativePlanAssembly.Assemble(request, files, components);
+        }
+        catch (InvalidArtifactRenderContract error)
+        {
+            return Refuse(request, [DeclarativeOutputExpansion.Refuse(DeclarativeCodes.OutputText, error.Message)]);
         }
     }
 

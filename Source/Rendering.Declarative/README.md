@@ -58,6 +58,7 @@ Every selected command and reaction is accounted for in the plan's inventory. A 
 | `STAGE-DECL-010` | An implementation body does not match its content hash |
 | `STAGE-DECL-011` | A rendered path is rooted, traverses or is not portable |
 | `STAGE-DECL-012` | Two rendered paths are equal ignoring case |
+| `STAGE-DECL-013` | The assembled text of a file cannot be a text artifact (for example a leading byte order mark) |
 
 ## Scope
 

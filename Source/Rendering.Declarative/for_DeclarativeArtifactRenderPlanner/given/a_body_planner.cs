@@ -19,7 +19,7 @@ public class a_body_planner : a_declarative_planner
     internal static SemanticImplementationRequirement Requirement(string id, string body, string? language = "test", string? hash = null) =>
         new(SemanticImplementationRole.CommandHandler, SemanticAddress.ForApplication(ApplicationIdentity.Create("Sample")), "Handle", language, "handler.test", hash ?? Hash(body), null!) { RequirementId = id };
 
-    internal static ArtifactRenderPlan PlanBody(Dictionary<string, string> templates, SemanticImplementationRequirement? requirement, string? body)
+    internal static ArtifactRenderPlan PlanBody(Dictionary<string, string> templates, SemanticImplementationRequirement? requirement, string? body, Templates.TemplateBudget? budget = null)
     {
         var files = KitFiles();
         foreach (var (path, text) in templates)
@@ -32,6 +32,6 @@ public class a_body_planner : a_declarative_planner
             ImplementationRequirements = requirement is null ? [] : [requirement],
             ImplementationContents = requirement is null || body is null ? [] : ImmutableDictionary<string, string>.Empty.Add(requirement.RequirementId, body)
         };
-        return Planner().Plan(request);
+        return (budget is null ? Planner() : new DeclarativeArtifactRenderPlanner([new a_test_language()], new(budget))).Plan(request);
     }
 }

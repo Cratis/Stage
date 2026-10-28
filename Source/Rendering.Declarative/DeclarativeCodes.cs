@@ -67,4 +67,9 @@ public static class DeclarativeCodes
     /// Two rendered output paths are equal ignoring case.
     /// </summary>
     public const string PathCollision = "STAGE-DECL-012";
+
+    /// <summary>
+    /// The assembled text of a file cannot be a text artifact, for example because it starts with a byte order mark.
+    /// </summary>
+    public const string OutputText = "STAGE-DECL-013";
 }

@@ -11,5 +11,8 @@
         <PackageReference Include="Scriban" />
         <EmbeddedResource Include="v1.*" />
         <EmbeddedResource Include="../../Documentation/reference/template-helpers.md" LogicalName="template-helpers.md" Condition="'$(Configuration)'=='Debug'" />
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>Cratis.Stage.Rendering.Declarative</_Parameter1>
+        </AssemblyAttribute>
     </ItemGroup>
 </Project>

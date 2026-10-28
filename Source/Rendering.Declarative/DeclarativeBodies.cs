@@ -22,7 +22,8 @@ sealed record DeclarativeBodyResolution(DeclarativeSegment? Segment, Declarative
 /// </summary>
 /// <param name="request">The render request that supplies requirements and bodies.</param>
 /// <param name="language">The bound language that admits bodies and spells placeholders.</param>
-sealed class DeclarativeBodies(ArtifactRenderRequest request, IDeclarativeLanguage language)
+/// <param name="session">The plan session whose output budget every authored substitution is charged against.</param>
+sealed class DeclarativeBodies(ArtifactRenderRequest request, IDeclarativeLanguage language, TemplatePlanSession session)
 {
     internal DeclarativeBodyResolution Resolve(string requirementId, SemanticId? item, string template)
     {
@@ -41,6 +42,12 @@ sealed class DeclarativeBodies(ArtifactRenderRequest request, IDeclarativeLangua
         if (string.IsNullOrEmpty(requirement.ContentHash) || request.ImplementationContents is null || !request.ImplementationContents.TryGetValue(requirementId, out var body) || body is null)
         {
             return Degraded(requirementId, item, template, "the body is not resolved", requirement);
+        }
+
+        var overBudget = session.Charge(Encoding.UTF8.GetByteCount(body));
+        if (overBudget is not null)
+        {
+            return new(null, null, DeclarativeOutputExpansion.Refuse(overBudget.Code, overBudget.Message));
         }
 
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(body)));

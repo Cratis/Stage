@@ -11,23 +11,35 @@ using Xunit;
 
 namespace Cratis.Stage.Contracts.Scene.for_UiSyntaxAdmission;
 
-public class when_refusing_explicit_action_subjects : Specification
+public class when_admitting_explicit_action_subjects : Specification
 {
     const string Prefix = "concept OrderId : Uuid\nmodule Sales\n  feature Orders\n    slice StateView List\n      readmodel Row\n        orderId OrderId key\n      query Rows => Row[]\n      command RegisterOrder\n        orderId OrderId identifier\n      screen Orders\n        data Row[] via query Rows\n";
 
     [Theory]
-    [InlineData("        toolbar\n          item register action RegisterOrder for item\n", "Toolbar item 'register'", 13, 11)]
-    [InlineData("        toolbar\n          item register action RegisterOrder for screen\n", "Toolbar item 'register'", 13, 11)]
-    [InlineData("        action RegisterOrder for item\n", "Screen action 'RegisterOrder'", 12, 9)]
-    [InlineData("        action RegisterOrder for screen\n", "Screen action 'RegisterOrder'", 12, 9)]
-    public void should_refuse_both_syntax_paths_at_the_authored_location(string directive, string construct, int line, int column)
+    [InlineData("        toolbar\n          item register action RegisterOrder for item\n")]
+    [InlineData("        toolbar\n          item register action RegisterOrder for screen\n")]
+    [InlineData("        action RegisterOrder for item\n")]
+    [InlineData("        action RegisterOrder for screen\n")]
+    [InlineData("        action RegisterOrder for item\n          with orderId from item.orderId\n")]
+    public void should_admit_both_syntax_paths(string directive)
     {
         var parsed = new ScreenplayCompiler().Parse(Prefix + directive);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
         var syntax = parsed.Value!;
-        AssertRefusal(Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(syntax)), construct, line, column);
-        AssertRefusal(Catch.Exception(() => new ScreenplaySceneVisitor().Visit(syntax)), construct, line, column);
-        AssertRefusal(Catch.Exception(() => new ScreenplaySceneVisitor().Convert(syntax)), construct, line, column);
+        Assert.Null(Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(syntax)));
+        Assert.Null(Catch.Exception(() => new ScreenplaySceneVisitor().Visit(syntax)));
+        Assert.Null(Catch.Exception(() => new ScreenplaySceneVisitor().Convert(syntax)));
+    }
+
+    [Fact]
+    public void should_admit_the_effective_shape_of_an_inferred_item_subject()
+    {
+        var action = new ScreenActionSyntax("RegisterOrder", null, null, SourceLocation.Start)
+        {
+            Subject = ScreenActionSubjectKind.Item,
+            Inputs = [new InteractionArgumentSyntax("orderId", "item.id", SourceLocation.Start)]
+        };
+        Assert.Null(Catch.Exception(() => new UiSyntaxAdmission().VisitScreenDirective(action)));
     }
 
     [Fact]
@@ -47,13 +59,5 @@ public class when_refusing_explicit_action_subjects : Specification
         var after = JsonSerializer.SerializeToUtf8Bytes(ScreenDirectiveConverter.Convert(directives, "Orders"));
         Assert.NotEmpty(before);
         Assert.Equal(before, after);
-    }
-
-    static void AssertRefusal(Exception? error, string construct, int line, int column)
-    {
-        var refusal = Assert.IsType<InvalidEventModel>(error);
-        refusal.Message.ShouldContain($"STAGE-ESM-058: {construct} at ");
-        refusal.Message.ShouldContain($"Line = {line}, Column = {column}");
-        refusal.Message.ShouldContain("explicit action subjects are not yet rendered (Cratis/Stage#855, Screenplay decision 0110).");
     }
 }

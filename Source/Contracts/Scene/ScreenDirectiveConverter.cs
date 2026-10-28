@@ -246,7 +246,7 @@ public static class ScreenDirectiveConverter
             action.Label,
             [.. action.Alternatives.Select(alternative => new Cratis.Scene.Model.Guards.GuardedActionAlternative(
                 alternative.Command,
-                SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf, scope.IsStringField),
+                SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf),
                 ConvertArguments(alternative.Arguments)))],
             Otherwise: action.Otherwise is { } otherwise ? new Cratis.Scene.Model.Guards.GuardedActionFallback(
                 Enum.TryParse<Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome>(otherwise.Outcome.ToString(), out var outcome) ? outcome : (Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome)(-1),

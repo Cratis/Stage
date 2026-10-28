@@ -13,28 +13,27 @@ internal abstract record SceneGuardConversion
 
     internal abstract IDictionary<string, object?> ToLegacy();
 
-    internal static SceneGuardConversion From(ScreenplaySyntax.ConditionSyntax? condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField = null) => condition switch
+    internal static SceneGuardConversion From(ScreenplaySyntax.ConditionSyntax? condition, Func<string, IReadOnlyList<string>?>? enumerationOf) => condition switch
     {
         ScreenplaySyntax.ComparisonConditionSyntax comparison => new Comparison(
             comparison.Left,
             comparison.Operator.ToString(),
             comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : null,
             comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax ? null : comparison.Right.GetType().Name,
-            enumerationOf?.Invoke(comparison.Left),
-            isStringField?.Invoke(comparison.Left) == true),
+            enumerationOf?.Invoke(comparison.Left)),
         ScreenplaySyntax.LogicalConditionSyntax logical => new Logical(
-            From(logical.Left, enumerationOf, isStringField), logical.Operator.ToString(), From(logical.Right, enumerationOf, isStringField)),
+            From(logical.Left, enumerationOf), logical.Operator.ToString(), From(logical.Right, enumerationOf)),
         null => new Unsupported(null),
         _ => new Unsupported(condition.GetType())
     };
 
     internal static IDictionary<string, object?> LegacySubject(SubjectReference subject) => new Dictionary<string, object?> { ["subject"] = subject.Subject };
 
-    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration, bool IsStringField) : SceneGuardConversion
+    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration) : SceneGuardConversion
     {
         internal override GuardCondition ToCondition() => new ComparisonGuardCondition(
             SceneGuards.SubjectReferenceFor(Path),
-            Enum.TryParse<GuardOperator>(Operation, out var operation) && (operation != GuardOperator.Contains || (IsStringField && Value is string))
+            Enum.TryParse<GuardOperator>(Operation, out var operation) && (operation != GuardOperator.Contains || Value is string)
                 ? operation : (GuardOperator)(-1),
             UnsupportedExpression is { } kind ? new { unsupported = kind } : Value,
             Enumeration);

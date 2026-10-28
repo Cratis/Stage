@@ -161,7 +161,7 @@ public sealed class ScreenplaySceneVisitor : ScreenplaySyntax.IApplicationSyntax
             ConvertModuleScreens(module, layouts.FirstOrDefault()?.Name ?? string.Empty, screens, scope);
         }
 
-        var runtime = new SceneRuntimeAdmission(scope);
+        var runtime = new SceneRuntimeAdmission();
         runtime.VisitApplication(syntax);
 
         var structure = scope.Structure ?? StructureConverter.Convert(syntax);

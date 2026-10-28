@@ -61,15 +61,7 @@ public static class SceneGuards
     /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
     /// <returns>The typed predicate; unsupported syntax remains unevaluable.</returns>
     public static GuardCondition ConvertToCondition(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf = null) =>
-        ConvertToCondition(condition, enumerationOf, null);
-
-    /// <summary>Converts a predicate, admitting contains only for a known string field.</summary>
-    /// <param name="condition">The authored predicate.</param>
-    /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
-    /// <param name="isStringField">Resolves whether a subject path is a known string field.</param>
-    /// <returns>The typed predicate; unsupported or untyped contains remains unevaluable.</returns>
-    public static GuardCondition ConvertToCondition(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf, Func<string, bool>? isStringField) =>
-        SceneGuardConversion.From(condition, enumerationOf, isStringField).ToCondition();
+        SceneGuardConversion.From(condition, enumerationOf).ToCondition();
 
     /// <summary>Whether Scene understands an authored predicate.</summary>
     /// <param name="condition">The authored predicate.</param>
@@ -108,12 +100,7 @@ public static class SceneGuards
     /// <summary>Checks a serialized Scene for unsupported guards.</summary>
     /// <param name="json">The Scene document.</param>
     /// <returns>Whether any guard is unevaluable.</returns>
-    public static bool HasUnevaluableGuard(string json) => GuardAdmissionDiagnostics(json).Count != 0;
-
-    /// <summary>Checks serialized guards and retains the diagnostic for each refused surface.</summary>
-    /// <param name="json">The Scene document.</param>
-    /// <returns>The distinct action and interaction diagnostic codes.</returns>
-    public static IReadOnlyList<string> GuardAdmissionDiagnostics(string json) => [.. GuardAdmissionDiagnostics(JsonNode.Parse(json)).Distinct(StringComparer.Ordinal)];
+    public static bool HasUnevaluableGuard(string json) => HasUnevaluableGuard(JsonNode.Parse(json));
 
     /// <summary>Recognizes a guarded action component.</summary>
     /// <param name="element">The component.</param>
@@ -194,13 +181,13 @@ public static class SceneGuards
         _ => false
     };
 
-    static IEnumerable<string> GuardAdmissionDiagnostics(JsonNode? node) => node switch
+    static bool HasUnevaluableGuard(JsonNode? node) => node switch
     {
-        JsonObject element when IsGuardedAction(element) && !CanRunAction(element["properties"] as JsonObject) => [UnsupportedGuardedScreenAction.DiagnosticCode],
-        JsonObject binding when HasUnevaluableInteraction(binding) => [UnsupportedGuardedInteraction.DiagnosticCode],
-        JsonObject element => element.SelectMany(property => GuardAdmissionDiagnostics(property.Value)),
-        JsonArray array => array.SelectMany(GuardAdmissionDiagnostics),
-        _ => []
+        JsonObject element when IsGuardedAction(element) && !CanRunAction(element["properties"] as JsonObject) => true,
+        JsonObject binding when HasUnevaluableInteraction(binding) => true,
+        JsonObject element => element.Any(property => HasUnevaluableGuard(property.Value)),
+        JsonArray array => array.Any(HasUnevaluableGuard),
+        _ => false
     };
 
     static bool HasUnevaluableInteraction(JsonObject binding) => binding.ContainsKey("trigger") &&

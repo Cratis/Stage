@@ -8,22 +8,9 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>
 /// Separates contract translation from the capabilities needed to produce or serve a runnable Scene.
 /// </summary>
-public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
+public sealed class SceneRuntimeAdmission : ScreenplaySyntaxWalker
 {
     readonly List<SceneRuntimeIssue> _issues = [];
-    readonly Func<string, bool>? _isStringField;
-    BehaviorScope? _scope;
-
-    /// <summary>Initializes admission without field type information.</summary>
-    public SceneRuntimeAdmission()
-    {
-    }
-
-    /// <summary>Initializes admission with a known string field resolver.</summary>
-    /// <param name="isStringField">Resolves known string fields.</param>
-    public SceneRuntimeAdmission(Func<string, bool> isStringField) => _isStringField = isStringField;
-
-    internal SceneRuntimeAdmission(BehaviorScope scope) => _scope = scope;
 
     /// <summary>
     /// Gets the constructs that the pinned Scene runtime cannot execute faithfully.
@@ -58,18 +45,18 @@ public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
                 break;
 
             // Scene's published engine decides which guard forms it can evaluate. Other forms remain refused.
-            case InteractionBindingSyntax binding when (binding.Alternatives.Any() || binding.Otherwise is not null) && !binding.Alternatives.All(alternative => CanEvaluate(alternative.Condition)):
+            case InteractionBindingSyntax binding when (binding.Alternatives.Any() || binding.Otherwise is not null) && !binding.Alternatives.All(alternative => SceneGuards.CanEvaluate(alternative.Condition)):
                 var interaction = binding.Trigger.ToString();
                 _issues.Add(new(UnsupportedGuardedInteraction.DiagnosticCode, interaction, binding.Location, new UnsupportedGuardedInteraction(interaction, binding.Location).Message));
                 break;
         }
     }
 
-    bool CanRun(ScreenGuardedActionSyntax action)
+    static bool CanRun(ScreenGuardedActionSyntax action)
     {
         var alternatives = action.Alternatives.ToArray();
         var branches = alternatives.Length > 0 &&
-            alternatives.All(alternative => CanEvaluate(alternative.Condition) && !string.IsNullOrEmpty(alternative.Command));
+            alternatives.All(alternative => SceneGuards.CanEvaluate(alternative.Condition) && !string.IsNullOrEmpty(alternative.Command));
         var otherwise = action.Otherwise?.Outcome switch
         {
             null or ScreenActionOtherwiseOutcome.Hidden => true,
@@ -78,7 +65,4 @@ public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
         };
         return branches && otherwise;
     }
-
-    bool CanEvaluate(ConditionSyntax condition) =>
-        SceneGuards.CanEvaluate(SceneGuards.ConvertToCondition(condition, null, _isStringField ?? (_scope is null ? null : _scope.IsStringField)));
 }

@@ -399,18 +399,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             : ScreenPartitionsInput.Compose(scene, partitions, userInterface.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal));
 
         // Admission runs before rendering, even if another independent gate has already refused.
-        var guardDiagnostics = Contracts.Scene.SceneGuards.GuardAdmissionDiagnostics(sceneJson);
-        if (guardDiagnostics.Count != 0)
+        if (Contracts.Scene.SceneGuards.HasUnevaluableGuard(sceneJson))
         {
-            // Preserve the existing action diagnostic when both surfaces are refused.
-            var code = guardDiagnostics.Contains(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode)
-                ? Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode
-                : Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode;
-            var location = Screenplay.Diagnostics.SourceLocation.Start;
-            Exception refusal = code == Contracts.Scene.UnsupportedGuardedInteraction.DiagnosticCode
-                ? new Contracts.Scene.UnsupportedGuardedInteraction("scene.json", location)
-                : new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", location);
-            diagnostics.Add(Error(code, refusal.Message, request.Model.Application.Id));
+            var refusal = new Contracts.Scene.UnsupportedGuardedScreenAction("scene.json", Screenplay.Diagnostics.SourceLocation.Start);
+            diagnostics.Add(Error(Contracts.Scene.UnsupportedGuardedScreenAction.DiagnosticCode, refusal.Message, request.Model.Application.Id));
         }
 
         return sceneJson;

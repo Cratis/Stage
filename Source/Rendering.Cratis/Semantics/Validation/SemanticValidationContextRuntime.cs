@@ -73,7 +73,7 @@ internal static class SemanticValidationContextRuntime
         foreach (var owner in bodies.Select(pair => pair.Descriptor.OperationId).Distinct())
         {
             if (owner is { } id && context.Commands.ContainsKey(id))
-                builder.Using(Naming.SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path));
+                builder.Using(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(id).Path));
         }
         builder.OpenBlock("internal static class ValidationBodies");
         foreach (var body in bodies) RenderBody(builder, context, body, analysis);
@@ -139,6 +139,10 @@ internal static class SemanticValidationContextRuntime
         builder.Line($"RuleFor<{type}>(_ => {selector}).Must({predicate}).WithMessage({renderedMessage}){state}{severity};");
     }
 
+    internal static bool UsesCommandReceiptTime(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)) ||
+        Selected(context, slices).Any(descriptor => ReadsOccurred(context, descriptor));
+
     internal static bool CommandReadsOccurred(SemanticApplicationContext context, SemanticCommand command) =>
         SemanticOpaqueBodyDependencies.ForCommand(context, command).Any(dependency => ReadsOccurred(context, dependency.Descriptor));
 
@@ -183,7 +187,7 @@ internal static class SemanticValidationContextRuntime
     static string AnalysisShapeType(SemanticApplicationContext context, SemanticId binding)
     {
         var command = context.Commands[binding];
-        return $"global::{Naming.SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(binding).Path)}.{Naming.Identifiers.ToPascalCase(command.Name)}";
+        return $"global::{SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(binding).Path)}.{Identifiers.ToPascalCase(command.Name)}";
     }
 
     static string Accessors(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, bool analysis)

@@ -15,6 +15,7 @@ import type { ExternalComponent } from '@cratis/scene.model';
 import { sessionIdentities } from './stageSession';
 import { useStageCommandExecutor } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
+import { screenplayGuardAlternatives } from './screenplayGuard';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
 const SceneGuardedAction = coreComponents['core:guarded-action'];
@@ -31,7 +32,7 @@ export function StageSceneGuardedAction(props: Omit<RegisteredComponentProps, 's
     const { item, refused, error } = useGuardedActionSubject(props.element);
     if (refused) return <span role='alert'>STAGE-SCENE-ACTION-001: The action's data subject or command scope is unavailable.{error}</span>;
     return <InteractionScope dispatcher={dispatcher} attachments={attachments}>
-        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...props.element.properties, item } }} />
+        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...props.element.properties, item, alternatives: screenplayGuardAlternatives(props.element.properties.alternatives, item) } }} />
     </InteractionScope>;
 }
 

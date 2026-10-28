@@ -74,7 +74,7 @@ public static class SceneGuards
     public static bool CanEvaluate(object? condition)
     {
         var serialized = Serialize(condition);
-        return GuardConditions.CanEvaluate(serialized) && EnumerationMembershipDiagnostic(serialized) is null;
+        return GuardConditions.CanEvaluate(serialized) && ContainsStringLiteralsOnly(serialized) && EnumerationMembershipDiagnostic(serialized) is null;
     }
 
     /// <summary>Validates Stage's stricter authored enumeration membership contract, separately from Scene capability.</summary>
@@ -151,6 +151,11 @@ public static class SceneGuards
         }
         return IsEnumerationMember(literal, enumeration) ? null : UnknownEnumerationLiteralDiagnosticCode;
     }
+
+    static bool ContainsStringLiteralsOnly(JsonElement condition) => IsLogical(condition)
+        ? ContainsStringLiteralsOnly(condition.GetProperty("left")) && ContainsStringLiteralsOnly(condition.GetProperty("right"))
+        : !condition.TryGetProperty("operator", out var operation) || operation.GetString() != nameof(GuardOperator.Contains) ||
+            (condition.TryGetProperty("right", out var literal) && literal.ValueKind == JsonValueKind.String);
 
     static bool IsLogical(JsonElement condition) => condition.TryGetProperty("kind", out var kind) &&
         kind.ValueKind == JsonValueKind.String && kind.GetString() == "logical";

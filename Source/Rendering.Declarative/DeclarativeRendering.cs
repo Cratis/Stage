@@ -36,9 +36,9 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 {
     const string SentinelPrefix = "/*__stage_";
 
-    internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root)
+    internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request)
     {
-        var renderer = new FileRenderer(session, language, Constructs(root));
+        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language));
         var files = new List<DeclarativeRenderedFile>();
         foreach (var expanded in outputs)
         {
@@ -84,7 +84,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
         }
     }
 
-    sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs)
+    sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies)
     {
         internal ArtifactRenderDiagnostic? Render(ExpandedOutput expanded, List<DeclarativeRenderedFile> files)
         {
@@ -100,7 +100,14 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
                 return DeclarativeOutputExpansion.Refuse(rendered.Refusal.Code, rendered.Refusal.Message);
             }
 
-            var resolution = language.Resolve(path.Value!, [.. rendered.Output!.Segments.Select(Segment)]);
+            var item = expanded.ItemId is null ? (SemanticId?)null : SemanticId.Parse(expanded.ItemId);
+            var mapped = Map(rendered.Output!.Segments, item, expanded.Output.Template);
+            if (mapped.Refusal is not null)
+            {
+                return mapped.Refusal;
+            }
+
+            var resolution = language.Resolve(path.Value!, mapped.Segments);
             if (resolution.Refusal is not null)
             {
                 return DeclarativeOutputExpansion.Refuse(resolution.Refusal.Code, resolution.Refusal.Message);
@@ -111,8 +118,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
                 return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.SentinelResidue, $"The generated text of {path.Value} contains sentinel-shaped residue.");
             }
 
-            var item = expanded.ItemId is null ? (SemanticId?)null : SemanticId.Parse(expanded.ItemId);
-            var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role)));
+            var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role))).Concat(mapped.Gaps);
             files.Add(new(path.Value!, Text(resolution.Pieces), item, [.. gaps]));
             return null;
         }
@@ -142,29 +148,70 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
             }
         }
 
-        static DeclarativeSegment Segment(TemplateSegment segment) => segment switch
-        {
-            TemplateTextSegment text => new DeclarativeTextSegment(text.Text),
-            TemplateSymbolSegment symbol => new DeclarativeSymbolSegment(symbol.Kind, symbol.Symbol),
-            _ => throw new InvalidOperationException("Unknown template segment.")
-        };
+        static string Lf(StringBuilder run) => run.ToString().Replace("\r\n", "\n", StringComparison.Ordinal).Replace((char)13, (char)10);
 
+        // Generated runs are normalized to LF; authored pieces are appended byte for byte. A run ends at an authored piece, so a CR at the end of a run is never joined to an authored LF.
         static string Text(ImmutableArray<DeclarativePiece> pieces)
         {
             var text = new StringBuilder();
+            var run = new StringBuilder();
             foreach (var piece in pieces)
             {
-                text.Append(piece switch
+                switch (piece)
                 {
-                    DeclarativeGeneratedPiece generated => generated.Text,
-                    DeclarativeAuthoredPiece authored => authored.Text,
-                    _ => throw new InvalidOperationException("Unknown piece.")
-                });
+                    case DeclarativeGeneratedPiece generated:
+                        run.Append(generated.Text);
+                        break;
+                    case DeclarativeAuthoredPiece authored:
+                        text.Append(Lf(run)).Append(authored.Text);
+                        run.Clear();
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unknown piece.");
+                }
             }
 
-            return text.ToString();
+            return text.Append(Lf(run)).ToString();
         }
 
         SemanticId? Owner(TemplateGap gap) => SemanticId.TryParse(gap.ModelPath, out var id) && constructs.Contains(id) ? id : null;
+
+        (ImmutableArray<DeclarativeSegment> Segments, ImmutableArray<DeclarativeOwnedGap> Gaps, ArtifactRenderDiagnostic? Refusal) Map(ImmutableArray<TemplateSegment> segments, SemanticId? item, string template)
+        {
+            var mapped = new List<DeclarativeSegment>();
+            var gaps = new List<DeclarativeOwnedGap>();
+            foreach (var segment in segments)
+            {
+                switch (segment)
+                {
+                    case TemplateTextSegment text:
+                        mapped.Add(new DeclarativeTextSegment(text.Text));
+                        break;
+                    case TemplateSymbolSegment symbol:
+                        mapped.Add(new DeclarativeSymbolSegment(symbol.Kind, symbol.Symbol));
+                        break;
+                    case TemplateAuthoredSegment authored:
+                        var body = bodies.Resolve(authored.RequirementId, item, template);
+                        if (body.Refusal is not null)
+                        {
+                            return (default, default, body.Refusal);
+                        }
+
+                        mapped.Add(body.Segment!);
+                        if (body.Gap is not null)
+                        {
+                            gaps.Add(body.Gap);
+                        }
+
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unknown template segment.");
+                }
+            }
+
+            ImmutableArray<DeclarativeSegment> segmentsArray = [.. mapped];
+            ImmutableArray<DeclarativeOwnedGap> gapsArray = [.. gaps];
+            return (segmentsArray, gapsArray, null);
+        }
     }
 }

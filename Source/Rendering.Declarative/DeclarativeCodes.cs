@@ -52,4 +52,9 @@ public static class DeclarativeCodes
     /// Generated text contains sentinel-shaped residue, which the structural substitution must never leave behind.
     /// </summary>
     public const string SentinelResidue = "STAGE-DECL-009";
+
+    /// <summary>
+    /// An implementation body does not match the content hash its requirement recorded.
+    /// </summary>
+    public const string BodyIntegrity = "STAGE-DECL-010";
 }

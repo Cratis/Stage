@@ -54,7 +54,7 @@ public sealed class DeclarativeArtifactRenderPlanner(IEnumerable<IDeclarativeLan
                 return Refuse(request, [expansion.Refusal]);
             }
 
-            var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement);
+            var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement, request);
             return rendering.Refusal is not null
                 ? Refuse(request, [rendering.Refusal])
                 : DeclarativePlanAssembly.Assemble(request, rendering.Files, admission.Components);

@@ -19,6 +19,7 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
 {
     public const string AmbiguousName = "TEST-001";
     public const string UnsupportedBody = "TEST-002";
+    public const string RefusedBody = "TEST-003";
 
     public LanguagePackVersion Pack => new(id, version);
 
@@ -70,9 +71,19 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
         return DeclarativeFileResolution.Resolved([.. segments.Select(Piece(imports))]);
     }
 
-    public AuthoredAdmission Admit(string requirementId, string body) => body.Contains("forbidden", StringComparison.Ordinal)
-        ? AuthoredAdmission.Unsupported(UnsupportedBody, "The body uses an unsupported construct.")
-        : AuthoredAdmission.Admitted;
+    public AuthoredAdmission Admit(string requirementId, string body)
+    {
+        if (body.Contains("refuse", StringComparison.Ordinal))
+        {
+            return AuthoredAdmission.Refused(RefusedBody, "The body fails a trust check.");
+        }
+
+        return body.Contains("forbidden", StringComparison.Ordinal) || CarriageReturnInLiteral(body)
+            ? AuthoredAdmission.Unsupported(UnsupportedBody, "The body uses an unsupported construct.")
+            : AuthoredAdmission.Admitted;
+    }
+
+    static bool CarriageReturnInLiteral(string body) => body.Split('"').Where((_, index) => index % 2 == 1).Any(_ => _.Contains((char)13));
 
     static Func<DeclarativeSegment, DeclarativePiece> Piece(string imports) => segment => segment switch
     {

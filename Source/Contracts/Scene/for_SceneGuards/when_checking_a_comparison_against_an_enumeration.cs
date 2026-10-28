@@ -16,7 +16,7 @@ public class when_checking_a_comparison_against_an_enumeration : Specification
     static Dictionary<string, object?> Comparison(object? right) => new()
     {
         ["kind"] = "comparison",
-        ["left"] = SceneGuards.Subject("item.status"),
+        ["left"] = SceneGuards.SubjectReferenceFor("item.status"),
         ["operator"] = "Equal",
         ["right"] = right,
         ["enumeration"] = new[] { "open", "closed" },

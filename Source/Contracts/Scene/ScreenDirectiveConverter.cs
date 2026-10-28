@@ -246,7 +246,7 @@ public static class ScreenDirectiveConverter
             action.Label,
             [.. action.Alternatives.Select(alternative => new Cratis.Scene.Model.Guards.GuardedActionAlternative(
                 alternative.Command,
-                SceneGuards.Convert(alternative.Condition, scope.EnumerationOf),
+                SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf),
                 ConvertArguments(alternative.Arguments)))],
             Otherwise: action.Otherwise is { } otherwise ? new Cratis.Scene.Model.Guards.GuardedActionFallback(
                 Enum.TryParse<Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome>(otherwise.Outcome.ToString(), out var outcome) ? outcome : (Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome)(-1),
@@ -259,7 +259,7 @@ public static class ScreenDirectiveConverter
     }
 
     static Dictionary<string, Cratis.Scene.Model.Guards.SubjectReference> ConvertArguments(IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> arguments) =>
-        arguments.ToDictionary(argument => argument.Name, argument => SceneGuards.Subject(argument.Binding), StringComparer.Ordinal);
+        arguments.ToDictionary(argument => argument.Name, argument => SceneGuards.SubjectReferenceFor(argument.Binding), StringComparer.Ordinal);
 
     static SceneElements.ExternalComponent ConvertSection(ScreenplaySyntax.ScreenSectionSyntax section, string id, BehaviorScope scope)
     {

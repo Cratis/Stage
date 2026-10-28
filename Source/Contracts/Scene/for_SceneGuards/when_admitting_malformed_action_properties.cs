@@ -21,7 +21,7 @@ public class when_admitting_malformed_action_properties : Specification
                 new
                 {
                     command = "CloseWorkItem",
-                    condition = new { kind = "comparison", left = SceneGuards.Subject("item.status"), @operator = "Equal", right = "open" }
+                    condition = new { kind = "comparison", left = SceneGuards.SubjectReferenceFor("item.status"), @operator = "Equal", right = "open" }
                 }
             }
         },

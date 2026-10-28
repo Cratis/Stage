@@ -64,8 +64,9 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(loaded);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("same slice", StringComparison.Ordinal));
         var models = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.ReadModels.Length > 0);
-        Assert.Contains(Plan(loaded, new(ArtifactRenderScopeKind.Slice, models.Id)).Diagnostics,
-            diagnostic => diagnostic.Code == "STAGE-ESM-007");
+        var modelsPlan = Plan(loaded, new(ArtifactRenderScopeKind.Slice, models.Id));
+        Assert.Contains(modelsPlan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-DEGRADE-002" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(modelsPlan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-007");
     }
 
     [Fact]

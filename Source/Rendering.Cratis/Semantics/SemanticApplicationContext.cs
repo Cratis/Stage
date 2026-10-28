@@ -171,6 +171,11 @@ internal sealed class SemanticApplicationContext
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
+    /// <summary>
+    /// Gets the degradations admission recorded while it kept rendering, each paired with the warning it added to the plan diagnostics.
+    /// </summary>
+    internal List<ArtifactRenderDegradation> Degradations { get; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];

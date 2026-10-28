@@ -101,6 +101,11 @@ internal static class SemanticStateViewArtifactRenderer
             var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             var modelBound = projection is not null && SemanticModelBoundProjectionRenderer.Expresses(projection, readModel, context);
+            if (context.Degradations.Exists(degradation => degradation.Diagnostic.Artifact == readModel.Id))
+            {
+                builder.Line("// STAGE-DEGRADE-002: no projection or reducer builds this read model");
+            }
+
             context.Docs(readModel.Id).Render(builder);
             RenderProjectionAttributes(builder, readModel, context);
             RenderReducerAttributes(builder, readModel, located, context);

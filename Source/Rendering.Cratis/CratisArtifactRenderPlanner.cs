@@ -234,6 +234,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
         var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        if (context.Degradations.Count > 0)
+        {
+            plan = plan.WithAcceptance([.. plan.Degradations, .. context.Degradations]);
+        }
         return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
     }
 

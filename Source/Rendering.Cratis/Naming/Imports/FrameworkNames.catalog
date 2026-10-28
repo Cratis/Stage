@@ -8,7 +8,7 @@ pin	Cratis.Arc.MongoDB	22.131.0
 pin	Cratis.Chronicle	19.99.1
 pin	Cratis.Chronicle.AspNetCore	19.99.1
 pin	Cratis.Chronicle.Testing	19.99.1
-pin	Cratis.Screenplay.Matching	4.250.0
+pin	Cratis.Screenplay.Matching	4.251.0
 pin	Cratis.Specifications	4.1.1
 pin	Cratis.Specifications.XUnit	4.1.1
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -42,7 +42,7 @@ package	AS	Cratis.Orleans.Storage	1.23.4
 package	AS	Cratis.Orleans.Storage.MongoDB	1.23.4
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
-package	AS	Cratis.Screenplay.Matching	4.250.0
+package	AS	Cratis.Screenplay.Matching	4.251.0
 package	AS	Cratis.Specifications	4.1.1
 package	AS	Cratis.Specifications.XUnit	4.1.1
 package	AS	DnsClient	1.8.0

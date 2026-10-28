@@ -104,6 +104,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings([]);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -122,6 +123,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         };
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings(diagnostics);
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);

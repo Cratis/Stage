@@ -101,7 +101,14 @@ internal static class SemanticStateViewArtifactRenderer
             var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
             var modelBound = projection is not null && SemanticModelBoundProjectionRenderer.Expresses(projection, readModel, context);
-            if (context.Degradations.Exists(degradation => degradation.Diagnostic.Artifact == readModel.Id))
+            if (context.OmittedEventContextMappings.TryGetValue(readModel.Id, out var omitted))
+            {
+                foreach (var path in omitted)
+                {
+                    builder.Line($"// STAGE-DEGRADE-002: $eventContext.{path} mapping omitted (Stage#876)");
+                }
+            }
+            else if (context.Degradations.Exists(degradation => degradation.Diagnostic.Artifact == readModel.Id))
             {
                 builder.Line("// STAGE-DEGRADE-002: no projection or reducer builds this read model");
             }

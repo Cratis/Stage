@@ -176,6 +176,11 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     internal List<ArtifactRenderDegradation> Degradations { get; } = [];
 
+    /// <summary>
+    /// Gets the <c>$eventContext</c> paths whose projection mappings were omitted, by read model.
+    /// </summary>
+    internal Dictionary<SemanticId, ImmutableArray<string>> OmittedEventContextMappings { get; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
@@ -320,6 +325,42 @@ internal sealed class SemanticApplicationContext
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
             ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
             !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    // Event-context mappings the renderer cannot express (Stage#876) are omitted from a read model nothing decides on, so the rest of the view still renders.
+    internal void DegradeEventContextMappings(List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var (id, located) in _slices.ToArray())
+        {
+            var projections = located.Slice.Projections.IsDefaultOrEmpty ? [] : located.Slice.Projections.ToArray();
+            var changed = false;
+            for (var index = 0; index < projections.Length; index++)
+            {
+                if (SemanticEventContextDegradation.Strip(projections[index], this, out var paths) is not { } degraded)
+                {
+                    continue;
+                }
+
+                var readModel = ReadModels[degraded.ReadModel];
+                var warning = new ArtifactRenderDiagnostic(
+                    ArtifactRenderDegradationCodes.UnsupportedConstruct,
+                    ArtifactRenderDiagnosticSeverity.Warning,
+                    $"Projection {degraded.Name} maps {string.Join(", ", paths.Select(path => $"$eventContext.{path}"))}; the mapping is omitted from read model {readModel.Name}.",
+                    readModel.Id);
+                diagnostics.Add(warning);
+                Degradations.Add(new(warning, "Render $eventContext projection mappings once Cratis/Stage#876 lands, or map the value from an event property."));
+                OmittedEventContextMappings[readModel.Id] = paths;
+                projections[index] = degraded;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                _slices[id] = located with { Slice = located.Slice with { Projections = [.. projections] } };
+            }
+        }
+
+        Projections = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Projections), _ => _.Id, "projection");
     }
 
     static Dictionary<SemanticId, T> IndexIdentities<T>(IEnumerable<T> declarations, Func<T, SemanticId> identity, string kind)

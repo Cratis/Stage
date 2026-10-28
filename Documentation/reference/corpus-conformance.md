@@ -12,11 +12,13 @@ description: Look up what the corpus conformance spec compares, how to read conf
 | `loader` | `SemanticExecutionPlan.Compile(model)`, the strict load the model loader applies | The plan compiles with no issues |
 | `executor` | `SemanticSpecificationExecutor` over every specification of the vector | Every specification passes, as the corpus expects |
 | `host` | `SemanticRuntimeAdmission` (internal; the Host grants this assembly `InternalsVisibleTo` in Debug) | Every admission entry is supported |
-| `renderer` | `CratisRendering.Plan` (planner only, no generated build) | The plan has no error diagnostic |
+| `renderer` | `CratisRendering.Plan`, then an in-memory Debug C# compilation of every published render | The plan and its emitted backend, `Program.cs`, and Debug specifications have no errors |
 
 The loader outcome is its own column. A model the loader refuses has outcome `refused` and one record per distinct `(STAGE-PLAN-004, issue kind, full artifact identity)`. Several unsupported validation rules or projection transitions can share that identity. The loader uses set semantics: it keeps one fingerprint and writes its occurrence count plus all distinct details, ordered ordinally, to the details sidecar. The three surfaces still run on the partial plan, `SemanticExecutionPlan.Compile(model, [])`, so each refuses per artifact instead of hiding behind the loader. Only when even the partial plan does not compile are they `n/a:not-loaded`.
 
 The renderer column alone renames the application. The ESM goldens carry a prose application name (`Canonical Golden Application`), and the Cratis scaffold requires a C# identifier, so it throws on the name before it reads a single construct. The renderer column therefore runs a copy of the model whose application is named after the vector; every other construct is unchanged. The loader, executor and host columns use the model as the corpus ships it.
+
+Every published render is compiled, including one whose specification refusals already make the renderer cell `refused`. Compilation uses the emitted bytes without rewriting or skipping specifications, the pinned Cratis client references, and the renderer's implicit usings with `DEBUG` enabled. The test host's Chronicle kernel assembly is excluded because generated applications do not reference it. This is a compile check, not a generated application build, test run, or kernel run.
 
 Every cell is one of:
 
@@ -37,11 +39,13 @@ A `refused` cell has one record per fingerprint in `refusals`. Each record conta
 
 | Field | Contract |
 | --- | --- |
-| `code` | A typed `STAGE-…` code, or `capability:<Name>[<reason key>]` when only the capability types the refusal |
-| `kind` | Loader plan-issue kind or Host admission-entry kind; omitted for executor and renderer |
-| `artifact` | Full artifact identity, never a shortened hash, kind, name, prefix, or wildcard |
+| `code` | A typed `STAGE-…` code, `capability:<Name>[<reason key>]`, or a Roslyn compiler code such as `CS0246` |
+| `kind` | Loader plan-issue kind, Host admission-entry kind, or `compile` for a renderer compiler error; otherwise omitted |
+| `artifact` | Full artifact identity, or the exact emitted relative file path for `compile`; never a shortened hash, kind, name, prefix, or wildcard |
 | `issue` | Positive integer identifying the Stage issue that tracks this exact refusal |
 | `byDesign` | Non-blank reason for an explicitly allowed by-design refusal, instead of `issue` |
+
+A compiler failure adds one fingerprint for the first error, sorted ordinally by path, then line, code, and message. Its `artifact` is the emitted relative path. The line, message, and remaining error count appear in the failure output and details sidecar, not the matrix fingerprint. A `compile` record requires a positive `issue` and may never use `byDesign`; otherwise it reports `compile-record-needs-issue`. Errors in the synthetic `GlobalUsings.g.cs` or without a source location fail as harness problems, not tracked model refusals. A published render must contain exactly one `.csproj`; multi-project grouping is not supported by this check.
 
 The executor collapses repeated refusals across specifications only when they share the same code and full construct identity. The Host keeps every artifact and kind, including separate specification artifacts. Renderer fingerprints retain the full semantic ID from each diagnostic.
 

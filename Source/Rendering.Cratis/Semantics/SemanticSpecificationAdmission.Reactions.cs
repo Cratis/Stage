@@ -44,7 +44,15 @@ internal static partial class SemanticSpecificationAdmission
         }).Append(SemanticReactionSpecification.Input(specification));
         var selected = inputs.SelectMany(input => SemanticReactionSpecification.Candidates(context, specification, input))
             .FirstOrDefault(candidate => candidate.Trigger.RequirementId is not null);
-        return selected is null ? null : $"Stage cannot execute native reaction bodies in generated specs (reaction '{selected.Reaction.Name}').";
+        if (selected is null) return null;
+        string? reason;
+        if (specification.GivenEvents.Any(given => SemanticReactionSpecification.Candidates(context, specification, new(given.EventContract, given.Values)).Any(candidate => candidate.Trigger.RequirementId is not null)))
+            reason = "Native reaction bodies in given history are not supported.";
+        else if (SemanticReactionSpecification.Input(specification).EventSource is null)
+            reason = "An explicit triggering event source is required.";
+        else
+            reason = SemanticReactionBodySpecification.Rejection(context, specification, selected);
+        return reason is null ? null : $"Stage cannot execute native reaction bodies in generated specs (reaction '{selected.Reaction.Name}'). {reason}";
     }
 
     static string? ReactionAppendRejection(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
@@ -245,9 +253,9 @@ internal static partial class SemanticSpecificationAdmission
         trigger.Invokes.Any(invocation => invocation.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression))));
 
     static bool ProductionExpectationsMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected) =>
-        HasOnlyProductionOutcomes(specification) && (specification.ThenNoEvents || specification.ThenEvents.Length == selected.Trigger.Produces.Length) &&
+        HasOnlyProductionOutcomes(specification) && (selected.Trigger.RequirementId is not null || specification.ThenNoEvents || specification.ThenEvents.Length == selected.Trigger.Produces.Length) &&
         specification.ThenEvents.All(expected => HasRenderableProductionExpectation(context, expected)) &&
-        (specification.ThenNoEvents || ProductionContractsMatch(specification, selected.Trigger));
+        (selected.Trigger.RequirementId is not null || specification.ThenNoEvents || ProductionContractsMatch(specification, selected.Trigger));
 
     static bool HasOnlyProductionOutcomes(SemanticSpecification specification) =>
         !specification.ThenDenied && specification.ThenErrors.IsEmpty && specification.ThenReturns is null;

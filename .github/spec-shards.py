@@ -78,6 +78,7 @@ PROJECT_SHARDS = {
         "Source/Rendering.Kits/Rendering.Kits.csproj",
         "Source/Rendering.Templates/Rendering.Templates.csproj",
         "Source/Rendering.Declarative/Rendering.Declarative.csproj",
+        "Source/Rendering.Languages/Rendering.Languages.csproj",
         "Source/Stage/Stage.csproj",
         "Source/SpecRunner/SpecRunner.csproj",
         "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",

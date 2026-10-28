@@ -106,7 +106,7 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
                 return DeclarativeOutputExpansion.Refuse(resolution.Refusal.Code, resolution.Refusal.Message);
             }
 
-            if (resolution.Pieces.OfType<DeclarativeGeneratedPiece>().Any(_ => _.Text.Contains(SentinelPrefix, StringComparison.Ordinal)))
+            if (GeneratedRuns(resolution.Pieces).Any(_ => _.Contains(SentinelPrefix, StringComparison.Ordinal)))
             {
                 return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.SentinelResidue, $"The generated text of {path.Value} contains sentinel-shaped residue.");
             }
@@ -115,6 +115,31 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
             var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role)));
             files.Add(new(path.Value!, Text(resolution.Pieces), item, [.. gaps]));
             return null;
+        }
+
+        // Authored pieces are never scanned, so a marker straddling a generated|authored boundary is deliberately not detected: authored bytes may legitimately contain anything and end a run.
+        static IEnumerable<string> GeneratedRuns(ImmutableArray<DeclarativePiece> pieces)
+        {
+            var run = new StringBuilder();
+            foreach (var piece in pieces)
+            {
+                if (piece is DeclarativeGeneratedPiece generated)
+                {
+                    run.Append(generated.Text);
+                    continue;
+                }
+
+                if (run.Length > 0)
+                {
+                    yield return run.ToString();
+                    run.Clear();
+                }
+            }
+
+            if (run.Length > 0)
+            {
+                yield return run.ToString();
+            }
         }
 
         static DeclarativeSegment Segment(TemplateSegment segment) => segment switch

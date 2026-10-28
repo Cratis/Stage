@@ -95,7 +95,7 @@ function navigationEntryFrom(contribution: Contribution): NavigationEntry | unde
     const targetScreen = properties.targetScreen;
     if (typeof label !== 'string' || typeof targetScreen !== 'string') return undefined;
 
-    const hierarchy = Array.isArray(properties.hierarchy) ? properties.hierarchy.filter((part): part is string => typeof part === 'string') : [];
+    const hierarchy = navigationHierarchyFrom(properties);
     const order = contribution.order ?? (typeof properties.order === 'number' ? properties.order : undefined);
     const destination = properties.destination;
     return {
@@ -111,6 +111,10 @@ function navigationEntryFrom(contribution: Contribution): NavigationEntry | unde
             destination: isDestination(destination) && opensElsewhere(destination) ? destination : undefined,
         }),
     };
+}
+
+function navigationHierarchyFrom(properties: Record<string, unknown>): string[] {
+    return Array.isArray(properties.hierarchy) ? properties.hierarchy.filter((part): part is string => typeof part === 'string') : [];
 }
 
 function navigationEntryKey(entry: NavigationEntry): string {

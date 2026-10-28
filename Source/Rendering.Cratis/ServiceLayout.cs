@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using System.Text;
 using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis;
@@ -91,15 +90,5 @@ static class ServiceLayout
     static bool IsRepositoryFile(string relativePath, string solution) =>
         Array.IndexOf(_repositoryFiles, relativePath) >= 0 || relativePath == solution;
 
-    static PlannedArtifact Move(string folder, PlannedArtifact artifact)
-    {
-        var path = folder + artifact.RelativePath;
-        if (artifact.Kind == PlannedArtifactKind.Text)
-        {
-            var content = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
-            return artifact.Sources.IsEmpty ? PlannedArtifact.CreateText(path, content) : PlannedArtifact.CreateText(path, content, artifact.Sources);
-        }
-
-        return artifact.Sources.IsEmpty ? PlannedArtifact.CreateBinary(path, artifact.Bytes) : PlannedArtifact.CreateBinary(path, artifact.Bytes, artifact.Sources);
-    }
+    static PlannedArtifact Move(string folder, PlannedArtifact artifact) => artifact.WithRelativePath(folder + artifact.RelativePath);
 }

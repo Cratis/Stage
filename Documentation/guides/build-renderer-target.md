@@ -429,7 +429,7 @@ Stage builds against Screenplay 4.209.0 and admits exact ESM v1 through v28 lang
 | Command specifications whose produced events trigger one invoke-only reaction | v6 | Split into a reactor scenario that appends the triggering event and executes the invoked command, plus (when the specification expects success) a `Trigger` specification for the triggering command. A rejection specification is split only when the triggering command cannot reject on its own: no validation, requirement, decision read, route, authorization, constraint-bound event or concept validation. Every other cascade, and non-reaction appends, keep `STAGE-ESM-011` |
 | Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
 | Captures outside the supported events-source Translate subset, and specifications with an unsupported clock, trigger or capture | v6 | `STAGE-ESM-024`; millisecond-aligned `given clock` on otherwise admitted command specifications is supported; see [Translation rendering](../reference/translation-rendering.md) for the v9 subset |
-| A reaction handler that both produces events and invokes commands, including separate triggers on the same event | v6 | Renderer: `STAGE-ESM-037`; a failed command would make Chronicle redeliver the trigger and append the reaction's events again, until reactor appends are idempotent ([Stage#342](https://github.com/Cratis/Stage/issues/342)); the Host and specification executor settle both atomically |
+| A reaction trigger that both produces events and invokes commands | v6 | Rendered, including acknowledge-only refusal branches, with stable framework append idempotency on redelivery; default and atomic production modes retain accepted direct events before a later command refusal. Direct productions with event-producing refusal branches retain `STAGE-ESM-037` pending [Arc#3561](https://github.com/Cratis/Arc/issues/3561); mixed effects across separate same-event triggers retain 037 for scheduling-order differences. See [Reaction rendering](../reference/reaction-rendering.md#limits-and-diagnostics) and [Stage#342](https://github.com/Cratis/Stage/issues/342) |
 | Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
 | Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
 | Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: legacy destination allocation, command rules or requirements reading generated properties, unsupported response sources or response/factory name collisions; unpinned unordered/projected expectations or missing deterministic pins for generated constraint outcomes. Generated values and scalar or named responses with command routing are admitted, including generated destinations and responses returning them; stream ids cannot read generated properties. Handle local-name clashes are not an admission restriction: the Cratis target renames its locals. |
@@ -535,6 +535,25 @@ This check does not replace the publisher's destination ownership, concurrency, 
 Any artifact present in two scopes must have the same normalized path, kind, and exact bytes. Scope changes selection only; they must not change how the same artifact is rendered.
 
 ## Produce deterministic artifacts
+
+### Never write a file header
+
+Targets and templates must not write the caller's file header. `ArtifactRenderPlan.Create`
+applies it once to final content, after symbol resolution, and shifts implementation stub
+locators to address the published bytes. Exact profile admission must ignore inputs matched
+by `ArtifactFileHeader.IsInput`; the core validates those inputs. Declare language syntax through
+`ArtifactRenderRequest.CommentSyntaxes`, never in templates. The default table and refusal rules
+are in [File header option](../reference/plan-from-sources.md#file-header-option).
+
+Header ownership is explicit: authored text that happens to match the header is still authored
+text and receives another header. Recreating a plan from its own artifacts preserves the
+`PlannedArtifact.AppliedFileHeaderSha256` marker and does not prepend again. Pipelines rebuilding
+artifacts after planning must preserve both the headed bytes and this marker. A pipeline that
+publishes without an `ArtifactRenderPlan` can use `ArtifactFileHeader.Apply` instead; planners
+must not call it themselves. These contracts do not change Axon's profile admission; adoption
+there is a separate target update.
+
+### Normalize output
 
 Create every output in memory with the public factories:
 
@@ -660,6 +679,7 @@ Before declaring a target ready:
 - [ ] Admit all selected and reachable semantics before dependent emission.
 - [ ] Keep `Plan(...)` free of filesystem, process, network, clock, random, and ambient-state access.
 - [ ] Emit all artifacts in memory through `PlannedArtifact` factories.
+- [ ] Leave headers to Stage, ignore header inputs in target admission, and declare comment syntax on the request.
 - [ ] Make ordering, names, paths, text encoding, line endings, and hashes deterministic.
 - [ ] Preserve diagnostic ownership and use stable target-owned codes.
 - [ ] Verify profile, admission, scope, collision, and determinism behavior with specifications.
@@ -674,5 +694,8 @@ The renderer-facing public contracts are defined in:
 - `Source/Contracts/Rendering/IArtifactRenderPlanner.cs`
 - `Source/Contracts/Rendering/ArtifactRenderProfile.cs`
 - `Source/Contracts/Rendering/ArtifactRenderPlan.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeader.cs`
+- `Source/Contracts/Rendering/ArtifactCommentSyntax.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeaderResult.cs`
 
 Use the Screenplay `SemanticModelCompiler` and `SemanticExecutionPlan` APIs shown above to build the request. Renderer-specific files under `Source/Rendering.Cratis` can illustrate one target's decisions, but they are not a shared helper library or an extension contract for other targets.

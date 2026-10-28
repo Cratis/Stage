@@ -394,15 +394,31 @@ var options = new CratisPlanOptions("Shop", "Shop", "Shop")
 };
 ```
 
-Stage writes each line as a line comment in the file's language, followed by one blank line. For
-`.cs`, `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files, a line becomes `// line`, and an empty or
-whitespace-only line becomes `//`. Trailing whitespace is trimmed. Do not add comment markers
-yourself; a line containing a line break is refused with `STAGE-PLAN-023`. JSON, CSS, HTML,
-Markdown, YAML and MSBuild files never get a header.
+Stage writes each line as a line comment in the file's language, followed by one blank line.
+An empty or whitespace-only line becomes just the comment prefix. Trailing whitespace is trimmed.
+Do not add comment markers yourself. `ArtifactCommentSyntaxes.Default` defines the core table:
 
-The header travels in the profile as the hashed `cratis-render:file-header` input, so it
-contributes to the plan digest and applies to the scaffold, scoped plans and application-scope
-plans alike. `CratisRenderingOptions.FileHeader` sets it for `CratisRendering.Plan(...)` and
+| Extensions | Prefix | Refused sequences |
+| --- | --- | --- |
+| `.cs`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.kt`, `.kts`, `.go` | `//` | None |
+| `.java` | `//` | Every ASCII `\u` sequence, including repeated-u escapes |
+
+JSON, CSS, HTML, Markdown, YAML and MSBuild files never get a header. A caller can supply a
+different table through `ArtifactRenderRequest.CommentSyntaxes`. This is a core contract;
+it does not enable canonical header admission in the Axon target, which needs a separate update.
+
+Lines must be non-null, valid UTF-16 and contain no line breaks, control characters (except tab),
+Unicode line or paragraph separators, private-use characters, or bidi controls (U+061C, U+200E,
+U+200F, U+202A–U+202E, U+2066–U+2069). Unsafe options give `STAGE-PLAN-023`.
+
+The canonical hashed input is `stage:file-header`, version `1`, created with
+`ArtifactFileHeader.CreateInput` or `ArtifactFileHeader.With`. Its bytes are the canonical JSON
+string array. The core also reads `cratis-render:file-header` and `axon-render:file-header`;
+Cratis option factories retain the legacy name for compatibility. Only one header input is allowed.
+Malformed inputs give `STAGE-HEADER-001`; a line unsafe in a file's comment syntax gives
+`STAGE-HEADER-002`. Either refuses the plan without artifacts, implementation gaps or removals.
+The header changes code bytes and their plan digest and applies to the scaffold, scoped plans
+and application-scope plans alike. `CratisRenderingOptions.FileHeader` sets it for `CratisRendering.Plan(...)` and
 `CreateProfile(...)`. Pass the same lines to every planning call; a caller profile that already
 carries a header combined with a non-empty `FileHeader` option is refused with `STAGE-CRATIS-001`.
 
@@ -495,7 +511,7 @@ The backend scaffold contains:
 | --- | --- |
 | `{Project}.csproj` | Web host, production dependencies, proxy-generation settings, Debug-only test packages, and the optional `Customizations/Dependencies.props` import. |
 | `{Project}.slnx` | Solution containing the application project. |
-| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, compiler/analyzer warnings as errors, and build-time code style. |
+| `Directory.Build.props` | Target framework from the profile, latest C# language version, nullable references, implicit usings, Arc read protection `On`, compiler/analyzer warnings as errors, and build-time code style. |
 | `Directory.Build.targets` | Local boundary preventing parent build targets from leaking into the application. |
 | `Directory.Packages.props` | Central NuGet package versions with transitive pinning enabled. |
 | `.editorconfig` | Root C# formatting and style conventions, with BDD naming exceptions for specifications. |
@@ -625,7 +641,9 @@ carries `Code`, `Message`, `Source` (root-relative path, line and column) and `S
 | `STAGE-PLAN-020` | Invalid domain segment. |
 | `STAGE-PLAN-021` | Domain collides with a reserved root path. |
 | `STAGE-PLAN-022` | Domain supplied for scaffold-only mode. |
-| `STAGE-PLAN-023` | A `FileHeader` line is null or contains a line break. |
+| `STAGE-PLAN-023` | A `FileHeader` line is null, malformed UTF-16, or contains a line break, control, private-use or bidi formatting character. |
+| `STAGE-HEADER-001` | Malformed, unsafe, noncanonical or duplicate header input. |
+| `STAGE-HEADER-002` | Header text cannot safely be represented in an artifact's comment syntax (for example Java `\u`). |
 | `STAGE-PLAN-024` | `UserInterfaceDomains` is set without `UserInterface`. |
 | `STAGE-PLAN-025` | A user interface domain is invalid or collides with a reserved root path. |
 | `STAGE-PLAN-026` | A user interface domain is the plan's own domain or is named twice. |

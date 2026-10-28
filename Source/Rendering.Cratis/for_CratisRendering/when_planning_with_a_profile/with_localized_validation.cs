@@ -19,7 +19,7 @@ public class with_localized_validation : given.a_profile_source_plan
     [Fact]
     void should_preserve_localized_validation()
     {
-        CommandText().Split('\n').ShouldContain("        RuleFor(_ => _.Name).Must(value => !string.IsNullOrWhiteSpace(value)).WithMessage(_ => GeneratedStrings.Resolve(\"$strings.project.name\")).WithState(\"$strings.project.name\");");
+        CommandText().Split('\n').ShouldContain("        RuleFor(_ => _.Name).NotEmpty().WithMessage(_ => GeneratedStrings.Resolve(\"$strings.project.name\")).WithState(\"$strings.project.name\");");
         CommandText().ShouldNotContain("global::Projects.GeneratedStrings");
     }
 }

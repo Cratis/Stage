@@ -17,7 +17,8 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen when specifications moved into the application project, compiled in Debug only.
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen when GenerateProgramFile became unconditional, so a Release build after a Debug restore keeps one entry point.
-    const string FrozenDigest = "357322297e81157363ac113d2db4b7d9e821922ba323772f9c656a4f8f34c36e";
+    // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
+    const string FrozenDigest = "52450304d44b22670ac5e6fc6cdb3fb861704c1adb67eaac4d904c52022fee55";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
     const string SeparateSpecificationsDigest = "cd81f42a9bdba49d65d3110228ed7abb05a02002932bc118be05a9eceaba4549";
@@ -26,7 +27,8 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     const string PreviousFrozenDigest = "8a2ff497b626c46a26773cb8cb46b15c710cbc4edb940bfdd6a9f83e157b1475";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
-    const string FrozenRepositoryRootDigest = "f9fcdea73cbb2eaabaf809d22d7a8333de83e2144ed2b0d3678b80f6e9d185e0";
+    // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
+    const string FrozenRepositoryRootDigest = "0afda8c026c2c5f4cba359bfb4bacee8376ee9c7e262550eb8f3e7ad08f12965";
 
     string _digest = null!;
 
@@ -50,9 +52,15 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
             // Before #424 the scaffold placed the generated imports inside the namespace.
             text = legacyPlacement ? text.Replace(QualifiedCommonOutput.Placement, QualifiedCommonOutput.Placement.Replace("outside_namespace", "inside_namespace", StringComparison.Ordinal), StringComparison.Ordinal) : text;
             text = beforePlacement || previousPins || legacyHeader ? LegacyLicenseHeader.Restore(input.Name, text) : text;
+
+            // Before #660 the scaffold left Arc read protection at its default.
+            text = ShouldRestoreLegacyReadProtection(beforePlacement, previousPins, legacyHeader, legacyPlacement) ? LegacyReadProtection.Restore(input.Name, text) : text;
             hash.AppendData(Encoding.UTF8.GetBytes(FrozenScaffoldPins.Normalize(input.Name, text, previousPins)));
         }
 
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
+
+    static bool ShouldRestoreLegacyReadProtection(bool beforePlacement, bool previousPins, bool legacyHeader, bool legacyPlacement) =>
+        beforePlacement || previousPins || legacyHeader || legacyPlacement;
 }

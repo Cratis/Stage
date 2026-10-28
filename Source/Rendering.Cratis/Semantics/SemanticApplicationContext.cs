@@ -21,6 +21,7 @@ internal sealed class SemanticApplicationContext
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypeSeed;
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
+    readonly Lazy<SemanticInlineNames> _inlineNames;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
 
     /// <summary>
@@ -71,6 +72,7 @@ internal sealed class SemanticApplicationContext
                 new GeneratedTypeName(type.Namespace.Length == 0 ? RootNamespace : CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
         ]);
         _responseTypes = new(ResolveResponseTypes);
+        _inlineNames = new(() => SemanticInlineNames.Create(this));
         _generatedTypes = new(() =>
         [
             .. _generatedTypeSeed.Value,
@@ -168,6 +170,9 @@ internal sealed class SemanticApplicationContext
     internal IReadOnlyDictionary<SemanticId, string> PerformedQueryRejections { get; }
 
     internal GeneratedMemberNames MemberNames { get; }
+
+    /// <summary>Gets whole-application inline names, independent of the requested render scope.</summary>
+    internal SemanticInlineNames InlineNames => _inlineNames.Value;
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 

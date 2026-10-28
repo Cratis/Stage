@@ -13,8 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticCommandHandlerRendering
 {
     internal static string Suffix(SemanticCommand command) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(command.Handler!.RequirementId)))[..12];
-    internal static string Method(SemanticCommand command) => $"HandlerBody_{Suffix(command)}";
-    internal static string ContextType(SemanticCommand command) => $"HandlerContext_{Suffix(command)}";
+    internal static string Method(SemanticCommand command, SemanticApplicationContext context) => context.InlineNames.HandlerBody(command);
+    internal static string ContextType(SemanticCommand command, SemanticApplicationContext context) => context.InlineNames.HandlerContext(command);
     internal static string ReturnType(SemanticCommand command, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
@@ -28,7 +28,7 @@ internal static class SemanticCommandHandlerRendering
         RenderContext(builder, command, context);
         var inline = SemanticInlineCodeRendering.CommandBody(command, context);
         if (inline.Refused) throw UnsupportedSemanticRendering.For("command handler", string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        builder.OpenBlock($"private static {ReturnType(command, context)} {Method(command)}({ContextType(command)} context)")
+        builder.OpenBlock($"private static {ReturnType(command, context)} {Method(command, context)}({ContextType(command, context)} context)")
             .Inline(inline.Code!, inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(new(diagnostic.Code, Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, command.Id)))
             .EndBlock().BlankLine();
     }
@@ -38,14 +38,14 @@ internal static class SemanticCommandHandlerRendering
         var types = new SemanticTypeSystem(context);
         string PropertyType(SemanticProperty property) => types.Type(property.Type, reducerInput: true);
         var parameters = string.Join(", ", command.Properties.Select(property => $"{PropertyType(property)} {Identifiers.EscapeKeyword(Identifiers.ToCamelCase(property.Name))}"));
-        builder.OpenBlock($"private sealed class {SnapshotType(command)}({parameters})");
+        builder.OpenBlock($"private sealed class {SnapshotType(command, context)}({parameters})");
         foreach (var property in command.Properties)
         {
             builder.Line($"public {PropertyType(property)} {context.MemberNames.Property(property)} {{ get; }} = {Identifiers.EscapeKeyword(Identifiers.ToCamelCase(property.Name))};");
         }
         builder.EndBlock().BlankLine()
-            .OpenBlock($"private sealed class {ContextType(command)}({SnapshotType(command)} command)")
-            .Line($"public {SnapshotType(command)} Command {{ get; }} = command;")
+            .OpenBlock($"private sealed class {ContextType(command, context)}({SnapshotType(command, context)} command)")
+            .Line($"public {SnapshotType(command, context)} Command {{ get; }} = command;")
             .EndBlock().BlankLine();
     }
 
@@ -68,7 +68,7 @@ internal static class SemanticCommandHandlerRendering
             var snapshot = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({value})";
             return property.Type.IsOptional ? $"{value} is null ? null : {snapshot}" : snapshot;
         });
-        return $"{Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})))";
+        return $"{Method(command, context)}(new {ContextType(command, context)}(new {SnapshotType(command, context)}({string.Join(", ", values)})))";
     }
 
     internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticHandleLocals locals)
@@ -86,5 +86,5 @@ internal static class SemanticCommandHandlerRendering
         return $"{value}.Item{index + 1}";
     }
 
-    static string SnapshotType(SemanticCommand command) => $"HandlerCommand_{Suffix(command)}";
+    static string SnapshotType(SemanticCommand command, SemanticApplicationContext context) => context.InlineNames.HandlerCommand(command);
 }

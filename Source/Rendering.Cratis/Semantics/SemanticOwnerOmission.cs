@@ -42,8 +42,8 @@ internal sealed class SemanticOwnerOmission
     /// <returns>The omission, or <see langword="null"/> when the closure cannot be proven and the render must stay refused.</returns>
     internal static SemanticOwnerOmission? Compute(SemanticApplicationContext context, SemanticDependencyIndex index, IReadOnlyDictionary<SemanticId, string> roots)
     {
-        if (roots.Count == 0) return None;
         if (!index.IsSemanticGraphComplete) return null;
+        if (roots.Count == 0) return None;
 
         var declarations = Declarations(context, index);
         if (roots.Keys.Any(root => !declarations.Contains(root))) return null;

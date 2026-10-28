@@ -21,6 +21,10 @@ sealed record JavaClosureNode(
 {
     static readonly string[] _implicitTypes = ["java.lang.Object", "java.lang.Record", "java.lang.Enum", "java.lang.annotation.Annotation"];
 
+    // The pack writes Decimal as plain text "new java.math.BigDecimal(...)", which a kit may follow with an anonymous body. A file that
+    // mentions the word BigDecimal (pack Decimal output or a literal) therefore inherits BigDecimal's static members like any literal type.
+    static readonly string[] _decimalTypes = ["java.math.BigDecimal"];
+
     internal static JavaClosureNode Create(JavaFileAnalysis file, JavaPlan plan, JavaTypeFacts facts)
     {
         var references = file.References.Select(reference => Classify(reference, plan, facts)).ToArray();
@@ -37,6 +41,7 @@ sealed record JavaClosureNode(
 
     static ImmutableHashSet<string> LiteralNames(JavaFileAnalysis file, JavaTypeFacts facts) =>
         file.Words.All.Where(JavaLangTypes.Names.Contains).Select(word => "java.lang." + word).Concat(_implicitTypes)
+            .Concat(file.Words.All.Contains("BigDecimal") ? _decimalTypes : [])
             .Select(type => facts.TryGet(type, out var names) ? names : [])
             .Aggregate(ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal), (all, names) => all.Union(names));
 

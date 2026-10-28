@@ -102,14 +102,16 @@ internal static partial class SemanticSpecificationAdmission
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         if (identifiers.Length == 1)
         {
-            return IsScalar(expected.Key) && (!expected.Values.Any(value => value.TargetProperty == identifiers[0].Id) ||
-                Equals(expected.Key, expected.Values.Single(value => value.TargetProperty == identifiers[0].Id).Value));
+            return IsScalar(expected.Key) && IdentifierMatchesExpectedValue(identifiers[0].Id, expected.Key, expected);
         }
         return identifiers.Length > 1 && expected.Key is SemanticCompositeValue composite && composite.Properties.Length == identifiers.Length &&
             identifiers.All(identifier => composite.Properties.SingleOrDefault(part => part.TargetProperty == identifier.Id) is { } part &&
-                IsScalar(part.Value) && (!expected.Values.Any(value => value.TargetProperty == identifier.Id) ||
-                    Equals(part.Value, expected.Values.Single(value => value.TargetProperty == identifier.Id).Value)));
+                IsScalar(part.Value) && IdentifierMatchesExpectedValue(identifier.Id, part.Value, expected));
     }
+
+    static bool IdentifierMatchesExpectedValue(SemanticId identifier, SemanticValue key, SemanticSpecificationReadModel expected) =>
+        !expected.Values.Any(value => value.TargetProperty == identifier) ||
+            Equals(key, expected.Values.Single(value => value.TargetProperty == identifier).Value);
 
     static bool QueryMatches(SemanticApplicationContext context, SemanticSpecificationQueryResult expected) =>
         context.Queries.TryGetValue(expected.Query, out var query) &&

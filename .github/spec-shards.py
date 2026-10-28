@@ -75,6 +75,7 @@ PROJECT_SHARDS = {
         "Source/Host/Host.csproj",
         "Source/Specifications/Specifications.csproj",
         "Source/Contracts/Contracts.csproj",
+        "Source/Rendering.Kits/Rendering.Kits.csproj",
         "Source/Stage/Stage.csproj",
         "Source/SpecRunner/SpecRunner.csproj",
         "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj",

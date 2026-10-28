@@ -30,6 +30,34 @@ class RoutingTests(unittest.TestCase):
     def test_docs_select_no_optional_lanes(self):
         self.assertEqual(set(), self.select("Documentation/guide.md", "README.md"))
 
+    def test_java_pack_and_binding_checker_select_only_the_java_lane(self):
+        for path in ("Source/Rendering.Languages/Java/JavaPlan.cs",
+                     "Source/Rendering.Languages/Java/for_JavaBindingVectors/when_emitting_the_binding_vectors.cs",
+                     "Verification/java-bindings/BindingCheck.java", "Verification/java-bindings/run.sh"):
+            with self.subTest(path=path):
+                self.assertEqual({"java-bindings"}, self.select(path))
+        self.assertIn("java-bindings", self.select("Source/Rendering.Declarative/X.cs"))
+        self.assertEqual(set(), self.select("Verification/unrelated/probe.sh"))
+        self.assertNotIn("java-bindings", self.select("Verification/csharp-declarative/run.sh"))
+
+    def test_java_lane_uses_the_pinned_jdk_and_proven_runner(self):
+        job = JOBS["java-bindings"]
+        self.assertRegex(job, r"uses: actions/setup-java@[0-9a-f]{40} # v[0-9.]+")
+        self.assertIn("distribution: temurin", job)
+        self.assertIn('java-version: "21"', job)
+        self.assertIn("timeout-minutes: 20", job)
+        self.assertIn("permissions:\n      contents: read", job)
+        self.assertIn("STAGE_JAVA_BINDING_VECTORS: ${{ runner.temp }}/java-binding-vectors", job)
+        self.assertIn('run: dotnet test Source/Rendering.Languages/Rendering.Languages.csproj --configuration Debug --no-build --filter "FullyQualifiedName~for_JavaBindingVectors.when_emitting_the_binding_vectors"', job)
+        self.assertIn('run: bash Verification/java-bindings/run.sh "${{ runner.temp }}/java-binding-vectors" "$PWD/TestResults/java-bindings"', job)
+        self.assertRegex(job, r"if: always\(\)\n        uses: actions/upload-artifact@")
+        self.assertIn("path: TestResults/java-bindings", job)
+        self.assertIn("if-no-files-found: error", job)
+        self.assertIn("java-bindings: ${{ steps.routes.outputs.java-bindings }}", JOBS["routing"])
+        for name, definition in JOBS.items():
+            if name != "java-bindings":
+                self.assertNotIn("actions/setup-java@", definition)
+
     def test_manual_nightly_label_and_dependency_pins_select_every_lane(self):
         for event in ("schedule", "workflow_dispatch"):
             self.assertEqual(ALL, self.select(event=event))
@@ -79,7 +107,8 @@ class RoutingTests(unittest.TestCase):
     def test_every_enumerated_name_and_template_pattern_is_selected(self):
         # Exercise every explicit pattern, including hypothetical new siblings in audited folders.
         for lane, patterns in (("generated-name-matrix", CI["NAME_MATRIX"]),
-                               ("generated-react-blueprint-templates", CI["TEMPLATE_RENDERERS"])):
+                               ("generated-react-blueprint-templates", CI["TEMPLATE_RENDERERS"]),
+                               ("java-bindings", CI["JAVA_BINDINGS"])):
             for pattern in patterns:
                 path = pattern.replace("**", "new/subtree").replace("*", "New")
                 with self.subTest(lane=lane, path=path):
@@ -89,7 +118,7 @@ class RoutingTests(unittest.TestCase):
 
     def test_dependency_globs_still_match_real_sources(self):
         root = Path(__file__).resolve().parent.parent
-        for pattern in CI["NAME_MATRIX"] + CI["TEMPLATE_RENDERERS"] + CI["BLUEPRINT_SOURCES"]:
+        for pattern in CI["NAME_MATRIX"] + CI["TEMPLATE_RENDERERS"] + CI["BLUEPRINT_SOURCES"] + CI["JAVA_BINDINGS"]:
             with self.subTest(pattern=pattern):
                 # Before Python 3.13 a trailing "**" matches only directories, so look one level into them.
                 files = pattern + "/*" if pattern.endswith("**") else pattern
@@ -102,9 +131,9 @@ class RoutingTests(unittest.TestCase):
         for path, expected in (
                 ("Source/Specifications/Commands/SemanticValueShapeAdmission.cs", live | {"generated-name-matrix"}),
                 ("Source/SpecRunner/Program.cs", live),
-                ("Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs", ALL),
-                ("Source/Rendering.Cratis/Semantics/SemanticVersionFeatures.cs", ALL),
-                ("Source/Stage/Runtime/PortableTenantValues.cs", ALL),
+                ("Source/Rendering.Cratis/Naming/GeneratedTypeNames.cs", ALL - {"java-bindings"}),
+                ("Source/Rendering.Cratis/Semantics/SemanticVersionFeatures.cs", ALL - {"java-bindings"}),
+                ("Source/Stage/Runtime/PortableTenantValues.cs", ALL - {"java-bindings"}),
                 ("Samples/Billing/Ledger/Payments/Payments.play", {"reducer-mongo"}),
                 ("Source/Conformance.Specs/for_UiProfileRootVector/uiprofile-root.scene.json",
                  {"live-custom-packages", "live-blueprints"})):
@@ -240,7 +269,7 @@ class RoutingTests(unittest.TestCase):
             self.assertIn(f"    if: always() && ({DRAFT_GATE})\n", JOBS[job])
         self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["routed-checks"])
         for job in ("routing", "reducer-mongo", "generated-name-matrix", "live-custom-packages",
-                    "generated-react", "generated-react-blueprint-templates"):
+                    "generated-react", "generated-react-blueprint-templates", "java-bindings"):
             self.assertIn(job, JOBS["routed-checks"].splitlines()[0])
         self.assertIn("github.event_name == 'schedule'", JOBS["nightly-red"])
         self.assertIn("needs.build.result != 'success' || needs.routed-checks.result != 'success'", JOBS["nightly-red"])
@@ -272,7 +301,7 @@ class RoutingTests(unittest.TestCase):
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success'"""
         heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
-        self.assertEqual(5, len(heavy))
+        self.assertEqual(6, len(heavy))
         self.assertIn("live-custom-packages", heavy)
         self.assertTrue(JOBS["live-custom-packages"].startswith(live_packages_gate), "live-custom-packages")
         for job in heavy - {"live-custom-packages"}:
@@ -287,9 +316,10 @@ class RoutingTests(unittest.TestCase):
     def test_dry_run_table_covers_requested_scenarios(self):
         with contextlib.redirect_stdout(io.StringIO()) as output:
             CI["dry_run_table"]()
-        self.assertEqual(11, len(output.getvalue().splitlines()))
-        self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
-        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes", output.getvalue())
+        self.assertEqual(12, len(output.getvalue().splitlines()))
+        self.assertIn("ci:full | yes | yes | yes | yes | yes | yes", output.getvalue())
+        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes | no", output.getvalue())
+        self.assertIn("Source/Rendering.Languages only | no | no | no | no | no | yes", output.getvalue())
 
 
 class RequiredChecksTests(unittest.TestCase):

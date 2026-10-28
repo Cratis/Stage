@@ -97,6 +97,7 @@ TEMPLATE_RENDERERS = (
     "Source/Frontend/Runtime/**", "Source/Frontend/package*.json",
     "Verification/generated-react-browser/**",
 ) + RENDERER
+JAVA_BINDINGS = ("Verification/java-bindings/**",) + project_inputs("Source/Rendering.Languages/Rendering.Languages.csproj")
 # Both live lanes probe the same published Host image; reducer-mongo runs Host and renderer specs,
 # whose Billing probe reads the Billing sample from disk.
 LANE_PATHS = {
@@ -109,6 +110,7 @@ LANE_PATHS = {
                         "Verification/generated-react-browser/**") + BLUEPRINT_SOURCES + HOST_IMAGE,
     "generated-name-matrix": NAME_MATRIX,
     "generated-react-blueprint-templates": ("Verification/blueprint-templates/**",) + TEMPLATE_RENDERERS,
+    "java-bindings": JAVA_BINDINGS,
 }
 
 
@@ -205,6 +207,7 @@ def dry_run_table():
         ("Source/Frontend only", ["Source/Frontend/src/main.tsx"], "pull_request", []),
         ("Source/Host only", ["Source/Host/Program.cs"], "pull_request", []),
         ("Source/Rendering.Cratis only", ["Source/Rendering.Cratis/Renderers/TypeRenderer.cs"], "pull_request", []),
+        ("Source/Rendering.Languages only", ["Source/Rendering.Languages/Java/JavaPlan.cs"], "pull_request", []),
         ("Directory.Packages.props", ["Directory.Packages.props"], "pull_request", []),
         (".github/workflows only", [".github/workflows/publish.yml"], "pull_request", []),
         ("Verification/blueprint-templates only", ["Verification/blueprint-templates/model/templates.play"], "pull_request", []),

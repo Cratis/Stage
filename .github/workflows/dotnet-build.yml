@@ -55,6 +55,7 @@ jobs:
       live-blueprints: ${{ steps.routes.outputs.live-blueprints }}
       generated-name-matrix: ${{ steps.routes.outputs.generated-name-matrix }}
       generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
+      java-bindings: ${{ steps.routes.outputs.java-bindings }}
     steps:
       - name: Checkout merge-base history
         uses: actions/checkout@v4
@@ -431,6 +432,69 @@ jobs:
           CHRONICLE_SOURCE_ROOT: ${{ runner.temp }}/chronicle-source
         run: dotnet test Source/Conformance.Specs/Conformance.Specs.csproj --configuration Debug --no-build --filter "FullyQualifiedName~when_compiling_generated_name_matrix"
 
+  # Compile self-contained java@1 vectors and check every reference binding with the JDK compiler.
+  java-bindings:
+    needs: [preflight, routing, dotnet-build, specs]
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
+    if: >-
+      !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')
+      && needs.routing.outputs.java-bindings == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .Net
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore NuGet packages
+        id: nuget
+        uses: Cratis/Workflows/.github/actions/dotnet-cache@main
+        with:
+          mode: restore
+
+      - name: Download Debug build output
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: debug-build-output
+
+      - name: Extract Debug build output
+        run: tar -xzf build-output.tar.gz
+
+      - name: Restore packages without an exact cache hit
+        if: steps.nuget.outputs.cache-hit != 'true'
+        run: dotnet restore --verbosity minimal
+
+      - name: Emit the java@1 binding vectors
+        env:
+          STAGE_JAVA_BINDING_VECTORS: ${{ runner.temp }}/java-binding-vectors
+        run: dotnet test Source/Rendering.Languages/Rendering.Languages.csproj --configuration Debug --no-build --filter "FullyQualifiedName~for_JavaBindingVectors.when_emitting_the_binding_vectors"
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Compile the vectors and check every reference binding
+        run: bash Verification/java-bindings/run.sh "${{ runner.temp }}/java-binding-vectors" "$PWD/TestResults/java-bindings"
+
+      - name: Upload Java binding results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: java-bindings-results
+          path: TestResults/java-bindings
+          if-no-files-found: error
+          retention-days: 7
+
   # Renders an application, then builds and tests it in Debug and Release and serves it against the pinned
   # Chronicle image. That one class took longer than every other spec in its Rendering shard together, so it
   # runs next to the build job instead of setting the shard time. spec-shards.py excludes it from every shard.
@@ -774,7 +838,7 @@ jobs:
 
   # Require this check alongside build: a selected lane/step may not silently skip.
   routed-checks:
-    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]
+    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates, java-bindings]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 5

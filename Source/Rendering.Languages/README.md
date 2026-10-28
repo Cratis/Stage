@@ -60,6 +60,8 @@ Facts are `{"types": {"pkg.Type": ["MemberTypeOrField", ...]}}`: for each canoni
 
 Any change to the bytes the pack produces for the same plan is a new major version of `java@1`. The prerelease `1.0.0-prerelease` carries no stability promise.
 
-## Follow-up
+## Compiler check
 
-Binding is proven by reasoning, not by a compiler. A javac/javap conformance check over the resolved K1 corpus is a follow-up.
+The `java-bindings` CI lane compiles self-contained binding vectors with javac 21 against stubs generated from their type facts, then checks each structured reference's binding at its emitted site. A planted under-included-facts self-test must detect the wrong binding before the positive cases run. Ordinary local .NET builds and specs do not require a JDK.
+
+The frozen K1 corpus is not compiled by this lane: it calls Axon, Spring and Jakarta members that the facts do not describe. Its reference-site specs and output digests still run without a JDK. See the [binding verification harness](../../Verification/java-bindings/README.md) for the vector format and local reproduction commands.

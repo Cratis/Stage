@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
@@ -99,7 +100,7 @@ internal sealed class SemanticRuntimeAdmission
     {
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
-            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), planRefusal.Details), false);
+            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), command.Handler is null ? planRefusal.Details : $"{planRefusal.Details} {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
         if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName).FirstOrDefault() is { } feature)
         {
@@ -113,7 +114,7 @@ internal sealed class SemanticRuntimeAdmission
                 "command",
                 "unsupported",
                 nameof(SemanticExecutionCapability.ImplementationBody),
-                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."), false);
+                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target. {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
 
         return (CommandDestinationEntry(command), false);

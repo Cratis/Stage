@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Commands;
@@ -78,7 +79,7 @@ internal static class SemanticImplementationReach
             var rule = concept.Validations.FirstOrDefault(rule => Opaque(rule.Kind));
             if (rule is not null)
             {
-                return Refusal(StageExecutionCapability.Command, concept.Id, $"Concept '{concept.Name}' validation '{rule.RequirementId}'");
+                return Refusal(StageExecutionCapability.Command, concept.Id, ConceptRole(rule), $"Concept '{concept.Name}' validation '{rule.RequirementId}'");
             }
         }
 
@@ -92,7 +93,7 @@ internal static class SemanticImplementationReach
                     .Concat(command.Validations.Where(rule => Opaque(rule.Kind)).Select(rule => rule.RequirementId)).FirstOrDefault();
                 if (requirement is not null)
                 {
-                    return Refusal(StageExecutionCapability.Command, command.Id, $"Command '{command.Name}' validation '{requirement}'");
+                    return Refusal(StageExecutionCapability.Command, command.Id, CommandRole(command), $"Command '{command.Name}' validation '{requirement}'");
                 }
             }
             foreach (var reducer in slice.Reducers)
@@ -100,7 +101,7 @@ internal static class SemanticImplementationReach
                 var transition = reducer.Transitions.FirstOrDefault(transition => reaches(reducer, transition));
                 if (transition is not null)
                 {
-                    return Refusal(StageExecutionCapability.Projection, reducer.ReadModel, $"Reducer '{reducer.Name}' transition '{transition.RequirementId}'");
+                    return Refusal(StageExecutionCapability.Projection, reducer.ReadModel, SemanticImplementationRole.ReducerTransition, $"Reducer '{reducer.Name}' transition '{transition.RequirementId}'");
                 }
             }
         }
@@ -113,9 +114,15 @@ internal static class SemanticImplementationReach
             .Concat(query.KeyParts.IsDefaultOrEmpty ? [] : query.KeyParts.Select(part => part.Type))
             .Concat(query.Filters.Select(filter => filter.Type));
 
+    static SemanticImplementationRole ConceptRole(SemanticValidationRule rule) =>
+        rule.Kind == SemanticValidationRuleKind.CodeValidation ? SemanticImplementationRole.ConceptValidation : SemanticImplementationRole.RulePredicate;
+
+    static SemanticImplementationRole CommandRole(SemanticCommand command) =>
+        command.CodeValidations.IsEmpty ? SemanticImplementationRole.RulePredicate : SemanticImplementationRole.CommandValidation;
+
     static bool Opaque(SemanticValidationRuleKind kind) =>
         kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation;
 
-    static SemanticUnsupportedCapability Refusal(StageExecutionCapability capability, SemanticId owner, string body) =>
-        new(capability, owner.ToString(), $"{Code}: {body} is an implementation body; Stage does not execute implementation bodies without a target.");
+    static SemanticUnsupportedCapability Refusal(StageExecutionCapability capability, SemanticId owner, SemanticImplementationRole role, string body) =>
+        new(capability, owner.ToString(), $"{Code}: {body} is an implementation body; {BodyDiagnostics.NotExecuted(role)}");
 }

@@ -48,10 +48,31 @@ public class with_the_rendered_handler_invoked
     [InlineData(true)]
     public async Task should_run_the_authored_body_with_the_bound_event_local_and_context(bool file)
     {
-        var (_, assembly) = Render("return new object[] { Title, @event.Title, context.EventSourceId.ToString(), context.SequenceNumber.Value };", file);
+        const string body = "return [new HandlerObserved(Title, @event.Title, context.EventSourceId.ToString(), (int)context.SequenceNumber.Value)];";
+        var source = reaction_body_model.Source(body, file).Replace(
+            "      reaction Notifier",
+            """
+                  event HandlerObserved
+                    localTitle String
+                    eventTitle String
+                    sourceId String
+                    sequenceNumber Int
+                  reaction Notifier
+            """,
+            StringComparison.Ordinal);
+        var loaded = reaction_body_model.LoadSource(source, file ? body : null);
+        var plan = opaque_policy_model.Plan(loaded);
+        Assert.True(plan.Success, opaque_policy_model.Errors(plan));
+        var assembly = opaque_policy_model.Compile(plan);
         var (invocation, result) = await Invoke(assembly, "Broken");
         Assert.True(invocation.IsSuccess, string.Join("; ", invocation.GetFailureDetails().Messages));
-        Assert.Equal(["Broken", "Broken", "one", 42UL], Assert.IsType<IEnumerable<object>>(result, exactMatch: false));
+        var observed = Assert.Single(Assert.IsType<IEnumerable<object>>(result, exactMatch: false));
+        var type = assembly.GetTypes().Single(candidate => candidate.Name == "HandlerObserved");
+        Assert.Equal(type, observed.GetType());
+        Assert.Equal("Broken", type.GetProperty("LocalTitle")!.GetValue(observed));
+        Assert.Equal("Broken", type.GetProperty("EventTitle")!.GetValue(observed));
+        Assert.Equal("one", type.GetProperty("SourceId")!.GetValue(observed));
+        Assert.Equal(42, type.GetProperty("SequenceNumber")!.GetValue(observed));
     }
 
     [Theory]

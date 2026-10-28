@@ -11,10 +11,12 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 /// </summary>
 /// <param name="Closures">The binder names per file path: declaring words, nested declarations and the names inherited through every referenced type.</param>
 /// <param name="Introduced">The binder names per file path that the model or the facts introduce, without the file's own literal declarations.</param>
+/// <param name="Foreign">The binder names per file path that are not the file's own nested declarations.</param>
 /// <param name="Refusals">The unknown-type refusals per file path.</param>
 sealed record JavaClosure(
     ImmutableDictionary<string, ImmutableHashSet<string>> Closures,
     ImmutableDictionary<string, ImmutableHashSet<string>> Introduced,
+    ImmutableDictionary<string, ImmutableHashSet<string>> Foreign,
     ImmutableDictionary<string, LanguagePackRefusal> Refusals)
 {
     internal static JavaClosure Compute(JavaPlan plan, IReadOnlyCollection<JavaFileAnalysis> files, JavaTypeFacts facts)
@@ -31,7 +33,12 @@ sealed record JavaClosure(
             }
         }
 
-        return new(Solve(nodes, node => node.Fixed), Solve(nodes, node => node.Introduced), refusals.ToImmutable());
+        var closures = Solve(nodes, node => node.Fixed);
+        var foreign = nodes.ToImmutableDictionary(
+            entry => entry.Key,
+            entry => entry.Value.Dependencies.Where(dependency => dependency != entry.Key && closures.ContainsKey(dependency)).Aggregate(entry.Value.Foreign, (current, dependency) => current.Union(closures[dependency])),
+            StringComparer.Ordinal);
+        return new(closures, Solve(nodes, node => node.Introduced), foreign, refusals.ToImmutable());
     }
 
     static ImmutableDictionary<string, ImmutableHashSet<string>> Solve(Dictionary<string, JavaClosureNode> nodes, Func<JavaClosureNode, ImmutableHashSet<string>> seed)

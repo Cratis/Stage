@@ -12,11 +12,13 @@ namespace Cratis.Stage.Rendering.Languages.Java;
 /// <param name="Fixed">The binder names that need no other file.</param>
 /// <param name="Introduced">The fixed names that the model or the facts introduce, without the file's own literal declarations.</param>
 /// <param name="Dependencies">The paths of the plan files whose closures flow into this one.</param>
+/// <param name="Foreign">The fixed names that do not come from the file's own nested declarations.</param>
 /// <param name="Refusal">The unknown-type refusal, when a structured reference is neither declared nor known.</param>
 sealed record JavaClosureNode(
     ImmutableHashSet<string> Fixed,
     ImmutableHashSet<string> Introduced,
     ImmutableHashSet<string> Dependencies,
+    ImmutableHashSet<string> Foreign,
     LanguagePackRefusal? Refusal)
 {
     static readonly string[] _implicitTypes = ["java.lang.Object", "java.lang.Record", "java.lang.Enum", "java.lang.annotation.Annotation"];
@@ -36,6 +38,7 @@ sealed record JavaClosureNode(
             file.Words.Declaring.Union(file.NestedDeclarations).Union(external).Union(inherited),
             file.NestedDeclarations.Union(external),
             dependencies,
+            file.Words.Declaring.Union(external).Union(inherited),
             references.FirstOrDefault(reference => reference.Refusal is not null)?.Refusal);
     }
 

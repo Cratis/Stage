@@ -38,7 +38,13 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>) && (bool)type.GetProperty("IsDefault")!.GetValue(value)!;
     }
 
-    static bool IsAbsentReference(object node, PropertyInfo property) => node is SemanticTypeReference { Kind: SemanticTypeReferenceKind.Primitive } && property.Name == "Target";
+    static bool IsAbsentReference(object node, PropertyInfo property) => node switch
+    {
+        SemanticTypeReference { Kind: SemanticTypeReferenceKind.Primitive } => property.Name == "Target",
+        SemanticReactionTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown or SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule, Source.IsSet: false } => property.Name == "Source",
+        SemanticSpecificationTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown, Trigger.IsSet: false } => property.Name == "Trigger",
+        _ => false
+    };
 
     static bool IsAbsentPrimitive(object node, PropertyInfo property)
     {

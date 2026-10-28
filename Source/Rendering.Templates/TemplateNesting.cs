@@ -22,7 +22,7 @@ internal static class TemplateNesting
                 throw TemplateRefusal.At(TemplateCodes.Nesting, "Template nesting exceeds 32.", frame.Node.Span);
             }
 
-            foreach (var child in Children(frame.Node)) pending.Push((child, blocks, expressions));
+            foreach (var child in Children(frame.Node)) pending.Push((child, blocks, expressions + EdgeDepth(frame.Node, child)));
         }
     }
 
@@ -57,4 +57,13 @@ internal static class TemplateNesting
     // Preserve the separate 32-level unary/delimiter expression bound without lexical keyword guesses.
     static int ExpressionDepth(ScriptNode node) => node is ScriptUnaryExpression or ScriptNestedExpression or
         ScriptArrayInitializerExpression or ScriptObjectInitializerExpression ? 1 : 0;
+
+    // Indexers and calls are delimiters around their index or arguments, not around their target,
+    // so chained member access and indexing (model.a[0][1]) stay shallow.
+    static int EdgeDepth(ScriptNode parent, ScriptNode child) => parent switch
+    {
+        ScriptIndexerExpression indexer when ReferenceEquals(child, indexer.Index) => 1,
+        ScriptFunctionCall call when ReferenceEquals(child, call.Arguments) => 1,
+        _ => 0
+    };
 }

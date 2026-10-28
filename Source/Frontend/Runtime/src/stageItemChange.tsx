@@ -4,10 +4,11 @@
 import { useCallback, useMemo, useRef, useState, type ComponentType } from 'react';
 import type { BindingExpression, ExternalComponent } from '@cratis/scene.model';
 import { InteractionTriggerKind } from '@cratis/scene.model';
-import { createBindingResolver, resolveBehaviors, runBindings } from '@cratis/scene.engine';
+import { resolveBehaviors, runBindings } from '@cratis/scene.engine';
 import { attachmentFor, useInteractionScope, type ComponentBindingOutputs, type RegisteredComponentProps } from '@cratis/scene.react';
 import { defaultBlueprintName, ComponentName, KanbanBoard } from '@cratis/scene.blueprint.default';
 import { componentRegistryKey } from '@cratis/scene.react';
+import { guardPath, resolveGuard, subjectValue } from './stageGuards';
 import { useStageData } from './stageData';
 
 /** The binding path `with <input> from value` reads: the value the item changed to. */
@@ -85,11 +86,11 @@ export function itemChangeOf(rows: unknown, changed: { item: ReportedItem; previ
  * @returns The resolver the interaction engine runs the bindings with.
  */
 export function resolveChange(change: ItemChange, fallback: (binding: BindingExpression) => unknown): (binding: BindingExpression) => unknown {
-    const resolveItem = createBindingResolver({ dataContext: { item: change.item } });
     return binding => {
+        if (binding.path === guardPath) return resolveGuard(binding.value, change.item);
         if (binding.path === changedValuePath) return change.value;
         if (binding.path === previousValuePath) return change.previous;
-        if (binding.path === 'item' || binding.path?.startsWith('item.')) return resolveItem(binding);
+        if (binding.path?.startsWith('item.')) return subjectValue(binding.path, change.item);
         return fallback(binding);
     };
 }
@@ -160,7 +161,7 @@ export function useItemChange(binding: ItemChangeBinding, outputs: ComponentBind
         if (!current || toRun.length === 0 || changed === undefined) return;
         const change = itemChangeOf(owner.properties[rowsProperty], changed, idField, valueField);
         if (change === undefined) return;
-        const context = { ...current.context, subject: () => change.item, resolve: resolveChange(change, current.context.resolve) };
+        const context = { ...current.context, resolve: resolveChange(change, current.context.resolve) };
         let applied = false;
         let refused = false;
         const dispatcher = {

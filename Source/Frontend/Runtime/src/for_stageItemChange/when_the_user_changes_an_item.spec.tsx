@@ -9,6 +9,7 @@ import type { ComponentBindingOutputs } from '@cratis/scene.react';
 import { InteractionScope } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
 import { StageDataProvider } from '../stageData';
+import { guardPath } from '../stageGuards';
 import { StageKanbanBoard, changedItem, itemChangeOf, resolveChange } from '../stageItemChange';
 import { element } from '../testElements';
 
@@ -17,21 +18,18 @@ const talks = [
     { talkId: 'b', title: 'Second talk', status: 'submitted' },
 ];
 const columns = [{ id: 'submitted', label: 'Submitted' }, { id: 'accepted', label: 'Accepted' }, { id: 'withdrawn', label: 'Withdrawn' }];
-const isStatus = (status: string) => ({ kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: status });
+const isStatus = (status: string) => ({ kind: 'comparison', left: { path: 'item.status' }, operator: 'Equal', right: status });
 const execute = (command: string, ...inputs: [string, string][]) => ({
     kind: 'ExecuteCommand', command, arguments: inputs.map(([name, path]) => ({ name, value: { path } })), onSuccess: [], onFailure: [], onResult: [],
 });
 const notify = { kind: 'Notify', level: 'warning', message: { text: 'A talk cannot move back to Submitted' } };
 
 const behaviors = [{
-    bindings: [{
-        trigger: { kind: InteractionTriggerKind.Change },
-        alternatives: [
-            { condition: isStatus('accepted'), actions: [execute('AcceptTalk', ['talkId', 'item.talkId'])] },
-            { condition: isStatus('withdrawn'), actions: [execute('WithdrawTalk', ['talkId', 'item.talkId'])] },
-        ],
-        otherwise: [notify],
-    }],
+    bindings: [
+        { trigger: { kind: InteractionTriggerKind.Change }, actions: [execute('AcceptTalk', ['talkId', 'item.talkId'])], condition: { path: guardPath, value: { kind: 'firstMatch', index: 0, alternatives: [isStatus('accepted'), isStatus('withdrawn')] } } },
+        { trigger: { kind: InteractionTriggerKind.Change }, actions: [execute('WithdrawTalk', ['talkId', 'item.talkId'])], condition: { path: guardPath, value: { kind: 'firstMatch', index: 1, alternatives: [isStatus('accepted'), isStatus('withdrawn')] } } },
+        { trigger: { kind: InteractionTriggerKind.Change }, actions: [notify], condition: { path: guardPath, value: { kind: 'otherwise', alternatives: [isStatus('accepted'), isStatus('withdrawn')] } } },
+    ],
 }] as unknown as Behavior[];
 
 const board = (extra: Partial<{ behaviors: Behavior[] }> = {}) => ({

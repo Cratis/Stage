@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Languages.Java.for_JavaLanguagePack.given;
 
 public class a_java_pack : for_JavaPlan.given.a_java_plan
 {
-    const string FactsJson = """
+    internal const string FactsJson = """
         {"types":{
           "lib.Thing":[],"other.Thing":[],"lib.Base":["String"],"lib.Plain":[],"q.Item":[],"com.x.Y":[],"org.Y":[],
           "lib.Order":[],"lib.Hidden":[],"lib.Evil":[],"lib.Outer":[],"lib.Shadowing":["Outer"],"lib.Fields":["com"],

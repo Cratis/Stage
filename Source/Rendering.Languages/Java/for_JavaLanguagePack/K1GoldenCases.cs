@@ -12,8 +12,10 @@ public static class K1GoldenCases
 {
     const string Header = "// Copyright (c) Cratis. All rights reserved.\n// Licensed under the MIT license. See LICENSE file in the project root for full license information.\n\n";
 
+    internal const string FactsJson = """{"types":{"library.Base":["String"],"library.Outer":[],"com.library.Outer":[]}}""";
+
     /// <summary>Gets the test facts the cases rely on.</summary>
-    public static JavaTypeFacts Facts() => JavaTypeFacts.Parse("""{"types":{"library.Base":["String"],"library.Outer":[],"com.library.Outer":[]}}""");
+    public static JavaTypeFacts Facts() => JavaTypeFacts.Parse(FactsJson);
 
     /// <summary>Gets the synthetic files.</summary>
     /// <returns>The files.</returns>

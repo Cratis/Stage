@@ -100,9 +100,9 @@ public class with_an_attachment_boundary
     public void should_reject_wrong_tuple_order_and_arity(string body) => AssertBlocked(handler_model.Request(body, handler_model.MultiSource), "STAGE-ESM-019");
 
     [Fact]
-    public void should_preserve_raw_literals_comments_and_crlf()
+    public void should_preserve_raw_literals_and_comments_and_normalize_crlf_outside_literals()
     {
-        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\n    spaced\n      value\n    \"\"\";\r\nreturn new OrderPlaced(text);";
         var request = handler_model.Request(body);
         var plan = handler_model.Plan(request);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -113,6 +113,15 @@ public class with_an_attachment_boundary
 
         // PlannedArtifact.Text normalizes CRLF by contract; the authenticated splice does not.
         Assert.Contains(body.Replace("\r\n", "\n", StringComparison.Ordinal), Source(plan), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void should_refuse_crlf_inside_a_raw_literal()
+    {
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        var plan = handler_model.Plan(handler_model.Request(body));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        Assert.Empty(plan.Artifacts);
     }
 
     [Fact]

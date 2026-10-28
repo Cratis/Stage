@@ -117,7 +117,7 @@ public static class BehaviorConverter
             trigger,
             [],
             Alternatives: [.. alternatives.Select(alternative => new SceneModel.InteractionAlternative(
-                SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf),
+                SceneGuards.Convert(alternative.Condition, enumerationOf),
                 [.. alternative.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]))],
             Otherwise: binding.Otherwise is null ? null : [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]);
     }

@@ -13,14 +13,6 @@ namespace Cratis.Stage.Contracts.Scene;
 /// <summary>Translates Screenplay predicates into Scene's closed guard vocabulary.</summary>
 public static class SceneGuards
 {
-    /// <summary>The legacy guarded interaction binding path.</summary>
-    [Obsolete("Use typed Scene guard selections instead of the legacy guard path.")]
-    public const string GuardPath = "$guard";
-
-    /// <summary>The legacy subject reference key.</summary>
-    [Obsolete("Use the typed SubjectReferenceFor API instead.")]
-    public const string SubjectKey = "subject";
-
     /// <summary>The prefix of a reference to the interaction's subject.</summary>
     public const string SubjectPrefix = "item.";
 
@@ -34,39 +26,30 @@ public static class SceneGuards
     /// <summary>Creates a subject reference, not a render-time binding.</summary>
     /// <param name="path">The authored subject path.</param>
     /// <returns>The reference.</returns>
-    public static SubjectReference SubjectReferenceFor(string path) => new(path);
-
-    /// <summary>Creates a legacy dictionary-shaped subject reference.</summary>
-    /// <param name="path">The authored subject path.</param>
-    /// <returns>The legacy reference.</returns>
-    [Obsolete("Use the typed SubjectReferenceFor API instead.")]
-    public static IDictionary<string, object?> Subject(string path) => SceneGuardConversion.LegacySubject(SubjectReferenceFor(path));
-
-    /// <summary>Converts a predicate to its legacy dictionary shape.</summary>
-    /// <param name="condition">The authored condition.</param>
-    /// <returns>The legacy predicate.</returns>
-    [Obsolete("Use the typed ConvertToCondition API instead.")]
-    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition) => SceneGuardConversion.From(condition, null).ToLegacy();
-
-    /// <summary>Converts a predicate to its legacy dictionary shape, including enumeration members.</summary>
-    /// <param name="condition">The authored condition.</param>
-    /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
-    /// <returns>The legacy predicate.</returns>
-    [Obsolete("Use the typed ConvertToCondition API instead.")]
-    public static IDictionary<string, object?> Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf) =>
-        SceneGuardConversion.From(condition, enumerationOf).ToLegacy();
+    public static SubjectReference Subject(string path) => new(path);
 
     /// <summary>Converts a predicate without evaluating it.</summary>
     /// <param name="condition">The authored condition.</param>
     /// <param name="enumerationOf">Resolves enumeration members for a subject path.</param>
     /// <returns>The typed predicate; unsupported syntax remains unevaluable.</returns>
-    public static GuardCondition ConvertToCondition(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf = null) =>
-        SceneGuardConversion.From(condition, enumerationOf).ToCondition();
+    public static GuardCondition Convert(ScreenplaySyntax.ConditionSyntax condition, Func<string, IReadOnlyList<string>?>? enumerationOf = null) => condition switch
+    {
+        ScreenplaySyntax.ComparisonConditionSyntax comparison => new ComparisonGuardCondition(
+            Subject(comparison.Left),
+            Enum.TryParse<GuardOperator>(comparison.Operator.ToString(), out var operation) ? operation : (GuardOperator)(-1),
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : new { unsupported = comparison.Right.GetType().Name },
+            enumerationOf?.Invoke(comparison.Left)),
+        ScreenplaySyntax.LogicalConditionSyntax logical => new LogicalGuardCondition(
+            Convert(logical.Left, enumerationOf),
+            Enum.TryParse<LogicalGuardOperator>(logical.Operator.ToString(), out var operation) ? operation : (LogicalGuardOperator)(-1),
+            Convert(logical.Right, enumerationOf)),
+        _ => new ComparisonGuardCondition(Subject(string.Empty), GuardOperator.Equal, null)
+    };
 
     /// <summary>Whether Scene understands an authored predicate.</summary>
     /// <param name="condition">The authored predicate.</param>
     /// <returns>Whether it is evaluable.</returns>
-    public static bool CanEvaluate(ScreenplaySyntax.ConditionSyntax condition) => CanEvaluate(ConvertToCondition(condition));
+    public static bool CanEvaluate(ScreenplaySyntax.ConditionSyntax condition) => CanEvaluate(Convert(condition));
 
     /// <summary>Whether Scene understands a converted predicate and it passes Stage's authored enumeration validation.</summary>
     /// <param name="condition">The predicate or its JSON representation.</param>

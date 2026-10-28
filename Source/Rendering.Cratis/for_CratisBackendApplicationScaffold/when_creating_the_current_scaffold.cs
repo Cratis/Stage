@@ -73,6 +73,9 @@ public class when_creating_the_current_scaffold : a_current_scaffold
     [Fact] void should_configure_cratis_with_mongodb_and_camel_case_chronicle_naming() => Content("Program.cs").ShouldContain("configureArcBuilder: arc => arc.WithMongoDB(),\n    configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy()");
     [Fact] void should_activate_cratis_and_the_health_endpoint_before_running() => ProgramSemantics().ShouldEqual("True|True|True");
     [Fact] void should_emit_the_exact_arc_chronicle_and_mongodb_settings() => AppSettingsSemantics().ShouldEqual("api|False|1|MyApp|chronicle://chronicle-dev-client:chronicle-dev-secret@localhost:35000|mongodb://localhost:27017|MyApp");
+    [Fact] void should_wait_for_a_healthy_chronicle_before_starting_the_backend() => Content("README.md").ShouldContain("docker compose up -d --wait\ndotnet run --project MyApp.csproj");
+    [Fact] void should_require_compose_with_wait_support() => Content("README.md").ShouldContain("Docker Compose v2 supporting `--wait`");
+    [Fact] void should_probe_chronicle_over_tls_before_reporting_healthy() => Content("docker-compose.yml").ShouldContain("healthcheck:\n      # The development image uses a self-signed TLS certificate on localhost.\n      test: [\"CMD\", \"curl\", \"--fail\", \"--silent\", \"--show-error\", \"--insecure\", \"--http2\", \"https://localhost:35000/health\"]\n      interval: 5s\n      timeout: 5s\n      retries: 30\n      start_period: 10s");
     [Fact] void should_keep_event_store_data_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-data:/data/db");
     [Fact] void should_keep_event_store_configuration_in_named_volumes() => Content("docker-compose.yml").ShouldContain("- chronicle-config:/data/configdb");
     [Fact] void should_pin_the_compatible_development_chronicle_image() => Content("docker-compose.yml").ShouldContain($"image: cratis/chronicle:{_profile.ChronicleImageVersion}-development");

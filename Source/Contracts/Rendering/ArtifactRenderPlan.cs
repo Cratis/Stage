@@ -304,7 +304,7 @@ public sealed partial class ArtifactRenderPlan
     /// <summary>
     /// Gets the output-only SHA-256 digest, excluding the semantic revision.
     /// </summary>
-    public string Digest => InventoryDigest(AcceptanceDigest(ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals)));
+    public string Digest => InlineInputDigest(InventoryDigest(AcceptanceDigest(ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals))));
 
     /// <summary>
     /// Gets omitted artifacts in ordinal semantic-identity order.

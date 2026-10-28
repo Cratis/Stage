@@ -145,6 +145,14 @@ Invalid contract construction, such as a malformed scope, a traversing artifact 
 
 Resolve input bytes before planning. Do not derive versions or templates from ambient packages, the destination, or the machine running the renderer.
 
+For rendered inline or file-backed implementation bodies, the Cratis planner retains an order-independent
+`ArtifactRenderPlan.InlineCodeFingerprint`. It authenticates each body's original content hash, language,
+requirement, placement and byte source, including bodies that safely degrade (`STAGE-DEGRADE-003`).
+The fingerprint participates in the plan digest independently of emitted artifact bytes and appears as
+`inlineCodeFingerprint` in `.stage/completeness.json` (under `Source/<application>/` with service layout).
+Plan copies, acceptance changes and regenerated reports retain it. Plans without rendered inline bodies
+keep a null fingerprint, omit the report field and retain their existing digest behavior.
+
 ```csharp
 using System.Collections.Immutable;
 using System.Text;

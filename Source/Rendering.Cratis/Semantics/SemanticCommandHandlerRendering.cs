@@ -29,7 +29,7 @@ internal static class SemanticCommandHandlerRendering
         var inline = SemanticInlineCodeRendering.CommandBody(command, context);
         if (inline.Refused) throw UnsupportedSemanticRendering.For("command handler", string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
         builder.OpenBlock($"private static {ReturnType(command, context)} {Method(command)}({ContextType(command)} context)")
-            .Inline(inline.Code!, inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(new(diagnostic.Code, Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, command.Id)))
+            .Inline(context.RetainInlineInput(inline), inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(new(diagnostic.Code, Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, command.Id)))
             .EndBlock().BlankLine();
     }
 

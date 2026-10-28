@@ -117,7 +117,7 @@ internal static class SemanticReactorArtifactRenderer
             builder.Line($"if (!({SemanticConditionRendering.Render(condition, new(source.Properties, "@event", context))})) return null;");
         }
 
-        builder.Inline(inline.Code!, inline.Placement).EndBlock().EndBlock();
+        builder.Inline(context.RetainInlineInput(inline), inline.Placement).EndBlock().EndBlock();
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
     }
 

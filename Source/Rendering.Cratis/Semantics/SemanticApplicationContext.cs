@@ -14,7 +14,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>
 /// Indexes one executable semantic application by stable identity for direct Cratis rendering.
 /// </summary>
-internal sealed class SemanticApplicationContext
+internal sealed partial class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];

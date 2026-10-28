@@ -233,7 +233,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
-        var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        var plan = context.WithInlineInputs(CreatePlan(request, artifacts, diagnostics, refusals, removals));
         return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
     }
 

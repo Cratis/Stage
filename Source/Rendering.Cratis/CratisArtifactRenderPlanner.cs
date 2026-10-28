@@ -104,6 +104,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings([]);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -122,6 +123,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         };
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings(diagnostics);
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
@@ -234,6 +236,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
         var plan = context.WithInlineInputs(CreatePlan(request, artifacts, diagnostics, refusals, removals));
+        if (context.Degradations.Count > 0)
+        {
+            plan = plan.WithAcceptance([.. plan.Degradations, .. context.Degradations]);
+        }
         return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
     }
 

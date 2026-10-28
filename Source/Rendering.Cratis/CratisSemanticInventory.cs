@@ -49,7 +49,7 @@ static class CratisSemanticInventory
         return new(identity, kind, null, evidence.Length == 0 ? ArtifactRenderOutcome.Rendered : ArtifactRenderOutcome.Degraded)
         {
             SemanticLocator = address,
-            Degradations = [.. evidence.Select(gap => new ArtifactRenderConstructGap(gap, ArtifactRenderPlaceholderKind.ThrowingOperationBody, gap.Diagnostic.Message, null) { SemanticLocator = address })]
+            Degradations = [.. evidence.Select(gap => new ArtifactRenderConstructGap(gap, kind == ArtifactRenderConstructKind.ReadModel ? ArtifactRenderPlaceholderKind.RetainedSignatureOrType : ArtifactRenderPlaceholderKind.ThrowingOperationBody, gap.Diagnostic.Message, null) { SemanticLocator = address })]
         };
     }
 }

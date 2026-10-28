@@ -460,6 +460,15 @@ includes possible reaction effects without evaluating runtime guards. Reducer re
 capability; validation refusals carry Command. This does not change live-world history rebuilding or the
 renderer's implementation-body admission.
 
+Generated specifications with given events and `then readmodel` assertions execute the rendered
+pure reducer body through Chronicle's `ReadModelScenario`, for both classic and self-reducing
+read models. Events for the asserted instance are replayed in order, including `when append` facts;
+the authored `then` values are the oracle, not values computed by Stage. Reducers that read
+`context.Occurred`, `context.SequenceNumber` or `context.Tenant` remain refused with `STAGE-ESM-011`
+because the scenario cannot supply those values deterministically. An asserted instance must be
+reached by a handled event. Reducer absence assertions remain unsupported. This does not change
+the semantic Host or specification executor's implementation-body refusals.
+
 Pure reducer bodies may use Stage's generated primitive-to-concept implicit conversion: for example,
 `Reason reason = context.Key;` when `Reason` is a String concept, or a Guid value passed to a Uuid
 identifier concept. The primitive must match the modeled type, and the operator must belong to the

@@ -36,9 +36,9 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 {
     const string SentinelPrefix = "/*__stage_";
 
-    internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request)
+    internal static DeclarativeRendering Render(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableArray<ExpandedOutput> outputs, JsonElement root, ArtifactRenderRequest request, long maxOutputBytes)
     {
-        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language, session));
+        var renderer = new FileRenderer(session, language, Constructs(root), new(request, language, session), maxOutputBytes);
         var files = new List<DeclarativeRenderedFile>();
         foreach (var expanded in outputs)
         {
@@ -84,9 +84,10 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
         }
     }
 
-    sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies)
+    sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies, long maxOutputBytes)
     {
         readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+        long _finalBytes;
 
         internal ArtifactRenderDiagnostic? Render(ExpandedOutput expanded, List<DeclarativeRenderedFile> files)
         {
@@ -130,6 +131,13 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
             if (text.StartsWith('\uFEFF'))
             {
                 return DeclarativeOutputExpansion.Refuse(DeclarativeCodes.OutputText, $"The text of {path.Value} starts with a byte order mark, which a text artifact cannot carry.");
+            }
+
+            // The template session meters what templates emit; language resolution (for example import blocks) adds text it never sees, so the final text of every file is also capped, in aggregate, by the same limit.
+            _finalBytes += Encoding.UTF8.GetByteCount(text);
+            if (_finalBytes > maxOutputBytes)
+            {
+                return DeclarativeOutputExpansion.Refuse(TemplateCodes.Output, "Plan UTF-8 output budget exceeded.");
             }
 
             var gaps = rendered.Output.Gaps.Select(gap => new DeclarativeOwnedGap(item ?? Owner(gap), gap, Placeholder(gap.Role))).Concat(mapped.Gaps);

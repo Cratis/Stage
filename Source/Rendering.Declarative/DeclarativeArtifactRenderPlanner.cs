@@ -45,8 +45,9 @@ public sealed class DeclarativeArtifactRenderPlanner(IEnumerable<IDeclarativeLan
             return Refuse(request, [failure]);
         }
 
+        var budget = _options.Budget ?? Templates.TemplateBudget.Default;
         using (model)
-        using (var session = admission.Templates!.BeginPlan(_options.Budget ?? Templates.TemplateBudget.Default, admission.Language!))
+        using (var session = admission.Templates!.BeginPlan(budget, admission.Language!))
         {
             var expansion = DeclarativeOutputExpansion.Expand(session, admission.Kit!.Manifest, model!.RootElement);
             if (expansion.Refusal is not null)
@@ -54,7 +55,7 @@ public sealed class DeclarativeArtifactRenderPlanner(IEnumerable<IDeclarativeLan
                 return Refuse(request, [expansion.Refusal]);
             }
 
-            var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement, request);
+            var rendering = DeclarativeRendering.Render(session, admission.Language!, expansion.Outputs, model.RootElement, request, budget.MaxOutputBytes);
             return rendering.Refusal is not null
                 ? Refuse(request, [rendering.Refusal])
                 : Assemble(request, rendering.Files, admission.Components);

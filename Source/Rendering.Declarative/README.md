@@ -53,7 +53,7 @@ Every selected command and reaction is accounted for in the plan's inventory. A 
 | `STAGE-DECL-005` | A language pack is bound to no registered language, or to more than one |
 | `STAGE-DECL-006` | The kit binds more than one language pack |
 | `STAGE-DECL-007` | The render model could not be built |
-| `STAGE-DECL-008` | A fan-out item has no string `id` |
+| `STAGE-DECL-008` | A fan-out item has no string `id` that is a valid semantic id |
 | `STAGE-DECL-009` | Generated text contains sentinel-shaped residue |
 | `STAGE-DECL-010` | An implementation body does not match its content hash |
 | `STAGE-DECL-011` | A rendered path is rooted, traverses or is not portable |
@@ -63,3 +63,9 @@ Every selected command and reaction is accounted for in the plan's inventory. A 
 ## Scope
 
 The planner is curated-only: the roster is one kit input, and only registered languages are used. It is prerelease and not packable yet; packaging is pending #800.
+
+## Coverage accounting and output limits
+
+Coverage counts a construct only through a per-construct `forEach` item or a gap it owns. A slice-level output does not mark the commands and reactions it contains as rendered, so those constructs are reported Degraded.
+
+The output budget is enforced twice: the template session meters template output (including authored bodies), and the planner caps the aggregate final text of all files by the same `MaxOutputBytes`, because language resolution (for example import blocks) adds text the session never sees. Exceeding either refuses with `STAGE-TPL-031` and no artifacts.

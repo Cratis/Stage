@@ -59,9 +59,9 @@ sealed record DeclarativeOutputExpansion(ImmutableArray<ExpandedOutput> Outputs,
         var ordered = new List<(string Id, JsonElement Item)>();
         foreach (var item in items.Value)
         {
-            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String)
+            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String || !SemanticId.TryParse(id.GetString(), out _))
             {
-                return Refuse(DeclarativeCodes.ItemWithoutId, $"An item of output {output.Id} has no string id.");
+                return Refuse(DeclarativeCodes.ItemWithoutId, $"An item of output {output.Id} has no string semantic id.");
             }
 
             ordered.Add((id.GetString()!, item));

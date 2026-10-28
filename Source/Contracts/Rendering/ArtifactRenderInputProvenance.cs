@@ -70,6 +70,7 @@ public sealed record ArtifactRenderInputProvenance(
     {
         var requirements = request.ImplementationRequirements.IsDefault ? [] : request.ImplementationRequirements;
         var implementations = requirements
+            .Where(requirement => requirement is not null)
             .Select(requirement => new ArtifactRenderImplementationInput(
                 requirement.RequirementId,
                 requirement.Role,

@@ -290,6 +290,18 @@ capture, or slice. Specification admission guards, including the constraint-targ
 remain unchanged; skipping a specification does not prove that it passes.
 
 A plan with only skipped specifications has `Success == true` and `Outcome == Complete`.
+
+Specifications for operations with admitted opaque C# policy bodies execute the
+predicate through Arc's command/query pipeline. Their authored `then` blocks are
+the assertion oracle; the reference evaluator still reports **Unsupported** when
+it reaches an opaque condition and never interprets its C#. Caller identity
+comes from the scenario's caller fixture; the subject comes from the command's or
+query's argument values. An opaque `context.Occurred`
+read requires a command scenario with an authored `given clock`; query scenarios
+and commands without that clock are omitted with `STAGE-ESM-011` rather than
+using an uncontrolled authorization receipt time. Other unsupported scenario
+shapes remain omitted.
+
 Inspect `Refusals` on `ArtifactRenderPlan` or `CratisPlanResult` for the omissions. Each
 refusal lists its semantic `Artifact`, `Kind` (`specification`), and sorted diagnostic
 `Codes`; entries are sorted by artifact identity. No emitted artifact's `Sources` contains

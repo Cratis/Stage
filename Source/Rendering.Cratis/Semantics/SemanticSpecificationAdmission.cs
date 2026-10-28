@@ -184,20 +184,6 @@ internal static partial class SemanticSpecificationAdmission
         return true;
     }
 
-    // The reference evaluator returns Unsupported once an opaque policy is reached, so it cannot be the oracle
-    // for a generated scenario of an operation whose authorization depends on one.
-    static bool DependsOnOpaquePolicy(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        var authorizations = specification.ThenQueries.Select(expected => context.Queries.TryGetValue(expected.Query, out var query) ? query.Authorization : null);
-        if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command))
-        {
-            authorizations = authorizations.Append(command.Authorization);
-        }
-
-        return authorizations.OfType<SemanticAuthorization>()
-            .Any(authorization => SemanticCratisAdmission.OpaquePolicies(authorization, context.Application.Policies).Any());
-    }
-
     static bool AssertsUncontrolledOccurrence(SemanticApplication application, SemanticSpecification specification, SemanticCommand command) =>
         !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(application, command, specification).Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&

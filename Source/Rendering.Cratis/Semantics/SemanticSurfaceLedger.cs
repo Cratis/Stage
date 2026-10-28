@@ -432,8 +432,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
+        // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading the inbox and reads only that source's history (Stage#752).
         // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
-        Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
+        Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
 

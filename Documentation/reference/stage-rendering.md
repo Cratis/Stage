@@ -372,12 +372,24 @@ model (ESM) version yet (Cratis/Stage#176, Cratis/Screenplay#301).
 
 ## Explicit action subjects
 
-A toolbar item or screen action with an explicit `for item` or `for screen` subject refuses
-with `STAGE-ESM-058` before any output is written. The diagnostic names the construct and
-its source location: explicit action subjects are not yet rendered
+A toolbar item or screen action can name its subject
 ([Screenplay decision 0110](https://github.com/Cratis/Screenplay/blob/v4.250.0/decisions/0110-explicit-action-subjects-and-selection.md),
-[Cratis/Stage#855](https://github.com/Cratis/Stage/issues/855)). Omitting the subject keeps
-existing output unchanged.
+[Cratis/Stage#855](https://github.com/Cratis/Stage/issues/855)):
+
+- `for item` acts on the selected row. The action stays visible and disabled with "Select a row first"
+  until exactly one row of the screen's own tables is selected, even when a table is empty.
+  `with <input> from item.<path>` binds that input from the same row, and the form does not ask for it.
+- `for screen` never waits for a selection and never fills anything from a row. It behaves like the
+  same action on a screen without tables.
+- An omitted subject keeps the existing row inference and its output unchanged.
+- Subjects from Screenplay's effective syntax (`ScreenActionSubjects.Resolve`) render the same way.
+
+An input of an action that names a subject, bound from anything other than `item.<path>` on a
+`for item` action, refuses with `STAGE-ESM-059` before any output is written. The diagnostic names
+the action, the input, its binding and its source location.
+
+Stage carries the subject as the Stage-local scene properties `actionSubject` and `subjectInputs`
+until Scene ships a typed `ActionSubject`.
 
 ## Generated C# whole numbers
 

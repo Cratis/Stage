@@ -114,7 +114,7 @@ internal static class inventory_fixtures
         context.ScopeFlatProjections();
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticCratisAdmission.Evaluate(context, context.SelectedSlices(), diagnostics);
-        context.RefusedSpecifications = [.. SemanticRefusalScope.Degrade(context, diagnostics).Select(refusal => refusal.Artifact)];
+        context.RefuseSpecifications([.. SemanticRefusalScope.Degrade(context, diagnostics).Select(refusal => refusal.Artifact)]);
         return context;
     }
 

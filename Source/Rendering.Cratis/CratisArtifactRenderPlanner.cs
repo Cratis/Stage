@@ -155,7 +155,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return CreatePlan(request, [], diagnostics);
         }
-        context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
+        context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
         var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
         foreach (var descriptor in validations)

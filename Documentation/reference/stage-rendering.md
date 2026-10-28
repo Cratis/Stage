@@ -543,7 +543,7 @@ and looks up instances by one event-source key. The Cratis renderer renders such
 key record (`<ReadModel>Key`) holding the parts, alongside the declared properties, and a scoped projection that sets the
 parts through Chronicle's `UsingCompositeKey`, for `from` blocks and `remove with` alike. List and filtered queries
 work as for any collection. Shapes the renderer cannot express are refused with `STAGE-ESM-048`, naming the reason:
-reducers and flat projections, joins, children, nested objects, `every`, optional, collection, date-time or non-primitive key parts, a property named `Id`,
+reducers and flat projections, joins, children, nested objects, `every`, optional, collection, date-time or non-primitive key parts, decimal key parts (until Chronicle keys `1.0` and `1.00` as one instance, [Chronicle#5427](https://github.com/Cratis/Chronicle/issues/5427); lifted by [Stage#847](https://github.com/Cratis/Stage/issues/847)), a property named `Id`,
 `from` or removal keys that are not a complete `parts` key, and protected live queries. `STAGE-ESM-047` names each
 single-instance query by parts, because Chronicle cannot look up one read-model instance by a composite key until
 Chronicle#4265. Generated specifications that project into such a read model are not yet admitted

@@ -86,12 +86,20 @@ sealed record DeclarativeRendering(ImmutableArray<DeclarativeRenderedFile> Files
 
     sealed class FileRenderer(TemplatePlanSession session, IDeclarativeLanguage language, ImmutableHashSet<SemanticId> constructs, DeclarativeBodies bodies)
     {
+        readonly HashSet<string> _paths = new(StringComparer.OrdinalIgnoreCase);
+
         internal ArtifactRenderDiagnostic? Render(ExpandedOutput expanded, List<DeclarativeRenderedFile> files)
         {
             var path = session.RenderPath(expanded.Output.Id, expanded.Scope);
             if (path.Refusal is not null)
             {
                 return DeclarativeOutputExpansion.Refuse(path.Refusal.Code, path.Refusal.Message);
+            }
+
+            var invalid = DeclarativePaths.Check(path.Value!, _paths);
+            if (invalid is not null)
+            {
+                return invalid;
             }
 
             var rendered = session.Render(expanded.Output.Template, expanded.Scope);

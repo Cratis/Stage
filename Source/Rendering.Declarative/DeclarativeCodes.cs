@@ -57,4 +57,14 @@ public static class DeclarativeCodes
     /// An implementation body does not match the content hash its requirement recorded.
     /// </summary>
     public const string BodyIntegrity = "STAGE-DECL-010";
+
+    /// <summary>
+    /// A rendered output path is rooted, traverses, or is not portable.
+    /// </summary>
+    public const string PathInvalid = "STAGE-DECL-011";
+
+    /// <summary>
+    /// Two rendered output paths are equal ignoring case.
+    /// </summary>
+    public const string PathCollision = "STAGE-DECL-012";
 }

@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Rendering.Model;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
@@ -209,14 +210,7 @@ internal sealed partial class SemanticApplicationContext
     /// </summary>
     /// <returns>The selected slices.</returns>
     public IReadOnlyList<LocatedSemanticSlice> SelectedSlices() =>
-        [.. _slices.Values.Where(slice => new[] { Request.Scope }.Concat(Request.AdditionalScopes).Any(scope => scope.Kind switch
-        {
-            ArtifactRenderScopeKind.Application => true,
-            ArtifactRenderScopeKind.Module => slice.Module.Id == scope.Artifact,
-            ArtifactRenderScopeKind.Feature => slice.FeaturePath.Any(feature => feature.Id == scope.Artifact),
-            ArtifactRenderScopeKind.Slice => slice.Slice.Id == scope.Artifact,
-            _ => false
-        }))];
+        [.. RenderScopeSelection.Select(Request).Select(located => Slice(located.Slice.Id))];
 
     /// <summary>
     /// Gets the location of a semantic slice.

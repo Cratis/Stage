@@ -206,7 +206,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         var uses = _body.DescendantNodes().OfType<IdentifierNameSyntax>().Where(node => node.Identifier.ValueText == declaration.Identifier.ValueText);
         if (uses.Any(use => !IsReturnUse(use, declaration))) return Shape.Unknown;
         var initialized = Expression(declaration.Initializer.Value, position);
-        return variables.Type.IsVar ? initialized : Declared(variables.Type, position) | (initialized & (Shape.NestedCollection | Shape.NullItem));
+        return variables.Type.IsVar ? initialized : Declared(variables.Type, position) | initialized;
     }
 
     Shape Declared(TypeSyntax type, Position position) => type switch

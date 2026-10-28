@@ -20,7 +20,6 @@ public class with_undeterminable_return_effects : Specification
         string[] bodies =
         [
             "return BuildEffects();",
-            "string label = Title; yield return label;",
             "IEnumerable<object> effects = new[] { new TicketOpened(Title) }; return effects;",
             "TicketOpened opened = new TicketOpened(Title); opened = new TicketOpened(Title); yield return opened;",
             "TicketOpened[] opened = new[] { new TicketOpened(Title) }; Change(opened); return opened;",

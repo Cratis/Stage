@@ -29,6 +29,7 @@ public class with_value_return_items : Specification
             "return [context.UnrepresentedMember];",
             "return [new TicketOpened(Title), Title];",
             "var value = Title; yield return value;",
+            "string label = Title; yield return label;",
             "return [new Label(Title)];",
             "return [new Details(Title)];"
         ];

@@ -45,6 +45,9 @@ internal static partial class PureTransitionAdmission
             NameIs(method.Name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual") &&
             method.Parameters.All(parameter => SymbolEqualityComparer.Default.Equals(parameter.Type, method.ContainingType));
 
+        bool ValidationPattern(IIsPatternOperation pattern) => IsValidation &&
+            pattern.Pattern is IDeclarationPatternOperation declaration && SafeDataType(declaration.MatchedType, Compilation);
+
         bool AdmittedValidationKind(IOperation operation) =>
             IsValidation && (operation.Kind is OperationKind.IsType or OperationKind.TypePattern || IsDigitPredicate(operation) || IsIteratorOperation(operation));
 

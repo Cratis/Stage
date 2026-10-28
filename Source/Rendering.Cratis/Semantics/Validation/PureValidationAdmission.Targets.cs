@@ -51,9 +51,9 @@ internal static partial class PureValidationAdmission
             {
                 if (AccessorRejection(call, concept) is { } rejection) return rejection;
             }
-            else if (CastOrTest(node, operation, model) is { } conversion && !AdmittedTarget(conversion, concept))
+            else if (CastOrTest(node, operation, model) is { } conversion && ConversionRejection(conversion, concept) is { } rejection)
             {
-                return Reject("STAGE-ESM-022", $"Validation cast or type test to '{conversion.Target}' is outside the declared value realization.");
+                return rejection;
             }
         }
         return null;
@@ -80,6 +80,20 @@ internal static partial class PureValidationAdmission
         _ when operation is IIsPatternOperation { Pattern: ITypePatternOperation typed } pattern => new(pattern.Value, typed.MatchedType, true),
         _ => null
     };
+
+    static PureTransitionAdmission.Verdict? ConversionRejection(ValueConversion conversion, bool concept)
+    {
+        if (AlwaysTrueTypeTest(conversion))
+        {
+            return Reject("STAGE-ESM-022", $"Type test 'is {conversion.Target}' on a non-nullable '{conversion.Target}' value is always true; use the value directly or a designation pattern.");
+        }
+        return AdmittedTarget(conversion, concept) ? null :
+            Reject("STAGE-ESM-022", $"Validation cast or type test to '{conversion.Target}' is outside the declared value realization.");
+    }
+
+    static bool AlwaysTrueTypeTest(ValueConversion conversion) => conversion.TypeTest &&
+        conversion.Operand?.Type is { IsValueType: true } from && from.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T &&
+        SymbolEqualityComparer.Default.Equals(from, conversion.Target);
 
     static bool AdmittedTarget(ValueConversion conversion, bool concept) =>
         conversion.Operand is IPropertyReferenceOperation read && read.Property.Name == "Value" && IsWrapper(read.Property.ContainingType) &&

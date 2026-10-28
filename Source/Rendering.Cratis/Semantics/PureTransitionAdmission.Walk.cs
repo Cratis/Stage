@@ -359,7 +359,7 @@ internal static partial class PureTransitionAdmission
                 PureValidationAdmission.ValueTarget(read.Type!, test.TypeOperand, typeTest: true, concept: IsConceptValue) => null,
             IConversionOperation conversion when IsUnsafeConversion(conversion, analysis.GeneratedConcepts) =>
                 Forbid($"Conversion to '{conversion.Type?.ToDisplayString()}' is outside the pure allowlist."),
-            IIsPatternOperation pattern when !SafePattern(pattern.Pattern, Compilation) =>
+            IIsPatternOperation pattern when !ValidationPattern(pattern) && !SafePattern(pattern.Pattern, Compilation) =>
                 Forbid($"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist."),
             IDefaultValueOperation defaultValue when !Generated(defaultValue.Type, Compilation) =>
                 Forbid($"Default of '{defaultValue.Type?.ToDisplayString()}' is outside the pure allowlist."),

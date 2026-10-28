@@ -107,6 +107,12 @@ public sealed class PlannedArtifact
     public ImmutableArray<SemanticId> Sources { get; init; } = [];
 
     /// <summary>
+    /// Gets the applied header input's SHA-256, or null when Stage has not applied a header.
+    /// Preserve this marker when reconstructing already headed artifacts; it does not contribute to output digests.
+    /// </summary>
+    public string? AppliedFileHeaderSha256 { get; init; }
+
+    /// <summary>
     /// Creates, normalizes, encodes, and hashes one text artifact.
     /// </summary>
     /// <param name="relativePath">The portable relative path.</param>
@@ -155,6 +161,18 @@ public sealed class PlannedArtifact
     public static PlannedArtifact CreateBinary(string relativePath, ImmutableArray<byte> bytes, ImmutableArray<SemanticId> sources) =>
         CreateBinary(relativePath, bytes).WithSources(sources);
 
+    /// <summary>
+    /// Creates a relocated artifact, preserving its content, semantic sources and applied file header.
+    /// </summary>
+    /// <param name="relativePath">The new normalized destination-relative path.</param>
+    /// <returns>The artifact at the validated destination path.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The destination path is not valid.</exception>
+    public PlannedArtifact WithRelativePath(string relativePath) => new(Kind, NormalizePath(relativePath), Bytes, Sha256)
+    {
+        Sources = Sources,
+        AppliedFileHeaderSha256 = AppliedFileHeaderSha256
+    };
+
     internal static ImmutableArray<SemanticId> NormalizeSources(ImmutableArray<SemanticId> sources)
     {
         if (sources.IsDefault || sources.Any(_ => !_.IsSet))
@@ -199,9 +217,22 @@ public sealed class PlannedArtifact
         return normalized;
     }
 
+    internal PlannedArtifact WithFileHeader(ArtifactRenderInput input) => new(Kind, RelativePath, Bytes, Sha256)
+    {
+        Sources = Sources,
+        AppliedFileHeaderSha256 = input.Sha256
+    };
+
+    internal PlannedArtifact CopyFileHeaderFrom(PlannedArtifact artifact) => new(Kind, RelativePath, Bytes, Sha256)
+    {
+        Sources = Sources,
+        AppliedFileHeaderSha256 = artifact.AppliedFileHeaderSha256
+    };
+
     internal PlannedArtifact WithSources(ImmutableArray<SemanticId> sources) => new(Kind, RelativePath, Bytes, Sha256)
     {
-        Sources = NormalizeSources(sources)
+        Sources = NormalizeSources(sources),
+        AppliedFileHeaderSha256 = AppliedFileHeaderSha256
     };
 }
 
@@ -391,7 +422,7 @@ public sealed partial class ArtifactRenderPlan
         }
 
         var normalized = artifacts
-            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes).WithSources(artifact.Sources))
+            .Select(artifact => PlannedArtifact.Create(artifact.Kind, artifact.RelativePath, artifact.Bytes).WithSources(artifact.Sources).CopyFileHeaderFrom(artifact))
             .OrderBy(_ => _.RelativePath, StringComparer.Ordinal)
             .ToImmutableArray();
         if (normalized.Select(_ => _.RelativePath).Distinct(StringComparer.Ordinal).Count() != normalized.Length)
@@ -403,6 +434,12 @@ public sealed partial class ArtifactRenderPlan
         {
             throw new InvalidArtifactRenderContract("An artifact render plan contains paths that collide on a case-insensitive file system.");
         }
+
+        var header = ArtifactFileHeader.Apply(request.Profile, normalized, request.CommentSyntaxes, request.Model.Application.Id);
+        normalized = header.Artifacts;
+        diagnostics = [.. diagnostics, .. header.Diagnostics.Where(diagnostic => !diagnostics.Contains(diagnostic))];
+        implementationGaps = header.Rebase(implementationGaps);
+        requiredRemovals = header.Retain(requiredRemovals);
 
         var normalizedGaps = ValidateImplementationGaps(implementationGaps, normalized);
         var normalizedRefusals = ArtifactRenderRefusalDigest.Normalize(refusals);

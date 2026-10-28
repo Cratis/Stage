@@ -142,7 +142,8 @@ internal static partial class SemanticCratisAdmission
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
             selfReduces: context.SelfReduces,
             policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
-            .Concat(SemanticTranslationAdmission.Declarations(context, slices));
+            .Concat(SemanticTranslationAdmission.Declarations(context, slices))
+            .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
 
     internal static IEnumerable<GeneratedTypeDeclaration> GeneratedResponseDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
         slices.SelectMany(located => located.Slice.Commands

@@ -16,14 +16,16 @@ internal static partial class SemanticReactionSpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var invoked = prelude.Selection.Trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
 
-        // One invoked command runs in a scenario typed by it: that is what lets Arc read the decision state a protected command asks for. Several run in an untyped one.
+        // One invoked command runs in a scenario typed by it: Arc derives the decision mode from that command's assembly. Several run in an untyped scenario that enables decision reads up front, before any seeding or execution.
         var typed = invoked.Length == 1 ? CommandType(invoked[0], types) : null;
         var decision = invoked.Length == 1 && !invoked[0].Reads.IsDefaultOrEmpty;
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Commands").Using("Cratis.Arc.Chronicle.Testing.Commands").Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
-            .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed ?? "object"}> _scenario = new();")
+            .Line(typed is null
+                ? "readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();"
+                : $"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.Events.AppendedEvent[] _facts = [];")
             .Line("bool _settled;")
@@ -51,7 +53,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             var source = SemanticSpecificationEventSources.Expression(context, types, given);
             builder.Line(decision
                 ? $"_scenario.Given.ForEventSource({source}).Events(new {types.EventType(contract)}({string.Join(", ", arguments)}));"
-                : $"await _scenario.EventScenario.Given.ForEventSource({source}).Events(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
+                : $"(await _scenario.EventLog.Append({source}, new {types.EventType(contract)}({string.Join(", ", arguments)}))).IsSuccess.ShouldBeTrue();");
         }
         var append = prelude.Append;
         var appended = context.Events[append.EventContract];
@@ -119,5 +121,5 @@ internal static partial class SemanticReactionSpecificationRenderer
     }
 
     static string? CommandType(SemanticCommand command, SemanticTypeSystem types) =>
-        command.Reads.IsDefaultOrEmpty && !command.Properties.Any(property => property.IsGenerated) ? null : types.SliceType(command.Id, command.Name);
+        types.SliceType(command.Id, command.Name);
 }

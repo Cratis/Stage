@@ -36,11 +36,25 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
     }
 
     [Fact]
-    public void should_refuse_mixed_effects_across_triggers_on_one_event()
+    public void should_render_mixed_effects_in_one_trigger()
     {
         var production = _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge");
         var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
-        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = [production.Triggers.Single(), invocation] }] });
+        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = [production.Triggers.Single() with { Invokes = invocation.Invokes }] }] });
+        Plan();
+        _plan.Success.ShouldBeTrue();
+        _plan.Artifacts.ShouldNotBeEmpty();
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-037");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_refuse_mixed_effects_across_triggers_on_one_event(bool invocationFirst)
+    {
+        var production = _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge");
+        var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
+        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = invocationFirst ? [invocation, production.Triggers.Single()] : [production.Triggers.Single(), invocation] }] });
         Plan();
         _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-037"]);
         _plan.Artifacts.ShouldBeEmpty();

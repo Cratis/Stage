@@ -12,6 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis;
 /// Defines the hashed v1 file header input: the plain-text lines every generated code file starts with.
 /// Its absence means generated files carry no header at all.
 /// </summary>
+/// <remarks>Legacy API retained for compatibility. New integrations should use <see cref="ArtifactFileHeader"/>.</remarks>
 public static class FileHeaderInput
 {
     /// <summary>

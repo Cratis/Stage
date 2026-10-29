@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -12,8 +13,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <remarks>
 /// An artifact without modeled authorization renders a bare <c language="csharp">[Authorize]</c>: Arc then requires an authenticated
 /// caller (with no role or policy requirement). This is Stage's rendered default and deliberately differs from
-/// Screenplay's reference semantics, where a missing clause allows everyone. Explicit anonymous access has no Screenplay
-/// construct yet.
+/// Screenplay's reference semantics, where a missing clause allows everyone. An explicit <c language="play">require anonymous</c>
+/// policy instead renders <c language="csharp">[AllowAnonymous]</c>.
 /// </remarks>
 internal static class SemanticAuthorizationAttributes
 {
@@ -37,7 +38,9 @@ internal static class SemanticAuthorizationAttributes
     /// <returns>The attribute name.</returns>
     public static string For(SemanticCommand command, SemanticApplicationContext context) => command.Authorization is null
         ? AuthenticatedCaller
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
+        : SemanticAnonymousAccess.IsAnonymous(command.Authorization, context.Application.Policies)
+            ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
+            : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
 
     /// <summary>
     /// Gets the authorization attribute for an admitted query.
@@ -47,5 +50,7 @@ internal static class SemanticAuthorizationAttributes
     /// <returns>The attribute name.</returns>
     public static string For(SemanticKeyedQuery query, SemanticApplicationContext context) => query.Authorization is null
         ? AuthenticatedCaller
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
+        : SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies)
+            ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
+            : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
 }

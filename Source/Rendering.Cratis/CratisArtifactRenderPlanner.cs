@@ -218,8 +218,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
-        if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
-            slice.Slice.Queries.Any(query => query.Authorization is not null)))
+        if (SemanticPolicyNames.Operations(slices, context.Application.Policies).Count != 0)
         {
             artifacts.AddRange(SemanticPolicyArtifactRenderer.Render(context, slices).Select(Artifact));
             artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));

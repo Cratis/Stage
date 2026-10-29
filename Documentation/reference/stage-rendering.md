@@ -240,6 +240,21 @@ A reaction body declares a local for a triggering event property only when the b
 A body that only reads another object's member of the same name, such as `other.Title`, does not count as a reference.
 A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
 
+## Anonymous authorization
+
+A policy whose complete condition is `require anonymous` opts its command or query into
+anonymous access. Both unauthenticated and authenticated callers are allowed. Stage renders
+`[AllowAnonymous]` from `Cratis.Arc.Authorization`, emits no `[Authorize]` on that artifact,
+and reports the information diagnostic `STAGE-ESM-060` for the command or query.
+
+Anonymous access must be the entire referenced policy. Stage refuses `not anonymous`,
+anonymous mixed with `and`/`or`, or combined authorization references with `STAGE-ESM-015`;
+it does not guess which policy to override. Unknown security members remain fail-closed
+with `STAGE-ESM-016`. The semantic Host and specification executor admit the same anonymous
+shape. Denied expectations for anonymous operations do not pass: an anonymous policy
+cannot justify `then denied` or a denied query. Unannotated behavior and all
+non-anonymous policy emission are unchanged.
+
 ## Generated C# query arguments
 
 Query arguments retain their concept types so Arc validates the `by` key and supplied filter

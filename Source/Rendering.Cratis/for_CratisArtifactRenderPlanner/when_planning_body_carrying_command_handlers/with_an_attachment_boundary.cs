@@ -106,7 +106,7 @@ public class with_an_attachment_boundary
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var source = Source(plan);
         Assert.DoesNotContain("handlerPayloads", source, StringComparison.Ordinal);
-        Assert.Contains("return HandlerBody_", source, StringComparison.Ordinal);
+        Assert.Contains("return HandlePlaceOrder(", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class with_an_attachment_boundary
         Assert.Empty(plan.Refusals);
         Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(specificationModel.Id));
         Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(command.Id));
-        Assert.Contains("HandlerBody_", Source(plan), StringComparison.Ordinal);
+        Assert.Contains("HandlePlaceOrder(", Source(plan), StringComparison.Ordinal);
     }
 
     static string Source(ArtifactRenderPlan plan) => string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));

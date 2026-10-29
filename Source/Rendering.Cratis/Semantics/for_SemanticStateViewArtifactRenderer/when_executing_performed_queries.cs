@@ -33,7 +33,7 @@ public class when_executing_performed_queries
     [InlineData("authorized", "CS0103")]
     public async Task should_render_an_unverified_performer_as_a_compilable_gap(string failure, string reason)
     {
-        var source = Source(failure is "compile" or "authorized" ? "return missing;" : "return readModels;", live: failure == "live");
+        var source = Source(string.Equals(failure, "compile", StringComparison.Ordinal) || string.Equals(failure, "authorized", StringComparison.Ordinal) ? "return missing;" : "return readModels;", live: failure == "live");
         if (failure == "authorized") source = "policy Buyers\n  require claim \"role\" matches \"buyer\"\n" + source.Replace("module People", "module People\n  authorize Buyers", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = GapRequest((loaded, failure));

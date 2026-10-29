@@ -20,5 +20,4 @@ public class with_no_independent_slice : given.an_unsupported_event_request
     [Fact] void should_not_compose_a_scene_from_omitted_owners() => _plan.Artifacts.Any(artifact => artifact.RelativePath == SceneCompositionInput.RelativePath).ShouldBeFalse();
     [Fact] void should_not_publish_a_runtime_scene_from_omitted_owners() => _plan.Artifacts.Any(artifact => artifact.RelativePath == StageSceneDocument.RelativePath).ShouldBeFalse();
     [Fact] void should_not_report_skipped_specifications() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-PLAN-007").ShouldBeFalse();
-
 }

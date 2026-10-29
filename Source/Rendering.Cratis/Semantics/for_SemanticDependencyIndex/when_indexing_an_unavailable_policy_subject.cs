@@ -19,14 +19,18 @@ public class when_indexing_an_unavailable_policy_subject : given.a_dependency_in
         _application = _application with { Policies = [new("Access", new SemanticOpaquePolicyCondition("policy-body"))] };
         _request = _request with
         {
-            TypedContextDescriptors = [new("policy-body", SemanticImplementationRole.PolicyPredicate, 1, _operation,
-            [
-                new("Artifact", new(SemanticContextTypeKinds.Shape, null, _operation, null), false, false, new(SemanticContextSourceKinds.AuthorizedOperation, _operation, "Artifact")),
-                new("Subject", new(SemanticContextTypeKinds.Runtime, null, null, SemanticContextRuntimeTokens.Text), true, false, new(SemanticContextSourceKinds.Unavailable, null, string.Empty)),
-                Runtime("Identity", SemanticContextRuntimeTokens.Identity),
-                Runtime("Tenant", SemanticContextRuntimeTokens.TenantId),
-                Runtime("Occurred", SemanticContextRuntimeTokens.DateTime)
-            ])]
+            TypedContextDescriptors = [new(
+                "policy-body",
+                SemanticImplementationRole.PolicyPredicate,
+                1,
+                _operation,
+                [
+                    new("Artifact", new(SemanticContextTypeKinds.Shape, null, _operation, null), false, false, new(SemanticContextSourceKinds.AuthorizedOperation, _operation, "Artifact")),
+                    new("Subject", new(SemanticContextTypeKinds.Runtime, null, null, SemanticContextRuntimeTokens.Text), true, false, new(SemanticContextSourceKinds.Unavailable, null, string.Empty)),
+                    Runtime("Identity", SemanticContextRuntimeTokens.Identity),
+                    Runtime("Tenant", SemanticContextRuntimeTokens.TenantId),
+                    Runtime("Occurred", SemanticContextRuntimeTokens.DateTime)
+                ])]
         };
     }
 

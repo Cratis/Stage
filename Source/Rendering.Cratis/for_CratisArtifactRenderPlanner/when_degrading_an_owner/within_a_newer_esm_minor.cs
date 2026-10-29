@@ -25,6 +25,6 @@ public class within_a_newer_esm_minor : given.an_unsupported_event_request
     [Fact] void should_keep_the_range_warning() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == ArtifactRenderDegradationCodes.NewerEsmWithinDeclaredRange && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).ShouldBeTrue();
     [Fact] void should_not_publish_artifacts() => _plan.Artifacts.ShouldBeEmpty();
     [Fact] void should_not_publish_removals() => _plan.RequiredRemovals.ShouldBeEmpty();
-    [Fact] void should_not_degrade_the_root_or_dependents() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code is "STAGE-DEGRADE-001" or "STAGE-DEGRADE-005").ShouldBeFalse();
+    [Fact] void should_not_degrade_the_root_or_dependents() => _plan.Diagnostics.Any(diagnostic => string.Equals(diagnostic.Code, "STAGE-DEGRADE-001", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-DEGRADE-005", StringComparison.Ordinal)).ShouldBeFalse();
     [Fact] void should_not_publish_omission_refusals() => _plan.Refusals.ShouldBeEmpty();
 }

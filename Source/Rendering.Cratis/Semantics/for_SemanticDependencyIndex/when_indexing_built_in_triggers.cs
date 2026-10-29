@@ -35,7 +35,7 @@ public class when_indexing_built_in_triggers : given.a_dependency_index
     [InlineData(SemanticReactionTriggerKind.Shutdown)]
     public void should_cover_a_specification_without_a_trigger_identity(SemanticReactionTriggerKind kind)
     {
-        var specification = _registerProject.Specifications.First() with { When = null, WhenTrigger = new(kind, []) };
+        var specification = _registerProject.Specifications[0] with { When = null, WhenTrigger = new(kind, []) };
         _registerProject = _registerProject with { Specifications = [specification] };
         BuildIndex();
 
@@ -58,7 +58,7 @@ public class when_indexing_built_in_triggers : given.a_dependency_index
     [Fact]
     public void should_still_refuse_a_missing_application_trigger_in_a_specification()
     {
-        var specification = _registerProject.Specifications.First() with { When = null, WhenTrigger = new(SemanticReactionTriggerKind.ApplicationTrigger, []) };
+        var specification = _registerProject.Specifications[0] with { When = null, WhenTrigger = new(SemanticReactionTriggerKind.ApplicationTrigger, []) };
         _registerProject = _registerProject with { Specifications = [specification] };
         BuildIndex();
 

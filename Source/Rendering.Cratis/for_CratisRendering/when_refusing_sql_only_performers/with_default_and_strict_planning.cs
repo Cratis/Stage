@@ -47,7 +47,7 @@ public class with_default_and_strict_planning : given.a_source_plan
         var diagnostic = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-LANGUAGE");
         Assert.Equal(ArtifactRenderDiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("sql", diagnostic.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code is "STAGE-IMPL-006" or "STAGE-ESM-019");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => string.Equals(diagnostic.Code, "STAGE-IMPL-006", StringComparison.Ordinal) || string.Equals(diagnostic.Code, "STAGE-ESM-019", StringComparison.Ordinal));
     });
 
     [Fact]

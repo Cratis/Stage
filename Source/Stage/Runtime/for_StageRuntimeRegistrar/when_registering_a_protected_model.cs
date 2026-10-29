@@ -45,7 +45,7 @@ public class when_registering_a_protected_model
 
         await StageRuntimeRegistrar.RegisterAsync(provider, "StageUnprotected", model, NullLogger.Instance);
 
-        client.Received().GetEventStore(Arg.Any<EventStoreName>(), Arg.Any<EventStoreNamespaceName?>());
+        await client.Received().GetEventStore(Arg.Any<EventStoreName>(), Arg.Any<EventStoreNamespaceName?>());
     }
 }
 #endif

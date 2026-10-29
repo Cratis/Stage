@@ -4,9 +4,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Specifications;
-using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.for_CratisBackendApplicationScaffold.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold.given;
+using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisFrontendApplicationScaffold;

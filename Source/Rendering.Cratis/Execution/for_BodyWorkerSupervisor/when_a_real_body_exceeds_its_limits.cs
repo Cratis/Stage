@@ -17,7 +17,7 @@ public class when_a_real_body_exceeds_its_limits : Specification
     [InlineData("var values = new System.Collections.Generic.List<byte[]>(); while (true) values.Add(new byte[1024 * 1024]);", BodyDiagnostics.ExceededMemory)]
     async Task should_kill_it_report_a_stable_code_and_respawn_only_for_the_next_call(string body, string code)
     {
-        var fixture = new a_real_worker();
+        using var fixture = new a_real_worker();
         var good = fixture.StressUnit("return context.Value > 0;");
         var bad = fixture.StressUnit(body);
         await using var supervisor = fixture.Create();

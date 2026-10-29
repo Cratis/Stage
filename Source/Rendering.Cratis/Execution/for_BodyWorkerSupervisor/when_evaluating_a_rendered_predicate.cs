@@ -15,12 +15,21 @@ namespace Cratis.Stage.Rendering.Cratis.Execution.for_BodyWorkerSupervisor;
 
 public class when_evaluating_a_rendered_predicate : Specification
 {
+    [Fact]
+    void should_remove_its_temporary_units_when_disposed()
+    {
+        var fixture = new a_real_worker();
+        var path = fixture.CacheDirectory;
+        fixture.Dispose();
+        Directory.Exists(path).ShouldBeFalse();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     async Task should_compile_in_the_worker_and_return_true_and_false_without_host_loading(bool escapedProperty)
     {
-        var fixture = new a_real_worker();
+        using var fixture = new a_real_worker();
         var path = Path.Combine(fixture.CacheDirectory, "Model.play");
         var property = escapedProperty ? "placeOrder" : "amount";
         var wire = escapedProperty ? "placeOrder_" : "amount";

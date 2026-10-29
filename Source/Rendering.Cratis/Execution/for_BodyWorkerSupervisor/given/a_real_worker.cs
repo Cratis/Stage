@@ -13,21 +13,22 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Execution.for_BodyWorkerSupervisor.given;
 
-internal sealed class a_real_worker
+internal sealed class a_real_worker : IDisposable
 {
     internal a_real_worker()
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
-        CacheDirectory = Path.Combine(root, ".ai-work", "891", "specs", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(CacheDirectory);
         WorkerPath = Path.Combine(root, "Source", "Host", "bin", "Debug", "net10.0", "bodyworker", "Cratis.Stage.BodyWorker.dll");
         Assert.True(File.Exists(WorkerPath), "Build Host in Debug before running the real-worker specifications.");
+        CacheDirectory = Directory.CreateTempSubdirectory("stage-body-worker-spec-").FullName;
     }
 
     internal string CacheDirectory { get; }
     internal string WorkerPath { get; }
 
-    internal BodyWorkerSupervisor Create(int timeout = 1000) => new(new(WorkerPath, CacheDirectory) { TimeoutMs = timeout, HeapLimitMb = 96 });
+    public void Dispose() => Directory.Delete(CacheDirectory, true);
+
+    internal BodyWorkerSupervisor Create(int timeout = 10000) => new(new(WorkerPath, CacheDirectory) { TimeoutMs = timeout, HeapLimitMb = 96 });
 
     // Deliberately bypass model purity ONLY in the stress fixture: production never compiles these bodies.
     internal BodyUnitEntry StressUnit(string body)

@@ -120,8 +120,8 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
 
     static bool ValidationOutcome(BodyEvaluation validation) => validation.Outcome switch
     {
-        "satisfied" => validation.Messages.IsEmpty,
-        "unsatisfied" => !validation.Messages.IsDefaultOrEmpty && validation.Messages.Length <= 100 && validation.Messages.All(message => message?.Length <= 1024),
+        "satisfied" => validation.Messages.IsDefaultOrEmpty,
+        "unsatisfied" => BodyValidationBounds.Valid(validation.Messages),
         _ => FailureOutcome(validation.Outcome)
     };
 

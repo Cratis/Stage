@@ -12,6 +12,6 @@ public sealed record BodyEvaluationRequest(string RequirementId, ImmutableDictio
 /// <summary>The bounded worker verdict; unsupported outcomes are never validation rejections.</summary>
 public sealed record BodyEvaluation(string Outcome, JsonElement? Value = null, ImmutableArray<string> Messages = default, string? Diagnostic = null)
 {
-    /// <summary>Gets a serializable, initialized collection even for non-validation outcomes.</summary>
-    public ImmutableArray<string> Messages { get; init; } = Messages.IsDefault ? [] : Messages;
+    /// <summary>Gets a serializable, initialized collection even for non-validation outcomes or a <c>with</c> that clears it.</summary>
+    public ImmutableArray<string> Messages { get; init => field = value.IsDefault ? [] : value; } = Messages.IsDefault ? [] : Messages;
 }

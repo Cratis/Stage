@@ -40,8 +40,8 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
         var verdict = await worker.ValidateAsync(new(entry.RequirementId, Members(context, entry)), cancellationToken).ConfigureAwait(false);
         return verdict.Outcome switch
         {
-            "satisfied" when verdict.Messages.IsEmpty => SemanticValidationBodyResult.Valid(),
-            "unsatisfied" when !verdict.Messages.IsDefaultOrEmpty => new(verdict.Messages),
+            "satisfied" when verdict.Messages.IsDefaultOrEmpty => SemanticValidationBodyResult.Valid(),
+            "unsatisfied" when BodyValidationBounds.Valid(verdict.Messages) => new(verdict.Messages),
             _ => SemanticValidationBodyResult.Unsupported(verdict.Diagnostic ?? BodyDiagnostics.Format(Code(verdict.Outcome), "Body execution did not produce validation messages."))
         };
     }

@@ -7,19 +7,31 @@
 //
 // usage: node prepare.cjs <node_modules directory> <blueprints.json entry index> <output directory>
 const { cpSync, mkdirSync, writeFileSync } = require('node:fs');
-const { join } = require('node:path');
+const { join, resolve } = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const [modules, index, out] = process.argv.slice(2);
 const entry = require('./blueprints.json')[Number(index)];
-const published = require(join(modules, '@cratis', entry.npm));
-const manifest = published[`${entry.export}Manifest`];
-if (!manifest) throw new Error(`@cratis/${entry.npm} does not export ${entry.export}Manifest`);
+const packageFolder = resolve(modules, '@cratis', entry.npm);
+const packageInfo = require(join(packageFolder, 'package.json'));
 
-const folder = join(out, '@cratis', entry.npm);
-mkdirSync(folder, { recursive: true });
-cpSync(join(modules, '@cratis', entry.npm), folder, { recursive: true, dereference: true });
-writeFileSync(join(out, 'approved-packages.json'), `${JSON.stringify({
-    version: 1,
-    packages: [{ manifest, module: { npm: `@cratis/${entry.npm}`, version: require(join(modules, '@cratis', entry.npm, 'package.json')).version, export: entry.export, styles: [] } }],
-}, null, 2)}\n`);
-console.log(`${manifest.name} ${manifest.version} <- @cratis/${entry.npm}`);
+async function prepare() {
+    // Import the published ESM entry: the CJS build cannot load import-only component exports.
+    const published = await import(pathToFileURL(resolve(packageFolder, packageInfo.exports['.'].import)).href);
+    const manifest = published[`${entry.export}Manifest`];
+    if (!manifest) throw new Error(`@cratis/${entry.npm} does not export ${entry.export}Manifest`);
+
+    const folder = join(out, '@cratis', entry.npm);
+    mkdirSync(folder, { recursive: true });
+    cpSync(packageFolder, folder, { recursive: true, dereference: true });
+    writeFileSync(join(out, 'approved-packages.json'), `${JSON.stringify({
+        version: 1,
+        packages: [{ manifest, module: { npm: `@cratis/${entry.npm}`, version: packageInfo.version, export: entry.export, styles: [] } }],
+    }, null, 2)}\n`);
+    console.log(`${manifest.name} ${manifest.version} <- @cratis/${entry.npm}`);
+}
+
+prepare().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});

@@ -79,6 +79,15 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
     }
 
     [Fact]
+    public void should_spell_no_type_with_global_outside_using_directives()
+    {
+        SetContext(Compile(RefusalSource));
+        var reaction = _located.Slice.Reactions.Single();
+        var source = SemanticReactorArtifactRenderer.Render(_located, reaction, _context).Content;
+        source.Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)).ShouldEachConformTo(line => !line.Contains("global::", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void should_preserve_order_destinations_and_tags_for_multiple_branch_outputs()
     {
         SetContext(Compile(RefusalSource));

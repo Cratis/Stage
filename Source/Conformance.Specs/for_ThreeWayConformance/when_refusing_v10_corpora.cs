@@ -16,13 +16,10 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_refusing_v10_corpora(ITestOutputHelper output) : Specification
 {
-    const string MappingFreeProjection = "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
-    const string FollowupsProjection = "sem1:d4f86c078dd9e1b841b7393ad8412b82efb1c9db158fa3d03b78d8826e1d255a";
-
     [Theory]
-    [InlineData("RoutedReaction", "DIVERGENCE #843")]
-    [InlineData("UnroutedReaction", "DIVERGENCE #843")]
-    [InlineData("WrongStreamReaction", "DIVERGENCE #843")]
+    [InlineData("RoutedReaction", "PARITY")]
+    [InlineData("UnroutedReaction", "PARITY")]
+    [InlineData("WrongStreamReaction", "PARITY")]
     [InlineData("UnroutedReducer", "PARITY")]
     [InlineData("MatchingReducer", "PARITY")]
     public async Task should_report_each_canonical_outcome_independently(string name, string disposition)
@@ -36,8 +33,7 @@ public class when_refusing_v10_corpora(ITestOutputHelper output) : Specification
         reference.Execution.Kind.ShouldEqual(expectation.Outcome);
         if (expectation.Outcome != SemanticExecutionOutcomeKind.Unsupported) reference.Passed.ShouldBeTrue();
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([expectation.Specification]), new())).Results.Single();
-        if (disposition == "DIVERGENCE #843") AssertMappingFreeDivergence(reference, result);
-        else AssertParity(result, expectation.Outcome);
+        AssertParity(result, expectation.Outcome);
         output.WriteLine($"{name}: {disposition}; Reference={reference.Execution.Kind}/Passed={reference.Passed}; Stage={result.Outcome}; {result.Unsupported}");
     }
 
@@ -52,16 +48,6 @@ public class when_refusing_v10_corpora(ITestOutputHelper output) : Specification
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-035");
         rendered.Success.ShouldBeFalse();
         rendered.Artifacts.ShouldBeEmpty();
-    }
-
-    static void AssertMappingFreeDivergence(SemanticSpecificationRun reference, SemanticSpecificationRunRecord result)
-    {
-        reference.Execution.Kind.ShouldEqual(SemanticExecutionOutcomeKind.Accepted);
-        reference.Passed.ShouldBeTrue();
-        result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
-        result.Unsupported.Construct.ShouldEqual(FollowupsProjection);
-        result.Unsupported.Details.ShouldEqual(MappingFreeProjection);
     }
 
     static void AssertParity(SemanticSpecificationRunRecord result, SemanticExecutionOutcomeKind outcome)

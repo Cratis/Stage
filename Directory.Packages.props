@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.251.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.254.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -38,6 +38,7 @@
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
     <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.247.3" />
     <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
+    <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->
     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
     <PackageVersion Include="Microsoft.NETCore.App.Ref" Version="$(PureTransitionReferencePackVersion)" />

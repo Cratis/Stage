@@ -51,16 +51,26 @@ internal static class GeneratedSceneMemberNames
                 }
                 else if (value["arguments"] is JsonObject keyed)
                 {
-                    foreach (var (name, source) in keyed.ToArray())
-                    {
-                        var emitted = Path(name, names);
-                        if (emitted == name) continue;
-                        keyed.Remove(name);
-                        keyed[emitted] = source;
-                    }
+                    RenameKeys(keyed, names);
+                }
+
+                if (value["subjectInputs"] is JsonObject subjectInputs)
+                {
+                    RenameKeys(subjectInputs, names);
                 }
             }
             foreach (var (_, child) in value) Arguments(child, commands);
+        }
+    }
+
+    static void RenameKeys(JsonObject keyed, IReadOnlyDictionary<string, string> names)
+    {
+        foreach (var (name, source) in keyed.ToArray())
+        {
+            var emitted = Path(name, names);
+            if (emitted == name) continue;
+            keyed.Remove(name);
+            keyed[emitted] = source;
         }
     }
 

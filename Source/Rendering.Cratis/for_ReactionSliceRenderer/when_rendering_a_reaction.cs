@@ -23,7 +23,8 @@ public class when_rendering_a_reactor : an_automation_slice
     [Fact] void should_declare_the_reactor_class() => _file.Content.ShouldContain("public class OverdueInvoiceDetector : IReactor");
     [Fact] void should_use_the_authored_description_as_summary() => _file.Content.ShouldContain("/// Detects overdue invoices");
     [Fact] void should_declare_a_method_per_trigger() => _file.Content.ShouldContain("public IEnumerable<object>? InvoiceRegistered(InvoiceRegistered @event, EventContext context)");
-    [Fact] void should_deconstruct_the_triggering_event_properties() => _file.Content.ShouldContain("var (DueDate) = @event;");
+    [Fact] void should_bind_the_triggering_event_properties_the_body_uses() => _file.Content.ShouldContain("var DueDate = @event.DueDate;"); // Re-frozen for Cratis/Stage#850.
+    [Fact] void should_not_deconstruct_the_event() => _file.Content.ShouldNotContain("= @event;");
     [Fact] void should_embed_the_authored_code_verbatim() => _file.Content.ShouldContain("return [new MarkInvoiceOverdue(DueDate)];");
     [Fact] void should_stub_a_file_based_trigger() => _file.Content.ShouldContain("// TODO: implementation lives in 'Reactors/NotifyCustomerReactor.cs' — not embedded in this pass");
     [Fact] void should_throw_not_implemented_for_a_file_based_trigger() => _file.Content.ShouldContain("throw new NotImplementedException();");

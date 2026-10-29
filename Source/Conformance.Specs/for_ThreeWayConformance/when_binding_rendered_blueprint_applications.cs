@@ -18,6 +18,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_binding_rendered_blueprint_applications
 {
+    static readonly (string Blueprint, string RelativePath, string Reason)[] _allowList = [];
+
     public static TheoryData<string> Blueprints() =>
         [.. Directory.GetDirectories(Path.Combine(Root(), "Verification", "live-blueprints", "models")).Select(Path.GetFileName).Order(StringComparer.Ordinal)!];
 
@@ -42,6 +44,48 @@ public class when_binding_rendered_blueprint_applications
         var errors = QualifiedOutputProof.CompilationErrors(Files(rendered));
         Assert.True(errors.Count == 0, string.Join('\n', errors.Take(10)));
         Assert.True(proof.ShortSpellings > 0, "The rendered application spells no type by a short name.");
+    }
+
+    [Fact]
+    public async Task should_spell_no_type_with_global_outside_using_directives_and_authored_spans()
+    {
+        var inspectedFiles = 0;
+        foreach (var blueprint in Blueprints())
+        {
+            var name = blueprint;
+            var files = await RenderFiles(name);
+            inspectedFiles += files.Length;
+            foreach (var file in files)
+            {
+                var offenders = OffendingLines(file);
+                Assert.True(!offenders.Any() || _allowList.Any(entry => entry.Blueprint == name && entry.RelativePath == file.RelativePath), $"{name}/{file.RelativePath}: {string.Join('\n', offenders)}");
+            }
+        }
+
+        Assert.True(inspectedFiles > 0, $"Inspected {inspectedFiles} generated C# files.");
+    }
+
+    [Fact]
+    public async Task should_need_every_allow_list_entry()
+    {
+        foreach (var entry in _allowList)
+        {
+            var files = await RenderFiles(entry.Blueprint);
+            Assert.True(files.Any(file => file.RelativePath == entry.RelativePath && OffendingLines(file).Any()), $"Unused allowance: {entry.Blueprint}/{entry.RelativePath}: {entry.Reason}");
+        }
+    }
+
+    static IEnumerable<string> OffendingLines(RenderedFile file) => file.Content.Split('\n')
+        .Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal) && line.Contains("global::", StringComparison.Ordinal));
+
+    static async Task<RenderedFile[]> RenderFiles(string blueprint)
+    {
+        var loaded = await SemanticModelLoader.LoadFromPathAsync(Path.Combine(Root(), "Verification", "live-blueprints", "models", blueprint), null, "Blueprint");
+        var selection = new PlanSelection([.. loaded.Model.Application.Modules.Select(module => PlanSelectionEntry.Module(module.Name))]);
+        var rendered = CratisRendering.PlanFrom(loaded, selection, new CratisPlanOptions("Blueprint", "Blueprint", "Blueprint"));
+        Assert.True(rendered.Success, string.Join('\n', rendered.Diagnostics));
+        return [.. rendered.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+            .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
     }
 
     // The scaffold's policy registration declares the partial method generated policies implement.

@@ -17,7 +17,8 @@ public class with_an_authored_scene : a_screen_composition_render
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, only #660 adds CratisReadProtection On in Directory.Build.props; all other bytes match main.
-    const string Before = "97fca2c181aecac10a6d996d306652f6104194b3b534e586f7adcafe6f5f6a2a";
+    // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
+    const string Before = "089ef2d6ce49d220677974b32e5c7df7c02e4672eab36c8422875700f7ddd13f";
 
     ArtifactRenderPlan _plan = null!;
 

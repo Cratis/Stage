@@ -471,9 +471,11 @@ The cache holds executable assemblies, so do not share it between operating-syst
 Stage creates new cache directories with mode `0700` and uses `/usr/bin/stat` (or `/bin/stat`) to check
 ownership. It refuses foreign-owned or group/world-writable caches, symbolic-link cache roots and
 replaceable parent directories; root-owned sticky temporary parents are allowed. Windows checks ownership
-and write/delete permissions. An unsafe cache produces an explicit worker failure, not cached execution;
-Stage does not repair its permissions. If local application data is unavailable, the default is a private,
-user-suffixed directory beneath the system temporary directory.
+and effective write/delete permissions, including inherited permissions on the cache itself. Inherit-only
+ACEs and CREATOR OWNER / CREATOR GROUP templates do not grant access to the directory being checked.
+An unsafe cache produces an explicit worker failure, not cached execution; Stage does not repair its
+permissions. If local application data is unavailable, the default is a private, user-suffixed directory
+beneath the system temporary directory.
 
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,

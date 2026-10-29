@@ -145,20 +145,17 @@ A plan proves that Stage admitted the model. This guide also built the rendered 
 
 Each concept becomes a record that knows how to make itself. `CustomerId` is used as an `identifier`, so it derives from Chronicle's `EventSourceId<string>`. It is time-ordered, so it implements `IGeneratableInContext<T>`:
 
-```csharp title="Common/CustomerId.cs (license header omitted)"
-using Cratis.Chronicle.Events;
-using Cratis.Concepts;
-
+```csharp title="Common/CustomerId.cs"
 namespace Acme.Shop.Common;
 
 /// <summary>
 /// Represents customer id.
 /// </summary>
-public record CustomerId(string Value) : global::Cratis.Chronicle.Events.EventSourceId<string>(Value), global::Cratis.Concepts.IGeneratableInContext<CustomerId>
+public record CustomerId(string Value) : EventSourceId<string>(Value), IGeneratableInContext<CustomerId>
 {
     public static readonly CustomerId NotSet = new(string.Empty);
 
-    public static CustomerId New(global::Cratis.Concepts.GenerationContext context) => new("cus_" + global::Cratis.Concepts.GenerateValue.Ulid(context).ToLowerInvariant());
+    public static CustomerId New(GenerationContext context) => new("cus_" + GenerateValue.Ulid(context).ToLowerInvariant());
 
     public static implicit operator CustomerId(string value) => new(value);
 }
@@ -166,20 +163,17 @@ public record CustomerId(string Value) : global::Cratis.Chronicle.Events.EventSo
 
 `OrderId` has the same shape. Only the factory differs:
 
-```csharp title="Common/OrderId.cs (license header omitted)"
-using Cratis.Chronicle.Events;
-using Cratis.Concepts;
-
+```csharp title="Common/OrderId.cs"
 namespace Acme.Shop.Common;
 
 /// <summary>
 /// Represents order id.
 /// </summary>
-public record OrderId(string Value) : global::Cratis.Chronicle.Events.EventSourceId<string>(Value), global::Cratis.Concepts.IGeneratableInContext<OrderId>
+public record OrderId(string Value) : EventSourceId<string>(Value), IGeneratableInContext<OrderId>
 {
     public static readonly OrderId NotSet = new(string.Empty);
 
-    public static OrderId New(global::Cratis.Concepts.GenerationContext context) => new(global::Cratis.Concepts.GenerateValue.TypeId("order", context));
+    public static OrderId New(GenerationContext context) => new(GenerateValue.TypeId("order", context));
 
     public static implicit operator OrderId(string value) => new(value);
 }
@@ -187,19 +181,17 @@ public record OrderId(string Value) : global::Cratis.Chronicle.Events.EventSourc
 
 `InviteCode` is neither time-ordered nor an identifier. It is a plain value concept with `IGeneratable<T>` and a parameterless `New()`:
 
-```csharp title="Common/InviteCode.cs (license header omitted)"
-using Cratis.Concepts;
-
+```csharp title="Common/InviteCode.cs"
 namespace Acme.Shop.Common;
 
 /// <summary>
 /// Represents invite code.
 /// </summary>
-public record InviteCode(string Value) : global::Cratis.Concepts.ConceptAs<string>(Value), global::Cratis.Concepts.IGeneratable<InviteCode>
+public record InviteCode(string Value) : ConceptAs<string>(Value), IGeneratable<InviteCode>
 {
     public static readonly InviteCode NotSet = new(string.Empty);
 
-    public static InviteCode New() => new(global::Cratis.Concepts.GenerateValue.NanoId(21, null));
+    public static InviteCode New() => new(GenerateValue.NanoId(21, null));
 
     public static implicit operator string(InviteCode value) => value.Value;
     public static implicit operator InviteCode(string value) => new(value);
@@ -212,32 +204,30 @@ Time-ordered concepts have no parameterless `New()`. The compiler stops hand-wri
 
 The command follows the model. Nothing about the identifier appears in the constructor:
 
-```csharp title="Storefront/Customers/Register/Register.cs (license header omitted)"
+```csharp title="Storefront/Customers/Register/Register.cs"
 using Acme.Shop.Common;
-using Cratis.Arc.Authorization;
-using Cratis.Arc.Commands.ModelBound;
-using Cratis.Arc.Validation;
-using Cratis.Chronicle.EventSequences;
-using Cratis.Chronicle.Events;
+using Acme.Shop.GeneratedCommands;
+using Cratis.Chronicle.EventSequences.Concurrency;
 
 namespace Acme.Shop.Storefront.Customers.Register;
 
-[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AuthorizeAttribute]
-public record RegisterCustomer(global::Acme.Shop.Common.CustomerName Name)
+[Command]
+[Authorize]
+public record RegisterCustomer(CustomerName Name)
 {
-    public (global::Acme.Shop.Common.CustomerId, global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("customerId")] global::Acme.Shop.Common.CustomerId customerId, global::Cratis.Arc.IOperationContextAccessor operation)
+    public (CustomerId, EventsWithConcurrencyScopes) Handle([GeneratedValue("customerId", Freshness = GeneratedValueFreshness.Unguarded)] CustomerId customerId, IOperationContextAccessor operation)
     {
-        var occurred = global::Acme.Shop.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt(operation);
-        return (customerId, new global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes([new global::Cratis.Chronicle.EventSequences.EventForEventSourceId(customerId, new global::Acme.Shop.Storefront.Customers.Register.CustomerRegistered(Name, occurred)) { Occurred = occurred }], global::System.Linq.Enumerable.Select(global::System.Linq.Enumerable.Distinct<global::Cratis.Chronicle.Events.EventSourceId>([customerId]), source => new global::System.Collections.Generic.KeyValuePair<global::Cratis.Chronicle.Events.EventSourceId, global::Cratis.Chronicle.EventSequences.Concurrency.ConcurrencyScope>(source, new(global::Cratis.Chronicle.Events.EventSequenceNumber.BeforeFirst, EventSourceId: source)))));
+        var occurred = CommandReceiptTime.OccurredAtReceipt(operation);
+        return (customerId, new EventsWithConcurrencyScopes([new EventForEventSourceId(customerId, new CustomerRegistered(Name, occurred)) { Occurred = occurred }], Enumerable.Select(Enumerable.Distinct<EventSourceId>([customerId]), source => new KeyValuePair<EventSourceId, ConcurrencyScope>(source, new(EventSequenceNumber.BeforeFirst, EventSourceId: source)))));
     }
 }
 
 /// <summary>
 /// The event that occurs when customer registered.
 /// </summary>
-[global::Cratis.Chronicle.Events.EventTypeAttribute]
-public record CustomerRegistered(global::Acme.Shop.Common.CustomerName Name, global::System.DateTimeOffset RegisteredAt);
+[EventType]
+public record CustomerRegistered(CustomerName Name, DateTimeOffset RegisteredAt);
+
 ```
 
 - `RegisterCustomer(CustomerName Name)` is the whole request. `customerId` is a `Handle` parameter marked `[GeneratedValue("customerId")]`, and the modeled name is the case-sensitive key.
@@ -271,19 +261,19 @@ When a client sends `RegisterCustomer`, this is what the rendered application do
 The generated rejection specification asserts exactly that reason and that no events were appended:
 
 ```csharp title="Storefront/Customers/Register/when_refusing_used_identity.cs (excerpt)"
-async global::System.Threading.Tasks.Task Establish()
+async Task Establish()
 {
-    _scenario.PinGeneratedValue("customerId", new global::Acme.Shop.Common.CustomerId("cus_01arz3ndektsv4rrffq69g5fav"));
-    await _scenario.EventScenario.Given.ForEventSource(new global::Acme.Shop.Common.CustomerId("cus_01arz3ndektsv4rrffq69g5fav")).Events(new global::Acme.Shop.Storefront.Customers.Register.CustomerRegistered(new global::Acme.Shop.Common.CustomerName("Ada"), global::System.DateTimeOffset.Parse("2026-01-02T03:04:05.6780000Z", global::System.Globalization.CultureInfo.InvariantCulture)));
+    _scenario.PinGeneratedValue("customerId", _customerId);
+    await _scenario.EventScenario.Given.ForEventSource(_customerId).Events(new CustomerRegistered(new CustomerName("Ada"), _registeredAt));
     _givenEventCount = _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess);
 }
 
-async global::System.Threading.Tasks.Task Because() => _result = await _scenario.Execute(new global::Acme.Shop.Storefront.Customers.Register.RegisterCustomer(new global::Acme.Shop.Common.CustomerName("Grace")));
+async Task Because() => _result = await _scenario.Execute(new RegisterCustomer(new CustomerName("Grace")));
 
-[global::Xunit.FactAttribute] void should_not_succeed() => _result.ShouldNotBeSuccessful();
-[global::Xunit.FactAttribute] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();
-[global::Xunit.FactAttribute] void should_report_the_freshness_violation() => _result.ValidationResults.First().Reason.ShouldEqual(global::Cratis.Arc.Validation.ValidationResultReason.ConcurrencyViolation);
-[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);
+[Fact] void should_not_succeed() => _result.ShouldNotBeSuccessful();
+[Fact] void should_have_validation_errors() => _result.ShouldHaveValidationErrors();
+[Fact] void should_report_the_freshness_violation() => _result.ValidationResults.First().Reason.ShouldEqual(ValidationResultReason.ConcurrencyViolation);
+[Fact] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);
 ```
 
 The Chronicle [concurrency page](/chronicle/events/concurrency/) explains scopes and `ConcurrencyViolation` in general.
@@ -309,9 +299,9 @@ slice StateChange Invite
 The rendered guard shows what Stage does with a generated value that is not the destination:
 
 ```csharp title="Storefront/Customers/Invite/Invite.cs (excerpt)"
-public (global::Acme.Shop.Common.InviteCode, global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes) Handle([global::Cratis.Arc.Commands.ModelBound.GeneratedValueAttribute("inviteCode")] global::Acme.Shop.Common.InviteCode inviteCode)
+public (InviteCode, EventsWithConcurrencyScopes) Handle([GeneratedValue("inviteCode", Freshness = GeneratedValueFreshness.Unguarded)] InviteCode inviteCode)
 {
-    return (inviteCode, new global::Cratis.Chronicle.EventSequences.EventsWithConcurrencyScopes([new global::Cratis.Chronicle.EventSequences.EventForEventSourceId(CustomerId, new global::Acme.Shop.Storefront.Customers.Invite.InviteIssued(inviteCode))], global::System.Linq.Enumerable.Select(global::System.Linq.Enumerable.Distinct<global::Cratis.Chronicle.Events.EventSourceId>([.. (global::System.String.Equals(CustomerId.Value.ToString(), inviteCode.Value, global::System.StringComparison.Ordinal) ? new global::Cratis.Chronicle.Events.EventSourceId[] { CustomerId } : [])]), source => new global::System.Collections.Generic.KeyValuePair<global::Cratis.Chronicle.Events.EventSourceId, global::Cratis.Chronicle.EventSequences.Concurrency.ConcurrencyScope>(source, new(global::Cratis.Chronicle.Events.EventSequenceNumber.BeforeFirst, EventSourceId: source)))));
+    return (inviteCode, new EventsWithConcurrencyScopes([new EventForEventSourceId(CustomerId, new InviteIssued(inviteCode))], Enumerable.Select(Enumerable.Distinct<EventSourceId>([.. (string.Equals(CustomerId.Value.ToString(), inviteCode.Value, StringComparison.Ordinal) ? new EventSourceId[] { CustomerId } : [])]), source => new KeyValuePair<EventSourceId, ConcurrencyScope>(source, new(EventSequenceNumber.BeforeFirst, EventSourceId: source)))));
 }
 ```
 
@@ -330,14 +320,14 @@ internal static class CommandReceiptTime
     /// <param name="operation">The active Arc operation.</param>
     /// <returns>The normalized dispatch receipt.</returns>
     /// <exception cref="CommandReceiptTimeUnavailable">No dispatch receipt is available.</exception>
-    internal static global::System.DateTimeOffset OccurredAtReceipt(global::Cratis.Arc.IOperationContextAccessor operation)
+    internal static DateTimeOffset OccurredAtReceipt(IOperationContextAccessor operation)
     {
         var receivedAt = operation.ReceivedAt ?? throw new CommandReceiptTimeUnavailable();
         if (receivedAt == default)
         {
             throw new CommandReceiptTimeUnavailable();
         }
-        return global::System.DateTimeOffset.FromUnixTimeMilliseconds(receivedAt.ToUnixTimeMilliseconds());
+        return DateTimeOffset.FromUnixTimeMilliseconds(receivedAt.ToUnixTimeMilliseconds());
     }
 }
 ```
@@ -387,22 +377,27 @@ specification RegisteringWithPinnedIdentity
 Stage renders the pins as scenario setup and asserts the authored values:
 
 ```csharp title="Storefront/Customers/Register/when_registering_with_pinned_identity.cs (excerpt)"
-public class when_registering_with_pinned_identity : global::Cratis.Specifications.Specification, global::System.IDisposable
+public class when_registering_with_pinned_identity : Specification, IDisposable
 {
-    readonly global::Cratis.Arc.Testing.Commands.CommandScenario<global::Acme.Shop.Storefront.Customers.Register.RegisterCustomer> _scenario = new();
-    global::Cratis.Arc.Commands.CommandResult _result = null!;
+    readonly CommandScenario<RegisterCustomer> _scenario = new();
+    static readonly CustomerId _customerId = new CustomerId("cus_01arz3ndektsv4rrffq69g5fav");
+    static readonly CustomerName _name = new CustomerName("Ada");
+    static readonly DateTimeOffset _registeredAt = DateTimeOffset.Parse("2026-01-02T03:04:05.6780000Z", CultureInfo.InvariantCulture);
+    CommandResult _result = null!;
 
     void Establish()
     {
-        _scenario.Clock(new global::System.DateTimeOffset(639029198456780000L, global::System.TimeSpan.Zero));
-        _scenario.PinGeneratedValue("customerId", new global::Acme.Shop.Common.CustomerId("cus_01arz3ndektsv4rrffq69g5fav"));
+        _scenario.Clock(new DateTimeOffset(639029198456780000L, TimeSpan.Zero));
+        _scenario.PinGeneratedValue("customerId", _customerId);
     }
 
-    async global::System.Threading.Tasks.Task Because() => _result = await _scenario.Execute(new global::Acme.Shop.Storefront.Customers.Register.RegisterCustomer(new global::Acme.Shop.Common.CustomerName("Ada")));
+    async Task Because() => _result = await _scenario.Execute(new RegisterCustomer(_name));
 
-    [global::Xunit.FactAttribute] void should_succeed() => _result.ShouldBeSuccessful();
-    [global::Xunit.FactAttribute] async global::System.Threading.Tasks.Task should_have_appended_customer_registered() => await _scenario.ShouldHaveAppendedEvent<global::Acme.Shop.Storefront.Customers.Register.RegisterCustomer, global::Acme.Shop.Storefront.Customers.Register.CustomerRegistered>(new global::Acme.Shop.Common.CustomerId("cus_01arz3ndektsv4rrffq69g5fav"), @event => @event.Name == new global::Acme.Shop.Common.CustomerName("Ada") && @event.RegisteredAt == global::System.DateTimeOffset.Parse("2026-01-02T03:04:05.6780000Z", global::System.Globalization.CultureInfo.InvariantCulture));
-    [global::Xunit.FactAttribute] void should_return_the_expected_response() => ((global::Cratis.Arc.Commands.CommandResult<global::Acme.Shop.Common.CustomerId>)_result).Response.ShouldEqual(new global::Acme.Shop.Common.CustomerId("cus_01arz3ndektsv4rrffq69g5fav"));
+    [Fact] void should_succeed() => _result.ShouldBeSuccessful();
+    [Fact] async Task should_have_appended_customer_registered() => await _scenario.ShouldHaveAppendedEvent<RegisterCustomer, CustomerRegistered>(_customerId, @event => true);
+    [Fact] async Task should_have_appended_customer_registered_with_name() => await _scenario.ShouldHaveAppendedEvent<RegisterCustomer, CustomerRegistered>(_customerId, @event => @event.Name == _name);
+    [Fact] async Task should_have_appended_customer_registered_with_registered_at() => await _scenario.ShouldHaveAppendedEvent<RegisterCustomer, CustomerRegistered>(_customerId, @event => @event.RegisteredAt == _registeredAt);
+    [Fact] void should_return_the_expected_response() => ((CommandResult<CustomerId>)_result).Response.ShouldEqual(_customerId);
 
     public void Dispose() => _scenario.Dispose();
 }
@@ -413,7 +408,7 @@ The pin must match the strategy's exact shape: `cus_` plus a 26-character lowerc
 ```csharp title="Storefront/Customers/Register/when_registering_at_the_receipt_time.cs (excerpt)"
 void Establish()
 {
-    _scenario.Clock(new global::System.DateTimeOffset(639029198456780000L, global::System.TimeSpan.Zero));
+    _scenario.Clock(new DateTimeOffset(639029198456780000L, TimeSpan.Zero));
     _scenario.AllowGeneration();
 }
 ```
@@ -421,7 +416,7 @@ void Establish()
 The last fact checks the receipt-time prefix:
 
 ```csharp title="Storefront/Customers/Register/when_registering_at_the_receipt_time.cs (excerpt)"
-[global::Xunit.FactAttribute] void should_generate_customer_id_at_the_receipt_time() => _scenario.GeneratedValues.Last<global::Acme.Shop.Common.CustomerId>("customerId").Value.ToString()!.StartsWith("cus_01kdyak3se", global::System.StringComparison.Ordinal).ShouldBeTrue();
+[Fact] void should_generate_customer_id_at_the_receipt_time() => _scenario.GeneratedValues.Last<CustomerId>("customerId").Value.ToString()!.StartsWith("cus_01kdyak3se", StringComparison.Ordinal).ShouldBeTrue();
 ```
 
 `cus_01kdyak3se` is the ULID time prefix for `2026-01-02T03:04:05.678Z`. The random remainder stays unpinned.
@@ -473,17 +468,18 @@ slice StateChange Keys
 
 Stage renders the compliance marking onto the concept, and the command property carries a marker of its own:
 
-```csharp title="Common/ApiKey.cs (license header omitted)"
-using Cratis.Concepts;
+```csharp title="Common/ApiKey.cs"
+using Cratis.Arc.Chronicle.Commands;
+using Cratis.Chronicle.ProtectedValues;
 
 namespace Acme.Shop.Common;
 
 /// <summary>
 /// Represents api key.
 /// </summary>
-[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute]
-[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]
-public record ApiKey(string Value) : global::Cratis.Concepts.ConceptAs<string>(Value)
+[Encrypted]
+[NotAudited]
+public record ApiKey(string Value) : ConceptAs<string>(Value)
 {
     public static readonly ApiKey NotSet = new(string.Empty);
 
@@ -493,9 +489,9 @@ public record ApiKey(string Value) : global::Cratis.Concepts.ConceptAs<string>(V
 ```
 
 ```csharp title="Storefront/Customers/Keys/Keys.cs (excerpt)"
-[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Authorization.AuthorizeAttribute]
-public record RegisterApiKey(global::Acme.Shop.Common.CustomerId CustomerId, [property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute] global::Acme.Shop.Common.ApiKey ApiKey)
+[Command]
+[Authorize]
+public record RegisterApiKey(CustomerId CustomerId, [property: NotAudited] ApiKey ApiKey)
 ```
 
 The two attributes protect different things, and neither replaces the other:

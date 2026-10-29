@@ -30,6 +30,21 @@ internal static class SemanticScopedProjectionSupport
     public static string? Rejection(SemanticProjectionScope scope, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool child = false, SemanticId? identity = null, bool isNested = false) =>
         new ScopeRejection(scope, context, properties, child, identity, isNested).Find();
 
+    /// <summary>
+    /// Whether the every literals of a scope are set by the every block itself (Chronicle#4663)
+    /// rather than lowered onto each from block.
+    /// </summary>
+    /// <param name="scope">The scope.</param>
+    /// <returns>True when the literals render natively in the every block.</returns>
+    public static bool RendersEveryLiteralsNatively(SemanticProjectionScope scope) =>
+        scope.Every is { SubscribesToAllEvents: true } || scope.Joins.Length > 0;
+
+    /// <summary>Gets the mappings emitted on the every/all builder, excluding join-free lowered literals.</summary>
+    /// <param name="scope">The scope.</param>
+    /// <returns>The mappings that remain native.</returns>
+    public static IEnumerable<SemanticProjectionMapping> NativeEveryMappings(SemanticProjectionScope scope) =>
+        scope.Every?.Mappings.Where(mapping => RendersEveryLiteralsNatively(scope) || mapping.Source is not SemanticProjectionLiteral) ?? [];
+
     static string? RootRoleConflict(SemanticProjectionScope scope, SemanticApplicationContext context)
     {
         var roots = scope.From.ToDictionary(from => from.EventContract);
@@ -269,7 +284,7 @@ internal static class SemanticScopedProjectionSupport
         return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral().IsMatch(text.Value));
     }
 
-    static bool HasOptionalIntermediate(
+    internal static bool HasOptionalIntermediate(
         System.Collections.Immutable.ImmutableArray<SemanticId> path,
         IReadOnlyList<SemanticProperty> properties,
         SemanticApplicationContext context)
@@ -386,6 +401,8 @@ internal static class SemanticScopedProjectionSupport
 
         bool IsCompositeRoot => IsRoot && properties.Count(property => property.IsIdentifier) > 1;
 
+        bool IsUnverifiedEveryJoinLevel => !IsRoot && scope.Joins.Length > 0;
+
         static bool SharesTargetPrefix(SemanticProjectionMapping mapping, SemanticProjectionMapping literal)
         {
             var length = Math.Min(mapping.Target.Length, literal.Target.Length);
@@ -439,7 +456,7 @@ internal static class SemanticScopedProjectionSupport
 
             if (scope.Nested.Any(IsBlockedInNested))
             {
-                return "Joins and children inside nested are blocked by Chronicle#4125: the engine drops their subscriptions.";
+                return "Joins inside nested remain blocked by the pinned Screenplay reference (Screenplay#1078); children and join removals inside nested are unsupported.";
             }
 
             return null;
@@ -462,11 +479,6 @@ internal static class SemanticScopedProjectionSupport
                 return "An all block without mappings cannot render: Chronicle's FromAll subscribes only through a mapping, so the reference's instances for unrelated event sources would not exist.";
             }
 
-            if (scope.Every is { SubscribesToAllEvents: true } all && all.Mappings.Any(mapping => mapping.Source is SemanticProjectionLiteral))
-            {
-                return "Literal mappings in all cannot render: Chronicle's FromAll has no native constant (Chronicle#4663), and lowering literals onto from blocks would miss events from unrelated types and sources.";
-            }
-
             if (scope.Every is { SubscribesToAllEvents: true } unrelated && properties.FirstOrDefault(property =>
                 !property.IsIdentifier && !unrelated.Mappings.Any(mapping => mapping.Target.Contains(property.Id)) && !NullWhenUnset(property)) is { } unset)
             {
@@ -475,7 +487,7 @@ internal static class SemanticScopedProjectionSupport
 
             if (scope.Every is { IncludeChildren: true } && HasChildScopes())
             {
-                return "Every with IncludeChildren is blocked by Chronicle#4125: the engine double-applies the mappings.";
+                return "Every with IncludeChildren is not yet verified by Stage for child and nested scopes.";
             }
 
             return null;
@@ -566,9 +578,9 @@ internal static class SemanticScopedProjectionSupport
             }
 
             var everyLiterals = EveryLiterals();
-            if (everyLiterals.Length > 0 && scope.Joins.Length > 0)
+            if (everyLiterals.Length > 0 && IsUnverifiedEveryJoinLevel)
             {
-                return "Every literals at a level with joins need https://github.com/Cratis/Chronicle/issues/4663: lowering them onto from blocks can change join backfill eligibility and values.";
+                return "Every literals at child or nested levels with joins are not yet verified by Stage; native constants are supported only at the root.";
             }
 
             if (everyLiterals.Any(CollidesWithFromMapping))

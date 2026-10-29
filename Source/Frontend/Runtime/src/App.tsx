@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-    DestinationKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
+    DestinationKind, LogoKind, type ApplicationStructure, type DestinationReference, type DialogTemplate, type Form, type InstanceContribution, type Layout,
     type EffectiveConfiguration, type NavigationModel, type SceneElement, type Screen, type ScreenTemplate, type Theme, type UiProfile, type ExposureDeclaration,
 } from '@cratis/scene.model';
 import type { CommandOutcome, EffectiveNavItem, InteractionFinding, PackageCatalog } from '@cratis/scene.engine';
@@ -15,6 +15,7 @@ import {
     SliceCommandFieldsProvider,
     SliceInvokerProvider,
     createBrowserDispatcher,
+    createBrowserSceneHistory,
     createHashSceneHistory,
     useSceneNavigation,
     type ComponentRegistry,
@@ -33,6 +34,14 @@ import {
     type ApplicationDocument,
     type CompositionOptions,
 } from '@cratis/scene.blueprint.default';
+// The tokens (z-index scale, shadows, spacing) every Cratis Components overlay reads: a dialog or drawer is portaled to `body`, outside the
+// shell, so without them its stacking falls back to `auto` and the page content paints over it.
+import '@cratis/components/tokens';
+// The stylesheets of the Cratis Components the Stage draws a screen with: the command form's fields, the dropdown and its popup, buttons and messages.
+import '@cratis/components/CommandForm/styles';
+import '@cratis/components/Dropdown/styles';
+import '@cratis/components/Common/styles';
+import '@cratis/components/Display/styles';
 import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
@@ -40,17 +49,17 @@ import { useComponentOutputsPublisher } from './stageComponentOutputs';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
+import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
-import { navigateToScreen, screenArguments } from './stageNavigation';
+import { navigateToScreen, screenArguments, useStageRouting, type StageRouting } from './stageNavigation';
 import { registeredCommand, useStageCommandExecutor } from './commandExecutor';
 import { createStageSliceInvoker, sliceFieldsFrom } from './stageSlices';
 import { useStageSource } from './stageSource';
-import { standaloneScreenTemplates } from './standaloneScreenTemplates';
 import { withoutSeededSlots } from './withoutSeededSlots';
 import { asDialogScreens } from './stageDialogScreens';
 import { stageIconAdapters } from './stageIcons';
@@ -119,7 +128,7 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
     const first = scene.screens[0];
     return effectiveShellOf(scene as ApplicationDocument, first, {
         profile: stageProfile(scene.uiProfiles),
-        blueprintTemplates: standaloneScreenTemplates(screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates),
+        blueprintTemplates: screenTemplates?.length ? [...galleryScreenTemplates, ...screenTemplates] : galleryScreenTemplates,
     });
 }
 
@@ -129,13 +138,14 @@ export function stageShellOf(scene: StageSceneApplication, screenTemplates?: Scr
  */
 export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true): CompositionOptions {
     const regions = declaresRegions(scene.navigation);
-    const application = scene.navigation?.application.logo ? { title: scene.navigation.application.logo.title, image: scene.navigation.application.logo.image || undefined } : undefined;
+    const application = applicationIdentity(scene);
     return {
         profile: stageProfile(scene.uiProfiles),
         catalog: stageCatalogWith(packageCatalog),
         // A screen that fills a blueprint's template finds it among the default blueprint's and the approved domain blueprints'.
-        // A template that fits inside another one is composed on its own: a Screenplay screen fills only the template it names (standaloneScreenTemplates).
-        blueprintTemplates: standaloneScreenTemplates(blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates),
+        // A modeled screen fills only the slots of the template it names, so Stage composes just that template (Scene namedTemplateOnly).
+        blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates,
+        namedTemplateOnly: true,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
             ? { [SlotName.ConfigPanel]: applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter)[SlotName.ConfigPanel] }
             : applicationChrome(scene.screens, screen.name, locales, locale, application, regions, showFooter),
@@ -145,6 +155,26 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
             const bound = bindDataSources(element);
             return dictionary ? resolveStringsInElement(bound, dictionary) : bound;
         },
+    };
+}
+
+/**
+ * What the application calls itself and how it draws its mark: the logo its navigation declares, otherwise the `identity` of the ui profile
+ * (its name, an icon logo and whether the name is shown), so the model's own title replaces the Stage's. Undefined when the model says neither.
+ */
+export function applicationIdentity(scene: StageSceneApplication): ApplicationIdentity | undefined {
+    const logo = scene.navigation?.application.logo;
+    if (logo) return { title: logo.title, image: logo.image || undefined };
+
+    const identity = stageProfile(scene.uiProfiles).identity;
+    if (!identity?.name) return undefined;
+
+    const mark = identity.logo;
+    return {
+        title: identity.name,
+        image: mark?.kind === LogoKind.Image ? mark.image || undefined : undefined,
+        icon: mark?.kind === LogoKind.Icon ? mark.icon : undefined,
+        showName: identity.showName,
     };
 }
 
@@ -171,6 +201,12 @@ function browserStorage(): Storage | null {
 }
 
 export interface AppProps {
+    /**
+     * How the address says which screen is open. `hash` (the default) keeps it in the fragment, which works wherever the page is served
+     * from; `path` makes it a regular route (`/TalkList`), which needs the host to answer every path with the page.
+     */
+    routing?: StageRouting;
+
     /** Components the host adds to the registry, beneath the Stage's own. */
     components?: ComponentRegistry;
 
@@ -190,7 +226,7 @@ export interface AppProps {
     isVisible?: (item: EffectiveNavItem) => boolean;
 }
 
-export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible }: AppProps = {}) {
+export function App({ components, packageCatalog, screenTemplates, dialogTemplates, isVisible, routing = 'hash' }: AppProps = {}) {
     const source = useStageSource();
     const [scene, setScene] = useState<StageSceneApplication>();
     const [error, setError] = useState('');
@@ -214,11 +250,12 @@ export function App({ components, packageCatalog, screenTemplates, dialogTemplat
 
     if (error) return <main className='stage-message'><h1>Unable to render this Stage</h1><p>{error}</p></main>;
     if (!scene) return <main className='stage-message'><h1>Preparing the Stage</h1></main>;
-    return <StageApplication scene={scene} registry={registry} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
+    return <StageApplication scene={scene} registry={registry} routing={routing} routeState={routeState} strings={strings} packageCatalog={packageCatalog} screenTemplates={screenTemplates} isVisible={isVisible} />;
 }
 
 interface StageApplicationProps {
     scene: StageSceneApplication;
+    routing: StageRouting;
     registry: ComponentRegistry;
     routeState: ReturnType<typeof useStageRouteState>;
     strings: ReturnType<typeof useStrings>;
@@ -234,8 +271,16 @@ interface StageApplicationProps {
  * topbar and sidebar are the effective navigation regions. The Stage supplies what is its own: the shell chrome, the data and
  * the commands the screens run against.
  */
-function StageApplication({ scene, registry, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
-    const history = useMemo(() => createHashSceneHistory(), []);
+function StageApplication({ scene, registry, routing, routeState, strings, packageCatalog, screenTemplates, isVisible }: StageApplicationProps) {
+    const history = useMemo(() => {
+        useStageRouting(routing);
+        if (routing === 'hash') return createHashSceneHistory();
+
+        // An address written the earlier way (`/#/TalkList`) keeps working: it becomes the regular route it stands for.
+        const legacy = /^#\/(.+)$/.exec(globalThis.location.hash);
+        if (legacy) globalThis.history.replaceState(null, '', `/${legacy[1]}`);
+        return createBrowserSceneHistory(window, '/');
+    }, [routing]);
     const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
     const initial = scene.screens[0]?.name ?? '';
     const profile = useMemo(() => stageProfile(scene.uiProfiles), [scene]);
@@ -248,7 +293,7 @@ function StageApplication({ scene, registry, routeState, strings, packageCatalog
         () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter),
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
-    const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible), [scene, isVisible]);
+    const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);
     // Own templates come first: a template of the application wins over a blueprint's of the same name, as in composition.
     const document = useMemo(() => ({
         ...scene,
@@ -446,10 +491,10 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
     return (
-        <>
+        <StageScreenTables element={element}>
             <StageQueryBindings element={element} />
             <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
-        </>
+        </StageScreenTables>
     );
 }
 
@@ -480,7 +525,10 @@ function StageDialog({ template, content, registry, strings, close }: StageDialo
         <div className='stage-dialog-backdrop'>
             <section role='dialog' aria-modal='true' aria-label={template.displayName ?? template.name} className='stage-dialog'>
                 <button type='button' onClick={close}>Close</button>
-                <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                {/* Template dialogs own their table scope; only ConfirmDialog decisions preserve the originating list selection. */}
+                <StageScreenTables element={resolved}>
+                    <SceneElementView element={resolved} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} />
+                </StageScreenTables>
             </section>
         </div>
     );

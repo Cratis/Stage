@@ -58,7 +58,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
                         var valueConstructor = valueType.GetConstructors().Single(constructor => constructor.GetParameters().Length == 1);
                         string? input = {{JsonSerializer.Serialize(text)}};
                         var value = input is null ? null : valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, System.Globalization.CultureInfo.InvariantCulture)]);
-                        using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
+                        using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
                         using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(constructor.Invoke(["one", value]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
@@ -69,6 +69,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
             });
             AddGeneratedSpecification("OrderedCommandFailures.cs", $$"""
                 #if DEBUG
+                using Cratis.Arc.Chronicle.Testing.Commands;
                 using Xunit;
                 namespace OptionalRules.ValidationParity;
                 public class OrderedCommandFailures

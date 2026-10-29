@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
@@ -64,13 +65,13 @@ public class when_planning_uuid_read_path_comparisons : Specification
     {
         var source = Source.Replace("PlantAccessGrant.memberId == requestedBy", $"PlantAccessGrant.memberId {comparison} \"a1111111-1111-4111-8111-111111111111\"", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
-        plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"{negation}global::System.Object.Equals(plantAccessGrant.MemberId.Value, global::System.Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))", StringComparison.Ordinal)).ShouldBeTrue();
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
+        plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"{negation}object.Equals(plantAccessGrant.MemberId.Value, Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Fact] void should_plan_successfully() => _plan.Success.ShouldBeTrue();
     [Fact] void should_not_refuse_the_read() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
     [Fact] void should_not_refuse_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
     [Fact] void should_emit_artifacts() => _plan.Artifacts.ShouldNotBeEmpty();
-    [Fact] void should_compare_the_read_path_as_a_Guid() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("global::System.Object.Equals(plantAccessGrant.MemberId.Value, RequestedBy.Value)", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_compare_the_read_path_as_a_Guid() => _plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("object.Equals(plantAccessGrant.MemberId.Value, RequestedBy.Value)", StringComparison.Ordinal)).ShouldBeTrue();
 }

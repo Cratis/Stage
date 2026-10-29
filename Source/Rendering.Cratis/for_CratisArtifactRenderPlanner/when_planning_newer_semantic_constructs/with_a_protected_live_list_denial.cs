@@ -3,6 +3,7 @@
 
 using System.Text;
 using Cratis.Specifications;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
@@ -25,6 +26,6 @@ public class with_a_protected_live_list_denial : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_admit_the_denial() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
-    [Fact] void should_execute_the_argument_free_query_through_arc() => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_denying_list_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("_scenario.Perform(nameof(global::Invoices.Billing.Invoicing.Lookup.InvoiceSummary.AllInvoices), new global::Cratis.Arc.Queries.QueryArguments {  })");
+    [Fact] void should_admit_the_denial() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
+    [Fact] void should_execute_the_argument_free_query_through_arc() => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_denying_list_is_queried.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("_scenario.Perform(nameof(InvoiceSummary.AllInvoices), new QueryArguments {  })");
 }

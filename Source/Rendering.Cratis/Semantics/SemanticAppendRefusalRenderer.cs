@@ -15,9 +15,9 @@ internal static class SemanticAppendRefusalRenderer
     internal static RenderedFile Render(SemanticSpecification specification, SemanticConstraint constraint, SemanticApplicationContext context)
     {
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Arc.Chronicle.Testing.Commands")
             .Using("Cratis.Specifications").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
@@ -31,7 +31,7 @@ internal static class SemanticAppendRefusalRenderer
             var contract = context.Events[given.EventContract];
             var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
             var source = types.EventSourceExpression(types.Value(given.EventSource!.Value, given.EventSource.Type), given.EventSource.Type);
-            builder.Line($"await _scenario.EventScenario.Given.ForEventSource({source}).Events(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
+            builder.Line($"(await _scenario.EventLog.Append({source}, new {types.EventType(contract)}({string.Join(", ", arguments)}))).IsSuccess.ShouldBeTrue();");
         }
 
         builder.Line("_givenEventCount = _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess);")
@@ -52,6 +52,6 @@ internal static class SemanticAppendRefusalRenderer
         builder.Line("[global::Xunit.FactAttribute] void should_not_append_events() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(_givenEventCount);")
             .BlankLine().ExpressionMember("public void Dispose()", "_scenario.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 }

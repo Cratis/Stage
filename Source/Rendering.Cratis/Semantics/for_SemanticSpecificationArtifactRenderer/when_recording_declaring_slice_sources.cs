@@ -54,15 +54,12 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        // The caller-less command scenario retains #494's labeled authenticated principal and accessor scope.
-        { when_rendering_scoped_projections.ScopedSource, "40c605e2742e33bf12a8e9556a51ad29a49173d64eeecb56ab40a94a29590e70" },
-        { QuerySource, "cc622d2c2b7a6030342c3c823adba47c96f08f2504a545e1f035cbd0c15b7ce8" },
-        { DeniedQuerySource(), "422877b8623baaed91b83953a94ecaf9974349a9cf75be9a23a1552ad2729b42" },
-        { a_reaction_specification.ProductionSource, "c99cb46e0b410e2648760d34d223d49acd9019b16bcca4001bfa7c3cbb9338bd" },
-        { a_redelivery_specification.RedeliverySource, "7f140178f427dd6ee77eafa6d36878ea0d5915eade1951810c94604b2f7e4e72" },
-
-        // Each expanded caller-less command case retains the same authenticated-default principal and accessor scope.
-        { a_specification_case_table.Source, "7741bb10aa1a11115de3b6c82307991d5c193624c3c28ed3a1d7176eace79b65" }
+        { when_rendering_scoped_projections.ScopedSource, "1afbe1461d5cad81bbcecb298f7ef6ef58799ed7398355280bcac48ee91833e9" },
+        { QuerySource, "593e95a70877d953aa788243bb021925a7ac07762a4fdaaabc89593f12a5d442" },
+        { DeniedQuerySource(), "be08c539e9769ae6b0b341606359f2c20670ac32b14dcdab7d18e32ecd090190" },
+        { a_reaction_specification.ProductionSource, "a126793aa88e2d18154a56d2f9b639bccbf39ad32c3c4ef68deb0d95ac22a116" },
+        { a_redelivery_specification.RedeliverySource, "874c5afa44cd2e0597b983df8fca086b43797312d68967b39ae6651451f0e177" },
+        { a_specification_case_table.Source, "eecd08b06586899a7a5f8abc44bcfbdc58471fd61140898e5b98072befdad986" }
     };
 
     public static TheoryData<string> Sources
@@ -86,7 +83,7 @@ public class when_recording_declaring_slice_sources
         var context = Context(source);
         var files = context.Specifications.Values.SelectMany(specification => SemanticSpecificationArtifactRenderer.Render(specification, context));
         var hashes = files.OrderBy(file => file.RelativePath, StringComparer.Ordinal)
-            .Select(file => $"{file.RelativePath} {Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(file.Content)))}");
+            .Select(file => $"{file.RelativePath} {Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore(file.RelativePath, file.Content))))}");
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', hashes)))).ShouldEqual(digest);
     }
 

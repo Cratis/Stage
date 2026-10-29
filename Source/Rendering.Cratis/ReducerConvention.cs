@@ -15,6 +15,11 @@ internal sealed record ReducerConvention(bool SelfDefault, ImmutableDictionary<S
 {
     internal static readonly ReducerConvention Classic = new(false, []);
 
+    /// <summary>
+    /// Gets whether eligible From-only scoped projections render as model-bound read models.
+    /// </summary>
+    internal bool ModelBoundProjections { get; init; }
+
     internal bool SelfReduces(SemanticId readModel) => SelfDefault || Overrides.ContainsKey(readModel);
 
     internal string? PinnedObserverId(SemanticId readModel) => Overrides.TryGetValue(readModel, out var pinned) ? pinned.ObserverId : null;

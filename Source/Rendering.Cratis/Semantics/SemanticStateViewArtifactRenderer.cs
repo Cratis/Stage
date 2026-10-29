@@ -22,7 +22,7 @@ internal static class SemanticStateViewArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
         RenderDeclaredEvents(builder, located, context);
@@ -99,29 +99,32 @@ internal static class SemanticStateViewArtifactRenderer
 
             firstModel = false;
             var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
-            var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
-            var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
-            context.Docs(readModel.Id).Render(builder);
-            if (@event is not null)
+            var modelBound = projection is not null && SemanticModelBoundProjectionRenderer.Expresses(projection, readModel, context);
+            if (context.OmittedEventContextMappings.TryGetValue(readModel.Id, out var omitted) && context.OmittedOptionalMappings.TryGetValue(readModel.Id, out var omittedOptional))
             {
-                builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
+                foreach (var path in omitted)
+                {
+                    builder.Line($"// STAGE-DEGRADE-002: $eventContext.{path} mapping omitted (Stage#876)");
+                }
+
+                foreach (var path in omittedOptional)
+                {
+                    builder.Line($"// STAGE-DEGRADE-002: {path} mapping omitted (reached through an optional property)");
+                }
+            }
+            else if (context.Degradations.Exists(degradation => degradation.Diagnostic.Artifact == readModel.Id))
+            {
+                builder.Line("// STAGE-DEGRADE-002: no projection or reducer builds this read model");
             }
 
+            context.Docs(readModel.Id).Render(builder);
+            RenderProjectionAttributes(builder, readModel, context);
+            RenderReducerAttributes(builder, readModel, located, context);
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
             var self = reducer is not null && context.SelfReduces(reducer.ReadModel);
-            if (self && reducer!.From is { } filter)
-            {
-                SemanticObserverFilterRendering.Attribute(builder, filter, context);
-            }
-            if (self && context.PinnedObserverId(readModel.Id) is { } observerId)
-            {
-                // A migrated model keeps the previous classic reducer's observer, so Chronicle never starts a new one.
-                builder.Attribute($"global::Cratis.Chronicle.Reducers.ReducerAttribute({CSharpCodeBuilder.StringLiteral(observerId)})");
-            }
             builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
-                .OpenBlock(transition is null ? ModelDeclaration(readModel, types, queries, reducer is not null) :
-                    $"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne))})");
+                .OpenBlock(Declaration(readModel, located, context));
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types, context);
@@ -135,12 +138,12 @@ internal static class SemanticStateViewArtifactRenderer
             builder.EndBlock();
             if (SemanticVersionFeatures.HasCompositeKey(readModel))
             {
-                builder.BlankLine().Raw(CompositeKeyRecord(readModel, types));
+                builder.BlankLine().Fragment(CompositeKeyRecord(readModel, types));
             }
 
-            if (projection?.Scope is { } scope)
+            if (!modelBound && projection?.Scope is { } scope)
             {
-                builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
+                builder.BlankLine().Fragment(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }
         }
     }
@@ -156,7 +159,10 @@ internal static class SemanticStateViewArtifactRenderer
         context.SelfReducers(located).SelectMany(reducer => reducer.Transitions.Select(transition => transition.EventContract)).Distinct();
 
     internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
-        $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, reducerInput)})";
+        ModelDeclaration(model, types, queries, new ReadModelParameterRendering(reducerInput));
+
+    internal static string ModelDeclaration(SemanticReadModel model, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, ReadModelParameterRendering rendering) =>
+        $"public record {Identifiers.ToPascalCase(model.Name)}({ScopedParameters(model, types, queries, rendering)})";
 
     // Chronicle identifies an instance with one object-valued key, so a composite-keyed model carries the key record
     // as its [Key] property next to the declared properties, which keep their own values.
@@ -167,11 +173,14 @@ internal static class SemanticStateViewArtifactRenderer
         $"\npublic record {SemanticCompositeKeyAdmission.KeyTypeName(readModel)}({string.Join(", ", OrderedProperties(readModel.Properties.Where(property => property.IsIdentifier)).Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))});";
 
     internal static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, bool reducerInput) =>
+        ScopedParameters(readModel, types, queries, new ReadModelParameterRendering(reducerInput));
+
+    internal static string ScopedParameters(SemanticReadModel readModel, SemanticTypeSystem types, IReadOnlyList<SemanticKeyedQuery> queries, ReadModelParameterRendering rendering) =>
         SemanticVersionFeatures.HasCompositeKey(readModel)
             ? string.Join(", ", OrderedProperties(readModel.Properties).Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}")
                 .Prepend($"[global::Cratis.Chronicle.Keys.KeyAttribute] {SemanticCompositeKeyAdmission.KeyTypeName(readModel)} {SemanticCompositeKeyAdmission.KeyPropertyName}"))
             : string.Join(", ", OrderedProperties(readModel.Properties).Select(property =>
-            $"{((property.IsIdentifier || queries.Any(_ => _.Cardinality == SemanticQueryCardinality.ZeroOrOne && _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{types.Type(property.Type, reducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
+            $"{((property.IsIdentifier || queries.Any(_ => _.Cardinality == SemanticQueryCardinality.ZeroOrOne && _.KeyProperty == property.Id)) && !types.IsEventSourceIdentifier(property.Type) ? "[global::Cratis.Chronicle.Keys.KeyAttribute] " : string.Empty)}{rendering.Attributes?.Invoke(property)}{types.Type(property.Type, rendering.ReducerInput)} {Identifiers.ToPascalCase(property.Name)}"));
 
     internal static string Parameters(
         SemanticReadModel readModel,
@@ -247,6 +256,59 @@ internal static class SemanticStateViewArtifactRenderer
     }
 
     // A performer owns the result; retain the route and shape whether its body is available or not.
+    static void RenderProjectionAttributes(CSharpCodeBuilder builder, SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        var projection = context.Projections.Values.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
+        if (projection is null) return;
+        if (SemanticModelBoundProjectionRenderer.Expresses(projection, readModel, context))
+        {
+            foreach (var attribute in SemanticModelBoundProjectionRenderer.ClassAttributes(projection, context))
+            {
+                builder.Attribute(attribute);
+            }
+        }
+        if (projection.Scope is null)
+        {
+            var @event = context.Events[projection.Transitions.Single().EventContract];
+            builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{new SemanticTypeSystem(context).EventType(@event)}>");
+        }
+    }
+
+    static void RenderReducerAttributes(CSharpCodeBuilder builder, SemanticReadModel readModel, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
+        if (reducer is null || !context.SelfReduces(reducer.ReadModel)) return;
+        if (reducer.From is { } filter)
+        {
+            SemanticObserverFilterRendering.Attribute(builder, filter, context);
+        }
+        if (context.PinnedObserverId(readModel.Id) is { } observerId)
+        {
+            // A migrated model keeps the previous classic reducer's observer, so Chronicle never starts a new one.
+            builder.Attribute($"global::Cratis.Chronicle.Reducers.ReducerAttribute({CSharpCodeBuilder.StringLiteral(observerId)})");
+        }
+    }
+
+    static string Declaration(SemanticReadModel readModel, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        var types = new SemanticTypeSystem(context);
+        var queries = located.Slice.Queries.Where(query => query.ReadModel == readModel.Id).ToArray();
+        var projection = context.Projections.Values.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
+        if (projection is { Scope: null })
+        {
+            var transition = projection.Transitions.Single();
+            var @event = context.Events[transition.EventContract];
+            return $"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne))})";
+        }
+
+        var rendering = new ReadModelParameterRendering(located.Slice.Reducers.Any(reducer => reducer.ReadModel == readModel.Id));
+        if (projection is not null && SemanticModelBoundProjectionRenderer.Expresses(projection, readModel, context))
+        {
+            rendering = rendering with { Attributes = property => SemanticModelBoundProjectionRenderer.ParameterAttributes(projection, property, context) };
+        }
+        return ModelDeclaration(readModel, types, queries, rendering);
+    }
+
     static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)
     {
         var returnType = SemanticQueryContextRuntime.ReturnType(query, readModelName);

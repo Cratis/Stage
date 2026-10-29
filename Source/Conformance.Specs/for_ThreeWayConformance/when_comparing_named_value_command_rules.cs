@@ -50,7 +50,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                         var enumType = Nullable.GetUnderlyingType(valueType) ?? valueType;
                         string? member = {{JsonSerializer.Serialize(member)}};
                         var value = member is null ? null : Enum.Parse(enumType, member);
-                        using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
+                        using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
                         using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(constructor.Invoke(["one", value, Enum.Parse(enumType, "InReview")]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
@@ -61,6 +61,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
             });
             AddGeneratedSpecification("NamedValueFailures.cs", $$"""
                 #if DEBUG
+                using Cratis.Arc.Chronicle.Testing.Commands;
                 using Xunit;
                 namespace NamedValues.ValidationParity;
                 public class NamedValueFailures

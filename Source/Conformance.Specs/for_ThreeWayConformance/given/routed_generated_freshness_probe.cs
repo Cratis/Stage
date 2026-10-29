@@ -62,7 +62,19 @@ internal static class routed_generated_freshness_probe
             [Fact] void should_keep_scopes_through_the_oneof_wrapper() => _checkedBatch.ConcurrencyScopes.Single().Value.ShouldEqual(_batch.ConcurrencyScopes.Single().Value);
             [Fact] void should_reject_the_direct_scoped_append() => _direct.HasConcurrencyViolations.ShouldBeTrue();
             [Fact] void should_reject_the_command_with_definition_concurrency_dimensions() => _result.ValidationResults.Single().Reason.ShouldEqual(ValidationResultReason.ConcurrencyViolation);
-            [Fact] void should_append_nothing_after_the_given() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(1);
+            // With #660 read protection enabled, Execute captures command attempts rather than the earlier seed append.
+            [Fact] void should_append_nothing_after_the_given() => _scenario.AppendedEvents.Count(entry => entry.Result.IsSuccess).ShouldEqual(0);
+            [Fact]
+            async Task should_preserve_only_the_given_on_its_original_stream()
+            {
+                var stored = (await _scenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First)).Single();
+                stored.Content.ShouldEqual(_prior.Content);
+                stored.Context.Hash.ShouldEqual(_prior.Context.Hash);
+                stored.Context.SequenceNumber.ShouldEqual(_prior.Context.SequenceNumber);
+                stored.Context.EventSourceId.ShouldEqual(_prior.Context.EventSourceId);
+                stored.Context.EventStreamType.ShouldEqual(_prior.Context.EventStreamType);
+                stored.Context.EventStreamId.ShouldEqual(_prior.Context.EventStreamId);
+            }
 
             public void Dispose() => _scenario.Dispose();
         }

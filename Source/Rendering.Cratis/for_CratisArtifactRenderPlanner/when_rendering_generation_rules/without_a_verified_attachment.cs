@@ -39,7 +39,8 @@ public class without_a_verified_attachment
             loaded.AttachmentDiagnostics,
             kind == "omitted" ? [] : loaded.TypedContextDescriptors);
         Assert.Empty(plan.Artifacts);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-020");
+        var expectedCode = kind == "tampered" ? "STAGE-ESM-056" : "STAGE-ESM-020";
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == expectedCode);
     }
 
     [Fact]

@@ -18,15 +18,15 @@ public class when_rendering_scoped_projections(when_rendering_scoped_projections
     [Fact] void should_build_debug_warning_free() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_warning_free() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_the_generated_command_and_scoped_read_specifications() => fixture.Specifications.ShouldContain("Passed!");
-    [Fact] void should_emit_scoped_projection_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("ReadModelScenario<global::Projects.Projects.Registration.ProjectLookup.ProjectSummary>");
-    [Fact] void should_emit_a_seeded_query_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new global::Projects.Projects.Registration.ProjectLookup.ProjectDetails");
-    [Fact] void should_emit_two_from_events_and_a_join() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<global::Projects.Projects.Registration.RegisterProject.ProjectRenamed>");
+    [Fact] void should_emit_scoped_projection_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("ReadModelScenario<ProjectSummary>");
+    [Fact] void should_emit_a_seeded_query_specification() => fixture.GeneratedFile("Projects/Registration/RegisterProject/when_looking_up_pinned_project_is_queried.cs").ShouldContain(".ReadModel(new ProjectDetails");
+    [Fact] void should_emit_two_from_events_and_a_join() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.From<ProjectRenamed>");
     [Fact] void should_emit_identified_children() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.IdentifiedBy(item => item.NoteId)");
     [Fact] void should_emit_increment_mappings() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("Increment(model => model.Visits)");
     [Fact] void should_emit_several_read_models_and_queries() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("ProjectDetailsById");
-    [Fact] void should_emit_nested_blocks() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<global::Projects.Projects.Registration.RegisterProject.ProjectRegistered>");
+    [Fact] void should_emit_nested_blocks() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("nested.From<ProjectRegistered>");
     [Fact] void should_emit_every_and_removal_blocks() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("builder.FromEvery(every =>");
-    [Fact] void should_emit_child_removals() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<global::Projects.Projects.Registration.RegisterProject.ProjectNoteRemoved>");
+    [Fact] void should_emit_child_removals() => fixture.GeneratedFile("Projects/Registration/ProjectLookup/ProjectLookup.cs").ShouldContain("children.RemovedWith<ProjectNoteRemoved>");
 
     internal const string ScopedSource = """
         concept ProjectId : Uuid

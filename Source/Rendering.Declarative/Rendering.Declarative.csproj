@@ -1,0 +1,16 @@
+<!-- Copyright (c) Cratis. All rights reserved. -->
+<!-- Licensed under the MIT license. See LICENSE file in the project root for full license information. -->
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <AssemblyName>Cratis.Stage.Rendering.Declarative</AssemblyName>
+        <RootNamespace>Cratis.Stage.Rendering.Declarative</RootNamespace>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <IsPackable>false</IsPackable>
+        <Description>Prerelease declarative artifact render planner that interprets Stage target kits.</Description>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Contracts/Contracts.csproj" />
+        <ProjectReference Include="../Rendering.Kits/Rendering.Kits.csproj" />
+        <ProjectReference Include="../Rendering.Templates/Rendering.Templates.csproj" />
+    </ItemGroup>
+</Project>

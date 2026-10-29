@@ -59,9 +59,11 @@ internal static partial class SemanticCratisAdmission
 
         // The reference evaluator selects the first supplied identifier, not necessarily the first declared
         // identifier. A generated command record cannot distinguish omitted values from defaulted values.
-        if (command.Authorization is not null && command.Properties.Count(property => property.IsIdentifier) != 1)
+        var identifiers = command.Properties.Where(property => property.IsIdentifier).ToArray();
+        if (identifiers.Length != 1)
         {
-            diagnostics.Add(Error("STAGE-ESM-015", $"Authorized command '{command.Name}' needs exactly one identifier to preserve the reference subject.", command.Id));
+            var declaration = identifiers.Length == 0 ? "no identifier" : $"{identifiers.Length} identifiers ({string.Join(", ", identifiers.Select(property => property.Name))})";
+            diagnostics.Add(Error("STAGE-ESM-015", $"Authorized command '{command.Name}' declares {declaration}; it needs exactly one identifier to preserve the reference subject.", command.Id));
             return false;
         }
 

@@ -14,7 +14,6 @@ namespace Cratis.Stage.Rendering.Cratis.for_ConceptRenderer;
 public class when_rendering_secret_scopes_without_details : compliance_concepts
 {
     Dictionary<string, RenderedFile> _files = null!;
-    bool _explicitOffMatchesDefault;
     bool _absentReasonsPreserveScopes;
     RenderedFile _bothWithScope = null!;
 
@@ -22,9 +21,7 @@ public class when_rendering_secret_scopes_without_details : compliance_concepts
     {
         _files = _applicationSet.Concepts.ToDictionary(
             entry => entry.Key,
-            entry => ConceptRenderer.Render(entry.Value, _applicationSet, "Generated"));
-        _explicitOffMatchesDefault = _applicationSet.Concepts.All(entry =>
-            ConceptRenderer.Render(entry.Value, _applicationSet, "Generated", complianceDetails: false).Content == _files[entry.Key].Content);
+            entry => ConceptRenderer.Render(entry.Value, _applicationSet, "Generated", complianceDetails: false));
         _absentReasonsPreserveScopes = new[] { "NamespaceSecret", "GlobalSecret" }.All(name =>
         {
             var concept = _applicationSet.Concepts[name];
@@ -32,7 +29,7 @@ public class when_rendering_secret_scopes_without_details : compliance_concepts
             {
                 Attributes = [.. concept.Attributes.Select(attribute => attribute with { Reason = null })]
             };
-            return ConceptRenderer.Render(withoutReason, _applicationSet, "Generated").Content == _files[name].Content;
+            return ConceptRenderer.Render(withoutReason, _applicationSet, "Generated", complianceDetails: false).Content == _files[name].Content;
         });
         var both = _applicationSet.Concepts["PersonalSecret"];
         _bothWithScope = ConceptRenderer.Render(both with
@@ -40,7 +37,8 @@ public class when_rendering_secret_scopes_without_details : compliance_concepts
             Attributes = [.. both.Attributes.Select(attribute => attribute.Name == ConceptAttributeSyntax.Sensitive ? attribute with { Scope = "global" } : attribute)]
         },
         _applicationSet,
-        "Generated");
+        "Generated",
+        complianceDetails: false);
     }
 
     [Fact] void should_render_namespace_scope_without_reason() => _files["NamespaceSecret"].Content.ShouldContain("[Encrypted(EncryptionScope.Namespace)]\n[NotAudited]");
@@ -48,7 +46,6 @@ public class when_rendering_secret_scopes_without_details : compliance_concepts
     [Fact] void should_omit_namespace_reason() => _files["NamespaceSecret"].Content.ShouldNotContain("Shared credential.");
     [Fact] void should_omit_global_reason() => _files["GlobalSecret"].Content.ShouldNotContain("Installation credential.");
     [Fact] void should_render_the_same_scope_without_an_authored_reason() => _absentReasonsPreserveScopes.ShouldBeTrue();
-    [Fact] void should_render_the_same_output_with_explicitly_disabled_details() => _explicitOffMatchesDefault.ShouldBeTrue();
     [Fact] void should_keep_subject_scope_bare() => _files["SubjectSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
     [Fact] void should_keep_unspecified_scope_bare() => _files["BareSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");
     [Fact] void should_keep_reason_only_secret_bare() => _files["ReasonSecret"].Content.ShouldContain("[Encrypted]\n[NotAudited]");

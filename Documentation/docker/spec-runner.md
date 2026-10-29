@@ -18,7 +18,8 @@ publication (`STAGE-ESM-032`), foreign events and `source events` captures (`STA
 Translate slices (`STAGE-ESM-024`, naming the direction). Both engines refuse reducer observer filters (`STAGE-ESM-035`).
 The structural engine still refuses every reaction execution identity (`STAGE-ESM-034`) and reaction observer filter (`STAGE-ESM-035`); semantic renderer support for reaction filters and role-only or authenticated-only `runs as` invocations does not relax these structural refusals. Per-production route overrides run on the semantic engine; an override on an unkeyed stream under a keyed command route, or with the literal stream id `Default`, is not admitted yet and fails `STAGE-ESM-036`; the structural engine refuses their stream syntax with `STAGE-ESM-030`.
 The semantic engine runs Translate slices. An inbound `source events` capture appends its private event for the capture key, following the Screenplay reference: the first observation of a key counts only as `added`, and field-change and transition conditions compare it with the previous observation. An outbound projection that targets a public event appends that event to the run's own event log when its content changes; publishing to another application's inbox is not part of a run. Translation refusals are scoped to each specification, so an unrelated Translate slice does not block a run. The semantic engine still refuses, with the codes above, captures that use `map`, children or nested values, `given capture` on a `source events` capture, reducers that target a public event, public-event projections with `every`, `clear` or a `from` that leaves a required property unmapped, and reactions or read-model projections declared inside a Translate slice.
-The semantic executor settles event-triggered reactions after each command or direct append, including
+A specification runs only the slice that declares it (Screenplay [decision 0115](https://github.com/Cratis/Screenplay/blob/main/decisions/0115-a-specification-runs-its-own-slice-only.md)); see [A specification runs its own slice only](#a-specification-runs-its-own-slice-only).
+Within that slice, the semantic executor settles event-triggered reactions after each command or direct append, including
 `where`, productions, invocations, cascades, `runs as`, `from`, mixed effects and append constraints.
 It processes new facts in append order, reactions in semantic-identity order and triggers in authored order,
 producing events before invoking commands. Given events establish history without firing reactions.
@@ -34,7 +35,7 @@ Without `given clock`, a reached reaction production using `$context.occurred` r
 rejects with `An execution expression is unresolved in its declared root scope.` A false `where` skips these
 evaluations. The executor never substitutes wall time or its injectable clock for a missing reaction occurrence.
 This time-only fixture supplies no audit identity, including under `runs as system`: reaction mappings of
-`$eventSourceId` (or `$eventContext.eventSourceId`) and `$context.causedBy.*` retain `STAGE-ESM-013`.
+`$context.causedBy.*` retain `STAGE-ESM-013`. A reaction can map `$eventSourceId` (or `$eventContext.eventSourceId`): it is the event source of the event that set the reaction off, and the target property must be text, a uuid, or an identifier concept over one of them.
 The spelling `$context.eventSourceId` is rejected by the compiler.
 The executor also runs `when trigger` specifications for application, startup and shutdown triggers, and
 `when clock` specifications that advance a canonical `given clock` to a later instant. A fired trigger takes its
@@ -53,8 +54,10 @@ The executor uses its own reaction loop. Unlike the [semantic Stage Host](index.
 which refuses the whole live batch if settlement fails, a specification ends at its first rejection or
 unsupported capability. Rendered Chronicle reactors run eventually and retry failed partitions.
 Structural refusals exit `1` without writing results;
-semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.241.0, admits exact ESM v1–v30 and v32
-version pairs (not mixed/noncanonical pairs) and refuses unaudited language/semantic versions (v29 and later) with `STAGE-ESM-016`.
+semantic runs record `Unsupported`, never a passing specification. The semantic executor uses Screenplay 4.247.3, admits exact ESM v1–v30 and v32–v34
+version pairs (not mixed/noncanonical pairs), plus newer pairs within the declared ESM range (`>=32.0 <33`). Within that range, unaudited members refuse their owning slice or application with `STAGE-ESM-016`; only the specification's own slice is admitted for execution. Pairs outside the range that are not audited or the exact v33/v34 pairs are refused with `STAGE-ESM-016`, naming the range.
+At v33 the executor runs a capture that keys its records by event source when it consumes inbox (foreign) events; the model validator rejects one over local events;
+at v34 `then invokes` is compared as described below. The renderer and the live semantic Host admit exact v33 models (the renderer renders `key is event source`; see [Translation rendering](../reference/translation-rendering.md)) but still refuse v34 models whole with `STAGE-ESM-016`. The Host has no capture runtime of its own, so a v33 capture keyed by event source does not block live admission.
 A v22 model with `reaction batches atomic` executes each direct-production batch all-or-none; see [Atomic reaction batches](#atomic-reaction-batches).
 At v28 the semantic executor runs Uuid `==` and `!=` in command requirements and `produces when` guards, including protected
 read paths, with the reference evaluator's results: Uuids compare ordinally in canonical lowercase hyphenated spelling, and a
@@ -63,7 +66,7 @@ non-canonical Uuid input is rejected before the requirement runs. The legacy str
 At v27 a specification that projects into a read model with several `key` parts records `Unsupported(Projection)`,
 naming ESM v27 composite read-model keys: the per-run scenario seeds and looks up instances by one event-source key.
 The semantic Host runs such read models, and the Cratis renderer emits generated specifications only for command and event scenarios that do not project into them (a specification that projects into one is refused with `STAGE-ESM-011`); the legacy structural runner refuses them with `STAGE-ESM-048`.
-The semantic executor runs per-run projections whose read models hold composite or collection properties, mappings from a member of a composite event value (`city = address.city`), products of two event values (`add total by unitPrice * quantity`, carried on the stored event as a computed member), flat transitions keyed by an event property with literal mappings, captures with child collections, public events published from several source facts, and scoped projections keyed by the property a capture or the event names, including text event sources that hold a Uuid. A DateTime read-model value compares as the same instant and offset, so `Z` and `+00:00` agree; a composite or collection value that authors an explicit null member stays `Unsupported(Projection)`, because the typed per-run models cannot tell it from an absent member.
+The semantic executor runs per-run projections whose read models hold composite or collection properties, mappings from a member of a composite event value (`city = address.city`), products of two event values (`add total by unitPrice * quantity`, carried on the stored event as a computed member), flat transitions keyed by an event property with literal mappings, captures with child collections, public events published from several source facts, and scoped projections keyed by the property a capture or the event names, including text event sources that hold a Uuid. DateTime event and read-model assertions compare ordinally after both values use Screenplay's round-trip canonical text: zero offsets use UTC `Z`, while non-zero offsets remain distinct; a composite or collection value that authors an explicit null member stays `Unsupported(Projection)`, because the typed per-run models cannot tell it from an absent member.
 At v26 the semantic executor runs chronological Date/DateTime command requirements, conditional productions
 and validation rules (including concepts). DateTime equality compares UTC ticks; Date compares calendar days.
 Participating DateTime inputs without an explicit offset or `Z` reject after authorization, before other input
@@ -84,7 +87,7 @@ exactly `*`, containing `#`, and leading- or trailing-whitespace keys reject bef
 instance is stored at that key. These refused keys and absent views reject validation before all requirements and
 generation, with `<View> '<key>' does not exist.`, preserving the supplied key text. This refused-key check is specific
 to protected reads; command identifiers keep their existing behavior. The Host delegates to the pinned
-Screenplay 4.241.0 evaluator with the same refused-key checks. Read-backed requirements and
+Screenplay 4.247.3 evaluator with the same refused-key checks. Read-backed requirements and
 produced-event mappings use that projected state. Non-Error requirements on protected commands remain
 `Unsupported` with `STAGE-ESM-045` until Screenplay defines their severity semantics. This admission check includes
 commands reachable through reaction invocations, even in specifications expecting rejection, and runs before any facts are appended.
@@ -138,6 +141,27 @@ docker run --rm \
 ```text
 Ran 3 specification(s) for event model 'Invoicing'. Results written to /output/results.json.
 ```
+
+## A specification runs its own slice only
+
+A specification states what its own slice does, so the executor isolates the run to that slice, as Screenplay 4.246.0
+and later do:
+
+- Other slices' reactions do not run, whether an event, clock advance or trigger would select them. Only an explicit
+  `when redelivered ... to <Reaction>` still delivers to the named reaction.
+- Other slices' captures and outbound publications (projections that target a public event) do not run, so their
+  admission refusals do not refuse the specification either.
+- A command another slice owns, invoked by this slice's reaction, is still decided: validation, authorization,
+  constraints and protected reads run, and a refusal routes to the reaction's `on refused` branches. Its events are
+  not kept: they are not appended to the run's in-memory Chronicle event log, so neither `then` events, read-model
+  and query expectations nor later reactions see them. The command's own slice specifies its facts.
+- Read-model projections still build what the specification reads, from the facts the run keeps.
+
+From ESM v34 a specification can state invocations with `then invokes <Command>` and the values it expects. Every
+invocation this slice's reactions make is recorded, accepted or refused. When stated, the invocations must match in
+count and order (as a multiset under `then events in any order`), and only the stated values are compared. A mismatch
+fails with the reference runner's messages, for example
+`Invocation at index 0 does not match the expected command and values. Expected: CloseInvoice(reason = "cancelled"). Actual: CloseInvoice(id = "one", reason = "paid").`
 
 ## Recovery and empty-effect specifications
 
@@ -387,11 +411,9 @@ and query key as the subject. An allowed query compares its result; a denied que
 not an empty result or `then error`. A reached opaque policy returns `Unsupported(Authorization)`. Flat scalar projections and scoped projections using
 event-source keys (text or UUID) support scalar `set` mappings from event properties, event-source identities or typed literals, plus event-property `add`/`subtract` and numeric `increment`/`decrement`. Primitive numeric zero initialization with `add`/`subtract` is also supported; nonzero arithmetic literals, factors and expression-valued arithmetic remain refused. These mappings and property-keyed root removals run with per-specification artifacts. Event-source key types compare their underlying text or UUID primitive, so compatible concept and primitive types can share a projection. Keys must still satisfy the read-model identifier's enumeration values and canonical UUID form. Pinned generated command identifiers participate in this check; root `from` blocks can also use a required scalar event-property key of the identifier's value type or a non-empty text literal key for a text identifier. Optional numeric increment/decrement targets start from zero when unset. Given read-model seeds replace history at the resolved projection key, not the event-source key. The
 semantic trace includes keyed read-model and query results; a mismatched result fails the specification. A named projection-lowering refusal is reported as `Unsupported(Projection)`; unexpected projection runtime failures fail the specification with the exception message. Neither is treated as a command rejection. For specifications expecting an error or denial, projections never run: actual rejections are compared, while accepted commands report the outcome mismatch before projection execution. Their produced-event projections are therefore not admission-relevant. Admission and runtime share the same projection-observation predicate: explicit root event blocks, removals, flat transitions and all-event subscriptions. Unrelated projections are not admitted merely because a specification reaches some other event; explicitly seeded or asserted read models and queried results still require admission.
-DateTime read-model properties remain `Unsupported(Projection)`, with the property named in the refusal.
-The reference compares DateTime text ordinally, not by instant. Materializing the value as `DateTimeOffset`
-loses an authored `Z` suffix: the per-run projection returns `+00:00` instead. Numeric offsets and seven-digit
-fractional precision can survive the scenario, but not every accepted round-trip spelling. Payload mappings
-and clock-produced values therefore remain refused; Stage does not normalize either side to make assertions pass.
+DateTime read-model properties, including payload mappings and clock-produced values, run with Screenplay's
+canonical ordinal assertion equality: both sides use round-trip text, zero offsets become UTC `Z`, and
+non-zero offsets remain distinct. Fractional seconds retain seven-digit round-trip precision.
 The clock is injectable through the in-process API. The tenant and identity allocator options are reserved
 and do not affect this run; implicit identity allocation remains unsupported.
 
@@ -407,14 +429,14 @@ seeds without an action. Partial or null seeds, seeded decision reads, reducers,
 and seeded query combinations retain `STAGE-ESM-011`.
 
 Per-run projections reject optional or composite
-read-model properties, DateTime read-model values (whose round-trip text may change), and non-identifier
+read-model properties and non-identifier
 properties whose generated name matches `Id` case-insensitively (including authored `id_`, `_id`, `id-`, `ID`, `iD`, and `i_d`, which collide with
 Chronicle's document key); a child `id` remains allowed. Events and commands whose property names collide after PascalCase generation with another property, their record type, synthesized or inherited members, or generated command methods block every run, even when the event is not produced by the specification. The block is `Unsupported(Projection)` if a projection references that event; otherwise it is `Unsupported(Command)`. Concept and composite-type member or generated type-name collisions also block every run as `Unsupported(Command)`, even without a projection. Per-run projections also reject join removals, nested scopes, and unsupported key shapes before execution; identified child collections, identity joins and root joins run as described above. Projections over events whose property names Chronicle interprets as expressions (`$`, `.`, `[`, `]`, a leading quote, booleans, numbers, or derived functions such as `Week` or `Week()`), projections referencing even unreached events (including in child or nested scopes) with colliding generated members, and read-model properties whose names can be interpreted as paths or collide with another generated property, the record's type, or generated query methods return `Unsupported(Projection)`. Query method overloads that compile remain allowed; duplicate generated signatures and arguments named `readModels` do not.
 An event-source identity
 mapping into a non-identifier property requires exactly the identifier's type without enumeration constraints;
 otherwise it returns `Unsupported(Projection)`. More than one projection for a requested read model also
 returns `Unsupported(Projection)`. They also apply the renderer's scoped-projection admission predicate, so
-composite keys and Chronicle#4125 shapes remain rejected. The per-run executor runs identity-only `every` mappings for the declared `from` event types and identity-only `all` (`FromAll`) mappings for all facts, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Literal `every` mappings apply to each declared `from` block and override an exact scalar `set` on the same target. Literal or empty `all` blocks and `every` including children remain unsupported. Queries other than optional snapshots
+composite keys, joins inside nested (blocked by the pinned reference; [Screenplay #1078](https://github.com/Cratis/Screenplay/issues/1078)), and children inside nested remain rejected. The per-run executor runs identity and safe scalar literal `all` mappings natively through `FromAll`, including unrelated event types and sources, creating an instance per event source. Every fact observed by `all` must have the identifier's value type and enumeration values. Root `every` literals at join levels use native `FromEvery.ToValue`: original `from` mappings, including exact same-target Sets, remain declared because Chronicle uses those targets to select join backfills. At join-free levels, literal `every` mappings still lower to each declared `from` block and replace an exact scalar Set on the same target. Prefix overlaps and non-Set collisions remain refused. Empty `all`, Clear (`score = null` is a clear, not a literal Set), child/nested `every` with joins, and `every` including children remain unsupported; IncludeChildren is unverified by Stage. No null-Set behavior is admitted. Queries other than optional snapshots
 by identifier return `Unsupported(Query)`. Other unimplemented
 behavior (implicit event-source identity allocation, external effects and
 unsupported expression or value shapes) is also blocked rather than reported as a pass. The semantic

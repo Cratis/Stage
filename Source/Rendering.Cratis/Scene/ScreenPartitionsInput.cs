@@ -185,10 +185,10 @@ internal static class ScreenPartitionsInput
         }
     }
 
-    internal static string Compose(ArtifactRenderInput scene, Catalog catalog)
+    internal static string Compose(ArtifactRenderInput scene, Catalog catalog, IReadOnlySet<string> owners)
     {
         var root = JsonNode.Parse(scene.Bytes.AsSpan())!.AsObject();
-        root["screens"] = new JsonArray([.. catalog.Entries.Select(Reassemble)]);
+        root["screens"] = new JsonArray([.. catalog.Entries.Where(entry => owners.Contains(entry.Owner)).Select(Reassemble)]);
 
         return CanonicalSceneJson.Write(root);
     }

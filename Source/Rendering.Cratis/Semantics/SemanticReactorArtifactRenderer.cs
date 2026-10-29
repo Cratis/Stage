@@ -14,15 +14,10 @@ internal static class SemanticReactorArtifactRenderer
 {
     internal static RenderedFile Render(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
     {
+        if (reaction.Triggers.Any(trigger => trigger.RequirementId is not null)) return RenderAuthored(located, reaction, context);
         var types = new SemanticTypeSystem(context);
         var name = Identifiers.ToPascalCase(reaction.Name);
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
-        context.Docs(reaction.Id).Render(builder)
-            .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
-            .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
-        RenderIdentityAttribute(builder, reaction, context);
-        if (reaction.From is { } filter) SemanticObserverFilterRendering.Attribute(builder, filter, context);
-        builder.OpenBlock($"public class {name} : global::Cratis.Chronicle.Reactors.IReactor");
+        var builder = ReactorBuilder(located, reaction, context);
 
         // For atomic models, admission permits at most one production trigger per source event:
         // this returned collection is exactly that trigger occurrence's append batch. Legacy output stays unchanged.
@@ -80,6 +75,55 @@ internal static class SemanticReactorArtifactRenderer
         builder.EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
+    }
+
+    static CSharpCodeBuilder ReactorBuilder(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
+    {
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        context.Docs(reaction.Id).Render(builder)
+            .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
+            .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
+        RenderIdentityAttribute(builder, reaction, context);
+        if (reaction.From is { } filter) SemanticObserverFilterRendering.Attribute(builder, filter, context);
+        return builder.OpenBlock($"public class {Identifiers.ToPascalCase(reaction.Name)} : global::Cratis.Chronicle.Reactors.IReactor");
+    }
+
+    static RenderedFile RenderAuthored(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
+    {
+        if (reaction.Triggers.Length != 1 || !SemanticVersionFeatures.HasStandaloneEventBody(reaction, reaction.Triggers[0]))
+        {
+            throw UnsupportedSemanticRendering.For("reaction", reaction.Name);
+        }
+
+        var inline = SemanticInlineCodeRendering.Reaction(located, reaction, context);
+        if (inline.Refused)
+        {
+            throw UnsupportedSemanticRendering.For("reaction body", string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        var builder = ReactorBuilder(located, reaction, context);
+        var source = context.Events[reaction.Triggers[0].Source];
+        var types = new SemanticTypeSystem(context);
+        builder.BlankLine()
+            .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object>? {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)");
+        foreach (var name in CSharpBodyBindings.Referenced(inline.Code!.Text, source.Properties.Select(property => Identifiers.ToPascalCase(property.Name))))
+        {
+            builder.Line($"var {name} = @event.{name};");
+        }
+
+        if (reaction.Triggers[0].Where is { } condition)
+        {
+            builder.Line($"if (!({SemanticConditionRendering.Render(condition, new(source.Properties, "@event", context))})) return null;");
+        }
+
+        builder.Inline(context.RetainInlineInput(inline), inline.Placement).EndBlock().EndBlock();
+        var content = builder.ToString();
+        if (SemanticReactionBodyAdmission.Failure(context, content) is { } failure)
+        {
+            throw UnsupportedSemanticRendering.For("reaction body", $"The reaction handler does not compile in its rendered reactor: {failure}");
+        }
+
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), content) { Sources = [reaction.Id] };
     }
 
     static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction, SemanticApplicationContext context)
@@ -160,6 +204,7 @@ internal static class SemanticReactorArtifactRenderer
         SemanticResolvedExpression resolved => $"@event.{Identifiers.ToPascalCase(source.Properties.Single(property => property.Id == resolved.Target).Name)}",
         SemanticValueExpression value => types.Value(value.Value, target),
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } => "context.Occurred",
+        SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } => types.EventSourceIdentityValue(target),
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticExpression), expression.Kind)
     };
 }

@@ -33,11 +33,27 @@ public sealed record CratisRenderingOptions(string ProjectName, string RootNames
     /// </summary>
     public ArtifactRefusalMode Refusals { get; init; } = ArtifactRefusalMode.Refuse;
 
+    /// <summary>Gets whether validated degradation fails acceptance without discarding safe generated artifacts.</summary>
+    public bool Strict { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether the application root is the repository root, which adds the repository's
     /// continuous integration files to the scaffold. It is inferred from the hashed profile's .github folder inputs.
     /// </summary>
     public bool RepositoryRoot { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the application is one service of a multi-service repository, which places every
+    /// artifact under <c language="csharp">Source/{ProjectName}/</c>. It is carried by the hashed profile. See
+    /// <see cref="CratisPlanOptions.ServiceLayout"/>.
+    /// </summary>
+    public bool ServiceLayout { get; init; }
+
+    /// <summary>
+    /// Gets the plain-text lines every generated code file starts with, carried by the hashed profile. Empty, the
+    /// default, writes no header at all. See <see cref="CratisPlanOptions.FileHeader"/>.
+    /// </summary>
+    public ImmutableArray<string> FileHeader { get; init; } = [];
 }
 
 /// <summary>
@@ -352,6 +368,11 @@ public static partial class CratisRendering
             throw new InvalidCratisBackendApplicationScaffold("Cratis rendering requires explicit project and root namespace options.");
         }
 
+        if (!ArtifactFileHeader.IsValid(options.FileHeader))
+        {
+            throw new InvalidCratisBackendApplicationScaffold("Every file header line must be non-null plain text without line breaks, control, private-use or bidirectional formatting characters.");
+        }
+
         if (scene is not null)
         {
             var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
@@ -403,15 +424,10 @@ public static partial class CratisRendering
         var inputs = backend
             .Concat(frontend)
             .Concat(composed)
-            .Concat(strings)
+            .Concat(strings.Concat(CratisStrictProfileInput.Create(options.Strict)))
             .OrderBy(input => input.Name, StringComparer.Ordinal)
             .ToImmutableArray();
 
-        return ArtifactRenderProfile.Create(
-            TargetId,
-            TargetVersion,
-            RendererId,
-            RendererVersion,
-            inputs);
+        return FileHeaderInput.With(ServiceLayoutInput.With(ArtifactRenderProfile.Create(TargetId, TargetVersion, RendererId, RendererVersion, inputs), options), options.FileHeader);
     }
 }

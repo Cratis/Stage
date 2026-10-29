@@ -3,7 +3,9 @@
 
 using System.Globalization;
 using System.Text;
+using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
@@ -16,6 +18,8 @@ public class CSharpCodeBuilder
 {
     readonly HashSet<string> _usings = new(StringComparer.Ordinal);
     readonly StringBuilder _body = new();
+    readonly InlineCodeTokens _inline = new();
+    readonly List<InlineCodeDiagnostic> _inlineDiagnostics = [];
     readonly CSharpImports? _imports;
     string? _namespace;
     int _indent;
@@ -27,7 +31,22 @@ public class CSharpCodeBuilder
     {
     }
 
-    internal CSharpCodeBuilder(ImportRequest imports) => _imports = new(imports);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CSharpCodeBuilder"/> class that spells the fully qualified types it
+    /// is given by their short names wherever that provably binds the same, and decides the file's using directives.
+    /// </summary>
+    /// <param name="project">The project the file compiles into.</param>
+    /// <param name="generated">The complete renderer-owned declaration inventory.</param>
+    /// <param name="hasScaffoldGlobalUsings">Whether the file compiles with the scaffold-owned GlobalUsings.cs; see <see cref="ImportRequest.HasScaffoldGlobalUsings"/>.</param>
+    internal CSharpCodeBuilder(GeneratedProjects project, IEnumerable<GeneratedTypeName> generated, bool hasScaffoldGlobalUsings)
+    {
+        if (!QualifiedSpelling.IsActive) _imports = new(project, generated, hasScaffoldGlobalUsings);
+    }
+
+    internal CSharpCodeBuilder(ImportRequest imports)
+        : this(imports.Project, imports.GeneratedTypes, imports.HasScaffoldGlobalUsings)
+    {
+    }
 
     internal IReadOnlyCollection<string> UsingNamespaces => _usings;
 
@@ -159,7 +178,7 @@ public class CSharpCodeBuilder
         }
         else
         {
-            _body.Append(' ', _indent * 4).AppendLine(text);
+            _body.Append(' ', _indent * 4).AppendLine(text.AsSpan().TrimStart().StartsWith("//", StringComparison.Ordinal) ? NormalizeLineComment(text) : text);
         }
 
         return this;
@@ -180,6 +199,18 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder Raw(string text)
     {
+        return Authored(text, false);
+    }
+
+    /// <summary>
+    /// Embeds generated, multiline source text, indenting every line to the current block level while preserving each
+    /// line's own relative indentation. Unlike <see cref="Raw"/>, the text is the renderer's own, so its types are
+    /// spelled like every other generated line.
+    /// </summary>
+    /// <param name="text">The generated source text to embed.</param>
+    /// <returns>The builder, for chaining.</returns>
+    public CSharpCodeBuilder Fragment(string text)
+    {
         foreach (var line in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
             Line(line);
@@ -195,13 +226,7 @@ public class CSharpCodeBuilder
     /// <returns>The builder, for chaining.</returns>
     public CSharpCodeBuilder RawVerbatim(string text)
     {
-        _body.Append(text);
-        if (!text.EndsWith('\n'))
-        {
-            _body.AppendLine();
-        }
-
-        return this;
+        return Authored(text, true);
     }
 
     /// <summary>
@@ -238,48 +263,50 @@ public class CSharpCodeBuilder
     }
 
     /// <inheritdoc/>
-    public override string ToString()
+    public override string ToString() => ToString(body => body);
+
+    /// <summary>
+    /// Builds the source text, letting the caller finish the generated body before its types are spelled, such as by
+    /// replacing placeholder tokens with the expressions they stand for.
+    /// </summary>
+    /// <param name="finish">Finishes the generated body.</param>
+    /// <returns>The source text.</returns>
+    public string ToString(Func<string, string> finish)
     {
-        var body = _body.ToString();
-        IEnumerable<string> innerUsings = [];
-        IEnumerable<string> topUsings = _usings;
-        if (_imports is not null)
+        var original = _body.ToString();
+        var skeleton = finish(original);
+        var splice = InlineCodeSplicer.Splice(skeleton, _inline, original);
+        var body = Complete(splice);
+        var unit = new StringBuilder();
+        if (_namespace is not null)
         {
-            var resolved = _imports.Resolve(body, _usings, _namespace);
-            body = resolved.Body;
-            innerUsings = resolved.Resolution.Usings;
-            topUsings = resolved.Resolution.TopLevelUsings;
+            unit.AppendLine($"namespace {_namespace};").AppendLine();
         }
 
-        var result = new StringBuilder()
-            .AppendLine("// Copyright (c) Cratis. All rights reserved.")
-            .AppendLine("// Licensed under the MIT license. See LICENSE file in the project root for full license information.")
-            .AppendLine();
+        var offset = unit.Length;
+        unit.Append(body);
+        if (_imports is not null)
+        {
+            // The splicer proved unchanged placement scopes and recomputed spans after finishing generated text.
+            // Generated code belongs to the application, so it carries no header; the plan adds the caller's, if any.
+            return _imports.Rewrite(unit.ToString(), [.. splice.Authored.Select(span => new TextSpan(span.Start + offset, span.Length))], _usings);
+        }
 
-        foreach (var @using in topUsings.Order(StringComparer.Ordinal))
+        var result = new StringBuilder();
+        foreach (var @using in _usings.Order(StringComparer.Ordinal))
         {
             result.AppendLine($"using {@using};");
         }
 
-        if (_usings.Count > 0)
+        if (result.Length > 0)
         {
             result.AppendLine();
         }
 
-        if (_namespace is not null)
-        {
-            result.AppendLine($"namespace {_namespace};").AppendLine();
-        }
-
-        foreach (var @using in innerUsings)
-        {
-            result.AppendLine($"using global::{@using};");
-        }
-
-        if (innerUsings.Any()) result.AppendLine();
-        result.Append(body);
-        return result.ToString();
+        return result.Append(unit).ToString();
     }
+
+    internal static string NormalizeLineComment(string text) => text.ReplaceLineEndings(" ");
 
     internal static string NormalizeDocumentation(string text) => string.Join(
         '\n',
@@ -287,12 +314,70 @@ public class CSharpCodeBuilder
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
-    internal string Type(TypeReference reference) => _imports?.Type(reference) ?? reference.Qualified;
+    internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true, Action<InlineCodeDiagnostic>? reportDegradation = null)
+    {
+        var issued = _inline.Issue(code, placement, _indent, verbatim);
+        foreach (var diagnostic in issued.Diagnostics)
+        {
+            if (diagnostic.Code == "STAGE-DEGRADE-003" && reportDegradation is not null) reportDegradation(diagnostic);
+            else _inlineDiagnostics.Add(diagnostic);
+        }
+
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
+    }
+
+    internal CSharpCodeBuilder Validation(CodeBlockSyntax source, string owner, string member) =>
+        AuthoredBody(source, new("validation", owner, member));
+
+    internal CSharpCodeBuilder AuthoredBody(CodeBlockSyntax source, InlineCodePlacement placement)
+    {
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(source.Code)));
+        var verified = InlineCode.VerifyUtf8Text(source.Code, new(hash, source.Language, placement, $"{placement.Owner}/{placement.Member}"));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        return verified.Value is { } code ? Inline(code, placement, verbatim: false) : this;
+    }
+
+    internal string Type(TypeReference reference) => reference.Qualified;
 
     internal void Scope(IEnumerable<string> types, IEnumerable<string> values) => _imports?.Scope(types, values);
     internal void Pin(params string[] names) => _imports?.Pin(names);
+
+    internal void BindInlineReturnType(string qualified)
+    {
+        var separator = qualified.LastIndexOf('.');
+        var type = new TypeReference(qualified[8..separator], qualified[(separator + 1)..], 0, ReferenceContext.Type);
+        if (_imports is not null) _imports.BindInlineReturnType(type);
+        else Using(type.Namespace);
+    }
     internal void Access(params string[] names) => _imports?.Access(names);
     internal void Inherits(string fullName) => _imports?.Inherits(fullName);
+
+    string Complete(InlineCodeSplice splice)
+    {
+        if (_inlineDiagnostics.Count > 0 || splice.Text is null)
+        {
+            throw new InlineCodeRejected([.. _inlineDiagnostics, .. splice.Diagnostics]);
+        }
+
+        return splice.Text;
+    }
+
+    CSharpCodeBuilder Authored(string text, bool verbatim)
+    {
+        // Legacy callers supply strings, not compiler identities or original disk bytes.
+        var id = $"builder-{_inline.Slots.Count}";
+        var hash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        var placement = new InlineCodePlacement("builder", "builder", id);
+        var verified = InlineCode.VerifyUtf8Text(text, new(hash, "csharp", placement, id));
+        _inlineDiagnostics.AddRange(verified.Diagnostics);
+        if (verified.Value is not { } code) return this;
+        var options = new InlineCodePresentationOptions(_indent, verbatim, CSharpBodyContainment.ScopeAtEnd(_body));
+        var issued = _inline.IssueLegacy(code, options);
+        _inlineDiagnostics.AddRange(issued.Diagnostics);
+        if (issued.Token is not null) _body.Append(issued.Token);
+        return this;
+    }
 
     void TextDocumentation(string tag, string text)
     {

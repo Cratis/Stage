@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+
 namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 
 /// <summary>
@@ -8,9 +10,9 @@ namespace Cratis.Stage.Rendering.Cratis.CodeGeneration;
 /// </summary>
 internal static class StreamIdsRendering
 {
-    internal static RenderedFile Render(string rootNamespace)
+    internal static RenderedFile Render(string rootNamespace, IEnumerable<GeneratedTypeName>? generated = null)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{rootNamespace}.GeneratedEventSources")
+        var builder = (generated is null ? new CSharpCodeBuilder() : new(GeneratedProjects.Application, generated, false)).Namespace($"{rootNamespace}.GeneratedEventSources")
             .Summary("Formats portable stream identities without rewriting text.")
             .OpenBlock("internal static class StreamIds")
             .Summary("Accepts nonempty, well-formed Unicode NFC text unchanged.")

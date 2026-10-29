@@ -95,7 +95,7 @@ internal static partial class SemanticCratisAdmission
         produced.Condition is null && produced.When is null && produced.Route is null;
 
     static bool ReactionEventIsRenderable(SemanticApplicationContext context, SemanticEventContract @event) =>
-        @event.Properties.All(property => TypeExists(context, property.Type) && !property.Type.IsOptional);
+        @event.Properties.All(property => TypeExists(context, property.Type, @event.Id) && !property.Type.IsOptional);
 
     static bool ReactionMappingCountMatches(SemanticEventContract target, SemanticProducedEvent produced) =>
         produced.Mappings.Length == target.Properties.Length;
@@ -136,6 +136,7 @@ internal static partial class SemanticCratisAdmission
             SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolved =>
                 source.Properties.Any(property => property.Id == resolved.Target && property.Type == target),
             SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence => occurrence.Type == target,
+            SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } identity => identity.Type == target && new SemanticTypeSystem(context).SupportsReducerIdentifier(target),
             SemanticValueExpression value => ReactionValueMatches(context, value.Value, target),
             _ => false
         };

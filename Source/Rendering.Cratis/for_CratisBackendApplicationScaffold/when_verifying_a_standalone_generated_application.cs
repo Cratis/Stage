@@ -22,7 +22,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     ProcessResult _debugBuild = null!;
     ProcessResult _debugTest = null!;
     ProcessResult _releaseBuild = null!;
-    ProcessResult _releaseTest = null!;
+    string _releaseAssets = null!;
     ProcessResult _specCompile = null!;
     ProcessResult _webCompile = null!;
     string[] _specSources = null!;
@@ -56,14 +56,12 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     {
         _debugBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Debug", "-m:3", "--nologo");
         _debugTest = _debugBuild.ExitCode == 0
-            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
+            ? await Run("dotnet", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
             : new(-1, "Debug tests were not run because the Debug build failed.");
-        _specCompile = await Run("dotnet", "msbuild", "Projects.Specs/Projects.Specs.csproj", "-getItem:Compile");
-        _webCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-getItem:Compile");
+        _specCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-p:Configuration=Debug", "-getItem:Compile");
+        _webCompile = await Run("dotnet", "msbuild", "Projects.csproj", "-p:Configuration=Release", "-getItem:Compile");
         _releaseBuild = await Run("dotnet", "build", "Projects.slnx", "-c", "Release", "-m:3", "--nologo");
-        _releaseTest = _releaseBuild.ExitCode == 0
-            ? await Run("dotnet", "test", "Projects.Specs/Projects.Specs.csproj", "-c", "Release", "--no-build", "--nologo", "--logger", "trx;LogFileName=release.trx", "--results-directory", _application.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3")
-            : new(-1, "Release tests were not run because the Release build failed.");
+        _releaseAssets = _releaseBuild.ExitCode == 0 ? await File.ReadAllTextAsync(Path.Combine(_application.FullName, "obj", "project.assets.json")) : string.Empty;
 
         var docker = await Run("docker", "version", "--format", "{{.Server.Version}}");
         _dockerAvailable = docker.ExitCode == 0;
@@ -97,19 +95,16 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         }
     }
 
-    [Fact] void should_build_the_debug_host_and_separate_generated_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
-    [Fact] void should_run_the_generated_specifications_from_the_specs_project() => _debugTest.ExitCode.ShouldEqual(0);
+    [Fact] void should_build_the_debug_application_with_its_specifications_without_warnings() => FailureOutput(_debugBuild).ShouldEqual(string.Empty);
+    [Fact] void should_run_the_generated_specifications_from_the_application_project() => _debugTest.ExitCode.ShouldEqual(0);
     [Fact] void should_execute_a_nonempty_set_of_generated_specifications() => ExecutedSpecifications().ShouldBeGreaterThan(0);
-    [Fact] void should_compile_every_generated_specification_in_the_specs_project() => CompileSources(_specCompile).Where(source => !IsPackageGlobalUsings(source)).ShouldContainOnly(_specSources);
-    [Fact] void should_compile_no_generated_specifications_in_the_web_host() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
+    [Fact] void should_pass_every_generated_specification() => PassedSpecifications("generated.trx").ShouldEqual(ExecutedSpecifications());
+    [Fact] void should_compile_every_generated_specification_in_debug() => CompileSources(_specCompile).Intersect(_specSources).ShouldContainOnly(_specSources);
+    [Fact] void should_compile_no_generated_specifications_in_release() => CompileSources(_webCompile).Intersect(_specSources).ShouldBeEmpty();
     [Fact] void should_cover_a_nonempty_set_of_emitted_specification_files() => _specSources.ShouldNotBeEmpty();
-    [Fact] void should_build_the_release_host_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
-    [Fact] void should_run_the_generated_specifications_in_release() => _releaseTest.ExitCode.ShouldEqual(0);
-    [Fact] void should_execute_a_nonempty_set_of_release_specifications() => ExecutedSpecifications("release.trx").ShouldBeGreaterThan(0);
-    [Fact] void should_pass_every_release_specification() => PassedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications("release.trx"));
-    [Fact] void should_execute_the_same_specifications_in_both_configurations() => ExecutedSpecifications("release.trx").ShouldEqual(ExecutedSpecifications());
-    [Fact] void should_accept_the_long_match_and_reject_the_near_miss_in_debug() => AssertLongMatchPassed("generated.trx");
-    [Fact] void should_accept_the_long_match_and_reject_the_near_miss_in_release() => AssertLongMatchPassed("release.trx");
+    [Fact] void should_build_the_release_application_without_warnings() => FailureOutput(_releaseBuild).ShouldEqual(string.Empty);
+    [Fact] void should_reference_no_test_packages_in_release() => _releaseAssets.Contains("\"xunit/", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_accept_the_long_match_and_reject_the_near_miss() => AssertLongMatchPassed("generated.trx");
     [Fact] void should_record_docker_availability_explicitly() => _dockerEvidence.ShouldNotBeEmpty();
     [Fact] void should_pass_health_when_docker_is_available() => (_dockerAvailable ? _healthEvidence : _dockerEvidence).ShouldEqual(_dockerAvailable ? "GET /healthz returned 200." : _dockerEvidence);
     [Fact] void should_serve_a_read_model_query_immediately_after_the_first_healthy_response_when_docker_is_available() => (_dockerAvailable ? _firstQueryStatus : HttpStatusCode.OK).ShouldEqual(HttpStatusCode.OK);
@@ -132,10 +127,6 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
             result.Attribute("outcome")!.Value.ShouldEqual("Passed");
         }
     }
-
-    // The Cratis package also contributes its own GlobalUsings.cs outside the application root.
-    static bool IsPackageGlobalUsings(string source) => source.StartsWith("../", StringComparison.Ordinal) &&
-        source.EndsWith($"/cratis/{CratisRendering.Dependencies.CratisPackageVersion}/contentFiles/cs/any/GlobalUsings.cs", StringComparison.Ordinal);
 
     string[] CompileSources(ProcessResult result)
     {

@@ -25,24 +25,31 @@ command Consume
 the renderer emits:
 
 ```csharp
-[global::Cratis.Arc.Commands.ModelBound.CommandAttribute]
-[global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.On)]
-[global::Cratis.Arc.Commands.ModelBound.BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.Error)]
-public record Consume(string SourceId, string Id) : global::Cratis.Chronicle.Events.ICanProvideEventSourceId
+using OneOf;
+using ProtectedReads.Storage.Decisions.State;
+
+namespace ProtectedReads.Storage.Decisions.Use;
+
+[Command]
+[BlockOnValidationSeverity(ValidationResultSeverity.Error)]
+[AllowAnonymous]
+public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
 {
-    public global::OneOf.OneOf<global::Cratis.Chronicle.EventSequences.EventForEventSourceId, global::Cratis.Arc.Validation.ValidationResult> Handle(
-        [global::Cratis.Arc.Commands.LookUpByAttribute(nameof(Consume.SourceId))] global::ProtectedReads.Storage.Decisions.State.Current? current)
+    /// <inheritdoc/>
+    public EventSourceId GetEventSourceId() => Id;
+
+    public OneOf<EventForEventSourceId, ValidationResult> Handle([LookUpBy(nameof(Consume.SourceId))] Current? current)
     {
-        if (current is null) return /* ValidationResult.Error("Current '" + SourceId + "' does not exist.") */;
-        if (!(!global::System.Object.Equals(current.Value, ""))) return /* ValidationResult.Error("The stored value must not be empty.") */;
-        return /* the Taken event, with Value = current.Value */;
+        if (current is null) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("Current '" + SourceId + "' does not exist."));
+        if (!(!object.Equals(current.Value, ""))) return OneOf<EventForEventSourceId, ValidationResult>.FromT1(ValidationResult.Error("The stored value must not be empty."));
+        return OneOf<EventForEventSourceId, ValidationResult>.FromT0(new EventForEventSourceId(Id, new Taken(current.Value)));
     }
 }
 ```
 
 The shape follows these rules:
 
-- **Read protection is per command.** `ReadProtectionMode.On` is declared only on a command that has `reads`. Commands without reads keep the ordinary scenario and are not affected.
+- **Read protection is project-wide.** The rendered `Directory.Build.props` sets `<CratisReadProtection>On</CratisReadProtection>`, which Arc turns into assembly-level protection. Generated commands do not carry a per-command `ReadProtection` attribute. This does not replace `[ProtectedDecision]` or protected-read admission.
 - **Each read is a nullable read-model parameter on `Handle`**, resolved by `[LookUpBy]` on the command property that names the key. `[LookUpBy]` is always emitted, because Arc's convention (the one command property whose type equals the view's key) is ambiguous for primitive keys: the `Consume` command has two string properties.
 - **Absence is an explicit guard, first.** A missing view returns the reference message, `<View> '<key>' does not exist.`, built by concatenation, as a validation failure. Arc's own refusal of a missing read model is not a validation failure and carries a different message, so the parameter must be nullable.
 - **Every requirement of a protected command runs in `Handle`, in model order, after the absence guards.** They are not rendered in the command validator. Property and concept rules stay in the parameterless validator.
@@ -50,6 +57,8 @@ The shape follows these rules:
 - **A command without an outcome is admitted when it reads.** It returns an empty event list: nothing is committed, and Arc still validates the reads it declared.
 
 The renderer also emits `GeneratedCommands/when_admitting_protected_reads.cs` (Debug only), a specification that asks Chronicle whether it admits the decision reads of every protected command.
+
+Screenplay rejects advisory reads, so the renderer never emits `[Unprotected]`. A hand-authored command customization can opt out of project-level protection with `[Cratis.Arc.Chronicle.ReadModels.Unprotected]`; that opt-out is not a modeled protected decision.
 
 ## When to use it, and when not to
 
@@ -59,7 +68,8 @@ Do not combine a read with:
 
 - a read path in a `produces when` condition or destination;
 - a read-path mapping to an optional or differently typed event property (the reference yields null for a missing value, which Arc cannot express faithfully); a required collection or composite maps when the event property has exactly the same type;
-- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven.
+- a generated-value event-source destination (freshness scopes), because the interaction with Arc's explicit scopes is unproven;
+- a read of a read model whose key property is not named `id`. Chronicle's decision-read guard looks for the key only in an `id` property (a string or UUID, concepts included) and refuses any other with `KeyConversion` when the command runs. Rename the key to `id`, or read a small decision-only view keyed by `id`.
 
 A command may combine reads with an event under an append-time constraint. The failure order is a missing read first, then the requirements, then the constraint; the three-way conformance specification `when_comparing_protected_reads_with_constraints` compares the reference evaluator, the Stage executor and the rendered application.
 

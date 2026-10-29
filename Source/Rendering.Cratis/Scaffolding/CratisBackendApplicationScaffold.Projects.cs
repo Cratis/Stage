@@ -6,10 +6,10 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 public sealed partial class CratisBackendApplicationScaffold
 {
     // All specification renderers emit slice-local when_*.cs files, including query/projection companions.
-    // They emit no separate given helpers or shared specification support files.
-    const string SpecificationGlob = "**/when_*.cs";
+    // Hand-written specifications follow the same convention in when_*, for_* and given folders.
+    const string SpecificationGlobs = "**/when_*.cs;**/when_*/**;**/for_*/**;**/given/**";
 
-    static string DirectoryBuildProps(CratisBackendApplicationScaffoldProfile profile) =>
+    internal static string DirectoryBuildProps(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
         <Project>
           <PropertyGroup>
@@ -17,6 +17,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <LangVersion>latest</LangVersion>
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
+            <CratisReadProtection>On</CratisReadProtection>
             <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
             <!-- Source mapping and audit availability/advisories depend on the restore environment; keep them visible as warnings. -->
             <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1507;NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
@@ -33,9 +34,9 @@ public sealed partial class CratisBackendApplicationScaffold
         </Project>
         """;
 
-    static string DirectoryBuildTargets() => "<Project />";
+    internal static string DirectoryBuildTargets() => "<Project />";
 
-    static string DirectoryPackagesProps(CratisBackendApplicationScaffoldProfile profile) =>
+    internal static string DirectoryPackagesProps(CratisBackendApplicationScaffoldProfile profile) =>
         $$"""
         <Project>
           <PropertyGroup>
@@ -64,10 +65,11 @@ public sealed partial class CratisBackendApplicationScaffold
         $$"""
         <Solution>
           <Project Path="{{request.ProjectName}}.csproj" />
-          <Project Path="{{request.ProjectName}}.Specs/{{request.ProjectName}}.Specs.csproj" />
         </Solution>
         """;
 
+    // Specifications live beside the slices they specify and compile into the application in Debug only, so
+    // "dotnet test" runs them from the application project and a Release build needs no test packages.
     static string Project(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
         <Project Sdk="Microsoft.NET.Sdk.Web">
@@ -79,13 +81,20 @@ public sealed partial class CratisBackendApplicationScaffold
             <CratisProxiesSkipOutputDeletion>true</CratisProxiesSkipOutputDeletion>
             <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
             <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
+            <!-- Program.cs is the entry point; the test SDK must not generate another one. This holds in every
+                 configuration: a restore for Debug writes the test SDK's targets into the restore assets, which a
+                 later Release build without a restore still imports. -->
+            <GenerateProgramFile>false</GenerateProgramFile>
+          </PropertyGroup>
+          <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+            <IsTestProject>true</IsTestProject>
           </PropertyGroup>
           <ItemGroup>
-            <InternalsVisibleTo Include="{{request.ProjectName}}.Specs" />
-            <Compile Remove="{{SpecificationGlob}};{{request.ProjectName}}.Specs/**" />
-            <Content Remove="package.json;{{request.ProjectName}}.Specs/**" />
-            <None Remove="package.json;{{request.ProjectName}}.Specs/**" />
-            <EmbeddedResource Remove="{{request.ProjectName}}.Specs/**" />
+            <Content Remove="package.json" />
+            <None Remove="package.json" />
+          </ItemGroup>
+          <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+            <Compile Remove="{{SpecificationGlobs}}" />
           </ItemGroup>
           <ItemGroup>
             <PackageReference Include="Cratis.Screenplay.Matching" />
@@ -94,23 +103,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
           </ItemGroup>
-          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
-        </Project>
-        """;
-
-    static string SpecificationsProject(CratisBackendApplicationScaffoldRequest request) =>
-        $$"""
-        <Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <RootNamespace>{{request.RootNamespace}}.Specs</RootNamespace>
-            <IsTestProject>true</IsTestProject>
-            <IsPackable>false</IsPackable>
-          </PropertyGroup>
-          <ItemGroup>
-            <ProjectReference Include="../{{request.ProjectName}}.csproj" />
-            <Compile Include="../{{SpecificationGlob}}" Exclude="../{{request.ProjectName}}.Specs/**;../**/bin/**;../**/obj/**;../node_modules/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
-          </ItemGroup>
-          <ItemGroup>
+          <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
             <PackageReference Include="Cratis.Chronicle.Testing" />
             <PackageReference Include="Cratis.Specifications" />
@@ -123,6 +116,7 @@ public sealed partial class CratisBackendApplicationScaffold
               <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             </PackageReference>
           </ItemGroup>
+          <Import Project="Customizations/Dependencies.props" Condition="Exists('Customizations/Dependencies.props')" />
         </Project>
         """;
 }

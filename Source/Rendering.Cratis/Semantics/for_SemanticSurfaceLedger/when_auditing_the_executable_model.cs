@@ -51,6 +51,8 @@ public class when_auditing_the_executable_model : Specification
     [InlineData("SemanticProjection.Target")]
     [InlineData("SemanticProjectionTargetKind.Event")]
     [InlineData("SemanticSlice.Direction")]
+    [InlineData("SemanticTranslationDirection.Inbound")]
+    [InlineData("SemanticTranslationDirection.Outbound")]
     [InlineData("SemanticSliceKind.Translate")]
     [InlineData("SemanticCapture.EventsSource")]
     [InlineData("SemanticCaptureEventsSource.Events")]
@@ -84,23 +86,29 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_supported_identities_and_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
-    [InlineData("SemanticApplication.Triggers")]
     [InlineData("SemanticReactionTrigger.RequirementId")]
     [InlineData("SemanticReactionTriggerKind.Unknown")]
-    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
     [InlineData("SemanticReactionTriggerKind.Interval")]
     [InlineData("SemanticReactionTriggerKind.Schedule")]
     [InlineData("SemanticReactionTriggerKind.Startup")]
     [InlineData("SemanticReactionTriggerKind.Shutdown")]
-    public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+    public void should_keep_other_trigger_kinds_and_opaque_bodies_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Theory]
+    [InlineData("SemanticApplication.Triggers")]
+    [InlineData("SemanticApplicationTrigger.Id")]
+    [InlineData("SemanticApplicationTrigger.Name")]
+    [InlineData("SemanticApplicationTrigger.Properties")]
+    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
+    [InlineData("SemanticExpressionRootKind.Trigger")]
+    public void should_render_the_application_occurrence_subset(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public void should_render_unmixed_reaction_side_effects(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
-
-    [Fact] void should_refuse_mixed_reaction_side_effects() => SemanticSurfaceLedger.ReactionSideEffectShapes[(true, true)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-037"));
+    [InlineData(true, true)]
+    public void should_render_reaction_side_effect_combinations(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSliceKind.Automation")]
@@ -239,6 +247,10 @@ public class when_auditing_the_executable_model : Specification
         foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
         {
             yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
+        }
+        foreach (var member in Enum.GetNames<SemanticTranslationDirection>())
+        {
+            yield return $"{nameof(SemanticTranslationDirection)}.{member}";
         }
     }
 

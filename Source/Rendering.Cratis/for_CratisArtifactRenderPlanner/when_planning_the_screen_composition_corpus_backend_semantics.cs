@@ -59,7 +59,7 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
     [Fact] void should_emit_the_observable_work_item_list_query() => _stateViewArtifacts.ShouldContain("AllWorkItems");
     [Fact] void should_emit_the_observable_comments_query() => _stateViewArtifacts.ShouldContain("CommentsForWorkItem");
     [Fact] void should_emit_the_by_parameter_query_shape() => _stateViewArtifacts.ShouldContain("workItemId");
-    [Fact] void should_take_the_work_item_as_the_comments_query_argument() => _stateViewArtifacts.ShouldContain("CommentsForWorkItem(global::Cratis.Chronicle.ReadModels.IReadModels readModels, ");
+    [Fact] void should_take_the_work_item_as_the_comments_query_argument() => _stateViewArtifacts.ShouldContain("CommentsForWorkItem(IReadModels readModels, ");
     [Fact] void should_narrow_the_comments_query_by_its_work_item() => _stateViewArtifacts.ShouldContain(".Default.Equals(instance.WorkItemId, workItemId)");
     [Fact] void should_register_the_list_query_under_its_own_name() => Bindings.ShouldContain("import { AllWorkItems as ");
     [Fact] void should_register_the_lookup_query_under_its_own_name() => Bindings.ShouldContain("import { WorkItemById as ");

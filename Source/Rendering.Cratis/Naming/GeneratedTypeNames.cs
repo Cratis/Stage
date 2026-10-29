@@ -2,12 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
 /// Inventories top-level C# declarations in each emitted namespace, including validators and constraints.
-/// Both render and execution admission use the same inventory.
+/// Both render and execution admission use the same inventory. The context inventory the C# import resolver
+/// resolves against is these declarations plus the command response types and, once admission has decided which specifications are refused, the classes of
+/// the specifications that are rendered; specification classes stay out of the collision admission.
 /// </summary>
 internal static class GeneratedTypeNames
 {
@@ -91,6 +94,7 @@ internal static class GeneratedTypeNames
     /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
     /// <param name="selfReduces">Decides, per read model, whether reducer members are emitted on the model rather than as a separate type.</param>
     /// <param name="policyClassName">Gives the policy class of a protected operation; operations that share a policy share the class.</param>
+    /// <param name="commandReceiptTime">Whether selected artifacts require the receipt-time helper; null derives it from command mappings.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
         SemanticApplication application,
@@ -103,7 +107,8 @@ internal static class GeneratedTypeNames
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies",
         Func<SemanticId, bool>? selfReduces = null,
-        Func<SemanticId, string>? policyClassName = null)
+        Func<SemanticId, string>? policyClassName = null,
+        bool? commandReceiptTime = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
@@ -148,6 +153,10 @@ internal static class GeneratedTypeNames
             foreach (var readModel in slice.ReadModels)
             {
                 foreach (var name in Names(ns, readModel.Name, readModel.Id, "ReadModel")) yield return name;
+                if (SemanticVersionFeatures.HasCompositeKey(readModel))
+                {
+                    foreach (var name in Names(ns, $"{GeneratedPascalCase.From(readModel.Name)}Key", readModel.Id, "ReadModelKey", generated: true)) yield return name;
+                }
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {
@@ -189,7 +198,7 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
         }
-        if (UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        if (commandReceiptTime ?? UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
         {
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;

@@ -22,7 +22,7 @@ public class when_planning_a_composed_application : a_composed_register_project_
     [Fact] void should_bind_the_composed_scene_to_the_generated_proxies() => Artifact(SceneBindingsRenderer.RelativePath).ShouldNotBeNull();
 
     [Fact] void should_register_the_command_under_its_semantic_name() =>
-        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerCommands({RegisterProject});");
+        Text(Artifact(SceneBindingsRenderer.RelativePath)!).ShouldContain("registerCommands({\"RegisterProject\": __sceneCommand0});");
 
     /// <summary>
     /// A proxy is imported from the slice folder that declares it, because that is where the generator writes it.

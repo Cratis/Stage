@@ -230,7 +230,7 @@ public class StateViewSliceRenderer : ISliceRenderer
             keyType = "string";
         }
 
-        var idParameterName = keyProperty is null ? "id" : Identifiers.ToCamelCase(keyProperty);
+        var idParameterName = keyProperty is null ? "id" : Identifiers.EscapeKeyword(Identifiers.ToCamelCase(keyProperty));
 
         QueryRenderer.Render(builder, typeName, keyType, idParameterName, queries, applicationSet, queryDiagnostics);
         builder.EndBlock();

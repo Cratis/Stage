@@ -33,7 +33,7 @@ internal static class SemanticWorldRebuilder
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
-            return Outcome(new SemanticEvaluator().EstablishWorld(plan, facts));
+            return Outcome(new SemanticEvaluator().EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
         }
         catch (InvalidSemanticContract exception)
         {
@@ -139,6 +139,16 @@ internal static class SemanticWorldRebuilder
             Occurred = occurred,
             Route = route
         };
+    }
+
+    internal static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
+    {
+        if (!MatchesSchema(json, properties))
+        {
+            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
+        }
+
+        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
     static SemanticEventRoute? Route(SemanticExecutionPlan plan, Cratis.Chronicle.Contracts.Sequences.EventContext context)
@@ -309,16 +319,6 @@ internal static class SemanticWorldRebuilder
         }
 
         return true;
-    }
-
-    static ImmutableArray<SemanticPropertyValue> Values(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)
-    {
-        if (!MatchesSchema(json, properties))
-        {
-            throw new SemanticWorldRebuildRefused("Chronicle content does not match its semantic property schema.");
-        }
-
-        return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
     static ImmutableArray<SemanticPropertyValue> CompositeValues(JsonElement json, ImmutableArray<SemanticProperty> properties, SemanticApplication application)

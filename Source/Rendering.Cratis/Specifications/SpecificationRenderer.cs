@@ -6,6 +6,8 @@ using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
+using Cratis.Stage.Rendering.Cratis.Renderers;
 
 namespace Cratis.Stage.Rendering.Cratis.Specifications;
 
@@ -112,7 +114,7 @@ public static class SpecificationRenderer
         var name = Behavior(specification.Name);
         var commandType = Identifiers.ToPascalCase(command.Name);
         var ownNamespace = $"{SliceNaming.Namespace(rootNamespace, slice.FullPath)}.{name}";
-        var builder = new CSharpCodeBuilder()
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Specifications, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false)
             .Namespace(ownNamespace)
             .Using("Cratis.Arc.Testing.Commands")
             .Using("Cratis.Specifications")
@@ -128,7 +130,7 @@ public static class SpecificationRenderer
         }
 
         // The scenario owns and disposes a service provider, so the specification owning it disposes it too.
-        builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : Specification, IDisposable")
+        builder.BlankLine().Documentation(specification.Description).OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, IDisposable")
             .Line($"readonly CommandScenario<{commandType}> _scenario = new();")
             .Line("CommandResult _result = null!;")
             .BlankLine();

@@ -16,7 +16,7 @@ internal static class CratisScaffoldArtifacts
     {
         var strings = StringsCatalogInput.From(profile);
         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
-        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name and not ScreenPartitionsInput.Name and not ReducerConventionInput.Name and not ReducerMigrationInput.Name and not RefusalModeInput.Name))
+        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && !CratisScaffoldProtocolInputs.Contains(input.Name)))
         {
             if (!CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
@@ -24,7 +24,7 @@ internal static class CratisScaffoldArtifacts
             }
 
             yield return artifact!.RelativePath == "Program.cs" && strings is not null
-                ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings))
+                ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings, rootNamespace))
                 : artifact;
         }
 

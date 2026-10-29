@@ -44,10 +44,10 @@ public class when_planning_uuid_comparisons : Specification
         _code = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Approve.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_render_a_parsed_guid_literal() => _code.ShouldContain("!global::System.Object.Equals(command.RequestedBy.Value, global::System.Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))");
-    [Fact] void should_render_a_parsed_guid_literal_in_a_production_guard() => _code.ShouldContain("global::System.Object.Equals(ApprovedBy.Value, global::System.Guid.Parse(\"b2222222-2222-4222-8222-222222222222\"))");
-    [Fact] void should_compare_concept_values() => _code.ShouldContain("!global::System.Object.Equals(command.ApprovedBy.Value, command.RequestedBy.Value)");
-    [Fact] void should_compare_a_bare_uuid_with_a_concept_value() => _code.ShouldContain("global::System.Object.Equals(command.Raw, command.ApprovedBy.Value)");
+    [Fact] void should_render_a_parsed_guid_literal() => _code.ShouldContain("!object.Equals(command.RequestedBy.Value, Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))");
+    [Fact] void should_render_a_parsed_guid_literal_in_a_production_guard() => _code.ShouldContain("object.Equals(ApprovedBy.Value, Guid.Parse(\"b2222222-2222-4222-8222-222222222222\"))");
+    [Fact] void should_compare_concept_values() => _code.ShouldContain("!object.Equals(command.ApprovedBy.Value, command.RequestedBy.Value)");
+    [Fact] void should_compare_a_bare_uuid_with_a_concept_value() => _code.ShouldContain("object.Equals(command.Raw, command.ApprovedBy.Value)");
     [Fact] void should_not_compare_a_guid_with_text() => _code.ShouldNotContain("command.RequestedBy.Value, \"");
     [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 }

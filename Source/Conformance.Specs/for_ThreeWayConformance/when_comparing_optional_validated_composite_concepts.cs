@@ -11,7 +11,6 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
-using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications;
@@ -40,7 +39,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
     [Theory]
     [InlineData("RequiredDetails")]
     [InlineData("OptionalDetails")]
-    public async Task should_refuse_rendering_explicit_null_members_that_both_engines_execute(string shape)
+    public async Task should_omit_specifications_with_explicit_null_members_that_both_engines_execute(string shape)
     {
         var model = optional_validated_composite_concept_cases.ExplicitNull(shape);
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
@@ -53,13 +52,15 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             plan,
             new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("OptionalComposites", "OptionalComposites"));
-        Assert.False(rendered.Success);
-        Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.WithoutAuthenticatedDefaultNotes()).Code);
+        Assert.True(rendered.Success);
+        rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Refusals.Single().Artifact.ShouldEqual(plan.Specifications.Values.Single().Id);
+        Assert.DoesNotContain(rendered.Artifacts, artifact => artifact.Sources.Contains(plan.Specifications.Values.Single().Id));
+        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning)).Code);
     }
 
     [Fact]
-    async Task should_refuse_reordered_rejection_inputs_that_pass_the_reference()
+    async Task should_omit_reordered_rejection_inputs_that_pass_the_reference()
     {
         var model = optional_validated_composite_concept_cases.Reordered();
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
@@ -72,9 +73,11 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             plan,
             new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("OptionalComposites", "OptionalComposites"));
-        Assert.False(rendered.Success);
-        Assert.Empty(rendered.Artifacts);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.WithoutAuthenticatedDefaultNotes()).Code);
+        Assert.True(rendered.Success);
+        rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        Assert.DoesNotContain(rendered.Artifacts, artifact => artifact.Sources.Contains(specification.Id));
+        Assert.Equal("STAGE-ESM-011", Assert.Single(rendered.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning)).Code);
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal("Passed", stage.Outcome.ToString());
     }
@@ -132,7 +135,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
                             {
                                 var commandType = typeof(OptionalComposites.Common.Count).Assembly.GetTypes().Single(type => type.Name == {{JsonSerializer.Serialize(command.Name)}});
                                 {{types.Type(property.Type)}} value = {{types.Value(value, property.Type)}};
-                                using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>();
+                                using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
                                 using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                                 var result = await scenario.Execute(commandType.GetConstructors().Single().Invoke(["one", value]));
                                 Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
@@ -145,6 +148,7 @@ public class when_comparing_optional_validated_composite_concepts(when_comparing
             });
             AddGeneratedSpecification("OrderedCompositeConceptFailures.cs", $$"""
                 #if DEBUG
+                using Cratis.Arc.Chronicle.Testing.Commands;
                 using Xunit;
                 {{string.Join('\n', probes)}}
                 #endif

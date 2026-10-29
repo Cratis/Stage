@@ -91,20 +91,19 @@ internal static class SemanticRunProjections
                 foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, appended)))
                 {
                     var @event = plan.Events[from.EventContract];
-                    var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
-                    var mappings = from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals).ToArray();
-                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), mappings, model, @event, from.Key, plan);
+
+                    SemanticRunScopedMappings.Define(builder, types.For(from.EventContract), FromMappings(scope, from), model, @event, from.Key, plan);
                 }
                 SemanticRunScopedMappings.DefineRelated(builder, scope, model.Properties, plan, types);
                 if (scope.Every is { } every)
                 {
-                    DefineEvery(builder, every, model);
+                    DefineEvery(builder, scope, every, model);
                 }
                 foreach (var removal in scope.Removals)
                 {
                     var keyProperty = removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } }
                         ? plan.Events[removal.EventContract].Properties.Single(property => property.Id == id).Name : null;
-                    DefineRemoval(builder, types.For(removal.EventContract), keyProperty);
+                    DefineRemoval(builder, types.For(removal.EventContract), keyProperty, removal.Key, model, plan.Events[removal.EventContract], plan);
                 }
             }
             else
@@ -138,16 +137,26 @@ internal static class SemanticRunProjections
         var output = new List<Projected>();
         foreach (var (source, instance) in scenario.Instances)
         {
-            // The sink stores the identifier as its document key, not as a field in the materialized model.
-            var identifier = model.Properties.Single(property => property.IsIdentifier);
-            var key = SemanticValue.Text(source.ToString());
-            var values = model.Properties.Select(property => new SemanticPropertyValue(
-                property.Id,
-                property.Id == identifier.Id ? key : Value(typeof(TReadModel).GetProperty(property.Name)!.GetValue(instance), property.Type, plan)))
-                .ToImmutableArray();
-            output.Add(new(model.Id, key, values));
+            output.Add(ProjectedInstance(model, source, instance, plan));
         }
         return output;
+    }
+
+    static Projected ProjectedInstance<TReadModel>(SemanticReadModel model, EventSourceId source, TReadModel instance, SemanticExecutionPlan plan)
+    {
+        // The sink stores the identifier as its document key, not as a field in the materialized model.
+        var identifiers = model.Properties.Where(property => property.IsIdentifier).ToArray();
+        var composite = identifiers.Length > 1 ? typeof(TReadModel).GetProperty("Id")!.GetValue(instance)! : null;
+        var key = composite is null ? SemanticValue.Text(source.ToString()) : SemanticValue.Composite([.. identifiers.Select(property =>
+            new SemanticPropertyValue(property.Id, Value(composite.GetType().GetProperty(property.Name)!.GetValue(composite), property.Type, plan)))]);
+        var identity = composite is null
+            ? new Dictionary<SemanticId, SemanticValue> { [identifiers[0].Id] = key }
+            : ((SemanticCompositeValue)key).Properties.ToDictionary(part => part.TargetProperty, part => part.Value);
+        var values = model.Properties.Select(property => new SemanticPropertyValue(
+            property.Id,
+            identity.TryGetValue(property.Id, out var value) ? value : Value(typeof(TReadModel).GetProperty(property.Name)!.GetValue(instance), property.Type, plan)))
+            .ToImmutableArray();
+        return new(model.Id, key, values);
     }
 
     static void CollectEvents<TReadModel>(ReadModelScenario<TReadModel> scenario, SemanticProjection projection, SemanticRunContext context, SemanticRuntimeTypes types)
@@ -258,34 +267,76 @@ internal static class SemanticRunProjections
         context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model)
             .GroupBy(seed => SemanticRunContext.Canonical(seed.Key), StringComparer.Ordinal).Select(group => group.Last());
 
-    static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionEvery every, SemanticReadModel model)
+    static SemanticProjectionMapping[] FromMappings(SemanticProjectionScope scope, SemanticProjectionFrom from)
     {
-        void Define(Action<string> set)
+        // Native every/all must preserve original from targets: Chronicle uses them to select join backfills.
+        if (SemanticScopedProjectionSupport.RendersEveryLiteralsNatively(scope))
         {
-            var identifier = model.Properties.Single(property => property.IsIdentifier);
-            if (every.SubscribesToAllEvents && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
-            {
-                set(identifier.Name);
-            }
-            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
-            {
-                var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
-                set(target.Name);
-            }
+            return [.. from.Mappings];
         }
+
+        var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
+        return [.. from.Mappings.Where(mapping => mapping.Operation != SemanticProjectionOperation.Set || !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals)];
+    }
+
+    static void DefineEvery<TReadModel>(IProjectionBuilderFor<TReadModel> builder, SemanticProjectionScope scope, SemanticProjectionEvery every, SemanticReadModel model)
+    {
         if (every.SubscribesToAllEvents)
         {
             // FromAll has no child-inclusion switch; child scopes are refused before lowering.
-            builder.FromAll(from => Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId()));
+            builder.FromAll(from => DefineEveryMappings(
+                scope,
+                model,
+                (target, value) => SetEvery(from.Set(Property<TReadModel>(target)), target, value)));
         }
         else
         {
             builder.FromEvery(from =>
             {
                 from.ExcludeChildProjections();
-                Define(target => from.Set(Property<TReadModel>(target)).ToEventSourceId());
+                DefineEveryMappings(
+                    scope,
+                    model,
+                    (target, value) => SetEvery(from.Set(Property<TReadModel>(target)), target, value));
             });
         }
+    }
+
+    static void DefineEveryMappings(SemanticProjectionScope scope, SemanticReadModel model, Action<string, SemanticValue?> set)
+    {
+        var every = scope.Every!;
+        var identifier = model.Properties.Single(property => property.IsIdentifier);
+        if (every.SubscribesToAllEvents && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+        {
+            set(identifier.Name, null);
+        }
+
+        foreach (var mapping in SemanticScopedProjectionSupport.NativeEveryMappings(scope))
+        {
+            var target = model.Properties.Single(property => property.Id == mapping.Target[0]);
+            set(target.Name, (mapping.Source as SemanticProjectionLiteral)?.Value);
+        }
+    }
+
+    // A null value represents the event-source mapping, not a supported null literal Set.
+    static void SetEvery<TReadModel, TParent>(IAllSetBuilder<TReadModel, TParent> set, string target, SemanticValue? value)
+    {
+        if (value is null)
+        {
+            set.ToEventSourceId();
+        }
+        else
+        {
+            SetLiteral(set, target, value);
+        }
+    }
+
+    // IAllSetBuilder.ToValue infers its type from the argument, so it is called with the read model property type.
+    static void SetLiteral<TReadModel, TParent>(IAllSetBuilder<TReadModel, TParent> set, string target, SemanticValue value)
+    {
+        var type = typeof(TReadModel).GetProperty(target)!.PropertyType;
+        typeof(IAllSetBuilder<TReadModel, TParent>).GetMethod(nameof(IAllSetBuilder<,>.ToValue))!
+            .MakeGenericMethod(type).Invoke(set, BindingFlags.DoNotWrapExceptions, null, [SemanticRuntimeTypes.ConvertValue(value, type)], null);
     }
 
     static Expression<Func<TReadModel, object>> Property<TReadModel>(string name)
@@ -295,23 +346,27 @@ internal static class SemanticRunProjections
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
     }
 
-    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>
+    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty, SemanticProjectionKey key, SemanticReadModel model, SemanticEventContract @event, SemanticExecutionPlan plan) =>
         typeof(SemanticRunProjections).GetMethod(nameof(RemoveEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, keyProperty], null);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, keyProperty, key, model, @event, plan], null);
 
-    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, string? keyProperty)
+    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, string? keyProperty, SemanticProjectionKey key, SemanticReadModel model, SemanticEventContract @event, SemanticExecutionPlan plan)
     {
         // The generic parameter is a runtime-emitted event contract, as in DefineEvent.
 #pragma warning disable CHR0002
-        if (keyProperty is null)
+        if (key is SemanticProjectionPartsKey parts)
+        {
+            builder.RemovedWith<TEvent>(removed => SemanticRunCompositeKeys.Define(removed, typeof(IKeyBuilder<TEvent, RemovedWithBuilder<TReadModel, TEvent>>), typeof(TReadModel), typeof(TEvent), model, @event, parts, plan));
+        }
+        else if (keyProperty is null)
         {
             builder.RemovedWith<TEvent>();
         }
         else
         {
             var parameter = Expression.Parameter(typeof(TEvent), "@event");
-            var key = Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter);
-            builder.RemovedWith<TEvent>(removed => removed.UsingKey(key));
+            var accessor = Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter);
+            builder.RemovedWith<TEvent>(removed => removed.UsingKey(accessor));
         }
 #pragma warning restore CHR0002
     }

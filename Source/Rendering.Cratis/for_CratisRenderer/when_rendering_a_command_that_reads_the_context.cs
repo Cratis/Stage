@@ -76,14 +76,15 @@ public class when_rendering_a_command_that_reads_the_context : an_application_re
         _handler.ShouldContain("Cratis.Chronicle.Identities.IIdentityProvider identities");
     [Fact] void should_ask_for_each_collaborator_once_however_often_it_is_read() =>
         _handler.ShouldContain(
-            "public InvoiceRegistered Handle(global::Cratis.Arc.IOperationContextAccessor operation, ITenantIdAccessor tenants, Cratis.Chronicle.Identities.IIdentityProvider identities, " +
+            "public InvoiceRegistered Handle(IOperationContextAccessor operation, ITenantIdAccessor tenants, Cratis.Chronicle.Identities.IIdentityProvider identities, " +
             "ICausationManager causations, ICurrentPrincipalAccessor principals)");
     [Fact] void should_not_ask_for_arcs_command_context() => _handler.ShouldNotContain("Commands.CommandContext");
     [Fact] void should_read_the_time_the_command_was_received() => _occurred.ShouldEqual(DateTimeOffset.FromUnixTimeMilliseconds(_receipt.ToUnixTimeMilliseconds()));
     [Fact] void should_not_read_the_wall_clock() => _handler.ShouldNotContain("UtcNow");
     [Fact] void should_refuse_a_missing_receipt() => _missingReceipt.InnerException!.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
     [Fact] void should_refuse_an_unset_receipt() => _unsetReceipt.InnerException!.GetType().Name.ShouldEqual("CommandReceiptTimeUnavailable");
-    [Fact] void should_translate_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("global::AcmeBilling.GeneratedTenancy.PortableTenantValues.Translate(tenants.Current.Value");
+    [Fact] void should_translate_the_tenant_from_the_tenant_accessor() => _handler.ShouldContain("PortableTenantValues.Translate(tenants.Current.Value");
+    [Fact] void should_import_the_tenant_translation() => _handler.ShouldContain("using AcmeBilling.GeneratedTenancy;");
     [Fact] void should_translate_default_in_the_generated_handler() => _tenants[TenantId.Default.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
     [Fact] void should_translate_arcs_unset_tenant_to_the_portable_default() => _tenants[TenantId.NotSet.Value].ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);
     [Fact] void should_use_the_portable_default_for_a_request_without_a_tenant_header() => _withoutHeader.ShouldEqual(Screenplay.Contexts.TenantId.Default.Value);

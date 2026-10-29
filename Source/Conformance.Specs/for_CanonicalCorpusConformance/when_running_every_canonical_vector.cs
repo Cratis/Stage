@@ -9,10 +9,10 @@ using Xunit;
 namespace Cratis.Stage.Conformance.Specs.for_CanonicalCorpusConformance;
 
 // The conformance matrix: every vector of the pinned canonical corpus, through partial model loading and then the spec executor, the
-// semantic Host admission and the Cratis render planner. See Documentation for how to update conformance-matrix.json when a cell changes on purpose.
+// semantic Host admission and the Cratis render planner plus a Debug C# compile. See Documentation for how to update conformance-matrix.json when a cell changes on purpose.
 //
-// The whole matrix runs once in the class fixture, not once per fact: it is 4 surfaces over every vector (planner and admission level, no
-// generated build), and the facts below only read the shared result.
+// The whole matrix runs once in the class fixture, not once per fact: it is 4 surfaces over every vector, including an in-memory compile
+// of published C# rather than a generated MSBuild run, and the facts below only read the shared result.
 public class when_running_every_canonical_vector(when_running_every_canonical_vector.context fixture) : IClassFixture<when_running_every_canonical_vector.context>
 {
     [Fact] void should_enumerate_at_least_the_expected_number_of_vectors() => Assert.True(fixture.Actual.Count >= fixture.Expected.MinimumVectorCount, $"{fixture.Actual.Count} vectors enumerated, expected at least {fixture.Expected.MinimumVectorCount}.");
@@ -26,6 +26,7 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
     [Fact] void should_load_only_the_per_refusal_schema() => Assert.True(fixture.Expected.SchemaProblems.Count == 0, string.Join(Environment.NewLine, fixture.Expected.SchemaProblems));
     [Fact] void should_record_every_refusal_exactly() => Assert.True(fixture.RecordProblems.Count == 0, string.Join(Environment.NewLine, fixture.RecordProblems));
     [Fact] void should_give_every_refusal_one_disposition() => Assert.True(fixture.DispositionProblems.Count == 0, string.Join(Environment.NewLine, fixture.DispositionProblems));
+    [Fact] void should_compile_every_published_render() => Assert.True(fixture.UntrackedCompileErrors.Count == 0, string.Join(Environment.NewLine, fixture.UntrackedCompileErrors));
 
     public class context
     {
@@ -84,6 +85,10 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
             .Select(cell => $"{cell.Vector} / {cell.Surface}: missing expected cell"),
             .. Problems.Where(problem => problem.Contains(": changed-outcome(", StringComparison.Ordinal))];
 
+        public IReadOnlyList<string> UntrackedCompileErrors => [.. Cells().SelectMany(cell => cell.Actual.Refusals
+            .Where(fingerprint => fingerprint.Kind == "compile" && ExpectedFor(cell.Vector, cell.Surface)?.Refusals.Any(record => record.Fingerprint == fingerprint && record.Issue is > 0 && record.ByDesign is null) != true)
+            .Select(fingerprint => $"{cell.Vector}: {cell.Actual.Details[fingerprint]}"))];
+
         public IReadOnlyList<string> RecordProblems => [.. Problems.Where(problem => !IsDisposition(problem) && !problem.Contains(": changed-outcome(", StringComparison.Ordinal))];
         public IReadOnlyList<string> DispositionProblems => [.. Problems.Where(IsDisposition)];
 
@@ -91,7 +96,7 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
             ? refusal_dispositions.Problems(cell.Vector, cell.Surface, expected, cell.Actual) : [])];
 
         static bool IsDisposition(string problem) => problem.Contains("disposition(", StringComparison.Ordinal) ||
-            problem.Contains(": unauthorized-by-design(", StringComparison.Ordinal) || problem.Contains(": issue-500-only-tracks-", StringComparison.Ordinal);
+            problem.Contains(": compile-record-needs-issue(", StringComparison.Ordinal) || problem.Contains(": unauthorized-by-design(", StringComparison.Ordinal) || problem.Contains(": issue-500-only-tracks-", StringComparison.Ordinal);
 
         IEnumerable<(string Vector, conformance_surface Surface, conformance_observation Actual)> Cells() =>
             Actual.SelectMany(row => row.Value.Select(cell => (Vector: row.Key, Surface: cell.Key, Actual: cell.Value)));

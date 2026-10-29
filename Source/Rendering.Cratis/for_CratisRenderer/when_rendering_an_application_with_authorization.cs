@@ -6,6 +6,7 @@ using System.Security.Claims;
 using Cratis.Arc.Authorization;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Types;
 using Xunit;
 
@@ -34,8 +35,8 @@ public class when_rendering_an_application_with_authorization : an_application_w
     // Asserted as joined text rather than an empty collection so a failure names the compilation errors.
     [Fact] void should_render_output_that_compiles() =>
         string.Join(Environment.NewLine, _compilationErrors).ShouldEqual(string.Empty);
-    [Fact] void should_import_the_authorization_namespace_into_the_command_slice() =>
-        SliceContent("Register").ShouldContain("using Cratis.Arc.Authorization;");
+    [Fact] void should_resolve_authorization_through_the_project_global_usings() =>
+        FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).ShouldContain("Cratis.Arc.Authorization");
     [Fact] void should_guard_the_command_with_the_roles_it_authorizes() =>
         SliceContent("Register").ShouldContain("[Roles(\"Administrator\", \"Auditor\")]");
     [Fact] void should_require_an_authenticated_caller_for_a_command_without_authorization() =>
@@ -57,8 +58,8 @@ public class when_rendering_an_application_with_authorization : an_application_w
         _error.ToString().ShouldNotContain("Slice 'Summary' declares 3 query declaration(s) with no rendered equivalent");
     [Fact] void should_mark_the_property_the_constraint_keeps_unique() =>
         SliceContent("Register").ShouldContain("[property: Unique(\"UniqueInvoiceNumber\")]");
-    [Fact] void should_import_the_constraint_namespace_into_the_command_slice() =>
-        SliceContent("Register").ShouldContain("using Cratis.Chronicle.Events.Constraints;");
+    [Fact] void should_resolve_constraints_through_the_project_global_usings() =>
+        FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).ShouldContain("Cratis.Chronicle.Events.Constraints");
     [Fact] void should_no_longer_report_the_constraint_as_unrendered() =>
         _error.ToString().ShouldNotContain("Slice 'Register' declares 1 constraint declaration(s)");
     [Fact] void should_report_the_screen_it_does_not_render() =>

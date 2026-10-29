@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Semantics;
+
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
@@ -17,12 +19,22 @@ public sealed class UnsupportedSemanticRendering : Exception
     /// </summary>
     public string Code => "STAGE-ESM-012";
 
+    internal SemanticId? Owner { get; private init; }
+
+    internal bool WholeRenderOnly { get; private init; }
+
     /// <summary>
     /// Creates a failure naming the semantic variant that cannot be rendered.
     /// </summary>
     /// <param name="category">The semantic category.</param>
     /// <param name="value">The unhandled value.</param>
     /// <returns>The typed failure.</returns>
-    public static UnsupportedSemanticRendering For(string category, object value) =>
-        new($"The Cratis ESM renderer cannot handle {category} '{value}'.");
+    public static UnsupportedSemanticRendering For(string category, object value) => For(category, value, null);
+
+    internal static UnsupportedSemanticRendering For(string category, object value, SemanticId? owner) =>
+        new($"The Cratis ESM renderer cannot handle {category} '{value}'.")
+        {
+            Owner = owner,
+            WholeRenderOnly = owner.HasValue
+        };
 }

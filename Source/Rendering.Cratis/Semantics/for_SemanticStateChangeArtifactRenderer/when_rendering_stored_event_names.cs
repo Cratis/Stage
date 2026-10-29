@@ -25,6 +25,6 @@ public class when_rendering_stored_event_names : Specification
     }
 
     [Fact] void should_admit_the_mixed_model() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_pin_the_renamed_event() => _code.ShouldContain("[global::Cratis.Chronicle.Events.EventTypeAttribute(\"Original\")]\npublic record Renamed(");
-    [Fact] void should_keep_the_unpinned_event_argument_free() => _code.ShouldContain("[global::Cratis.Chronicle.Events.EventTypeAttribute]\npublic record Recorded(");
+    [Fact] void should_pin_the_renamed_event() => _code.ShouldContain("[EventType(\"Original\")]\npublic record Renamed(");
+    [Fact] void should_keep_the_unpinned_event_argument_free() => _code.ShouldContain("[EventType]\npublic record Recorded(");
 }

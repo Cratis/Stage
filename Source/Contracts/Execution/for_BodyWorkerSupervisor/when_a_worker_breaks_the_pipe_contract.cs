@@ -67,7 +67,7 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
             fi
             while IFS= read -r line; do printf '%s\n' '{{Response}}'; done
             """;
-        await using var supervisor = Supervisor(cache, script);
+        await using var supervisor = Supervisor(cache, script, timeout: 30000);
         var result = await supervisor.SendAsync(new("probe", "evaluate"));
         Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation!.Diagnostic, StringComparison.Ordinal);
         supervisor.ProcessId.ShouldBeNull();

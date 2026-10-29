@@ -75,7 +75,7 @@ public static class AuthorizationRenderer
             throw exception;
         }
 
-        if (declared.Length == 0 || declared.Any(authorize => authorize is null))
+        if (HasInferredDefault(declared))
         {
             diagnostics.Add(AuthenticatedByDefault(subject));
         }
@@ -89,6 +89,8 @@ public static class AuthorizationRenderer
             _ => throw new UnreachableAuthorizationRendering(outcome.GetType()),
         };
     }
+
+    static bool HasInferredDefault(AuthorizeSyntax?[] declared) => declared.Length == 0 || declared.Any(authorize => authorize is null);
 
     static string AuthenticatedByDefault(string subject) =>
         $"{subject} requires an authenticated caller because the model has no authorize clause; " +

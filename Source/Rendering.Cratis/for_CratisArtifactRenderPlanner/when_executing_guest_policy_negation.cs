@@ -5,6 +5,7 @@
 using System.Text;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -18,6 +19,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// <param name="fixture">The generated application fixture.</param>
 public class when_executing_guest_policy_negation(context fixture) : IClassFixture<context>
 {
+    [Fact] void should_not_replace_explicit_guest_policies_with_inferred_defaults() => fixture.HasInferredDefaults.ShouldBeFalse();
     [Fact] void should_build_debug_and_release_without_warnings() => (fixture.DebugWarnings + fixture.ReleaseWarnings).ShouldBeEmpty();
     [Fact] void should_run_every_generated_guest_and_authenticated_vector() => fixture.Results.Length.ShouldEqual(40);
     [Fact] void should_match_the_reference_through_the_generated_pipelines() => fixture.Results.All(result => result.Outcome == "Passed").ShouldBeTrue();
@@ -25,6 +27,14 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
     public class context : a_generated_invoice_application
     {
         protected override string InvoiceSource => Source;
+        public bool HasInferredDefaults { get; private set; }
+
+        protected override ArtifactRenderPlan CreatePlan()
+        {
+            var plan = base.CreatePlan();
+            HasInferredDefaults = plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-054");
+            return plan;
+        }
 
         internal static string Source
         {

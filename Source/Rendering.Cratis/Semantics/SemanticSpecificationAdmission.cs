@@ -103,7 +103,9 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
-        !GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification) &&
+        !GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification) && CanRenderDeclaredSpecification(context, specification, reactionInvocation);
+
+    static bool CanRenderDeclaredSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -237,13 +239,13 @@ internal static partial class SemanticSpecificationAdmission
         return unstable.Length == 0 ? null : $"A reducer body reads {unstable}, which Chronicle's ReadModelScenario cannot supply deterministically.";
     }
 
-    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        if (GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification))
-        {
-            return "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; explicit anonymous access is not yet modeled by Screenplay.";
-        }
+    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
+        GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification)
+            ? "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; explicit anonymous access is not yet modeled by Screenplay."
+            : DeclaredRejectionReason(context, specification);
 
+    static string DeclaredRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
+    {
         if (specification.When is null && !specification.ThenQueries.IsEmpty && !specification.ThenErrors.IsEmpty &&
             (!specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty))
         {

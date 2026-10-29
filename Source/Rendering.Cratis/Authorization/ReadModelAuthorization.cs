@@ -43,14 +43,14 @@ public static class ReadModelAuthorization
         if (declared.Length > 0)
         {
             diagnostics.Add(
-                $"Read model '{readModel}' is returned by none of the {declared.Length} query declaration(s) in its slice — the " +
+                $"STAGE-ESM-054: Read model '{readModel}' is returned by none of the {declared.Length} query declaration(s) in its slice — the " +
                 "document states who may read the other read models and nothing about this one, so its synthesized " +
                 "query pair requires an authenticated caller rather than being left open to everyone.");
             return "Authorize";
         }
 
         diagnostics.Add(
-            $"Read model '{readModel}' requires an authenticated caller for its synthesized query pair because the model has no authorize clause; " +
+            $"STAGE-ESM-054: Read model '{readModel}' requires an authenticated caller for its synthesized query pair because the model has no authorize clause; " +
             "Stage renders an authenticated caller as the default, unlike Screenplay's reference semantics where a missing clause allows everyone.");
         return "Authorize";
     }

@@ -12,16 +12,7 @@ internal static partial class SemanticCratisAdmission
     {
         if (reaction.RunsAs is null)
         {
-            if (SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction))
-            {
-                diagnostics.Add(new(
-                    "STAGE-ESM-055",
-                    ArtifactRenderDiagnosticSeverity.Information,
-                    $"Reaction '{reaction.Name}' has no runs as and invokes a command with no authorize clause, which renders [Authorize]; " +
-                    "Stage renders the reactor with [ExecuteCommandsAsSystem] (the system principal, no roles) so the command is still accepted.",
-                    reaction.Id));
-            }
-
+            ReportInferredReactionIdentity(context, reaction, diagnostics);
             return;
         }
 
@@ -39,5 +30,16 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(Error("STAGE-ESM-034", $"Reaction '{reaction.Name}' runs as system and invokes '{command.Name}', whose opaque authorization may read claims; use a role-only or authenticated-only gate to preserve Screenplay 0043.", reaction.Id));
             }
         }
+    }
+
+    static void ReportInferredReactionIdentity(SemanticApplicationContext context, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (!SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction)) return;
+        diagnostics.Add(new(
+            "STAGE-ESM-055",
+            ArtifactRenderDiagnosticSeverity.Information,
+            $"Reaction '{reaction.Name}' has no runs as and invokes a command with no authorize clause, which renders [Authorize]; " +
+            "Stage renders the reactor with [ExecuteCommandsAsSystem] (the system principal, no roles) so the command is still accepted.",
+            reaction.Id));
     }
 }

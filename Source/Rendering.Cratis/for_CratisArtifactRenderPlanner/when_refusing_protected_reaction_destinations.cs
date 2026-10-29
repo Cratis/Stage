@@ -53,11 +53,11 @@ public class when_refusing_protected_reaction_destinations
         var start = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Start");
         var scope = scoped ? new ArtifactRenderScope(ArtifactRenderScopeKind.Slice, start.Id) : null;
         var plan = invoice_model.Plan(model, scope);
-        plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-040"]);
-        plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).Single().Message.ShouldContain("reaction destination 'Complete'");
+        plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-040"]);
+        plan.Diagnostics.Single(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).Message.ShouldContain("reaction destination 'Complete'");
         plan.Artifacts.ShouldBeEmpty();
     }
 
     static void Set(ExecutableSemanticModel model, string property, object value) =>
-        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, value);
+        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, value);
 }

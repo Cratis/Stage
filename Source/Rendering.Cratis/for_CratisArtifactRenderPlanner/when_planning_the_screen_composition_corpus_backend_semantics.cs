@@ -32,14 +32,14 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
             SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
 
         var options = new CratisRenderingOptions("Workspaces", "Workspaces");
         var request = new ArtifactRenderRequest(
             model,
-            execution.Plan!,
+            execution.Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _plan = new CratisArtifactRenderPlanner().Plan(request);
@@ -52,7 +52,7 @@ public class when_planning_the_screen_composition_corpus_backend_semantics : Spe
             .Select(_ => _.Content));
     }
 
-    [Fact] void should_plan_without_stage_diagnostics() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+    [Fact] void should_plan_without_stage_diagnostics() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_emit_the_listing_query_specification() => ArtifactText.ShouldContain("when_listing_created_work_items_is_queried");
     [Fact] void should_emit_the_comments_query_specification() => ArtifactText.ShouldContain("Needs compact layout");
     [Fact] void should_emit_the_details_query_specification() => ArtifactText.ShouldContain("when_showing_renamed_details_is_queried");

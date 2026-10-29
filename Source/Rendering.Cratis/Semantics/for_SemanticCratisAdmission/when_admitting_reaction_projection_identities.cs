@@ -53,7 +53,7 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
         // The projection is keyed by the payload property: its row does not depend on which event source the reaction appends to.
         SetContext(Compile(WithDestination(destination)));
         Plan();
-        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
         _plan.Artifacts.ShouldNotBeEmpty();
         RenderedOutput.Errors(Files()).ShouldBeEmpty();
     }
@@ -66,7 +66,7 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
         SetContext(Compile(WithDestination(" for id")));
         if (reactionOnly) ReplaceAutomation(_located.Slice with { Commands = [] });
         Plan();
-        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
         _plan.Artifacts.ShouldNotBeEmpty();
         RenderedOutput.Errors(Files()).ShouldBeEmpty();
     }
@@ -76,7 +76,7 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
     {
         SetContext(Compile(WithDestination(" for \"same\"").Replace("            id = id", "            id = \"same\"", StringComparison.Ordinal)));
         Plan();
-        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+        _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
         RenderedOutput.Errors(Files()).ShouldBeEmpty();
     }
 

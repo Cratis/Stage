@@ -24,7 +24,7 @@ public class when_rendering_a_context_independent_inline_handler : state_change_
     void Establish()
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = Body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = Body } } };
         var completeEvent = new EventSyntax("BatchProcessed", [new PropertySyntax("identityId", new("String", false, false, SourceLocation.Start), SourceLocation.Start)], SourceLocation.Start);
         _processBatch = _processBatch with { Slice = _processBatch.Slice with { Commands = [command], Events = [completeEvent] } };
     }
@@ -33,11 +33,11 @@ public class when_rendering_a_context_independent_inline_handler : state_change_
     {
         _file = new StateChangeSliceRenderer().Render(_processBatch, _applicationSet, "CratisApp");
         var assembly = RenderedOutput.Load([_file]);
-        var commandType = assembly.GetType("CratisApp.Billing.Invoices.ProcessBatch.ProcessBatch")!;
+        var commandType = assembly.GetType("CratisApp.Billing.Invoices.ProcessBatch.ProcessBatch");
         var command = Activator.CreateInstance(commandType, Guid.Empty);
-        var handle = commandType.GetMethod("Handle")!;
+        var handle = commandType.GetMethod("Handle");
         _contextType = handle.GetParameters().Single().ParameterType;
-        _events = (IEnumerable<object>)handle.Invoke(command, [null])!;
+        _events = (IEnumerable<object>)handle.Invoke(command, [null]);
     }
 
     [Fact] void should_emit_the_accepted_body_verbatim() => _file.Content.ShouldContain(Body);

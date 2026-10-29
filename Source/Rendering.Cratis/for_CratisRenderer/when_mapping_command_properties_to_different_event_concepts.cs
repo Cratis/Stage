@@ -55,12 +55,12 @@ public class when_mapping_command_properties_to_different_event_concepts : Speci
         var sourceValue = _values[sourcePrimitive];
         var expected = sourcePrimitive == targetPrimitive ? sourceValue : 42m;
         var input = commandType.GetConstructors().Single().GetParameters()[1].ParameterType;
-        var source = sourceType == "OrderId" ? Activator.CreateInstance(input, sourceValue)! : sourceValue;
-        var command = Activator.CreateInstance(commandType, "destination", source)!;
-        var produced = (EventForEventSourceId)commandType.GetMethod("Handle")!.Invoke(command, [])!;
-        var result = produced.Event.GetType().GetProperty("MovementId")!.GetValue(produced.Event)!;
+        var source = sourceType == "OrderId" ? Activator.CreateInstance(input, sourceValue) : sourceValue;
+        var command = Activator.CreateInstance(commandType, "destination", source);
+        var produced = (EventForEventSourceId)commandType.GetMethod("Handle").Invoke(command, []);
+        var result = produced.Event.GetType().GetProperty("MovementId").GetValue(produced.Event);
         var actual = string.Equals(targetType, "OrderId", StringComparison.Ordinal) || string.Equals(targetType, "MovementId", StringComparison.Ordinal)
-            ? result.GetType().GetProperty("Value")!.GetValue(result)
+            ? result.GetType().GetProperty("Value").GetValue(result)
             : result;
         actual.ShouldEqual(expected);
         produced.EventSourceId.ToString().ShouldEqual("destination");
@@ -85,13 +85,13 @@ public class when_mapping_command_properties_to_different_event_concepts : Speci
         string.Join(Environment.NewLine, RenderedOutput.Errors(files)).ShouldEqual(string.Empty);
         var assembly = RenderedOutput.Load(files);
         var expected = _values["Uuid"];
-        var order = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "OrderId"), expected)!;
-        var transfer = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "Transfer"), order)!;
+        var order = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "OrderId"), expected);
+        var transfer = Activator.CreateInstance(assembly.GetTypes().Single(type => type.Name == "Transfer"), order);
         var commandType = assembly.GetTypes().Single(type => type.Name == "MoveStock");
-        var command = Activator.CreateInstance(commandType, "destination", transfer)!;
-        var produced = (EventForEventSourceId)commandType.GetMethod("Handle")!.Invoke(command, [])!;
-        var result = produced.Event.GetType().GetProperty("MovementId")!.GetValue(produced.Event)!;
-        result.GetType().GetProperty("Value")!.GetValue(result).ShouldEqual(expected);
+        var command = Activator.CreateInstance(commandType, "destination", transfer);
+        var produced = (EventForEventSourceId)commandType.GetMethod("Handle").Invoke(command, []);
+        var result = produced.Event.GetType().GetProperty("MovementId").GetValue(produced.Event);
+        result.GetType().GetProperty("Value").GetValue(result).ShouldEqual(expected);
     }
 
     [Theory]

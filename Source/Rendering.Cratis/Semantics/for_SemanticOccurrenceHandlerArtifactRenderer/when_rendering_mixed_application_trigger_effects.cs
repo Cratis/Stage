@@ -35,7 +35,7 @@ public class when_rendering_mixed_application_trigger_effects : Specification
         var model = for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(for_SemanticOccurrenceAdmission.when_admitting_application_trigger_reactions.with_productions_and_invocations.MixedSource);
         var reaction = model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
         _productionEffect = $"stage:reaction:{reaction.Id}:productions";
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
         plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         plan.Success.ShouldBeTrue();
         _handler = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => Path.GetFileName(artifact.RelativePath) == "ProcessBatch.cs").Bytes.AsSpan());
@@ -91,9 +91,9 @@ public class when_rendering_mixed_application_trigger_effects : Specification
                 return new OccurrenceCommandResult(_commandReceipts.Add(key) ? OccurrenceCommandDisposition.Recorded : OccurrenceCommandDisposition.AlreadyRecorded, new NoEvents(), null, null);
             });
         var type = _assembly.GetTypes().Single(item => item.Name == "ProcessBatch");
-        var payload = Activator.CreateInstance(_assembly.GetTypes().Single(item => item.Name == "BatchRequested"), "batch-42")!;
-        var handler = Activator.CreateInstance(type, client, injected, executor)!;
-        await (Task)type.GetMethod("Handle")!.Invoke(handler, [payload, context, CancellationToken.None])!;
+        var payload = Activator.CreateInstance(_assembly.GetTypes().Single(item => item.Name == "BatchRequested"), "batch-42");
+        var handler = Activator.CreateInstance(type, client, injected, executor);
+        await (Task)type.GetMethod("Handle").Invoke(handler, [payload, context, CancellationToken.None]);
     }
 
     [Fact] void should_compile_with_no_diagnostics() => _assembly.ShouldNotBeNull();
@@ -102,7 +102,7 @@ public class when_rendering_mixed_application_trigger_effects : Specification
     [Fact] void should_still_invoke_both_commands_on_redelivery() => _calls.Count.ShouldEqual(4);
     [Fact] void should_produce_before_invoking() => string.Join(',', _order).ShouldEqual("production,invocation,invocation,invocation,invocation");
     [Fact] void should_keep_the_invocation_keys_on_redelivery() => _calls.Select(call => call.Effect).Take(2).SequenceEqual(_calls.Select(call => call.Effect).Skip(2)).ShouldBeTrue();
-    [Fact] void should_preserve_invocation_mapping_order() => string.Join(',', _calls.Select(call => (string)call.Command.GetType().GetProperty("BatchId")!.GetValue(call.Command)!)).ShouldEqual("batch-42,second,batch-42,second");
+    [Fact] void should_preserve_invocation_mapping_order() => string.Join(',', _calls.Select(call => (string)call.Command.GetType().GetProperty("BatchId").GetValue(call.Command))).ShouldEqual("batch-42,second,batch-42,second");
 
     [Fact]
     void should_keep_the_receipt_guard_local_to_productions()
@@ -140,7 +140,7 @@ public class when_rendering_mixed_application_trigger_effects : Specification
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            var value = Properties.TryGetValue(targetMethod!.Name, out var configured) ? configured : throw new NotSupportedException(targetMethod.Name);
+            var value = Properties.TryGetValue(targetMethod.Name, out var configured) ? configured : throw new NotSupportedException(targetMethod.Name);
             return value is Func<object?> callback ? callback() : value;
         }
     }

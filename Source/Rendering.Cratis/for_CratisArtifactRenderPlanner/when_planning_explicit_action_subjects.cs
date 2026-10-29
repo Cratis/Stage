@@ -5,8 +5,8 @@ using System.Text;
 using Cratis.Scene.Model.Elements;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
-using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.given;
+using Cratis.Stage.Rendering.Cratis.Scene;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;

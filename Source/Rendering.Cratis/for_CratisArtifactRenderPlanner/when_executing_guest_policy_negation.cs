@@ -155,7 +155,7 @@ public class when_executing_guest_policy_negation(context fixture) : IClassFixtu
         async Task Because()
         {
             var model = invoice_model.Compile(Source);
-            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(model).Plan;
             foreach (var specification in model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Specifications))
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);

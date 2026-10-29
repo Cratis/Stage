@@ -23,7 +23,7 @@ public class when_rendering_the_canonical_v5_corpus : Specification
         var model = SemanticModelSerializer.Deserialize(ReadModelAbsenceCorpus.V5.EsmBytes.AsSpan());
         _request = new(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("Absence", "Absence")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }

@@ -22,7 +22,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
     public void should_resolve_the_event_from_another_slice_without_warning(string typeName)
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = $"return new {typeName}(string.Empty);" } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = $"return new {typeName}(string.Empty);" } } };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
 
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
@@ -40,7 +40,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
     {
         var command = _processBatch.Slice.Commands.Single();
         var body = $"return new {typeName}(string.Empty);";
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = body } } };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
         Assert.Equal(
@@ -63,7 +63,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var slice = original with { Slice = original.Slice with { Events = _registerInvoice.Slice.Events } };
         var file = new StateChangeSliceRenderer().Render(slice, OrderedApplications(reverse), "CratisApp");
         AssertBodyBinding(file, identity, "StageImport0::InvoiceRegistered", new RenderedFile("RemoteEvent.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
-        Assert.Contains(slice.Slice.Commands.Single().Handler!.Code!.Code, file.Content);
+        Assert.Contains(slice.Slice.Commands.Single().Handler.Code.Code, file.Content);
         Assert.Empty(file.Diagnostics.WithoutAuthenticatedDefaultNotes());
     }
 
@@ -75,7 +75,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var original = InlineSlice("InvoiceRegistered");
         var slice = original with { Slice = original.Slice with { Events = _registerInvoice.Slice.Events } };
         Assert.Throws<CSharpImportRejected>(() => new StateChangeSliceRenderer().Render(slice, OrderedApplications(reverse), "CratisApp"));
-        Assert.Equal("return new InvoiceRegistered(string.Empty);", slice.Slice.Commands.Single().Handler!.Code!.Code);
+        Assert.Equal("return new InvoiceRegistered(string.Empty);", slice.Slice.Commands.Single().Handler.Code.Code);
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var slice = _registerInvoice with { Slice = _registerInvoice.Slice with { Commands = [command] } };
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
         AssertBodyBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", "InvoiceRegistered");
-        Assert.Contains(command.Handler!.Code!.Code, file.Content);
+        Assert.Contains(command.Handler.Code.Code, file.Content);
         Assert.Empty(file.Diagnostics.WithoutAuthenticatedDefaultNotes());
     }
 
@@ -112,7 +112,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var model = compilation.GetSemanticModel(tree);
         var expected = compilation.GetTypeByMetadataName(metadataName);
         Assert.Empty(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
-        var creation = method.Body!.DescendantNodes().OfType<ObjectCreationExpressionSyntax>().Single();
+        var creation = method.Body.DescendantNodes().OfType<ObjectCreationExpressionSyntax>().Single();
         Assert.True(SymbolEqualityComparer.Default.Equals(expected, model.GetTypeInfo(creation).Type));
         Assert.True(SymbolEqualityComparer.Default.Equals(expected, model.GetTypeInfo(creation.Type).Type));
         Assert.Equal(CandidateReason.None, model.GetSymbolInfo(creation.Type).CandidateReason);
@@ -122,7 +122,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
     LocatedSlice InlineSlice(string typeName)
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = $"return new {typeName}(string.Empty);" } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = $"return new {typeName}(string.Empty);" } } };
         return _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
     }
 

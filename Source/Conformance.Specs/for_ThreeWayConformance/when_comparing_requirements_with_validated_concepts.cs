@@ -30,7 +30,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(requirement_concept_order_cases.Compile()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(requirement_concept_order_cases.Compile()).Plan;
             var probes = plan.Specifications.Values.Select(specification =>
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -38,7 +38,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                 var failures = reference.Execution is SemanticRejected rejected
                     ? rejected.ValidationFailures.Select(failure => new[] { failure.Message, failure.Severity.ToString() }).ToArray()
                     : [];
-                var command = plan.Commands[specification.When!.Command];
+                var command = plan.Commands[specification.When.Command];
                 var inputs = command.Properties.Select(property => specification.When.Values.Single(value => value.TargetProperty == property.Id).Value switch
                 {
                     SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),

@@ -28,9 +28,9 @@ public class and_a_fixture_stream_id_is_unformattable : Specification
         var given = specification.GivenEvents.Single();
         var changed = slice with
         {
-            Specifications = [specification with { GivenEvents = [given with { Route = given.Route! with { StreamId = SemanticValue.Text(string.Empty) } }] }]
+            Specifications = [specification with { GivenEvents = [given with { Route = given.Route with { StreamId = SemanticValue.Text(string.Empty) } }] }]
         };
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var options = new CratisRenderingOptions("Routed", "Routed");
         var request = new ArtifactRenderRequest(model, plan, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);

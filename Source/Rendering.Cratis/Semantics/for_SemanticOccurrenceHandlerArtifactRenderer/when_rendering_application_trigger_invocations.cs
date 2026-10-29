@@ -24,7 +24,7 @@ public class when_rendering_application_trigger_invocations : Specification
         var model = for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source);
         var reaction = model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
         _effect = $"stage:reaction:{reaction.Id}:invocation:0:{reaction.Triggers[0].Invokes[0].Command}";
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
         plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         plan.Success.ShouldBeTrue();
         _handler = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => Path.GetFileName(artifact.RelativePath) == "ProcessBatch.cs").Bytes.AsSpan());

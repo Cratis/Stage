@@ -102,7 +102,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                     returns orderId
             """);
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
     }
 
     async Task Because()
@@ -112,7 +112,8 @@ public class when_executing_time_ordered_generation : a_generated_application
         _tests = await Run("time-ordered-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_execute_the_time_ordered_generation_contract()
+    [Fact]
+    void should_execute_the_time_ordered_generation_contract()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");

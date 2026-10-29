@@ -28,7 +28,8 @@ public class with_core_inputs : a_register_project_render_request
         Text(application.Artifacts.Single(artifact => artifact.RelativePath == "Program.cs")).StartsWith("// Acme\n\n", StringComparison.Ordinal).ShouldBeTrue();
     }
 
-    [Fact] void should_report_malformed_headers_from_the_core()
+    [Fact]
+    void should_report_malformed_headers_from_the_core()
     {
         var profile = Add(ArtifactRenderInput.Create(ArtifactFileHeader.InputName, "1", [.. Encoding.UTF8.GetBytes("not json")]));
         var scaffold = CratisRendering.PlanScaffold(new(_model.Application.Name, "Projects", "Projects") { Profile = profile });
@@ -44,7 +45,8 @@ public class with_core_inputs : a_register_project_render_request
     [InlineData("\uE000")]
     void should_refuse_unsafe_options(string line) => CratisRendering.PlanScaffold(new(_model.Application.Name, "Projects", "Projects") { FileHeader = [line] }).Diagnostics.Single().Code.ShouldEqual("STAGE-PLAN-023");
 
-    [Fact] void should_preserve_the_legacy_api()
+    [Fact]
+    void should_preserve_the_legacy_api()
     {
         ArtifactFileHeader.CreateInput(["Ærlig ©", ""]).Bytes.SequenceEqual(FileHeaderInput.Create(["Ærlig ©", ""]).Bytes).ShouldBeTrue();
         FileHeaderInput.Name.ShouldEqual("cratis-render:file-header");

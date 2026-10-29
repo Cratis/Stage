@@ -55,23 +55,24 @@ public class with_identical_operations : given.a_domain_policy_plan
     {
         var assembly = RenderedOutput.Load(_files);
         var services = new ServiceCollection();
-        assembly.GetType("Invoices.GeneratedPolicies.Registration")!.GetMethod("Register")!.Invoke(null, [services]);
+        assembly.GetType("Invoices.GeneratedPolicies.Registration").GetMethod("Register").Invoke(null, [services]);
         var registrations = services.Select(service => service.ImplementationInstance).OfType<AuthorizationPolicyRegistration>().ToArray();
         registrations.Length.ShouldEqual(6);
         registrations.Select(registration => registration.Name).Distinct(StringComparer.Ordinal).Count().ShouldEqual(6);
+
         // Artifacts without an authorize clause carry a plain [Authorize]; only policy-bound attributes pair with a registration.
         var attributes = assembly.GetTypes().SelectMany(type => type.GetCustomAttributes<AuthorizeAttribute>()
             .Select(attribute => (Target: type, attribute.Policy))
             .Concat(type.GetMethods().SelectMany(method => method.GetCustomAttributes<AuthorizeAttribute>().Select(attribute => (Target: type, attribute.Policy))))).Where(attribute => !string.IsNullOrEmpty(attribute.Policy)).ToArray();
         attributes.Length.ShouldEqual(6);
-        attributes.All(attribute => registrations.Any(registration => registration.Name == attribute.Policy && registration.PolicyType.Namespace == attribute.Target.Namespace!.Split(".Billing", StringSplitOptions.None)[0].Split(".Orders", StringSplitOptions.None)[0] + ".GeneratedPolicies")).ShouldBeTrue();
+        attributes.All(attribute => registrations.Any(registration => registration.Name == attribute.Policy && registration.PolicyType.Namespace == attribute.Target.Namespace.Split(".Billing", StringSplitOptions.None)[0].Split(".Orders", StringSplitOptions.None)[0] + ".GeneratedPolicies")).ShouldBeTrue();
     }
 
     string[] DomainTypes(string path)
     {
         var compilation = RenderedOutput.CreateCompilation(_files.Where(file => file.RelativePath.StartsWith(path, StringComparison.Ordinal)));
         return [.. compilation.SyntaxTrees.SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>()
-            .Select(declaration => compilation.GetSemanticModel(tree).GetDeclaredSymbol(declaration)!.ToDisplayString())).Distinct(StringComparer.Ordinal)];
+            .Select(declaration => compilation.GetSemanticModel(tree).GetDeclaredSymbol(declaration).ToDisplayString())).Distinct(StringComparer.Ordinal)];
     }
 }
 #endif

@@ -24,35 +24,40 @@ public class when_planning_generated_code_quality : a_register_project_render_re
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+    [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
 
     /// <summary>
     /// The globalization namespace is only needed by a value that renders as a culture-invariant parse.
     /// </summary>
-    [Fact] void should_not_declare_the_globalization_namespace_without_using_it() =>
+    [Fact]
+    void should_not_declare_the_globalization_namespace_without_using_it() =>
         Sources()
             .Any(_ => _.Text.Contains("using System.Globalization;", StringComparison.Ordinal) && !_.Text.Contains("CultureInfo", StringComparison.Ordinal))
             .ShouldBeFalse();
 
-    [Fact] void should_not_declare_a_namespace_twice_in_one_file() =>
+    [Fact]
+    void should_not_declare_a_namespace_twice_in_one_file() =>
         Sources().Any(source => ImportScopes(source.Text).SelectMany(imports => imports)
             .Select(name => name.StartsWith("global::", StringComparison.Ordinal) ? name["global::".Length..] : name)
             .GroupBy(name => name, StringComparer.Ordinal).Any(group => group.Count() > 1))
             .ShouldBeFalse();
 
-    [Fact] void should_not_leave_type_only_common_imports_at_the_top_of_the_file() =>
+    [Fact]
+    void should_not_leave_type_only_common_imports_at_the_top_of_the_file() =>
         Sources().Where(source => source.Path.StartsWith("Common/", StringComparison.Ordinal))
             .Select(source => CSharpSyntaxTree.ParseText(source.Text).GetCompilationUnitRoot())
             .Any(root => root.Usings.Select(directive => directive.NamespaceOrType.ToString())
                 .Any(name => string.Equals(name, "Cratis.Concepts", StringComparison.Ordinal) || string.Equals(name, "Cratis.Chronicle.Events", StringComparison.Ordinal)))
             .ShouldBeFalse();
 
-    [Fact] void should_order_usings_at_each_lexical_scope() =>
+    [Fact]
+    void should_order_usings_at_each_lexical_scope() =>
         Sources().SelectMany(source => ImportScopes(source.Text))
             .Any(imports => !imports.SequenceEqual(imports.Order(StringComparer.Ordinal)))
             .ShouldBeFalse();
 
-    [Fact] void should_leave_no_blank_line_at_the_end_of_a_file() =>
+    [Fact]
+    void should_leave_no_blank_line_at_the_end_of_a_file() =>
         Sources().Any(_ => _.Text.EndsWith("\n\n", StringComparison.Ordinal)).ShouldBeFalse();
 
     static IEnumerable<IReadOnlyList<string>> ImportScopes(string source)

@@ -14,6 +14,6 @@ public class with_release_baseline_warnings : a_release_baseline_request
     void Establish() => _plan = _planner.Plan(WithBaseline(_assessment));
     void Because() => _check = CratisRendering.CheckPublication(_plan, path => _plan.Artifacts.FirstOrDefault(artifact => artifact.RelativePath == path) is { } artifact ? Text(artifact) : null);
     [Fact] void should_remain_compatible() => _check.ShouldBeOfExactType<CratisPublicationCheck.Compatible>();
-    [Fact] void should_have_assessed_baseline_violations() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).Count().ShouldEqual(2);
+    [Fact] void should_have_assessed_baseline_violations() => _plan.Diagnostics.Count(diagnostic => diagnostic.Severity != Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldEqual(2);
 }
 #endif

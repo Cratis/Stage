@@ -65,7 +65,8 @@ public class when_executing_validation_severity_policy : a_generated_application
         _tests = await Run("severity-test.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_reject_warning_and_information_without_appending()
+    [Fact]
+    void should_build_and_reject_warning_and_information_without_appending()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

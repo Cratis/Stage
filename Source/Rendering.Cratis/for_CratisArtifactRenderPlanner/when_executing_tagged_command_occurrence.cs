@@ -72,7 +72,8 @@ public class when_executing_tagged_command_occurrence : a_generated_application
         _tests = await Run("metadata-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_execute_tagged_command_occurrence()
+    [Fact]
+    void should_build_and_execute_tagged_command_occurrence()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

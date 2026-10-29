@@ -29,11 +29,11 @@ public class when_building_sensitive_command_and_event_values : a_generated_appl
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scaffold"), "scaffold", "Scaffold.play", "module Accounts");
         var compilation = new SemanticModelCompiler().Compile("Secrets", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
         var profile = CratisRendering.CreateProfile("Secrets", new("Secrets", "Secrets"));
-        var request = new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var scaffold = new CratisArtifactRenderPlanner().Plan(request);
         scaffold.Success.ShouldBeTrue();
 
@@ -56,7 +56,7 @@ public class when_building_sensitive_command_and_event_values : a_generated_appl
                     personalValue PersonalValue
             """);
         Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
-        var files = RenderLegacy(syntax.Value!).GetAwaiter().GetResult();
+        var files = RenderLegacy(syntax.Value).GetAwaiter().GetResult();
         files.ShouldContain(file => file.RelativePath.EndsWith("ApiKey.cs", StringComparison.Ordinal) && file.Content.Contains("[Encrypted]\n[NotAudited]", StringComparison.Ordinal));
         files.ShouldContain(file => file.Content.Contains("ApiKey ApiKey", StringComparison.Ordinal) && file.Content.Contains("public record SetCredential", StringComparison.Ordinal));
         files.ShouldContain(file => file.Content.Contains("ApiKey ApiKey", StringComparison.Ordinal) && file.Content.Contains("public record CredentialSet", StringComparison.Ordinal));

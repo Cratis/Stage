@@ -19,7 +19,7 @@ public class when_rendering_an_inline_event_source_wrapper_return_type : state_c
     public void should_preserve_the_wrapper_type_without_warning(string typeName)
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = $"return new {typeName}();" } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = $"return new {typeName}();" } } };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
 
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");

@@ -65,44 +65,57 @@ public class when_rendering_a_specification : given.a_slice_with_specifications
     }
 
     [Fact] void should_render_specs_that_compile() => _errors.ShouldBeEmpty();
-    [Fact] void should_name_the_file_for_the_behavior() =>
+    [Fact]
+    void should_name_the_file_for_the_behavior() =>
         _appended.RelativePath.EndsWith("when_registering_an_invoice.cs", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_not_wrap_in_a_debug_conditional() => _appended.Content.Contains("#if DEBUG", StringComparison.Ordinal).ShouldBeFalse();
-    [Fact] void should_exercise_the_command_through_a_scenario() =>
+    [Fact]
+    void should_exercise_the_command_through_a_scenario() =>
         _appended.Content.ShouldContain("readonly CommandScenario<RegisterInvoice> _scenario = new();");
-    [Fact] void should_run_a_caller_less_specification_as_the_authenticated_default_caller() =>
-        _appended.Content.ShouldContain(global::Cratis.Stage.Rendering.Cratis.Semantics.SemanticDefaultCaller.Comment);
-    [Fact] void should_supply_the_default_caller_as_an_authenticated_principal() =>
+    [Fact]
+    void should_run_a_caller_less_specification_as_the_authenticated_default_caller() =>
+        _appended.Content.ShouldContain(Semantics.SemanticDefaultCaller.Comment);
+    [Fact]
+    void should_supply_the_default_caller_as_an_authenticated_principal() =>
         _appended.Content.ShouldContain("new ClaimsIdentity([], \"Screenplay\")");
-    [Fact] void should_state_the_uuid_the_document_wrote_as_text() =>
+    [Fact]
+    void should_state_the_uuid_the_document_wrote_as_text() =>
         _appended.Content.ShouldContain("Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\")");
 
     // A date renders as a parse against the invariant culture, which needs a using the renderer only knows to
     // emit by looking at what it rendered.
-    [Fact] void should_state_the_date_the_document_wrote_as_text() =>
+    [Fact]
+    void should_state_the_date_the_document_wrote_as_text() =>
         _appended.Content.ShouldContain("DateOnly.Parse(\"2026-08-13\", CultureInfo.InvariantCulture)");
     [Fact] void should_import_what_parsing_it_needs() => _appended.Content.ShouldContain("using System.Globalization;");
-    [Fact] void should_assert_the_appended_event_against_its_event_source() =>
+    [Fact]
+    void should_assert_the_appended_event_against_its_event_source() =>
         _appended.Content.ShouldContain(
             "await _scenario.ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(new EventSourceId(Guid.Parse(\"9c858901-8a57-4791-81fe-4c455b099bc9\").ToString()), @event => @event.InvoiceNumber == \"INV-000123\");");
 
     // The command constructs its identity through Guid.Parse, whose ToString is canonical lowercase. Asserting
     // against the document's raw text would never match an id the command appended under.
-    [Fact] void should_assert_against_the_event_source_the_command_appends_under() =>
+    [Fact]
+    void should_assert_against_the_event_source_the_command_appends_under() =>
         _appended.Content.ShouldNotContain("new EventSourceId(\"9c858901");
 
     // Both, deliberately: on its own ShouldNotBeSuccessful cannot tell a rejection from an unhandled exception.
-    [Fact] void should_assert_a_rejection_as_both_unsuccessful_and_invalid() =>
+    [Fact]
+    void should_assert_a_rejection_as_both_unsuccessful_and_invalid() =>
         _rejected.Content.ShouldContain("_result.ShouldNotBeSuccessful();");
-    [Fact] void should_assert_a_rejection_has_validation_errors() =>
+    [Fact]
+    void should_assert_a_rejection_has_validation_errors() =>
         _rejected.Content.ShouldContain("_result.ShouldHaveValidationErrors();");
-    [Fact] void should_assert_against_no_event_source_when_the_document_names_none() =>
+    [Fact]
+    void should_assert_against_no_event_source_when_the_document_names_none() =>
         _withoutIdentity.Content.ShouldContain("ShouldHaveAppendedEvent<RegisterInvoice, InvoiceRegistered>(EventSourceId.Unspecified");
-    [Fact] void should_say_the_event_source_was_never_named() =>
+    [Fact]
+    void should_say_the_event_source_was_never_named() =>
         _withoutIdentity.Diagnostics.ShouldContain(
             "The specification states no value for 'invoiceId', which is what says which event source the appended events belong to.");
 
-    [Fact] void should_report_what_the_document_left_unstated() =>
+    [Fact]
+    void should_report_what_the_document_left_unstated() =>
         _rejected.Diagnostics.ShouldContain(
             "Specification 'RejectingAnInvoiceWithNoNumber' states no value for 'invoiceNumber', 'dueDate' of command 'RegisterInvoice' — the rendered spec constructs them as missing values.");
 }

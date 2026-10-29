@@ -3,9 +3,9 @@
 
 using System.Text;
 using Cratis.Specifications;
-using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;

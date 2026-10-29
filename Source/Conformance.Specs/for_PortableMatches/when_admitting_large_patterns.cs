@@ -25,7 +25,7 @@ public class when_admitting_large_patterns : Specification
         const string pattern = "(){999999999999999999999999999}";
         PortableMatchPattern.Check(pattern).Status.ShouldEqual(PortableMatchStatus.Admitted);
         var model = portable_match_cases.Compile(pattern, concept);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         foreach (var specification in plan.Specifications.Values)
         {
             new SemanticSpecificationRunner().Run(plan, specification.Id).Passed.ShouldBeTrue();

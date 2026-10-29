@@ -32,7 +32,7 @@ public class when_planning_the_screen_composition_application : a_screen_composi
         _allText = string.Join('\n', _first.Artifacts.Select(_ => System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan())));
     }
 
-    [Fact] void should_plan_without_diagnostics() => _first.Diagnostics.Where(diagnostic => diagnostic.Severity != global::Cratis.Stage.Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+    [Fact] void should_plan_without_diagnostics() => _first.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_plan_the_same_artifact_paths_twice() => _second.Artifacts.Select(_ => _.RelativePath).SequenceEqual(_first.Artifacts.Select(_ => _.RelativePath)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_bytes_twice() => _second.Artifacts.Zip(_first.Artifacts).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_plan_the_same_artifact_hashes_twice() => _second.Artifacts.Select(_ => _.Sha256).SequenceEqual(_first.Artifacts.Select(_ => _.Sha256)).ShouldBeTrue();
@@ -58,7 +58,8 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_not_guess_any_route() => Text(_first, "src/stage-scene.json").ShouldNotContain("/api/");
     [Fact] void should_carry_the_guarded_close_action() => GuardedActions().Select(_ => _.GetProperty("properties").GetProperty("label").GetString()).ShouldContainOnly("Close");
     [Fact] void should_carry_the_close_guard() => GuardedActions().Single().GetProperty("properties").GetProperty("alternatives")[0].GetProperty("condition").GetProperty("right").GetString().ShouldEqual("open");
-    [Fact] void should_give_the_close_guard_a_single_item_to_evaluate() => Elements(Screens().Single(_ => _.GetProperty("name").GetString() == "WorkItemDetails"))
+    [Fact]
+    void should_give_the_close_guard_a_single_item_to_evaluate() => Elements(Screens().Single(_ => _.GetProperty("name").GetString() == "WorkItemDetails"))
         .Any(_ => _.GetProperty("componentName").GetString() == "core:data" && !_.GetProperty("properties").GetProperty("isCollection").GetBoolean()).ShouldBeTrue();
     [Fact] void should_carry_the_guarded_double_click_as_its_branches() => Text(_first, "src/stage-scene.json").ShouldContain("\"path\":\"$guard\"");
     [Fact] void should_not_carry_a_timestamp() => HasTimestamp(_allText).ShouldBeFalse();
@@ -72,12 +73,12 @@ public class when_planning_the_screen_composition_application : a_screen_composi
 
     JsonElement[] Screens() => [.. _document.RootElement.GetProperty("screens").EnumerateArray()];
 
-    string[] Names(string collection) => [.. _document.RootElement.GetProperty(collection).EnumerateArray().Select(_ => _.GetProperty("name").GetString()!)];
+    string[] Names(string collection) => [.. _document.RootElement.GetProperty(collection).EnumerateArray().Select(_ => _.GetProperty("name").GetString())];
 
     string[] FormCommands() => [.. Screens()
         .SelectMany(screen => screen.GetProperty("slotContent").TryGetProperty("forms", out var forms) ? forms.EnumerateArray() : Enumerable.Empty<JsonElement>())
         .Where(_ => _.GetProperty("componentName").GetString() == "Stage:commandForm")
-        .Select(_ => _.GetProperty("properties").GetProperty("command").GetString()!)
+        .Select(_ => _.GetProperty("properties").GetProperty("command").GetString())
         .Distinct(StringComparer.Ordinal)];
 
     JsonElement[] GuardedActions() => [.. Elements(_document.RootElement).Where(_ =>

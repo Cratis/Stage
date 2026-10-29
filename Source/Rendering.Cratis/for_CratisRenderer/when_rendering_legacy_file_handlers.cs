@@ -40,14 +40,14 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         compilation.Success.ShouldBeTrue();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _module = _application.Modules.Single();
         _feature = _module.Features.Single();
         _blocked = _feature.Slices.First();
         _independent = _feature.Slices.Last();
         _context = new([_application]);
         var command = _blocked.Commands.Single();
-        command.Handler!.File!.Path.ShouldEqual("Handlers/ProcessBatch.cs");
+        command.Handler.File.Path.ShouldEqual("Handlers/ProcessBatch.cs");
         command.Handler.Code.ShouldBeNull();
         command.Produces.ShouldBeEmpty();
     }
@@ -57,7 +57,7 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
     {
         var error = await Catch.Exception(() => _renderer.Render([_application], _targetDirectory, _output, _error));
         Assert.True(error is RenderingFailed, $"Expected RenderingFailed, got {error?.GetType().Name ?? "success"}. Output: {_output}. Artifacts: {string.Join(Environment.NewLine, _codeOutput.Files.Select(file => file.Content))}");
-        ((RenderingFailed)error!).Failures.Single().ShouldBeOfExactType<UnsupportedFileBackedCommandHandler>();
+        ((RenderingFailed)error).Failures.Single().ShouldBeOfExactType<UnsupportedFileBackedCommandHandler>();
         _codeOutput.Files.ShouldNotContain(file => file.Content.Contains("public void Handle()", StringComparison.Ordinal));
     }
 
@@ -85,7 +85,7 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
         // Compile(string) has no source-path argument; do not manufacture a filename for its locations.
         rejection.CommandSourceLocation.ShouldEqual(SourceLocation.Start with { Line = 4, Column = 7 });
         rejection.File.Location.ShouldEqual(SourceLocation.Start with { Line = 6, Column = 11 });
-        Assert.Same(_blocked.Commands.Single().Handler!.File, rejection.File);
+        Assert.Same(_blocked.Commands.Single().Handler.File, rejection.File);
         rejection.File.Path.ShouldEqual("Handlers/ProcessBatch.cs");
         _error.ToString().ShouldContain(rejection.Message);
         _output.ToString().ShouldNotContain("Rendering complete.");
@@ -128,7 +128,7 @@ public class when_rendering_legacy_file_handlers : a_multi_slice_application
         _codeOutput.Files.Count.ShouldEqual(1);
         var assembly = RenderedOutput.Load(_codeOutput.Files);
         var commandType = assembly.GetTypes().Single(type => type.Name == "ArchiveInvoice");
-        var events = (IEnumerable<object>)commandType.GetMethod("Handle")!.Invoke(Activator.CreateInstance(commandType), [null])!;
+        var events = (IEnumerable<object>)commandType.GetMethod("Handle").Invoke(Activator.CreateInstance(commandType), [null]);
         events.ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();

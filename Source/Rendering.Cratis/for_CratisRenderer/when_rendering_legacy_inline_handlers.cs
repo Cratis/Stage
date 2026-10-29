@@ -39,7 +39,7 @@ public class when_rendering_legacy_inline_handlers : a_multi_slice_application
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         compilation.Success.ShouldBeTrue();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _module = _application.Modules.Single();
         _feature = _module.Features.Single();
         _blocked = _feature.Slices.First();
@@ -73,7 +73,7 @@ public class when_rendering_legacy_inline_handlers : a_multi_slice_application
         var rejection = (UnsupportedInlineCommandHandler)failure;
         rejection.CommandName.ShouldEqual("RegisterInvoice");
         rejection.FullSlicePath.ShouldEqual("Billing.Invoices.Register");
-        rejection.Location.ShouldEqual(_blocked.Commands.Single().Handler!.Code!.Location);
+        rejection.Location.ShouldEqual(_blocked.Commands.Single().Handler.Code.Location);
         rejection.Reason.ShouldEqual(InlineCommandHandlerRejectionReason.ContextBinding);
         _error.ToString().ShouldContain(rejection.Message);
         _output.ToString().ShouldNotContain("Rendering complete.");

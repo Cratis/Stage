@@ -292,7 +292,7 @@ public static class SpecificationRenderer
 
         // A command without an authorize clause renders [Authorize], so the specification runs as the default authenticated caller.
         builder.OpenBlock("async Task Because()")
-            .Line(global::Cratis.Stage.Rendering.Cratis.Semantics.SemanticDefaultCaller.Comment)
+            .Line(Semantics.SemanticDefaultCaller.Comment)
             .Line("var principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], \"Screenplay\"));")
             .Line("var principalOverride = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
             .Line("using var scope = principalOverride.BeginScope(principal);")

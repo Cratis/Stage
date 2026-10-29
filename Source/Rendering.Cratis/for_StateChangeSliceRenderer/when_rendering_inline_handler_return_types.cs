@@ -30,7 +30,7 @@ public class when_rendering_inline_handler_return_types : state_change_slices
     public void should_emit_a_compiling_signature_and_preserve_the_body(string body, string returnType)
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = body } } };
         var placed = new EventSyntax("OrderPlaced", [], SourceLocation.Start);
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command], Events = [placed] } };
 

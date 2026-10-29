@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
 public class when_rendering_specification_case_tables : a_multi_slice_application
 {
-    void Establish() => _application = new ScreenplayCompiler().Compile(a_specification_case_table.Source).Value!;
+    void Establish() => _application = new ScreenplayCompiler().Compile(a_specification_case_table.Source).Value;
 
     async Task Because() => await _renderer.Render([_application], _targetDirectory, _output, _error);
 

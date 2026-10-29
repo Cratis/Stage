@@ -20,33 +20,33 @@ internal static class protected_read_race_probes
 
     internal static IEnumerable<(string Name, string Source)> Files()
     {
-        var vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())!["vectors"]!.AsArray();
+        var vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())["vectors"].AsArray();
         foreach (var name in InvocationVectors)
         {
-            var vector = vectors.Single(vector => vector!["name"]!.GetValue<string>() == name)!;
+            var vector = vectors.Single(vector => vector["name"].GetValue<string>() == name);
 
             // Only the accepted branch of merged-keys is an invocation comparison; the other branches replay a decision.
-            var commit = vector["commits"]!.AsArray().Single(commit => name != "merged-keys" || commit!["expect"]!["outcome"]!.GetValue<string>() == "accepted")!;
+            var commit = vector["commits"].AsArray().Single(commit => name != "merged-keys" || commit["expect"]["outcome"].GetValue<string>() == "accepted");
             yield return ($"when_{name.Replace('-', '_')}.cs", Source(vector, commit));
         }
     }
 
     static string Source(JsonNode vector, JsonNode commit)
     {
-        var command = vector["request"]!["command"]!.GetValue<string>();
-        var arguments = vector["request"]!["values"]!.AsObject().Select(pair => $"{Identifiers.ToPascalCase(pair.Key)}: {Literal(pair.Value!)}");
-        var seed = vector["decided"]!.AsArray().Select(fact => $"_scenario.Given.ForEventSource({Literal(fact!["source"]!)}).Events({Event(fact)});");
-        var later = commit["later"]!.AsArray().Select(fact => $"_scenario.AppendConcurrently({Literal(fact!["source"]!)}, {Event(fact)});");
-        var expected = commit["expect"]!;
-        var accepted = expected["outcome"]!.GetValue<string>() == "accepted";
-        var facts = accepted ? expected["facts"]!.AsArray() : [];
+        var command = vector["request"]["command"].GetValue<string>();
+        var arguments = vector["request"]["values"].AsObject().Select(pair => $"{Identifiers.ToPascalCase(pair.Key)}: {Literal(pair.Value)}");
+        var seed = vector["decided"].AsArray().Select(fact => $"_scenario.Given.ForEventSource({Literal(fact["source"])}).Events({Event(fact)});");
+        var later = commit["later"].AsArray().Select(fact => $"_scenario.AppendConcurrently({Literal(fact["source"])}, {Event(fact)});");
+        var expected = commit["expect"];
+        var accepted = expected["outcome"].GetValue<string>() == "accepted";
+        var facts = accepted ? expected["facts"].AsArray() : [];
         var assertions = facts.Select((fact, index) => $$"""
-            [Fact] void should_append_expected_fact_{{index}}() => _scenario.AppendedEvents[{{index}}].Event.Content.ShouldEqual({{Event(fact!)}});
-            [Fact] void should_preserve_expected_destination_{{index}}() => _scenario.AppendedEvents[{{index}}].Event.Context.EventSourceId.Value.ShouldEqual({{Literal(fact!["source"]!)}});
+            [Fact] void should_append_expected_fact_{{index}}() => _scenario.AppendedEvents[{{index}}].Event.Content.ShouldEqual({{Event(fact)}});
+            [Fact] void should_preserve_expected_destination_{{index}}() => _scenario.AppendedEvents[{{index}}].Event.Context.EventSourceId.Value.ShouldEqual({{Literal(fact["source"])}});
             """);
         var rejection = accepted ? string.Empty : $$"""
-            [Fact] void should_preserve_the_reference_rejection_message() => _result.ValidationResults.First().Message.ShouldEqual({{Literal(expected["message"]!)}});
-            {{(expected["category"]!.GetValue<string>() == "Constraint" ? $"[Fact] void should_identify_the_constraint() => _result.ShouldHaveConstraintViolationFor({Literal(expected["code"]!)});" : "[Fact] void should_report_validation() => _result.ValidationResults.First().Reason.ShouldEqual(Cratis.Arc.Validation.ValidationResultReason.Rule);")}}
+            [Fact] void should_preserve_the_reference_rejection_message() => _result.ValidationResults.First().Message.ShouldEqual({{Literal(expected["message"])}});
+            {{(expected["category"].GetValue<string>() == "Constraint" ? $"[Fact] void should_identify_the_constraint() => _result.ShouldHaveConstraintViolationFor({Literal(expected["code"])});" : "[Fact] void should_report_validation() => _result.ValidationResults.First().Reason.ShouldEqual(Cratis.Arc.Validation.ValidationResultReason.Rule);")}}
             """;
 
         // A rejected Handle does not expose a prepared transaction; do not compare the later reference world for it.
@@ -54,7 +54,7 @@ internal static class protected_read_race_probes
             [Fact] async Task should_preserve_the_committed_world()
             {
                 var events = await _scenario.EventSequence.GetFromSequenceNumber(Cratis.Chronicle.Events.EventSequenceNumber.First);
-                events.Select(entry => entry.Content.GetType().Name).ShouldEqual(new string[] { {{string.Join(", ", expected["world"]!.AsArray().Select(value => Literal(value!)))}} });
+                events.Select(entry => entry.Content.GetType().Name).ShouldEqual(new string[] { {{string.Join(", ", expected["world"].AsArray().Select(value => Literal(value)))}} });
             }
             """ : string.Empty;
 
@@ -68,7 +68,7 @@ internal static class protected_read_race_probes
 
             namespace ProtectedCommandReadRaces.Probes;
 
-            public class when_{{vector["name"]!.GetValue<string>().Replace('-', '_')}} : Specification, IDisposable
+            public class when_{{vector["name"].GetValue<string>().Replace('-', '_')}} : Specification, IDisposable
             {
                 readonly CommandScenario<{{command}}> _scenario = new CommandScenario<{{command}}>().UseDecisionReads();
                 CommandResult _result = null!;
@@ -98,9 +98,9 @@ internal static class protected_read_race_probes
 
     static string Event(JsonNode fact)
     {
-        var values = fact["values"]?.AsObject().Select(pair => $"{Identifiers.ToPascalCase(pair.Key)}: {Literal(pair.Value!)}") ?? [];
+        var values = fact["values"]?.AsObject().Select(pair => $"{Identifiers.ToPascalCase(pair.Key)}: {Literal(pair.Value)}") ?? [];
 
-        return $"new {fact["event"]!.GetValue<string>()}({string.Join(", ", values)})";
+        return $"new {fact["event"].GetValue<string>()}({string.Join(", ", values)})";
     }
 
     static string Literal(JsonNode value) => CSharpCodeBuilder.StringLiteral(value.GetValue<string>());

@@ -22,7 +22,7 @@ public class when_refusing_public_events : Specification
     SemanticSpecificationRunReport _stage = null!;
     ArtifactRenderPlan _rendered = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan;
 
     async Task Because()
     {
@@ -51,7 +51,7 @@ public class when_refusing_public_events : Specification
     void should_render_capture_overlays_across_public_source_events()
     {
         var model = SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Contracts", "Contracts"));
         rendered.Success.ShouldBeTrue();
         rendered.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("Feed.cs", StringComparison.Ordinal));

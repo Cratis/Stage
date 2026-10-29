@@ -137,8 +137,8 @@ internal static class SemanticQueryContextRuntime
             diagnostics.FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed);
         if (error is null) return null;
 
-        var offset = code.IndexOf(body, StringComparison.Ordinal);
-        var bodyOffset = Math.Clamp(error.Location.SourceSpan.Start - offset, 0, Math.Max(0, body.Length - 1));
+        var location = CSharpInlineIndentation.Locate(code, body);
+        var bodyOffset = location is null ? 0 : Math.Clamp(location.ToBody(error.Location.SourceSpan.Start - location.Start), 0, Math.Max(0, body.Length - 1));
         return new(
             "STAGE-IMPL-005",
             ArtifactRenderDiagnosticSeverity.Error,
@@ -187,7 +187,7 @@ internal static class SemanticQueryContextRuntime
             $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}",
             "namespace Cratis.Chronicle.Events { public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue) where T : global::System.IComparable { public static implicit operator T(EventSourceId<T> value) => value.TypedValue; } }"
         };
-        declarations.AddRange(context.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true, declarationOnly: true).Content));
+        declarations.AddRange(SemanticBodyDeclarations.RealConcepts(context));
 
         foreach (var readModel in context.ReadModels.Values.Where(SemanticVersionFeatures.HasCompositeKey))
         {

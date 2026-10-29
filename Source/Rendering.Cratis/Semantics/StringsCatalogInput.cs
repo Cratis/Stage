@@ -135,7 +135,7 @@ internal static class StringsCatalogInput
     internal static Catalog? From(ArtifactRenderProfile profile) =>
         profile.Inputs.FirstOrDefault(_ => _.Name == Name) is { } input && TryRead(input, out var catalog) ? catalog : null;
 
-    internal static string ConfigureProgram(string source, Catalog catalog)
+    internal static string ConfigureProgram(string source, Catalog catalog, string rootNamespace)
     {
         const string marker = "app.UseCratis();";
         if (source.Split(marker, StringSplitOptions.None).Length != 2)
@@ -143,9 +143,22 @@ internal static class StringsCatalogInput
             throw UnsupportedSemanticRendering.For(nameof(StringsCatalogInput), "Program.cs request localization hook");
         }
 
-        var supported = string.Join(", ", catalog.Locales.Keys.Select(locale => $"global::System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(locale)})"));
-        var localization = $"app.UseRequestLocalization(new global::Microsoft.AspNetCore.Builder.RequestLocalizationOptions\n{{\n    DefaultRequestCulture = new global::Microsoft.AspNetCore.Localization.RequestCulture(global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.CultureInfo.GetCultureInfo({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)})),\n    SupportedCultures = [global::System.Globalization.CultureInfo.InvariantCulture],\n    SupportedUICultures = [{supported}]\n}});\n";
-        return source.Replace(marker, localization + marker, StringComparison.Ordinal);
+        var cultureInfo = SpellProgramType(rootNamespace, "CultureInfo", "System.Globalization");
+        var requestCulture = SpellProgramType(rootNamespace, "RequestCulture", "Microsoft.AspNetCore.Localization");
+        var options = SpellProgramType(rootNamespace, "RequestLocalizationOptions", "Microsoft.AspNetCore.Builder");
+        var additions = new List<string>();
+        if (cultureInfo == "CultureInfo")
+        {
+            additions.Add("using System.Globalization;");
+        }
+
+        if (requestCulture == "RequestCulture")
+        {
+            additions.Add("using Microsoft.AspNetCore.Localization;");
+        }
+
+        var localization = LocalizationBlock(catalog, cultureInfo, requestCulture, options);
+        return WithUsings(source.Replace(marker, localization + marker, StringComparison.Ordinal), additions);
     }
 
     internal static string Render(Catalog catalog, string rootNamespace)
@@ -195,6 +208,27 @@ internal static class StringsCatalogInput
             return false;
         }
     }
+
+    static string WithUsings(string source, IEnumerable<string> additions)
+    {
+        var directives = source.Split('\n').TakeWhile(line => line.StartsWith("using ", StringComparison.Ordinal) && line.EndsWith(';')).ToList();
+        var body = source[directives.Sum(line => line.Length + 1)..];
+        if (directives.Count > 0 && body.StartsWith('\n'))
+        {
+            body = body[1..];
+        }
+
+        var imports = string.Join('\n', directives.Concat(additions).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
+        return imports + "\n\n" + body;
+    }
+
+    static string LocalizationBlock(Catalog catalog, string cultureInfo, string requestCulture, string options)
+    {
+        var supported = string.Join(", ", catalog.Locales.Keys.Select(locale => $"{cultureInfo}.GetCultureInfo({CSharpCodeBuilder.StringLiteral(locale)})"));
+        return $"app.UseRequestLocalization(new {options}\n{{\n    DefaultRequestCulture = new {requestCulture}({cultureInfo}.InvariantCulture, {cultureInfo}.GetCultureInfo({CSharpCodeBuilder.StringLiteral(catalog.DefaultLocale)})),\n    SupportedCultures = [{cultureInfo}.InvariantCulture],\n    SupportedUICultures = [{supported}]\n}});\n";
+    }
+
+    static string SpellProgramType(string rootNamespace, string name, string scope) => rootNamespace.Split('.')[0] == name ? $"global::{scope}.{name}" : name;
 
     static InvalidCratisBackendApplicationScaffold Invalid() => new("The strings catalog must contain well-formed .strings files and a declared default locale without duplicate keys.");
 

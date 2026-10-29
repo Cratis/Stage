@@ -8,7 +8,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 
 internal static class reaction_body_model
 {
-    internal const string Body = "return Title == @event.Title && context is not null ? new object[] { Title } : null;";
+    internal const string Body = "return Title == @event.Title && context is not null ? new object[] { new TicketOpened(Title) } : null;";
 
     internal static string Source(string body, bool file = false, string extraProperty = "", string extraTriggerContent = "") => $$"""
         module Support

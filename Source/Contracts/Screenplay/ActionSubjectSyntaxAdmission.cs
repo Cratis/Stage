@@ -6,24 +6,34 @@ using Cratis.Screenplay.Syntax;
 namespace Cratis.Stage.Contracts.Screenplay;
 
 /// <summary>
-/// Refuses explicit action subjects before a syntax path can discard their selection semantics.
+/// Refuses explicit action subject inputs that Stage cannot yet render, before a syntax path can drop them silently.
 /// </summary>
+/// <remarks>
+/// An explicit subject itself is rendered (Screenplay decision 0110). The only inputs rendered are <c>with &lt;name&gt; from item.&lt;path&gt;</c>
+/// on a <c>for item</c> action; any other input of an action that names a subject is refused with STAGE-ESM-059.
+/// </remarks>
 public sealed class ActionSubjectSyntaxAdmission : ScreenplaySyntaxWalker
 {
+    const string ItemPrefix = "item.";
+
     /// <inheritdoc/>
     public override void VisitNode(SyntaxNode node)
     {
-        var construct = node switch
+        if (node is not ScreenActionSyntax { Subject: not null } action)
         {
-            ToolbarItemSyntax { Subject: not null } item => $"Toolbar item '{item.Name}'",
-            ScreenActionSyntax { Subject: not null } action => $"Screen action '{action.Command}'",
-            _ => null
-        };
-        if (construct is not null)
+            return;
+        }
+
+        foreach (var input in action.Inputs.Where(input => !IsRendered(action.Subject, input)))
         {
             throw new InvalidEventModel(
                 node.Location.Path ?? "<source>",
-                [$"STAGE-ESM-058: {construct} at {node.Location} declares an explicit action subject; explicit action subjects are not yet rendered (Cratis/Stage#855, Screenplay decision 0110)."]);
+                [$"STAGE-ESM-059: Screen action '{action.Command}' input '{input.Name}' from '{input.Binding}' at {node.Location} is not yet rendered; only 'from item.<path>' on 'for item' actions is (Cratis/Stage#855, Screenplay decision 0110)."]);
         }
     }
+
+    static bool IsRendered(ScreenActionSubjectKind? subject, InteractionArgumentSyntax input) =>
+        subject == ScreenActionSubjectKind.Item
+        && input.Binding.StartsWith(ItemPrefix, StringComparison.Ordinal)
+        && input.Binding.Length > ItemPrefix.Length;
 }

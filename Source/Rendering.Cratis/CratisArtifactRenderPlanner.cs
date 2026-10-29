@@ -107,6 +107,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings([]);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -125,6 +126,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         };
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings(diagnostics);
 
         var omission = OmissionFor(attempt);
         context.OmittedOwners = omission.Closure;
@@ -161,7 +163,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
         if (PassFailed(diagnostics, refusals, attempt)) return FailedPass(request, options, new(context, diagnostics, removals), attempt);
         refusals = refusals.AddRange(evidence.Refusals);
-        context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
+        context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
         var validations = omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)).ToArray();
         foreach (var descriptor in validations)
@@ -174,7 +176,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
-        if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
+        if (SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
         {
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
@@ -239,7 +241,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
-        var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        var plan = context.WithInlineInputs(CreatePlan(request, artifacts, diagnostics, refusals, removals));
+        if (context.Degradations.Count > 0)
+        {
+            plan = plan.WithAcceptance([.. plan.Degradations, .. context.Degradations]);
+        }
         return CompletePass(plan, range, attempt);
     }
 
@@ -513,7 +519,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             if (SemanticOwnerOmission.Overlaps(plan.Artifacts, attempt.Omission.Closure).Count > 0)
                 throw new InvalidArtifactRenderContract("An artifact realizes an omitted semantic owner.");
-            plan = plan.WithAcceptance(attempt.Evidence.Degradations);
+            plan = plan.WithAcceptance([.. plan.Degradations, .. attempt.Evidence.Degradations]);
         }
         return (range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence), attempt);
     }

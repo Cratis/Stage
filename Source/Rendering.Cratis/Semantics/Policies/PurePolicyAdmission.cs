@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -58,15 +59,15 @@ internal static class PurePolicyAdmission
         if (errors.Length > 0)
         {
             var error = errors[0];
-            var offset = code.IndexOf(body, code.IndexOf($"static bool {SemanticPolicyContextRuntime.Body(descriptor)}(", StringComparison.Ordinal), StringComparison.Ordinal);
+            var location = CSharpInlineIndentation.Locate(code, body, code.IndexOf($"static bool {SemanticPolicyContextRuntime.Body(descriptor)}(", StringComparison.Ordinal));
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}";
-            if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < offset ||
-                error.Location.SourceSpan.Start > offset + body.Length)
+            if (location is null || !error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start ||
+                error.Location.SourceSpan.Start > location.Start + location.Length)
             {
                 return Reject("STAGE-ESM-021", $"Internal policy analysis compilation error: {detail}");
             }
 
-            return Reject("STAGE-ESM-019", $"Policy body {PureTransitionAdmission.SourceLocation(requirement, body, error.Location.SourceSpan.Start - offset)}: {detail}");
+            return Reject("STAGE-ESM-019", $"Policy body {PureTransitionAdmission.SourceLocation(requirement, body, location.ToBody(error.Location.SourceSpan.Start - location.Start))}: {detail}");
         }
 
         var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context.RootNamespace);

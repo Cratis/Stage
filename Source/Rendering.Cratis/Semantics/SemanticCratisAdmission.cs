@@ -142,7 +142,8 @@ internal static partial class SemanticCratisAdmission
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
             selfReduces: context.SelfReduces,
-            policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
+            policyClassName: operation => SemanticPolicyNames.For(context)[operation].ClassName,
+            commandReceiptTime: SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
             .Concat(SemanticTranslationAdmission.Declarations(context, slices))
             .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
 
@@ -154,6 +155,14 @@ internal static partial class SemanticCratisAdmission
                 "Response",
                 string.Join('.', located.Path.Select(Identifiers.ToPascalCase)),
                 context.ResponseType(command))));
+
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedSpecificationDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)).SelectMany(specification =>
+            SemanticSpecificationArtifactRenderer.ClassNames(specification, context).Select(name => new GeneratedTypeDeclaration(
+                specification.Id,
+                "Specification",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase).Append(name)),
+                name))));
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {

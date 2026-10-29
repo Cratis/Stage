@@ -132,11 +132,20 @@ internal static partial class PureTransitionAdmission
         }
 
         entry = "primitive";
-        return symbol is IMethodSymbol { Parameters.Length: 1 } method &&
+        return IsDigitMember(symbol) || IsInvariantNumericFormatting(symbol);
+    }
+
+    static bool IsDigitMember(ISymbol symbol) => symbol is IMethodSymbol
+    {
+        ContainingType.SpecialType: SpecialType.System_Char,
+        Parameters: [{ Type.SpecialType: SpecialType.System_Char }]
+    } method && method.Name == "IsDigit";
+
+    static bool IsInvariantNumericFormatting(ISymbol symbol) =>
+        symbol is IMethodSymbol { Parameters.Length: 1 } method &&
             method.Name == "ToString" &&
             method.Parameters[0].Type.Name == "IFormatProvider" &&
             method.Parameters[0].Type.ContainingNamespace.ToDisplayString() == "System";
-    }
 
     static bool AllowedStringMember(ISymbol symbol) => symbol switch
     {
@@ -148,6 +157,7 @@ internal static partial class PureTransitionAdmission
 
     static bool AllowedStringMethod(IMethodSymbol method) =>
         IsSubstring(method) || IsTextConcat(method) || IsOrdinalComparison(method) ||
+        (method.Name == "Contains" && method.Parameters is [{ Type.SpecialType: SpecialType.System_String or SpecialType.System_Char }]) ||
         NameIs(method.Name, "IsNullOrEmpty", "op_Equality", "op_Inequality");
 
     static bool IsSubstring(IMethodSymbol method) =>
@@ -202,7 +212,7 @@ internal static partial class PureTransitionAdmission
         entry = "string";
         if (full == "global::System.StringComparison")
         {
-            return symbol is IFieldSymbol && name == "Ordinal";
+            return symbol is IFieldSymbol && NameIs(name, "Ordinal", "OrdinalIgnoreCase");
         }
 
         if (full == "global::System.Globalization.CultureInfo")

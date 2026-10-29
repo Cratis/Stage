@@ -29,7 +29,7 @@ internal static class SemanticCommandHandlerRendering
         var inline = SemanticInlineCodeRendering.CommandBody(command, context);
         if (inline.Refused) throw UnsupportedSemanticRendering.For("command handler", string.Join(Environment.NewLine, inline.Diagnostics.Select(diagnostic => diagnostic.Message)));
         builder.OpenBlock($"private static {ReturnType(command, context)} {Method(command)}({ContextType(command)} context)")
-            .Inline(inline.Code!, inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(new(diagnostic.Code, Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, command.Id)))
+            .Inline(context.RetainInlineInput(inline), inline.Placement, reportDegradation: diagnostic => context.InlineDiagnostics.Add(new(diagnostic.Code, Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Warning, diagnostic.Message, command.Id)))
             .EndBlock().BlankLine();
     }
 
@@ -52,6 +52,15 @@ internal static class SemanticCommandHandlerRendering
     internal static void Prepare(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context, SemanticHandleLocals locals)
     {
         if (command.Handler is null) return;
+        builder.Line($"var {locals.Name("handlerPayloads")} = {Call(command, context)};");
+    }
+
+    /// <summary>Renders the call that runs the authored handler body against the command snapshot.</summary>
+    /// <param name="command">Command owning the payload handler.</param>
+    /// <param name="context">Semantic application and generated type context.</param>
+    /// <returns>The call expression.</returns>
+    internal static string Call(SemanticCommand command, SemanticApplicationContext context)
+    {
         var values = command.Properties.Select(property =>
         {
             var value = SemanticCommandResultRendering.PropertyValue(property, context);
@@ -59,7 +68,7 @@ internal static class SemanticCommandHandlerRendering
             var snapshot = $"global::System.Collections.Immutable.ImmutableArray.ToImmutableArray({value})";
             return property.Type.IsOptional ? $"{value} is null ? null : {snapshot}" : snapshot;
         });
-        builder.Line($"var {locals.Name("handlerPayloads")} = {Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})));");
+        return $"{Method(command)}(new {ContextType(command)}(new {SnapshotType(command)}({string.Join(", ", values)})))";
     }
 
     internal static string Payload(SemanticCommand command, SemanticProducedEvent produced, SemanticHandleLocals locals)

@@ -284,7 +284,7 @@ internal static class SemanticScopedProjectionSupport
         return primitive != SemanticPrimitiveType.Text || (literal.Value is SemanticTextValue text && FluentTextLiteral().IsMatch(text.Value));
     }
 
-    static bool HasOptionalIntermediate(
+    internal static bool HasOptionalIntermediate(
         System.Collections.Immutable.ImmutableArray<SemanticId> path,
         IReadOnlyList<SemanticProperty> properties,
         SemanticApplicationContext context)

@@ -58,13 +58,24 @@ public class without_a_domain : given.a_domain_policy_plan
         // Restoring only the initializer identifier must reproduce both complete HEAD path/byte pins.
         // These assertions confine the updated pins below to that one generated declaration change.
         // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
-        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(qualified))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+        // Since Cratis/Stage#848 authored bodies are indented to their block; undoing only that indentation reproduces the same pins.
+        var unindented = BeforeBodyIndentation(qualified).ToArray();
+        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(unindented))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
 
         // Restoring the former license header must reproduce the pins from before headers became optional.
-        Digest(LegacyLicenseHeader.Restore(qualified)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
+        Digest(LegacyLicenseHeader.Restore(unindented)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
     }
+
+    static IEnumerable<PlannedArtifact> BeforeBodyIndentation(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
+        artifact.RelativePath == "Orders/Ordering/Totals/Fold.cs" || artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, UnindentBody(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())), artifact.Sources)
+            : artifact);
+
+    static string UnindentBody(string text) => text
+        .Replace("\n        return new Total(", "\nreturn new Total(", StringComparison.Ordinal)
+        .Replace("\n        return context.Identity", "\nreturn context.Identity", StringComparison.Ordinal);
 
     static IEnumerable<PlannedArtifact> BeforeInitializerRename(IEnumerable<PlannedArtifact> artifacts) => artifacts.Select(artifact =>
         artifact.RelativePath.StartsWith("GeneratedPolicies/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("Policy.cs", StringComparison.Ordinal)
@@ -131,14 +142,16 @@ public class without_a_domain : given.a_domain_policy_plan
             .Where(artifact => Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan())) != _oldRawHashes[artifact.RelativePath])
             .Select(artifact => artifact.RelativePath)
             .Order(StringComparer.Ordinal);
-        Assert.Equal(["Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
+        // Re-frozen for Cratis/Stage#848: the two policy body files change only by the body indentation.
+        Assert.Equal(["GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
     }
 
     [Fact]
-    public void should_keep_the_other_eighteen_raw_artifacts_byte_identical()
+    public void should_keep_the_other_sixteen_raw_artifacts_byte_identical()
     {
-        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs").ToArray();
-        Assert.Equal(18, unchanged.Length);
+        // Re-frozen for Cratis/Stage#848: sixteen of the eighteen remain; the two PolicyBodies files gained body indentation only.
+        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs" and not "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs" and not "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs").ToArray();
+        Assert.Equal(16, unchanged.Length);
         Assert.All(unchanged, artifact => Assert.Equal(_oldRawHashes[artifact.RelativePath], Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan()))));
     }
 
@@ -149,9 +162,17 @@ public class without_a_domain : given.a_domain_policy_plan
         var fold = RawText("Orders/Ordering/Totals/Fold.cs");
         Assert.Contains($"new {wrapper}(", fold, StringComparison.Ordinal);
         Assert.Contains($"static Total? Transition_174CFC4A({wrapper} context)", fold, StringComparison.Ordinal);
-        var restored = fold.Replace($"new {wrapper}(", $"new global::Invoices.TypedContexts.{wrapper}(", StringComparison.Ordinal)
+        var restored = UnindentBody(fold).Replace($"new {wrapper}(", $"new global::Invoices.TypedContexts.{wrapper}(", StringComparison.Ordinal)
             .Replace($"({wrapper} context)", $"(global::Invoices.TypedContexts.{wrapper} context)", StringComparison.Ordinal);
         Assert.Equal(_oldRawHashes["Orders/Ordering/Totals/Fold.cs"], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
+    }
+
+    [Fact]
+    public void should_restore_the_old_policy_body_bytes_by_removing_only_the_body_indentation()
+    {
+        var bodies = HashedArtifacts().Where(artifact => artifact.RelativePath.StartsWith("GeneratedPolicies/PolicyBodies_", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(2, bodies.Length);
+        Assert.All(bodies, artifact => Assert.Equal(_oldRawHashes[artifact.RelativePath], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(UnindentBody(Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))))));
     }
 
     [Fact]
@@ -164,6 +185,14 @@ public class without_a_domain : given.a_domain_policy_plan
             .Replace("StageImport0::", "global::System.Collections.Immutable.", StringComparison.Ordinal)
             .Replace("StageImport1::", "global::System.Security.Claims.", StringComparison.Ordinal);
         Assert.Equal(_oldRawHashes["TypedContexts/PolicyContext.cs"], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
+    }
+
+    [Fact]
+    public void should_spell_no_type_with_global_outside_using_directives()
+    {
+        var files = _rawPlan.Artifacts.Where(artifact => artifact.RelativePath == "TypedContexts/PolicyContext.cs" || artifact.RelativePath == "GeneratedPolicies/PolicyBodies.cs" || (artifact.RelativePath.StartsWith("TypedContexts/TypedContext_", StringComparison.Ordinal) && artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))).ToArray();
+        Assert.NotEmpty(files);
+        Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
     }
 
     IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
@@ -186,8 +215,8 @@ public class without_a_domain : given.a_domain_policy_plan
 
     string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
-    // Re-frozen for #424: generated C# uses short type names and using directives.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("CBDD5DF87131C10FB848B51433907863D3CFD1BE30A19F3671459ACC70DFC3E4");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("05777F401D263E5BC39126494FB4912F7096AA91C5F3F5E22AE41AA55D20D689");
+    // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7281BBD55502D73D1916990F6B6D96F9567057AAABE6CA07FC79CC5E78B2DF03");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("353B73D5BBCC2AA7CC0F8090D3FD2B01A35274305ACF7B96FFB97552750C6EEF");
 }
 #endif

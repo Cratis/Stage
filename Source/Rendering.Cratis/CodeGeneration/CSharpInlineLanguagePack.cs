@@ -55,6 +55,19 @@ internal static class CSharpInlineLanguagePack
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
+    internal static string ContextPrefix(InlineCodeScope scope) => scope switch
+    {
+        InlineCodeScope.MemberBody => "{\n",
+        InlineCodeScope.TypeMembers => "class __StageInlineHost {\n",
+        _ => string.Empty
+    };
+
+    internal static TextSpan[] LiteralSpans(string text, string prefix)
+    {
+        var tree = CSharpSyntaxTree.ParseText(prefix + text + (prefix.Length == 0 ? string.Empty : "\n}"));
+        return LiteralSpans(tree.GetRoot());
+    }
+
     static bool LanguageMatches(InlineCode code) => string.Equals(code.Language, Language, StringComparison.Ordinal);
     static bool HasLanguageProof(InlineCode code) => LanguageMatches(code) || code.Text.All(char.IsWhiteSpace);
 
@@ -67,7 +80,7 @@ internal static class CSharpInlineLanguagePack
     }
 
     static InlineCodePresentation PresentText(InlineCode code, InlineCodePresentationOptions options) =>
-        new(options.Verbatim ? Terminate(code.Text) : Indent(code, options), false, []);
+        new(options.Verbatim ? Terminate(CSharpInlineIndentation.Present(code.Text, options.Indent, options.Scope)) : Indent(code, options), false, []);
 
     static InlineCodePresentation Placeholder(InlineCode code, CSharpContainmentProof proof)
     {
@@ -81,7 +94,7 @@ internal static class CSharpInlineLanguagePack
     static string Indent(InlineCode code, InlineCodePresentationOptions options)
     {
         var text = code.Text;
-        var prefix = ContextPrefix(options);
+        var prefix = ContextPrefix(options.Scope);
         var tree = CSharpSyntaxTree.ParseText(prefix + text + (prefix.Length == 0 ? string.Empty : "\n}"));
         var root = tree.GetRoot();
         var spans = LiteralSpans(root);
@@ -97,13 +110,6 @@ internal static class CSharpInlineLanguagePack
 
         return Terminate(output.ToString());
     }
-
-    static string ContextPrefix(InlineCodePresentationOptions options) => options.Scope switch
-    {
-        InlineCodeScope.MemberBody => "{\n",
-        InlineCodeScope.TypeMembers => "class __StageInlineHost {\n",
-        _ => string.Empty
-    };
 
     static TextSpan[] LiteralSpans(SyntaxNode root) =>
         [.. root.DescendantTokens().Where(token => IsMultiline(token.Text)).Select(token => token.Span),

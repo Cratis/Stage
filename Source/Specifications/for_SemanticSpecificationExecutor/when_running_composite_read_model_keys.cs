@@ -62,7 +62,6 @@ public class when_running_composite_read_model_keys : Specification
     async Task Because() => _result = (await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results.Single();
 
     [Fact] void should_compile_at_v27() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V27);
-    [Fact] void should_not_pass_the_specification() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_refuse_the_projection() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
-    [Fact] void should_name_composite_read_model_keys() => _result.Unsupported!.Details.ShouldContain("ESM v27 composite read-model keys");
+    [Fact] void should_pass_the_specification() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_not_refuse_the_projection() => _result.Unsupported.ShouldBeNull();
 }

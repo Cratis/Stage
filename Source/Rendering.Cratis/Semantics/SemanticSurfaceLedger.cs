@@ -147,7 +147,9 @@ internal static class SemanticSurfaceLedger
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
-        // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
+        // admitted through the closed-compilation pure gate. Validation bodies admit declared-value conversions and
+        // audited pure members (ESM-022 otherwise). Receipt-time Occurred requires a given clock in generated specs;
+        // Tenant and CausedBy remain ESM-015 refusals because no constructor-free ambient source supplies them.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticImplementationRequirement", rendered, "QueryShape");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
@@ -432,8 +434,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
+        // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading the inbox and reads only that source's history (Stage#752).
         // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
-        Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
+        Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
 

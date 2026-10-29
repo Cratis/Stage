@@ -41,6 +41,7 @@ internal static partial class SemanticRunProjectionAdmission
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
 
         var reachable = reachableEvents.ToHashSet();
+        if (CompositeSeedRejection(plan, specification) is { } seedRejection) return seedRejection;
 
         // Match the reference projector's identity order, not the plan dictionary's hash order.
         var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
@@ -100,9 +101,8 @@ internal static partial class SemanticRunProjectionAdmission
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                (!query.KeyParts.IsDefaultOrEmpty && query.KeyParts.Length > 1) ||
                 (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
-                    model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty)) ||
+                    !QueryKeyMatches(model, query))) ||
                 (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {
                 return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
@@ -130,7 +130,7 @@ internal static partial class SemanticRunProjectionAdmission
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         if (identifiers.Length > 1)
         {
-            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
+            return scope is null ? "Composite read-model keys require a scoped projection." : null;
         }
         if (identifiers.Length != 1 || identifiers[0].Type.IsOptional)
         {
@@ -178,6 +178,11 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
         }
+        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        {
+            return CompositeProjectionRejection(plan, specification, projection, reachable);
+        }
+
         var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         var primitive = identifier.Type.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Type.Target).Primitive : identifier.Type.Primitive;
@@ -204,10 +209,6 @@ internal static partial class SemanticRunProjectionAdmission
             if (ProductRejection(plan, scope, readModel, reachable) is { } product)
             {
                 return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
-            }
-            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
-            {
-                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
             if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier.Type)))
             {

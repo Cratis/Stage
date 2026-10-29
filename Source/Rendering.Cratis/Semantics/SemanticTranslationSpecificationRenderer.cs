@@ -20,7 +20,7 @@ internal static partial class SemanticTranslationSpecificationRenderer
         var capture = SemanticTranslationSpecificationAdmission.Capture(located.Slice, specification.WhenAppended!);
         var publication = SemanticTranslationSpecificationAdmission.Publication(located.Slice, specification.WhenAppended!);
         var reactor = $"global::{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{Identifiers.ToPascalCase(capture?.Name ?? publication!.Name)}";
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("NSubstitute")
             .Using("Cratis.Chronicle.Events").Using("System.Linq");

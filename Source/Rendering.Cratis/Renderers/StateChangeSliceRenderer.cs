@@ -109,6 +109,10 @@ public class StateChangeSliceRenderer : ISliceRenderer
         {
             var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
             var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
+            if (returnType is not null && !_inlineReturnContracts.ContainsKey(inferred) && !inferred.Contains('.') && !inferred.Contains("::", StringComparison.Ordinal))
+            {
+                builder.BindInlineReturnType(returnType);
+            }
             if (returnType is null)
             {
                 diagnostics.Add(

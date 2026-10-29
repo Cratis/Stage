@@ -17,6 +17,7 @@ static class ArtifactRenderReportWriter
         writer.WriteString("scoreVersion", ArtifactRenderConstructWeights.Version);
         writer.WriteString("inputLanguageVersion", context.Input.Language.ToString());
         writer.WriteString("inputSemanticVersion", context.Input.Semantics.ToString());
+        if (plan.InlineCodeFingerprint is { } fingerprint) writer.WriteString("inlineCodeFingerprint", fingerprint);
         WriteProvider(writer, plan);
         WriteSupport(writer, context);
         WritePacks(writer, context);

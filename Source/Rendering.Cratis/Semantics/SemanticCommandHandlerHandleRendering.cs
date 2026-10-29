@@ -24,6 +24,13 @@ internal sealed class SemanticCommandHandlerHandleRendering(SemanticCommand comm
         {
             builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
         }
+        if (bare && command.Handler is not null)
+        {
+            // A bare handler has one production and nothing that post-processes the payload, so the handler result is the return value.
+            builder.Line($"return {SemanticCommandHandlerRendering.Call(command, context)};").EndBlock();
+            return;
+        }
+
         SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
         var payload = single ? wrappedEvent(command.Produces[0]) : $"[{string.Join(", ", command.Produces.Select(wrappedEvent))}]";
         if (bare) payload = eventValue(command.Produces[0]);

@@ -103,7 +103,7 @@ internal static class SemanticRunProjections
                 {
                     var keyProperty = removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var id] } }
                         ? plan.Events[removal.EventContract].Properties.Single(property => property.Id == id).Name : null;
-                    DefineRemoval(builder, types.For(removal.EventContract), keyProperty);
+                    DefineRemoval(builder, types.For(removal.EventContract), keyProperty, removal.Key, model, plan.Events[removal.EventContract], plan);
                 }
             }
             else
@@ -137,16 +137,26 @@ internal static class SemanticRunProjections
         var output = new List<Projected>();
         foreach (var (source, instance) in scenario.Instances)
         {
-            // The sink stores the identifier as its document key, not as a field in the materialized model.
-            var identifier = model.Properties.Single(property => property.IsIdentifier);
-            var key = SemanticValue.Text(source.ToString());
-            var values = model.Properties.Select(property => new SemanticPropertyValue(
-                property.Id,
-                property.Id == identifier.Id ? key : Value(typeof(TReadModel).GetProperty(property.Name)!.GetValue(instance), property.Type, plan)))
-                .ToImmutableArray();
-            output.Add(new(model.Id, key, values));
+            output.Add(ProjectedInstance(model, source, instance, plan));
         }
         return output;
+    }
+
+    static Projected ProjectedInstance<TReadModel>(SemanticReadModel model, EventSourceId source, TReadModel instance, SemanticExecutionPlan plan)
+    {
+        // The sink stores the identifier as its document key, not as a field in the materialized model.
+        var identifiers = model.Properties.Where(property => property.IsIdentifier).ToArray();
+        var composite = identifiers.Length > 1 ? typeof(TReadModel).GetProperty("Id")!.GetValue(instance)! : null;
+        var key = composite is null ? SemanticValue.Text(source.ToString()) : SemanticValue.Composite([.. identifiers.Select(property =>
+            new SemanticPropertyValue(property.Id, Value(composite.GetType().GetProperty(property.Name)!.GetValue(composite), property.Type, plan)))]);
+        var identity = composite is null
+            ? new Dictionary<SemanticId, SemanticValue> { [identifiers[0].Id] = key }
+            : ((SemanticCompositeValue)key).Properties.ToDictionary(part => part.TargetProperty, part => part.Value);
+        var values = model.Properties.Select(property => new SemanticPropertyValue(
+            property.Id,
+            identity.TryGetValue(property.Id, out var value) ? value : Value(typeof(TReadModel).GetProperty(property.Name)!.GetValue(instance), property.Type, plan)))
+            .ToImmutableArray();
+        return new(model.Id, key, values);
     }
 
     static void CollectEvents<TReadModel>(ReadModelScenario<TReadModel> scenario, SemanticProjection projection, SemanticRunContext context, SemanticRuntimeTypes types)
@@ -336,23 +346,27 @@ internal static class SemanticRunProjections
         return Expression.Lambda<Func<TReadModel, object>>(Expression.Convert(Expression.Property(parameter, name), typeof(object)), parameter);
     }
 
-    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty) =>
+    static void DefineRemoval<TReadModel>(IProjectionBuilderFor<TReadModel> builder, Type eventType, string? keyProperty, SemanticProjectionKey key, SemanticReadModel model, SemanticEventContract @event, SemanticExecutionPlan plan) =>
         typeof(SemanticRunProjections).GetMethod(nameof(RemoveEvent), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, keyProperty], null);
+            .MakeGenericMethod(typeof(TReadModel), eventType).Invoke(null, BindingFlags.DoNotWrapExceptions, null, [builder, keyProperty, key, model, @event, plan], null);
 
-    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, string? keyProperty)
+    static void RemoveEvent<TReadModel, TEvent>(IProjectionBuilderFor<TReadModel> builder, string? keyProperty, SemanticProjectionKey key, SemanticReadModel model, SemanticEventContract @event, SemanticExecutionPlan plan)
     {
         // The generic parameter is a runtime-emitted event contract, as in DefineEvent.
 #pragma warning disable CHR0002
-        if (keyProperty is null)
+        if (key is SemanticProjectionPartsKey parts)
+        {
+            builder.RemovedWith<TEvent>(removed => SemanticRunCompositeKeys.Define(removed, typeof(IKeyBuilder<TEvent, RemovedWithBuilder<TReadModel, TEvent>>), typeof(TReadModel), typeof(TEvent), model, @event, parts, plan));
+        }
+        else if (keyProperty is null)
         {
             builder.RemovedWith<TEvent>();
         }
         else
         {
             var parameter = Expression.Parameter(typeof(TEvent), "@event");
-            var key = Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter);
-            builder.RemovedWith<TEvent>(removed => removed.UsingKey(key));
+            var accessor = Expression.Lambda<Func<TEvent, object>>(Expression.Convert(Expression.Property(parameter, keyProperty), typeof(object)), parameter);
+            builder.RemovedWith<TEvent>(removed => removed.UsingKey(accessor));
         }
 #pragma warning restore CHR0002
     }

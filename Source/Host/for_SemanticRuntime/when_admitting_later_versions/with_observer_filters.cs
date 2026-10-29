@@ -20,4 +20,14 @@ public class with_observer_filters : Specification
     [Fact] void should_admit_filtered_reducers_until_a_matching_fact_is_reached() => _admission.Blocking.ShouldBeEmpty();
     [Fact] void should_not_statically_refuse_the_fold_command() => _admission.Entries.Where(entry => entry.Kind == "command").All(entry => entry.Status != "unsupported").ShouldBeTrue();
     [Fact] void should_admit_the_version_pair() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
+
+    [Theory]
+    [InlineData("RoutedReaction")]
+    [InlineData("UnroutedReaction")]
+    [InlineData("WrongStreamReaction")]
+    public void should_admit_mapping_free_observer_specifications(string name)
+    {
+        var specification = EventRoutesCorpus.ObserverFiltersV10.SpecificationExpectations.Single(expectation => expectation.Name == name).Specification;
+        _admission.Entries.Single(entry => entry.Kind == "specification" && entry.Artifact == specification.ToString()).Status.ShouldEqual("supported");
+    }
 }

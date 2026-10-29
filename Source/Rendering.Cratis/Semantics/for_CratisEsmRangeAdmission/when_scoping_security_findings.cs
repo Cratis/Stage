@@ -17,14 +17,14 @@ public class when_scoping_security_findings : given.a_range_model
     {
         Versions(32, 1, 32, 1);
         var captureSlice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
-        var capture = captureSlice.Slice.Captures.Single();
-        typeof(SemanticCaptureEventsSource).GetProperty(nameof(SemanticCaptureEventsSource.KeyIsEventSource))!.SetValue(capture.EventsSource, true);
+        var specification = captureSlice.Slice.Specifications[0];
+        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations))!.SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
         var slice = selected ? captureSlice : _context.AllSlices.First(located => located.Slice.Id != captureSlice.Slice.Id);
         var request = _request with { Scope = new(ArtifactRenderScopeKind.Slice, slice.Slice.Id) };
         var verdict = CratisEsmRangeAdmission.Evaluate(request, new(request, new("Contracts", "Contracts")));
         verdict.IsAdmitted.ShouldEqual(!selected);
         verdict.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-016").ShouldEqual(selected ? 1 : 0);
-        if (selected) verdict.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(capture.Id);
+        if (selected) verdict.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(specification.Id);
     }
 
     [Fact]

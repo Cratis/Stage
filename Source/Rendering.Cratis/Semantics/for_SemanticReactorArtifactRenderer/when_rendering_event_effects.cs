@@ -25,5 +25,6 @@ public class when_rendering_event_effects : for_SemanticAutomationArtifactRender
     [Fact] void should_merge_triggers_into_one_event_handler() => _source.Split("IEnumerable<object> Started(", StringSplitOptions.None).Length.ShouldEqual(2);
     [Fact] void should_keep_both_authored_productions() => _source.Split("effects.Add(", StringSplitOptions.None).Length.ShouldEqual(3);
     [Fact] void should_target_the_triggering_source_explicitly() => _source.ShouldContain("EventForEventSourceId(context.EventSourceId, new Acknowledged(context.Occurred)) { Occurred = context.Occurred }");
+    [Fact] void should_spell_no_type_with_global_outside_using_directives() => _source.Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)).ShouldEachConformTo(line => !line.Contains("global::", StringComparison.Ordinal));
     [Fact] void should_return_the_effect_collection() => _source.ShouldContain("return effects;");
 }

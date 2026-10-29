@@ -44,11 +44,20 @@ public class when_planning_with_range_admission : given.a_range_model
     }
 
     [Theory]
-    [InlineData(33)]
     [InlineData(34)]
     public void should_refuse_future_majors(uint major)
     {
         Versions(major, 0, major, 0);
+        var plan = new CratisArtifactRenderPlanner().Plan(_request);
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
+        plan.Artifacts.ShouldBeEmpty();
+    }
+
+    [Fact]
+    void should_refuse_a_v33_minor_that_is_not_the_exact_audited_pair()
+    {
+        Versions(33, 1, 33, 1);
         var plan = new CratisArtifactRenderPlanner().Plan(_request);
         plan.Success.ShouldBeFalse();
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");

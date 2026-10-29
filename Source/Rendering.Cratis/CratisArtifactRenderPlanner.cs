@@ -501,6 +501,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
     static (ArtifactRenderPlan Plan, OwnerOmissionAttempt? Attempt) RetryOmission(ArtifactRenderRequest request, CratisRenderingOptions options, OwnerOmissionFailure failure, ArtifactRenderPlan refused)
     {
+        if (!failure.Diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && failure.Context.OwnerScopedRefusals.Contains(diagnostic))) return (refused, null);
         var index = new SemanticDependencyIndex(failure.Context);
         var roots = SemanticOwnerScopedDegradation.TryRoots(failure.Context, failure.Diagnostics, index, new(false, failure.Removals));
         if (roots is null || SemanticOwnerOmission.Compute(failure.Context, index, roots) is not { } omission) return (refused, null);

@@ -646,7 +646,9 @@ so a model that forgot to say who may call it is not published to anonymous call
   test caller with no roles or claims; a specification that names a caller keeps it.
 - A reaction with no `runs as` that invokes such a command renders `[ExecuteCommandsAsSystem]` (the system
   principal, no roles) so the command is still accepted, and is reported as `STAGE-ESM-055`. A reaction
-  that invokes only commands with an `authorize` clause is unchanged.
+  that invokes only commands with an `authorize` clause is unchanged. A reaction with no `runs as` that
+  invokes commands both with and without an `authorize` clause is refused (`STAGE-ESM-034`), because the
+  system identity would also reach the authorized commands; declare `runs as` on it.
 - A specification that gives an explicitly unauthenticated caller for such a command or query is refused
   (`STAGE-ESM-011`), because the rendered artifact would deny it.
 

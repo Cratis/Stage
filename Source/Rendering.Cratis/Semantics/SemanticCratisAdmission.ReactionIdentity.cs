@@ -35,6 +35,19 @@ internal static partial class SemanticCratisAdmission
     static void ReportInferredReactionIdentity(SemanticApplicationContext context, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (!SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction)) return;
+
+        // The inferred system identity covers the whole reactor, so it must not reach a command whose model names its callers.
+        var authorized = SemanticReactionIdentity.AuthorizedCommands(context, reaction).Select(command => $"'{command.Name}'").ToArray();
+        if (authorized.Length > 0)
+        {
+            diagnostics.Add(Error(
+                "STAGE-ESM-034",
+                $"Reaction '{reaction.Name}' has no runs as and invokes commands with and without an authorize clause; running it as system " +
+                $"would bypass the authorization of {string.Join(", ", authorized)}. Declare runs as on the reaction.",
+                reaction.Id));
+            return;
+        }
+
         diagnostics.Add(new(
             "STAGE-ESM-055",
             ArtifactRenderDiagnosticSeverity.Information,

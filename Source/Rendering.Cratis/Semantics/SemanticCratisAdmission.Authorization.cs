@@ -53,6 +53,18 @@ internal static partial class SemanticCratisAdmission
             return true;
         }
 
+        if (SemanticAnonymousAccess.IsAnonymous(command.Authorization, context.Application.Policies))
+        {
+            diagnostics.Add(AnonymousDiagnostic("Command", command.Name, command.Id));
+            return true;
+        }
+
+        if (SemanticAnonymousAccess.NestsAnonymous(command.Authorization, context.Application.Policies))
+        {
+            diagnostics.Add(NestedAnonymousDiagnostic(command.Name, command.Id));
+            return false;
+        }
+
         // The reference evaluator selects the first supplied identifier, not necessarily the first declared
         // identifier. A generated command record cannot distinguish omitted values from defaulted values.
         var identifiers = command.Properties.Where(property => property.IsIdentifier).ToArray();
@@ -71,6 +83,12 @@ internal static partial class SemanticCratisAdmission
 
     static bool ValidateQueryAuthorization(SemanticApplicationContext context, SemanticKeyedQuery query, List<ArtifactRenderDiagnostic> diagnostics)
     {
+        if (SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies))
+        {
+            diagnostics.Add(AnonymousDiagnostic("Query", query.Name, query.Id));
+            return true;
+        }
+
         var subject = query.Argument is null ? null : new SemanticProperty(query.Argument.Id, query.Argument.Name, query.Argument.Type, false);
         var site = new AuthorizationSite(query.Id, query.Name, subject, subject is null ? [] : [subject]);
         if (!ValidateAuthorization(context, query.Authorization, site, diagnostics))
@@ -100,6 +118,12 @@ internal static partial class SemanticCratisAdmission
         if (authorization is null)
         {
             return true;
+        }
+
+        if (SemanticAnonymousAccess.NestsAnonymous(authorization, context.Application.Policies))
+        {
+            diagnostics.Add(NestedAnonymousDiagnostic(site.Name, site.Id));
+            return false;
         }
 
         // An opaque predicate composes only as a whole named policy. Screenplay defines no three-valued result for
@@ -311,8 +335,14 @@ internal static partial class SemanticCratisAdmission
     };
 
     static bool CanRender(SemanticClaimCondition claim) => claim is
-        { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } or
-        { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null };
+    { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } or
+    { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null };
+
+    static ArtifactRenderDiagnostic NestedAnonymousDiagnostic(string name, SemanticId artifact) =>
+        Error("STAGE-ESM-015", $"Authorization of '{name}' combines or nests require anonymous; anonymous access must be the whole authorization.", artifact);
+
+    static ArtifactRenderDiagnostic AnonymousDiagnostic(string kind, string name, SemanticId artifact) =>
+        new("STAGE-ESM-060", ArtifactRenderDiagnosticSeverity.Information, $"{kind} '{name}' is explicitly anonymous (require anonymous): any caller may invoke it", artifact);
 
     sealed record AuthorizationSite(SemanticId Id, string Name, SemanticProperty? Subject, IReadOnlyList<SemanticProperty> Properties);
 

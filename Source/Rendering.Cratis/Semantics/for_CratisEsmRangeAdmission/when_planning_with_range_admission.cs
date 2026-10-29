@@ -70,9 +70,10 @@ public class when_planning_with_range_admission : given.a_range_model
         var application = _model.Application with { Policies = [new("Private policy", new SemanticAnonymousCondition())] };
         SetModel(ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application));
         Versions(32, 1, 32, 1);
+        typeof(SemanticPolicy).GetProperty(nameof(SemanticPolicy.Condition)).SetValue(_model.Application.Policies.Single(), new an_unknown_security_condition());
         var plan = new CratisArtifactRenderPlanner().Plan(_request);
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016" && diagnostic.Message.Contains("SemanticAnonymousCondition.$type", StringComparison.Ordinal));
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-016" && diagnostic.Message.Contains("an_unknown_security_condition.$type", StringComparison.Ordinal));
     }
 }

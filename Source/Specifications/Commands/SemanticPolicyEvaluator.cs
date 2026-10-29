@@ -4,6 +4,7 @@
 using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Specifications.Commands;
 
@@ -17,7 +18,8 @@ internal static class SemanticPolicyEvaluator
 
     internal static bool Allows(SemanticAuthorization? authorization, SemanticExecutionPlan plan, SemanticCaller? caller, ClaimsPrincipal principal, SemanticCommand command, SemanticSpecification specification)
     {
-        if (authorization is null) return true;
+        if (authorization is null || SemanticAnonymousAccess.IsAnonymous(authorization, plan.Model.Application.Policies)) return true;
+        if (SemanticAnonymousAccess.NestsAnonymous(authorization, plan.Model.Application.Policies)) return false;
         if (caller is not { Roles.IsDefault: false, Claims.IsDefault: false }) return false;
         var values = specification.When!.Values;
         var artifact = command.Properties.Select(property => (property, value: values.FirstOrDefault(value => value.TargetProperty == property.Id)?.Value))
@@ -29,7 +31,8 @@ internal static class SemanticPolicyEvaluator
 
     internal static bool Allows(SemanticKeyedQuery query, SemanticValue key, SemanticExecutionPlan plan, SemanticCaller? caller)
     {
-        if (query.Authorization is null) return true;
+        if (query.Authorization is null || SemanticAnonymousAccess.IsAnonymous(query.Authorization, plan.Model.Application.Policies)) return true;
+        if (SemanticAnonymousAccess.NestsAnonymous(query.Authorization, plan.Model.Application.Policies)) return false;
         if (caller is not { Roles.IsDefault: false, Claims.IsDefault: false }) return false;
         var artifact = query.Argument is null
             ? new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
@@ -64,6 +67,7 @@ internal static class SemanticPolicyEvaluator
     // order, and not keeps unknown unknown. Plain Boolean negation would turn a negated unknown claim comparison into an allow.
     static bool? Condition(SemanticPolicyCondition condition, SemanticExecutionPlan plan, SemanticCaller caller, ClaimsPrincipal principal, IReadOnlyDictionary<string, SemanticValue> artifact, SemanticValue? subject, IEnumerable<SemanticProperty> properties) => condition switch
     {
+        SemanticAnonymousCondition => true,
         SemanticAuthenticatedCondition => principal.Identity?.IsAuthenticated == true,
         SemanticRoleCondition role => principal.IsInRole(role.Role),
         SemanticClaimCondition claim => principal.Identity?.AuthenticationType == SystemAuthentication ? null : ClaimMatches(claim, plan, caller, artifact, subject, properties),

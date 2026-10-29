@@ -17,10 +17,10 @@ public class when_refusing_an_unaudited_version : a_register_project_render_requ
     void Because()
     {
         // Simulate dependency versions Stage has not audited.
-        _plans = [.. new uint[] { 31, 34 }.Select(version =>
+        _plans = [.. new uint[] { 34, 35 }.Select(version =>
         {
-            typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new LanguageVersion(version, 0));
-            typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, new SemanticVersion(version, 0));
+            typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new LanguageVersion(version, 0));
+            typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, new SemanticVersion(version, 0));
             return _planner.Plan(_request);
         })];
     }

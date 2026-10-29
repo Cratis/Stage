@@ -13,7 +13,7 @@ public class with_an_invalid_envelope_or_body
     [InlineData("missing", "STAGE-ESM-020")]
     [InlineData("descriptor", "STAGE-ESM-021")]
     [InlineData("member", "STAGE-ESM-021")]
-    [InlineData("language", "STAGE-ESM-019")]
+    [InlineData("language", "STAGE-IMPL-LANGUAGE")]
     [InlineData("compile", "STAGE-ESM-019")]
     [InlineData("pure", "STAGE-ESM-022")]
     public void should_refuse_without_artifacts(string change, string code)

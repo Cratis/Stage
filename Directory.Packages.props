@@ -60,6 +60,8 @@
     <!-- Reverse proxy for the Chronicle Workbench, which the bundled kernel serves on its own unpublished port. -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <!-- Chronicle.Testing 19.112.4 bundles kernel assemblies compiled against this version. -->
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <!-- OpenTelemetry -->
     <PackageVersion Include="Cratis.OpenTelemetry" Version="7.24.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />

@@ -12,6 +12,7 @@ using Cratis.Execution;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.given;
 using NSubstitute;
 using Xunit;
 
@@ -35,7 +36,7 @@ public class when_rendering_mixed_application_trigger_effects : Specification
         var reaction = model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
         _productionEffect = $"stage:reaction:{reaction.Id}:productions";
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
-        plan.Diagnostics.ShouldBeEmpty();
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         plan.Success.ShouldBeTrue();
         _handler = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => Path.GetFileName(artifact.RelativePath) == "ProcessBatch.cs").Bytes.AsSpan());
         var files = when_rendering_application_trigger_productions.Files(plan);

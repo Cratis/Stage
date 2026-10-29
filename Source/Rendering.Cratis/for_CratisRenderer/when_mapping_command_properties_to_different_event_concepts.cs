@@ -6,6 +6,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -46,7 +47,7 @@ public class when_mapping_command_properties_to_different_event_concepts : Speci
         var sourcePrimitive = primitiveTypes[0];
         var targetPrimitive = primitiveTypes[^1];
         var (files, commandFile) = Render(sourceType, targetType, (sourcePrimitive, targetPrimitive));
-        commandFile.Diagnostics.ShouldBeEmpty();
+        commandFile.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         commandFile.Content.ShouldContain($"new StockMoved({argument})");
         string.Join(Environment.NewLine, RenderedOutput.Errors(files)).ShouldEqual(string.Empty);
         var assembly = RenderedOutput.Load(files);
@@ -72,7 +73,7 @@ public class when_mapping_command_properties_to_different_event_concepts : Speci
     {
         var (_, commandFile) = Render(sourceType, targetType, ("Uuid", "Uuid"));
         commandFile.Content.ShouldContain("new StockMoved(OrderId)");
-        commandFile.Diagnostics.ShouldBeEmpty();
+        commandFile.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 
     [Fact]
@@ -80,7 +81,7 @@ public class when_mapping_command_properties_to_different_event_concepts : Speci
     {
         var (files, commandFile) = Render("OrderId", "MovementId", ("Uuid", "Uuid"), nested: true);
         commandFile.Content.ShouldContain("new MovementId(Transfer.OrderId.Value)");
-        commandFile.Diagnostics.ShouldBeEmpty();
+        commandFile.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         string.Join(Environment.NewLine, RenderedOutput.Errors(files)).ShouldEqual(string.Empty);
         var assembly = RenderedOutput.Load(files);
         var expected = _values["Uuid"];

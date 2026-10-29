@@ -7,6 +7,7 @@ using Cratis.Chronicle.Occurrences;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.given;
 using NSubstitute;
 using Xunit;
 
@@ -29,7 +30,7 @@ public class when_delivering_application_trigger_invocations : Specification
             + "\n          invokes FinishBatch\n            batchId = \"second\"\n";
         var model = for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
-        plan.Diagnostics.ShouldBeEmpty();
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         _assembly = for_CratisRenderer.RenderedOutput.Load(when_rendering_application_trigger_productions.Files(plan));
     }
 

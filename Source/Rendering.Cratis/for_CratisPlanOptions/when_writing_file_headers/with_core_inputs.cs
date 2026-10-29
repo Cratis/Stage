@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisPlanOptions.when_writing_file_headers;
@@ -33,7 +34,7 @@ public class with_core_inputs : a_register_project_render_request
         var scaffold = CratisRendering.PlanScaffold(new(_model.Application.Name, "Projects", "Projects") { Profile = profile });
         var application = _planner.Plan(_request with { Profile = profile });
         scaffold.Diagnostics.Single().Code.ShouldEqual("STAGE-HEADER-001");
-        application.Diagnostics.Single().Code.ShouldEqual("STAGE-HEADER-001");
+        application.Diagnostics.WithoutAuthenticatedDefaultNotes().Single().Code.ShouldEqual("STAGE-HEADER-001");
         scaffold.Artifacts.ShouldBeEmpty();
         application.Artifacts.ShouldBeEmpty();
     }

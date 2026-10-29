@@ -26,6 +26,8 @@ public partial class when_evaluating_worker_rules
         var result = (await new SemanticSpecificationExecutor().Run(loaded.Plan, new([]), new() { BodyExecution = bodies })).Results.Single();
         Assert.True(result.Outcome == expected, result.Unsupported?.Details ?? string.Join(';', result.Failures));
         await Assert.Single(workers).Received(1).EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>());
+        await ((IAsyncDisposable)workers.Single()).DidNotReceive().DisposeAsync();
+        await bodies.DisposeAsync();
         await ((IAsyncDisposable)workers.Single()).Received(1).DisposeAsync();
         if (verdict == "unsatisfied") result.ExecutionKind.ShouldEqual("Rejected");
     }

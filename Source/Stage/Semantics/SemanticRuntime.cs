@@ -55,7 +55,11 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
     internal ISemanticFactReader? FactReader { get; init; }
 
     /// <inheritdoc/>
-    public void Dispose() => _gate.Dispose();
+    public void Dispose()
+    {
+        _bodies?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _gate.Dispose();
+    }
 
     /// <inheritdoc/>
     public async Task<SemanticExecutionResult> Execute(

@@ -24,8 +24,8 @@ internal static class SemanticRuleEvaluation
         var dateTypes = SemanticDateComparisons.Participants(application, command);
         foreach (var rule in command.Validations)
         {
-            // Date comparison rules are chronological and a null value passes; the reference check delegates every other rule.
-            var check = dateTypes.TryGetValue(rule.Property, out var primitive)
+            // Opaque predicates always use their worker, including properties in chronological comparisons.
+            var check = rule.Kind != SemanticValidationRuleKind.RulePredicate && dateTypes.TryGetValue(rule.Property, out var primitive)
                 ? SemanticDateComparisons.Check(rule, values[rule.Property], primitive)
                 : CommandCheck(rule, values[rule.Property], run);
             if (!Satisfied(check))

@@ -10,7 +10,7 @@ using NSubstitute;
 
 namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 
-public class when_evaluating_worker_rules : Specification
+public partial class when_evaluating_worker_rules : Specification
 {
     [Theory]
     [InlineData("satisfied", "Accepted", SemanticSpecificationOutcome.Passed, false)]

@@ -23,20 +23,29 @@ internal static class UnixBodyCachePermissions
     static void Validate(DirectoryInfo directory, bool cache)
     {
         var owner = Owner(directory.FullName);
-        var currentUser = owner == Environment.UserName;
         if (directory.LinkTarget is not null)
         {
-            if (!currentUser && owner != "root") throw new UnauthorizedAccessException("Body cache parent symbolic link has an untrusted owner.");
-            ValidateHierarchy(directory.ResolveLinkTarget(true)!.FullName, cache: false);
+            ValidateLink(directory, owner);
             return;
         }
-        var mode = directory.UnixFileMode;
-        var writable = (mode & (UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) != 0;
-        var sharedTemporaryParent = !cache && owner == "root" && (mode & UnixFileMode.StickyBit) != 0;
-        if ((!currentUser && (cache || owner != "root")) || (writable && !sharedTemporaryParent))
+        if (!TrustedOwner(owner, cache) || !ProtectedMode(directory.UnixFileMode, owner, cache))
         {
             throw new UnauthorizedAccessException("Body cache must be owned by the current user and protected from other users, including its parent directories.");
         }
+    }
+
+    static void ValidateLink(DirectoryInfo directory, string owner)
+    {
+        if (!TrustedOwner(owner, cache: false)) throw new UnauthorizedAccessException("Body cache parent symbolic link has an untrusted owner.");
+        ValidateHierarchy(directory.ResolveLinkTarget(true)!.FullName, cache: false);
+    }
+
+    static bool TrustedOwner(string owner, bool cache) => owner == Environment.UserName || (!cache && owner == "root");
+
+    static bool ProtectedMode(UnixFileMode mode, string owner, bool cache)
+    {
+        var sharedTemporaryParent = !cache && owner == "root" && mode.HasFlag(UnixFileMode.StickyBit);
+        return sharedTemporaryParent || (!mode.HasFlag(UnixFileMode.GroupWrite) && !mode.HasFlag(UnixFileMode.OtherWrite));
     }
 
     static string Owner(string path)

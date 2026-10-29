@@ -21,7 +21,8 @@ public class when_a_body_worker_cache_is_untrusted : Specification
             await File.WriteAllTextAsync(path, Model);
             var loaded = await SemanticModelLoader.LoadFromPathAsync(path);
             var cache = Path.Combine(directory, "cache");
-            Directory.CreateDirectory(cache, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.OtherWrite);
+            Directory.CreateDirectory(cache);
+            File.SetUnixFileMode(cache, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.OtherWrite);
             var notes = new List<SemanticModelLoadDiagnostic>();
             var settings = new SemanticBodyWorkerOptions(true, Path.Combine(AppContext.BaseDirectory, "bodyworker", "Cratis.Stage.BodyWorker.dll")) { CacheDirectory = cache };
             var bodies = await SemanticBodyWorkerHosting.Start(loaded, path, settings, notes);

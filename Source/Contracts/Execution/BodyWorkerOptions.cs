@@ -4,6 +4,8 @@
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>Host-supplied executable and resource limits, independent of any rendering target.</summary>
+/// <param name="WorkerPath">The worker assembly path.</param>
+/// <param name="CacheDirectory">The private executable-unit cache directory.</param>
 public sealed record BodyWorkerOptions(string WorkerPath, string CacheDirectory)
 {
     /// <summary>Gets an optional executable/argument launch for the CLI's embedded worker.</summary>
@@ -33,6 +35,7 @@ public sealed record BodyWorkerOptions(string WorkerPath, string CacheDirectory)
     /// <summary>Read the optional --body-worker-* process arguments.</summary>
     /// <param name="args">The runner arguments.</param>
     /// <returns>Worker options, or null when no worker arguments were supplied.</returns>
+    /// <exception cref="ArgumentException">A worker argument is missing or invalid.</exception>
     public static BodyWorkerOptions? FromArguments(string[] args)
     {
         const string prefix = "--body-worker-";

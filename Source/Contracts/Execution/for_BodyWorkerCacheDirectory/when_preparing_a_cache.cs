@@ -18,7 +18,7 @@ public class when_preparing_a_cache : Specification
     {
         var expected = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cratis", "Stage", "Bodies");
         BodyWorkerCacheDirectory.Default.ShouldEqual(expected);
-        BodyWorkerOptions.FromArguments(["--body-worker-path", "worker.dll"])!.CacheDirectory.ShouldEqual(expected);
+        BodyWorkerOptions.FromArguments(["--body-worker-path", "worker.dll"]).CacheDirectory.ShouldEqual(expected);
         Path.IsPathFullyQualified(expected).ShouldBeTrue();
     }
 

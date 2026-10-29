@@ -20,13 +20,18 @@ internal static class WindowsBodyCachePermissions
         var cache = true;
         for (; directory is not null; directory = directory.Parent)
         {
-            security = directory.GetAccessControl();
-            if (!Trusted((SecurityIdentifier)security.GetOwner(typeof(SecurityIdentifier))!, user)) throw new UnauthorizedAccessException("Body cache parent has an untrusted owner.");
-            foreach (FileSystemAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
-            {
-                if (UntrustedWrite(rule, user, cache)) throw new UnauthorizedAccessException("Body cache must be protected from other users, including its parent directories.");
-            }
+            ValidateAccess(directory, user, cache);
             cache = false;
+        }
+    }
+
+    static void ValidateAccess(DirectoryInfo directory, SecurityIdentifier user, bool cache)
+    {
+        var security = directory.GetAccessControl();
+        if (!Trusted((SecurityIdentifier)security.GetOwner(typeof(SecurityIdentifier))!, user)) throw new UnauthorizedAccessException("Body cache parent has an untrusted owner.");
+        if (security.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>().Any(rule => UntrustedWrite(rule, user, cache)))
+        {
+            throw new UnauthorizedAccessException("Body cache must be protected from other users, including its parent directories.");
         }
     }
 
@@ -36,7 +41,7 @@ internal static class WindowsBodyCachePermissions
         var trusted = Trusted(owner, user);
         var mutation = FileSystemRights.DeleteSubdirectoriesAndFiles | FileSystemRights.ChangePermissions | FileSystemRights.TakeOwnership;
         if (cache) mutation |= FileSystemRights.Write | FileSystemRights.Delete;
-        return !trusted && rule.AccessControlType == AccessControlType.Allow && (rule.FileSystemRights & mutation) != 0;
+        return !trusted && rule.AccessControlType == AccessControlType.Allow && (rule.FileSystemRights & mutation) != default;
     }
 
     static bool Trusted(SecurityIdentifier owner, SecurityIdentifier user) =>

@@ -25,7 +25,7 @@ public class when_the_cache_is_untrusted : Specification
         var replacement = validation_body_model.Load(validation_body_model.Command("return true;"));
         var attacker = BodyUnitCompiler.Compile(replacement, Path.Combine(_directory, "attacker")).Entries.Single();
         var poisoned = attacker with { UnitHash = entry.UnitHash };
-        BodyUnitCache.Write(_directory, poisoned, File.ReadAllBytes(BodyUnitCache.PePath(Path.Combine(_directory, "attacker"), attacker.UnitHash!)));
+        BodyUnitCache.Write(_directory, poisoned, File.ReadAllBytes(BodyUnitCache.PePath(Path.Combine(_directory, "attacker"), attacker.UnitHash)));
         BodyUnitCache.Verify(_directory, poisoned).ShouldBeTrue();
         File.SetUnixFileMode(_directory, File.GetUnixFileMode(_directory) | UnixFileMode.OtherWrite);
         var emissions = 0;

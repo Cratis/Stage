@@ -35,7 +35,7 @@ public class when_configuring_a_body_worker : Specification
             ["Stage:BodyWorker:CompileTimeoutSeconds"] = "30",
             ["Stage:BodyWorker:MemoryLimitMegabytes"] = "64"
         }).Build();
-        var settings = SemanticSpecificationProcessOptions.FromConfiguration(configuration).BodyWorker!;
+        var settings = SemanticSpecificationProcessOptions.FromConfiguration(configuration).BodyWorker;
         settings.Enabled.ShouldBeFalse();
         settings.Worker().WorkerPath.ShouldEqual(Path.GetFullPath("alternate/worker.dll", AppContext.BaseDirectory));
         settings.Worker().CacheDirectory.ShouldEqual(Path.GetFullPath("alternate/cache"));

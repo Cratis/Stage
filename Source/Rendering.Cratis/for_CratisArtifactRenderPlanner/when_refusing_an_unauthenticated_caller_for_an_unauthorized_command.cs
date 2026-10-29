@@ -22,5 +22,7 @@ public class when_refusing_an_unauthenticated_caller_for_an_unauthorized_command
     [Fact] void should_refuse_the_specification() => _plan.Diagnostics.ShouldContain(diagnostic =>
         diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&
         diagnostic.Message.Contains("no authorize clause", StringComparison.Ordinal));
+    [Fact] void should_explain_how_to_keep_the_endpoint_open() => _plan.Diagnostics.ShouldContain(diagnostic =>
+        diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("policy Anyone with require anonymous and authorize Anyone (ESM v31)", StringComparison.Ordinal));
     [Fact] void should_not_emit_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

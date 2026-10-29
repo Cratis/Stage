@@ -23,6 +23,7 @@ public class when_rendering_anonymous_policies : Specification
 
     [Fact] void should_admit_the_corpus() => _plan.Success.ShouldBeTrue();
     [Fact] void should_remain_publishable() => _plan.CanPublishArtifacts.ShouldBeTrue();
+    [Fact] void should_not_report_an_authenticated_default() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-054");
     [Fact] void should_not_emit_policy_artifacts() => _plan.Artifacts.ShouldNotContain(artifact => artifact.RelativePath.Contains("GeneratedPolicies", StringComparison.Ordinal) && !artifact.RelativePath.EndsWith("Registration.cs", StringComparison.Ordinal));
 
     [Fact]
@@ -48,7 +49,9 @@ public class when_rendering_anonymous_policies : Specification
             foreach (var command in slice.Commands) typeof(SemanticCommand).GetProperty(nameof(SemanticCommand.Authorization)).SetValue(command, null);
             foreach (var query in slice.Queries) typeof(SemanticKeyedQuery).GetProperty(nameof(SemanticKeyedQuery.Authorization)).SetValue(query, null);
         }
-        invoice_model.Plan(_model).Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-060");
+        var plan = invoice_model.Plan(_model);
+        plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-060");
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-054");
     }
 
     [Fact]

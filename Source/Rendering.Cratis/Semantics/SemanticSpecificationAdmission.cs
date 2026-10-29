@@ -241,7 +241,7 @@ internal static partial class SemanticSpecificationAdmission
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
         GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification)
-            ? "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; explicit anonymous access is not yet modeled by Screenplay."
+            ? "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; to keep the endpoint open, declare policy Anyone with require anonymous and authorize Anyone (ESM v31)."
             : DeclaredRejectionReason(context, specification);
 
     static string DeclaredRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)

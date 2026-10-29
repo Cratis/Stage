@@ -92,17 +92,15 @@ public sealed partial class CratisBackendApplicationScaffold
         that invokes such a command runs as system (no roles), reported as `STAGE-ESM-055`.
         Explicitly modeled policies and callers are preserved.
 
-        To keep an endpoint open to guests and signed-in callers, explicitly authorize a guest-or-staff policy in the `.play` model, as below; put `authorize Guests or Staff` under each command or query to reopen. The explicit policy is preserved rather than replaced by the authenticated default.
+        To keep an endpoint open, declare `policy Anyone` with `require anonymous` and put `authorize Anyone` under each command or query in the `.play` model (ESM v31). This renders `[AllowAnonymous]` for guests and signed-in callers and reports `STAGE-ESM-060`, not the authenticated default `STAGE-ESM-054`.
 
         ```play
-        policy Guests
-          require not authenticated
-        policy Staff
-          require authenticated
+        policy Anyone
+          require anonymous
 
         slice StateChange PublicEndpoint
           command Ping
-            authorize Guests or Staff
+            authorize Anyone
             produces event Pinged
         ```
 

@@ -1,23 +1,4 @@
 module Ledger
 
   feature Integration
-    description "Where the legacy invoicing system is turned into events this application understands"
-
-    slice Translate LegacyInvoiceImport
-      direction inbound
-
-      event LegacyInvoiceChanged from "LegacyInvoicing"
-        id InvoiceId
-        status String
-
-      capture LegacyInvoiceCapture
-        source events
-          from LegacyInvoiceChanged
-        key id
-        append LegacyInvoiceObserved
-          invoiceId = $.id
-          legacyStatus = $.status
-
-      event LegacyInvoiceObserved
-        invoiceId InvoiceId
-        legacyStatus String
+    description "Reserved for future integration with the legacy invoicing system"

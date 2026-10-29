@@ -34,6 +34,7 @@ public class when_loading_the_billing_invoice_model : Specification
         _register = slices.Single(_ => _.Name == "RegisterInvoice").Command!;
     }
 
+    [Fact] void should_preserve_protected_command_reads() => _model.ProtectedCommandReads.ShouldBeTrue();
     [Fact] void should_map_the_customer_name_into_the_summary() => Mapping(_summary, "InvoiceRegistered", "customerName").ShouldEqual("customerName");
     [Fact] void should_start_the_summary_as_a_draft() => Mapping(_summary, "InvoiceRegistered", "status").ShouldEqual("\"draft\"");
     [Fact] void should_allow_cancelling_a_draft() => Mapping(_summary, "InvoiceRegistered", "canCancel").ShouldEqual("True");

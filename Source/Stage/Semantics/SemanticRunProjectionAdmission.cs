@@ -41,7 +41,6 @@ internal static partial class SemanticRunProjectionAdmission
             specification.GivenReadModels.IsEmpty && specification.ThenQueries.Length == 1 && specification.ThenQueries[0].Results.IsEmpty;
 
         var reachable = reachableEvents.ToHashSet();
-        if (CompositeSeedRejection(plan, specification) is { } seedRejection) return seedRejection;
 
         // Match the reference projector's identity order, not the plan dictionary's hash order.
         var requested = plan.Projections.Values.Where(value => value.Target != SemanticProjectionTargetKind.Event && (
@@ -81,7 +80,7 @@ internal static partial class SemanticRunProjectionAdmission
             }
             if (plan.Projections.Values.Any(projection => projection.ReadModel == seed.ReadModel) &&
                 (model.Properties.Any(property => seed.Values.All(value => value.TargetProperty != property.Id || value.Value is SemanticNullValue)) ||
-                    !seed.Values.Any(value => value.TargetProperty == model.Properties.Single(property => property.IsIdentifier).Id && SameScalar(value.Value, seed.Key))))
+                    !SeedKeyMatches(model, seed)))
             {
                 return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "A projected read-model seed requires every scalar property and an identifier equal to its key; partial state cannot preserve property presence through the concrete scenario.");
             }

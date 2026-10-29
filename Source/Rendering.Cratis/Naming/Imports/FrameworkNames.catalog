@@ -113,13 +113,13 @@ package	AS	Microsoft.CodeAnalysis.Workspaces.Common	5.9.0
 package	AS	Microsoft.CodeCoverage	18.11.0
 package	AS	Microsoft.Extensions.AmbientMetadata.Application	10.10.0
 package	AS	Microsoft.Extensions.ApiDescription.Server	10.0.0
-package	AS	Microsoft.Extensions.Compliance.Abstractions	10.10.0
+package	AS	Microsoft.Extensions.Compliance.Abstractions	10.11.0
 package	AS	Microsoft.Extensions.DependencyInjection.AutoActivation	10.10.0
 package	AS	Microsoft.Extensions.DependencyModel	10.0.13
 package	AS	Microsoft.Extensions.Diagnostics.ExceptionSummarization	10.10.0
 package	AS	Microsoft.Extensions.Resilience	10.10.0
 package	AS	Microsoft.Extensions.Telemetry	10.10.0
-package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.10.0
+package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
 package	AS	Microsoft.NET.StringTools	18.9.6
 package	AS	Microsoft.NET.Test.Sdk	18.11.0
 package	AS	Microsoft.OpenApi	2.12.2

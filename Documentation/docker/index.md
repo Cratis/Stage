@@ -462,10 +462,10 @@ to SpecRunner, so the same limits apply to live commands and specification runs.
 | --- | --- | --- |
 | `Stage__BodyWorker__Enabled` | `true` | Set `false` to keep implementation bodies unsupported. |
 | `Stage__BodyWorker__WorkerPath` | `bodyworker/Cratis.Stage.BodyWorker.dll` | Relative to the Host output directory. |
-| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 100–30000 ms per evaluation. |
-| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–300 seconds. |
-| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–2048 MB managed heap; working-set watchdog at twice this value. |
-| `Stage__BodyWorker__CacheDirectory` | `cratis-stage-body-cache` beneath the system temporary directory | Relative overrides resolve against the working directory. |
+| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 50–30000 ms per evaluation. |
+| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–600 seconds. |
+| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–4096 MB managed heap; working-set watchdog at twice this value. |
+| `Stage__BodyWorker__CacheDirectory` | `cratis-stage-bodies` beneath the system temporary directory | Relative overrides resolve against the working directory. |
 
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,

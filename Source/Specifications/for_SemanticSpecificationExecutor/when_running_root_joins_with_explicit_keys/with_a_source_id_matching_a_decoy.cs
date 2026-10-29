@@ -51,10 +51,10 @@ public static class when_running_root_joins_with_explicit_keys
 
         [Fact] void should_not_create_an_instance_with_the_property_key() => _scenario.Instances.Keys.Select(key => key.ToString()).ShouldContainOnly("target-root", "decoy-root");
 
-        [EventType]
+        [EventType("root-join-explicit-key-decoy-opened")]
         public record Opened(string ForeignKey);
 
-        [EventType]
+        [EventType("root-join-explicit-key-decoy-labeled")]
         public record Labeled(string Key, string Text);
 
         public class Root

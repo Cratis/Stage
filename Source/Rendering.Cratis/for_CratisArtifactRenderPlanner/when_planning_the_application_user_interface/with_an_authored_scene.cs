@@ -19,7 +19,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-captured on Train 8b: relative to main, only #660 adds CratisReadProtection On in Directory.Build.props; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Arc 22.146.0, Screenplay 4.255.0 and Specifications 4.5.0: the scaffold now emits those package pins and the matching npm Arc pins.
-    const string Before = "dc1b27288331117849b554637f0c24af08bd0cd1f71b92fad28882127dd88966";
+    // Recomputed for npm Fundamentals 7.27.0: the scaffold now emits the matching frontend package pin.
+    const string Before = "d8d44d5a944c5ede72709d00721780c50d71f21f759a9e70686f062b47b57e34";
 
     ArtifactRenderPlan _plan = null!;
 

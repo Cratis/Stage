@@ -19,7 +19,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Arc 22.146.0, Screenplay 4.255.0 and Specifications 4.5.0: the scaffold now emits those package pins and the matching npm Arc pins.
-    const string Before = "529ceea1a2bac5d5f14f6502430ca22712ad2213e5bb9a32cf915673ceaee4de";
+    // Recomputed for npm Fundamentals 7.27.0: the scaffold now emits the matching frontend package pin.
+    const string Before = "a81fe54bbeeff9fa922ea5e95ee5cc8703efdb5ae7f0d213b70ab95a8910b70f";
 
     ArtifactRenderPlan _plan = null!;
 

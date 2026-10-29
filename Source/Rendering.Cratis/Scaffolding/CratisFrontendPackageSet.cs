@@ -214,7 +214,7 @@ public sealed class CratisFrontendPackageSet
         "22.146.0",
         "22.146.0",
         "22.146.0",
-        "7.26.0",
+        "7.27.0",
         "7.8.2",
         "4.10.0",
         "0.2.2",

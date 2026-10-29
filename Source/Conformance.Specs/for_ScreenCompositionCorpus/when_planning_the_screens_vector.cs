@@ -30,7 +30,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
-    const string Digest = "76609b7a86c2ac6fb958897004525848f4640b7e6288b4c54d9c525d568b6e60";
+    // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
+    const string Digest = "af4e730d72e50203a334ff1a193c0db9f688c1f6e3265b30cf70b52f87f26ad5";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -48,12 +49,12 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
+        Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
         Program.cs f148d2954e15bdf675f63ed1472c70b1f6396db6a826f7644c4cedad3ca5dd56 847
         README.md 7217ef0b3fb886c022bd062ad77bbf730a262d0d9c9b05958fe1efcb1c5d9ffd 1819
-        Workspaces.csproj 93f351d3db49bcdc4dbc03efab9b636a6820f3e724aa6ed7ae944c0e31c7db2b 2364
+        Workspaces.csproj 5558e5543e420ff0a80aeeea75c9a8e1d9e3684847aeba3ff2177f866e5bc7a3 2443
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs 61d1be7adb16c8720965320ec9d5f0a57957a5e2bcfff37557c4343d03a77edb 513
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 7fde109bec5d420e1abc797e0fae200abd0b1e46d85edd6cd976743d9ca4eef5 1442
@@ -95,7 +96,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props e35974ccfcc53743171f971cbcb7a90f524b8f9caa95bfc23f031b854c819458 1176
+        Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
         Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
         README.md a23d002789c09cad95255d716870eeb97958bdd578a1ebcce350b945574eb783 1759
@@ -183,7 +184,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("f2fa485f34ccca0407554dca465144abb0ba2ffe514ef13a4905e1928ea0eeaf"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+            plan.Diagnostics).ShouldEqual("e5ad11a2e5e47077333b983b598585449989ac5f559546a507a89d26e088f836"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     }
 
     [Theory]

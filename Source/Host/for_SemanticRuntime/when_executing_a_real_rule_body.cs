@@ -29,7 +29,8 @@ public class when_executing_a_real_rule_body : Specification
             var notes = new List<SemanticModelLoadDiagnostic>();
             var settings = new SemanticBodyWorkerOptions(true, Path.Combine(AppContext.BaseDirectory, "bodyworker", "Cratis.Stage.BodyWorker.dll"))
             {
-                CacheDirectory = Path.Combine(directory, "cache"), CallTimeoutMilliseconds = 10000
+                CacheDirectory = Path.Combine(directory, "cache"),
+                CallTimeoutMilliseconds = 10000
             };
             var bodies = await SemanticBodyWorkerHosting.Start(loaded, path, settings, notes);
             Assert.True(bodies is not null, string.Join(';', notes.Select(note => note.Message)));
@@ -55,7 +56,7 @@ public class when_executing_a_real_rule_body : Specification
                 else Assert.IsType<SemanticRejected>(result).Details.ShouldEqual("Positive amount required");
             }
             await appender.Received(1).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
-            AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name!.StartsWith("BodyUnit_", StringComparison.Ordinal)).ShouldBeFalse();
+            AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name?.StartsWith("BodyUnit_", StringComparison.Ordinal) == true).ShouldBeFalse();
         }
         finally
         {

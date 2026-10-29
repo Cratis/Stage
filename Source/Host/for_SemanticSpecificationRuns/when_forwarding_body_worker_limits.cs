@@ -14,7 +14,10 @@ public class when_forwarding_body_worker_limits : Specification
     void Establish() => _start = new();
     void Because() => SemanticBodyWorkerHosting.AddBodyWorkerArguments(_start, new(true, "worker with spaces.dll")
     {
-        CacheDirectory = "cache with spaces", CallTimeoutMilliseconds = 11, CompileTimeoutSeconds = 12, MemoryLimitMegabytes = 13
+        CacheDirectory = "cache with spaces",
+        CallTimeoutMilliseconds = 11,
+        CompileTimeoutSeconds = 12,
+        MemoryLimitMegabytes = 13
     });
 
     [Fact]

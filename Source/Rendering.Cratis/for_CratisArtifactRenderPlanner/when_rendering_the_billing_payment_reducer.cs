@@ -50,25 +50,21 @@ public class when_rendering_the_billing_payment_reducer : a_generated_applicatio
                     paymentId PaymentId identifier
                     invoiceId InvoiceId
                     amount Money
-                    settlesInvoice Bool
                     produces PaymentRecorded
                       for paymentId
                       paymentId = paymentId
                       invoiceId = invoiceId
                       amount = amount
-                      settlesInvoice = settlesInvoice
             """ + "\n" + Section(billing, "      event PaymentRecorded\n", "\n      constraint OnePaymentPerAttempt") + "\n" + """
                   specification RecordingAPayment
                     when RecordPayment
                       paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
                       invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
                       amount = 500
-                      settlesInvoice = true
                     then PaymentRecorded
                       paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
                       invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
                       amount = 500
-                      settlesInvoice = true
                     then readmodel PaymentSummary
                       paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
                       invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"

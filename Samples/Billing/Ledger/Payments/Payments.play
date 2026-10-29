@@ -9,35 +9,23 @@ module Ledger
         paymentId PaymentId identifier
         invoiceId InvoiceId
         amount Money
-        outstanding Money
         validate
           amount > 0 message "A payment has to be for something"
-        produces when amount >= outstanding
-          PaymentRecorded
-            for paymentId
-            paymentId = paymentId
-            invoiceId = invoiceId
-            amount = amount
-            settlesInvoice = true
-        produces when amount < outstanding
-          PaymentRecorded
-            for paymentId
-            paymentId = paymentId
-            invoiceId = invoiceId
-            amount = amount
-            settlesInvoice = false
+        produces PaymentRecorded
+          for paymentId
+          paymentId = paymentId
+          invoiceId = invoiceId
+          amount = amount
 
       specification RecordingAPaymentShowsUpInTheList
         when RecordPayment
           paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
           invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           amount = 500
-          outstanding = 500
         then PaymentRecorded
           paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
           invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
           amount = 500
-          settlesInvoice = true
         then readmodel PaymentSummary
           paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
           invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
@@ -47,10 +35,69 @@ module Ledger
         paymentId PaymentId
         invoiceId InvoiceId
         amount Money
-        settlesInvoice Bool
 
       constraint OnePaymentPerAttempt
         unique event PaymentRecorded
+
+    slice StateView InvoiceBalance
+
+      readmodel InvoiceBalance
+        id InvoiceId key
+        outstanding Money
+
+      projection InvoiceBalanceProjection => InvoiceBalance
+        from InvoiceIssued
+          outstanding = amount
+        from PaymentRecorded key invoiceId
+          subtract outstanding by amount
+        remove with InvoiceCancelled
+
+      query InvoiceBalanceById => InvoiceBalance?
+        by id InvoiceId
+
+      specification APartialPaymentLeavesTheRestOutstanding
+        given InvoiceRegistered
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          customerName = "Acme"
+          amount = 500
+        given InvoiceIssued
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          issuedOn = "2026-01-15"
+          amount = 500
+        given PaymentRecorded
+          for "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          paymentId = "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 200
+        then readmodel InvoiceBalance
+          id = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          outstanding = 300
+
+      specification AFullPaymentLeavesNothingOutstanding
+        given InvoiceRegistered
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          customerName = "Acme"
+          amount = 500
+        given InvoiceIssued
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          issuedOn = "2026-01-15"
+          amount = 500
+        given PaymentRecorded
+          for "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          paymentId = "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
+        then readmodel InvoiceBalance
+          id = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          outstanding = 0
 
     slice StateView PaymentList
 

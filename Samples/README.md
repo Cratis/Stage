@@ -23,7 +23,7 @@ signatures, configuration, dependency imports, and ownership limits.
 
 ## Billing
 
-Two modules, four features, seven slices, fourteen source files.
+Two modules, four features, eight slices, fourteen source files.
 
 ```text
 Billing/
@@ -43,7 +43,7 @@ Billing/
       Reminders.play               Automation - an event-driven reaction
   Ledger/
     Ledger.play                    a second module, so cross-module navigation is real
-    Payments/                      declarative payment decisions and validation, inline C# reducer
+    Payments/                      payment recording, invoice balance projection, inline C# reducer
     Integration/                   reserved feature; inbound translation showcase deferred
 ```
 
@@ -57,6 +57,9 @@ The sample covers state changes, protected decision reads, projections, an inlin
 event-driven automation, authorization, validation and localized screens.
 `InvoiceState` is keyed by event source; cancellation removes it, so issuing an unknown or cancelled invoice
 is refused. The payment specification exercises the declarative command and its reducer-built read model.
+Payments record an amount without accepting an outstanding balance or declaring invoice settlement.
+`InvoiceBalanceById` exposes the invoice's outstanding amount, projected from issuance and payments;
+read-side specifications cover partial and full payments. This view is not a protected command read.
 
 Some language showcases remain follow-up work rather than executable Billing behavior:
 

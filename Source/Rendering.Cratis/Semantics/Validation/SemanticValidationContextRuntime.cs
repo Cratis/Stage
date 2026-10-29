@@ -57,6 +57,14 @@ internal static class SemanticValidationContextRuntime
         return file with { Content = file.Content.Replace(marker, marker + "string Tenant, string CausedBy, ", StringComparison.Ordinal) };
     }
 
+    internal static SemanticTypedContextMember? UnsupportedAnalysisMember(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor) =>
+        descriptor.Members
+            .Where(member => !member.IsDerived && !RefusedMembers.Contains(member.Name, StringComparer.Ordinal))
+            .Select(member => PrimitiveConceptMember(context, member))
+            .FirstOrDefault(member => member.Type.ModelType is null &&
+            member.Type.Shape is null &&
+            !IsAnalysisRuntimeToken(member.Type.RuntimeToken));
+
     internal static RenderedFile AnalysisWrapper(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor)
     {
         var types = new SemanticTypeSystem(context);
@@ -183,6 +191,11 @@ internal static class SemanticValidationContextRuntime
             _ => throw new InvalidOperationException($"Unsupported validation context member '{member.Name}'.")
         };
     }
+
+    static bool IsAnalysisRuntimeToken(string? token) =>
+        token == SemanticContextRuntimeTokens.Text ||
+        token == SemanticContextRuntimeTokens.DateTime ||
+        token == SemanticContextRuntimeTokens.Boolean;
 
     static string AnalysisShapeType(SemanticApplicationContext context, SemanticId binding)
     {

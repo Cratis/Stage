@@ -34,6 +34,10 @@ internal static partial class PureValidationAdmission
     {
         internal PureTransitionAdmission.Verdict Analyze(string body, AnalysisMode mode)
         {
+            if (SemanticValidationContextRuntime.UnsupportedAnalysisMember(context, descriptor) is { } unsupported)
+            {
+                return Reject("STAGE-ESM-021", $"Validation context member '{unsupported.Name}' has unsupported runtime token '{unsupported.Type.RuntimeToken}'.");
+            }
             var generated = context.Application.Concepts.Select(concept => Naming.Identifiers.ToPascalCase(concept.Name))
                 .Concat(context.Application.Types.Select(type => Naming.Identifiers.ToPascalCase(type.Name)))
                 .Concat(context.Commands.Values.Select(command => Naming.Identifiers.ToPascalCase(command.Name))).ToHashSet(StringComparer.Ordinal);

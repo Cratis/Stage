@@ -6,6 +6,7 @@ using System.Text.Json;
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>Supervises a short-lived compiler and a serialized execute pipe. Never loads body assemblies.</summary>
+/// <param name="options">The process bounds and launch settings.</param>
 public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorkerClient, IAsyncDisposable
 {
     readonly SemaphoreSlim _gate = new(1, 1);
@@ -36,10 +37,10 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     {
         var request = new BodyWorkerRequest(Guid.NewGuid().ToString("N"), "compile")
         {
-            ModelPath = modelPath,
-            CatalogPath = catalogPath,
+            ModelPath = Path.GetFullPath(modelPath),
+            CatalogPath = catalogPath is null ? null : Path.GetFullPath(catalogPath),
             ApplicationName = applicationName,
-            CacheDirectory = options.CacheDirectory
+            CacheDirectory = Path.GetFullPath(options.CacheDirectory)
         };
         var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         _manifest = response.Manifest ?? new(string.Empty, [new("*", string.Empty, false, BodyDiagnostics.WorkerFailed, response.Evaluation?.Diagnostic)]);
@@ -52,11 +53,14 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         var unit = _manifest?.Entries.FirstOrDefault(entry => entry.RequirementId == request.RequirementId);
         if (unit is null) return Failure(string.Empty, BodyDiagnostics.WorkerFailed, "No compiled unit exists for this requirement.").Evaluation!;
         if (!unit.Admitted) return new("refused", Diagnostic: unit.DiagnosticMessage);
-        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "evaluate") { Unit = unit, Evaluation = request, CacheDirectory = options.CacheDirectory }, cancellationToken).ConfigureAwait(false);
+        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "evaluate") { Unit = unit, Evaluation = request, CacheDirectory = Path.GetFullPath(options.CacheDirectory) }, cancellationToken).ConfigureAwait(false);
         return response.Evaluation!;
     }
 
     /// <summary>Issues one correlated request. Only a subsequent call can restart a failed execute worker.</summary>
+    /// <param name="request">The correlated worker request.</param>
+    /// <param name="cancellationToken">The caller cancellation.</param>
+    /// <returns>The worker response or an explicit failure.</returns>
     public async Task<BodyWorkerResponse> SendAsync(BodyWorkerRequest request, CancellationToken cancellationToken = default)
     {
         using var linked = Link(cancellationToken);

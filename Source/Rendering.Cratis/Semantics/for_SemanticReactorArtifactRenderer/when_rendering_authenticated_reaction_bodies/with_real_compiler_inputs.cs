@@ -34,7 +34,7 @@ public class with_real_compiler_inputs
     [Fact]
     public void should_compile_multiple_independent_property_bindings()
     {
-        var loaded = reaction_body_model.Load("return Count > 0 ? new object[] { Title, @event.Count, context } : null;", extraProperty: "        count Int");
+        var loaded = reaction_body_model.Load("return Count > 0 && @event.Count == Count && context is not null ? new object[] { new TicketOpened(Title, Count) } : null;", extraProperty: "        count Int");
         var plan = opaque_policy_model.Plan(loaded);
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
@@ -76,10 +76,9 @@ public class with_real_compiler_inputs
 
     [Theory]
     [InlineData("System.Console.WriteLine(Title);", "CS0161")]
-    [InlineData("return 42;", "CS0029")]
+    [InlineData("return new TicketOpened(Title);", "CS0266")]
     [InlineData("if (Title.Length > 0) return null;", "CS0161")]
     [InlineData("int unused = 42; return null;", "CS0219")]
-    [InlineData("return new object[] { context.UnrepresentedMember };", "CS1061")]
     public void should_refuse_bodies_that_cannot_satisfy_the_emitted_return_contract(string body, string diagnosticId)
     {
         var plan = opaque_policy_model.Plan(reaction_body_model.Load(body));
@@ -88,11 +87,25 @@ public class with_real_compiler_inputs
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Severity == Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains(diagnosticId, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void should_refuse_an_unresolved_context_member_in_modeled_and_unmodeled_returns()
+    {
+        var plan = opaque_policy_model.Plan(reaction_body_model.Load("return new object[] { new TicketOpened(context.UnrepresentedMember) };"));
+        Assert.False(plan.CanPublishArtifacts);
+        Assert.Empty(plan.Artifacts);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Severity == Contracts.Rendering.ArtifactRenderDiagnosticSeverity.Error && diagnostic.Message.Contains("CS1061", StringComparison.Ordinal));
+
+        var unmodeled = opaque_policy_model.Plan(reaction_body_model.Load("return new object[] { context.UnrepresentedMember };"));
+        Assert.False(unmodeled.CanPublishArtifacts);
+        Assert.Empty(unmodeled.Artifacts);
+        Assert.Contains(unmodeled.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-037" && diagnostic.Message.Contains("a value, not a modeled event or command, and would fail at run time", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("return null;")]
-    [InlineData("return new object[] { Title, @event, context };")]
-    [InlineData("yield return Title;")]
-    [InlineData("if (Title.Length > 0) return new object[] { Title }; else return null;")]
+    [InlineData("return new object[] { new TicketOpened(Title), @event };")]
+    [InlineData("yield return new TicketOpened(Title);")]
+    [InlineData("if (Title.Length > 0) return new object[] { new TicketOpened(Title) }; else return null;")]
     public void should_compile_accepted_return_shapes_against_the_real_runtime_contract(string body)
     {
         var plan = opaque_policy_model.Plan(reaction_body_model.Load(body));
@@ -103,8 +116,8 @@ public class with_real_compiler_inputs
     }
 
     [Theory]
-    [InlineData("return new object[] { Title, context };", true)]
-    [InlineData("yield return Title;", false)]
+    [InlineData("return new object[] { new TicketOpened(Title, Count) };", true)]
+    [InlineData("yield return new TicketOpened(Title, Count);", false)]
     public void should_admit_the_same_guarded_return_contract_that_the_renderer_emits(string body, bool expected)
     {
         var source = reaction_body_model.Source(body, extraProperty: "        count Int")

@@ -26,20 +26,38 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         None = 0,
         Event = 1,
         Command = 2,
-        Unknown = 4
+        Unknown = 4,
+        Value = 8,
+        NestedCollection = 16,
+        NullItem = 32
     }
+
+    enum Position
+    {
+        Result,
+        Item,
+        Spread
+    }
+
+    internal bool HasValueItems { get; private set; }
+    internal bool HasNestedCollections { get; private set; }
+    internal bool HasNullItems { get; private set; }
 
     internal bool IsSeparate(string body)
     {
+        HasValueItems = HasNestedCollections = HasNullItems = false;
         _body = (BlockSyntax)SyntaxFactory.ParseStatement("{\n" + body + "\n}");
         if (_body.ContainsDiagnostics || _body.ContainsDirectives) return false;
-        var shape = Combine(_body.DescendantNodes(IsHandler).Select(node => node switch
+        var shape = _body.DescendantNodes(IsHandler).Select(node => node switch
         {
-            ReturnStatementSyntax statement => statement.Expression,
-            YieldStatementSyntax statement => statement.Expression,
-            _ => null
-        }).OfType<ExpressionSyntax>());
-        return !shape.HasFlag(Shape.Unknown) && shape != (Shape.Event | Shape.Command);
+            ReturnStatementSyntax { Expression: { } expression } => Expression(expression, Position.Result),
+            YieldStatementSyntax { Expression: { } expression } => Expression(expression, Position.Item),
+            _ => Shape.None
+        }).Aggregate(Shape.None, (shape, item) => shape | item);
+        HasValueItems = shape.HasFlag(Shape.Value);
+        HasNestedCollections = shape.HasFlag(Shape.NestedCollection);
+        HasNullItems = shape.HasFlag(Shape.NullItem);
+        return shape is Shape.None or Shape.Event or Shape.Command;
     }
 
     static bool IsHandler(SyntaxNode node) => node is not (LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax);
@@ -49,8 +67,8 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         var types = new SemanticTypeSystem(context);
         var names = context.Events.Values.Select(@event => (Name: types.EventType(@event), Shape: Shape.Event))
             .Concat(context.Commands.Values.Select(command => (Name: types.SliceType(command.Id, command.Name), Shape: Shape.Command)))
-            .Concat(context.Concepts.Values.Select(concept => (Name: types.CommonType(concept.Name), Shape: Shape.None)))
-            .Concat(context.Types.Values.Select(type => (Name: types.CommonType(type.Name), Shape: Shape.None))).ToArray();
+            .Concat(context.Concepts.Values.Select(concept => (Name: types.CommonType(concept.Name), Shape: Shape.Value)))
+            .Concat(context.Types.Values.Select(type => (Name: types.CommonType(type.Name), Shape: Shape.Value))).ToArray();
         var result = names.GroupBy(item => Normalize(item.Name), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count() == 1 ? group.Single().Shape : Shape.Unknown, StringComparer.Ordinal);
         foreach (var group in names.GroupBy(item => item.Name.Split('.')[^1]))
@@ -91,96 +109,120 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
     static bool IsResultCollection(SyntaxNode node) => node is
         InitializerExpressionSyntax or ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax or CollectionElementSyntax or CollectionExpressionSyntax;
 
-    static ExpressionSyntax CollectionItem(CollectionElementSyntax element) => element switch
+    static Shape Null(Position position) => position switch
     {
-        ExpressionElementSyntax item => item.Expression,
-        SpreadElementSyntax spread => spread.Expression,
-        _ => throw new InvalidOperationException("Unknown collection element syntax.")
+        Position.Item => Shape.NullItem,
+        Position.Result => Shape.None,
+        _ => Shape.Unknown
     };
 
-    Shape Combine(IEnumerable<ExpressionSyntax> expressions) => expressions.Aggregate(Shape.None, (shape, expression) => shape | Expression(expression));
-
-    Shape Expression(ExpressionSyntax expression) => expression switch
+    Shape CollectionItem(CollectionElementSyntax element) => element switch
     {
-        ParenthesizedExpressionSyntax parenthesized => Expression(parenthesized.Expression),
-        ConditionalExpressionSyntax conditional => Expression(conditional.WhenTrue) | Expression(conditional.WhenFalse),
-        BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.CoalesceExpression) => Expression(binary.Left) | Expression(binary.Right),
-        _ => Collection(expression)
+        ExpressionElementSyntax item => Expression(item.Expression, Position.Item),
+        SpreadElementSyntax spread => Expression(spread.Expression, Position.Spread),
+        _ => Shape.Unknown
     };
 
-    Shape Collection(ExpressionSyntax expression) => expression switch
+    Shape Combine(IEnumerable<ExpressionSyntax> expressions) => expressions.Aggregate(Shape.None, (shape, expression) => shape | Expression(expression, Position.Item));
+
+    Shape Expression(ExpressionSyntax expression, Position position) => expression switch
+    {
+        LiteralExpressionSyntax literal when literal.IsKind(SyntaxKind.NullLiteralExpression) => Null(position),
+        ParenthesizedExpressionSyntax parenthesized => Expression(parenthesized.Expression, position),
+        ConditionalExpressionSyntax conditional => Expression(conditional.WhenTrue, position) | Expression(conditional.WhenFalse, position),
+        BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.CoalesceExpression) => Expression(binary.Left, position) | Expression(binary.Right, position),
+        _ => Collection(expression, position)
+    };
+
+    Shape Collection(ExpressionSyntax expression, Position position) => position == Position.Item && IsResultCollection(expression)
+        ? Shape.NestedCollection
+        : CollectionContents(expression, position);
+
+    Shape CollectionContents(ExpressionSyntax expression, Position position) => expression switch
     {
         ArrayCreationExpressionSyntax array when array.Initializer is { } initializer => Combine(initializer.Expressions),
         ImplicitArrayCreationExpressionSyntax array => Combine(array.Initializer.Expressions),
-        CollectionExpressionSyntax collection => Combine(collection.Elements.Select(CollectionItem)),
-        _ => Leaf(expression)
+        InitializerExpressionSyntax initializer => Combine(initializer.Expressions),
+        CollectionExpressionSyntax collection => collection.Elements.Aggregate(Shape.None, (shape, element) => shape | CollectionItem(element)),
+        _ => Leaf(expression, position)
     };
 
-    Shape Leaf(ExpressionSyntax expression) => expression switch
+    Shape Leaf(ExpressionSyntax expression, Position position) => expression switch
     {
-        LiteralExpressionSyntax or TypeOfExpressionSyntax => Shape.None,
-        ObjectCreationExpressionSyntax creation => Creation(creation),
-        IdentifierNameSyntax identifier => Binding(identifier),
+        ObjectCreationExpressionSyntax creation => Creation(creation, position),
+        IdentifierNameSyntax identifier => Binding(identifier, position),
+        _ when position == Position.Spread => Shape.Unknown,
+        LiteralExpressionSyntax or TypeOfExpressionSyntax => Shape.Value,
         MemberAccessExpressionSyntax member => Member(member),
         _ => Shape.Unknown
     };
 
     Shape Member(MemberAccessExpressionSyntax member)
     {
-        if (member.Expression is IdentifierNameSyntax identifier && identifier.Identifier.ValueText == "event")
-        {
-            return source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == member.Name.Identifier.ValueText) ? Shape.None : Shape.Unknown;
-        }
-        return _types.TryGetValue(Normalize(member.Expression.ToString()), out var shape) && shape == Shape.None ? Shape.None : Shape.Unknown;
+        if (member.Expression is IdentifierNameSyntax identifier && IsValueBinding(identifier.Identifier.ValueText)) return Shape.Value;
+        return _types.TryGetValue(Normalize(member.Expression.ToString()), out var shape) && shape == Shape.Value ? Shape.Value : Shape.Unknown;
     }
 
-    Shape Creation(ObjectCreationExpressionSyntax creation)
+    bool IsValueBinding(string name) => name == "event" || name == "context" || source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == name);
+
+    Shape Creation(ObjectCreationExpressionSyntax creation, Position position)
     {
-        var name = Normalize(creation.Type.ToString());
+        if (IsList(creation.Type)) return ListCreation(creation, position);
+        return position == Position.Spread ? Shape.Unknown : NamedCreation(creation.Type);
+    }
+
+    Shape ListCreation(ObjectCreationExpressionSyntax creation, Position position)
+    {
+        if (position == Position.Item) return Shape.NestedCollection;
+        return creation.ArgumentList is { Arguments.Count: > 0 } ? Shape.Unknown : Combine(creation.Initializer?.Expressions ?? []);
+    }
+
+    Shape NamedCreation(TypeSyntax type)
+    {
+        var name = Normalize(type.ToString());
         if (_types.TryGetValue(name, out var shape)) return shape;
         if (name == "EventForEventSourceId" || name == "Cratis.Chronicle.EventSequences.EventForEventSourceId") return Shape.Event;
-        if (IsList(creation.Type))
-        {
-            return creation.ArgumentList is { Arguments.Count: > 0 } ? Shape.Unknown : Combine(creation.Initializer?.Expressions ?? []);
-        }
         return Shape.Unknown;
     }
 
-    Shape Binding(IdentifierNameSyntax identifier)
+    Shape Binding(IdentifierNameSyntax identifier, Position position)
     {
         var name = identifier.Identifier.ValueText;
         var declarations = _body.DescendantNodes().OfType<VariableDeclaratorSyntax>().Where(variable => variable.Identifier.ValueText == name).ToArray();
         if (declarations.Length == 0)
         {
+            if (position == Position.Spread) return Shape.Unknown;
             if (name == "event") return Shape.Event;
-            if (name == "context" || source.Properties.Any(property => Identifiers.ToPascalCase(property.Name) == name)) return Shape.None;
+            if (IsValueBinding(name)) return Shape.Value;
             return Shape.Unknown;
         }
-        return declarations is [var declaration] ? Local(declaration) : Shape.Unknown;
+        return declarations is [var declaration] ? Local(declaration, position) : Shape.Unknown;
     }
 
-    Shape Local(VariableDeclaratorSyntax declaration)
+    Shape Local(VariableDeclaratorSyntax declaration, Position position)
     {
         if (declaration.Parent is not VariableDeclarationSyntax variables) return Shape.Unknown;
         if (declaration.Initializer is null) return Shape.Unknown;
         var uses = _body.DescendantNodes().OfType<IdentifierNameSyntax>().Where(node => node.Identifier.ValueText == declaration.Identifier.ValueText);
         if (uses.Any(use => !IsReturnUse(use, declaration))) return Shape.Unknown;
-        return variables.Type.IsVar ? Expression(declaration.Initializer.Value) : Declared(variables.Type);
+        var initialized = Expression(declaration.Initializer.Value, position);
+        return variables.Type.IsVar ? initialized : Declared(variables.Type, position) | initialized;
     }
 
-    Shape Declared(TypeSyntax type) => type switch
+    Shape Declared(TypeSyntax type, Position position) => type switch
     {
-        ArrayTypeSyntax array => Declared(array.ElementType),
-        NullableTypeSyntax nullable => Declared(nullable.ElementType),
-        _ => NamedDeclared(type)
+        ArrayTypeSyntax array => position == Position.Item || array.RankSpecifiers.Count > 1 ? Shape.NestedCollection : Declared(array.ElementType, Position.Item),
+        NullableTypeSyntax nullable => Declared(nullable.ElementType, position),
+        _ => NamedDeclared(type, position)
     };
 
-    Shape NamedDeclared(TypeSyntax type)
+    Shape NamedDeclared(TypeSyntax type, Position position)
     {
-        if (_types.TryGetValue(Normalize(type.ToString()), out var shape))
+        if (CollectionElement(type) is { } element)
         {
-            return shape is Shape.Event or Shape.Command ? shape : Shape.Unknown;
+            return position == Position.Item ? Shape.NestedCollection : Declared(element, Position.Item);
         }
-        return CollectionElement(type) is { } element ? Declared(element) : Shape.Unknown;
+        if (position == Position.Spread) return Shape.Unknown;
+        return _types.TryGetValue(Normalize(type.ToString()), out var shape) ? shape : Shape.Unknown;
     }
 }

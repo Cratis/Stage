@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 
 public class and_reading_an_unknown_event_member : a_rendered_reaction_body
 {
-    const string Body = "return @event.Missing is null ? null : new object[] { Title };";
+    const string Body = "return @event.Missing is null ? null : new object[] { new TicketOpened(Title) };";
 
     void Because() => Render(reaction_body_model.Source(Body));
 

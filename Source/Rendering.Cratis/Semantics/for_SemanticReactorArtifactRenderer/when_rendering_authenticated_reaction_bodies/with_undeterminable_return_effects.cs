@@ -20,7 +20,6 @@ public class with_undeterminable_return_effects : Specification
         string[] bodies =
         [
             "return BuildEffects();",
-            "string label = Title; yield return label;",
             "IEnumerable<object> effects = new[] { new TicketOpened(Title) }; return effects;",
             "TicketOpened opened = new TicketOpened(Title); opened = new TicketOpened(Title); yield return opened;",
             "TicketOpened[] opened = new[] { new TicketOpened(Title) }; Change(opened); return opened;",
@@ -35,7 +34,9 @@ public class with_undeterminable_return_effects : Specification
             "return new object[] { new TicketOpened(Title), Unknown() };",
             "return typeof(object).Assembly.GetTypes();",
             "return Array.Empty<string>();",
-            "return new object[] { context.UnrepresentedMember };"
+            "return [@event.Title.Length];",
+            "return [context.EventSourceId.Value];",
+            "return [Title.ToString()];"
         ];
         _models = [.. bodies.SelectMany(body => new[] { reaction_return_model.Load(body), reaction_return_model.Load(body, file: true) })];
     }

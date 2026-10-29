@@ -28,6 +28,10 @@ public class with_separate_return_effects : Specification
             "TicketOpened? opened = new TicketOpened(Title); yield return opened;",
             "Notify command = new Notify(\"id\", Title); yield return command;",
             "TicketOpened[] opened = new[] { new TicketOpened(Title) }; return opened;",
+            "TicketOpened[] opened = { new TicketOpened(Title) }; return opened;",
+            "TicketOpened[] opened = new TicketOpened[1] { new TicketOpened(Title) }; return opened;",
+            "TicketOpened[] opened = [new TicketOpened(Title)]; return opened;",
+            "TicketOpened[] opened = {}; return opened;",
             "IEnumerable<Notify> commands = new[] { new Notify(\"id\", Title) }; return commands;",
             "List<TicketOpened> opened = new List<TicketOpened> { new TicketOpened(Title) }; return opened;",
             "System.Collections.Generic.IReadOnlyList<Notify> commands = new[] { new Notify(\"id\", Title) }; return commands;",
@@ -39,7 +43,15 @@ public class with_separate_return_effects : Specification
             "var effects = new object[] { new TicketOpened(Title) }; return [.. effects];",
             "return [new TicketOpened(Title)];",
             "return new List<object> { new Notify(\"id\", Title) };",
-            "return null;"
+            "return null;",
+            "return [];",
+            "var effects = Title.Length > 0 ? new object[] { new TicketOpened(Title) } : null; return effects;",
+            "return new object[] {};",
+            "var effects = new object[] {}; return [.. effects];",
+            "TicketOpened[] effects = new[] { new TicketOpened(Title) }; return [.. effects];",
+            "return [.. new List<object> { new TicketOpened(Title) }];",
+            "return (null);",
+            "yield break;"
         ];
         _models = [.. bodies.Select(body => (body, reaction_return_model.Load(body), reaction_return_model.Load(body, file: true)))];
     }

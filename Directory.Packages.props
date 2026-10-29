@@ -2,20 +2,20 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.254.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.255.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.143.0" />
+    <PackageVersion Include="Cratis" Version="22.146.0" />
     <PackageVersion Include="Cratis.Fundamentals" Version="7.27.0" />
-    <PackageVersion Include="Cratis.Arc" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.143.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.146.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.146.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
         management only pins what a project references directly, so a version that arrives transitively through the
@@ -72,8 +72,8 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.303" />
     <!-- Testing & Specifications -->
-    <PackageVersion Include="Cratis.Specifications" Version="4.1.1" />
-    <PackageVersion Include="Cratis.Specifications.XUnit" Version="4.1.1" />
+    <PackageVersion Include="Cratis.Specifications" Version="4.5.0" />
+    <PackageVersion Include="Cratis.Specifications.XUnit" Version="4.5.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />

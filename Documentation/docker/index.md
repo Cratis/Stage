@@ -477,6 +477,11 @@ An unsafe cache produces an explicit worker failure, not cached execution; Stage
 permissions. If local application data is unavailable, the default is a private, user-suffixed directory
 beneath the system temporary directory.
 
+Stage rechecks cache ownership, permissions and ancestors before compilation and every evaluation.
+On Unix, each check starts a metadata process, so short, frequently evaluated bodies incur that overhead.
+These checks are not memoized: permissions or ancestors can change after startup or compilation, and
+reusing an earlier verdict would weaken the execution-time check.
+
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
 `--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,

@@ -19,7 +19,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Arc 22.143.0, Fundamentals 7.27.0 and Chronicle 19.113.1: only package.json, Directory.Packages.props and docker-compose.yml pins change.
-    const string Before = "2341b47567e43664722048f55a95ce6978ece8d8c01278d5e008e4672ac6b862";
+    const string Before = "7bad2693f68e59a88c9af1a379353c5ffbc52a4e72f7dcb999d28921820377ff";
 
     ArtifactRenderPlan _plan = null!;
 

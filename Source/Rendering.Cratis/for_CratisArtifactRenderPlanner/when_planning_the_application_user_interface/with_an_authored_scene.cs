@@ -18,7 +18,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, only #660 adds CratisReadProtection On in Directory.Build.props; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
-    const string Before = "089ef2d6ce49d220677974b32e5c7df7c02e4672eab36c8422875700f7ddd13f";
+    // Recomputed for Arc 22.143.0, Fundamentals 7.27.0 and Chronicle 19.113.1: only package.json, Directory.Packages.props and docker-compose.yml pins change.
+    const string Before = "7fa307c5834426e3ef75965f03ae2dc61dd198e67a70545ffa431cde5568f594";
 
     ArtifactRenderPlan _plan = null!;
 

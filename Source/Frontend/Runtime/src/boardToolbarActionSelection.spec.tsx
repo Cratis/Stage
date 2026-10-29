@@ -96,7 +96,7 @@ describe('a board toolbar action using Scene selectedItem outputs', () => {
         fireEvent.click(dispatchButton());
         const dialog = await screen.findByRole('dialog');
         fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Submit' })); });
 
         await waitFor(() => fetched.mock.calls.some(([, request]) => request?.method === 'POST').should.equal(true));
         const [, request] = fetched.mock.calls.find(([, init]) => init?.method === 'POST')!;

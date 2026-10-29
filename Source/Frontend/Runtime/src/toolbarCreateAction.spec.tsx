@@ -52,7 +52,7 @@ async function submit(fetched: Awaited<ReturnType<typeof renderShipments>>) {
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Order Id', { exact: false }), { target: { value: typedOrder } });
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /execute/i })); });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Submit' })); });
     await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
     return JSON.parse(String(init?.body)) as Record<string, unknown>;

@@ -52,7 +52,7 @@ describe('a command form calendar', () => {
             const field = document.querySelector('[data-field="dueDate"]') as HTMLElement;
             press(within(field).getByRole('button', { name: /Open calendar/ }));
             await screen.findByRole('grid');
-            const submit = screen.getByRole('button', { name: 'Execute Schedule' });
+            const submit = screen.getByRole('button', { name: 'Submit' });
             press(submit);
 
             await waitFor(() => expect(fetched).toHaveBeenCalledOnce());

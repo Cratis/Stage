@@ -31,7 +31,9 @@ public static class BodyUnitInvoker
         }
         catch (TargetInvocationException exception) when (exception.InnerException is not (OutOfMemoryException or InsufficientExecutionStackException))
         {
-            return new("unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(false)));
+            return unit.Role == nameof(SemanticImplementationRole.RulePredicate)
+                ? new("unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(false)))
+                : Fault("faulted", "Body validation invocation failed.");
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or TypeLoadException or BadImageFormatException or OverflowException or FormatException)
         {
@@ -65,10 +67,12 @@ public static class BodyUnitInvoker
         return Result(unit, method.Invoke(null, [context]));
     }
 
-    static BodyEvaluation Result(BodyUnitEntry unit, object? result) =>
-        unit.Role == nameof(SemanticImplementationRole.RulePredicate) && result is bool boolean
-            ? new(boolean ? "satisfied" : "unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(boolean)))
-            : Fault("refused", "Only RulePredicate bodies are executed by this slice (Stage#891 slice S1).");
+    static BodyEvaluation Result(BodyUnitEntry unit, object? result) => unit.Role switch
+    {
+        nameof(SemanticImplementationRole.RulePredicate) when result is bool boolean => new(boolean ? "satisfied" : "unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(boolean))),
+        nameof(SemanticImplementationRole.CommandValidation) or nameof(SemanticImplementationRole.ConceptValidation) => BodyValidationMessages.Read(result),
+        _ => Fault("refused", "This body role is not executed by Stage#891 slice S2.")
+    };
 
     static bool Matches(BodyUnitEntry canonical, BodyUnitEntry unit) =>
         canonical.Admitted && ScalarIdentity(canonical) == ScalarIdentity(unit) &&

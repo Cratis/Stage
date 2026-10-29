@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Execution;
 /// <summary>Reuses the renderer's integrity, descriptor and pure-body admission gates.</summary>
 internal static class BodyUnitAdmission
 {
-    internal static bool Supported(SemanticImplementationRole role) => role == SemanticImplementationRole.RulePredicate;
+    internal static bool Supported(SemanticImplementationRole role) => role is SemanticImplementationRole.RulePredicate or SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
     internal static string NotExecuted(SemanticImplementationRole role) => BodyDiagnostics.NotExecuted(role);
 

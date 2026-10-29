@@ -429,7 +429,7 @@ public static class SemanticRunAdmission
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 
     static bool SupportedRule(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
-        SupportedRule(rule.Kind) || (rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true);
+        SupportedRule(rule.Kind) || (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true);
 
     static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or

@@ -89,7 +89,7 @@ internal static class SemanticImplementationReach
         foreach (var concept in plan.Model.Application.Concepts.Where(concept => concepts.Contains(concept.Id)))
         {
             var execution = queriedConcepts.Contains(concept.Id) ? null : bodies;
-            if (ConceptRefusals(concept, execution).FirstOrDefault() is { } refusal) return refusal;
+            if (ConceptRefusals(concept, execution, queriedConcepts.Contains(concept.Id)).FirstOrDefault() is { } refusal) return refusal;
         }
 
         return SliceRefusal(slices, selection, reaches);
@@ -114,19 +114,27 @@ internal static class SemanticImplementationReach
 
     static bool IncludeProperty(SemanticProperty property, SemanticBodyExecution? bodies) => bodies is null || !property.IsGenerated;
 
-    static IEnumerable<SemanticUnsupportedCapability> ConceptRefusals(SemanticConcept concept, SemanticBodyExecution? bodies) =>
+    static IEnumerable<SemanticUnsupportedCapability> ConceptRefusals(SemanticConcept concept, SemanticBodyExecution? bodies, bool queryArguments = false) =>
         concept.Validations.Where(rule => Opaque(rule.Kind) && !Admitted(rule, bodies))
-            .Select(rule => RuleRefusal(Refusal(StageExecutionCapability.Command, concept.Id, ConceptRole(rule), $"Concept '{concept.Name}' validation '{rule.RequirementId}'"), rule.RequirementId, bodies));
+            .Select(rule => ConceptRuleRefusal(concept, rule, bodies, queryArguments));
+
+    static SemanticUnsupportedCapability ConceptRuleRefusal(SemanticConcept concept, SemanticValidationRule rule, SemanticBodyExecution? bodies, bool queryArguments)
+    {
+        var refusal = Refusal(StageExecutionCapability.Command, concept.Id, ConceptRole(rule), $"Concept '{concept.Name}' validation '{rule.RequirementId}'");
+        return queryArguments && rule.Kind == SemanticValidationRuleKind.CodeValidation
+            ? refusal with { Details = "Code validations on query arguments are not executed by `cratis run` yet (Stage#891, not scheduled)." }
+            : RuleRefusal(refusal, rule.RequirementId, bodies);
+    }
 
     static bool Admitted(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
-        rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true;
+        rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true;
 
     static bool AdmittedCommandRule(SemanticCommand command, SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
         !command.Properties.Any(property => property.Id == rule.Property && property.IsGenerated) && Admitted(rule, bodies);
 
     static SemanticUnsupportedCapability? CommandRefusal(SemanticCommand command, SemanticBodyExecution? bodies)
     {
-        var requirement = command.CodeValidations.Select(validation => validation.RequirementId)
+        var requirement = command.CodeValidations.Where(validation => bodies?.IsAdmitted(validation.RequirementId) != true).Select(validation => validation.RequirementId)
             .Concat(command.Validations.Where(rule => Opaque(rule.Kind) && !AdmittedCommandRule(command, rule, bodies)).Select(rule => rule.RequirementId)).FirstOrDefault();
         return requirement is null ? null : RuleRefusal(Refusal(StageExecutionCapability.Command, command.Id, CommandRole(command), $"Command '{command.Name}' validation '{requirement}'"), requirement, bodies);
     }

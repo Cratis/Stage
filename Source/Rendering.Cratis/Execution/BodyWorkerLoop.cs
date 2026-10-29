@@ -72,7 +72,8 @@ public static class BodyWorkerLoop
             return request.Kind switch
             {
                 "compile" when role == "compile" && request.ModelPath is not null && request.CacheDirectory is not null => new(request.Id) { Manifest = BodyUnitCompiler.Compile(await SemanticModelLoader.LoadFromPathAsync(request.ModelPath, request.CatalogPath, request.ApplicationName).ConfigureAwait(false), request.CacheDirectory) },
-                "evaluate" when role == "execute" && request.Unit is not null && request.Evaluation is not null && request.CacheDirectory is not null => new(request.Id) { Evaluation = BodyUnitInvoker.Evaluate(request.CacheDirectory, request.Unit, request.Evaluation) },
+                "evaluate" or "validate" when role == "execute" => Invoke(request),
+                "reduce" when role == "execute" => new(request.Id) { Evaluation = new("refused", Diagnostic: BodyDiagnostics.NotExecuted(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition)) },
                 "shutdown" => new(request.Id),
                 _ => Failure(request.Id)
             };
@@ -82,6 +83,22 @@ public static class BodyWorkerLoop
             return Failure(request.Id);
         }
     }
+
+    static BodyWorkerResponse Invoke(BodyWorkerRequest request)
+    {
+        if (!HasInvocation(request)) return Failure(request.Id);
+        if (!MatchesRole(request.Kind, request.Unit!.Role)) return Failure(request.Id);
+        return new(request.Id) { Evaluation = BodyUnitInvoker.Evaluate(request.CacheDirectory!, request.Unit!, request.Evaluation!) };
+    }
+
+    static bool HasInvocation(BodyWorkerRequest request) => request.Unit is not null && request.Evaluation is not null && request.CacheDirectory is not null;
+
+    static bool MatchesRole(string kind, string bodyRole) => bodyRole switch
+    {
+        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.RulePredicate) => kind == "evaluate",
+        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.CommandValidation) or nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ConceptValidation) => kind == "validate",
+        _ => false
+    };
 
     static BodyWorkerResponse Failure(string id) => new(id) { Evaluation = new("faulted", Diagnostic: BodyDiagnostics.Format(BodyDiagnostics.WorkerFailed, "Body worker request failed or is unsupported.")) };
 

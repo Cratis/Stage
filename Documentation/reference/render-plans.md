@@ -120,6 +120,19 @@ existing digests. `CratisPlanResult` exposes the same outcome and refusals.
 See [Render around refused specifications](stage-rendering.md#render-around-refused-specifications)
 for the exact opt-in and refusal boundary.
 
+## Degraded owner omissions
+
+When Stage renders around an unsupported event member in an audited ESM version,
+`Outcome` is `Degraded`, not `Complete`. `Refusals` identifies the root event (`STAGE-DEGRADE-001`) and every omitted
+dependent (`STAGE-DEGRADE-005`). No emitted artifact's `Sources` includes an omitted owner.
+Selected omitted constructs appear in the semantic inventory as `GraphProvenOmittedLeaf`
+placeholders, with dependent entries linked to their root events. Report format version 1
+is unchanged. These placeholders describe missing code; they are not generated stubs.
+
+Strict mode retains the original whole-render refusal and emits no artifacts. See
+[Rendering around unsupported event members](stage-rendering.md#render-around-unsupported-event-members)
+for eligibility and remedies.
+
 ## Specification case tables
 
 The Cratis artifact render plan emits one specification class per named case in a Screenplay

@@ -33,11 +33,11 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
                 description "Person summary"
                 personId Uuid
                 name String
-              query FindPeople => PersonSummary[]
+              query FindPeople => observable PersonSummary[]
                 filter name String
                 performer
-                  ```sql
-                  select * from people
+                  ```csharp
+                  return readModels;
                   ```
         """);
 
@@ -93,7 +93,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.Empty(_defaultLegacy.Degradations);
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
-        Assert.Equal("40268c8379e9bec0835dfbb6be24fc80cf3b8925f6da6c4a87808b02f07ba2bf", _defaultLegacy.Digest);
+        Assert.Equal("293919b2bb946c6eadf2ce2405182ea0997f776bbe23cc9d30f01c324d682db2", _defaultLegacy.Digest);
         Assert.DoesNotContain(_normal.Plan!.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

@@ -43,6 +43,23 @@ public class an_unsupported_event_request : for_CratisArtifactRenderPlanner.give
         };
     }
 
+    protected void ChangeApplication(Func<SemanticApplication, SemanticApplication> change)
+    {
+        var model = _request.Model with { };
+        Replace(model, "Application", change(model.Application));
+        _request = _request with { Model = model };
+    }
+
+    protected void ChangeIndependent(Func<SemanticSlice, SemanticSlice> change) => ChangeApplication(application => application with
+    {
+        Modules = [.. application.Modules.Select(module => module.Name == "Billing"
+            ? module with { Features = [.. module.Features.Select(feature => feature with { Slices = [.. feature.Slices.Select(change)] })] }
+            : module)]
+    });
+
+    protected static void Replace<T>(T node, string property, object value)
+        where T : class => typeof(T).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(node, value);
+
     protected static void UnsupportedProperties(SemanticEventContract owner)
     {
         var name = owner.Properties.Any(property => property.Name == "name") ? "name" : owner.Properties[0].Name;

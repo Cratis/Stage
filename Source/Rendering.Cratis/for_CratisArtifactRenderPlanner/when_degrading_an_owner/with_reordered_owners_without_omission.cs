@@ -32,9 +32,11 @@ public class with_reordered_owners_without_omission : given.an_unsupported_event
         _reordered = _planner.Plan(_request with { Model = reordered });
     }
 
-    [Fact] void should_render_the_control_in_both_orders() => Assert.True(_first.Outcome == ArtifactRenderOutcome.Complete && _reordered.Outcome == ArtifactRenderOutcome.Complete,
+    [Fact]
+    void should_render_the_control_in_both_orders() => Assert.True(_first.Outcome == ArtifactRenderOutcome.Complete && _reordered.Outcome == ArtifactRenderOutcome.Complete,
         $"First: {_first.Outcome}; reordered: {_reordered.Outcome}; diagnostics: {string.Join(" | ", _first.Diagnostics.Concat(_reordered.Diagnostics).Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"))}");
-    [Fact] void should_keep_the_control_artifact_paths_and_hashes() => _reordered.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256))
+    [Fact]
+    void should_keep_the_control_artifact_paths_and_hashes() => _reordered.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256))
         .ShouldContainOnly(_first.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256)));
     [Fact] void should_keep_the_control_digest() => _reordered.Digest.ShouldEqual(_first.Digest);
 }

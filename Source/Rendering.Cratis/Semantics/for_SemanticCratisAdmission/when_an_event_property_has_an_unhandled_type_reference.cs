@@ -54,7 +54,8 @@ public class when_an_event_property_has_an_unhandled_type_reference : a_register
     [Fact] void should_attribute_the_admission_refusal_to_the_event() => Unhandled(_diagnostics).Single().Artifact.ShouldEqual(_eventId);
     [Fact] void should_keep_the_admission_refusal_an_error() => Unhandled(_diagnostics).Single().Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
     [Fact] void should_preserve_the_exact_refusal_message() => Unhandled(_diagnostics).Single().Message.ShouldEqual("The Cratis ESM renderer cannot handle SemanticTypeReferenceKind '999'.");
-    [Fact] void should_not_attribute_the_cause_to_the_slice_or_application() => Unhandled(_diagnostics)
+    [Fact]
+    void should_not_attribute_the_cause_to_the_slice_or_application() => Unhandled(_diagnostics)
         .Where(diagnostic => diagnostic.Artifact == _registerProject.Id || diagnostic.Artifact == _model.Application.Id).ShouldBeEmpty();
     [Fact] void should_degrade_the_render_when_rendering_around_refusals() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
     [Fact] void should_attribute_the_root_degradation_to_the_event_without_duplicates() => _plan.Degradations.Single(gap => gap.Diagnostic.Code == "STAGE-DEGRADE-001").Diagnostic.Artifact.ShouldEqual(_eventId);

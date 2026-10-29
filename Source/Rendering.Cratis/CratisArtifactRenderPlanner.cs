@@ -549,6 +549,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     sealed record OwnerOmissionAttempt(SemanticOwnerOmission Omission, SemanticApplicationContext Context, ArtifactRenderPlan Fallback)
     {
         internal (ImmutableArray<ArtifactRenderDiagnostic> Warnings, ImmutableArray<ArtifactRenderDegradation> Degradations,
-            ImmutableArray<ArtifactRenderRefusal> Refusals) Evidence { get; } = SemanticOwnerScopedDegradation.Evidence(Context, Omission);
+            ImmutableArray<ArtifactRenderRefusal> Refusals) Evidence
+        { get; } = SemanticOwnerScopedDegradation.Evidence(Context, Omission);
     }
 }

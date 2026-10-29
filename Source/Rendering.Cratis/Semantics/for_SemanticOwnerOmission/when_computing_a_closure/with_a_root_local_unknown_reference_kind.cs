@@ -11,10 +11,13 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticOwnerOmission.when
 public class with_a_root_local_unknown_reference_kind : given.an_omission_context
 {
     SemanticOwnerOmission? _omission;
+    SemanticOwnerOmission _baseline = null!;
 
     void Establish()
     {
         var owner = _registerProject.Events.Single();
+        BuildContext();
+        _baseline = SemanticOwnerOmission.Compute(_context, _index, Roots(owner.Id))!;
         Replace(owner, "Properties", owner.Properties.Select(property => property with
         {
             Type = property.Type with { Kind = (SemanticTypeReferenceKind)999 }
@@ -24,6 +27,10 @@ public class with_a_root_local_unknown_reference_kind : given.an_omission_contex
 
     void Because() => _omission = SemanticOwnerOmission.Compute(_context, _index, Roots(_registerProject.Events.Single().Id));
 
+    [Fact] void should_preserve_the_baseline_closure() => Assert.Equal(_baseline.OrderedClosure, _omission!.OrderedClosure);
+    [Fact] void should_include_the_consuming_projection() => _omission!.Closure.Contains(_projectLookup.Projections.Single().Id).ShouldBeTrue();
+    [Fact] void should_include_the_consuming_read_model() => _omission!.Closure.Contains(_projectLookup.ReadModels.Single().Id).ShouldBeTrue();
+    [Fact] void should_include_the_consuming_query() => _omission!.Closure.Contains(_projectLookup.Queries.Single().Id).ShouldBeTrue();
     [Fact] void should_retain_the_global_incomplete_signal() => _index.IsSemanticGraphComplete.ShouldBeFalse();
     [Fact] void should_record_the_lexical_event_and_type_subtree() => _index.Incompleteness.All(gap => gap.Owner == _registerProject.Events.Single().Id && gap.PropertyTypeOf == gap.Owner && gap.Kind == SemanticDependencyIncompletenessKind.UnknownVariant).ShouldBeTrue();
     [Fact] void should_not_ignore_the_gap_without_the_event_root() => SemanticOwnerOmission.Compute(_context, _index, new Dictionary<SemanticId, string>()).ShouldBeNull();

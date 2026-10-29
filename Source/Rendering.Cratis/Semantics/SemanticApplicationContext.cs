@@ -176,6 +176,8 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     internal ImmutableHashSet<SemanticId> OmittedOwners { get; set; } = [];
 
+    internal List<ArtifactRenderDiagnostic> OwnerScopedRefusals { get; } = [];
+
     internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];

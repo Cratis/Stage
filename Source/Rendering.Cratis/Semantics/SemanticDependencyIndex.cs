@@ -22,6 +22,7 @@ internal sealed class SemanticDependencyIndex
         builder.Build();
         Edges = graph.Resolve();
         IncompleteReasons = graph.IncompleteReasons;
+        Incompleteness = graph.Incompleteness;
         _dependents = Edges.GroupBy(edge => edge.Dependency).ToDictionary(
             group => group.Key,
             group => group.Select(edge => edge.Dependent).Distinct().OrderBy(id => id.ToString(), StringComparer.Ordinal).ToArray());
@@ -36,6 +37,8 @@ internal sealed class SemanticDependencyIndex
     internal IReadOnlyList<SemanticDependencyEdge> Edges { get; }
 
     internal IReadOnlyList<string> IncompleteReasons { get; }
+
+    internal IReadOnlyList<SemanticDependencyIncompleteness> Incompleteness { get; }
 
     // Only ESM reference coverage: never proof of Scene/navigation closure or full runtime dependency safety.
     internal bool IsSemanticGraphComplete => IncompleteReasons.Count == 0;

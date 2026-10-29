@@ -17,20 +17,26 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </remarks>
 internal sealed class SemanticOwnerOmission
 {
-    SemanticOwnerOmission(ImmutableDictionary<SemanticId, string> roots, ImmutableHashSet<SemanticId> closure)
+    SemanticOwnerOmission(ImmutableDictionary<SemanticId, string> roots, ImmutableHashSet<SemanticId> closure, IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>> causes)
     {
         Roots = roots;
         Closure = closure;
+        OrderedClosure = [.. closure.OrderBy(owner => owner.ToString(), StringComparer.Ordinal)];
+        Causes = causes;
     }
 
     /// <summary>Gets the omission that leaves nothing out.</summary>
-    internal static SemanticOwnerOmission None { get; } = new([], []);
+    internal static SemanticOwnerOmission None { get; } = new([], [], new Dictionary<SemanticId, ImmutableArray<SemanticId>>());
 
     /// <summary>Gets each root owner with the diagnostic code that explains why it cannot be rendered.</summary>
     internal ImmutableDictionary<SemanticId, string> Roots { get; }
 
     /// <summary>Gets every omitted owner: the roots, their transitive dependents and the declarations of every affected slice.</summary>
     internal ImmutableHashSet<SemanticId> Closure { get; }
+
+    internal IReadOnlyList<SemanticId> OrderedClosure { get; }
+
+    internal IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>> Causes { get; }
 
     /// <summary>Gets a value indicating whether nothing is omitted.</summary>
     internal bool IsEmpty => Closure.IsEmpty;
@@ -42,14 +48,17 @@ internal sealed class SemanticOwnerOmission
     /// <returns>The omission, or <see langword="null"/> when the closure cannot be proven and the render must stay refused.</returns>
     internal static SemanticOwnerOmission? Compute(SemanticApplicationContext context, SemanticDependencyIndex index, IReadOnlyDictionary<SemanticId, string> roots)
     {
-        if (!index.IsSemanticGraphComplete) return null;
+        if (!index.IsSemanticGraphComplete && !SemanticDependencyCompleteness.Tolerates(index, roots, context)) return null;
         if (roots.Count == 0) return None;
 
         var declarations = Declarations(context, index);
         if (roots.Keys.Any(root => !declarations.Contains(root))) return null;
 
         var closure = Close(index, roots.Keys);
-        return IsProvable(context, closure) ? new([.. roots], [.. closure]) : null;
+        if (!IsProvable(context, closure)) return null;
+        var byRoot = roots.Keys.OrderBy(root => root.ToString(), StringComparer.Ordinal).ToDictionary(root => root, root => Close(index, [root]));
+        var causes = closure.OrderBy(owner => owner.ToString(), StringComparer.Ordinal).ToDictionary(owner => owner, owner => ImmutableArray.CreateRange(byRoot.Where(pair => pair.Value.Contains(owner)).Select(pair => pair.Key).OrderBy(root => root.ToString(), StringComparer.Ordinal)));
+        return new([.. roots], [.. closure], causes);
     }
 
     /// <summary>Finds the artifacts that realize an omitted owner.</summary>

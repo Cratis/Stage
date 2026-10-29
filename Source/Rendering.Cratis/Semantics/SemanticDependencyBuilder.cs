@@ -64,7 +64,7 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         switch (node)
         {
             case SemanticId reference:
-                graph.Reference(scope.Owner, reference, scope.Kind, scope.Member);
+                graph.Reference(new(scope.Owner, reference, scope.Kind, scope.Member), scope.PropertyTypeOf);
                 break;
             case IEnumerable sequence when node is not string:
                 WalkSequence(sequence, scope);
@@ -77,7 +77,7 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
 
     void Validate(object node, SemanticDependencyScope scope)
     {
-        if (!SemanticDependencyVariants.Known(node)) graph.Incomplete($"{scope.Member}: unknown variant '{node.GetType().Name}'.");
+        if (!SemanticDependencyVariants.Known(node)) graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnknownVariant, scope.Owner, scope.Member, scope.PropertyTypeOf, $"{scope.Member}: unknown variant '{node.GetType().Name}'."));
     }
 
     void WalkSequence(IEnumerable sequence, SemanticDependencyScope scope)
@@ -94,7 +94,8 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         if (owner != scope.Owner && _slices.Contains(scope.Owner)) graph.Reference(scope.Owner, owner, SemanticDependencyKind.Declaration, "SemanticSlice.declarations");
         if (node is SemanticProjection projection) graph.Reference(projection.ReadModel, projection.Id, SemanticDependencyKind.Projection, "SemanticProjection.ReadModel");
         if (node is SemanticPolicyReference policy) Policy(policy, owner);
-        foreach (var property in SemanticDependencySurface.Properties(node.GetType())) WalkProperty(node, scope with { Owner = owner }, property);
+        var nested = scope with { Owner = owner, PropertyTypeOf = owner == scope.Owner ? scope.PropertyTypeOf : null };
+        foreach (var property in SemanticDependencySurface.Properties(node.GetType())) WalkProperty(node, nested, property);
     }
 
     void WalkProperty(object node, SemanticDependencyScope scope, PropertyInfo property)
@@ -103,8 +104,12 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         var member = $"{property.DeclaringType!.Name}.{property.Name}";
         var classification = SemanticDependencySurface.Classify(member);
         var value = property.GetValue(node);
-        var location = scope with { Member = member };
-        if (classification is null) graph.Incomplete($"{member}: unclassified reference-carrying member.");
+        var location = scope with
+        {
+            Member = member,
+            PropertyTypeOf = member == "SemanticProperty.Type" ? scope.Owner : scope.PropertyTypeOf
+        };
+        if (classification is null) graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
         else if (classification.Kind is { } category && !IsAbsentReference(node, property)) Walk(value, location with { Kind = EdgeKind(node, scope.Kind, category) });
         else if (!IsAbsentReference(node, property)) Walk(value, location);
     }
@@ -114,7 +119,7 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         var matches = context.Application.Policies.Where(policy => policy.Name == reference.Name).ToArray();
         if (matches.Length != 1)
         {
-            graph.Incomplete($"SemanticPolicyReference.Name: unresolved or ambiguous policy '{reference.Name}'.");
+            graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnresolvedPolicy, owner, "SemanticPolicyReference.Name", null, $"SemanticPolicyReference.Name: unresolved or ambiguous policy '{reference.Name}'."));
             return;
         }
 

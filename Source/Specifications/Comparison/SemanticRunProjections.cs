@@ -53,6 +53,10 @@ internal static class SemanticRunProjections
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
         var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
+        if (projection is null && context.Facts.Count > 0 && context.BodyExecution is { } bodies && SemanticReducerWorld.Reduces(plan, id))
+        {
+            return SemanticRunReducers.Fold(plan, id, context, bodies);
+        }
         if (projection is null)
         {
             return [.. Seeds(context, id).Select(seed => new Projected(id, seed.Key, seed.Values))];

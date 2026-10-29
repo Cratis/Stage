@@ -46,12 +46,12 @@ public class when_validating_with_malformed_messages : Specification
     [InlineData("too-many")]
     async Task should_refuse_a_rejection_without_usable_messages(string shape)
     {
-        var messages = shape switch
+        ImmutableArray<string> messages = shape switch
         {
-            "null-message" => ImmutableArray.Create("first", null!),
+            "null-message" => ["first", null!],
             "too-long" => [new string('x', 1025)],
             "too-many" => [.. Enumerable.Repeat("message", 101)],
-            _ => default(ImmutableArray<string>)
+            _ => default
         };
         var result = await Validate(new BodyEvaluation("unsatisfied") with { Messages = messages });
         result.Diagnostic!.StartsWith(BodyDiagnostics.WorkerFailed, StringComparison.Ordinal).ShouldBeTrue();

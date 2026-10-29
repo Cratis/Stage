@@ -55,7 +55,7 @@ public sealed class SemanticBodyExecution : ISemanticBodyExecutionProviderFactor
     /// <returns>Whether the rule is admitted by the renderer.</returns>
     public bool IsAdmitted(string? requirementId) =>
         Manifest.Entries.Count(entry => entry.RequirementId == requirementId) == 1 &&
-        Manifest.Entries.Any(entry => entry.RequirementId == requirementId && entry.Admitted && (entry.Role == nameof(SemanticImplementationRole.RulePredicate) || entry.Role == nameof(SemanticImplementationRole.CommandValidation) || entry.Role == nameof(SemanticImplementationRole.ConceptValidation)));
+        Manifest.Entries.Any(entry => entry.RequirementId == requirementId && entry.Admitted && (entry.Role == nameof(SemanticImplementationRole.RulePredicate) || entry.Role == nameof(SemanticImplementationRole.CommandValidation) || entry.Role == nameof(SemanticImplementationRole.ConceptValidation) || entry.Role == nameof(SemanticImplementationRole.ReducerTransition)));
 
     /// <summary>Returns the renderer's refusal without making a worker call.</summary>
     /// <param name="requirementId">The rule requirement.</param>

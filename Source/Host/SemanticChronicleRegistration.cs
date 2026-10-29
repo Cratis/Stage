@@ -9,6 +9,7 @@ using Cratis.Chronicle.Contracts.Queries;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using ChronicleEvents = Cratis.Chronicle.Contracts.Events;
@@ -33,8 +34,9 @@ internal static class SemanticChronicleRegistration
     /// <param name="name">The event store name.</param>
     /// <param name="plan">The execution plan.</param>
     /// <param name="seeds">The events the model's seed blocks start the application with.</param>
+    /// <param name="bodies">The out-of-process body execution reducer transitions replay through, if any.</param>
     /// <returns>The world the log holds, seeds included.</returns>
-    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticExecutionPlan plan, SemanticSeedPlan seeds)
+    internal static async Task<SemanticWorld> Register(IChronicleClient client, string name, SemanticExecutionPlan plan, SemanticSeedPlan seeds, SemanticBodyExecution? bodies = null)
     {
         var store = await client.GetEventStore(name);
         await store.Connection.Connect();
@@ -77,7 +79,7 @@ internal static class SemanticChronicleRegistration
             if (seeded.Count > 0 && IsEmpty(tail))
             {
                 // The host appended these events itself, moments ago, and holds them in memory: the world is theirs, not read back through storage.
-                return SemanticWorldRebuilder.Create(plan, SemanticSeeds.Stored(plan, seeded, 0, seeds.Occurred), (ulong)(seeded.Count - 1), exact: false);
+                return SemanticWorldRebuilder.Create(plan, SemanticSeeds.Stored(plan, seeded, 0, seeds.Occurred), (ulong)(seeded.Count - 1), exact: false, bodies);
             }
 
             if (seeded.Count > 0)
@@ -86,7 +88,7 @@ internal static class SemanticChronicleRegistration
             }
         }
 
-        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail);
+        return IsEmpty(tail) ? SemanticWorld.Empty : await Rebuild(accessor, store.Name, plan, tail, bodies);
 
         async Task<ulong> Tail() => (await accessor.Services.Sequences.TailSequenceNumber(new ChronicleSequences.TailSequenceNumberRequest
         {
@@ -118,7 +120,7 @@ internal static class SemanticChronicleRegistration
         }
     }
 
-    internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail)
+    internal static async Task<SemanticWorld> Rebuild(IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, ulong tail, SemanticBodyExecution? bodies = null)
     {
         var events = (await accessor.Services.Sequences.FromSequenceNumber(new ChronicleSequences.FromSequenceNumberRequest
         {
@@ -138,11 +140,11 @@ internal static class SemanticChronicleRegistration
             throw new SemanticWorldRebuildRefused("The Chronicle event-log tail changed during world reconstruction.");
         }
 
-        return SemanticWorldRebuilder.Create(plan, events, tail);
+        return SemanticWorldRebuilder.Create(plan, events, tail, bodies: bodies);
     }
 
     // Each event source is seeded once: a source that already has events keeps them, so a restart (or a second Play over the same store) never doubles the starting data.
-    static async Task<IReadOnlyList<SemanticFact>> Seed(IChronicleClient client, IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, SemanticSeedPlan seeds)
+    static async Task<IReadOnlyList<SemanticFact>> Seed(IChronicleClient client, IChronicleServicesAccessor accessor, string name, SemanticExecutionPlan plan, SemanticSeedPlan seeds, SemanticBodyExecution? bodies = null)
     {
         var appender = new SemanticFactAppender(client, new StageEventStoreName(name), plan);
         var appended = new List<SemanticFact>();

@@ -26,6 +26,12 @@ public sealed record BodyUnitEntry(
 
     /// <summary>Gets authored property paths normalized through the renderer's wire-name mapping.</summary>
     public ImmutableDictionary<string, string> PropertyPaths { get; init; } = [];
+
+    /// <summary>Gets the reducer state mapping from a rendered type's full name and member to its semantic property.</summary>
+    public ImmutableDictionary<string, string> StateMembers { get; init; } = [];
+
+    /// <summary>Gets the mapping from a rendered enum's full name and member to its authored value.</summary>
+    public ImmutableDictionary<string, string> EnumValues { get; init; } = [];
 }
 
 /// <summary>The immutable compilation result for one model revision.</summary>

@@ -9,6 +9,7 @@ using Cratis.Chronicle.Contracts.Sequences;
 using Cratis.Chronicle.Events;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
@@ -19,7 +20,8 @@ internal static class SemanticWorldRebuilder
         SemanticExecutionPlan plan,
         IEnumerable<AppendedEventResponse> events,
         ulong tail,
-        bool exact = true)
+        bool exact = true,
+        SemanticBodyExecution? bodies = null)
     {
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
         if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
@@ -33,7 +35,7 @@ internal static class SemanticWorldRebuilder
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
-            return Outcome(new SemanticEvaluator().EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
+            return Outcome((bodies is null ? new SemanticEvaluator() : new SemanticEvaluator(bodies, bodies.Bodies)).EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
         }
         catch (InvalidSemanticContract exception)
         {

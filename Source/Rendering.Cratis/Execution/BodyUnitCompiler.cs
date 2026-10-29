@@ -20,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace Cratis.Stage.Rendering.Cratis.Execution;
 
 /// <summary>Compiles admitted rendered validation units. Call only in the isolated worker.</summary>
-public static class BodyUnitCompiler
+public static partial class BodyUnitCompiler
 {
     /// <summary>Compiles one immutable model revision and returns explicit verdicts for all requirements.</summary>
     /// <param name="loaded">The resolved immutable semantic model.</param>
@@ -51,33 +51,19 @@ public static class BodyUnitCompiler
 
     static BodyUnitEntry CompileUnit(SemanticApplicationContext context, SemanticImplementationRequirement requirement, string cacheDirectory, Action emitting)
     {
+        if (requirement.Role == SemanticImplementationRole.ReducerTransition) return CompileReducer(context, requirement, cacheDirectory, emitting);
         var (descriptor, body, refusal) = BodyUnitAdmission.Admit(context, requirement);
         if (refusal is not null) return refusal;
         try
         {
             var sources = BodyUnitSources.Render(context, descriptor!, body!);
-            var references = References();
-            var hash = Hash(context, descriptor!, sources, references);
-            var cached = BodyUnitCache.Read(cacheDirectory, hash);
-            if (cached is not null) return cached;
-            var compilation = CSharpCompilation.Create(
-                $"BodyUnit_{hash}",
-                sources.Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14))),
-                references,
-                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, deterministic: true, nullableContextOptions: NullableContextOptions.Enable));
-            using var stream = new MemoryStream();
-            emitting();
-            var emitted = compilation.Emit(stream);
-            if (!emitted.Success) return BodyUnitAdmission.Refuse(requirement, "STAGE-ESM-021", "Rendered declaration compilation failed: " + emitted.Diagnostics.First(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).GetMessage(System.Globalization.CultureInfo.InvariantCulture));
-            var pe = stream.ToArray();
-            var entry = new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: Convert.ToHexString(SHA256.HashData(pe)), EntryType: $"{context.TypedContextsNamespace}.ValidationBodies", EntryMethod: SemanticValidationContextRuntime.Method(descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(descriptor!)}")
+            var build = new UnitBuild(sources, References(), Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14, (hash, peSha) => new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: $"{context.TypedContextsNamespace}.ValidationBodies", EntryMethod: SemanticValidationContextRuntime.Method(descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(descriptor!)}")
             {
                 BodySha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body!))),
                 PropertyNames = PropertyNames(context),
                 PropertyPaths = PropertyPaths(context, descriptor!)
-            };
-            BodyUnitCache.Write(cacheDirectory, entry, pe);
-            return entry;
+            });
+            return Build(context, requirement, descriptor!, cacheDirectory, emitting, build);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or IOException)
         {
@@ -92,7 +78,27 @@ public static class BodyUnitCompiler
         return [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, MetadataReference.CreateFromFile(chronicle.Location)];
     }
 
-    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string[] sources, MetadataReference[] references)
+    static BodyUnitEntry Build(SemanticApplicationContext context, SemanticImplementationRequirement requirement, SemanticTypedContextDescriptor descriptor, string cacheDirectory, Action emitting, UnitBuild build)
+    {
+        var hash = Hash(context, descriptor, build.Sources, build.References, build.Language.ToString());
+        var cached = BodyUnitCache.Read(cacheDirectory, hash);
+        if (cached is not null) return cached;
+        var compilation = CSharpCompilation.Create(
+            $"BodyUnit_{hash}",
+            build.Sources.Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(build.Language))),
+            build.References,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, deterministic: true, nullableContextOptions: NullableContextOptions.Enable));
+        using var stream = new MemoryStream();
+        emitting();
+        var emitted = compilation.Emit(stream);
+        if (!emitted.Success) return BodyUnitAdmission.Refuse(requirement, "STAGE-ESM-021", "Rendered declaration compilation failed: " + emitted.Diagnostics.First(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).GetMessage(System.Globalization.CultureInfo.InvariantCulture));
+        var pe = stream.ToArray();
+        var entry = build.Entry(hash, Convert.ToHexString(SHA256.HashData(pe)));
+        BodyUnitCache.Write(cacheDirectory, entry, pe);
+        return entry;
+    }
+
+    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string[] sources, MetadataReference[] references, string language)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(SemanticModelSerializer.Serialize(context.Request.Model));
@@ -101,7 +107,7 @@ public static class BodyUnitCompiler
         Add(typeof(BodyUnitCompiler).Module.ModuleVersionId.ToString());
         Add(typeof(SemanticApplication).Assembly.FullName!);
         Add(typeof(CSharpCompilation).Assembly.FullName!);
-        Add($"{BodyWorkerMessages.ProtocolVersion}:{PureTransitionAdmission.ReferencePackVersion}:CSharp14:Release:NullableEnable:Deterministic");
+        Add($"{BodyWorkerMessages.ProtocolVersion}:{PureTransitionAdmission.ReferencePackVersion}:{language}:Release:NullableEnable:Deterministic");
         foreach (var source in sources) Add(source);
         foreach (var reference in references.Where(reference => File.Exists(reference.Display))) hash.AppendData(SHA256.HashData(File.ReadAllBytes(reference.Display!)));
         return Convert.ToHexString(hash.GetHashAndReset());

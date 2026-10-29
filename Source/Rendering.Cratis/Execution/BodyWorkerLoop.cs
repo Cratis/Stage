@@ -72,8 +72,7 @@ public static class BodyWorkerLoop
             return request.Kind switch
             {
                 "compile" when role == "compile" && request.ModelPath is not null && request.CacheDirectory is not null => new(request.Id) { Manifest = BodyUnitCompiler.Compile(await SemanticModelLoader.LoadFromPathAsync(request.ModelPath, request.CatalogPath, request.ApplicationName).ConfigureAwait(false), request.CacheDirectory) },
-                "evaluate" or "validate" when role == "execute" => Invoke(request),
-                "reduce" when role == "execute" => new(request.Id) { Evaluation = new("refused", Diagnostic: BodyDiagnostics.NotExecuted(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition)) },
+                "evaluate" or "validate" or "reduce" when role == "execute" => Invoke(request),
                 "shutdown" => new(request.Id),
                 _ => Failure(request.Id)
             };
@@ -97,6 +96,7 @@ public static class BodyWorkerLoop
     {
         nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.RulePredicate) => kind == "evaluate",
         nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.CommandValidation) or nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ConceptValidation) => kind == "validate",
+        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition) => kind == "reduce",
         _ => false
     };
 

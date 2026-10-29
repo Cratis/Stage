@@ -20,5 +20,5 @@ internal static class BodyValidationBounds
     public static bool Valid(ImmutableArray<string> messages) =>
         !messages.IsDefaultOrEmpty &&
         messages.Length <= MaximumMessages &&
-        messages.All(message => message is not null && message.Length <= MaximumMessageLength);
+        messages.All(message => message?.Length <= MaximumMessageLength);
 }

@@ -48,14 +48,13 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     }
 
     /// <inheritdoc/>
-    public async Task<BodyEvaluation> EvaluateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default)
-    {
-        var unit = _manifest?.Entries.FirstOrDefault(entry => entry.RequirementId == request.RequirementId);
-        if (unit is null) return Failure(string.Empty, BodyDiagnostics.WorkerFailed, "No compiled unit exists for this requirement.").Evaluation!;
-        if (!unit.Admitted) return new("refused", Diagnostic: unit.DiagnosticMessage);
-        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "evaluate") { Unit = unit, Evaluation = request, CacheDirectory = Path.GetFullPath(options.CacheDirectory) }, cancellationToken).ConfigureAwait(false);
-        return response.Evaluation!;
-    }
+    public Task<BodyEvaluation> EvaluateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) => InvokeAsync("evaluate", request, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<BodyEvaluation> ValidateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) => InvokeAsync("validate", request, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<BodyEvaluation> ReduceAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) => InvokeAsync("reduce", request, cancellationToken);
 
     /// <summary>Issues one correlated request. Only a subsequent call can restart a failed execute worker.</summary>
     /// <param name="request">The correlated worker request.</param>
@@ -107,13 +106,47 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     static bool ValidResponse(BodyWorkerRequest request, BodyWorkerResponse response) => response.Id == request.Id && request.Kind switch
     {
         "compile" => response.Manifest is not null || response.Evaluation is not null,
-        "evaluate" => response.Evaluation is not null && new[] { "satisfied", "unsatisfied", "refused", "faulted", "exceeded-time", "exceeded-memory" }.Contains(response.Evaluation.Outcome, StringComparer.Ordinal),
-        _ => true
+        "shutdown" => true,
+        _ => response.Evaluation is { } evaluation && ValidEvaluation(request.Kind, evaluation)
     };
+
+    static bool ValidEvaluation(string kind, BodyEvaluation evaluation) => kind switch
+    {
+        "evaluate" => new[] { "satisfied", "unsatisfied", "refused", "faulted", "exceeded-time", "exceeded-memory" }.Contains(evaluation.Outcome, StringComparer.Ordinal),
+        "validate" => ValidationOutcome(evaluation),
+        "reduce" => ReductionOutcome(evaluation),
+        _ => false
+    };
+
+    static bool ValidationOutcome(BodyEvaluation validation) => validation.Outcome switch
+    {
+        "satisfied" => validation.Messages.IsEmpty,
+        "unsatisfied" => !validation.Messages.IsDefaultOrEmpty && validation.Messages.Length <= 100 && validation.Messages.All(message => message?.Length <= 1024),
+        _ => FailureOutcome(validation.Outcome)
+    };
+
+    static bool ReductionOutcome(BodyEvaluation reduction) => reduction.Outcome switch
+    {
+        "state" => reduction.Value is not null,
+        "delete" => true,
+        _ => FailureOutcome(reduction.Outcome)
+    };
+
+    static bool FailureOutcome(string outcome) =>
+        outcome == "refused" || outcome == "faulted" || outcome == "exceeded-time" || outcome == "exceeded-memory";
 
     static BodyWorkerResponse WorkerFailure(string id, BodyWorkerProcess? process) => process?.ExceededMemory == true
         ? Failure(id, BodyDiagnostics.ExceededMemory, "Body worker exhausted its memory limit.")
         : Failure(id, BodyDiagnostics.WorkerFailed, "Body worker failed or returned an invalid response.");
+
+    async Task<BodyEvaluation> InvokeAsync(string kind, BodyEvaluationRequest request, CancellationToken cancellationToken)
+    {
+        var unit = _manifest?.Entries.FirstOrDefault(entry => entry.RequirementId == request.RequirementId);
+        if (unit is null) return Failure(string.Empty, BodyDiagnostics.WorkerFailed, "No compiled unit exists for this requirement.").Evaluation!;
+        if (!unit.Admitted) return new("refused", Diagnostic: unit.DiagnosticMessage);
+        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), kind) { Unit = unit, Evaluation = request, CacheDirectory = Path.GetFullPath(options.CacheDirectory) }, cancellationToken).ConfigureAwait(false);
+        return response.Evaluation!;
+    }
 
     BodyWorkerProcess Worker(string kind) => kind == "compile" ? new(options, "compile") : _worker ??= new(options, "execute");
 

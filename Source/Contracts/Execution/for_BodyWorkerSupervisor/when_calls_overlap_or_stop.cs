@@ -8,7 +8,7 @@ namespace Cratis.Stage.Contracts.Execution.for_BodyWorkerSupervisor;
 
 public class when_calls_overlap_or_stop : Specification
 {
-    const string Hello = "printf '%s\\n' '{\"kind\":\"hello\",\"protocolVersion\":1,\"workerVersion\":\"fixture\"}'";
+    const string Hello = "printf '%s\\n' '{\"kind\":\"hello\",\"protocolVersion\":2,\"workerVersion\":\"fixture\"}'";
 
     [Fact]
     async Task should_serialize_concurrent_requests_on_one_worker()

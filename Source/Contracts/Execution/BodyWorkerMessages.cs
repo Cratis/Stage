@@ -9,7 +9,7 @@ namespace Cratis.Stage.Contracts.Execution;
 public static class BodyWorkerMessages
 {
     /// <summary>The supported protocol version.</summary>
-    public const int ProtocolVersion = 1;
+    public const int ProtocolVersion = 2;
 
     /// <summary>The bounded stderr marker used when the managed heap is exhausted.</summary>
     public const string OutOfMemoryMarker = "STAGE-BODY-WORKER-OOM";

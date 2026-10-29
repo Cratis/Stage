@@ -453,6 +453,30 @@ host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (d
 seconds, including queued time). The same keys can be set in deployment configuration as
 `Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
 
+Named C# rules on command inputs and their concepts run in a separate body worker. The Host compiles the
+admitted units once at startup; specification runs compile once in the runner and use a fresh worker session
+for each specification. Neither process loads the units into the Host. The Host forwards its worker settings
+to SpecRunner, so the same limits apply to live commands and specification runs.
+
+| Environment variable | Default | Range or resolution |
+| --- | --- | --- |
+| `Stage__BodyWorker__Enabled` | `true` | Set `false` to keep implementation bodies unsupported. |
+| `Stage__BodyWorker__WorkerPath` | `bodyworker/Cratis.Stage.BodyWorker.dll` | Relative to the Host output directory. |
+| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 100–30000 ms per evaluation. |
+| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–300 seconds. |
+| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–2048 MB managed heap; working-set watchdog at twice this value. |
+| `Stage__BodyWorker__CacheDirectory` | `cratis-stage-body-cache` beneath the system temporary directory | Relative overrides resolve against the working directory. |
+
+These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
+`--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
+and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+without worker arguments it returns no configuration and body rules remain unsupported.
+A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
+worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
+The managed heap limit plus working-set watchdog is not an OS memory cap or a hostile-code security boundary.
+
 `GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for
 those it refuses, without blocking the live model. The legacy EventModel engine does not expose this route.

@@ -27,6 +27,12 @@ public sealed record BodyWorkerRequest(string Id, string Kind)
     /// <summary>Gets the model path used only by the compile role.</summary>
     public string? ModelPath { get; init; }
 
+    /// <summary>Gets the optional Screenplay catalog path used for this compilation.</summary>
+    public string? CatalogPath { get; init; }
+
+    /// <summary>Gets the application name used to preserve the loaded model's identity.</summary>
+    public string? ApplicationName { get; init; }
+
     /// <summary>Gets the cache path holding compiled units.</summary>
     public string? CacheDirectory { get; init; }
 

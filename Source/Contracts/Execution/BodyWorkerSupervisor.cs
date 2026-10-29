@@ -15,13 +15,33 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     BodyWorkerProcess? _worker;
     BodyUnitManifest? _manifest;
 
+    /// <summary>Creates an execute supervisor over an already compiled immutable manifest.</summary>
+    /// <param name="options">The process bounds and launch settings.</param>
+    /// <param name="manifest">The compiled manifest reused by this run.</param>
+    public BodyWorkerSupervisor(BodyWorkerOptions options, BodyUnitManifest manifest) : this(options) => _manifest = manifest;
+
     /// <summary>Gets the persistent execute child's identity, or null after a kill.</summary>
     public int? ProcessId => _worker?.ProcessId;
 
     /// <inheritdoc/>
-    public async Task<BodyUnitManifest> CompileAsync(string modelPath, CancellationToken cancellationToken = default)
+    public Task<BodyUnitManifest> CompileAsync(string modelPath, CancellationToken cancellationToken = default) => CompileAsync(modelPath, null, null, cancellationToken);
+
+    /// <summary>Compiles using the same catalog and application identity as the caller's loaded model.</summary>
+    /// <param name="modelPath">The source model path.</param>
+    /// <param name="catalogPath">The optional catalog path.</param>
+    /// <param name="applicationName">The optional application identity name.</param>
+    /// <param name="cancellationToken">The caller cancellation.</param>
+    /// <returns>The immutable compilation manifest.</returns>
+    public async Task<BodyUnitManifest> CompileAsync(string modelPath, string? catalogPath, string? applicationName, CancellationToken cancellationToken = default)
     {
-        var response = await SendAsync(new(Guid.NewGuid().ToString("N"), "compile") { ModelPath = modelPath, CacheDirectory = options.CacheDirectory }, cancellationToken).ConfigureAwait(false);
+        var request = new BodyWorkerRequest(Guid.NewGuid().ToString("N"), "compile")
+        {
+            ModelPath = modelPath,
+            CatalogPath = catalogPath,
+            ApplicationName = applicationName,
+            CacheDirectory = options.CacheDirectory
+        };
+        var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
         _manifest = response.Manifest ?? new(string.Empty, [new("*", string.Empty, false, BodyDiagnostics.WorkerFailed, response.Evaluation?.Diagnostic)]);
         return _manifest;
     }

@@ -29,4 +29,40 @@ public sealed record BodyWorkerOptions(string WorkerPath, string CacheDirectory)
 
     /// <summary>Gets the bounded stderr capacity in bytes.</summary>
     public int MaxStderrBytes { get; init; } = 64 * 1024;
+
+    /// <summary>Read the optional --body-worker-* process arguments.</summary>
+    /// <param name="args">The runner arguments.</param>
+    /// <returns>Worker options, or null when no worker arguments were supplied.</returns>
+    public static BodyWorkerOptions? FromArguments(string[] args)
+    {
+        const string prefix = "--body-worker-";
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (var index = 0; index < args.Length; index++)
+        {
+            if (!args[index].StartsWith(prefix, StringComparison.Ordinal)) continue;
+            if (index + 1 == args.Length || args[index + 1].StartsWith("--", StringComparison.Ordinal)) throw new ArgumentException($"Missing value for '{args[index]}'.");
+            values[args[index][prefix.Length..]] = args[++index];
+        }
+        if (values.Count == 0) return null;
+        return new(WorkerPathArgument(values), values.GetValueOrDefault("cache", Path.Combine(Path.GetTempPath(), "cratis-stage-body-cache")))
+        {
+            DotnetPath = values.GetValueOrDefault("dotnet", "dotnet"),
+            TimeoutMs = LimitArgument(values, "timeout-ms", 2000),
+            CompileTimeoutMs = LimitArgument(values, "compile-timeout-ms", 120000),
+            HeapLimitMb = LimitArgument(values, "heap-limit-mb", 256),
+            WorkingSetLimitMb = LimitArgument(values, "working-set-limit-mb", 512),
+            MaxResponseBytes = LimitArgument(values, "max-response-bytes", 1024 * 1024),
+            MaxStderrBytes = LimitArgument(values, "max-stderr-bytes", 64 * 1024)
+        };
+    }
+
+    static string WorkerPathArgument(Dictionary<string, string> values) =>
+        values.TryGetValue("path", out var path) && !string.IsNullOrWhiteSpace(path) ? path : throw new ArgumentException("Body worker path is required.");
+
+    static int LimitArgument(Dictionary<string, string> values, string key, int fallback)
+    {
+        if (!values.TryGetValue(key, out var value)) return fallback;
+        if (int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var number) && number > 0) return number;
+        throw new ArgumentException($"Body worker '{key}' must be a positive integer.");
+    }
 }

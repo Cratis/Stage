@@ -422,9 +422,17 @@ message without that prefix. Both name the command and RequirementId.
 The `stage-spec-run/1` report schema is unchanged, but its capability names now include `ImplementationBody`.
 An older reader rejects that unknown enum name; update report readers before consuming these results.
 
-The semantic Host and specification executor never execute implementation bodies. They report
-`STAGE-IMPL-003` only where a reducer transition, command validation or concept validation body is reached,
-naming its owner and RequirementId. Unrelated commands, queries and specifications remain admitted.
+The semantic Host and specification executor execute admitted C# named Boolean rules on command input
+properties and their concepts through a separate, killable body worker. The worker compiles the renderer's
+own pure-rule wrappers, preserving validation messages and rejecting a command before appending facts when
+a rule is unsatisfied. Timeouts (`STAGE-IMPL-007`), memory breaches (`STAGE-IMPL-008`) and worker failures
+(`STAGE-IMPL-009`) are unsupported execution, not failed validation. See [Body worker configuration](../docker/index.md#run-specifications-in-a-semantic-session)
+for limits and process isolation.
+
+Code-validation blocks, handlers, reducers, policies, reactions and query performers remain unsupported.
+Query-argument concept bodies also remain refused. With the worker disabled, the original
+`STAGE-IMPL-003` validation-body refusal is retained, naming its owner and RequirementId.
+Unrelated commands, queries and specifications remain admitted.
 Command input types and query parameter types reach concept rules transitively through composite types,
 collections and optional values. A reducer is reached by events introduced by a specification or command,
 including reaction cascades, or by an assertion or query on its read model. The reach check conservatively

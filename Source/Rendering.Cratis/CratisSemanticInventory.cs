@@ -56,8 +56,11 @@ static class CratisSemanticInventory
         var omission = plan.Refusals.SingleOrDefault(refusal => refusal.Artifact == identity);
         var evidence = plan.Degradations.Where(gap => gap.Diagnostic.Artifact == identity).ToArray();
         if (omission is not null && !IsGraphProvenOmission(omission, evidence)) return Omitted(plan, kind, address, omission);
-        var placeholder = omission is not null ? ArtifactRenderPlaceholderKind.GraphProvenOmittedLeaf :
-            kind == ArtifactRenderConstructKind.ReadModel ? ArtifactRenderPlaceholderKind.RetainedSignatureOrType : ArtifactRenderPlaceholderKind.ThrowingOperationBody;
+        var placeholder = kind == ArtifactRenderConstructKind.ReadModel ? ArtifactRenderPlaceholderKind.RetainedSignatureOrType : ArtifactRenderPlaceholderKind.ThrowingOperationBody;
+        if (omission is not null)
+        {
+            placeholder = ArtifactRenderPlaceholderKind.GraphProvenOmittedLeaf;
+        }
         return new(identity, kind, null, evidence.Length == 0 ? ArtifactRenderOutcome.Rendered : ArtifactRenderOutcome.Degraded)
         {
             SemanticLocator = address,

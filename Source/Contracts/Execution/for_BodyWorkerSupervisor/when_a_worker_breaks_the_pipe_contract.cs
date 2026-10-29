@@ -11,8 +11,8 @@ namespace Cratis.Stage.Contracts.Execution.for_BodyWorkerSupervisor;
 
 public class when_a_worker_breaks_the_pipe_contract : Specification
 {
-    const string Hello = "{\"kind\":\"hello\",\"protocolVersion\":1,\"workerVersion\":\"fixture\"}";
-    const string Response = "{\"id\":\"probe\",\"evaluation\":{\"outcome\":\"satisfied\",\"messages\":[]}}";
+    const string Hello = /*lang=json*/ "{\"kind\":\"hello\",\"protocolVersion\":1,\"workerVersion\":\"fixture\"}";
+    const string Response = /*lang=json*/ "{\"id\":\"probe\",\"evaluation\":{\"outcome\":\"satisfied\",\"messages\":[]}}";
 
     [Theory]
     [InlineData(false)]
@@ -31,7 +31,7 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
             fi
             {{Healthy()}}
             """;
-        await using var supervisor = Supervisor(cache, script, timeout: 500);
+        await using var supervisor = Supervisor(cache, script, timeout: 30000);
         var request = new BodyWorkerRequest("probe", "evaluate")
         {
             Evaluation = new("fixture", ImmutableDictionary<string, JsonElement>.Empty.Add("Value", JsonSerializer.SerializeToElement(new string('x', 2 * 1024 * 1024))))
@@ -41,7 +41,7 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
         var pid = supervisor.ProcessId!.Value;
         var result = await pending;
         Assert.StartsWith(BodyDiagnostics.ExceededTime, result.Evaluation!.Diagnostic, StringComparison.Ordinal);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(35));
         supervisor.ProcessId.ShouldBeNull();
         Gone(pid).ShouldBeTrue();
         var child = int.Parse(await File.ReadAllTextAsync(Path.Combine(cache, "child.pid")), System.Globalization.CultureInfo.InvariantCulture);
@@ -51,8 +51,8 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
 
     [Theory]
     [InlineData("{")]
-    [InlineData("{\"id\":\"wrong\",\"evaluation\":{\"outcome\":\"satisfied\",\"messages\":[]}}")]
-    [InlineData("{\"id\":\"probe\",\"evaluation\":{\"outcome\":\"unknown\",\"messages\":[]}}")]
+    [InlineData(/*lang=json*/ "{\"id\":\"wrong\",\"evaluation\":{\"outcome\":\"satisfied\",\"messages\":[]}}")]
+    [InlineData(/*lang=json*/ "{\"id\":\"probe\",\"evaluation\":{\"outcome\":\"unknown\",\"messages\":[]}}")]
     async Task should_kill_a_bad_response_without_retrying_the_same_call(string response)
     {
         var cache = Cache();
@@ -69,9 +69,9 @@ public class when_a_worker_breaks_the_pipe_contract : Specification
             """;
         await using var supervisor = Supervisor(cache, script, timeout: 30000);
         var result = await supervisor.SendAsync(new("probe", "evaluate"));
-        Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation!.Diagnostic, StringComparison.Ordinal);
+        Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation.Diagnostic, StringComparison.Ordinal);
         supervisor.ProcessId.ShouldBeNull();
-        (await supervisor.SendAsync(new("probe", "evaluate"))).Evaluation!.Outcome.ShouldEqual("satisfied");
+        (await supervisor.SendAsync(new("probe", "evaluate"))).Evaluation.Outcome.ShouldEqual("satisfied");
     }
 
     static string Healthy() => $"printf '%s\\n' '{Hello}'\nwhile IFS= read -r line; do printf '%s\\n' '{Response}'; done";

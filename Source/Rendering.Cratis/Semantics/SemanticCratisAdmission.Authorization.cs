@@ -313,8 +313,8 @@ internal static partial class SemanticCratisAdmission
     };
 
     static bool CanRender(SemanticClaimCondition claim) => claim is
-        { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } or
-        { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null };
+    { Claim: not null, TargetKind: SemanticClaimTargetKind.Subject, Value: null } or
+    { Claim: not null, TargetKind: SemanticClaimTargetKind.Literal or SemanticClaimTargetKind.Artifact, Value: not null };
 
     sealed record AuthorizationSite(SemanticId Id, string Name, SemanticProperty? Subject, IReadOnlyList<SemanticProperty> Properties);
 

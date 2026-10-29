@@ -27,7 +27,10 @@ public abstract class a_constraint_dependency : a_dependency_index
         _registerProject = _registerProject with { Events = [_constrained, _unconstrained], Commands = [], Specifications = [] };
         _projectLookup = _projectLookup with
         {
-            Projections = [], ReadModels = [], Queries = [], Specifications = [],
+            Projections = [],
+            ReadModels = [],
+            Queries = [],
+            Specifications = [],
             Constraints = [new("UniqueProject", SemanticConstraintKind.UniqueEventOccurrence, SemanticConstraintScope.EventSequence, [new(_constrained.Id, [])], [], false, null)]
         };
     }

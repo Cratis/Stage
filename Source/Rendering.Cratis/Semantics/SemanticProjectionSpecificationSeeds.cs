@@ -13,10 +13,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticProjectionSpecificationSeeds
 {
     internal static IEnumerable<SemanticSpecificationReadModel> For(SemanticSpecification specification, SemanticId readModel) =>
-        specification.GivenReadModels.Where(seed => seed.ReadModel == readModel).GroupBy(seed => seed.Key).Select(group => group.Last());
+        [.. specification.GivenReadModels.Where(seed => seed.ReadModel == readModel).GroupBy(seed => seed.Key, SemanticSeedKeyComparer.Instance).Select(group => group.Last())];
 
     internal static bool Contains(SemanticSpecification specification, SemanticSpecificationReadModel expected) =>
-        For(specification, expected.ReadModel).Any(seed => Equals(seed.Key, expected.Key));
+        For(specification, expected.ReadModel).Any(seed => SemanticSeedKeyComparer.Instance.Equals(seed.Key, expected.Key));
 
     internal static IReadOnlyList<SemanticSpecificationEvent> Given(SemanticSpecification specification, SemanticProjection projection)
     {

@@ -40,6 +40,23 @@ internal static class SemanticReadModelSpecificationRenderer
         SemanticApplicationContext context,
         int index) => Render(specification, new(expected.ReadModel, expected.Key, []), context, index);
 
+    static string BehaviorName(SemanticSpecification specification, SemanticSpecificationReadModel expected, SemanticReadModel readModel, int? absentIndex)
+    {
+        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
+        if (specification.ThenReadModels.Length > 1)
+        {
+            behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
+
+            // Several expectations on one read model (a seeded composite key per row) would otherwise share a file.
+            var sameReadModel = specification.ThenReadModels.Where(then => then.ReadModel == expected.ReadModel).ToArray();
+            if (sameReadModel.Length > 1 && Array.IndexOf(sameReadModel, expected) is var position and >= 0)
+            {
+                behavior += $"_{position + 1}";
+            }
+        }
+        return absentIndex is { } index ? $"{behavior}_without_{Identifiers.ToSnakeCase(readModel.Name)}_{index + 1}" : behavior;
+    }
+
     static RenderedFile Render(
         SemanticSpecification specification,
         SemanticSpecificationReadModel expected,
@@ -61,15 +78,7 @@ internal static class SemanticReadModelSpecificationRenderer
         var givenEvents = reducer is null ? SemanticProjectionSpecificationSeeds.Given(specification, projection!) : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
-        if (specification.ThenReadModels.Length > 1)
-        {
-            behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
-        }
-        if (absentIndex is { } index)
-        {
-            behavior += $"_without_{Identifiers.ToSnakeCase(readModel.Name)}_{index + 1}";
-        }
+        var behavior = BehaviorName(specification, expected, readModel, absentIndex);
         var builder = Builder(behavior, located, readModel, context);
         var seeds = SemanticProjectionSpecificationSeeds.For(specification, readModel.Id).ToArray();
         var needsCommon = seeds.Any(seed => readModel.Properties.Any(property => SemanticTypeSystem.ValueNeedsCommon(

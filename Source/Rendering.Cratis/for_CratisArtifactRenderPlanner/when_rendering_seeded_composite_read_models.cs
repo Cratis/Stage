@@ -105,10 +105,16 @@ public class when_rendering_seeded_composite_read_models : Specification
     }
 
     [Fact] void should_admit_composite_seeds() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_not_refuse_or_omit_any_specification() => _plan.Refusals.ShouldBeEmpty();
+    [Fact] void should_render_the_seed_only_specification() => RendersSpecification("SeedOnly").ShouldBeTrue();
+    [Fact] void should_render_the_history_replacing_specification() => RendersSpecification("ReplacesHistory").ShouldBeTrue();
+    [Fact] void should_render_the_seed_updating_specification() => RendersSpecification("UpdatesSeed").ShouldBeTrue();
     [Fact] void should_use_named_key_parts() => _files.Any(file => file.Content.Contains(".Given.ForKey(", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_not_treat_parts_as_event_sources() => _files.Any(file => file.Content.Split('\n').Any(line => line.Contains(".ForEventSource(", StringComparison.Ordinal) && line.Contains(".ReadModel(", StringComparison.Ordinal))).ShouldBeFalse();
     [Fact] void should_construct_the_synthetic_id() => _files.Any(file => file.Content.Contains("(Id: new ", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_use_the_schema_naming_policy() => _files.Any(file => file.Content.Contains("CamelCaseNamingPolicy().GetPropertyName(nameof(", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_regenerate_identical_bytes() => _repeated.ShouldEqual(_files);
+
+    bool RendersSpecification(string name) => _files.Any(file => file.Content.Contains(name, StringComparison.OrdinalIgnoreCase) || file.Content.Contains(Naming.Identifiers.ToSnakeCase(name), StringComparison.Ordinal));
 }
 #endif

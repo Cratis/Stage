@@ -699,8 +699,12 @@ internal static class SemanticScopedProjectionSupport
             scope.Joins.Any(join => !JoinSupported(join)) ? "A join has an unsupported correlation key or mapping." : null;
 
         bool JoinSupported(SemanticProjectionJoin join) =>
-            context.Events.TryGetValue(join.EventContract, out var @event) && join.Key is null &&
+            context.Events.TryGetValue(join.EventContract, out var @event) &&
+            JoinKeySupported(join.Key, @event) &&
             properties.Any(_ => _.Id == join.On) && (!child || join.On == identity) && MappingsSupported(join.Mappings, properties, @event, context, _protectedIdentity, false);
+
+        bool JoinKeySupported(SemanticProjectionKey? key, SemanticEventContract @event) =>
+            key is null || (IsRoot && key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } && PathSupported(property.Path, @event.Properties, context));
 
         string? RemovalRejection()
         {

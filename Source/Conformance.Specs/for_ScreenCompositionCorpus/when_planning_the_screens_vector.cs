@@ -29,7 +29,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 (aliased Scene command imports in src/bindings.ts) and Cratis/Stage#757 (fundamentals resolution in package.json).
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string Digest = "aec3c76059b593ac5b000a319390453f2627216feefbfeb8ee68c882620f0dde";
+    // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+    const string Digest = "76609b7a86c2ac6fb958897004525848f4640b7e6288b4c54d9c525d568b6e60";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -40,7 +41,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
-        .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
+        .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
         .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
         Common/CommentId.cs 57e703a97b83c6715cf6bbe082a6987bfecde236fa550cd589f38d4ab1cfda73 382
         Common/WorkItemId.cs 10002af59d1071f61a44e7d32c6b04abe03ec6cb7cbb96a9c0b65a5844c5bd5e 389
@@ -87,7 +88,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/tsconfig.node.json 3b2517722082109462da51cbd66142f937bfcbf3f7ce89aeab9991ff12140342 290
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
-        .gitignore 74a92d28e98b0f259cc5b02bf9eac97fe103b30a10746f0315fba7fa0bfb0df9 253
+        .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
         .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
         Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
         Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
@@ -182,7 +183,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("8dfc5243e76802f4e26cf4220b270168e37b58b1a59005f12ed23b5f801f7b27");
+            plan.Diagnostics).ShouldEqual("f2fa485f34ccca0407554dca465144abb0ba2ffe514ef13a4905e1928ea0eeaf"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     }
 
     [Theory]

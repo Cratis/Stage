@@ -27,7 +27,7 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
         var entry = entries[0];
         if (!entry.Admitted) return new(null, entry.DiagnosticMessage);
         if (!Matches(body, entry)) return Unsupported("Body changed since compile.");
-        var verdict = await worker.EvaluateAsync(new(entry.RequirementId, Members(context)), cancellationToken).ConfigureAwait(false);
+        var verdict = await worker.EvaluateAsync(new(entry.RequirementId, Members(context, entry)), cancellationToken).ConfigureAwait(false);
         return Result(verdict);
     }
 
@@ -43,12 +43,12 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
         string.Equals(body.Requirement.ContentHash, entry.BodySha256, StringComparison.OrdinalIgnoreCase) &&
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body.Content))).Equals(entry.BodySha256, StringComparison.OrdinalIgnoreCase);
 
-    static ImmutableDictionary<string, System.Text.Json.JsonElement> Members(SemanticRuleContext context) =>
+    static ImmutableDictionary<string, System.Text.Json.JsonElement> Members(SemanticRuleContext context, BodyUnitEntry entry) =>
         new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
         {
             ["Artifact"] = context.Artifact,
             ["Value"] = context.Value,
-            ["Property"] = SemanticValue.Text(context.Property),
+            ["Property"] = SemanticValue.Text(entry.PropertyPaths.GetValueOrDefault(context.Property, context.Property)),
             ["Occurred"] = context.Occurred is { } occurred ? SemanticValue.Text(occurred.ToString("O", CultureInfo.InvariantCulture)) : SemanticValue.Null
         }.ToImmutableDictionary(pair => pair.Key, pair => SemanticValueWire.Write(pair.Value), StringComparer.Ordinal);
 

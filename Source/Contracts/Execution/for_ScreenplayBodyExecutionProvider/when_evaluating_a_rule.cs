@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Screenplay.Semantics;
@@ -67,6 +68,17 @@ public class when_evaluating_a_rule : Specification
         await worker.Received().EvaluateAsync(Arg.Is<BodyEvaluationRequest>(request => request.Members.Count == 4 && !request.Members.ContainsKey("Tenant") && !request.Members.ContainsKey("CausedBy")), cancellation.Token);
         await cancellation.CancelAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await provider.EvaluateAsync(Body(), Context(), cancellation.Token));
+    }
+
+    [Fact]
+    async Task should_use_the_renderers_wire_property_path()
+    {
+        var worker = Substitute.For<IBodyWorkerClient>();
+        worker.EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>()).Returns(new BodyEvaluation("satisfied"));
+        var entry = Manifest().Entries.Single() with { PropertyPaths = ImmutableDictionary<string, string>.Empty.Add("amount", "amount_") };
+        await using var provider = new ScreenplayBodyExecutionProvider(new("revision", [entry]), worker);
+        await provider.EvaluateAsync(Body(), Context(), CancellationToken.None);
+        await worker.Received(1).EvaluateAsync(Arg.Is<BodyEvaluationRequest>(request => request.Members["Property"].GetProperty("value").GetString() == "amount_"), Arg.Any<CancellationToken>());
     }
 
     static SemanticImplementationBody Body() => new(

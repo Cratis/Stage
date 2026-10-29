@@ -15,6 +15,22 @@ public class with_reachable_translate_commands
     [InlineData("unrelated", false)]
     public async Task should_refuse_only_specifications_that_reach_the_translate_command(string action, bool reached)
     {
+        // A specification runs only its own slice (Screenplay decision 0115), so a reaction is reached from a specification its slice declares.
+        var stateChangeSpecification = action == "reaction" ? string.Empty : $$"""
+
+                  specification Saving
+                    when {{(action == "direct" ? "Complete" : "Save")}}
+                      id = "one"
+                    then {{(action == "direct" ? "Followed" : "Saved")}}
+                      for "one"
+            """;
+        var reactionSpecification = action == "reaction" ? """
+
+                  specification Following
+                    when append Saved
+                    then Followed
+                      for "one"
+            """ : string.Empty;
         var source = $$"""
             module Work
               feature Work
@@ -29,17 +45,12 @@ public class with_reachable_translate_commands
                   command Complete
                     id String identifier
                     produces Followed
-                      for id
-                  specification Saving
-                    when {{(action == "direct" ? "Complete" : "Save")}}
-                      id = "one"
-                    then {{(action == "direct" ? "Followed" : "Saved")}}
-                      for "one"
+                      for id{{stateChangeSpecification}}
                 slice Automation Followups
                   reaction Follow
                     when {{(action == "unrelated" ? "Historical" : "Saved")}}
                       invokes Complete
-                        id = "one"
+                        id = "one"{{reactionSpecification}}
                 slice Translate LegacySync
                   readmodel Snapshot
                     id String key

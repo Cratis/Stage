@@ -18,7 +18,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
-    const string Before = "f4d118c11ddd2fcaa672a3a4de138354341a0ab28b243fe378f50fbad31ce97b";
+    // Recomputed for Arc 22.143.0, Fundamentals 7.27.0 and Chronicle 19.112.4: only package.json, Directory.Packages.props and docker-compose.yml pins change.
+    const string Before = "7821373a7c8382b9547c688e88a632876ef0df2f8e831bc87beab6f8ecee8b53";
 
     ArtifactRenderPlan _plan = null!;
 

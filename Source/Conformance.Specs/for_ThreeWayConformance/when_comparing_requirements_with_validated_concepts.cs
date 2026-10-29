@@ -57,7 +57,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                             var valueConstructor = parameter.ParameterType.GetConstructors().Single(candidate => candidate.GetParameters().Length == 1);
                             return valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, CultureInfo.InvariantCulture)]);
                         }).ToArray();
-                        using var scenario = new CommandScenario<object>();
+                        using var scenario = new CommandScenario<object>().UseDecisionReads();
                         var result = await scenario.Execute(constructor.Invoke(arguments));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
@@ -69,6 +69,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                 #if DEBUG
                 using System.Globalization;
                 using System.Text.Json;
+                using Cratis.Arc.Chronicle.Testing.Commands;
                 using Cratis.Arc.Testing.Commands;
                 using Xunit;
                 namespace RequirementConceptOrder.ValidationParity;

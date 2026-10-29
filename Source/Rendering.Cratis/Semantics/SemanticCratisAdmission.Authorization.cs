@@ -23,10 +23,6 @@ internal static partial class SemanticCratisAdmission
         _ => []
     };
 
-    internal static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) =>
-        (requirement.Language == "csharp" && requirement.File is null) ||
-        (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true);
-
     static bool HasOpaque(SemanticPolicyCondition condition) => condition switch
     {
         SemanticOpaquePolicyCondition => true,
@@ -180,6 +176,12 @@ internal static partial class SemanticCratisAdmission
             return null;
         }
 
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, site.Id, $"Policy predicate for '{policy.Name}'") is { } language)
+        {
+            diagnostics.Add(language);
+            return null;
+        }
+
         var descriptors = ContextDescriptors(context, opaque.RequirementId, site.Id);
         if (!IsWrapperReadyPolicyContext(descriptors, site))
         {
@@ -200,7 +202,7 @@ internal static partial class SemanticCratisAdmission
     static bool IsPurePolicyPredicate(SemanticImplementationRequirement requirement) =>
         requirement.Role == SemanticImplementationRole.PolicyPredicate &&
         requirement.ContextVersion == 1 && requirement.ResultVersion == 1 && requirement.RequiredCapability == "pure" &&
-        IsCSharpImplementation(requirement);
+        SemanticImplementationBodySelector.Select(requirement).Outcome != SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage;
 
     // Screenplay's Subject is text; Stage supplies only the canonical text of a text, Uuid, Date or DateTime key.
     static bool ReadsUnsupportedSubject(SemanticApplicationContext context, PureTransitionAdmission.Verdict verdict, SemanticTypedContextDescriptor descriptor, SemanticProperty? subject) =>

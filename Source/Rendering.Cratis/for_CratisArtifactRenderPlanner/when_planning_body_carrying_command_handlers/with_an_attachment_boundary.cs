@@ -53,9 +53,9 @@ public class with_an_attachment_boundary
     {
         var request = handler_model.Request();
         request = request with { ImplementationRequirements = [request.ImplementationRequirements.Single() with { Language = language, File = file }] };
-        AssertBlocked(request, "STAGE-IMPL-002");
-        Assert.Contains(handler_model.Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-002" &&
-            diagnostic.Message.Contains(language, StringComparison.Ordinal) && diagnostic.Message.Contains("only C# handler bodies", StringComparison.Ordinal));
+        AssertBlocked(request, "STAGE-IMPL-LANGUAGE");
+        Assert.Contains(handler_model.Plan(request).Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-LANGUAGE" &&
+            diagnostic.Message.Contains(language, StringComparison.Ordinal) && diagnostic.Message.Contains("Add a csharp body to render it with the Cratis target.", StringComparison.Ordinal));
     }
 
     [Theory]

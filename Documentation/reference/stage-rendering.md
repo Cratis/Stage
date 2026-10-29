@@ -283,8 +283,8 @@ those specification files. Each warning names the specification, the original di
 code and the reason it cannot render. No opt-in is needed, including when
 `CratisPlanOptions.Refusals` is `ArtifactRefusalMode.Refuse`.
 
-Stage never omits commands, events, policies, or other application contracts. Any other
-error still refuses the entire plan, including evolved events (`STAGE-ESM-026`),
+Outside the event-member case below, Stage never omits commands, events, policies, or
+other application contracts. Any other error still refuses the entire plan, including evolved events (`STAGE-ESM-026`),
 implementation-envelope errors, and `STAGE-ESM-024` attached to a reaction, trigger,
 capture, or slice. Specification admission guards, including the constraint-target guard,
 remain unchanged; skipping a specification does not prove that it passes.
@@ -325,6 +325,27 @@ Publishers still perform the ordinary publication and ownership checks. This beh
 does not change Host or specification-executor admission, and does not add a CLI flag.
 The existing refusal-mode profile input remains accepted and hashed with the profile.
 The output digest adds a `refusals-v1` segment only when `Refusals` is nonempty.
+
+## Render around unsupported event members
+
+In audited ESM versions only, an event-owned unsupported property member (`STAGE-ESM-012`)
+can produce a **Degraded** plan: Stage omits the whole event and owners proven to depend on it, while independent,
+supported slices still render. It emits no stub or artifact sourced from an omitted owner.
+This does not permit rendering around arbitrary command, query, reaction, or shared-type errors.
+
+The dependency proof tolerates unknown variants or unresolved identities only in the root
+event's own property-type subtree at supported traversal locations. Unclassified gaps,
+ambiguous ownership, an authored Scene composition, unrelated errors, migration removals
+affecting an omitted read model, or failure while rendering the remaining owners retain
+the whole-render refusal. Strict mode also refuses the whole render, with no artifacts.
+In newer, unaudited ESM versions, undefined enum values retain the security refusal
+(`STAGE-ESM-016`); the range warning (`STAGE-DEGRADE-004`) does not permit partial rendering.
+Supported models keep their existing output.
+
+The root warning `STAGE-DEGRADE-001` preserves the original `STAGE-ESM-012` message.
+Dependent warnings use `STAGE-DEGRADE-005` and identify their root event or events.
+Upgrade Stage to support the member, or change it to a supported type, to remove the gap.
+See [Render plans](render-plans.md#degraded-owner-omissions) for the omission metadata.
 
 ## Strict plan acceptance
 

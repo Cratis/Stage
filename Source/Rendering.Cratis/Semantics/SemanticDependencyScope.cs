@@ -9,4 +9,5 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <param name="Owner">The dependent declaration owner.</param>
 /// <param name="Kind">The inherited reference category.</param>
 /// <param name="Member">The member carrying the reference.</param>
-internal readonly record struct SemanticDependencyScope(SemanticId Owner, SemanticDependencyKind Kind, string Member);
+/// <param name="PropertyTypeOf">The owner of the property type subtree, if any.</param>
+internal readonly record struct SemanticDependencyScope(SemanticId Owner, SemanticDependencyKind Kind, string Member, SemanticId? PropertyTypeOf = null);

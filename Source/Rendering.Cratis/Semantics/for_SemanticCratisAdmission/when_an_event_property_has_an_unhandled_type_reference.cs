@@ -49,18 +49,19 @@ public class when_an_event_property_has_an_unhandled_type_reference : a_register
     }
 
     [Fact] void should_capture_the_event_owner_on_the_exception() => _error.Owner.ShouldEqual(_eventId);
-    [Fact] void should_mark_the_event_property_failure_as_whole_render_only() => _error.WholeRenderOnly.ShouldBeTrue();
+    [Fact] void should_mark_the_event_property_failure_as_owner_scoped() => _error.OwnerScoped.ShouldBeTrue();
     [Fact] void should_keep_the_exception_code() => _error.Code.ShouldEqual("STAGE-ESM-012");
     [Fact] void should_attribute_the_admission_refusal_to_the_event() => Unhandled(_diagnostics).Single().Artifact.ShouldEqual(_eventId);
     [Fact] void should_keep_the_admission_refusal_an_error() => Unhandled(_diagnostics).Single().Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
     [Fact] void should_preserve_the_exact_refusal_message() => Unhandled(_diagnostics).Single().Message.ShouldEqual("The Cratis ESM renderer cannot handle SemanticTypeReferenceKind '999'.");
-    [Fact] void should_not_attribute_the_cause_to_the_slice_or_application() => Unhandled(_diagnostics)
+    [Fact]
+    void should_not_attribute_the_cause_to_the_slice_or_application() => Unhandled(_diagnostics)
         .Where(diagnostic => diagnostic.Artifact == _registerProject.Id || diagnostic.Artifact == _model.Application.Id).ShouldBeEmpty();
-    [Fact] void should_refuse_the_whole_render_even_when_rendering_around_refusals() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
-    [Fact] void should_attribute_the_plan_refusal_to_the_event_without_duplicates() => Unhandled(_plan.Diagnostics).Single().Artifact.ShouldEqual(_eventId);
-    [Fact] void should_keep_the_plan_refusal_an_error() => Unhandled(_plan.Diagnostics).Single().Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_not_omit_any_artifacts() => _plan.Refusals.ShouldBeEmpty();
+    [Fact] void should_degrade_the_render_when_rendering_around_refusals() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
+    [Fact] void should_attribute_the_root_degradation_to_the_event_without_duplicates() => _plan.Degradations.Single(gap => gap.Diagnostic.Code == "STAGE-DEGRADE-001").Diagnostic.Artifact.ShouldEqual(_eventId);
+    [Fact] void should_report_the_omission_as_a_warning() => _plan.Degradations.Single(gap => gap.Diagnostic.Artifact == _eventId).Diagnostic.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
+    [Fact] void should_emit_no_artifact_with_the_omitted_event_as_a_source() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_eventId);
+    [Fact] void should_identify_the_omitted_root_as_an_event() => _plan.Refusals.Single(refusal => refusal.Artifact == _eventId).Kind.ShouldEqual("event");
 
     static IEnumerable<ArtifactRenderDiagnostic> Unhandled(IEnumerable<ArtifactRenderDiagnostic> diagnostics) =>
         diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("999", StringComparison.Ordinal));

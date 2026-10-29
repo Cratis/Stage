@@ -183,6 +183,8 @@ internal sealed partial class SemanticApplicationContext
     /// </summary>
     internal ImmutableHashSet<SemanticId> OmittedOwners { get; set; } = [];
 
+    internal List<ArtifactRenderDiagnostic> OwnerScopedRefusals { get; } = [];
+
     /// <summary>
     /// Gets the generated-type inventory: the admitted declarations and the command response types and, once admission has assigned
     /// <see cref="RefusedSpecifications"/>, the classes of exactly the specifications that are rendered.

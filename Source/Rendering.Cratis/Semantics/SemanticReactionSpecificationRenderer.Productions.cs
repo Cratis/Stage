@@ -11,19 +11,16 @@ internal static partial class SemanticReactionSpecificationRenderer
 {
     static void RenderProductionExpectations(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context, SemanticTypeSystem types)
     {
-        var produces = prelude.Selection.Trigger.Produces;
         foreach (var (expected, index) in specification.ThenEvents.Select((expected, index) => (expected, index)))
         {
             var fields = context.Events[expected.EventContract].Properties.Select(property =>
                 (property, expected.Values.Single(value => value.TargetProperty == property.Id).Value));
             RenderExpectedCollections(builder, fields, ProductionValues(types, context, index));
         }
-        builder.Line($"[global::Xunit.FactAttribute] void should_produce_exactly_the_expected_events() => _reactor.ProducedEvents.Count.ShouldEqual({specification.ThenEvents.Length});");
+        RenderExpectedEffectCount(builder, specification, prelude);
         if (specification.ThenNoEvents) return;
-        foreach (var (produced, index) in produces.Select((produced, index) => (produced, index)))
+        foreach (var (identity, index) in ExpectedDestinations(specification, prelude).Select((identity, index) => (identity, index)))
         {
-            var identity = produced.Destination is { } destination
-                ? new SemanticEventSourceIdentity(produced.DestinationType!, SemanticReactionSpecification.Evaluate(destination, prelude.Append)) : prelude.Append.EventSource!;
             var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
             builder.Line($"[global::Xunit.FactAttribute] void should_preserve_destination_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceId.ShouldEqual((global::Cratis.Chronicle.Events.EventSourceId){source});")
                 .Line($"[global::Xunit.FactAttribute] void should_preserve_source_type_{index + 1}() => _reactor.ProducedEvents[{index}].EventSourceType.ShouldEqual(global::Cratis.Chronicle.Events.EventSourceType.Default);")
@@ -51,6 +48,21 @@ internal static partial class SemanticReactionSpecificationRenderer
             }
         }
     }
+
+    static void RenderExpectedEffectCount(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticReactionSpecificationPrelude prelude)
+    {
+        var count = specification.ThenEvents.Length;
+        builder.Line($"[global::Xunit.FactAttribute] void should_produce_exactly_the_expected_events() => _reactor.ProducedEvents.Count.ShouldEqual({count});");
+        if (prelude.Selection.Trigger.RequirementId is not null)
+        {
+            builder.Line($"[global::Xunit.FactAttribute] void should_produce_only_events() => _reactor.Produced.Count.ShouldEqual({count});");
+        }
+    }
+
+    static IEnumerable<SemanticEventSourceIdentity> ExpectedDestinations(SemanticSpecification specification, SemanticReactionSpecificationPrelude prelude) => prelude.Selection.Trigger.RequirementId is not null
+        ? Enumerable.Repeat(prelude.Append.EventSource!, specification.ThenEvents.Length)
+        : prelude.Selection.Trigger.Produces.Select(produced => produced.Destination is { } destination
+            ? new SemanticEventSourceIdentity(produced.DestinationType!, SemanticReactionSpecification.Evaluate(destination, prelude.Append)) : prelude.Append.EventSource!);
 
     static ValueScope ProductionValues(SemanticTypeSystem types, SemanticApplicationContext context, int index) => new(types, context.MemberNames, "@event", $"_expected_reaction_event_{index}");
 

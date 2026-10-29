@@ -64,8 +64,9 @@ public class when_rendering_a_pure_reducer
         var plan = Plan(loaded);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019" && diagnostic.Message.Contains("same slice", StringComparison.Ordinal));
         var models = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.ReadModels.Length > 0);
-        Assert.Contains(Plan(loaded, new(ArtifactRenderScopeKind.Slice, models.Id)).Diagnostics,
-            diagnostic => diagnostic.Code == "STAGE-ESM-007");
+        var modelsPlan = Plan(loaded, new(ArtifactRenderScopeKind.Slice, models.Id));
+        Assert.Contains(modelsPlan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-DEGRADE-002" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(modelsPlan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-007");
     }
 
     [Fact]
@@ -981,6 +982,7 @@ public class when_rendering_a_pure_reducer
             "return new Total(Guid.Empty, Math.Abs(-1m));",
             "return new Total(Guid.Empty, context.Occurred.AddTicks(1).Day);",
             "return new Total(Guid.Empty, \"a\".Contains(\"a\", StringComparison.Ordinal) ? 1m : 0m);",
+            "return new Total(Guid.Empty, char.IsDigit('7') && \"ab\".Contains(\"a\") && \"ab\".Contains('b') && \"ab\".Contains(\"A\", StringComparison.OrdinalIgnoreCase) ? 1m : 0m);",
             "return new Total(Guid.Empty, 1.5m.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);",
             "return new Total(Guid.Empty, System.Collections.Immutable.ImmutableArray<decimal>.Empty.Length);",
             "var sum = 0m; foreach (var item in new[] { 1m }) sum += item; return new Total(Guid.Empty, sum);",

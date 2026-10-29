@@ -64,9 +64,9 @@ internal static class SemanticCommandBodyAdmission
     {
         foreach (var specification in specifications)
         {
-            if (ReachesBody(specification, context))
+            if (ReachesUnsupportedBody(specification, context))
             {
-                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: command handler bodies are not executed by the reference specification runtime.", specification.Id));
+                diagnostics.Add(new("STAGE-ESM-011", ArtifactRenderDiagnosticSeverity.Error, $"Specification '{specification.Name}' cannot render: only verified C# command handler bodies can execute in generated command scenarios.", specification.Id));
                 continue;
             }
             yield return specification;
@@ -76,6 +76,9 @@ internal static class SemanticCommandBodyAdmission
     static bool IsCommandDescriptorProbe(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context) =>
         descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.OperationId is { } owner &&
         context.Commands.TryGetValue(owner, out var command) && IsCSharp(command, context);
+
+    static bool ReachesUnsupportedBody(SemanticSpecification specification, SemanticApplicationContext context) =>
+        ReachesBody(specification, context) && !IsCSharp(context.Commands[specification.When!.Command], context);
 
     static bool ReachesBody(SemanticSpecification specification, SemanticApplicationContext context) =>
         specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command) && command.Handler is not null;
@@ -151,8 +154,8 @@ internal static class SemanticCommandBodyAdmission
         var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
         var types = new SemanticTypeSystem(context);
         var events = command.Produces.Select(produced => context.Events[produced.EventContract]).DistinctBy(@event => @event.Id);
-        var eventTypes = events.Select(@event => $"namespace {SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)} {{ public record {Identifiers.ToPascalCase(@event.Name)}({string.Join(", ", @event.Properties.Select(property => $"{types.Type(property.Type)} {Identifiers.ToPascalCase(property.Name)}"))}); }}");
-        var imports = events.Select(@event => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event.Id).Path)).Append(context.CommonNamespace).Distinct(StringComparer.Ordinal);
+        var eventTypes = SemanticBodyDeclarations.Events(context, events);
+        var imports = SemanticBodyDeclarations.EventNamespaces(context, events);
         var source = SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
             $"namespace {ownNamespace} {{ internal class HandlerProbe {{ {builder} }} }}";
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));

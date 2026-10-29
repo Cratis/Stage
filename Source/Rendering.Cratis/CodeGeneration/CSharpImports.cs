@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,6 +25,7 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
 {
     static readonly CSharpParseOptions _parseOptions = new(preprocessorSymbols: ["DEBUG"]);
 
+    readonly HashSet<TypeReference> _inlineReturns = [];
     readonly HashSet<string> _types = new(StringComparer.Ordinal);
     readonly HashSet<string> _values = new(StringComparer.Ordinal);
     readonly HashSet<string> _pinned = new(StringComparer.Ordinal);
@@ -37,6 +39,8 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
     }
 
     internal void Pin(IEnumerable<string> names) => _pinned.UnionWith(names);
+
+    internal void BindInlineReturnType(TypeReference type) => _inlineReturns.Add(type);
 
     internal void Unknown() => _unknown = true;
 
@@ -84,10 +88,16 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
             .Select(type => new GeneratedTypeName(name, type.Identifier.ValueText, type is TypeDeclarationSyntax { TypeParameterList: { } parameters } ? parameters.Parameters.Count : 0));
         var inventory = generated.Concat(declared).Distinct().ToArray();
         var references = new QualifiedReferences(root, inventory, project, authored).Find();
-        var scope = FileScope.Read(root, name, inventory, project, [.. references.Select(reference => reference.Span)]);
+
+        // Only the modeled inline constructor types are offered for binding; all other authored names stay pinned.
+        var constructors = root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>()
+            .Where(creation => creation.Type is IdentifierNameSyntax identifier && _inlineReturns.Any(type => type.Name == identifier.Identifier.ValueText) &&
+                authored.Any(span => span.Contains(creation.Type.Span)))
+            .Select(creation => creation.Type.Span);
+        var scope = FileScope.Read(root, name, inventory, project, [.. references.Select(reference => reference.Span), .. constructors]);
         reason = Classify(tree, root, namespaces.Length > 0 && fileNamespace is null, scope);
         if (reason != UnknownScopeReason.None) throw new CSharpImportRejected($"The generated file has an unknown C# scope: {reason}.");
-        var resolution = ImportResolver.Resolve(new ImportRequest(name, project, inventory, references.Select(reference => reference.Type))
+        var resolution = ImportResolver.Resolve(new ImportRequest(name, project, inventory, references.Select(reference => reference.Type).Concat(_inlineReturns))
         {
             RequiredImports = required,
             ScopeTypeNames = [.. scope.TypeNames, .. _types],
@@ -97,6 +107,14 @@ internal sealed class CSharpImports(GeneratedProjects project, IEnumerable<Gener
             HasUnknownScope = false,
             HasScaffoldGlobalUsings = hasScaffoldGlobalUsings
         });
+
+        foreach (var type in _inlineReturns)
+        {
+            if (resolution.Spell(type) != Identifiers.EscapeKeyword(type.Name))
+            {
+                throw new CSharpImportRejected($"The inferred generated return type '{type.Name}' cannot be imported unambiguously for the authored handler.");
+            }
+        }
 
         var changes = new List<TextChange>();
         foreach (var reference in references)

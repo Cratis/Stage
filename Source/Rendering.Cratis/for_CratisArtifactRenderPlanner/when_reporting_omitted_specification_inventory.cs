@@ -28,9 +28,9 @@ public class when_reporting_omitted_specification_inventory : a_notify_speaker_r
     }
 
     [Fact]
-    public void should_report_an_omitted_native_command_body_specification_without_completion_credit()
+    public void should_report_an_omitted_body_specification_expecting_more_events_than_produced_without_completion_credit()
     {
-        const string source = handler_model.Source + "\n      specification PlacingOrder\n        when PlaceOrder\n          orderId = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          name = \"Alice\"\n        then OrderPlaced\n          name = \"ALICE\"\n";
+        const string source = handler_model.Source + "\n      specification PlacingOrder\n        when PlaceOrder\n          orderId = \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n          name = \"Alice\"\n        then OrderPlaced\n          name = \"ALICE\"\n        then OrderPlaced\n          name = \"ALICE\"\n";
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("HandlerModel"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("orders"), "orders", "Orders.play", source);
         var compilation = new SemanticModelCompiler().Compile("HandlerModel", SemanticDocumentSet.Create([document], catalog));

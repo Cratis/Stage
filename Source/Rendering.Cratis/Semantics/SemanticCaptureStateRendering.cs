@@ -39,12 +39,15 @@ internal static class SemanticCaptureStateRendering
     /// <param name="types">The type system.</param>
     internal static void Render(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureMemberPlan plan, IReadOnlyList<SemanticEventContract> sources, SemanticTypeSystem types)
     {
-        var key = Literal(capture.Key);
         var eventTypes = string.Join(", ", sources.Select(source => $"{plan.Store}.EventTypes.GetEventTypeFor(typeof({types.EventType(source)}))"));
-        RenderPrevious(builder, key, plan, eventTypes);
+        RenderPrevious(builder, capture, plan, eventTypes);
         RenderObserve(builder, sources, types, plan);
         RenderComparison(builder, plan);
         RenderFields(builder, capture, plan);
+        if (capture.EventsSource!.KeyIsEventSource)
+        {
+            builder.Line($"sealed class {plan["CaptureKeyIsNotTheEventSource"]}() : global::System.Exception({Literal($"Capture '{capture.Name}' key '{capture.Key}' does not match the delivered event source.")});").BlankLine();
+        }
         SemanticPublicationArtifactRenderer.RenderComparison(builder, plan["Same"]);
     }
 
@@ -85,18 +88,27 @@ internal static class SemanticCaptureStateRendering
             .Line($"sealed class {plan["EmptyCaptureKey"]}() : global::System.Exception({Literal($"Capture '{capture.Name}' received an event with an empty key '{capture.Key}'.")});")
             .BlankLine();
 
-    static void RenderPrevious(CSharpCodeBuilder builder, string key, SemanticCaptureMemberPlan plan, string eventTypes) =>
-        builder.OpenBlock($"async global::System.Threading.Tasks.Task<{Record}?> {plan["Previous"]}({Record} observed, global::Cratis.Chronicle.Events.EventSequenceNumber before)")
+    static void RenderPrevious(CSharpCodeBuilder builder, SemanticCapture capture, SemanticCaptureMemberPlan plan, string eventTypes)
+    {
+        var key = Literal(capture.Key);
+        var keyIsEventSource = capture.EventsSource!.KeyIsEventSource;
+        builder.OpenBlock($"async global::System.Threading.Tasks.Task<{Record}?> {plan["Previous"]}({Record} observed, global::Cratis.Chronicle.Events.EventContext context)")
             .Line($"var key = observed.GetValueOrDefault({key});")
-            .Line($"if (key is null || ({plan["ConceptValue"]}(key) ?? key) is string text && string.IsNullOrWhiteSpace(text)) throw new {plan["EmptyCaptureKey"]}();")
-            .Line($"var inbox = {plan.Store}.GetEventSequence(global::Cratis.Chronicle.Reactors.ReactorTypeExtensions.GetEventSequenceId(typeof({plan.TypeName})));")
-            .Line($"var history = await inbox.GetFromSequenceNumber(global::Cratis.Chronicle.Events.EventSequenceNumber.First, filterEventTypes: [{eventTypes}]);")
+            .Line($"if (key is null || ({plan["ConceptValue"]}(key) ?? key) is string text && string.IsNullOrWhiteSpace(text)) throw new {plan["EmptyCaptureKey"]}();");
+        if (keyIsEventSource)
+        {
+            builder.Line($"if (!global::System.String.Equals(global::System.Convert.ToString({plan["ConceptValue"]}(key) ?? key, {Invariant}), context.EventSourceId.Value, global::System.StringComparison.Ordinal)) throw new {plan["CaptureKeyIsNotTheEventSource"]}();");
+        }
+        var sourceFilter = keyIsEventSource ? "eventSourceId: context.EventSourceId, " : string.Empty;
+        builder.Line($"var inbox = {plan.Store}.GetEventSequence(global::Cratis.Chronicle.Reactors.ReactorTypeExtensions.GetEventSequenceId(typeof({plan.TypeName})));")
+            .Line($"var history = await inbox.GetFromSequenceNumber(global::Cratis.Chronicle.Events.EventSequenceNumber.First, {sourceFilter}filterEventTypes: [{eventTypes}]);")
             .Line($"{Record}? previous = null;")
-            .OpenBlock("foreach (var fact in history.Where(fact => fact.Context.SequenceNumber.Value < before.Value).OrderBy(fact => fact.Context.SequenceNumber.Value))")
+            .OpenBlock("foreach (var fact in history.Where(fact => fact.Context.SequenceNumber.Value < context.SequenceNumber.Value).OrderBy(fact => fact.Context.SequenceNumber.Value))")
             .Line($"if ({plan["Observe"]}(fact.Content) is {{ }} fields && {plan["Same"]}(fields.GetValueOrDefault({key}), key)) previous = {plan["Overlay"]}(previous, fields);")
             .EndBlock()
             .Line("return previous;")
             .EndBlock().BlankLine();
+    }
 
     static void RenderObserve(CSharpCodeBuilder builder, IEnumerable<SemanticEventContract> sources, SemanticTypeSystem types, SemanticCaptureMemberPlan plan)
     {

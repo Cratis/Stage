@@ -141,7 +141,10 @@ public static partial class conformance_outcomes
         return Classify(refused, problems);
     }
 
-    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    internal static ArtifactRenderPlan? RenderPlan(conformance_vector vector) =>
+        SemanticExecutionPlan.Compile(vector.Model, []).Plan is { } plan ? RenderPlan(vector, plan) : null;
+
+    static ArtifactRenderPlan? RenderPlan(conformance_vector vector, SemanticExecutionPlan plan)
     {
         var name = vector.Name.Replace('.', '_').Replace('[', '_').Replace("]", string.Empty, StringComparison.Ordinal);
 
@@ -157,7 +160,7 @@ public static partial class conformance_outcomes
         var source = conformance_source_bodies.Compile(vector);
         if (source.Problem is not null)
         {
-            return conformance_observation.WithoutRefusals($"gap:{source.Problem}");
+            return null;
         }
 
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
@@ -174,12 +177,36 @@ public static partial class conformance_outcomes
                 TypedContextDescriptors = loaded.TypedContextDescriptors
             }
             : new ArtifactRenderRequest(model, plan, profile, scope);
-        var rendered = new CratisArtifactRenderPlanner().Plan(request);
+        return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    internal static void RecordCompilation(string vector, IReadOnlyList<compile_error> errors, Dictionary<refusal_fingerprint, string> codes)
+    {
+        if (errors.Count > 0)
+        {
+            var first = errors[0];
+            codes[new(first.Code, "compile", first.Path)] = $"{vector}: {first.Path}({first.Line}): {first.Code} {first.Message} (+{errors.Count - 1} more)";
+        }
+    }
+
+    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    {
+        var rendered = RenderPlan(vector, plan);
+        if (rendered is null)
+        {
+            return conformance_observation.WithoutRefusals($"gap:{conformance_source_bodies.Compile(vector).Problem}");
+        }
+
         var codes = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (rendered.Success)
         {
             RecordSpecificationRefusals(rendered, codes);
+            if (rendered.Artifacts.Length > 0)
+            {
+                RecordCompilation(vector.Name, rendered_compilation.Errors(rendered), codes);
+            }
+
             if (rendered.Artifacts.Length == 0)
             {
                 problems.Add("rendered-nothing");

@@ -44,7 +44,8 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(28, 0), new(28, 0)),
         (new(29, 0), new(29, 0)),
         (new(30, 0), new(30, 0)),
-        (new(32, 0), new(32, 0))
+        (new(32, 0), new(32, 0)),
+        (new(33, 0), new(33, 0))
     ];
 
     readonly List<string> _descriptorMismatches = [];
@@ -77,7 +78,8 @@ public class when_comparing_with_the_audited_gate : Specification
     [Fact] void should_leave_v31_unaudited() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V31, SemanticVersion.V31).ShouldEqual(EsmVersionStanding.Unadmitted);
     [Fact] void should_accept_32_minors_only() => Versions().Where(version => version.Minor > 0).ShouldEachConformTo(version =>
         CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.NewerWithinRange == (version.Major == 32));
-    [Fact] void should_refuse_v33_and_v34_as_future_majors() => new[] { SemanticVersion.V33, SemanticVersion.V34 }.ShouldEachConformTo(version =>
+    [Fact] void should_audit_the_exact_v33_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V33, SemanticVersion.V33).ShouldEqual(EsmVersionStanding.Audited);
+    [Fact] void should_refuse_v33_minors_and_v34_as_future_majors() => new SemanticVersion[] { new(33, 1), SemanticVersion.V34 }.ShouldEachConformTo(version =>
         CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.FutureMajor);
     [Fact] void should_describe_the_range() => CratisEsmSupport.Descriptor.Accepts.ToString().ShouldEqual(">=32.0 <33");
 

@@ -49,10 +49,10 @@ public class when_presenting_literal_sensitive_bodies : Specification
     }
 
     [Fact]
-    void should_preserve_verbatim_bytes_and_refuse_unproved_language()
+    void should_reindent_verbatim_bodies_and_refuse_unproved_language()
     {
         var code = Code("// keep\r\nreturn 1;\r\n");
-        CSharpInlineLanguagePack.Present(code, 8, verbatim: true).Text.ShouldEqual(code.Text);
+        CSharpInlineLanguagePack.Present(code, 8, verbatim: true).Text.ShouldEqual(CSharpInlineIndentation.Present(code.Text, 8, InlineCodeScope.MemberBody)); // Re-indented by Cratis/Stage#848.
         Assert.Null(CSharpInlineLanguagePack.Present(Code("return 1;", "java")).Text);
     }
 

@@ -13,6 +13,7 @@ import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
+import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -244,24 +245,30 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
 function StageCommandAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
-    const awaiting = useIdentifiersAwaitingSelection(element);
+    const subject = actionSubjectOf(element);
+    const awaiting = useIdentifiersAwaitingSelection(element, subject);
+    const schema = text(element, 'schema');
+    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
+    const { selectedRows } = useScreenRows();
+    const row = subjectRowOf(subject, selectedRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    if (awaiting.length > 0) {
+    // An explicit `for item` acts on exactly one selected row, even when the screen has no table to select from.
+    if (awaiting.length > 0 || awaitsSubjectRow(subject, row)) {
         return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
     }
 
-    return <StageCommandDialog element={element} label={label} />;
+    return <StageCommandDialog element={row ? itemSubjectElement(element, properties, row) : element} label={label} />;
 }
 
 /**
  * The keys an action's command acts on that the action's form does not ask for, that a row of the screen carries and that no selected row or
  * address supplies yet. A form that asks for every property of the schema - one with no fields of its own that is not manual - asks for its keys too.
  */
-function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
+function useIdentifiersAwaitingSelection(element: ExternalComponent, subject?: ActionSubject): string[] {
     const { parameters } = useStageData();
     const schema = text(element, 'schema');
     const fields = element.properties.fields;
@@ -272,7 +279,7 @@ function useIdentifiersAwaitingSelection(element: ExternalComponent): string[] {
     const asked = formFields.length > 0 || generationMode === 'manual'
         ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
         : undefined;
-    if (!asked) return [];
+    if (!asked || subject !== undefined) return [];
 
     return identifiersAwaitingSelection(properties.filter(property => !asked.has(property.name)), parameters, selectedRows, selectableRows);
 }
@@ -382,6 +389,11 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     );
 }
 
+/** Whether the screen's rows supply a required identifier, so the form does not ask for it; a `screen` subject never reads a row. */
+function carriedByRows(property: SchemaProperty, subject: ActionSubject | undefined, selectableRows: Record<string, unknown>[]): boolean {
+    return subject !== 'screen' && Boolean(property.identifier) && property.required && carriedBy(property, selectableRows);
+}
+
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
@@ -395,10 +407,13 @@ function StageToolbarCommand(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const { selectableRows, selectedRows } = useScreenRows();
-    const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
+    const subject = actionSubjectOf(element);
+
+    // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action.
+    const awaiting = subject === undefined ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

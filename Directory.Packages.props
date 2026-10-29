@@ -30,6 +30,13 @@
     <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.112.1" />
     <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.112.1" />
     <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.112.1" />
+    <!--
+        Cratis.Chronicle.Testing 19.112.1 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
+        Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
+        pin the Arc packages resolve 10.10.0 and the in-process kernel fails to load the assembly when a command runs.
+        Remove it once Cratis.Chronicle.Testing declares the dependency itself.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
     <PackageVersion Include="Cratis.Scene.Engine" Version="4.80.2" />
     <PackageVersion Include="Cratis.Scene.Model" Version="4.80.2" />

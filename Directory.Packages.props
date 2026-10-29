@@ -24,12 +24,12 @@
         TypeLoadException for the renamed EnsureEventStore contract. The Host Dockerfile's cratis/chronicle base
         image tag must track this version too, so the bundled kernel and the client never drift apart.
     -->
-    <PackageVersion Include="Cratis.Chronicle" Version="19.112.4" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.113.1" />
     <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.1" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.112.4" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.112.4" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.112.4" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.113.1" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.113.1" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.113.1" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
     <PackageVersion Include="Cratis.Scene.Engine" Version="4.80.2" />
     <PackageVersion Include="Cratis.Scene.Model" Version="4.80.2" />
@@ -60,8 +60,6 @@
     <!-- Reverse proxy for the Chronicle Workbench, which the bundled kernel serves on its own unpublished port. -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
-    <!-- Chronicle.Testing 19.112.4 bundles kernel assemblies compiled against this version. -->
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <!-- OpenTelemetry -->
     <PackageVersion Include="Cratis.OpenTelemetry" Version="7.24.1" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />

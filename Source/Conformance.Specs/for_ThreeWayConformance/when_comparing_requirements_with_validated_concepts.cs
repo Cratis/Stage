@@ -59,6 +59,7 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                         }).ToArray();
                         using var scenario = new CommandScenario<object>().UseDecisionReads();
                         var result = await scenario.Execute(constructor.Invoke(arguments));
+                        Assert.True(result.IsAuthorized);
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
                         Assert.Equal(expected.Select(pair => (pair[0], pair[1])), result.ValidationResults.Select(failure => (failure.Message, failure.Severity.ToString())));
@@ -68,8 +69,11 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
             AddGeneratedSpecification("OrderedConceptFailures.cs", $$"""
                 #if DEBUG
                 using System.Globalization;
+                using System.Security.Claims;
                 using System.Text.Json;
+                using Cratis.Arc.Authorization;
                 using Cratis.Arc.Chronicle.Testing.Commands;
+                using Cratis.Arc.Http;
                 using Cratis.Arc.Testing.Commands;
                 using Xunit;
                 namespace RequirementConceptOrder.ValidationParity;
@@ -78,6 +82,8 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                     [Fact]
                     public async Task should_match_reference_messages_severities_and_order()
                     {
+                        using var caller = new CurrentPrincipalAccessor(new HttpRequestContextAccessor())
+                            .BeginScope(new ClaimsPrincipal(new ClaimsIdentity([], "fixture")));
                         {{string.Join('\n', probes)}}
                     }
                 }

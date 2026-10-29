@@ -25,7 +25,7 @@ internal static partial class SemanticSpecificationAdmission
         specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
-        !DependsOnOpaquePolicy(context, specification) &&
+        OpaquePolicyRejectionReason(context, specification) is null &&
         ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
 
     static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
@@ -65,9 +65,7 @@ internal static partial class SemanticSpecificationAdmission
         query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot };
 
     static string? AuthorizationRejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
-        DependsOnOpaquePolicy(context, specification)
-            ? "The operation's authorization depends on an opaque csharp/file policy, which the reference evaluator cannot decide (Unsupported)."
-            : ProtectedCollectionRejectionReason(context, specification);
+        OpaquePolicyRejectionReason(context, specification) ?? ProtectedCollectionRejectionReason(context, specification);
 
     static string? ProtectedCollectionRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {

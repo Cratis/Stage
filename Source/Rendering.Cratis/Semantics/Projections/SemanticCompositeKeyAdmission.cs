@@ -12,6 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 /// <remarks>
 /// Chronicle identifies an instance with one object-valued key, so a read model with several key parts renders a key
 /// record, an Id property of that record and the declared properties, which keep their own values for queries and specifications.
+/// Decimal key parts are refused until Chronicle keys 1.0 and 1.00 as one instance (Chronicle#5427, Stage#847).
 /// </remarks>
 internal static class SemanticCompositeKeyAdmission
 {
@@ -52,6 +53,13 @@ internal static class SemanticCompositeKeyAdmission
             SemanticValidationRendering.UnderlyingPrimitive(part.Type, context) == SemanticPrimitiveType.DateTime))
         {
             return "key parts must be required, single, non-date primitives or concepts.";
+        }
+
+        // Lift with Cratis/Stage#847 (needs Cratis/Chronicle#5427): remove this block and flip when_refusing_decimal_composite_key_parts.
+        var decimalParts = identifiers.Where(part => SemanticValidationRendering.UnderlyingPrimitive(part.Type, context) == SemanticPrimitiveType.DecimalNumber).ToArray();
+        if (decimalParts.Length > 0)
+        {
+            return $"decimal key parts are refused until Cratis/Stage#847 lands: Chronicle keeps a decimal key part's scale, so a replay can split one instance into two when the same value arrives as 1.0 and 1.00 (Cratis/Chronicle#5427). Decimal parts: {string.Join(", ", decimalParts.Select(part => $"'{part.Name}'"))}.";
         }
 
         if (KeyTypeNameCollides(context, readModel))

@@ -116,8 +116,14 @@ internal static class SemanticReactorArtifactRenderer
             builder.Line($"if (!({SemanticConditionRendering.Render(condition, new(source.Properties, "@event", context))})) return null;");
         }
 
-        builder.Inline(inline.Code!, inline.Placement).EndBlock().EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
+        builder.Inline(context.RetainInlineInput(inline), inline.Placement).EndBlock().EndBlock();
+        var content = builder.ToString();
+        if (SemanticReactionBodyAdmission.Failure(context, content) is { } failure)
+        {
+            throw UnsupportedSemanticRendering.For("reaction body", $"The reaction handler does not compile in its rendered reactor: {failure}");
+        }
+
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), content) { Sources = [reaction.Id] };
     }
 
     static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction)

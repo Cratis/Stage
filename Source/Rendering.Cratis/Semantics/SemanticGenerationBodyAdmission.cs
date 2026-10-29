@@ -16,9 +16,13 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticGenerationBodyAdmission
 {
     const string FundamentalsResource = "GenerationReferences.Cratis.Fundamentals.dll";
-    static readonly Lazy<PortableExecutableReference> _fundamentals = new(LoadFundamentals);
+    const string ChronicleResource = "GenerationReferences.Cratis.Chronicle.dll";
+    static readonly Lazy<PortableExecutableReference> _fundamentals = new(() => LoadEmbedded(FundamentalsResource, "Fundamentals generation"));
+    static readonly Lazy<PortableExecutableReference> _chronicle = new(() => LoadEmbedded(ChronicleResource, "Chronicle"));
 
     internal static PortableExecutableReference FundamentalsReference => _fundamentals.Value;
+
+    internal static PortableExecutableReference ChronicleReference => _chronicle.Value;
 
     internal static PureTransitionAdmission.Verdict Analyze(string body, SemanticConcept concept, SemanticApplicationContext context, SemanticImplementationRequirement requirement)
     {
@@ -86,14 +90,14 @@ internal static class SemanticGenerationBodyAdmission
         return analyze(references);
     }
 
-    static PortableExecutableReference LoadFundamentals()
+    static PortableExecutableReference LoadEmbedded(string resource, string description)
     {
-        using var stream = typeof(SemanticGenerationBodyAdmission).Assembly.GetManifestResourceStream(FundamentalsResource)
-            ?? throw new Contracts.Rendering.InvalidArtifactRenderContract("The embedded Fundamentals generation reference is unavailable.");
+        using var stream = typeof(SemanticGenerationBodyAdmission).Assembly.GetManifestResourceStream(resource)
+            ?? throw new Contracts.Rendering.InvalidArtifactRenderContract($"The embedded {description} reference is unavailable.");
         using var bytes = new MemoryStream();
         stream.CopyTo(bytes);
 
-        return MetadataReference.CreateFromImage(bytes.ToArray(), filePath: FundamentalsResource);
+        return MetadataReference.CreateFromImage(bytes.ToArray(), filePath: resource);
     }
 
     static PureTransitionAdmission.Verdict Reject(string code, string reason) => new(code, reason, [], []);

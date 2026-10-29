@@ -11,6 +11,5 @@ public class with_requirements_and_validated_concepts : given.a_command_model
     void Establish() => SetModel(("concept Display : String\n  validate\n    min 2\n" + Source).Replace("        produces InvoiceIssued", "        display Display\n        validate\n          require description != \"draft\"\n        produces InvoiceIssued", StringComparison.Ordinal));
     void Because() => Evaluate();
 
-    [Fact] void should_name_the_requirement_and_property_and_failure_order_fix() => Messages.ShouldContainOnly(["Command 'IssueInvoice' requirement #1 (description) is combined with validated concept property 'display'; Arc graph validation and command guards cannot preserve the reference evaluator's failure order. Model equivalent rules at one validation level, or keep this combination unsupported (Cratis/Stage#409)."]);
-    [Fact] void should_keep_the_code() => _diagnostics.Single().Code.ShouldEqual("STAGE-ESM-005");
+    [Fact] void should_admit_the_request_concept_with_requirements() => _diagnostics.ShouldBeEmpty();
 }

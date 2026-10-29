@@ -79,7 +79,14 @@ internal static class SemanticSliceArtifactRenderers
             }
             foreach (var reaction in located.Slice.Reactions)
             {
-                yield return SemanticReactorArtifactRenderer.Render(located, reaction, context);
+                if (SemanticOccurrenceAdmission.IsAdmitted(reaction, context))
+                {
+                    foreach (var file in SemanticOccurrenceHandlerArtifactRenderer.Render(located, reaction, context)) yield return file;
+                }
+                else
+                {
+                    yield return SemanticReactorArtifactRenderer.Render(located, reaction, context);
+                }
             }
         }
     }

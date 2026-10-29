@@ -30,7 +30,9 @@ internal static class SemanticVersionFeatureAdmission
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
                 .Except(SemanticVersionFeatures.StandaloneReactionBodiesInSlice(slice))
                 .Except(SemanticTranslationAdmission.AdmittedFeatures(slice, context))
+                .Except(SemanticOccurrenceAdmission.ReplacedFeatures(slice))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
+                .Concat(SemanticOccurrenceAdmission.RefusalsInSlice(slice, context))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
                 .Where(feature => feature.Kind != "event" || feature.Code is not (SemanticVersionFeatures.PublicEvents or SemanticVersionFeatures.ForeignEvents) || !SemanticTranslationAdmission.AdmitsEvent(feature.Artifact, slice, context))
                 .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
@@ -47,11 +49,13 @@ internal static class SemanticVersionFeatureAdmission
         // Application triggers belong to no slice; only an application render would otherwise drop them.
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
+            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application))
+                .Except(SemanticOccurrenceAdmission.AdmittedTriggers(context)).Concat(features);
         }
 
         return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct()
-            .Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, DiagnosticMessage(feature, context), feature.Artifact))];
+            .Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, DiagnosticMessage(feature, context), feature.Artifact))
+            .Concat(slices.SelectMany(located => SemanticReactionBodyRendering.ReturnDiagnostics(located, context)))];
     }
 
     static string DiagnosticMessage(SemanticVersionFeature feature, SemanticApplicationContext context)

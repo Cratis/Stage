@@ -19,7 +19,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var modelName = types.SliceType(readModel.Id, readModel.Name);
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
+        var behavior = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: false);
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit");
         context.Docs(specification.Id).Render(builder)

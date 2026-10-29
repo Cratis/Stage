@@ -14,6 +14,7 @@ static class CratisPlanDiagnosticReconstruction
         ImmutableArray<ArtifactRenderDiagnostic> generation = [.. original.Diagnostics, .. diagnostics];
         var removals = generation.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : plan.RequiredRemovals;
         var rebuilt = ArtifactRenderPlan.Create(request with { Scope = plan.Scope, AdditionalScopes = plan.AdditionalScopes }, plan.Artifacts, generation, plan.ImplementationGaps, plan.Refusals, removals);
+        rebuilt = rebuilt.WithInlineCodeFingerprint(plan.InlineCodeFingerprint);
         if (plan.Inventory is not null) rebuilt = rebuilt.WithInventory(plan.Inventory);
         if (!plan.PlanEvidence.IsEmpty) rebuilt = rebuilt.WithPlanEvidence(plan.PlanEvidence);
         return plan.Strict || !plan.Degradations.IsEmpty ? rebuilt.WithAcceptance(plan.Degradations, plan.Strict) : rebuilt;

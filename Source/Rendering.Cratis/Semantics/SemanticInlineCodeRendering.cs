@@ -65,6 +65,12 @@ internal static class SemanticInlineCodeRendering
             diagnostics.Add(new("STAGE-ESM-019", ArtifactRenderDiagnosticSeverity.Error, "The command handler envelope has an invalid role, version or capability.", command.Id));
             return new(null, placement, diagnostics.ToImmutable());
         }
+        if (CarriageReturnLiterals.Find(code!.Text) is { } literal)
+        {
+            // PlannedArtifact.CreateText publishes LF; a CR inside a literal would silently change its value.
+            diagnostics.Add(new("STAGE-ESM-022", ArtifactRenderDiagnosticSeverity.Error, $"Carriage return in {literal} of command '{command.Name}' handler body changes emitted text.", command.Id));
+            return new(null, placement, diagnostics.ToImmutable());
+        }
         var presentation = CSharpInlineLanguagePack.Present(code!, verbatim: true);
         if (presentation.Degraded)
         {

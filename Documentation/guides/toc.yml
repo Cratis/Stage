@@ -1,5 +1,7 @@
 - name: Generate identifiers and values from a model
   href: generated-values.md
+- name: Author a renderer kit
+  href: template-kits.md
 - name: Build a renderer target
   href: build-renderer-target.md
 - name: Customize a rendered application

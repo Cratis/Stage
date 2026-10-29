@@ -54,6 +54,12 @@
         <Compile Include="../Rendering.Cratis/Semantics/EsmVersionStanding.cs" Link="Semantics/Admission/EsmVersionStanding.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/EsmSupport.cs" Link="Semantics/Admission/EsmSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/CratisEsmSupport.cs" Link="Semantics/Admission/CratisEsmSupport.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticSurfaceLedger.cs" Link="Semantics/Admission/SemanticSurfaceLedger.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticUnknownMember.cs" Link="Semantics/Admission/SemanticUnknownMember.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticUnknownMemberScope.cs" Link="Semantics/Admission/SemanticUnknownMemberScope.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/SemanticUnknownMembers.cs" Link="Semantics/Admission/SemanticUnknownMembers.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmSupportStanding.cs" Link="Semantics/Admission/EsmSupportStanding.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/EsmRangeSurface.cs" Link="Semantics/Admission/EsmRangeSurface.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticSpecificationClock.cs" Link="Semantics/Admission/SemanticSpecificationClock.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticGenerationShapes.cs" Link="Semantics/Admission/SemanticGenerationShapes.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticPatternShape.cs" Link="Semantics/Admission/SemanticPatternShape.cs" />

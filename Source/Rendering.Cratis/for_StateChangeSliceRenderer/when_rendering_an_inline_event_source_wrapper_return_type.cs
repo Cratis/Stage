@@ -3,6 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_StateChangeSliceRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -25,6 +26,6 @@ public class when_rendering_an_inline_event_source_wrapper_return_type : state_c
 
         when_rendering_an_inline_return_type_declared_in_the_model.AssertReturnBinding(file, "Cratis.Chronicle.EventSequences.EventForEventSourceId");
         file.Content.ShouldContain(command.Handler.Code.Code);
-        file.Diagnostics.ShouldBeEmpty();
+        file.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 }

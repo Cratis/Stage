@@ -7,6 +7,7 @@ using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.for_StateChangeSliceRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -37,7 +38,7 @@ public class when_rendering_inline_handler_return_types : state_change_slices
 
         file.Content.ShouldContain($"public {returnType} Handle(CommandContext context)");
         file.Content.ShouldContain(body);
-        file.Diagnostics.ShouldBeEmpty();
+        file.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         RenderedOutput.Errors([file]).ShouldBeEmpty();
     }
 }

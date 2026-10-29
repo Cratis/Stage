@@ -89,7 +89,7 @@ public class without_a_domain : given.a_domain_policy_plan
     {
         // Pins the unchanged payload: paths, wrappers, bodies, policies and generated specs. Managed reports have separate byte goldens.
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (var artifact in artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal)).OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
+        foreach (var artifact in artifacts.Select(BeforeAuthenticatedQueryDefault).Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal)).OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
         {
             hash.AppendData(Encoding.UTF8.GetBytes(artifact.RelativePath + "\n"));
             hash.AppendData(artifact.Bytes.AsSpan());
@@ -195,7 +195,24 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
     }
 
-    IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
+    // Preserve the historical type-shortening pins, restoring only ById's intentional #494 access-default change.
+    static PlannedArtifact BeforeAuthenticatedQueryDefault(PlannedArtifact artifact) => artifact.RelativePath == "Orders/Ordering/Totals/Totals.cs"
+        ? PlannedArtifact.CreateText(
+            artifact.RelativePath,
+            Encoding.UTF8.GetString(artifact.Bytes.AsSpan())
+                .Replace("[Authorize]", "[AllowAnonymous]", StringComparison.Ordinal)
+                .Replace("[global::Cratis.Arc.Authorization.AuthorizeAttribute]", "[global::Cratis.Arc.Authorization.AllowAnonymousAttribute]", StringComparison.Ordinal),
+            artifact.Sources)
+        : artifact;
+
+    IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Select(BeforeAuthenticatedQueryDefault).Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
+
+    [Fact]
+    void should_require_an_authenticated_caller_for_the_unmodeled_query_policy()
+    {
+        Assert.Contains("[Authorize]", RawText("Orders/Ordering/Totals/Totals.cs"), StringComparison.Ordinal);
+        Assert.DoesNotContain("AllowAnonymous", RawText("Orders/Ordering/Totals/Totals.cs"), StringComparison.Ordinal);
+    }
 
     void AssertReducerBinding(Assembly assembly)
     {
@@ -216,7 +233,7 @@ public class without_a_domain : given.a_domain_policy_plan
     string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7281BBD55502D73D1916990F6B6D96F9567057AAABE6CA07FC79CC5E78B2DF03");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("353B73D5BBCC2AA7CC0F8090D3FD2B01A35274305ACF7B96FFB97552750C6EEF");
+    [Fact] void should_keep_all_paths_and_other_bytes() => _digest.ShouldEqual("7281BBD55502D73D1916990F6B6D96F9567057AAABE6CA07FC79CC5E78B2DF03");
+    [Fact] void should_confine_other_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("353B73D5BBCC2AA7CC0F8090D3FD2B01A35274305ACF7B96FFB97552750C6EEF");
 }
 #endif

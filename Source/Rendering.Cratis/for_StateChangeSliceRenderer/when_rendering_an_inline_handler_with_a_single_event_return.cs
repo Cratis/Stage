@@ -9,6 +9,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.for_StateChangeSliceRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -45,6 +46,6 @@ public class when_rendering_an_inline_handler_with_a_single_event_return : state
     [Fact] void should_compile_against_the_real_arc_context() => _contextType.ShouldEqual(typeof(CommandContext));
     [Fact] void should_execute_the_handler_and_return_the_event() => _event.GetType().ShouldEqual(_returnType);
     [Fact] void should_return_the_authored_event_type() => _returnType.Name.ShouldEqual("OrderPlaced");
-    [Fact] void should_not_report_rendering_diagnostics() => _file.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_not_report_rendering_diagnostics() => _file.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
 }
 #endif

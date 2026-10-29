@@ -5,6 +5,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Cratis.Stage.Rendering.Cratis.for_StateChangeSliceRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -28,7 +29,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
 
         AssertBodyBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", "InvoiceRegistered", new RenderedFile("Event.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
         file.Content.ShouldContain(command.Handler.Code.Code);
-        file.Diagnostics.ShouldBeEmpty();
+        file.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 
     [Theory]
@@ -45,7 +46,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         Assert.Equal(
             $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{typeName}'. " +
             "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.",
-            Assert.Single(file.Diagnostics));
+            Assert.Single(file.Diagnostics.WithoutAuthenticatedDefaultNotes()));
         Assert.Contains($"public {typeName} Handle(CommandContext context)", file.Content);
         Assert.Contains(body, file.Content);
         Assert.DoesNotContain("global::", file.Content);
@@ -63,7 +64,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var file = new StateChangeSliceRenderer().Render(slice, OrderedApplications(reverse), "CratisApp");
         AssertBodyBinding(file, identity, "StageImport0::InvoiceRegistered", new RenderedFile("RemoteEvent.cs", "namespace CratisApp.Billing.Invoices.RegisterInvoice; public record InvoiceRegistered(string Value);"));
         Assert.Contains(slice.Slice.Commands.Single().Handler!.Code!.Code, file.Content);
-        Assert.Empty(file.Diagnostics);
+        Assert.Empty(file.Diagnostics.WithoutAuthenticatedDefaultNotes());
     }
 
     [Theory]
@@ -85,7 +86,7 @@ public class when_rendering_an_inline_return_type_declared_in_the_model : state_
         var file = new StateChangeSliceRenderer().Render(slice, _applicationSet, "CratisApp");
         AssertBodyBinding(file, "CratisApp.Billing.Invoices.RegisterInvoice.InvoiceRegistered", "InvoiceRegistered");
         Assert.Contains(command.Handler!.Code!.Code, file.Content);
-        Assert.Empty(file.Diagnostics);
+        Assert.Empty(file.Diagnostics.WithoutAuthenticatedDefaultNotes());
     }
 
     internal static void AssertReturnBinding(RenderedFile file, string metadataName, params RenderedFile[] declarations)

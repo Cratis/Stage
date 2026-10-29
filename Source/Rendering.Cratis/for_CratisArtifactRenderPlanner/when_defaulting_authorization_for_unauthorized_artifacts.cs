@@ -25,8 +25,10 @@ public class when_defaulting_authorization_for_unauthorized_artifacts : Specific
         var source = invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource) + "\n" + """
             slice StateView ListInvoices
               readmodel Invoice
+                id String key
                 description String
-              query AllInvoices => Invoice*
+              query AllInvoices => Invoice optional
+                by id String
               projection Invoices => Invoice
                 from InvoiceIssued key $eventSourceId
                   description = description

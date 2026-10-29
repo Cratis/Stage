@@ -69,7 +69,7 @@ internal static class SemanticRunTranslationAdmission
             var artifacts = projections.Concat(reducers).Concat(captures).ToHashSet();
             feature = features.FirstOrDefault(candidate => candidate.Kind != "event" && (candidate.Kind != "capture" || candidate.Code == SemanticVersionFeatures.ForeignEvents) && artifacts.Contains(candidate.Artifact));
             if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
-            if (slice.Kind == SemanticSliceKind.Translate && Reached(plan, slice, specification, reachable, commands))
+            if (slice.Kind == SemanticSliceKind.Translate && (Invoked(slice, commands) || Reached(plan, slice, specification, reachable)))
             {
                 feature = features.First(candidate => candidate.Artifact == slice.Id && candidate.Kind == "slice");
                 return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
@@ -91,8 +91,9 @@ internal static class SemanticRunTranslationAdmission
         return null;
     }
 
-    static bool Reached(SemanticExecutionPlan plan, SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable, HashSet<SemanticId> commands) =>
-        slice.Commands.Any(command => commands.Contains(command.Id)) ||
+    static bool Invoked(SemanticSlice slice, HashSet<SemanticId> commands) => slice.Commands.Any(command => commands.Contains(command.Id));
+
+    static bool Reached(SemanticExecutionPlan plan, SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable) =>
         slice.Reactions.Any(reaction => (plan.Runs(reaction.Id) || specification.WhenRedelivered?.Reaction == reaction.Id) && Selected(reaction, specification, reachable)) ||
         slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event && Observes(projection, reachable)) ||
         slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)));

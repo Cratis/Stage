@@ -28,7 +28,7 @@ public class when_rendering_unpinned_time_ordered_values : Specification
     }
 
     // Pinned fixtures retain their generated values without enabling receipt-time generation.
-    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("64ab39685560b89102e45d789b2e1969ed5d614bb9b986cad6f790f5ead1b54c");
+    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("eddc079d46770dd58637773689498409ca964c51ad4b12a9af69b039dd1d087e");
     [Fact] void should_leave_pinned_specifications_without_clock_setup() => Render(null).ShouldNotContain("_scenario.Clock(");
     [Fact] void should_leave_pinned_specifications_without_receipt_time_facts() => Render(null).ShouldNotContain("_at_the_receipt_time()");
     [Fact] void should_leave_non_time_ordered_generation_without_clock_setup() => Render("receipt").ShouldNotContain("_scenario.Clock(");

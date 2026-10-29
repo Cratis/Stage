@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
@@ -16,6 +17,7 @@ internal sealed class SemanticRuntimeAdmission
     {
         var entries = new List<SemanticAdmissionEntry>();
         var blocking = new List<SemanticAdmissionEntry>();
+        entries.AddRange(RangeDegradations(plan));
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
@@ -131,6 +133,19 @@ internal sealed class SemanticRuntimeAdmission
             problem is null ? "supported" : "unsupported",
             problem is null ? null : nameof(SemanticExecutionCapability.IdentityAllocation),
             problem);
+    }
+
+    static IEnumerable<SemanticAdmissionEntry> RangeDegradations(SemanticExecutionPlan plan)
+    {
+        if (CratisEsmSupport.Descriptor.Classify(plan.Model.LanguageVersion, plan.Model.SemanticVersion) == EsmVersionStanding.NewerWithinRange)
+        {
+            yield return new(
+                plan.Model.Application.Id.ToString(),
+                "application",
+                "supported",
+                null,
+                $"{ArtifactRenderDegradationCodes.NewerEsmWithinDeclaredRange}: ESM pair {plan.Model.LanguageVersion}/{plan.Model.SemanticVersion} is within {CratisEsmSupport.Descriptor.Accepts} but has not been audited by this Stage version.");
+        }
     }
 
     static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>

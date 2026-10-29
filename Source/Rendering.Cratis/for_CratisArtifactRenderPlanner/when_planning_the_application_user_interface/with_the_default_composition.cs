@@ -17,7 +17,8 @@ public class with_the_default_composition : a_register_project_render_request
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
-    const string Before = "26fe030c63d81e51cb5a3cd4f8b92d0b3594dae0ee67b3930ba734d0eb00825c";
+    // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
+    const string Before = "f4d118c11ddd2fcaa672a3a4de138354341a0ab28b243fe378f50fbad31ce97b";
 
     ArtifactRenderPlan _plan = null!;
 

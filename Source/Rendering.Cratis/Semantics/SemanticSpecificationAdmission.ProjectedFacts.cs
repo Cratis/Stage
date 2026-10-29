@@ -44,20 +44,30 @@ internal static partial class SemanticSpecificationAdmission
             return AbsenceRejection;
         }
 
+        foreach (var expected in specification.ThenReadModels)
+        {
+            if (ReducerRejectionReason(context, expected.ReadModel) is { } reason) return reason;
+        }
+
         if (specification.ThenReadModels.Any(expected => !IsProjectedFromFacts(context, specification, expected)))
         {
-            return "A projected read model needs a projection and an event it handles on the asserted instance; a reducer or an instance no given event reaches cannot be proven here.";
+            return "A projected read model needs a projection or deterministic reducer and an event it handles on the asserted instance; an instance no given event reaches cannot be proven here.";
         }
 
         return "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
 
-    // A projection builds the instance the specification names when one of its events was given on that instance:
+    // A projection or reducer builds the instance the specification names when one of its events was given on that instance:
     // by event source, by the event property the block is keyed on, or by the constant key the block declares.
     static bool IsProjectedFromFacts(SemanticApplicationContext context, SemanticSpecification specification, SemanticSpecificationReadModel expected)
     {
-        if (context.Reducers.Any(reducer => reducer.ReadModel == expected.ReadModel) ||
-            context.Projections.Values.SingleOrDefault(projection => projection.ReadModel == expected.ReadModel) is not { } projection)
+        if (context.Reducers.SingleOrDefault(reducer => reducer.ReadModel == expected.ReadModel) is { } reducer)
+        {
+            return ReducerRejectionReason(context, expected.ReadModel) is null &&
+                SemanticReducerSpecificationEvents.Given(specification, expected, reducer).Count > 0;
+        }
+
+        if (context.Projections.Values.SingleOrDefault(projection => projection.ReadModel == expected.ReadModel) is not { } projection)
         {
             return false;
         }

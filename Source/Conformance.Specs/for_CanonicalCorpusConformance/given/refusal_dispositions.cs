@@ -81,6 +81,7 @@ public static class refusal_dispositions
         foreach (var record in expected.Refusals)
         {
             var fingerprint = record.Fingerprint;
+            CheckCompileDisposition(record, Add);
             if (record.Issue is not > 0 && string.IsNullOrWhiteSpace(record.ByDesign))
             {
                 Add($"missing-disposition({fingerprint})");
@@ -103,6 +104,14 @@ public static class refusal_dispositions
         }
 
         return problems;
+    }
+
+    static void CheckCompileDisposition(refusal_record record, Action<string> add)
+    {
+        if (record.Fingerprint.Kind == "compile" && (record.Issue is not > 0 || record.ByDesign is not null))
+        {
+            add($"compile-record-needs-issue({record.Fingerprint})");
+        }
     }
 
     static bool IsAllowedByDesign(string vector, conformance_surface surface, refusal_fingerprint fingerprint) =>

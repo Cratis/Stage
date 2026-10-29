@@ -18,7 +18,7 @@ public class with_gated_members : a_range_model
     {
         var source = SemanticVersionFeatures.Slices(_model.Application).SelectMany(slice => slice.Captures).Single().EventsSource!;
         typeof(SemanticCaptureEventsSource).GetProperty(nameof(SemanticCaptureEventsSource.KeyIsEventSource))!.SetValue(source, populated);
-        var found = FindGated();
+        var found = FindGated("SemanticCaptureEventsSource.KeyIsEventSource");
         found.Any(member => member.Member == "SemanticCaptureEventsSource.KeyIsEventSource").ShouldEqual(populated);
         found.ShouldEachConformTo(member => member.SecurityRelevant);
     }
@@ -46,10 +46,10 @@ public class with_gated_members : a_range_model
         finding.Owner.ShouldEqual(_model.Application.Id);
     }
 
-    ImmutableArray<SemanticUnknownMember> FindGated()
+    ImmutableArray<SemanticUnknownMember> FindGated(params string[] additionallyGated)
     {
         var gated = SemanticSurfaceLedger.Entries.Where(entry => entry.Value.Kind == SemanticSurfaceDispositionKind.Rejected && entry.Value.Detail == "STAGE-ESM-016")
-            .Select(entry => entry.Key).ToImmutableHashSet(StringComparer.Ordinal);
+            .Select(entry => entry.Key).Concat(additionallyGated).ToImmutableHashSet(StringComparer.Ordinal);
         var known = SemanticSurfaceLedger.Entries.Where(entry => !gated.Contains(entry.Key)).ToImmutableDictionary(StringComparer.Ordinal);
         return SemanticUnknownMembers.Find(_model, known, new(ImmutableHashSet<SemanticId>.Empty, ImmutableHashSet<SemanticId>.Empty, gated));
     }

@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -172,7 +173,7 @@ internal static partial class PureTransitionAdmission
         _ => OperatorMethod(operation)
     };
 
-    sealed class Walker(SemanticModel model, IOperation root, PureTransitionAnalysisContext analysis)
+    private sealed partial class Walker(SemanticModel model, IOperation root, PureTransitionAnalysisContext analysis)
     {
         readonly ImmutableHashSet<string>.Builder _reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
         readonly ImmutableHashSet<string>.Builder _used = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
@@ -181,6 +182,10 @@ internal static partial class PureTransitionAdmission
         string Wrapper => _wrapper.Value;
 
         Compilation Compilation => model.Compilation;
+
+        bool IsValidation => analysis.Descriptor.Role is SemanticImplementationRole.RulePredicate or SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
+
+        bool IsConceptValue => analysis.Descriptor.Members.SingleOrDefault(member => member.Name == "Value")?.Type.ModelType?.Kind == SemanticTypeReferenceKind.Concept;
 
         bool IsValidationIterator => analysis.Descriptor.Role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
@@ -274,7 +279,7 @@ internal static partial class PureTransitionAdmission
         // Only the named, audited operation shapes are admitted. Unknown Roslyn kinds fail closed.
         Verdict? KindRejection(IOperation operation) =>
             _admittedOperations.Contains(operation.Kind) ||
-            (IsValidationIterator && operation.Kind is OperationKind.YieldReturn or OperationKind.InterpolatedString or OperationKind.InterpolatedStringText or OperationKind.Interpolation)
+            AdmittedValidationKind(operation)
                 ? null
                 : Forbid($"Operation '{operation.Kind}' on '{operation.Type?.ToDisplayString()}' is outside the pure allowlist.");
 
@@ -349,9 +354,12 @@ internal static partial class PureTransitionAdmission
 
         Verdict? ConversionRejection(IOperation operation) => operation switch
         {
+            IConversionOperation conversion when IsValidation && ValidationConversion(conversion) => null,
+            IIsTypeOperation test when IsValidation && test.ValueOperand is IPropertyReferenceOperation read && read.Property.Name == "Value" && read.Property.ContainingType.Name == Wrapper &&
+                PureValidationAdmission.ValueTarget(read.Type!, test.TypeOperand, typeTest: true, concept: IsConceptValue) => null,
             IConversionOperation conversion when IsUnsafeConversion(conversion, analysis.GeneratedConcepts) =>
                 Forbid($"Conversion to '{conversion.Type?.ToDisplayString()}' is outside the pure allowlist."),
-            IIsPatternOperation pattern when !SafePattern(pattern.Pattern, Compilation) =>
+            IIsPatternOperation pattern when !ValidationPattern(pattern) && !SafePattern(pattern.Pattern, Compilation) =>
                 Forbid($"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist."),
             IDefaultValueOperation defaultValue when !Generated(defaultValue.Type, Compilation) =>
                 Forbid($"Default of '{defaultValue.Type?.ToDisplayString()}' is outside the pure allowlist."),
@@ -384,9 +392,13 @@ internal static partial class PureTransitionAdmission
         bool IsStrayWrapperReference(IOperation operation) =>
             operation is IParameterReferenceOperation or ILocalReferenceOperation &&
             operation.Type?.Name == Wrapper &&
-            !(operation.Parent is IPropertyReferenceOperation { Instance: { } instance } && instance == operation);
+            !(operation.Parent is IPropertyReferenceOperation { Instance: { } instance } && instance == operation) &&
+            !(IsValidation && operation.Parent is IInvocationOperation invocation && invocation.TargetMethod.ContainingType.Name == Wrapper &&
+                NameIs(invocation.TargetMethod.Name, "ValueAs", "ArtifactAs"));
 
-        bool IsWrapperValue(IOperation operation) => ValueTypeName(operation) == Wrapper;
+        bool IsWrapperValue(IOperation operation) => ValueTypeName(operation) == Wrapper &&
+            !(IsValidation && operation.Parent is IInvocationOperation invocation && invocation.TargetMethod.ContainingType.Name == Wrapper &&
+                NameIs(invocation.TargetMethod.Name, "ValueAs", "ArtifactAs"));
 
         Verdict? SymbolRejection(IOperation operation) =>
             BoundSymbol(operation, model) is { } symbol ? BoundRejection(operation, symbol) : UnresolvedRejection(operation);
@@ -426,7 +438,7 @@ internal static partial class PureTransitionAdmission
 
         Verdict? AdmissionRejection(IOperation operation, ISymbol symbol)
         {
-            if (operation is IInvocationOperation invoked && IsUnauditedInvocation(invoked))
+            if (UnauditedInvocation(operation))
             {
                 return Forbid($"Symbol '{symbol.ToDisplayString()}' has unaudited arguments.");
             }
@@ -441,7 +453,7 @@ internal static partial class PureTransitionAdmission
                 return Forbid($"Symbol '{symbol.ToDisplayString()}' is outside the pure allowlist.{DateTimeAlternative(symbol.ContainingType)}");
             }
 
-            if (IsAuditedMember(symbol) && !AuditedMemberSignatures.Contains(AuditedSignature(symbol)))
+            if (MissingSignature(symbol))
             {
                 return Forbid($"Symbol '{symbol.ToDisplayString()}' has no audited signature fixture.");
             }
@@ -450,9 +462,25 @@ internal static partial class PureTransitionAdmission
             return null;
         }
 
-        bool IsAdmitted(IOperation operation, ISymbol symbol, out string entry) =>
-            Allowed(symbol, Compilation, analysis, out entry) &&
-            !(symbol.ContainingType?.Name == Wrapper && operation is not IPropertyReferenceOperation);
+        bool UnauditedInvocation(IOperation operation) => operation is IInvocationOperation invoked &&
+            IsUnauditedInvocation(invoked) && !ValidationInvocation(invoked);
+
+        bool MissingSignature(ISymbol symbol) => IsAuditedMember(symbol) &&
+            !AuditedMemberSignatures.Contains(AuditedSignature(symbol)) && !ValidationMember(symbol);
+
+        bool IsAdmitted(IOperation operation, ISymbol symbol, out string entry)
+        {
+            entry = "validation";
+            if (IsValidationAccessor(operation, symbol))
+            {
+                _reads.Add(symbol.Name);
+                _reads.Add(symbol.Name == "ValueAs" ? "Value" : "Artifact");
+                return true; // TargetRejection checked the exact instantiated type before compilation diagnostics.
+            }
+            if (AdmittedValidationOperation(operation, symbol)) return true;
+            return Allowed(symbol, Compilation, analysis, out entry) &&
+                !(symbol.ContainingType?.Name == Wrapper && operation is not IPropertyReferenceOperation);
+        }
 
         Verdict? WrapperReadRejection(IOperation operation)
         {

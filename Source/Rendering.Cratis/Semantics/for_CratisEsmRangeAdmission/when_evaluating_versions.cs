@@ -39,7 +39,8 @@ public class when_evaluating_versions : given.a_range_model
     }
 
     [Theory]
-    [InlineData(33, 0, 33, 0)]
+    [InlineData(33, 1, 33, 1)]
+    [InlineData(34, 0, 34, 0)]
     [InlineData(35, 0, 35, 0)]
     [InlineData(31, 0, 31, 0)]
     [InlineData(32, 0, 32, 1)]

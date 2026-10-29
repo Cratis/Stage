@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Rendering.Model;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Rendering.Cratis.Naming.Imports;
@@ -14,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>
 /// Indexes one executable semantic application by stable identity for direct Cratis rendering.
 /// </summary>
-internal sealed class SemanticApplicationContext
+internal sealed partial class SemanticApplicationContext
 {
     readonly Dictionary<SemanticId, LocatedSemanticSlice> _slices = [];
     readonly Dictionary<SemanticId, SemanticCaptureMemberPlan> _captureMembers = [];
@@ -22,6 +23,7 @@ internal sealed class SemanticApplicationContext
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
+    Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -122,7 +124,7 @@ internal sealed class SemanticApplicationContext
     /// <summary>
     /// Gets read models by semantic identity.
     /// </summary>
-    public IReadOnlyDictionary<SemanticId, SemanticReadModel> ReadModels { get; }
+    public IReadOnlyDictionary<SemanticId, SemanticReadModel> ReadModels { get; private set; }
 
     /// <summary>
     /// Gets projections by semantic identity.
@@ -145,7 +147,7 @@ internal sealed class SemanticApplicationContext
     /// <summary>
     /// Gets specification identities explicitly omitted from this render.
     /// </summary>
-    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; set; } = [];
+    public ImmutableHashSet<SemanticId> RefusedSpecifications { get; private set; } = [];
 
     /// <summary>
     /// Gets concept identities used as modeled runtime identifiers.
@@ -171,7 +173,26 @@ internal sealed class SemanticApplicationContext
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
-    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => _generatedTypes.Value;
+    /// <summary>
+    /// Gets the generated-type inventory: the admitted declarations and the command response types and, once admission has assigned
+    /// <see cref="RefusedSpecifications"/>, the classes of exactly the specifications that are rendered.
+    /// </summary>
+    internal IReadOnlyList<GeneratedTypeName> GeneratedTypes => (_admittedGeneratedTypes ?? _generatedTypes).Value;
+
+    /// <summary>
+    /// Gets the degradations admission recorded while it kept rendering, each paired with the warning it added to the plan diagnostics.
+    /// </summary>
+    internal List<ArtifactRenderDegradation> Degradations { get; } = [];
+
+    /// <summary>
+    /// Gets the $eventContext paths whose projection mappings were omitted, by read model.
+    /// </summary>
+    internal Dictionary<SemanticId, ImmutableArray<string>> OmittedEventContextMappings { get; } = [];
+
+    /// <summary>
+    /// Gets the nested property paths whose mappings through an optional intermediate were omitted, by read model.
+    /// </summary>
+    internal Dictionary<SemanticId, ImmutableArray<string>> OmittedOptionalMappings { get; } = [];
 
     internal IReadOnlyList<LocatedSemanticSlice> AllSlices => [.. _slices.Values];
 
@@ -204,14 +225,7 @@ internal sealed class SemanticApplicationContext
     /// </summary>
     /// <returns>The selected slices.</returns>
     public IReadOnlyList<LocatedSemanticSlice> SelectedSlices() =>
-        [.. _slices.Values.Where(slice => new[] { Request.Scope }.Concat(Request.AdditionalScopes).Any(scope => scope.Kind switch
-        {
-            ArtifactRenderScopeKind.Application => true,
-            ArtifactRenderScopeKind.Module => slice.Module.Id == scope.Artifact,
-            ArtifactRenderScopeKind.Feature => slice.FeaturePath.Any(feature => feature.Id == scope.Artifact),
-            ArtifactRenderScopeKind.Slice => slice.Slice.Id == scope.Artifact,
-            _ => false
-        }))];
+        [.. RenderScopeSelection.Select(Request).Select(located => Slice(located.Slice.Id))];
 
     /// <summary>
     /// Gets the location of a semantic slice.
@@ -283,6 +297,21 @@ internal sealed class SemanticApplicationContext
     internal IEnumerable<SemanticReducer> SelfReducers(LocatedSemanticSlice located) =>
         located.Slice.Reducers.Where(reducer => SelfReduces(reducer.ReadModel));
 
+    /// <summary>
+    /// Records the specifications admission refused, so the generated-type inventory names the classes of exactly the rendered ones.
+    /// </summary>
+    /// <param name="refused">The refused specification identities.</param>
+    internal void RefuseSpecifications(ImmutableHashSet<SemanticId> refused)
+    {
+        RefusedSpecifications = refused;
+        _admittedGeneratedTypes = new(() =>
+        [
+            .. _generatedTypes.Value,
+            .. SemanticCratisAdmission.GeneratedSpecificationDeclarations(this, SelectedSlices()).Select(type =>
+                new GeneratedTypeName(CatalogNames.Qualify(RootNamespace, type.Namespace), type.Name))
+        ]);
+    }
+
     // A flat projection the flat rendering cannot take is expressed as the scope that says the same, so one admission and one renderer decide.
     internal void ScopeFlatProjections()
     {
@@ -315,6 +344,57 @@ internal sealed class SemanticApplicationContext
             projection.Scope is null && !projection.Transitions.IsEmpty && projection.Target == SemanticProjectionTargetKind.ReadModel &&
             ReadModels.TryGetValue(projection.ReadModel, out var readModel) && readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
             !SemanticCratisAdmission.FlatProjectionRenders(this, projection, readModel);
+    }
+
+    // Event-context mappings the renderer cannot express (Stage#876) are omitted from a read model nothing decides on, so the rest of the view still renders.
+    // Only slices in the requested scope are degraded: a slice that is not rendered must neither warn nor refuse.
+    internal void DegradeEventContextMappings(List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var selected = SelectedSlices().Select(slice => slice.Slice.Id).ToHashSet();
+        foreach (var (id, located) in _slices.ToArray())
+        {
+            if (!selected.Contains(id))
+            {
+                continue;
+            }
+
+            var projections = located.Slice.Projections.IsDefaultOrEmpty ? [] : located.Slice.Projections.ToArray();
+            var readModels = located.Slice.ReadModels;
+            var changed = false;
+            for (var index = 0; index < projections.Length; index++)
+            {
+                if (SemanticEventContextDegradation.Strip(projections[index], this) is not { } result)
+                {
+                    continue;
+                }
+
+                var degraded = result.Projection;
+                var readModel = ReadModels[degraded.ReadModel];
+                var omitted = new List<string>([.. result.EventContextPaths.Select(path => $"$eventContext.{path}"), .. result.OptionalPaths.Select(path => $"{path} through an optional property")]);
+                var warning = new ArtifactRenderDiagnostic(
+                    ArtifactRenderDegradationCodes.UnsupportedConstruct,
+                    ArtifactRenderDiagnosticSeverity.Warning,
+                    $"Projection {degraded.Name} maps {string.Join(", ", omitted)}; the mapping is omitted from read model {readModel.Name}.",
+                    readModel.Id);
+                diagnostics.Add(warning);
+                Degradations.Add(new(warning, result.OptionalPaths.IsEmpty
+                    ? "Render $eventContext projection mappings once Cratis/Stage#876 lands, or map the value from an event property."
+                    : "Render $eventContext projection mappings once Cratis/Stage#876 lands, map the value from an event property, or make the nested properties unconditional rather than reached through an optional property."));
+                OmittedEventContextMappings[readModel.Id] = result.EventContextPaths;
+                OmittedOptionalMappings[readModel.Id] = result.OptionalPaths;
+                projections[index] = degraded;
+                changed = true;
+                readModels = [.. readModels.Select(model => model.Id == readModel.Id ? result.ReadModel : model)];
+            }
+
+            if (changed)
+            {
+                _slices[id] = located with { Slice = located.Slice with { Projections = [.. projections], ReadModels = readModels } };
+            }
+        }
+
+        ReadModels = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.ReadModels), _ => _.Id, "read model");
+        Projections = IndexIdentities(_slices.Values.SelectMany(_ => _.Slice.Projections), _ => _.Id, "projection");
     }
 
     static Dictionary<SemanticId, T> IndexIdentities<T>(IEnumerable<T> declarations, Func<T, SemanticId> identity, string kind)
@@ -375,7 +455,7 @@ internal sealed class SemanticApplicationContext
                 .Concat(_.Slice.ReadModels.SelectMany(readModel => readModel.Properties)))
             .Where(_ => _.IsIdentifier && _.Type.Kind == SemanticTypeReferenceKind.Concept)
             .Select(_ => _.Type.Target)
-            .Concat(Request.Model.SemanticVersion.Major == SemanticVersion.V32.Major
+            .Concat(SemanticCaptureIdentitySupport.UsesTypedIdentity(Request.Model.SemanticVersion)
                 ? _slices.Values.Where(located => !located.Slice.Captures.IsDefaultOrEmpty)
                     .SelectMany(located => located.Slice.Captures).SelectMany(capture => capture.Appends)
                     .Where(append => append.EventSourceType.Kind == SemanticTypeReferenceKind.Concept)

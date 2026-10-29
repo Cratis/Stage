@@ -18,8 +18,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, #660 adds CratisReadProtection On and #497 emits NotEmpty in RegisterProject; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
-    // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins.
-    const string Before = "b1533c9ed5231f401ba1c7beec7d71cd1fe7743ef50de5ec5212d75239f14be3";
+    // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
+    const string Before = "8e5d4c0732a94ce41b8926b83b18ec64c25e3a4e9fc809ab54dcf3ec028aeb7e";
 
     ArtifactRenderPlan _plan = null!;
 

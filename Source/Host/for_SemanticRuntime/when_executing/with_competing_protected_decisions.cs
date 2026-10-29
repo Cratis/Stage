@@ -100,11 +100,17 @@ public class with_competing_protected_decisions : Specification
         var first = Execute("IssueInvoice", "inv-1");
         await entered.Task.WaitAsync(_limit);
         var other = Execute("IssueInvoice", "inv-2");
+
+        // The decision gate is runtime-wide: the other scope waits for the parked append instead of racing it.
+        await Task.Delay(200);
+        other.IsCompleted.ShouldBeFalse();
         release.SetResult();
 
         var one = Assert.IsType<SemanticAccepted>(await first.WaitAsync(_limit));
-        Assert.IsType<SemanticAccepted>(await other.WaitAsync(_limit));
+        var two = Assert.IsType<SemanticAccepted>(await other.WaitAsync(_limit));
+        _log.Writes.ShouldEqual(4);
         IssuedCount(one).ShouldEqual(2);
+        IssuedCount(two).ShouldEqual(2);
     }
 
     int IssuedCount(SemanticAccepted accepted) => _log.Facts.Count(fact => fact.EventContract == accepted.Facts.Single().EventContract);

@@ -128,6 +128,14 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
     {
         // A specification is about the slice it belongs to and nothing else: other slices' reactions, captures and publications do not run.
         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
+        try
+        {
+            specification = SemanticCaptureSources.Normalize(plan, specification);
+        }
+        catch (InvalidSemanticContract exception)
+        {
+            return Rejected(slice, specification, new SemanticRejection(exception.Message));
+        }
         if (SemanticRunContext.OccurrenceOf(specification) is { } instant) options = options with { Clock = new FixedSemanticClock(instant) };
         var when = specification.When;
         var command = when is null ? null : plan.Commands[when.Command];
@@ -143,10 +151,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         using var observation = observeWorldFacts is { } observe ? new WorldFactObservation(context, observe) : null;
 
         // A new Chronicle-backed event log and scenario are created for each specification.
-        foreach (var given in specification.GivenEvents)
-        {
-            await context.Append(given, cancellationToken);
-        }
+        await AppendGivens(context, cancellationToken);
         if (specification.WhenAppended is { } appended)
         {
             if (await AppendFact(plan, context, appended, cancellationToken) is { } appendFailure) return appendFailure.ToRecord(slice, specification);
@@ -177,6 +182,14 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
         return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts, reactions.Invocations);
+    }
+
+    static async Task AppendGivens(SemanticRunContext context, CancellationToken cancellationToken)
+    {
+        foreach (var given in context.Specification.GivenEvents)
+        {
+            await context.Append(given, cancellationToken);
+        }
     }
 
     static async Task<SemanticRunReactionFailure?> AppendFact(SemanticExecutionPlan plan, SemanticRunContext context, SemanticSpecificationAppend appended, CancellationToken cancellationToken)

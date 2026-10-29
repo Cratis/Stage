@@ -20,59 +20,98 @@ internal static class SemanticSpecificationArtifactRenderer
     /// <returns>The generated specification source files.</returns>
     public static IReadOnlyList<RenderedFile> Render(
         SemanticSpecification specification,
+        SemanticApplicationContext context) =>
+        [.. Dispatch(specification, context).Select(entry => entry.Render() with { Sources = [.. entry.Sources] })];
+
+    /// <summary>
+    /// Gets the names of the specification classes <see cref="Render"/> emits, without rendering them.
+    /// </summary>
+    /// <param name="specification">The semantic specification.</param>
+    /// <param name="context">The indexed semantic application.</param>
+    /// <returns>The specification class names.</returns>
+    internal static IReadOnlyList<string> ClassNames(
+        SemanticSpecification specification,
+        SemanticApplicationContext context) =>
+        [.. Dispatch(specification, context).Select(entry => entry.Name)];
+
+    static List<(string Name, Func<RenderedFile> Render, SemanticId[] Sources)> Dispatch(
+        SemanticSpecification specification,
         SemanticApplicationContext context)
     {
         specification = specification.WithPinnedActionValues();
         var sources = new[] { specification.Id, context.DeclaringSlice(specification.Id).Slice.Id };
-        if (context.DeclaringSlice(specification.Id).Slice.Kind == SemanticSliceKind.Translate)
-        {
-            return [SemanticTranslationSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];
-        }
-        if (SemanticProjectionFactSpecification.TryLower(context, specification, out var facts))
-        {
-            return [.. specification.ThenReadModels.Select(expected => SemanticReadModelSpecificationRenderer.Render(facts, expected, context) with { Sources = [.. sources] }),
-                .. specification.ThenAbsentReadModels.Select((expected, index) => SemanticReadModelSpecificationRenderer.RenderAbsent(facts, expected, context, index) with { Sources = [.. sources] })];
-        }
-        if (SemanticReactionCascade.TryLower(context, specification, out var cascade) && SemanticSpecificationAdmission.CommandTriggersReaction(context, specification))
-        {
-            var reaction = SemanticReactionSpecificationRenderer.Render(cascade.Reaction, context) with { Sources = [.. sources] };
+        var entries = new List<(string Name, Func<RenderedFile> Render, SemanticId[] Sources)>();
+        var spec = specification;
+        void Add(string name, Func<RenderedFile> render, SemanticId[]? entrySources = null) => entries.Add((name, render, entrySources ?? sources));
 
-            return cascade.Trigger is null ? [reaction] : [reaction, SemanticCommandSpecificationRenderer.Render(cascade.Trigger, context) with { Sources = [.. sources] }];
-        }
-        if (SemanticSpecificationAdmission.AppendRefusedConstraint(context, specification) is { } refusing)
+        if (context.DeclaringSlice(spec.Id).Slice.Kind == SemanticSliceKind.Translate)
         {
-            return [SemanticAppendRefusalRenderer.Render(specification, refusing, context) with { Sources = [.. sources] }];
+            Add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticTranslationSpecificationRenderer.Render(spec, context));
         }
-        if (specification.WhenAppended is not null || specification.WhenRedelivered is not null)
+        else if (SemanticProjectionFactSpecification.TryLower(context, spec, out var facts))
         {
-            return [SemanticReactionSpecificationRenderer.Render(specification, context) with { Sources = [.. sources] }];
+            foreach (var (expected, thenIndex) in spec.ThenReadModels.Select((expected, thenIndex) => (expected, thenIndex)))
+            {
+                Add(SemanticSpecificationClassNames.Projected(facts, context.ReadModels[expected.ReadModel], null, thenIndex), () => SemanticReadModelSpecificationRenderer.Render(facts, expected, context));
+            }
+            foreach (var (expected, index) in spec.ThenAbsentReadModels.Select((expected, index) => (expected, index)))
+            {
+                Add(SemanticSpecificationClassNames.Projected(facts, context.ReadModels[expected.ReadModel], index), () => SemanticReadModelSpecificationRenderer.RenderAbsent(facts, expected, context, index));
+            }
         }
-        if (SemanticSpecificationAdmission.CanEmptyQueryOnly(specification, context))
+        else if (SemanticReactionCascade.TryLower(context, spec, out var cascade) && SemanticSpecificationAdmission.CommandTriggersReaction(context, spec))
         {
-            return [SemanticEmptyQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [specification.Id] }];
+            Add(SemanticSpecificationClassNames.Behavior(cascade.Reaction), () => SemanticReactionSpecificationRenderer.Render(cascade.Reaction, context));
+            if (cascade.Trigger is not null)
+            {
+                Add(SemanticSpecificationClassNames.Behavior(cascade.Trigger), () => SemanticCommandSpecificationRenderer.Render(cascade.Trigger, context));
+            }
         }
-        if (SemanticSpecificationAdmission.CanSeedQueryOnly(specification, context))
+        else if (SemanticSpecificationAdmission.AppendRefusedConstraint(context, spec) is { } refusing)
         {
-            return [SemanticQuerySpecificationRenderer.RenderSeededQuery(specification, specification.ThenQueries[0], context) with { Sources = [.. sources] }];
+            Add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticAppendRefusalRenderer.Render(spec, refusing, context));
+        }
+        else if (spec.WhenAppended is not null || spec.WhenRedelivered is not null)
+        {
+            Add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticReactionSpecificationRenderer.Render(spec, context));
+        }
+        else if (SemanticSpecificationAdmission.CanEmptyQueryOnly(spec, context))
+        {
+            var query = context.Queries[spec.ThenQueries[0].Query];
+            Add(SemanticSpecificationClassNames.Queried(spec, query, allowThrough: false), () => SemanticEmptyQuerySpecificationRenderer.Render(spec, spec.ThenQueries[0], context), [spec.Id]);
+        }
+        else if (SemanticSpecificationAdmission.CanSeedQueryOnly(spec, context))
+        {
+            var query = context.Queries[spec.ThenQueries[0].Query];
+            Add(SemanticSpecificationClassNames.Queried(spec, query, allowThrough: false), () => SemanticQuerySpecificationRenderer.RenderSeededQuery(spec, spec.ThenQueries[0], context));
+        }
+        else if (SemanticSpecificationAdmission.CanDenyQueryOnly(spec, context) || SemanticSpecificationAdmission.CanProjectQueryOnly(spec, context))
+        {
+            var query = context.Queries[spec.ThenQueries[0].Query];
+            Add(SemanticSpecificationClassNames.Queried(spec, query, allowThrough: true), () => SemanticQuerySpecificationRenderer.Render(spec, spec.ThenQueries[0], context));
+        }
+        else
+        {
+            AddDefault(spec, context, Add);
         }
 
-        if (SemanticSpecificationAdmission.CanDenyQueryOnly(specification, context) ||
-            SemanticSpecificationAdmission.CanProjectQueryOnly(specification, context))
+        return entries;
+    }
+
+    static void AddDefault(SemanticSpecification spec, SemanticApplicationContext context, Action<string, Func<RenderedFile>, SemanticId[]?> add)
+    {
+        add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticCommandSpecificationRenderer.Render(spec, context), null);
+        foreach (var (expected, thenIndex) in spec.ThenReadModels.Select((expected, thenIndex) => (expected, thenIndex)))
         {
-            return [SemanticQuerySpecificationRenderer.Render(specification, specification.ThenQueries[0], context) with { Sources = [.. sources] }];
+            add(SemanticSpecificationClassNames.Projected(spec, context.ReadModels[expected.ReadModel], null, thenIndex), () => SemanticReadModelSpecificationRenderer.Render(spec, expected, context), null);
         }
-
-        var files = new List<RenderedFile>
+        foreach (var (expected, index) in spec.ThenAbsentReadModels.Select((expected, index) => (expected, index)))
         {
-            SemanticCommandSpecificationRenderer.Render(specification, context)
-        };
-
-        files.AddRange(specification.ThenReadModels.Select(_ =>
-            SemanticReadModelSpecificationRenderer.Render(specification, _, context)));
-        files.AddRange(specification.ThenAbsentReadModels.Select((expected, index) =>
-            SemanticReadModelSpecificationRenderer.RenderAbsent(specification, expected, context, index)));
-        files.AddRange(specification.ThenQueries.Select(_ =>
-            SemanticQuerySpecificationRenderer.Render(specification, _, context)));
-        return [.. files.Select(file => file with { Sources = [.. sources] })];
+            add(SemanticSpecificationClassNames.Projected(spec, context.ReadModels[expected.ReadModel], index), () => SemanticReadModelSpecificationRenderer.RenderAbsent(spec, expected, context, index), null);
+        }
+        foreach (var expected in spec.ThenQueries)
+        {
+            add(SemanticSpecificationClassNames.Queried(spec, context.Queries[expected.Query], allowThrough: true), () => SemanticQuerySpecificationRenderer.Render(spec, expected, context), null);
+        }
     }
 }

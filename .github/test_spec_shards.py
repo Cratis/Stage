@@ -67,9 +67,11 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
-    def test_small_projects_shard_runs_exactly_the_six_merged_projects_with_unchanged_filters(self):
+    def test_small_projects_shard_runs_exactly_the_eight_merged_projects_with_unchanged_filters(self):
         expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
-                    "Source/Contracts/Contracts.csproj", "Source/Stage/Stage.csproj",
+                    "Source/Contracts/Contracts.csproj", "Source/Rendering.Kits/Rendering.Kits.csproj",
+                    "Source/Rendering.Templates/Rendering.Templates.csproj",
+                    "Source/Rendering.Declarative/Rendering.Declarative.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
                     "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
         for lane in (False, True):
@@ -343,7 +345,7 @@ class SpecShardsTests(unittest.TestCase):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
             run.return_value.stdout = "true\n"
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(8, run.call_count)
+            self.assertEqual(11, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])

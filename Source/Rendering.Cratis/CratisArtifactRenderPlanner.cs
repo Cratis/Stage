@@ -104,6 +104,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
 
         var context = new SemanticApplicationContext(request, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings([]);
         var slices = context.SelectedSlices();
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
         diagnostics.AddRange(SemanticImplementationAdmission.Verify(request));
@@ -122,6 +123,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         };
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
+        context.DegradeEventContextMappings(diagnostics);
         slices = context.SelectedSlices();
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
@@ -155,7 +157,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             return CreatePlan(request, [], diagnostics);
         }
-        context.RefusedSpecifications = [.. refusals.Select(refusal => refusal.Artifact)];
+        context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
         var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
         foreach (var descriptor in validations)
@@ -168,7 +170,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
                 (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
-        if (GeneratedTypeNames.UsesCommandReceiptTime(slices.SelectMany(located => located.Slice.Commands)))
+        if (SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
         {
             artifacts.Add(Artifact(CommandReceiptTimeRendering.Render(context.RootNamespace, context.GeneratedTypes)));
         }
@@ -233,7 +235,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
-        var plan = CreatePlan(request, artifacts, diagnostics, refusals, removals);
+        var plan = context.WithInlineInputs(CreatePlan(request, artifacts, diagnostics, refusals, removals));
+        if (context.Degradations.Count > 0)
+        {
+            plan = plan.WithAcceptance([.. plan.Degradations, .. context.Degradations]);
+        }
         return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
     }
 
@@ -417,8 +423,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     {
         if (refusals.IsDefault) refusals = [];
 
-        // The header is written before gaps are located, so their stub spans address the published bytes.
-        var (planned, gaps) = AddPerformerGaps(request, GeneratedFileHeader.Apply(request.Profile, artifacts), diagnostics);
+        var (planned, gaps) = AddPerformerGaps(request, artifacts, diagnostics);
 
         // Successful diagnostics (and their digests) are unchanged. The contract owns sorting.
         if (diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error))

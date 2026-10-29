@@ -91,14 +91,15 @@ public class with_unsupported_shapes
     [Fact]
     public void should_compile_a_guarded_body_without_rewriting_it()
     {
-        var source = reaction_body_model.Source(reaction_body_model.Body, extraProperty: "        count Int")
+        var body = reaction_body_model.Body.Replace("new TicketOpened(Title)", "new TicketOpened(Title, Count)", StringComparison.Ordinal);
+        var source = reaction_body_model.Source(body, extraProperty: "        count Int")
             .Replace("      reaction Notifier", "      reaction Notifier\n        where count > 0", StringComparison.Ordinal);
         var plan = opaque_policy_model.Plan(reaction_body_model.LoadSource(source));
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var handler = Encoding.UTF8.GetString(Assert.Single(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("Notifier.cs", StringComparison.Ordinal))).Bytes.AsSpan());
         Assert.Contains("if (!(", handler, StringComparison.Ordinal);
         Assert.Contains(")) return null;", handler, StringComparison.Ordinal);
-        Assert.Contains(reaction_body_model.Body, handler, StringComparison.Ordinal);
+        Assert.Contains(body, handler, StringComparison.Ordinal);
         Assert.Empty(RenderedOutput.Errors(opaque_policy_model.Files(plan)));
     }
 

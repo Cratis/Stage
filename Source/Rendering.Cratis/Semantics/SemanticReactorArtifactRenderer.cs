@@ -106,9 +106,8 @@ internal static class SemanticReactorArtifactRenderer
         var types = new SemanticTypeSystem(context);
         builder.BlankLine()
             .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object>? {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)");
-        foreach (var property in source.Properties)
+        foreach (var name in CSharpBodyBindings.Referenced(inline.Code!.Text, source.Properties.Select(property => Identifiers.ToPascalCase(property.Name))))
         {
-            var name = Identifiers.ToPascalCase(property.Name);
             builder.Line($"var {name} = @event.{name};");
         }
 
@@ -117,8 +116,14 @@ internal static class SemanticReactorArtifactRenderer
             builder.Line($"if (!({SemanticConditionRendering.Render(condition, new(source.Properties, "@event", context))})) return null;");
         }
 
-        builder.Inline(inline.Code!, inline.Placement).EndBlock().EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), builder.ToString()) { Sources = [reaction.Id] };
+        builder.Inline(context.RetainInlineInput(inline), inline.Placement).EndBlock().EndBlock();
+        var content = builder.ToString();
+        if (SemanticReactionBodyAdmission.Failure(context, content) is { } failure)
+        {
+            throw UnsupportedSemanticRendering.For("reaction body", $"The reaction handler does not compile in its rendered reactor: {failure}");
+        }
+
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{Identifiers.ToPascalCase(reaction.Name)}.cs"]), content) { Sources = [reaction.Id] };
     }
 
     static void RenderIdentityAttribute(CSharpCodeBuilder builder, SemanticReaction reaction)

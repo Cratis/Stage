@@ -37,11 +37,7 @@ internal static class SemanticQuerySpecificationRenderer
         var replay = command is null ? [] : SemanticProjectionSpecificationEvents.Replay(context.Application, specification, projection, command);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
-        if (specification.ThenQueries.Length > 1)
-        {
-            behavior += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
-        }
+        var behavior = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: true);
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var builder = context.SpecificationBuilder()
@@ -149,7 +145,7 @@ internal static class SemanticQuerySpecificationRenderer
         var result = expected.Results.Single();
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
+        var behavior = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: false);
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")

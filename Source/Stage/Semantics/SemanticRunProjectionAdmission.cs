@@ -209,10 +209,6 @@ internal static partial class SemanticRunProjectionAdmission
             {
                 return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
             }
-            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
-            {
-                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
-            }
             if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier.Type)))
             {
                 return "A per-run removal key must be the event source or one required scalar event property with the identifier's value type.";

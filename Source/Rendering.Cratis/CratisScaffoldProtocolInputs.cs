@@ -19,7 +19,9 @@ internal static class CratisScaffoldProtocolInputs
         ReducerMigrationInput.Name,
         RefusalModeInput.Name,
         StrictAcceptanceInput.Name,
+        ArtifactFileHeader.InputName,
         FileHeaderInput.Name,
+        "axon-render:file-header",
         ServiceLayoutInput.Name,
         UserInterfaceInput.Name,
         UserInterfaceDomainsInput.Name

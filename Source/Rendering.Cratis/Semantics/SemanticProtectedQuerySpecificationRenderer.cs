@@ -19,11 +19,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var readModel = context.ReadModels[query.ReadModel];
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var located = context.DeclaringSlice(specification.Id);
-        var name = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
-        if (specification.ThenQueries.Length > 1)
-        {
-            name += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
-        }
+        var name = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: true);
 
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var readModelName = types.SliceType(readModel.Id, readModel.Name);

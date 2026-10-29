@@ -145,6 +145,14 @@ Invalid contract construction, such as a malformed scope, a traversing artifact 
 
 Resolve input bytes before planning. Do not derive versions or templates from ambient packages, the destination, or the machine running the renderer.
 
+For rendered inline or file-backed implementation bodies, the Cratis planner retains an order-independent
+`ArtifactRenderPlan.InlineCodeFingerprint`. It authenticates each body's original content hash, language,
+requirement, placement and byte source, including bodies that safely degrade (`STAGE-DEGRADE-003`).
+The fingerprint participates in the plan digest independently of emitted artifact bytes and appears as
+`inlineCodeFingerprint` in `.stage/completeness.json` (under `Source/<application>/` with service layout).
+Plan copies, acceptance changes and regenerated reports retain it. Plans without rendered inline bodies
+keep a null fingerprint, omit the report field and retain their existing digest behavior.
+
 ```csharp
 using System.Collections.Immutable;
 using System.Text;
@@ -186,7 +194,7 @@ static bool Supports(ArtifactRenderProfile profile)
 }
 ```
 
-Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions but does not repeat input provenance, so the target's profile contract and support matrix must document the accepted roster.
+Accepted input bytes must be parsed or copied deterministically wherever they affect output. `ArtifactRenderPlan` carries target and renderer versions and, as prerelease `InputProvenance`, the profile input digests, every implementation input and the planner component versions. Provenance stays outside the output-only `Digest` and has its own digest. The target's profile contract and support matrix must still document the accepted roster.
 
 ### Localized Cratis validation messages
 
@@ -359,7 +367,7 @@ These reasons do not widen or narrow admission. Requirements have no authored na
 | Unrenderable validation | The named rule has an unsupported kind, severity, null-equality operand, unsafe text, or message. | Use a supported declarative rule and severity; avoid control/surrogate characters and message-formatting braces. Supply companion `.strings` files and a default locale for `$strings` messages. |
 | Command rule on an optional numeric or Boolean concept collection, or `not empty` | Only absence-passing scalar comparisons are supported: numeric bounds, equality and ordering, and Boolean equality/inequality unwrap present values and accept absence. Collection rules and `not empty` remain unsupported; named-value command rules support scalar equality and inequality as described below. | Keep these unsupported shapes out of the rendered scope. Make the property non-optional only if absence is not part of its contract. |
 | Unrenderable requirement | Its message, severity, condition, or operands have no faithful generated guard. | Supply the strings catalog or a safe literal message, use a supported severity, and use supported comparisons over non-optional scalar properties. Named-value equality and inequality support declared members and properties of the same concept, including `and`/`or` combinations; optional operands, collections, different concepts, and ordering remain unsupported. |
-| Requirement combined with validated concepts | Arc graph validation and command guards cannot reproduce the reference evaluator's failure order. | Model equivalent rules at one validation level; otherwise this combination remains unsupported. |
+| Requirement combined with validated concepts | Without protected reads, scalar non-date concepts without named values are supported when every concept rule is renderable, none is a checksum rule, and there are no code validations; optional concepts must pass absence. Command rules run first, then concept rules in property declaration order, then requirements. | Validated composites, concept collections, named-value and date/date-time concepts, checksum, unrenderable or code rules, and absence-rejecting optional concepts remain unsupported in this combination. Model equivalent rules at one validation level for those shapes. Protected-read commands retain their existing graph-validation and guard order. |
 | Unsupported command rule on a concept with named values | Scalar equality and inequality against a declared member render as enum-member comparisons, for required and optional properties; absence passes. Other predicates, including `not empty`, ordering, and collection rules, remain refused. | Use scalar `==` or `!=` against a declared member when it expresses the rule; otherwise keep the unsupported shape out of the rendered scope. |
 | Optional validated concept | Optional scalar concepts without named values render when every declarative rule accepts absence. Absence-rejecting rules (such as `not empty`) remain refused because Arc graph validation skips null concepts. Collections and named-value concepts remain unsupported. | Keep absence-rejecting rules when they express the contract. Make the property non-optional only if absence is not part of its contract; otherwise the refused shape remains unsupported. |
 | Composite containing an optional validated concept | Admitted, including optional parents, collections of composites and recursive types, when the nested optional concept is scalar, has no named values and every rule accepts absence. An absent parent skips its nested rules. | Nested optional concepts with `not empty`, collections or named values remain unsupported. Composite specification literals with populated collection-valued members or explicit null members are refused recursively, including typed fixtures; omitted optional members remain admitted. Rejection specifications must list supplied composite input members in declaration order, recursively; reordered members are refused because they change validation failure order. Stage specification execution still reports `Unsupported(Command)` for composites ([#441](https://github.com/Cratis/Stage/issues/441)). |
@@ -409,7 +417,7 @@ Stage builds against Screenplay 4.209.0 and admits exact ESM v1 through v28 lang
 | Construct | Version | Diagnostic |
 |---|---|---|
 | Uuid `==`/`!=` in `require`/`produces when`, including concepts | v28 | Rendered as Guid comparisons: a literal becomes a parsed Guid, concept properties compare by `.Value`. Protected read-path operands in `require` render the same way; a read path in `produces when` keeps `STAGE-ESM-044`. The legacy engines refuse with `STAGE-ESM-049`, naming the command and property. Host and executor compare canonical text ordinally and reject non-canonical input before requirements run; a rendered application binds input through Arc, which parses Guids, so each target decides how it treats non-canonical spellings. |
-| Read models with two or more `key` parts and their `parts` projection keys | v27 | The Cratis renderer emits a synthetic `Id` key record and a `UsingCompositeKey` projection; it refuses unsupported shapes (reducers and flat projections, joins, children, `every`, optional, date-time or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048` and single-instance queries by parts with `STAGE-ESM-047`. The legacy engines refuse the read model with `STAGE-ESM-048`. The semantic Host runs them; the specification executor reports `Unsupported(Projection)`. |
+| Read models with two or more `key` parts and their `parts` projection keys | v27 | The Cratis renderer emits a synthetic `Id` key record and a `UsingCompositeKey` projection; it refuses unsupported shapes (reducers and flat projections, joins, children, `every`, optional, date-time, decimal (Chronicle#5427) or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048` and single-instance queries by parts with `STAGE-ESM-047`. The legacy engines refuse the read model with `STAGE-ESM-048`. The semantic Host runs them; the specification executor reports `Unsupported(Projection)`. |
 | Single-instance queries by key parts (`by` block naming every part) | v27 | `STAGE-ESM-047`: refused until Chronicle can look up a read-model instance by a composite key (Chronicle#4265). The semantic Host answers them. List queries with equality filters are not refused separately. |
 | Date/DateTime command comparisons in `require`, `produces when` and validation rules, including concepts | v26 | Rendered as `CompareTo` over `DateOnly` or UTC-tick `DateTimeOffset` values, with Arc's `[property: ExplicitOffset]` on each compared DateTime property so offset-less input is refused after authorization; no client validator is emitted. A concept-typed DateTime binds as a plain `DateTimeOffset` (Arc's marker does not support concepts); concepts with compliance and non-camel-case names are refused with `STAGE-ESM-046`, as are reactions. Unauthorized callers sending an unbindable body get `Validation` for native policies (Arc#3341). Legacy engines refuse with `STAGE-ESM-046`. |
 | Protected command reads (`command reads protected`, command `reads`, read-backed conditions and mappings) | v25 | Rendered by the Cratis target as Arc read protection ([Protected reads rendering](../reference/protected-reads-rendering.md)) and executed by the semantic Host and specification executor. The Cratis target refuses only what it cannot preserve, with `STAGE-ESM-044` naming the reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, a read of a read model whose key property is not named `id`, and reads combined with generated-value freshness scopes. A target decides its own reasons; the shared contracts do not change. Legacy engines refuse the preamble with `STAGE-ESM-044`; without it, binding retains `PLAY0271` and `PLAY0786`. |
@@ -429,7 +437,7 @@ Stage builds against Screenplay 4.209.0 and admits exact ESM v1 through v28 lang
 | Command specifications whose produced events trigger one invoke-only reaction | v6 | Split into a reactor scenario that appends the triggering event and executes the invoked command, plus (when the specification expects success) a `Trigger` specification for the triggering command. A rejection specification is split only when the triggering command cannot reject on its own: no validation, requirement, decision read, route, authorization, constraint-bound event or concept validation. Every other cascade, and non-reaction appends, keep `STAGE-ESM-011` |
 | Reaction mappings of `$context.causedBy.subject`, `.name` or `.userName` | v6 | `STAGE-ESM-013`, naming the context member |
 | Captures outside the supported events-source Translate subset, and specifications with an unsupported clock, trigger or capture | v6 | `STAGE-ESM-024`; millisecond-aligned `given clock` on otherwise admitted command specifications is supported; see [Translation rendering](../reference/translation-rendering.md) for the v9 subset |
-| A reaction handler that both produces events and invokes commands, including separate triggers on the same event | v6 | Renderer: `STAGE-ESM-037`; a failed command would make Chronicle redeliver the trigger and append the reaction's events again, until reactor appends are idempotent ([Stage#342](https://github.com/Cratis/Stage/issues/342)); the Host and specification executor settle both atomically |
+| A reaction trigger that both produces events and invokes commands | v6 | Rendered, including acknowledge-only refusal branches, with stable framework append idempotency on redelivery; default and atomic production modes retain accepted direct events before a later command refusal. Direct productions with event-producing refusal branches retain `STAGE-ESM-037` pending [Arc#3561](https://github.com/Cratis/Arc/issues/3561); mixed effects across separate same-event triggers retain 037 for scheduling-order differences. See [Reaction rendering](../reference/reaction-rendering.md#limits-and-diagnostics) and [Stage#342](https://github.com/Cratis/Stage/issues/342) |
 | Generated command properties and specification generation fixtures | v7 | Required scalar UUID-backed concepts render; other generated shapes fail `STAGE-ESM-028` |
 | Command responses and `then returns` expectations | v7 | Scalar and named responses render; no blanket `STAGE-ESM-029` refusal |
 | Unsupported generated-value/response combinations | v7+ | `STAGE-ESM-038`: legacy destination allocation, command rules or requirements reading generated properties, unsupported response sources or response/factory name collisions; unpinned unordered/projected expectations or missing deterministic pins for generated constraint outcomes. Generated values and scalar or named responses with command routing are admitted, including generated destinations and responses returning them; stream ids cannot read generated properties. Handle local-name clashes are not an admission restriction: the Cratis target renames its locals. |
@@ -535,6 +543,25 @@ This check does not replace the publisher's destination ownership, concurrency, 
 Any artifact present in two scopes must have the same normalized path, kind, and exact bytes. Scope changes selection only; they must not change how the same artifact is rendered.
 
 ## Produce deterministic artifacts
+
+### Never write a file header
+
+Targets and templates must not write the caller's file header. `ArtifactRenderPlan.Create`
+applies it once to final content, after symbol resolution, and shifts implementation stub
+locators to address the published bytes. Exact profile admission must ignore inputs matched
+by `ArtifactFileHeader.IsInput`; the core validates those inputs. Declare language syntax through
+`ArtifactRenderRequest.CommentSyntaxes`, never in templates. The default table and refusal rules
+are in [File header option](../reference/plan-from-sources.md#file-header-option).
+
+Header ownership is explicit: authored text that happens to match the header is still authored
+text and receives another header. Recreating a plan from its own artifacts preserves the
+`PlannedArtifact.AppliedFileHeaderSha256` marker and does not prepend again. Pipelines rebuilding
+artifacts after planning must preserve both the headed bytes and this marker. A pipeline that
+publishes without an `ArtifactRenderPlan` can use `ArtifactFileHeader.Apply` instead; planners
+must not call it themselves. These contracts do not change Axon's profile admission; adoption
+there is a separate target update.
+
+### Normalize output
 
 Create every output in memory with the public factories:
 
@@ -660,6 +687,7 @@ Before declaring a target ready:
 - [ ] Admit all selected and reachable semantics before dependent emission.
 - [ ] Keep `Plan(...)` free of filesystem, process, network, clock, random, and ambient-state access.
 - [ ] Emit all artifacts in memory through `PlannedArtifact` factories.
+- [ ] Leave headers to Stage, ignore header inputs in target admission, and declare comment syntax on the request.
 - [ ] Make ordering, names, paths, text encoding, line endings, and hashes deterministic.
 - [ ] Preserve diagnostic ownership and use stable target-owned codes.
 - [ ] Verify profile, admission, scope, collision, and determinism behavior with specifications.
@@ -674,5 +702,8 @@ The renderer-facing public contracts are defined in:
 - `Source/Contracts/Rendering/IArtifactRenderPlanner.cs`
 - `Source/Contracts/Rendering/ArtifactRenderProfile.cs`
 - `Source/Contracts/Rendering/ArtifactRenderPlan.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeader.cs`
+- `Source/Contracts/Rendering/ArtifactCommentSyntax.cs`
+- `Source/Contracts/Rendering/ArtifactFileHeaderResult.cs`
 
 Use the Screenplay `SemanticModelCompiler` and `SemanticExecutionPlan` APIs shown above to build the request. Renderer-specific files under `Source/Rendering.Cratis` can illustrate one target's decisions, but they are not a shared helper library or an extension contract for other targets.

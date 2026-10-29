@@ -111,17 +111,28 @@ public class when_checking_sourceless_event_consumers
         var contract = slice.Events.Single().Id;
         return observer switch
         {
-            "key" => Projection(scope with { From = [fromEvent with { Key = SemanticProjectionKey.EventSourceIdentity }] }),
-            "mapping" => Projection(scope with { From = [fromEvent with { Mappings = [fromEvent.Mappings[0] with { Source = new SemanticProjectionEventSourceIdentity() }] }] }),
-            "every" => Projection(scope with { Every = new(true, false, [fromEvent.Mappings[0] with { Source = new SemanticProjectionEventSourceIdentity() }]) }),
-            "all" => Projection(scope with { Every = new(true, true, []) }),
             "reducer" => slice with { Reducers = [new("TotalsReducer", slice.ReadModels.Single().Id, [new(contract, "Reduce")])] },
             "constraint" => slice with { Constraints = [new("UniquePayment", SemanticConstraintKind.UniqueEventOccurrence, SemanticConstraintScope.EventSequence, [new(contract, [])], [], false, null)] },
             "release" => WithRelease(slice, contract),
-            _ => throw new ArgumentOutOfRangeException(nameof(observer))
+            _ => Projection(ObserveProjection(observer, scope, fromEvent))
         };
 
         SemanticSlice Projection(SemanticProjectionScope changed) => slice with { Projections = [projection with { Scope = changed }] };
+    }
+
+    static SemanticProjectionScope ObserveProjection(
+        string observer,
+        SemanticProjectionScope scope,
+        SemanticProjectionFrom fromEvent)
+    {
+        return observer switch
+        {
+            "key" => scope with { From = [fromEvent with { Key = SemanticProjectionKey.EventSourceIdentity }] },
+            "mapping" => scope with { From = [fromEvent with { Mappings = [fromEvent.Mappings[0] with { Source = new SemanticProjectionEventSourceIdentity() }] }] },
+            "every" => scope with { Every = new(true, false, [fromEvent.Mappings[0] with { Source = new SemanticProjectionEventSourceIdentity() }]) },
+            "all" => scope with { Every = new(true, true, []) },
+            _ => throw new ArgumentOutOfRangeException(nameof(observer))
+        };
     }
 
     static List<ArtifactRenderDiagnostic> Validate(Func<SemanticSlice, SemanticSlice> change)

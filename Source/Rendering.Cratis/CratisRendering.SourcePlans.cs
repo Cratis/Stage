@@ -76,7 +76,12 @@ public static partial class CratisRendering
         {
             return CratisPlanResult.Create(options.ApplicationName, [], [ProfileError("The caller's profile project and root namespace must match the plan options.")]);
         }
-        var artifacts = ServiceLayout.Apply(profile, GeneratedFileHeader.Apply(profile, CratisScaffoldArtifacts.Render(profile, options.RootNamespace, [])));
+        var header = ArtifactFileHeader.Apply(profile, [.. CratisScaffoldArtifacts.Render(profile, options.RootNamespace, [])], ArtifactCommentSyntaxes.Default);
+        if (header.Refused)
+        {
+            return CratisPlanResult.Create(options.ApplicationName, [], [.. header.Diagnostics.Select(diagnostic => new CratisPlanDiagnostic(diagnostic.Code, diagnostic.Severity, diagnostic.Message, diagnostic.Artifact, null))]);
+        }
+        var artifacts = ServiceLayout.Apply(profile, header.Artifacts);
         ImmutableArray<CratisPlanDiagnostic> diagnostics = SceneCompositionInput.IsCarriedBy(profile)
             ? [new("STAGE-PLAN-031", ArtifactRenderDiagnosticSeverity.Information, "Scene artifacts are produced only by application-scope plans.", default, null)]
             : [];

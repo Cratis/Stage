@@ -50,16 +50,14 @@ internal static class SemanticSurfaceLedger
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
 
     /// <summary>
-    /// Gets reaction side-effect combinations. Events and commands from one trigger cannot share an Arc handler result
-    /// at the pinned Arc version; event-only, command-only and empty results render.
+    /// Gets reaction side-effect combinations. One trigger can return events and commands together;
+    /// refusal-branch productions and cross-trigger scheduling have separate admission checks.
     /// </summary>
     public static IReadOnlyDictionary<(bool Produces, bool Invokes), SemanticSurfaceDisposition> ReactionSideEffectShapes { get; } =
         (from produces in new[] { false, true }
          from invokes in new[] { false, true }
          select (Produces: produces, Invokes: invokes))
-        .ToDictionary(shape => shape, shape => shape.Produces && shape.Invokes
-            ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, SemanticVersionFeatures.MixedReactionEffects)
-            : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
+        .ToDictionary(shape => shape, _ => new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
 
     /// <summary>
     /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;
@@ -149,7 +147,9 @@ internal static class SemanticSurfaceLedger
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
-        // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
+        // admitted through the closed-compilation pure gate. Validation bodies admit declared-value conversions and
+        // audited pure members (ESM-022 otherwise). Receipt-time Occurred requires a given clock in generated specs;
+        // Tenant and CausedBy remain ESM-015 refusals because no constructor-free ambient source supplies them.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticImplementationRequirement", rendered, "QueryShape");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
@@ -352,22 +352,23 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
         // specifications. Event reactions and their Automation slice artifacts render as Chronicle reactors.
-        // Non-event triggers and opaque bodies still refuse with STAGE-ESM-024; mixed handler results fail 037.
+        // Single application-trigger direct productions render as receipted occurrences. Other non-event
+        // triggers and opaque bodies still refuse with STAGE-ESM-024; mixed handler results fail 037.
         // Conditions, mappings and destinations outside the faithful target subset fail STAGE-ESM-039.
         var v6 = rejected(SemanticVersionFeatures.Automation);
-        Add(entries, "SemanticApplication", v6, "Triggers");
-        Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
+        Add(entries, "SemanticApplication", rendered, "Triggers");
+        Add(entries, "SemanticApplicationTrigger", rendered, "Id Name Properties");
         Add(entries, "SemanticSlice", rendered, "Captures");
         Add(entries, "SemanticSliceKind", rendered, "Translate");
-        Add(entries, "SemanticExpressionRootKind", v6, "Trigger");
+        Add(entries, "SemanticExpressionRootKind", rendered, "Trigger");
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
         Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
         Add(entries, "SemanticInvocationRefusal", rendered, "Selector Constraint Produces");
         Add(entries, "SemanticReaction", rendered, "Id Name Triggers");
         Add(entries, "SemanticReactionTrigger", rendered, "Invokes Kind Produces Source Where");
         Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");
-        Add(entries, "SemanticReactionTriggerKind", rendered, "Event");
-        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Interval Schedule Shutdown Startup");
+        Add(entries, "SemanticReactionTriggerKind", rendered, "Event ApplicationTrigger");
+        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown Interval Schedule Shutdown Startup");
         Add(entries, "SemanticCapture", rendered, "Appends Id Key Name");
         Add(entries, "SemanticCapture", v6, "Children Map Nested");
 
@@ -433,8 +434,9 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
 
         // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
+        // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading the inbox and reads only that source's history (Stage#752).
         // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
-        Add(entries, "SemanticCaptureEventsSource", rejected("STAGE-ESM-016"), "KeyIsEventSource");
+        Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
         Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
         Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
 

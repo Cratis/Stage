@@ -147,7 +147,9 @@ internal static class SemanticSurfaceLedger
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
-        // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
+        // admitted through the closed-compilation pure gate. Validation bodies admit declared-value conversions and
+        // audited pure members (ESM-022 otherwise). Receipt-time Occurred requires a given clock in generated specs;
+        // Tenant and CausedBy remain ESM-015 refusals because no constructor-free ambient source supplies them.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticImplementationRequirement", rendered, "QueryShape");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");

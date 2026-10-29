@@ -94,6 +94,7 @@ internal static class GeneratedTypeNames
     /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
     /// <param name="selfReduces">Decides, per read model, whether reducer members are emitted on the model rather than as a separate type.</param>
     /// <param name="policyClassName">Gives the policy class of a protected operation; operations that share a policy share the class.</param>
+    /// <param name="commandReceiptTime">Whether selected artifacts require the receipt-time helper; null derives it from command mappings.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
         SemanticApplication application,
@@ -106,7 +107,8 @@ internal static class GeneratedTypeNames
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies",
         Func<SemanticId, bool>? selfReduces = null,
-        Func<SemanticId, string>? policyClassName = null)
+        Func<SemanticId, string>? policyClassName = null,
+        bool? commandReceiptTime = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
@@ -196,7 +198,7 @@ internal static class GeneratedTypeNames
         {
             foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
         }
-        if (UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        if (commandReceiptTime ?? UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
         {
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;

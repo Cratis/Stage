@@ -30,7 +30,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics))
+        foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
         {
             if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
             {

@@ -141,7 +141,8 @@ internal static partial class SemanticCratisAdmission
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
             selfReduces: context.SelfReduces,
-            policyClassName: operation => Policies.SemanticPolicyNames.For(context)[operation].ClassName)
+            policyClassName: operation => SemanticPolicyNames.For(context)[operation].ClassName,
+            commandReceiptTime: SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
             .Concat(SemanticTranslationAdmission.Declarations(context, slices))
             .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
 

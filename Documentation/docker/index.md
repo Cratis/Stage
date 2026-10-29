@@ -477,6 +477,11 @@ An unsafe cache produces an explicit worker failure, not cached execution; Stage
 permissions. If local application data is unavailable, the default is a private, user-suffixed directory
 beneath the system temporary directory.
 
+**macOS limitation:** Unix validation checks ownership and POSIX mode bits, not extended ACL grants.
+Mode `0700` alone is not proof of isolation when a named ACL grants another user access. In a hostile
+multi-user environment, use a cache directory and ancestors with no effective extended ACL grants that
+let other users write, delete or replace the cache or its contents; Stage does not verify this condition.
+
 Stage rechecks cache ownership, permissions and ancestors before compilation and every evaluation.
 On Unix, each check starts a metadata process, so short, frequently evaluated bodies incur that overhead.
 These checks are not memoized: permissions or ancestors can change after startup or compilation, and

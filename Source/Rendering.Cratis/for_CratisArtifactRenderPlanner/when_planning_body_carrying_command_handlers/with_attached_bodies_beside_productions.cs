@@ -49,11 +49,7 @@ public class with_attached_bodies_beside_productions
         Assert.NotEqual(ArtifactRenderOutcome.Refused, plan.Outcome);
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
         Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-021" || diagnostic.Code == "STAGE-ESM-020");
-        Assert.All(plan.Refusals, refusal =>
-        {
-            Assert.Equal("specification", refusal.Kind);
-            Assert.Contains("STAGE-ESM-011", refusal.Codes);
-        });
+        Assert.Empty(plan.Refusals);
         Assert.NotEmpty(plan.Artifacts);
         Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(command.Id));
         Assert.Equal(productions, Handler(request.Model).Produces);

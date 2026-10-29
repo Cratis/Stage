@@ -31,13 +31,10 @@ internal static class validation_body_model
                 amount Decimal
         """;
 
-    internal static string Concept(string body) => $$"""
+    const string ConceptSource = """
         concept Amount : Decimal
           validate
-            rule Positive message "Positive amount required"
-              ```csharp
-              {{body}}
-              ```
+        $VALIDATION$
         module Orders
           feature Ordering
             slice StateChange PlaceOrder
@@ -50,6 +47,16 @@ internal static class validation_body_model
               event OrderPlaced
                 amount Amount
         """;
+
+    internal static string Concept(string body) => ConceptSource.Replace(
+        "$VALIDATION$",
+        $$"""
+            rule Positive message "Positive amount required"
+              ```csharp
+              {{body}}
+              ```
+        """,
+        StringComparison.Ordinal);
 
     internal static string IteratorCommand(string body) => $$"""
         concept OrderId : Uuid
@@ -73,26 +80,19 @@ internal static class validation_body_model
                 recordedAt DateTime
         """;
 
-    internal static string IteratorConcept(string body) => $$"""
-        concept Amount : Decimal
-          validate
+    internal static string IteratorConcept(string body) => ConceptSource.Replace(
+        "$VALIDATION$",
+        $$"""
             ```csharp
             {{body}}
             ```
-        module Orders
-          feature Ordering
-            slice StateChange PlaceOrder
-              command PlaceOrder
-                orderId Uuid identifier
-                amount Amount
-                produces OrderPlaced
-                  for orderId
-                  amount = amount
-              event OrderPlaced
-                amount Amount
-        """;
+        """,
+        StringComparison.Ordinal);
 
     internal static LoadedSemanticModel Load(string source) => opaque_policy_model.Load(source);
+
+    internal static LoadedSemanticModel LoadWholeNumbers(string source) =>
+        Load("eventsource WholeNumberVersionMarker\n  identifier String\n" + source);
 
     internal static ValidationResult Validate(Assembly assembly, string typeName, params object[] arguments)
     {

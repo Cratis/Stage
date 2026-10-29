@@ -53,8 +53,31 @@ internal static class SemanticReactionBodyRendering
             return new(null, placement, diagnostics.ToImmutable());
         }
 
-        return Present(code!, placement, context.Events[reaction.Triggers.Single().Source], diagnostics, reaction.Id);
+        var source = context.Events[reaction.Triggers.Single().Source];
+        var returnShape = new SemanticReactionReturnShape(source, context);
+        if (!returnShape.IsSeparate(code!.Text))
+        {
+            diagnostics.Add(new(
+                SemanticVersionFeatures.MixedReactionEffects,
+                ArtifactRenderDiagnosticSeverity.Error,
+                returnShape switch
+                {
+                    { HasNestedCollections: true } => $"Reaction '{reaction.Name}' returns a collection as a result item. Reactor side-effect handling does not flatten nested collections. Return a flat collection of modeled events or commands, using spreads only for proven result collections.",
+                    { HasNullItems: true } => $"Reaction '{reaction.Name}' returns a null result item. Reactor side-effect handling does not skip null items. Return modeled events or commands, or a whole null or empty result.",
+                    { HasValueItems: true } => $"Reaction '{reaction.Name}' returns an item that is a value, not a modeled event or command, and would fail at run time. Return modeled events or commands, or an empty result.",
+                    _ => $"Reaction '{reaction.Name}' has a mixed or undeterminable event/command return shape. Arc appends events before executing commands, so a failed command leaves events appended; use two reactions, or produce the event and let a second reaction invoke the command."
+                },
+                reaction.Id));
+        }
+
+        return Present(code!, placement, source, diagnostics, reaction.Id);
     }
+
+    internal static IEnumerable<ArtifactRenderDiagnostic> ReturnDiagnostics(LocatedSemanticSlice located, SemanticApplicationContext context) =>
+        (located.Slice.Reactions.IsDefault ? [] : located.Slice.Reactions)
+            .Where(reaction => reaction.Triggers is [var trigger] && trigger.RequirementId is not null && SemanticVersionFeatures.HasStandaloneEventBody(reaction, trigger))
+            .SelectMany(reaction => Inline(located, reaction, context).Diagnostics)
+            .Where(diagnostic => diagnostic.Code == SemanticVersionFeatures.MixedReactionEffects);
 
     static ArtifactRenderDiagnostic? LanguageDiagnostic(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
     {

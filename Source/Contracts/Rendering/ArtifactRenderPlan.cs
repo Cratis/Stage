@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Rendering.Model;
 
 namespace Cratis.Stage.Contracts.Rendering;
 
@@ -140,6 +141,50 @@ public sealed class PlannedArtifact
     /// <exception cref="InvalidArtifactRenderContract">The path, content or a semantic source is not a valid artifact contract.</exception>
     public static PlannedArtifact CreateText(string relativePath, string content, ImmutableArray<SemanticId> sources) =>
         CreateText(relativePath, content).WithSources(sources);
+
+    /// <summary>
+    /// Creates and hashes one text artifact from exact UTF-8 bytes, without normalizing line endings. Prerelease.
+    /// Use it when authored spans must keep their original bytes; <see cref="CreateText(string, string)"/> keeps its LF contract.
+    /// </summary>
+    /// <param name="relativePath">The portable relative path.</param>
+    /// <param name="utf8">The exact UTF-8 bytes. A leading byte order mark and invalid UTF-8 are rejected.</param>
+    /// <returns>The planned artifact.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The path or bytes are not a valid artifact contract.</exception>
+    public static PlannedArtifact CreateVerbatimText(string relativePath, ImmutableArray<byte> utf8)
+    {
+        if (utf8.IsDefault)
+        {
+            throw new InvalidArtifactRenderContract("Artifact text bytes cannot be default.");
+        }
+
+        var span = utf8.AsSpan();
+        if (span.StartsWith(Encoding.UTF8.Preamble))
+        {
+            throw new InvalidArtifactRenderContract("Artifact text bytes cannot start with a byte order mark.");
+        }
+
+        try
+        {
+            new UTF8Encoding(false, true).GetCharCount(span);
+        }
+        catch (DecoderFallbackException)
+        {
+            throw new InvalidArtifactRenderContract("Artifact text bytes are not valid UTF-8.");
+        }
+
+        return Create(PlannedArtifactKind.Text, relativePath, utf8);
+    }
+
+    /// <summary>
+    /// Creates and hashes one text artifact from exact UTF-8 bytes with its semantic sources. Prerelease.
+    /// </summary>
+    /// <param name="relativePath">The portable relative path.</param>
+    /// <param name="utf8">The exact UTF-8 bytes.</param>
+    /// <param name="sources">The semantic identities realized by this artifact.</param>
+    /// <returns>The planned artifact.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">The path, bytes or a semantic source is not a valid artifact contract.</exception>
+    public static PlannedArtifact CreateVerbatimText(string relativePath, ImmutableArray<byte> utf8, ImmutableArray<SemanticId> sources) =>
+        CreateVerbatimText(relativePath, utf8).WithSources(sources);
 
     /// <summary>
     /// Creates, normalizes, and hashes one binary artifact.
@@ -335,7 +380,7 @@ public sealed partial class ArtifactRenderPlan
     /// <summary>
     /// Gets the output-only SHA-256 digest, excluding the semantic revision.
     /// </summary>
-    public string Digest => InventoryDigest(AcceptanceDigest(ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals)));
+    public string Digest => InlineInputDigest(InventoryDigest(AcceptanceDigest(ComputeDigest(Target, TargetVersion, Renderer, RendererVersion, ApplicationName, Artifacts, Diagnostics, ImplementationGaps, Refusals, RequiredRemovals))));
 
     /// <summary>
     /// Gets omitted artifacts in ordinal semantic-identity order.
@@ -472,7 +517,8 @@ public sealed partial class ArtifactRenderPlan
         {
             Scope = request.Scope,
             AdditionalScopes = request.AdditionalScopes,
-            InputVersions = new(request.Model.LanguageVersion, request.Model.SemanticVersion)
+            InputVersions = new(request.Model.LanguageVersion, request.Model.SemanticVersion),
+            InputProvenance = ArtifactRenderInputProvenance.From(request)
         };
     }
 
@@ -604,35 +650,11 @@ public sealed partial class ArtifactRenderPlan
         !request.AdditionalScopes.IsDefault &&
         (request.AdditionalScopes.IsEmpty ||
             (request.Scope.Kind != ArtifactRenderScopeKind.Application && request.AdditionalScopes.All(scope => scope is not null && scope.Kind != ArtifactRenderScopeKind.Application))) &&
-        new[] { request.Scope }.Concat(request.AdditionalScopes).All(scope => ScopeMatches(request.Model.Application, scope));
+        new[] { request.Scope }.Concat(request.AdditionalScopes).All(scope => ScopeMatches(request, scope));
 
-    static bool ScopeMatches(SemanticApplication application, ArtifactRenderScope scope)
-    {
-        if (!Enum.IsDefined(scope.Kind) || scope.Kind == ArtifactRenderScopeKind.Unknown || !scope.Artifact.IsSet)
-        {
-            return false;
-        }
-
-        if (scope.Kind == ArtifactRenderScopeKind.Application)
-        {
-            return scope.Artifact == application.Id;
-        }
-
-        var modules = application.Modules;
-        if (scope.Kind == ArtifactRenderScopeKind.Module)
-        {
-            return modules.Any(_ => _.Id == scope.Artifact);
-        }
-
-        var features = AllFeatures(modules.SelectMany(_ => _.Features)).ToArray();
-        return scope.Kind switch
-        {
-            ArtifactRenderScopeKind.Feature => features.Any(_ => _.Id == scope.Artifact),
-            ArtifactRenderScopeKind.Slice => features.SelectMany(_ => _.Slices).Any(_ => _.Id == scope.Artifact),
-            _ => false
-        };
-    }
-
-    static IEnumerable<SemanticFeature> AllFeatures(IEnumerable<SemanticFeature> features) =>
-        features.SelectMany(_ => new[] { _ }.Concat(AllFeatures(_.Features)));
+    static bool ScopeMatches(ArtifactRenderRequest request, ArtifactRenderScope scope) =>
+        Enum.IsDefined(scope.Kind) &&
+        scope.Kind != ArtifactRenderScopeKind.Unknown &&
+        scope.Artifact.IsSet &&
+        RenderScopeSelection.Exists(request, scope);
 }

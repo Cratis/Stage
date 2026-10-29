@@ -23,8 +23,6 @@ internal static partial class SemanticCratisAdmission
         _ => []
     };
 
-    internal static bool IsCSharpImplementation(SemanticImplementationRequirement requirement) => SemanticImplementationBodySelector.IsTarget(requirement);
-
     static bool HasOpaque(SemanticPolicyCondition condition) => condition switch
     {
         SemanticOpaquePolicyCondition => true,

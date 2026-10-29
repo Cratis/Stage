@@ -26,6 +26,7 @@ internal static partial class PureTransitionAdmission
         "Field:global::System.Collections.Immutable.ImmutableArray<T>.Empty:global::System.Collections.Immutable.ImmutableArray<T>",
         "Field:global::System.MidpointRounding.ToEven:global::System.MidpointRounding",
         "Field:global::System.StringComparison.Ordinal:global::System.StringComparison",
+        "Field:global::System.StringComparison.OrdinalIgnoreCase:global::System.StringComparison",
         "Field:global::System.TimeSpan.Zero:global::System.TimeSpan",
         "Method:decimal.ToString`0(None:global::System.IFormatProvider):string",
         "Method:global::System.ArgumentException..ctor`0(None:string):void",
@@ -71,6 +72,9 @@ internal static partial class PureTransitionAdmission
         "Method:global::System.Math.Truncate`0(None:decimal):decimal",
         "Method:global::System.TimeSpan.Add`0(None:global::System.TimeSpan):global::System.TimeSpan",
         "Method:global::System.TimeSpan.op_Equality`0(None:global::System.TimeSpan,None:global::System.TimeSpan):bool",
+        "Method:char.IsDigit`0(None:char):bool",
+        "Method:string.Contains`0(None:char):bool",
+        "Method:string.Contains`0(None:string):bool",
         "Method:string.Contains`0(None:string,None:global::System.StringComparison):bool",
         "Method:string.EndsWith`0(None:string,None:global::System.StringComparison):bool",
         "Method:string.Equals`0(None:string,None:string,None:global::System.StringComparison):bool",
@@ -329,16 +333,16 @@ internal static partial class PureTransitionAdmission
         {
             var error = errors[0];
             var helper = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
-            var methodOffset = code.IndexOf(body, helper.Body!.OpenBraceToken.Span.End, StringComparison.Ordinal);
+            var location = CSharpInlineIndentation.Locate(code, body, helper.Body!.OpenBraceToken.Span.End);
             var detail = $"{error.Id}: {error.GetMessage(System.Globalization.CultureInfo.InvariantCulture)}{GeneratedMemberDiagnostic.Hint(error, semanticModel)}";
-            if (!error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < methodOffset ||
-                error.Location.SourceSpan.Start > methodOffset + body.Length)
+            if (location is null || !error.Location.IsInSource || error.Location.SourceTree != tree || error.Location.SourceSpan.Start < location.Start ||
+                error.Location.SourceSpan.Start > location.Start + location.Length)
             {
                 return Reject("STAGE-ESM-021", $"Internal reducer analysis compilation error: {detail}");
             }
 
-            var location = SourceLocation(requirement, body, error.Location.SourceSpan.Start - methodOffset);
-            return Reject("STAGE-ESM-019", $"Reducer body {location}: {detail}");
+            var sourceLocation = SourceLocation(requirement, body, location.ToBody(error.Location.SourceSpan.Start - location.Start));
+            return Reject("STAGE-ESM-019", $"Reducer body {sourceLocation}: {detail}");
         }
 
         var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => IsTransitionMethod(method, $"Transition_{suffix}"));
@@ -375,12 +379,7 @@ internal static partial class PureTransitionAdmission
             return (null, Reject("STAGE-ESM-022", $"Forbidden pure construct '{forbidden.Kind()}' on '{ForbiddenSymbol(forbidden, body)}'."));
         }
 
-        var disallowedTest = block.DescendantNodes().OfType<PatternSyntax>().FirstOrDefault(pattern => pattern switch
-        {
-            DeclarationPatternSyntax declaration => !generatedNames.Contains(declaration.Type.ToString()),
-            TypePatternSyntax typePattern => !generatedNames.Contains(typePattern.Type.ToString()),
-            _ => false
-        });
+        var disallowedTest = DisallowedTypeTest(block, generatedNames, role);
         if (disallowedTest is not null)
         {
             return (null, Reject("STAGE-ESM-022", $"Type test '{disallowedTest}' is outside the pure allowlist; only generated types are admitted."));
@@ -766,7 +765,7 @@ internal static partial class PureTransitionAdmission
 
     static bool SafeValue(ITypeSymbol? type, Compilation compilation) =>
         SafeValueType(type) || Generated(type, compilation) ||
-        NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan", "System.Guid");
+        NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan", "System.Guid", "System.DateOnly");
 
     static bool WideningInteger(ITypeSymbol? from, ITypeSymbol? to) => (from?.SpecialType, to?.SpecialType) switch
     {
@@ -797,11 +796,19 @@ internal static partial class PureTransitionAdmission
         _ => false
     };
 
+    static PatternSyntax? DisallowedTypeTest(BlockSyntax block, IReadOnlySet<string> generatedNames, string role) =>
+        role == "validation" ? null : block.DescendantNodes().OfType<PatternSyntax>().FirstOrDefault(pattern => pattern switch
+        {
+            DeclarationPatternSyntax declaration => !generatedNames.Contains(declaration.Type.ToString()),
+            TypePatternSyntax typePattern => !generatedNames.Contains(typePattern.Type.ToString()),
+            _ => false
+        });
+
     static bool ValidInvocation(IInvocationOperation call)
     {
         var method = call.TargetMethod;
         var owner = method.ContainingType.ToDisplayString();
-        if (IsNonOrdinalStringMatch(call, owner))
+        if (IsNonOrdinalStringMatch(call))
         {
             return false;
         }
@@ -811,12 +818,16 @@ internal static partial class PureTransitionAdmission
         return owner != "System.Linq.Enumerable" || method.Name != "Sum" || DecimalSumReturn(method.ReturnType);
     }
 
-    static bool IsNonOrdinalStringMatch(IInvocationOperation call, string owner) =>
-        owner == "System.String" && NameIs(call.TargetMethod.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") && !HasOrdinalComparison(call);
+    static bool IsNonOrdinalStringMatch(IInvocationOperation call) =>
+        call.TargetMethod.ContainingType.SpecialType == SpecialType.System_String && NameIs(call.TargetMethod.Name, "Equals", "StartsWith", "EndsWith", "Contains", "IndexOf") &&
+        !(call.TargetMethod.Name == "Contains" && call.TargetMethod.Parameters is [{ Type.SpecialType: SpecialType.System_String or SpecialType.System_Char }]) && !HasOrdinalComparison(call);
 
     static bool HasOrdinalComparison(IInvocationOperation call) =>
         call.Arguments.SingleOrDefault(argument => argument.Parameter?.Type.ToDisplayString() == "System.StringComparison") is
-        { Value: IFieldReferenceOperation field } && field.Field.Name == "Ordinal";
+        { Value: IFieldReferenceOperation field } && AdmittedComparison(call, field.Field.Name);
+
+    static bool AdmittedComparison(IInvocationOperation call, string name) =>
+        name == "Ordinal" || (name == "OrdinalIgnoreCase" && NameIs(call.TargetMethod.Name, "Contains", "StartsWith", "EndsWith"));
 
     static bool NameIs(string name, params string[] names) => names.Contains(name, StringComparer.Ordinal);
 

@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
@@ -29,7 +30,7 @@ internal static partial class SemanticSpecificationAdmission
         SemanticSlice slice,
         ICollection<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var specification in SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics))
+        foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
         {
             if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
             {
@@ -118,7 +119,7 @@ internal static partial class SemanticSpecificationAdmission
                             : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(SemanticProductionSelection.Taken(context.Application, command!, specification).Select(_ => _.EventContract)))) &&
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected) &&
-                        !ReducerUsesUnstableContext(context, expected.ReadModel)) &&
+                        ReducerRejectionReason(context, expected.ReadModel) is null) &&
                     specification.ThenAbsentReadModels.All(expected => CanAssertAbsence(context, specification, expected)) &&
                     specification.ThenQueries.All(expected => QueryMatches(context, expected) &&
                         !context.Reducers.Any(reducer => reducer.ReadModel == context.Queries[expected.Query].ReadModel) &&
@@ -183,51 +184,56 @@ internal static partial class SemanticSpecificationAdmission
         return true;
     }
 
-    // The reference evaluator returns Unsupported once an opaque policy is reached, so it cannot be the oracle
-    // for a generated scenario of an operation whose authorization depends on one.
-    static bool DependsOnOpaquePolicy(SemanticApplicationContext context, SemanticSpecification specification)
-    {
-        var authorizations = specification.ThenQueries.Select(expected => context.Queries.TryGetValue(expected.Query, out var query) ? query.Authorization : null);
-        if (specification.When is { } action && context.Commands.TryGetValue(action.Command, out var command))
-        {
-            authorizations = authorizations.Append(command.Authorization);
-        }
-
-        return authorizations.OfType<SemanticAuthorization>()
-            .Any(authorization => SemanticCratisAdmission.OpaquePolicies(authorization, context.Application.Policies).Any());
-    }
-
     static bool AssertsUncontrolledOccurrence(SemanticApplication application, SemanticSpecification specification, SemanticCommand command) =>
         !SemanticSpecificationClock.TryGet(specification, out _) && SemanticProductionSelection.Taken(application, command, specification).Any(produced => produced.Mappings.Any(mapping =>
             mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred })) &&
         (!specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty);
 
-    static bool ReducerUsesUnstableContext(SemanticApplicationContext context, SemanticId readModel)
+    static string? ReducerRejectionReason(SemanticApplicationContext context, SemanticId readModel)
     {
         var reducer = context.Reducers.SingleOrDefault(_ => _.ReadModel == readModel);
-        if (reducer is null) return false;
+        if (reducer is null) return null;
         foreach (var transition in reducer.Transitions)
         {
-            var descriptor = context.Request.TypedContextDescriptors.SingleOrDefault(_ => _.RequirementId == transition.RequirementId && _.OperationId == readModel);
-            var requirement = context.Request.ImplementationRequirements.SingleOrDefault(_ => _.RequirementId == transition.RequirementId);
-            if (descriptor is null || requirement is null) return true;
-            var diagnostics = System.Collections.Immutable.ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-            if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, readModel, diagnostics, out var body)) return true;
-
-            // Specification admission must fail closed too: a host without the audited
-            // reference assemblies cannot safely classify this reducer's context reads.
-            try
+            var reason = ReducerTransitionRejectionReason(context, readModel, transition.RequirementId, transition.EventContract);
+            if (reason is not null)
             {
-                var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[transition.EventContract], descriptor, requirement);
-                if (!verdict.Accepted || verdict.ContextReads.Overlaps(["Occurred", "SequenceNumber", "Tenant"])) return true;
-            }
-            catch (Exception)
-            {
-                return true;
+                var eventName = context.Events.TryGetValue(transition.EventContract, out var @event) ? @event.Name : transition.EventContract.ToString();
+                var readModelName = context.ReadModels.TryGetValue(readModel, out var model) ? model.Name : readModel.ToString();
+                return $"Reducer '{reducer.Name}' for read model '{readModelName}' triggered by '{eventName}' cannot be verified: {reason}";
             }
         }
 
-        return false;
+        return null;
+    }
+
+    static string? ReducerTransitionRejectionReason(SemanticApplicationContext context, SemanticId readModel, string requirementId, SemanticId eventContract)
+    {
+        var descriptor = context.Request.TypedContextDescriptors.SingleOrDefault(_ => _.RequirementId == requirementId && _.OperationId == readModel);
+        var requirement = context.Request.ImplementationRequirements.SingleOrDefault(_ => _.RequirementId == requirementId);
+        if (descriptor is null) return "The typed context descriptor is missing.";
+        if (requirement is null) return "The implementation requirement is missing.";
+        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+        if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, requirementId, readModel, diagnostics, out var body))
+            return diagnostics.Count == 0 ? "The reducer body could not be verified." : string.Join(' ', diagnostics.Select(_ => $"{_.Code}: {_.Message}"));
+
+        // Specification admission must fail closed too when analysis cannot classify context reads.
+        try
+        {
+            var verdict = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[readModel], context.Events[eventContract], descriptor, requirement);
+            if (!verdict.Accepted) return $"{verdict.Code}: {verdict.Reason}";
+            return UnstableReducerContextReason(verdict.ContextReads);
+        }
+        catch (Exception exception)
+        {
+            return $"Reducer analysis failed: {exception.GetType().Name}: {exception.Message}";
+        }
+    }
+
+    static string? UnstableReducerContextReason(IEnumerable<string> contextReads)
+    {
+        var unstable = string.Join(", ", contextReads.Where(read => read == "Occurred" || read == "SequenceNumber" || read == "Tenant").Order(StringComparer.Ordinal).Select(read => $"context.{read}"));
+        return unstable.Length == 0 ? null : $"A reducer body reads {unstable}, which Chronicle's ReadModelScenario cannot supply deterministically.";
     }
 
     static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
@@ -272,10 +278,8 @@ internal static partial class SemanticSpecificationAdmission
             return "Query expectations on reducer-built read models require the rendered target's query scenario, which is not admitted in Phase 1.";
         }
 
-        if (specification.ThenReadModels.Any(expected => ReducerUsesUnstableContext(context, expected.ReadModel)))
-        {
-            return "A reducer body reads context.Occurred, context.SequenceNumber or context.Tenant, which Chronicle's ReadModelScenario cannot supply deterministically.";
-        }
+        var reducerReason = specification.ThenReadModels.Select(expected => ReducerRejectionReason(context, expected.ReadModel)).FirstOrDefault(reason => reason is not null);
+        if (reducerReason is not null) return reducerReason;
 
         if (specification.ThenReadModels.Any(_ => CannotCompareScopedPresence(context, _.ReadModel, _.Exactly, _.Values)) ||
             specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) &&

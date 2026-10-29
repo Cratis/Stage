@@ -342,6 +342,14 @@ public class CSharpCodeBuilder
 
     internal void Scope(IEnumerable<string> types, IEnumerable<string> values) => _imports?.Scope(types, values);
     internal void Pin(params string[] names) => _imports?.Pin(names);
+
+    internal void BindInlineReturnType(string qualified)
+    {
+        var separator = qualified.LastIndexOf('.');
+        var type = new TypeReference(qualified[8..separator], qualified[(separator + 1)..], 0, ReferenceContext.Type);
+        if (_imports is not null) _imports.BindInlineReturnType(type);
+        else Using(type.Namespace);
+    }
     internal void Access(params string[] names) => _imports?.Access(names);
     internal void Inherits(string fullName) => _imports?.Inherits(fullName);
 

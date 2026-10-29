@@ -54,7 +54,8 @@ internal static class SemanticVersionFeatureAdmission
         }
 
         return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct()
-            .Select(feature => Diagnostic(feature, context))];
+            .Select(feature => Diagnostic(feature, context))
+            .Concat(slices.SelectMany(located => SemanticReactionBodyRendering.ReturnDiagnostics(located, context)))];
     }
 
     static ArtifactRenderDiagnostic Diagnostic(SemanticVersionFeature feature, SemanticApplicationContext context)

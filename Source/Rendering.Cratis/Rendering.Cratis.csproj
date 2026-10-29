@@ -40,7 +40,7 @@
         <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
-        <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
         <!--
@@ -70,6 +70,10 @@
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' != 'Debug'">
         <PackageReference Include="Cratis.Fundamentals" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <!-- Release takes only the package path of Chronicle, embedded below for reaction body admission. -->
+        <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
@@ -104,6 +108,7 @@
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
         <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Fundamentals)/lib/net10.0/Cratis.Fundamentals.dll" LogicalName="GenerationReferences.Cratis.Fundamentals.dll" WithCulture="false" />
+        <EmbeddedResource Include="$(PkgCratis_Chronicle)/lib/net10.0/Cratis.Chronicle.dll" LogicalName="GenerationReferences.Cratis.Chronicle.dll" WithCulture="false" />
     </ItemGroup>
     <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
          copy a second time makes the regex generator emit duplicate partial members. -->

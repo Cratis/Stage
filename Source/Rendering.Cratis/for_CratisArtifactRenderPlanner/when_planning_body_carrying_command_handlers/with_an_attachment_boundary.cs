@@ -100,23 +100,51 @@ public class with_an_attachment_boundary
     public void should_reject_wrong_tuple_order_and_arity(string body) => AssertBlocked(handler_model.Request(body, handler_model.MultiSource), "STAGE-ESM-019");
 
     [Fact]
-    public void should_preserve_raw_literals_comments_and_crlf()
+    public void should_return_a_bare_handler_result_without_a_pass_through_local()
     {
-        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n      value\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        var plan = handler_model.Plan(handler_model.Request());
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        var source = Source(plan);
+        Assert.DoesNotContain("handlerPayloads", source, StringComparison.Ordinal);
+        Assert.Contains("return HandlerBody_", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void should_preserve_raw_literals_and_comments_and_normalize_crlf_outside_literals()
+    {
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\n    spaced\n      value\n    \"\"\";\r\nreturn new OrderPlaced(text);";
         var request = handler_model.Request(body);
         var plan = handler_model.Plan(request);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var context = new SemanticApplicationContext(request, new("HandlerApp", "Orders"));
         var builder = new CSharpCodeBuilder();
         SemanticCommandHandlerRendering.Render(builder, context.Commands.Values.Single(), context);
-        Assert.Contains(body, builder.ToString(), StringComparison.Ordinal);
+
+        // Re-frozen for Cratis/Stage#848 and #846: re-indent the body while retaining LF inside literals and CRLF outside them.
+        var rendered = builder.ToString();
+        var indent = LeadingSpaces(rendered, "// preserve this trivia\r\n");
+        Assert.NotEmpty(indent);
+        Assert.Equal(0, indent.Length % 4);
+        Assert.Contains($"{indent}// preserve this trivia\r\n{indent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\r\n{indent}return new OrderPlaced(text);", rendered, StringComparison.Ordinal);
 
         // PlannedArtifact.Text normalizes CRLF by contract; the authenticated splice does not.
-        Assert.Contains(body.Replace("\r\n", "\n", StringComparison.Ordinal), Source(plan), StringComparison.Ordinal);
+        var planned = Source(plan);
+        var plannedIndent = LeadingSpaces(planned, "// preserve this trivia\n");
+        Assert.NotEmpty(plannedIndent);
+        Assert.Contains($"{plannedIndent}// preserve this trivia\n{plannedIndent}var text = \"\"\"\n    spaced\n      value\n    \"\"\";\n{plannedIndent}return new OrderPlaced(text);", planned, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void should_skip_a_generated_specification_that_reaches_the_body_without_dropping_the_command()
+    public void should_refuse_crlf_inside_a_raw_literal()
+    {
+        const string body = "// preserve this trivia\r\nvar text = \"\"\"\r\n    spaced\r\n    \"\"\";\r\nreturn new OrderPlaced(text);";
+        var plan = handler_model.Plan(handler_model.Request(body));
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
+        Assert.Empty(plan.Artifacts);
+    }
+
+    [Fact]
+    public void should_render_a_generated_specification_that_reaches_the_body_without_dropping_the_command()
     {
         const string specification = """
 
@@ -128,25 +156,17 @@ public class with_an_attachment_boundary
                   name = "ALICE"
         """;
 
-        // Stage#828 degrades specification execution gaps, not application contracts.
         var request = handler_model.Request(source: handler_model.Source + specification);
         var slice = request.Model.Application.Modules.Single().Features.Single().Slices.Single();
-        var omitted = slice.Specifications.Single();
+        var specificationModel = slice.Specifications.Single();
         var command = slice.Commands.Single();
         var plan = handler_model.Plan(request);
 
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         Assert.Equal(ArtifactRenderOutcome.Complete, plan.Outcome);
-        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" &&
-            diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Artifact == omitted.Id &&
-            diagnostic.Message.Contains("Placing", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("STAGE-ESM-011", StringComparison.Ordinal) &&
-            diagnostic.Message.Contains("command handler bodies are not executed", StringComparison.Ordinal));
-        var refusal = Assert.Single(plan.Refusals);
-        Assert.Equal(omitted.Id, refusal.Artifact);
-        Assert.Equal("specification", refusal.Kind);
-        Assert.Equal("STAGE-ESM-011", Assert.Single(refusal.Codes));
-        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(omitted.Id));
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011");
+        Assert.Empty(plan.Refusals);
+        Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(specificationModel.Id));
         Assert.Contains(plan.Artifacts, artifact => artifact.Sources.Contains(command.Id));
         Assert.Contains("HandlerBody_", Source(plan), StringComparison.Ordinal);
     }
@@ -158,5 +178,13 @@ public class with_an_attachment_boundary
         var plan = handler_model.Plan(request);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error);
         Assert.Empty(plan.Artifacts);
+    }
+
+    static string LeadingSpaces(string text, string marker)
+    {
+        var at = text.IndexOf(marker, StringComparison.Ordinal);
+        var start = at;
+        while (start > 0 && text[start - 1] == ' ') start--;
+        return text[start..at];
     }
 }

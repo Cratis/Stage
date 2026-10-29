@@ -8,6 +8,8 @@ using System.Text.Json;
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>Owns the redirected child and its bounded streams.</summary>
+/// <param name="options">The launch settings and resource bounds.</param>
+/// <param name="role">The worker process role.</param>
 internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) : IAsyncDisposable
 {
     Process? _process;
@@ -41,6 +43,16 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) 
         {
             process.Dispose();
         }
+    }
+
+    internal static void ConfigureEnvironment(ProcessStartInfo info, string cacheDirectory, Func<string, string?> read)
+    {
+        info.Environment.Clear();
+        foreach (var name in new[] { "DOTNET_ROOT", "DOTNET_ROOT_X64", "DOTNET_ROOT_ARM64", "DOTNET_ROOT_X86", "DOTNET_ROOT_ARM", "DOTNET_ROOT(x86)", "SystemRoot" })
+        {
+            if (read(name) is { Length: > 0 } value) info.Environment[name] = value;
+        }
+        foreach (var name in new[] { "HOME", "TMPDIR", "TEMP", "TMP" }) info.Environment[name] = cacheDirectory;
     }
 
     internal async Task StartAsync(CancellationToken token)
@@ -96,7 +108,7 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) 
         foreach (var argument in options.Launch?.Arguments ?? [Path.GetFullPath(options.WorkerPath)]) info.ArgumentList.Add(argument);
         info.ArgumentList.Add("--role");
         info.ArgumentList.Add(role);
-        info.Environment.Clear();
+        ConfigureEnvironment(info, info.WorkingDirectory, Environment.GetEnvironmentVariable);
         var heapMb = role == "compile" ? 1024 : options.HeapLimitMb;
         info.Environment["DOTNET_GCHeapHardLimit"] = ((long)heapMb * 1024 * 1024).ToString("X", CultureInfo.InvariantCulture);
         info.Environment["DOTNET_gcServer"] = "0";

@@ -54,12 +54,12 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        { when_rendering_scoped_projections.ScopedSource, "1afbe1461d5cad81bbcecb298f7ef6ef58799ed7398355280bcac48ee91833e9" },
+        { when_rendering_scoped_projections.ScopedSource, "9f77aac834e823ac66592d168dbf4a3f30536f5dc0d43ddafaea05e4854d9cb4" },
         { QuerySource, "593e95a70877d953aa788243bb021925a7ac07762a4fdaaabc89593f12a5d442" },
         { DeniedQuerySource(), "be08c539e9769ae6b0b341606359f2c20670ac32b14dcdab7d18e32ecd090190" },
         { a_reaction_specification.ProductionSource, "a126793aa88e2d18154a56d2f9b639bccbf39ad32c3c4ef68deb0d95ac22a116" },
         { a_redelivery_specification.RedeliverySource, "874c5afa44cd2e0597b983df8fca086b43797312d68967b39ae6651451f0e177" },
-        { a_specification_case_table.Source, "eecd08b06586899a7a5f8abc44bcfbdc58471fd61140898e5b98072befdad986" }
+        { a_specification_case_table.Source, "75b7643e2cfb060ee69bf813f15d7b4554dc0eeb9c0b42c805768d261a887643" }
     };
 
     public static TheoryData<string> Sources
@@ -121,7 +121,7 @@ public class when_recording_declaring_slice_sources
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
 

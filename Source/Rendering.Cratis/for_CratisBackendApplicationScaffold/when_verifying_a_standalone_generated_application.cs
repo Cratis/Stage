@@ -34,7 +34,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     void Establish()
     {
         _model = CreateLongMatchModel();
-        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
         _application = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-generated-application"));
         var plan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options);
         if (!plan.Success)
@@ -47,7 +47,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         foreach (var artifact in plan.Artifacts)
         {
             var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, [.. artifact.Bytes]);
         }
     }
@@ -117,14 +117,22 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         return Compile(form with { Documents = [document with { Bytes = [.. Encoding.UTF8.GetBytes(source)] }] }).Model;
     }
 
+    static void AuthenticateAsProbeCaller(HttpRequestMessage request)
+    {
+        const string principal = /*lang=json,strict*/ """{"identityProvider":"stage","userId":"standalone-probe","userDetails":"Standalone probe","userRoles":[],"claims":[]}""";
+        request.Headers.Add("x-ms-client-principal-id", "standalone-probe");
+        request.Headers.Add("x-ms-client-principal-name", "Standalone probe");
+        request.Headers.Add("x-ms-client-principal", Convert.ToBase64String(Encoding.UTF8.GetBytes(principal)));
+    }
+
     void AssertLongMatchPassed(string fileName)
     {
         var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
         foreach (var name in new[] { "when_accepting_a_long_match.should_return_the_expected_response", "when_rejecting_a_long_match.should_report_the_expected_first_error" })
         {
             var result = results.Descendants().Single(element => element.Name.LocalName == "UnitTestResult" &&
-                element.Attribute("testName")!.Value.EndsWith($".{name}", StringComparison.Ordinal));
-            result.Attribute("outcome")!.Value.ShouldEqual("Passed");
+                element.Attribute("testName").Value.EndsWith($".{name}", StringComparison.Ordinal));
+            result.Attribute("outcome").Value.ShouldEqual("Passed");
         }
     }
 
@@ -133,7 +141,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
         result.ExitCode.ShouldEqual(0);
         using var document = System.Text.Json.JsonDocument.Parse(result.Output);
         return [.. document.RootElement.GetProperty("Items").GetProperty("Compile").EnumerateArray()
-            .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()!).Replace('\\', '/'))];
+            .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()).Replace('\\', '/'))];
     }
 
     int ExecutedSpecifications(string fileName = "generated.trx") => SpecificationCount(fileName, "executed");
@@ -144,7 +152,7 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
     {
         var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
         var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
-        return int.Parse(counters.Attribute(counter)!.Value, System.Globalization.CultureInfo.InvariantCulture);
+        return int.Parse(counters.Attribute(counter).Value, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     async Task<string> VerifyHealth()
@@ -222,6 +230,9 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
             $"http://127.0.0.1:{port}");
         startInfo.Environment["Cratis__Chronicle__ConnectionString"] = $"chronicle://chronicle-dev-client:chronicle-dev-secret@127.0.0.1:{chroniclePort}";
         startInfo.Environment["Cratis__MongoDB__Server"] = $"mongodb://127.0.0.1:{mongoDBPort}";
+
+        // The query has no authorize clause and renders [Authorize]; the probe authenticates through Arc's forwarded identity headers.
+        startInfo.Environment["Cratis__Arc__TrustForwardedIdentityHeaders"] = "true";
         using var host = new Process { StartInfo = startInfo };
         host.Start();
         var standardOutput = host.StandardOutput.ReadToEndAsync();
@@ -254,9 +265,11 @@ public class when_verifying_a_standalone_generated_application : a_register_proj
             if (healthy)
             {
                 // A single request outside the readiness retry loop must succeed on the first attempt.
-                using var query = await client.GetAsync(
-                    new Uri($"http://127.0.0.1:{port}/api/projects/registration/project-lookup/project-by-id?projectId=4fa85f64-5717-4562-b3fc-2c963f66afa7"),
-                    timeout.Token);
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Get,
+                    new Uri($"http://127.0.0.1:{port}/api/projects/registration/project-lookup/project-by-id?projectId=4fa85f64-5717-4562-b3fc-2c963f66afa7"));
+                AuthenticateAsProbeCaller(request);
+                using var query = await client.SendAsync(request, timeout.Token);
                 _firstQueryStatus = query.StatusCode;
                 return "GET /healthz returned 200.";
             }

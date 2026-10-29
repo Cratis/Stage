@@ -103,6 +103,9 @@ internal static partial class SemanticSpecificationAdmission
     }
 
     static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
+        !GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification) && CanRenderDeclaredSpecification(context, specification, reactionInvocation);
+
+    static bool CanRenderDeclaredSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
@@ -170,7 +173,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
     {
         foreach (var expected in specification.ThenQueries.Where(result =>
-            context.Queries.TryGetValue(result.Query, out var query) && query.Authorization is not null))
+            context.Queries.TryGetValue(result.Query, out var query) && IsProtected(context, query)))
         {
             // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
             if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
@@ -236,7 +239,12 @@ internal static partial class SemanticSpecificationAdmission
         return unstable.Length == 0 ? null : $"A reducer body reads {unstable}, which Chronicle's ReadModelScenario cannot supply deterministically.";
     }
 
-    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
+    static string RejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
+        GivesUnauthenticatedCallerToUnauthorizedArtifact(context, specification)
+            ? "An explicitly unauthenticated caller cannot be preserved for an artifact with no authorize clause: Stage renders such an artifact as [Authorize], so it would be denied; to keep the endpoint open, declare policy Anyone with require anonymous and authorize Anyone (ESM v31)."
+            : DeclaredRejectionReason(context, specification);
+
+    static string DeclaredRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
         if (specification.When is null && !specification.ThenQueries.IsEmpty && !specification.ThenErrors.IsEmpty &&
             (!specification.GivenEvents.IsEmpty || !specification.GivenReadModels.IsEmpty))
@@ -294,7 +302,7 @@ internal static partial class SemanticSpecificationAdmission
             return "A denied query must be executed through Arc's query pipeline to assert Unauthorized and no returned data; a direct read-model lookup does not evaluate its policy.";
         }
 
-        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is not null))
+        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && IsProtected(context, query)))
         {
             return "A protected query must run through Arc's query pipeline with the fixture caller; direct invocation bypasses the generated authorization policy.";
         }
@@ -333,6 +341,12 @@ internal static partial class SemanticSpecificationAdmission
 
         return "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
+
+    // Stage renders an artifact without an authorize clause as [Authorize]; a caller declared unauthenticated would be denied.
+    static bool GivesUnauthenticatedCallerToUnauthorizedArtifact(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.GivenCaller is { Authenticated: false } &&
+        ((specification.When is not null && context.Commands.TryGetValue(specification.When.Command, out var command) && command.Authorization is null) ||
+            specification.ThenQueries.Any(expected => context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is null));
 
     static bool MissingObservableSource(SemanticApplicationContext context, SemanticSpecificationEvent fact) =>
         fact.EventSource is null && SemanticSpecificationEventSources.RequiresSource(context, fact.EventContract, fact.Route is not null);

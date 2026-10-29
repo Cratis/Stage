@@ -20,12 +20,12 @@ public class when_admitting_the_canonical_v7_corpus : Specification
 
     void Because() => _plan = CratisRendering.Plan(
         _model,
-        SemanticExecutionPlan.Compile(_model).Plan!,
+        SemanticExecutionPlan.Compile(_model).Plan,
         new(ArtifactRenderScopeKind.Application, _model.Application.Id),
         new("Projects", "Projects"));
 
     [Fact] void should_load_an_esm_v7_model() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V7);
     [Fact] void should_admit_generated_values_and_responses() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_report_no_refusals() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_report_no_refusals() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_emit_artifacts() => _plan.Artifacts.ShouldNotBeEmpty();
 }

@@ -25,7 +25,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
     public async Task should_execute_the_failing_pin_as_a_contract_rejection_but_omit_its_rendered_specification()
     {
         var model = context.WithoutOpaqueRule(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan()));
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         plan.Specifications.Count.ShouldEqual(2);
         var specification = plan.Specifications.Values.Single(specification => specification.Name == "InvalidInviteFixture");
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -35,7 +35,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
         rejected.World.Facts.ShouldBeEmpty();
         var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(rejected.Details);
+        stage.Trace.Rejection.ShouldEqual(rejected.Details);
         stage.Trace.Facts.ShouldBeEmpty();
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedConceptRules", "GeneratedConceptRules"));
         rendered.Success.ShouldBeTrue();
@@ -80,6 +80,7 @@ public class when_comparing_generated_concept_rules(when_comparing_generated_con
                     {
                         using var scenario = new CommandScenario<global::GeneratedConceptRules.Shop.Customers.Invite.Invite>();
                         scenario.PinGeneratedValue("code", new global::GeneratedConceptRules.Common.InviteCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::GeneratedConceptRules.Shop.Customers.Invite.Invite());
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);

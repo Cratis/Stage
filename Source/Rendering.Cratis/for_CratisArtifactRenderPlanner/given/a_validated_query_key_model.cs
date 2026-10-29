@@ -76,6 +76,7 @@ public static class a_validated_query_key_model
                 // This model has no protected properties, so release must preserve the instance.
                 readModels.Release<InvoiceSummary>(Arg.Any<InvoiceSummary>()).Returns(call => Task.FromResult(call.Arg<InvoiceSummary>()));
                 using var lookupScenario = new QueryScenario<InvoiceSummary>();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 // Snapshot reads normally require a silo. Keep the real Arc argument conversion
                 // and validation pipeline, but substitute the store as companion specs do.
                 lookupScenario.Services.AddSingleton<IReadModels>(new QueryReadModels(readModels, rows));

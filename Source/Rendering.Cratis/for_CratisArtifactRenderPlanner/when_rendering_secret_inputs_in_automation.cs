@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -59,7 +60,7 @@ public class when_rendering_secret_inputs_in_automation : Specification
 
     string Content(string fileName) => Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith($"/{fileName}", StringComparison.Ordinal)).Bytes.AsSpan());
 
-    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_exclude_the_automation_command_secret_from_causation_capture() => _slice.ShouldContain("[property: NotAudited] AccessToken Token");
     [Fact] void should_invoke_the_protected_command_record() => _invocation.ShouldContain("new CompleteWork(@event.Id, @event.Token)");
     [Fact] void should_protect_the_produced_event_secret() => _concept.ShouldContain("[Encrypted]");

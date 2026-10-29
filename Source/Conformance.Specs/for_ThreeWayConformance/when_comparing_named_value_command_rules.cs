@@ -30,7 +30,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(named_value_command_cases.Compile()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(named_value_command_cases.Compile()).Plan;
             var probes = plan.Specifications.Values.Select(specification =>
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -39,7 +39,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                     ? rejected.ValidationFailures.Select(failure => new[] { failure.Message, failure.Severity.ToString() }).ToArray()
                     : [];
                 Assert.Equal(specification.Name.EndsWith("Invalid", StringComparison.Ordinal), failures.Length > 0);
-                var command = plan.Commands[specification.When!.Command];
+                var command = plan.Commands[specification.When.Command];
                 var input = specification.When.Values.Single(value => command.Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
                 var member = input is SemanticTextValue text ? Identifiers.ToPascalCase(text.Value) : null;
                 return $$"""
@@ -51,6 +51,7 @@ public class when_comparing_named_value_command_rules(when_comparing_named_value
                         string? member = {{JsonSerializer.Serialize(member)}};
                         var value = member is null ? null : Enum.Parse(enumType, member);
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(constructor.Invoke(["one", value, Enum.Parse(enumType, "InReview")]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

@@ -41,7 +41,7 @@ public class when_rendering_an_unmarked_model : Specification
     }
 
     [Fact] void should_keep_the_unmarked_model_on_v12() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V12);
-    [Fact] void should_admit_the_unmarked_model() => _unmarked.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_unmarked_model() => _unmarked.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_render_the_same_artifact_set() => _unmarked.Artifacts.Select(artifact => artifact.RelativePath).ShouldContainOnly(_marked.Artifacts.Select(artifact => artifact.RelativePath));
     [Fact] void should_change_only_the_compliance_attributes() => _differences.ShouldBeEmpty();
 }

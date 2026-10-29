@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Scene.Model.Elements;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Xunit;
 
@@ -27,7 +28,7 @@ public class when_planning_explicit_action_subjects : given.a_register_project_r
 
         var plan = _planner.Plan(_request with { Profile = profile });
 
-        plan.Diagnostics.ShouldBeEmpty();
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         var scene = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == "src/stage-scene.json").Bytes.AsSpan());
         scene.ShouldContain($"\"actionSubject\":\"{subject}\"");
     }

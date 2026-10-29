@@ -30,7 +30,7 @@ public class when_planning_the_screen_composition_with_its_guarded_actions : a_s
     }
 
     [Fact] void should_change_the_authored_close_guard() => _authored.ShouldContain("\"right\":\"open\"");
-    [Fact] void should_report_the_guarded_screen_action() => _plan.Diagnostics.Select(_ => _.Code).ShouldContainOnly(UnsupportedGuardedScreenAction.DiagnosticCode);
+    [Fact] void should_report_the_guarded_screen_action() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).Select(_ => _.Code).ShouldContainOnly(UnsupportedGuardedScreenAction.DiagnosticCode);
     [Fact] void should_not_succeed() => _plan.Success.ShouldBeFalse();
     [Fact] void should_plan_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
 }

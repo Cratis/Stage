@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -50,14 +51,14 @@ public class when_building_root_string_queries(context fixture) : IClassFixture<
             var compilation = new SemanticModelCompiler().Compile("RootStringControl", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
             compilation.Diagnostics.ShouldBeEmpty();
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             model.Application.Concepts.ShouldBeEmpty();
             model.Application.Types.ShouldBeEmpty();
             model.Application.Modules.Single().Features.ShouldBeEmpty();
             var execution = SemanticExecutionPlan.Compile(model);
             execution.Success.ShouldBeTrue();
             var profile = CratisRendering.CreateProfile(model.Application.Name, new("RootStringControl", "RootStringApp"));
-            var request = new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+            var request = new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
             var scaffold = new CratisArtifactRenderPlanner().Plan(request);
             scaffold.Success.ShouldBeTrue();
             scaffold.Diagnostics.ShouldBeEmpty();
@@ -92,7 +93,7 @@ public class when_building_root_string_queries(context fixture) : IClassFixture<
                 """);
             Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
             syntax.Diagnostics.ShouldBeEmpty();
-            Files = RenderLegacy(syntax.Value!).GetAwaiter().GetResult();
+            Files = RenderLegacy(syntax.Value).GetAwaiter().GetResult();
             return ArtifactRenderPlan.Create(request, [.. scaffold.Artifacts, .. Files.Select(file => PlannedArtifact.CreateText(file.RelativePath, file.Content))], scaffold.Diagnostics);
         }
 
@@ -104,8 +105,8 @@ public class when_building_root_string_queries(context fixture) : IClassFixture<
             await using var error = new StringWriter();
             await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "root-string-control")), output, error);
             codeOutput.Files.Count.ShouldEqual(2);
-            codeOutput.Files.SelectMany(file => file.Diagnostics).ShouldBeEmpty();
-            error.ToString().ShouldBeEmpty();
+            codeOutput.Files.SelectMany(file => file.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
+            error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
             codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
             return [.. codeOutput.Files];
         }

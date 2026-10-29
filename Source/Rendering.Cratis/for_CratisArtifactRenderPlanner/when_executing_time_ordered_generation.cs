@@ -35,6 +35,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                 var clock = new FixedClock();
                 scenario.Services.AddSingleton<TimeProvider>(clock);
                 scenario.AllowGeneration();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new PlaceOrder());
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 Assert.Single(scenario.AppendedEvents);
@@ -56,6 +57,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                 using var scenario = new CommandScenario<PlaceOrder>();
                 scenario.Clock(Receipt);
                 scenario.AllowGeneration();
+                using var principalScope2 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 var result = await scenario.Execute(new PlaceOrder());
                 Assert.True(result.IsSuccess, string.Join("; ", result.ExceptionMessages));
                 Assert.Equal(Receipt.ToUnixTimeMilliseconds(), Decode(scenario.GeneratedValues.Last<OrderId>("orderId").Value[6..16]));
@@ -100,7 +102,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                     returns orderId
             """);
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
     }
 
     async Task Because()
@@ -110,7 +112,8 @@ public class when_executing_time_ordered_generation : a_generated_application
         _tests = await Run("time-ordered-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_execute_the_time_ordered_generation_contract()
+    [Fact]
+    void should_execute_the_time_ordered_generation_contract()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         _tests.ShouldContain("Passed!");

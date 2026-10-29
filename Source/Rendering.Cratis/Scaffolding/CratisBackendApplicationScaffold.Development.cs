@@ -82,6 +82,35 @@ public sealed partial class CratisBackendApplicationScaffold
         Debug, which is also when its test packages are referenced. A Release build
         removes them and needs no test packages.
 
+        ## Access defaults
+
+        Commands and queries whose Screenplay model has no `authorize` clause are rendered with
+        `[Authorize]`: they require an authenticated caller and no particular role. Screenplay's
+        reference semantics let everyone call such an artifact; Stage deliberately renders the
+        stricter default, and reports each case as an informational `STAGE-ESM-054` diagnostic.
+        Caller-less specifications use an authenticated test caller. A reaction with no `runs as`
+        that invokes such a command runs as system (no roles), reported as `STAGE-ESM-055`.
+        Explicitly modeled policies and callers are preserved.
+
+        To keep an endpoint open, declare `policy Anyone` with `require anonymous` and put `authorize Anyone` under each command or query in the `.play` model (ESM v31). This renders `[AllowAnonymous]` for guests and signed-in callers and reports `STAGE-ESM-060`, not the authenticated default `STAGE-ESM-054`.
+
+        ```play
+        policy Anyone
+          require anonymous
+
+        slice StateChange PublicEndpoint
+          command Ping
+            authorize Anyone
+            produces event Pinged
+        ```
+
+        To call these endpoints locally, present an identity. Arc's development identity
+        support sends the `x-ms-client-principal` headers (see
+        [Generate a Microsoft identity principal for local development](https://www.cratis.io/arc/backend/csharp/development/generating-principal/))
+        and requires the host to opt in to forwarded identity headers with
+        `Cratis:Arc:TrustForwardedIdentityHeaders`. Never enable that setting where callers can
+        reach the backend directly.
+
         ## Customize
 
         Put adapters, partial `Program` hooks, dependency imports, and styles in

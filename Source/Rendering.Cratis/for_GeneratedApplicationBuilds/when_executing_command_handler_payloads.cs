@@ -81,8 +81,14 @@ public class when_executing_command_handler_payloads : a_generated_application
         using {{_commandNamespace}};
         using Orders.Common;
 
-        public class handler_payloads
+        public class handler_payloads : IDisposable
         {
+            // Commands without authorize now require the authenticated rendering-default caller.
+            readonly IDisposable _caller = new CurrentPrincipalAccessor(new HttpRequestContextAccessor())
+                .BeginScope(new ClaimsPrincipal(new ClaimsIdentity([], "fixture")));
+
+            public void Dispose() => _caller.Dispose();
+
             [Fact]
             public void uses_one_typed_payload_batch_and_the_filled_generated_value()
             {

@@ -6,13 +6,14 @@ using Cratis.Screenplay;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 
 public class when_rendering_specification_case_tables : a_multi_slice_application
 {
-    void Establish() => _application = new ScreenplayCompiler().Compile(a_specification_case_table.Source).Value!;
+    void Establish() => _application = new ScreenplayCompiler().Compile(a_specification_case_table.Source).Value;
 
     async Task Because() => await _renderer.Render([_application], _targetDirectory, _output, _error);
 
@@ -21,7 +22,7 @@ public class when_rendering_specification_case_tables : a_multi_slice_applicatio
     [Fact] void should_render_the_medium_case_values() => Text("medium").ShouldContain("@event.Name == \"medium\"");
     [Fact] void should_render_the_large_case_values() => Text("large").ShouldContain("@event.Name == \"large\"");
     [Fact] void should_compile_every_case() => RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
-    [Fact] void should_report_no_rendering_problems() => _error.ToString().ShouldEqual(string.Empty);
+    [Fact] void should_report_no_rendering_problems() => _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldEqual(string.Empty);
 
     string Text(string name) => _codeOutput.Files.Single(file => Path.GetFileName(file.RelativePath) == $"when_registering_{name}.cs").Content;
 }

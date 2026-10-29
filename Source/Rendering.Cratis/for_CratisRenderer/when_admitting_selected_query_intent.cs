@@ -5,6 +5,7 @@ using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -53,7 +54,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         var compilation = new NativeScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _module = _application.Modules.Single();
         _feature = _module.Features.Single();
         _blocked = _feature.Slices.First();
@@ -100,7 +101,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         query = query with { ReturnType = query.ReturnType with { Name = "UnmatchedModel" } };
         ReplaceBlocked(_blocked with { Queries = [_blocked.Queries.First(), query] });
         var exception = await Catch.Exception(() => Render("slice"));
-        AssertFailure(exception, query, UnsupportedQueryIntentReason.FilePerformer, query.Performer!.File!.Location);
+        AssertFailure(exception, query, UnsupportedQueryIntentReason.FilePerformer, query.Performer.File.Location);
         _codeOutput.Files.ShouldBeEmpty();
     }
 
@@ -114,7 +115,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         var failure = Assert.IsType<UnsupportedQueryIntent>(exception);
         failure.QueryName.ShouldEqual(query.Name);
         failure.SlicePath.ShouldEqual("Billing.Invoices.Summary");
-        failure.Location.ShouldEqual(query.Performer!.File!.Location);
+        failure.Location.ShouldEqual(query.Performer.File.Location);
     }
 
     [Theory]
@@ -134,7 +135,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         });
         var file = Assert.Single(_codeOutput.Files);
         file.Content.ShouldContain("IQueryable<ArchivedInvoice> ArchivedInvoices(");
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
@@ -150,7 +151,7 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
 
         if (reason == UnsupportedQueryIntentReason.InlinePerformer)
         {
-            return existing with { Performer = existing.Performer! with { File = null, Code = new CodeBlockSyntax("csharp", "return Array.Empty<InvoiceSummary>().AsQueryable();", SourceLocation.Start with { Path = "./Models/../Invoices.play", Line = 19, Column = 11 }) } };
+            return existing with { Performer = existing.Performer with { File = null, Code = new CodeBlockSyntax("csharp", "return Array.Empty<InvoiceSummary>().AsQueryable();", SourceLocation.Start with { Path = "./Models/../Invoices.play", Line = 19, Column = 11 }) } };
         }
 
         const string source = """
@@ -163,11 +164,11 @@ public class when_admitting_selected_query_intent : a_multi_slice_application
         var compilation = new NativeScreenplayCompiler().Compile(source);
         compilation.Success.ShouldBeTrue();
         compilation.Diagnostics.ShouldBeEmpty();
-        return compilation.Value!.Modules.Single().Features.Single().Slices.Single().Queries.Single();
+        return compilation.Value.Modules.Single().Features.Single().Slices.Single().Queries.Single();
     }
 
     static SourceLocation RelevantLocation(QuerySyntax query) =>
-        query.Filters.FirstOrDefault()?.Location ?? query.Performer!.File?.Location ?? query.Performer!.Code!.Location;
+        query.Filters.FirstOrDefault()?.Location ?? query.Performer.File?.Location ?? query.Performer.Code.Location;
 
     void ReplaceBlocked(SliceSyntax slice)
     {

@@ -52,7 +52,7 @@ using Acme.Shop.Common;
 namespace Acme.Shop.Storefront.Projects.Register;
 
 [Command]
-[AllowAnonymous]
+[Authorize]
 public record RegisterProject(string Name)
 {
     public (ProjectId, EventForEventSourceId) Handle([GeneratedValue("projectId", Freshness = GeneratedValueFreshness.Unguarded)] ProjectId projectId)

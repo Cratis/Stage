@@ -30,7 +30,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
 
         async Task Because()
         {
-            var plan = SemanticExecutionPlan.Compile(optional_concept_command_rule_cases.Compile()).Plan!;
+            var plan = SemanticExecutionPlan.Compile(optional_concept_command_rule_cases.Compile()).Plan;
             var probes = plan.Specifications.Values.Select(specification =>
             {
                 var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
@@ -41,9 +41,9 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
                 Assert.Equal(specification.Name.EndsWith("Invalid", StringComparison.Ordinal), failures.Length > 0);
                 if (specification.Name.EndsWith("OrderedInvalid", StringComparison.Ordinal))
                 {
-                    Assert.Equal<string>(["Warning", "Information", "Error"], failures.Select(failure => failure[1]));
+                    Assert.Equal(["Warning", "Information", "Error"], failures.Select(failure => failure[1]));
                 }
-                var inputValue = specification.When!.Values.Single(value => plan.Commands[specification.When.Command].Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
+                var inputValue = specification.When.Values.Single(value => plan.Commands[specification.When.Command].Properties.Single(property => property.Id == value.TargetProperty).Name == "value").Value;
                 var text = inputValue switch
                 {
                     SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
@@ -59,6 +59,7 @@ public class when_comparing_optional_concept_command_rules(when_comparing_option
                         string? input = {{JsonSerializer.Serialize(text)}};
                         var value = input is null ? null : valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, System.Globalization.CultureInfo.InvariantCulture)]);
                         using var scenario = new Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(constructor.Invoke(["one", value]));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = System.Text.Json.JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

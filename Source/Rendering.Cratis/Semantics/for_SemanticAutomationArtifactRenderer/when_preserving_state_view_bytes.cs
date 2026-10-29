@@ -39,7 +39,7 @@ public class when_preserving_state_view_bytes : given.an_automation
             public record Summary({{parameters}})
             {
 
-                [AllowAnonymous]
+                [Authorize]
                 public static async Task<Summary?> ById(IReadModels readModels, EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
             }
             """ + Environment.NewLine;

@@ -35,6 +35,7 @@ public class when_executing_tagged_command_occurrence : a_generated_application
             public async Task should_preserve_tags_and_payload_occurrence()
             {
                 using var scenario = new CommandScenario<IssueInvoice>();
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 await scenario.Execute(new IssueInvoice("First", "invoice-one"));
                 var appended = Assert.Single(scenario.AppendedEvents);
                 Assert.True(appended.Result.IsSuccess);
@@ -71,7 +72,8 @@ public class when_executing_tagged_command_occurrence : a_generated_application
         _tests = await Run("metadata-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_execute_tagged_command_occurrence()
+    [Fact]
+    void should_build_and_execute_tagged_command_occurrence()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

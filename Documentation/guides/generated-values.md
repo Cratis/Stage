@@ -212,7 +212,7 @@ using Cratis.Chronicle.EventSequences.Concurrency;
 namespace Acme.Shop.Storefront.Customers.Register;
 
 [Command]
-[AllowAnonymous]
+[Authorize]
 public record RegisterCustomer(CustomerName Name)
 {
     public (CustomerId, EventsWithConcurrencyScopes) Handle([GeneratedValue("customerId", Freshness = GeneratedValueFreshness.Unguarded)] CustomerId customerId, IOperationContextAccessor operation)
@@ -490,7 +490,7 @@ public record ApiKey(string Value) : ConceptAs<string>(Value)
 
 ```csharp title="Storefront/Customers/Keys/Keys.cs (excerpt)"
 [Command]
-[AllowAnonymous]
+[Authorize]
 public record RegisterApiKey(CustomerId CustomerId, [property: NotAudited] ApiKey ApiKey)
 ```
 

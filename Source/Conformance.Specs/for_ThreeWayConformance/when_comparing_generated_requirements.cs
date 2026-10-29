@@ -25,9 +25,9 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
     [Fact]
     public async Task should_reject_unmet_requirements_without_generated_or_appended_effects()
     {
-        var plan = SemanticExecutionPlan.Compile(generated_requirement_cases.Compile()).Plan!;
+        var plan = SemanticExecutionPlan.Compile(generated_requirement_cases.Compile()).Plan;
         var specification = plan.Specifications.Values.Single(value => value.Name == "RequirementUnmet");
-        specification.When!.GeneratedValues.ShouldBeEmpty();
+        specification.When.GeneratedValues.ShouldBeEmpty();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         reference.Passed.ShouldBeTrue();
         var rejection = (SemanticRejected)reference.Execution;
@@ -35,7 +35,7 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
         rejection.World.Facts.ShouldBeEmpty();
         var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        stage.Trace!.Rejection.ShouldEqual(rejection.Details);
+        stage.Trace.Rejection.ShouldEqual(rejection.Details);
         stage.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -43,11 +43,11 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
     public async Task should_refuse_a_hand_built_requirement_reading_a_generated_property()
     {
         var model = generated_requirement_cases.WithGeneratedRead();
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var specification = plan.Specifications.Values.First();
         var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        stage.Unsupported!.Details.ShouldContain("STAGE-ESM-038");
+        stage.Unsupported.Details.ShouldContain("STAGE-ESM-038");
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GeneratedRequirements", "GeneratedRequirements"));
         rendered.Success.ShouldBeFalse();
         rendered.Artifacts.ShouldBeEmpty();
@@ -77,6 +77,7 @@ public class when_comparing_generated_requirements(when_comparing_generated_requ
                     public async System.Threading.Tasks.Task should_validate_before_resolving_any_generated_value()
                     {
                         using var scenario = new CommandScenario<global::GeneratedRequirements.Orders.Registration.Register.RegisterOrder>();
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::GeneratedRequirements.Orders.Registration.Register.RegisterOrder("one", 0));
                         Assert.False(result.IsSuccess);
                         Assert.False(result.HasExceptions);

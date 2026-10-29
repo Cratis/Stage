@@ -35,6 +35,7 @@ public class when_comparing_non_error_generated_concept_rules(when_comparing_non
                     {
                         using var scenario = new CommandScenario<global::NonErrorGeneration.M.F.Warning.CreateWarning>();
                         scenario.PinGeneratedValue("code", new global::NonErrorGeneration.Common.WarningCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
+                        using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Warning.CreateWarning());
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);
@@ -45,6 +46,7 @@ public class when_comparing_non_error_generated_concept_rules(when_comparing_non
                     {
                         using var scenario = new CommandScenario<global::NonErrorGeneration.M.F.Information.CreateInformation>();
                         scenario.PinGeneratedValue("code", new global::NonErrorGeneration.Common.InformationCode("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab"));
+                        using var principalScope2 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                         var result = await scenario.Execute(new global::NonErrorGeneration.M.F.Information.CreateInformation());
                         Assert.True(result.HasExceptions);
                         Assert.Empty(result.ValidationResults);

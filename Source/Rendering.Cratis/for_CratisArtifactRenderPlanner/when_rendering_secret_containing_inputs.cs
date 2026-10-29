@@ -5,6 +5,7 @@ using System.Text;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -21,7 +22,7 @@ public class when_rendering_secret_containing_inputs : Specification
         _command = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/RecordCredentials.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_complete_application() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_exclude_secret_collection_inputs() => _command.ShouldContain("[property: NotAudited] IReadOnlyList<ApiKey> Keys");
     [Fact] void should_exclude_composites_with_secrets_in_nested_collections() => _command.ShouldContain("[property: NotAudited] CredentialEnvelope Credentials");
     [Fact] void should_exclude_optional_composites() => _command.ShouldContain("[property: NotAudited] CredentialEnvelope? OptionalCredentials");

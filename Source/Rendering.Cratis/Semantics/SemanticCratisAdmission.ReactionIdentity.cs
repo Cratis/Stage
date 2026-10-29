@@ -10,7 +10,11 @@ internal static partial class SemanticCratisAdmission
 {
     static void ValidateReactionIdentity(SemanticApplicationContext context, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        if (reaction.RunsAs is null) return;
+        if (reaction.RunsAs is null)
+        {
+            ReportInferredReactionIdentity(context, reaction, diagnostics);
+            return;
+        }
 
         foreach (var command in reaction.Triggers.SelectMany(trigger => trigger.Invokes)
             .Select(invocation => context.Commands[invocation.Command]).DistinctBy(command => command.Id)
@@ -26,5 +30,29 @@ internal static partial class SemanticCratisAdmission
                 diagnostics.Add(Error("STAGE-ESM-034", $"Reaction '{reaction.Name}' runs as system and invokes '{command.Name}', whose opaque authorization may read claims; use a role-only or authenticated-only gate to preserve Screenplay 0043.", reaction.Id));
             }
         }
+    }
+
+    static void ReportInferredReactionIdentity(SemanticApplicationContext context, SemanticReaction reaction, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (!SemanticReactionIdentity.InvokesUnauthorizedCommand(context, reaction)) return;
+
+        // The inferred system identity covers the whole reactor, so it must not reach a command whose model names its callers.
+        var authorized = SemanticReactionIdentity.AuthorizedCommands(context, reaction).Select(command => $"'{command.Name}'").ToArray();
+        if (authorized.Length > 0)
+        {
+            diagnostics.Add(Error(
+                "STAGE-ESM-034",
+                $"Reaction '{reaction.Name}' has no runs as and invokes commands with and without an authorize clause; running it as system " +
+                $"would bypass the authorization of {string.Join(", ", authorized)}. Declare runs as on the reaction.",
+                reaction.Id));
+            return;
+        }
+
+        diagnostics.Add(new(
+            "STAGE-ESM-055",
+            ArtifactRenderDiagnosticSeverity.Information,
+            $"Reaction '{reaction.Name}' has no runs as and invokes a command with no authorize clause, which renders [Authorize]; " +
+            "Stage renders the reactor with [ExecuteCommandsAsSystem] (the system principal, no roles) so the command is still accepted.",
+            reaction.Id));
     }
 }

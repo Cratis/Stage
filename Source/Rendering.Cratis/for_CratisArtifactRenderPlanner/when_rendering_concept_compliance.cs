@@ -9,6 +9,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -22,7 +23,7 @@ public class when_rendering_concept_compliance : Specification
     void Because() => _plans.AddRange(_models.Select(model => invoice_model.Plan(model)));
 
     [Fact] void should_admit_all_four_v13_forms() => _models.Select(model => model.SemanticVersion).ShouldContainOnly(SemanticVersion.V13, SemanticVersion.V13, SemanticVersion.V13, SemanticVersion.V13);
-    [Fact] void should_emit_complete_plans() => _plans.SelectMany(plan => plan.Diagnostics).ShouldBeEmpty();
+    [Fact] void should_emit_complete_plans() => _plans.SelectMany(plan => plan.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_render_personal_qualifiers_as_pii_only() => Concepts("HealthInformation").All(text => text.Contains("[PII]", StringComparison.Ordinal) && !text.Contains("ComplianceDetails", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_render_namespace_secret_protection() => Concepts("ApiKey").All(text => text.Contains("[Encrypted(EncryptionScope.Namespace)]", StringComparison.Ordinal) && text.Contains("[NotAudited]", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_give_personal_classification_precedence() => Concepts("PersonalSecret").All(text => text.Contains("[PII]", StringComparison.Ordinal) && !text.Contains("Encrypted", StringComparison.Ordinal) && !text.Contains("NotAudited", StringComparison.Ordinal)).ShouldBeTrue();

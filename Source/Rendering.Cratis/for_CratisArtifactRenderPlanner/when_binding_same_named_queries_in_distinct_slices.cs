@@ -46,7 +46,7 @@ public class when_binding_same_named_queries_in_distinct_slices : a_register_pro
             : slice);
         var application = _model.Application with { Modules = [module with { Features = [feature with { Slices = [.. slices] }] }] };
         _model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application);
-        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
         _request = new(_model, _executionPlan, _request.Profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         _identities = [.. _model.Application.Modules.Single().Features.Single().Slices.SelectMany(_ => _.Queries).Select(_ => _.Id.ToString()).Order(StringComparer.Ordinal)];
     }
@@ -57,7 +57,7 @@ public class when_binding_same_named_queries_in_distinct_slices : a_register_pro
         _bindings = Text(_plan.Artifacts.Single(_ => _.RelativePath == SceneBindingsRenderer.RelativePath));
     }
 
-    [Fact] void should_admit_the_distinct_sources() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_admit_the_distinct_sources() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
     [Fact] void should_keep_both_query_sources() => _identities.Distinct(StringComparer.Ordinal).Count().ShouldEqual(2);
     [Fact] void should_register_every_identity_once() => _identities.All(identity => _bindings.Split($"registerQueryIdentity(\"ProjectById\", {JsonSerializer.Serialize(identity)},", StringSplitOptions.None).Length == 2).ShouldBeTrue();
     [Fact] void should_alias_the_two_imports_without_collapsing_them() => new[] { "ProjectById as __sceneQuery0", "ProjectById as __sceneQuery1" }.All(_bindings.Contains).ShouldBeTrue();

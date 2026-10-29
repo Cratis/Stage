@@ -53,6 +53,7 @@ internal static class routed_generated_freshness_probe
             async Task Because()
             {
                 _direct = await _scenario.EventLog.AppendMany(_batch.Events, concurrencyScopes: _batch.ConcurrencyScopes.ToDictionary(pair => pair.Key, pair => pair.Value));
+                using var principalScope1 = new global::Cratis.Arc.Authorization.CurrentPrincipalAccessor(new global::Cratis.Arc.Http.HttpRequestContextAccessor()).BeginScope(new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([], "Probe")));
                 _result = await _scenario.Execute(new RecordUuid(Guid.Parse("22222222-2222-4222-8222-222222222222")));
             }
 

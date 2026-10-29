@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission.when_admitting_whole_number_literals;
@@ -27,7 +28,7 @@ public class with_authored_validation_and_projection_values
         };
         var plan = invoice_model.Plan(a_whole_number_model.Compile(SemanticVersion.V7, source));
         plan.Success.ShouldBeFalse();
-        plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-031");
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly("STAGE-ESM-031");
     }
 
     // The specifications state outcomes for the original mapping; without them the mapping literal is the only out-of-range value.

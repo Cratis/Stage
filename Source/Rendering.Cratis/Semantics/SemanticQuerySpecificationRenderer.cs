@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -26,7 +27,7 @@ internal static class SemanticQuerySpecificationRenderer
         SemanticApplicationContext context)
     {
         var query = context.Queries[expected.Query];
-        if (query.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(query.Authorization, context.Application.Policies))
         {
             return SemanticProtectedQuerySpecificationRenderer.Render(specification, expected, context);
         }

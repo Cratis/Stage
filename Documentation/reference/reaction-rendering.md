@@ -193,7 +193,7 @@ Render admission, generated Debug compilation, generated specifications and live
 | Diagnostic | Refused shape |
 | --- | --- |
 | `STAGE-ESM-024` | Application-trigger reactions outside the occurrence subset above (including `on refused`, authorized commands without `runs as`, and production-only `runs as`); startup/shutdown triggers pending an activation identity and namespace policy; interval/schedule triggers pending due-time parity; reaction bodies outside the single-event render-only subset above; captures and Translate shapes outside the [translation subset](translation-rendering.md); clock/trigger/capture specification actions; generated append/redelivery specifications with clock fixtures |
-| `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; all `runs as` on legacy syntax paths |
+| `STAGE-ESM-034` | `runs as` invoking a claim-reading or opaque authorization gate; a reaction without `runs as` that invokes commands both with and without an `authorize` clause; all `runs as` on legacy syntax paths |
 | `STAGE-ESM-035` | Reaction `from` on legacy syntax paths only; use the semantic planner |
 | `STAGE-ESM-030` | Reserved stored source or stream names in observer filters |
 | `STAGE-ESM-037` | Direct productions combined with event-producing refusal branches in one trigger ([Arc#3561](https://github.com/Cratis/Arc/issues/3561)); mixed productions and invocations across separate triggers on the same event in one reaction |

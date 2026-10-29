@@ -12,7 +12,7 @@ public class when_preserving_state_change_bytes : given.an_automation
         namespace Reactions.Work.Processing.Start;
 
         [Command]
-        [AllowAnonymous]
+        [Authorize]
         public record StartWork(string Id, decimal Amount) : ICanProvideEventSourceId
         {
             /// <inheritdoc/>

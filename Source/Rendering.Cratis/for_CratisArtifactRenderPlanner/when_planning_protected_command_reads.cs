@@ -21,9 +21,9 @@ public class when_planning_protected_command_reads : Specification
 
     void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
 
-    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("ProtectedReads", "ProtectedReads"));
+    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("ProtectedReads", "ProtectedReads"));
 
-    [Fact] void should_report_no_diagnostics() => string.Join('\n', _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")).ShouldEqual(string.Empty);
+    [Fact] void should_report_no_diagnostics() => string.Join('\n', _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")).ShouldEqual(string.Empty);
     [Fact] void should_plan_successfully() => _plan.Success.ShouldBeTrue();
     [Fact] void should_not_refuse_the_decision_boundary() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-044");
     [Fact] void should_admit_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");

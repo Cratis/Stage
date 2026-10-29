@@ -5,6 +5,7 @@ using Cratis.Scene.Model.Elements;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Xunit;
 
@@ -43,7 +44,7 @@ public class when_refusing_guarded_scene_inputs : given.a_register_project_rende
     {
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        var diagnostic = Assert.Single(plan.Diagnostics);
+        var diagnostic = Assert.Single(plan.Diagnostics.WithoutAuthenticatedDefaultNotes());
         diagnostic.Code.ShouldEqual(UnsupportedGuardedScreenAction.DiagnosticCode);
         diagnostic.Message.ShouldContain("https://github.com/Cratis/Scene/issues/68");
     }

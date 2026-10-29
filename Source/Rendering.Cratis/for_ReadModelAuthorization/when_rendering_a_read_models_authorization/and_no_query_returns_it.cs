@@ -14,9 +14,10 @@ public class and_no_query_returns_it : an_application_with_policies
     void Because() => _attribute = Render("InvoiceSummary", QueryForMany("GetOverdueInvoices", "OverdueInvoices", "Accountant"));
 
     [Fact] void should_require_an_authenticated_caller() => _attribute.ShouldEqual("Authorize");
-    [Fact] void should_report_that_nothing_states_who_may_read_it() =>
+    [Fact]
+    void should_report_that_nothing_states_who_may_read_it() =>
         _diagnostics.ShouldContain(
-            "Read model 'InvoiceSummary' is returned by none of the 1 query declaration(s) in its slice — the document " +
+            "STAGE-ESM-054: Read model 'InvoiceSummary' is returned by none of the 1 query declaration(s) in its slice — the document " +
             "states who may read the other read models and nothing about this one, so its synthesized query pair " +
             "requires an authenticated caller rather than being left open to everyone.");
 }

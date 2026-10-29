@@ -9,6 +9,7 @@ using Cratis.Stage.Conformance.Specs.for_PortableMatches.given;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Specifications;
 using Xunit;
 
@@ -24,7 +25,7 @@ public class when_admitting_large_patterns : Specification
         const string pattern = "(){999999999999999999999999999}";
         PortableMatchPattern.Check(pattern).Status.ShouldEqual(PortableMatchStatus.Admitted);
         var model = portable_match_cases.Compile(pattern, concept);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         foreach (var specification in plan.Specifications.Values)
         {
             new SemanticSpecificationRunner().Run(plan, specification.Id).Passed.ShouldBeTrue();
@@ -34,7 +35,7 @@ public class when_admitting_large_patterns : Specification
 
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PortableMatches", "PortableMatches"));
         rendered.Success.ShouldBeTrue();
-        rendered.Diagnostics.ShouldBeEmpty();
+        rendered.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         var validator = rendered.Artifacts.Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))
             .Single(text => text.Contains("PortableMatcher.Compile(", StringComparison.Ordinal) && text.Contains(pattern, StringComparison.Ordinal));
         validator.ShouldContain(pattern);

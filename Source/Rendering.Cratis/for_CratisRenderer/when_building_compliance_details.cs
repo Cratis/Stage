@@ -12,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.for_ConceptRenderer.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Xunit;
 
@@ -29,15 +30,15 @@ public class when_building_compliance_details : a_generated_application
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scaffold"), "scaffold", "Scaffold.play", "module Accounts");
         var compilation = new SemanticModelCompiler().Compile("Compliance", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        var request = new ArtifactRenderRequest(model, execution.Plan!, CratisRendering.CreateProfile("Compliance", new("Compliance", "Compliance")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, execution.Plan, CratisRendering.CreateProfile("Compliance", new("Compliance", "Compliance")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var scaffold = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(scaffold.Success, string.Join(Environment.NewLine, scaffold.Diagnostics));
         var syntax = new ScreenplayCompiler().Compile(compliance_concepts.Source);
         Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
-        var files = RenderLegacy(syntax.Value!).GetAwaiter().GetResult();
+        var files = RenderLegacy(syntax.Value).GetAwaiter().GetResult();
         files.ShouldContain(file => file.Content.Contains("[ComplianceDetails(\"GDPR Art. 9(1) special category: health. GDPR Art. 10 criminal offence data. Clinical evidence.\")]") && file.RelativePath.EndsWith("MedicalNote.cs", StringComparison.Ordinal));
         files.ShouldContain(file => file.Content.Contains("[Encrypted(EncryptionScope.Namespace, \"Shared credential.\")]\n[NotAudited]"));
         return ArtifactRenderPlan.Create(request, [.. scaffold.Artifacts, .. files.Select(file => PlannedArtifact.CreateText(file.RelativePath, file.Content))], scaffold.Diagnostics);
@@ -49,11 +50,12 @@ public class when_building_compliance_details : a_generated_application
         var renderer = new CratisRenderer(
             new a_stub_scaffolder(),
             new Dictionary<SliceType, ISliceRenderer> { [SliceType.StateChange] = new StateChangeSliceRenderer() },
-            codeOutput) { ComplianceDetails = true };
+            codeOutput)
+        { ComplianceDetails = true };
         await using var output = new StringWriter();
         await using var error = new StringWriter();
         await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "compliance")), output, error);
-        Assert.True(error.ToString().Length == 0, error.ToString());
+        Assert.True(error.ToString().WithoutAuthenticatedDefaultNotes().Length == 0, error.ToString());
         codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
         return codeOutput.Files;
     }

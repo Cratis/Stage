@@ -4,6 +4,7 @@
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -64,7 +65,7 @@ public class when_planning_uuid_read_path_comparisons : Specification
     {
         var source = Source.Replace("PlantAccessGrant.memberId == requestedBy", $"PlantAccessGrant.memberId {comparison} \"a1111111-1111-4111-8111-111111111111\"", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.ShouldBeEmpty();
+        plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         plan.Artifacts.Any(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"{negation}object.Equals(plantAccessGrant.MemberId.Value, Guid.Parse(\"a1111111-1111-4111-8111-111111111111\"))", StringComparison.Ordinal)).ShouldBeTrue();
     }
 

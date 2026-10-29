@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Xunit;
 
@@ -22,7 +23,7 @@ public class when_rendering_the_canonical_v5_corpus : Specification
         var model = SemanticModelSerializer.Deserialize(ReadModelAbsenceCorpus.V5.EsmBytes.AsSpan());
         _request = new(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("Absence", "Absence")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }
@@ -31,7 +32,7 @@ public class when_rendering_the_canonical_v5_corpus : Specification
 
     [Fact] void should_load_v5() => _request.Model.SemanticVersion.ShouldEqual(SemanticVersion.V5);
     [Fact] void should_admit_seeded_absence() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.ShouldBeEmpty();
+    [Fact] void should_report_no_diagnostics() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_render_the_removal_only_projection() => _plan.Artifacts.ShouldContain(artifact => artifact.Sources.Contains(_request.Model.Application.Modules.Single().Features.Single().Slices.Single().Projections.Single().Id));
     [Fact] void should_cover_absence_specifications() => AbsenceSpecifications().ShouldNotBeEmpty();
     [Fact] void should_render_every_absence_specification() => AbsenceSpecifications().All(id => _plan.Artifacts.Any(artifact => artifact.Sources.Contains(id))).ShouldBeTrue();
@@ -39,7 +40,7 @@ public class when_rendering_the_canonical_v5_corpus : Specification
     void should_admit_through_semantic_admission_as_well()
     {
         var context = new SemanticApplicationContext(_request, new("Absence", "Absence"));
-        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).ShouldBeEmpty();
+        SemanticCratisAdmission.Evaluate(context, context.SelectedSlices()).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     }
 
     IEnumerable<SemanticId> AbsenceSpecifications() => _request.Model.Application.Modules.SelectMany(module => module.Features)

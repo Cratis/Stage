@@ -3,6 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateChangeArtifactRenderer.given;
 using Xunit;
 
@@ -17,6 +18,6 @@ public class and_a_stream_is_named_All : a_routed_command
         _plan = invoice_model.Plan(_model);
     }
 
-    [Fact] void should_refuse_the_chronicle_sentinel() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
+    [Fact] void should_refuse_the_chronicle_sentinel() => _plan.Diagnostics.WithoutAuthenticatedDefaultNotes().Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-030"]);
     [Fact] void should_not_publish_a_partial_application() => _plan.Artifacts.ShouldBeEmpty();
 }

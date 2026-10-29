@@ -26,10 +26,12 @@ public class when_rendering_a_policy_denial : Specification
         var slice = feature.Slices.Single();
         var specification = slice.Specifications[0] with { ThenEvents = [], ThenDenied = true };
         var options = new CratisRenderingOptions("Invoices", "Invoices");
-        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         _source = SemanticCommandSpecificationRenderer.Render(specification, context).Content;
     }
 
+    [Fact] void should_preserve_the_explicit_guest_caller() => _source.ShouldContain("ClaimsIdentity([], null)");
+    [Fact] void should_not_insert_the_authenticated_default_caller() => _source.ShouldNotContain(SemanticDefaultCaller.Comment);
     [Fact] void should_assert_denial() => _source.ShouldContain("should_be_denied() => _result.IsAuthorized.ShouldBeFalse()");
     [Fact] void should_assert_no_events_were_appended() => _source.ShouldContain("should_not_append_events()");
     [Fact] void should_not_emit_a_policy_resolution_fact() => _source.ShouldNotContain("should_resolve");

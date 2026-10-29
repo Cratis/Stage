@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
@@ -106,15 +107,15 @@ public class when_planning_slices_with_unrenderable_siblings : a_register_projec
         }
     }
 
-    [Fact] void should_cover_every_later_version_refusal() => _plans.Where(plan => plan.Code != string.Empty).Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-051", "STAGE-ESM-038", "STAGE-ESM-038"]);
+    [Fact] void should_cover_every_later_version_refusal() => _plans.Where(plan => !string.IsNullOrEmpty(plan.Code)).Select(plan => plan.Code).ShouldContainOnly(["STAGE-ESM-024", "STAGE-ESM-051", "STAGE-ESM-038", "STAGE-ESM-038"]);
     [Fact] void should_render_the_clean_slice_in_every_model() => _plans.TrueForAll(plan => plan.Clean.Success).ShouldBeTrue();
-    [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).ShouldBeEmpty();
+    [Fact] void should_report_no_diagnostics_for_the_clean_slice() => _plans.SelectMany(plan => plan.Clean.Diagnostics).WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
     [Fact] void should_emit_the_clean_command() => _plans.TrueForAll(plan => plan.Clean.Artifacts.Any(artifact => artifact.RelativePath == "Projects/Registration/RegisterProject/RegisterProject.cs")).ShouldBeTrue();
     [Fact] void should_not_emit_the_unselected_sibling() => _plans.SelectMany(plan => plan.Clean.Artifacts).Any(artifact => artifact.RelativePath.StartsWith("Projects/Registration/Unsupported/", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_refuse_only_production_gaps() => _plans.TrueForAll(plan => plan.Refused.Success == (plan.Code is "" or "STAGE-ESM-051")).ShouldBeTrue();
-    [Fact] void should_render_the_payload_keyed_invoice_specification() => _plans.Single(plan => plan.Code == string.Empty).Refused.Artifacts.SelectMany(artifact => artifact.Sources).ShouldContain(_plans.Single(plan => plan.Code == string.Empty).Artifact);
-    [Fact] void should_report_no_diagnostics_for_the_payload_keyed_invoice() => _plans.Single(plan => plan.Code == string.Empty).Refused.Diagnostics.ShouldBeEmpty();
-    [Fact] void should_report_the_expected_refusal() => _plans.Where(plan => plan.Code != string.Empty).All(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
+    [Fact] void should_refuse_only_production_gaps() => _plans.TrueForAll(plan => plan.Refused.Success == (plan.Code?.Length == 0 || string.Equals(plan.Code, "STAGE-ESM-051", StringComparison.Ordinal))).ShouldBeTrue();
+    [Fact] void should_render_the_payload_keyed_invoice_specification() => _plans.Single(plan => plan.Code?.Length == 0).Refused.Artifacts.SelectMany(artifact => artifact.Sources).ShouldContain(_plans.Single(plan => plan.Code?.Length == 0).Artifact);
+    [Fact] void should_report_no_diagnostics_for_the_payload_keyed_invoice() => _plans.Single(plan => plan.Code?.Length == 0).Refused.Diagnostics.WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
+    [Fact] void should_report_the_expected_refusal() => _plans.Where(plan => !string.IsNullOrEmpty(plan.Code)).All(plan => plan.Refused.Diagnostics.Any(diagnostic => diagnostic.Code == plan.Code && diagnostic.Artifact == plan.Artifact)).ShouldBeTrue();
     [Fact] void should_identify_the_observable_source_refusal() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Refusals.Single().Artifact.ShouldEqual(_plans.Single(plan => plan.Code == "STAGE-ESM-051").Artifact);
     [Fact] void should_preserve_the_observable_source_refusal_severity() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-051").Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
     [Fact] void should_explain_the_observable_source_refusal() => _plans.Single(plan => plan.Code == "STAGE-ESM-051").Refused.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-051").Message.ShouldContain("given event 'InvoiceRemoved' has no event source");

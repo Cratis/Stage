@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -27,7 +28,10 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{modelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Arc.Queries.QueryResult _result = null!;");
-        if (specification.GivenCaller is not null)
+
+        // A query without modeled authorization renders [Authorize], so a specification without a caller runs as the default authenticated caller.
+        var carriesCaller = specification.GivenCaller is not null || query.Authorization is null;
+        if (carriesCaller)
         {
             builder.Line("readonly global::Cratis.Arc.Authorization.CurrentPrincipalAccessor _principalAccessor = new(new global::Cratis.Arc.Http.HttpRequestContextAccessor());")
                 .Line("global::System.Security.Claims.ClaimsPrincipal _principal = null!;");
@@ -39,14 +43,19 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             .Line($"readModels.GetInstanceById<{modelName}>(global::NSubstitute.Arg.Any<global::Cratis.Chronicle.ReadModels.ReadModelKey>(), global::NSubstitute.Arg.Any<global::Cratis.Chronicle.ReadModels.ReadModelSessionId?>()).Returns(global::System.Threading.Tasks.Task.FromResult<{modelName}>(null!));")
             .Line($"readModels.GetInstances<{modelName}>(global::NSubstitute.Arg.Any<global::Cratis.Chronicle.Events.EventCount?>()).Returns(global::System.Threading.Tasks.Task.FromResult<global::System.Collections.Generic.IEnumerable<{modelName}>>([]));")
             .Line("_scenario.Services.AddSingleton<global::Cratis.Chronicle.ReadModels.IReadModels>(readModels);");
-        if (specification.GivenCaller is { } caller)
+        if (carriesCaller)
         {
-            var claims = caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
+            var caller = specification.GivenCaller;
+            if (caller is null)
+            {
+                builder.Line(SemanticDefaultCaller.Comment);
+            }
+            var claims = caller is null ? [] : caller.Roles.Select(role => $"new global::System.Security.Claims.Claim(global::System.Security.Claims.ClaimTypes.Role, {CSharpCodeBuilder.StringLiteral(role)})")
                 .Concat(caller.Claims.Select(claim => $"new global::System.Security.Claims.Claim({CSharpCodeBuilder.StringLiteral(claim.Type)}, {CSharpCodeBuilder.StringLiteral(claim.Value)})"));
-            builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller.Authenticated ? "\"Screenplay\"" : "null")}));")
+            builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller?.Authenticated != false ? "\"Screenplay\"" : "null")}));")
                 .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         }
-        if (query.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(query.Authorization, context.Application.Policies))
         {
             builder.Line($"global::{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }
@@ -58,7 +67,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         var filters = query.Filters.Where(filter => expected.Filters.Any(value => value.Filter == filter.Id))
             .Select(filter => Argument(filter.Name, types.Value(expected.Filters.Single(value => value.Filter == filter.Id).Value, filter.Type)));
         builder.EndBlock().BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
-        if (specification.GivenCaller is not null) builder.Line("using var scope = _principalAccessor.BeginScope(_principal);");
+        if (carriesCaller) builder.Line("using var scope = _principalAccessor.BeginScope(_principal);");
         builder.Line($"_result = await _scenario.Perform(nameof({modelName}.{context.MemberNames.Query(query)}), new global::Cratis.Arc.Queries.QueryArguments {{ {string.Join(", ", key.Concat(filters))} }});")
             .EndBlock().BlankLine().Line("[global::Xunit.FactAttribute] void should_be_authorized() => _result.IsAuthorized.ShouldBeTrue();")
             .Line("[global::Xunit.FactAttribute] void should_not_have_exceptions() => _result.HasExceptions.ShouldBeFalse();");

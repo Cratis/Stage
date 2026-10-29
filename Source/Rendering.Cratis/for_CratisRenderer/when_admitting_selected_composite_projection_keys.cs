@@ -6,6 +6,7 @@ using Cratis.Screenplay.Syntax.Projections;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer.given;
+using Cratis.Stage.Rendering.Cratis.given;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 using Xunit;
@@ -57,7 +58,7 @@ public class when_admitting_selected_composite_projection_keys : a_multi_slice_a
         var compilation = new NativeScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _module = _application.Modules.Single();
         _feature = _module.Features.Single();
         _blocked = _feature.Slices.First();
@@ -89,7 +90,7 @@ public class when_admitting_selected_composite_projection_keys : a_multi_slice_a
         rejection.ReadModel.ShouldEqual("OrderReadModel");
         rejection.EventName.ShouldEqual("OrderCreated");
         rejection.CompositeType.ShouldEqual("OrderKey");
-        rejection.Location.ShouldEqual(_blocked.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key!.Location);
+        rejection.Location.ShouldEqual(_blocked.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key.Location);
         _error.ToString().ShouldContain(rejection.Message);
         _output.ToString().ShouldNotContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeTrue();
@@ -127,7 +128,7 @@ public class when_admitting_selected_composite_projection_keys : a_multi_slice_a
         var file = Assert.Single(_codeOutput.Files);
         file.Content.ShouldContain("[FromEvent<OrderArchived>(key: nameof(OrderArchived.OrderNumber))]");
         RenderedOutput.Errors(_codeOutput.Files).ShouldBeEmpty();
-        _error.ToString().ShouldBeEmpty();
+        _error.ToString().WithoutAuthenticatedDefaultNotes().ShouldBeEmpty();
         _output.ToString().ShouldContain("Rendering complete.");
         _codeOutput.FailureMarkerWasWritten.ShouldBeFalse();
     }

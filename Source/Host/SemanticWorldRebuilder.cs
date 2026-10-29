@@ -9,20 +9,18 @@ using Cratis.Chronicle.Contracts.Sequences;
 using Cratis.Chronicle.Events;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
-using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Semantics;
 
 namespace Cratis.Stage.Host;
 
 internal static class SemanticWorldRebuilder
 {
-    internal static SemanticWorld Create(
-        SemanticExecutionPlan plan,
-        IEnumerable<AppendedEventResponse> events,
-        ulong tail,
-        bool exact = true,
-        SemanticBodyExecution? bodies = null)
+    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true) =>
+        Create(new SemanticReplayPlan(plan), events, tail, exact);
+
+    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true)
     {
+        var (plan, bodies) = replay;
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
         if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
             history[^1].Context.SequenceNumber != tail ||

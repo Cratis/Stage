@@ -63,7 +63,7 @@ public static partial class BodyUnitCompiler
                 PropertyNames = PropertyNames(context),
                 PropertyPaths = PropertyPaths(context, descriptor!)
             });
-            return Build(context, requirement, descriptor!, cacheDirectory, emitting, build);
+            return Build(new(context, requirement, descriptor!, cacheDirectory, emitting), build);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or IOException)
         {
@@ -78,28 +78,34 @@ public static partial class BodyUnitCompiler
         return [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, MetadataReference.CreateFromFile(chronicle.Location)];
     }
 
-    static BodyUnitEntry Build(SemanticApplicationContext context, SemanticImplementationRequirement requirement, SemanticTypedContextDescriptor descriptor, string cacheDirectory, Action emitting, UnitBuild build)
+    static BodyUnitEntry Build(UnitScope scope, UnitBuild build)
     {
-        var hash = Hash(context, descriptor, build.Sources, build.References, build.Language.ToString());
-        var cached = BodyUnitCache.Read(cacheDirectory, hash);
+        var hash = Hash(scope.Context, scope.Descriptor, new(build.Sources, build.References, build.Language.ToString()));
+        var cached = BodyUnitCache.Read(scope.CacheDirectory, hash);
         if (cached is not null) return cached;
         var compilation = CSharpCompilation.Create(
             $"BodyUnit_{hash}",
             build.Sources.Select(source => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(build.Language))),
             build.References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, deterministic: true, nullableContextOptions: NullableContextOptions.Enable));
+        return EmitUnit(scope, build, hash, compilation);
+    }
+
+    static BodyUnitEntry EmitUnit(UnitScope scope, UnitBuild build, string hash, CSharpCompilation compilation)
+    {
         using var stream = new MemoryStream();
-        emitting();
+        scope.Emitting();
         var emitted = compilation.Emit(stream);
-        if (!emitted.Success) return BodyUnitAdmission.Refuse(requirement, "STAGE-ESM-021", "Rendered declaration compilation failed: " + emitted.Diagnostics.First(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).GetMessage(System.Globalization.CultureInfo.InvariantCulture));
+        if (!emitted.Success) return BodyUnitAdmission.Refuse(scope.Requirement, "STAGE-ESM-021", "Rendered declaration compilation failed: " + emitted.Diagnostics.First(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).GetMessage(System.Globalization.CultureInfo.InvariantCulture));
         var pe = stream.ToArray();
         var entry = build.Entry(hash, Convert.ToHexString(SHA256.HashData(pe)));
-        BodyUnitCache.Write(cacheDirectory, entry, pe);
+        BodyUnitCache.Write(scope.CacheDirectory, entry, pe);
         return entry;
     }
 
-    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string[] sources, MetadataReference[] references, string language)
+    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, HashInput input)
     {
+        var (sources, references, language) = input;
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(SemanticModelSerializer.Serialize(context.Request.Model));
         Add(JsonSerializer.Serialize(context.Request.ImplementationRequirements));

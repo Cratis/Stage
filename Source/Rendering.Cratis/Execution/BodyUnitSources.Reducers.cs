@@ -39,25 +39,41 @@ internal static partial class BodyUnitSources
         SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context, descriptor.RequirementId, body);
         builder.EndBlock();
         var sources = new List<string> { WithoutBoundaryImports(builder.ToString()), SemanticBodyCompilation.ImplicitUsings };
-        sources.AddRange(reducer.Transitions.Select(transition => context.Request.TypedContextDescriptors.Single(candidate => candidate.RequirementId == transition.RequirementId && candidate.OperationId == reducer.ReadModel))
-            .Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content));
-        sources.AddRange(SemanticBodyDeclarations.RealConcepts(context));
-        sources.AddRange(SemanticBodyDeclarations.GeneratedEvents(context));
-        sources.AddRange(context.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context, qualified: true).Content));
-        sources.AddRange(context.Commands.Values.Select(command => CommandDeclaration(context, command)));
-        foreach (var peer in context.ReadModels.Values.Where(peer => !self || peer.Id != model.Id))
+        sources.AddRange(TransitionContexts(context, reducer));
+        sources.AddRange(Declarations(context, qualified: true));
+        sources.AddRange(PeerReadModels(context, self ? model.Id : null));
+        sources.Add(TokenSource(context));
+        return new([.. sources], path, self ? $"{ns}.{name}+{helper}" : $"{ns}.{name}", self ? SemanticReducerArtifactRenderer.SelfTransitionMethod : helper);
+    }
+
+    static IEnumerable<string> TransitionContexts(SemanticApplicationContext context, SemanticReducer reducer) =>
+        reducer.Transitions.Select(transition => context.Request.TypedContextDescriptors.Single(candidate => candidate.RequirementId == transition.RequirementId && candidate.OperationId == reducer.ReadModel))
+            .Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content);
+
+    static IEnumerable<string> Declarations(SemanticApplicationContext context, bool qualified) =>
+        SemanticBodyDeclarations.RealConcepts(context)
+            .Concat(SemanticBodyDeclarations.GeneratedEvents(context))
+            .Concat(context.Application.Types.Select(type => SemanticCommonArtifactRenderer.Render(type, context, qualified).Content))
+            .Concat(context.Commands.Values.Select(command => CommandDeclaration(context, command)));
+
+    static IEnumerable<string> PeerReadModels(SemanticApplicationContext context, SemanticId? self)
+    {
+        foreach (var peer in context.ReadModels.Values.Where(peer => peer.Id != self))
         {
             var slice = context.DeclaringSlice(peer.Id);
             var peerBuilder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, slice.Path));
             context.ReducerBindings(slice).Configure(peerBuilder);
             peerBuilder.OpenBlock(SemanticStateViewArtifactRenderer.ModelDeclaration(peer, new(context), slice.Slice.Queries, true));
             RenderQueries(peerBuilder, peer, slice, context);
-            sources.Add(WithoutBoundaryImports(peerBuilder.EndBlock().ToString()));
+            yield return WithoutBoundaryImports(peerBuilder.EndBlock().ToString());
         }
+    }
+
+    static string TokenSource(SemanticApplicationContext context)
+    {
         var token = CSharpSyntaxTree.ParseText(SemanticReducerContextRuntime.Render(context).Content).GetCompilationUnitRoot();
         var boundary = token.DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
-        sources.Add(token.RemoveNode(boundary, Microsoft.CodeAnalysis.SyntaxRemoveOptions.KeepNoTrivia)!.ToFullString());
-        return new([.. sources], path, self ? $"{ns}.{name}+{helper}" : $"{ns}.{name}", self ? SemanticReducerArtifactRenderer.SelfTransitionMethod : helper);
+        return token.RemoveNode(boundary, Microsoft.CodeAnalysis.SyntaxRemoveOptions.KeepNoTrivia)!.ToFullString();
     }
 
     // Arc attributes are not part of the helper-only projection. Its two boundary-only imports

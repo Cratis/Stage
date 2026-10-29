@@ -27,13 +27,7 @@ public sealed partial class ScreenplayBodyExecutionProvider
     static ImmutableDictionary<string, JsonElement>? ReducerMembers(SemanticReducerContext context)
     {
         // The rendered reducer receives the event source id as text and the sequence number as a checked long.
-        var key = context.Key switch
-        {
-            SemanticTextValue text => text.Value,
-            SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
-            _ => null
-        };
-        if (key is null || context.SequenceNumber > long.MaxValue) return null;
+        if (ReducerKey(context.Key) is not { } key || context.SequenceNumber > long.MaxValue) return null;
         return new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
         {
             ["State"] = context.State ?? SemanticValue.Null,
@@ -44,6 +38,13 @@ public sealed partial class ScreenplayBodyExecutionProvider
             ["SequenceNumber"] = SemanticValue.Number(context.SequenceNumber)
         }.ToImmutableDictionary(pair => pair.Key, pair => SemanticValueWire.Write(pair.Value), StringComparer.Ordinal);
     }
+
+    static string? ReducerKey(SemanticValue key) => key switch
+    {
+        SemanticTextValue text => text.Value,
+        SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+        _ => null
+    };
 
     static SemanticReducerBodyResult Reduction(BodyEvaluation verdict)
     {

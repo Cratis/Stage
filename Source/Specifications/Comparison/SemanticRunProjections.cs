@@ -12,6 +12,7 @@ using Cratis.Chronicle.Testing;
 using Cratis.Chronicle.Testing.ReadModels;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
@@ -53,7 +54,7 @@ internal static class SemanticRunProjections
         if (context.Facts.Count == 0 && context.WorldFixture.GivenReadModels.IsEmpty) return [];
         var model = plan.ReadModels[id];
         var projection = plan.Projections.Values.SingleOrDefault(value => value.Target != SemanticProjectionTargetKind.Event && value.ReadModel == id);
-        if (projection is null && context.Facts.Count > 0 && context.BodyExecution is { } bodies && SemanticReducerWorld.Reduces(plan, id))
+        if (projection is null && ReducerBodies(plan, id, context) is { } bodies)
         {
             return SemanticRunReducers.Fold(plan, id, context, bodies);
         }
@@ -76,6 +77,9 @@ internal static class SemanticRunProjections
             };
         }
     }
+
+    static SemanticBodyExecution? ReducerBodies(SemanticExecutionPlan plan, SemanticId id, SemanticRunContext context) =>
+        context.Facts.Count > 0 && SemanticReducerWorld.Reduces(plan, id) ? context.BodyExecution : null;
 
     static List<Projected> Define<TReadModel>(
         SemanticExecutionPlan plan,

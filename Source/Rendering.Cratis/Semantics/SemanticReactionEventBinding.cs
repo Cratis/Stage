@@ -26,6 +26,7 @@ internal static class SemanticReactionEventBinding
     {
         IdentifierNameSyntax identifier => identifier.Identifier.ValueText == "event",
         ParenthesizedExpressionSyntax parenthesized => ContainsBinding(parenthesized.Expression),
+        PostfixUnaryExpressionSyntax postfix when postfix.IsKind(SyntaxKind.SuppressNullableWarningExpression) => ContainsBinding(postfix.Operand),
         TupleExpressionSyntax tuple => tuple.Arguments.Any(argument => ContainsBinding(argument.Expression)),
         _ => false
     };

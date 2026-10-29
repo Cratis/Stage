@@ -24,7 +24,11 @@ public class with_unproven_wrapped_event_payloads : Specification
             "new Notify(\"id\", Title)",
             "GetEvent()",
             "new global::Cratis.Chronicle.EventSequences.EventForEventSourceId(context.EventSourceId, new TicketOpened(Title))",
-            "Title.Length > 0 ? new TicketOpened(Title) : null"
+            "Title.Length > 0 ? new TicketOpened(Title) : null",
+            "Title.Length switch { _ => new TicketOpened(Title) }",
+            "GetEvent() ?? new TicketOpened(Title)",
+            "(TicketOpened)GetEvent()",
+            "@event with { Title = Title }"
         ];
         _plans = [.. payloads.SelectMany(payload => new[]
         {

@@ -26,6 +26,7 @@ public class when_refusing_an_unauthenticated_caller_for_an_unauthorized_command
         diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("policy Anyone with require anonymous and authorize Anyone (ESM v31)", StringComparison.Ordinal));
     [Fact] void should_not_emit_the_refused_specification() => _plan.Artifacts.ShouldNotContain(artifact =>
         artifact.RelativePath.EndsWith("/when_issuing_first_invoice.cs", StringComparison.Ordinal));
-    [Fact] void should_still_render_the_supported_command() => _plan.Artifacts.ShouldContain(artifact =>
+    [Fact]
+    void should_still_render_the_supported_command() => _plan.Artifacts.ShouldContain(artifact =>
         artifact.RelativePath.EndsWith("/Issue.cs", StringComparison.Ordinal));
 }

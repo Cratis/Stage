@@ -453,6 +453,50 @@ host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (d
 seconds, including queued time). The same keys can be set in deployment configuration as
 `Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
 
+Named C# rules on command inputs and their concepts run in a separate body worker. The Host compiles the
+admitted units once at startup; specification runs compile once in the runner and use a fresh worker session
+for each specification. Neither process loads the units into the Host. The Host forwards its worker settings
+to SpecRunner, so the same limits apply to live commands and specification runs.
+
+| Environment variable | Default | Range or resolution |
+| --- | --- | --- |
+| `Stage__BodyWorker__Enabled` | `true` | Set `false` to keep implementation bodies unsupported. |
+| `Stage__BodyWorker__WorkerPath` | `bodyworker/Cratis.Stage.BodyWorker.dll` | Relative to the Host output directory. |
+| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 50–30000 ms per evaluation. |
+| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–600 seconds. |
+| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–4096 MB managed heap; working-set watchdog at twice this value. |
+| `Stage__BodyWorker__CacheDirectory` | `Cratis/Stage/Bodies` beneath your local application-data directory | Relative overrides resolve against the working directory. The cache must be owned by the current user and protected from other users. |
+
+The cache holds executable assemblies, so do not share it between operating-system users. On Unix,
+Stage creates new cache directories with mode `0700` and uses `/usr/bin/stat` (or `/bin/stat`) to check
+ownership. It refuses foreign-owned or group/world-writable caches, symbolic-link cache roots and
+replaceable parent directories; root-owned sticky temporary parents are allowed. Windows checks ownership
+and effective write/delete permissions, including inherited permissions on the cache itself. Inherit-only
+ACEs and CREATOR OWNER / CREATOR GROUP templates do not grant access to the directory being checked.
+An unsafe cache produces an explicit worker failure, not cached execution; Stage does not repair its
+permissions. If local application data is unavailable, the default is a private, user-suffixed directory
+beneath the system temporary directory.
+
+**macOS limitation:** Unix validation checks ownership and POSIX mode bits, not extended ACL grants.
+Mode `0700` alone is not proof of isolation when a named ACL grants another user access. In a hostile
+multi-user environment, use a cache directory and ancestors with no effective extended ACL grants that
+let other users write, delete or replace the cache or its contents; Stage does not verify this condition.
+
+Stage rechecks cache ownership, permissions and ancestors before compilation and every evaluation.
+On Unix, each check starts a metadata process, so short, frequently evaluated bodies incur that overhead.
+These checks are not memoized: permissions or ancestors can change after startup or compilation, and
+reusing an earlier verdict would weaken the execution-time check.
+
+These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
+`--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
+and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+without worker arguments it returns no configuration and body rules remain unsupported.
+A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
+worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
+The managed heap limit plus working-set watchdog is not an OS memory cap or a hostile-code security boundary.
+
 `GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for
 those it refuses, without blocking the live model. The legacy EventModel engine does not expose this route.

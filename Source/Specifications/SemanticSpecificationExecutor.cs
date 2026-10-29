@@ -60,7 +60,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 break;
             }
 
-            var blocker = options.DefaultCaller is null ? SemanticSpecificationAdmission.Check(plan, specification) : new SemanticUnsupportedCapability(StageExecutionCapability.Authorization, specification.Id.ToString(), "Explicit caller context is not admitted.");
+            var blocker = options.DefaultCaller is null ? SemanticSpecificationAdmission.Check(plan, specification, options.BodyExecution) : new SemanticUnsupportedCapability(StageExecutionCapability.Authorization, specification.Id.ToString(), "Explicit caller context is not admitted.");
             if (blocker is not null)
             {
                 results.Add(Unsupported(slice, specification, blocker));
@@ -147,7 +147,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         var eventTypes = runtimeTypes.MaterializableEvents();
         var defaults = new Defaults(new SemanticClientArtifactsProvider(eventTypes));
         using var eventScenario = new EventScenario(defaults);
-        var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan);
+        await using var context = new SemanticRunContext(runtimeType, command!, specification, options, runtimeTypes, eventScenario.EventLog, plan) { CancellationToken = cancellationToken };
         using var observation = observeWorldFacts is { } observe ? new WorldFactObservation(context, observe) : null;
 
         // A new Chronicle-backed event log and scenario are created for each specification.
@@ -307,7 +307,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
             return new(Rejected(slice, expected, failures[0].Message), !collectRefusalDetails || errors.Length == 0 ? null : new("validation", [], string.Join('\n', errors.Select(failure => failure.Message))));
         }
         if (CommandInputOutcome(context, slice, true) is { } inputOutcome) return new(Reframe(inputOutcome, slice, expected));
-        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification) is { } blocker) return new(Unsupported(slice, expected, blocker));
+        if (run.IsInvocation && SemanticSpecificationAdmission.Check(run.Plan, context.Specification, context.BodyExecution) is { } blocker) return new(Unsupported(slice, expected, blocker));
         if (NeedsExplicitDestination(context))
         {
             return new(Unsupported(slice, expected, new(StageExecutionCapability.IdentityAllocation, context.Command.Id.ToString(), "An accepted command requires an explicit destination.")));

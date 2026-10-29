@@ -179,6 +179,11 @@ internal sealed partial class SemanticApplicationContext
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 
     /// <summary>
+    /// Gets the owners omitted from this render, which context-wide producers must skip.
+    /// </summary>
+    internal ImmutableHashSet<SemanticId> OmittedOwners { get; set; } = [];
+
+    /// <summary>
     /// Gets the generated-type inventory: the admitted declarations and the command response types and, once admission has assigned
     /// <see cref="RefusedSpecifications"/>, the classes of exactly the specifications that are rendered.
     /// </summary>

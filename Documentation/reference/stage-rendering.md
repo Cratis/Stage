@@ -359,8 +359,16 @@ not claim a complete inventory of every public construct kind: reducers and cons
 independent identities in the current semantic model, and policies, guards, validations and
 screens are not yet independently inventoried. It never invents identities for those owners.
 The shared contract supports their kinds for providers with explicit semantic ownership.
-A refused construct currently requires refusal reasons and no degradation entries; independent
-refused and degraded constructs may coexist in one inventory, with refusal taking precedence.
+A refused construct requires refusal reasons and no degradation entries; independent refused and
+degraded constructs may coexist in one inventory, with refusal taking precedence. When supplied
+with graph-proven omission evidence and typed causes, the inventory represents omitted roots and
+dependents as `Degraded` with `GraphProvenOmittedLeaf` gaps, retaining the original warning evidence.
+Only refusals containing `001` or `005` with matching degradation evidence for every refusal code
+receive this omission shape; other degradations retain their throwing-body placeholders.
+Root gaps have no cause references; `005` dependency gaps reference the original root owners and
+codes, deduplicated and sorted by owner and code. Skipped specifications without degradation
+evidence remain `Refused` with their original omission warnings. This inventory support does not
+activate the planner's graph-omission analysis.
 
 The shared `STAGE-DEGRADE-001` through `005` codes describe unknown members, unsupported
 constructs, inline mismatches, a newer ESM inside an explicitly declared supported range, and

@@ -124,12 +124,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
         context.DegradeEventContextMappings(diagnostics);
-        slices = context.SelectedSlices();
+
+        // Inert until a producer names roots: the empty omission returns every view unchanged.
+        var omission = SemanticOwnerOmission.None;
+        context.OmittedOwners = omission.Closure;
+        slices = omission.Apply(context.SelectedSlices());
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
-        var selectedReducers = SemanticReducerTypedContexts.Selected(context, slices)
+        var selectedReducers = omission.Apply(SemanticReducerTypedContexts.Selected(context, slices))
             .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
-        foreach (var descriptor in descriptors)
+        foreach (var descriptor in omission.Apply(descriptors))
         {
             try
             {
@@ -150,7 +154,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
-        var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
+        var userInterface = UserInterfaceSlices(request, context, slices, diagnostics) is { } interfaceSlices ? omission.Apply(interfaceSlices) : null;
         var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
         var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
         if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
@@ -159,7 +163,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
         context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
-        var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
+        var validations = omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)).ToArray();
         foreach (var descriptor in validations)
         {
             artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));

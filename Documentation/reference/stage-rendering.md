@@ -634,10 +634,20 @@ so a model that forgot to say who may call it is not published to anonymous call
   that invokes only commands with an `authorize` clause is unchanged.
 - A specification that gives an explicitly unauthenticated caller for such a command or query is refused
   (`STAGE-ESM-011`), because the rendered artifact would deny it.
-- Explicit anonymous access has no Screenplay construct yet. It will be modeled by an `anonymous`
-  policy condition; until then a model cannot render `[AllowAnonymous]`.
-- Existing applications rendered from models without `authorize` clauses stop accepting anonymous
-  callers; add the clause or authenticate callers when upgrading.
+
+Existing applications rendered from models without `authorize` clauses stop accepting anonymous callers. To keep an endpoint open to guests and signed-in callers, explicitly authorize a guest-or-staff policy in the `.play` model, as below; put `authorize Guests or Staff` under each command or query to reopen. The explicit policy is preserved rather than replaced by the authenticated default. Authentication and principal forwarding remain application-owned; trust forwarded identity headers only behind an authenticated, sanitizing proxy.
+
+```play
+policy Guests
+  require not authenticated
+policy Staff
+  require authenticated
+
+slice StateChange PublicEndpoint
+  command Ping
+    authorize Guests or Staff
+    produces event Pinged
+```
 
 ## Generated C# global usings
 

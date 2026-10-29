@@ -88,8 +88,23 @@ public sealed partial class CratisBackendApplicationScaffold
         `[Authorize]`: they require an authenticated caller and no particular role. Screenplay's
         reference semantics let everyone call such an artifact; Stage deliberately renders the
         stricter default, and reports each case as an informational `STAGE-ESM-054` diagnostic.
-        Explicit anonymous access will be expressed in the model by an upcoming Screenplay
-        `anonymous` policy condition.
+        Caller-less specifications use an authenticated test caller. A reaction with no `runs as`
+        that invokes such a command runs as system (no roles), reported as `STAGE-ESM-055`.
+        Explicitly modeled policies and callers are preserved.
+
+        To keep an endpoint open to guests and signed-in callers, explicitly authorize a guest-or-staff policy in the `.play` model, as below; put `authorize Guests or Staff` under each command or query to reopen. The explicit policy is preserved rather than replaced by the authenticated default.
+
+        ```play
+        policy Guests
+          require not authenticated
+        policy Staff
+          require authenticated
+
+        slice StateChange PublicEndpoint
+          command Ping
+            authorize Guests or Staff
+            produces event Pinged
+        ```
 
         To call these endpoints locally, present an identity. Arc's development identity
         support sends the `x-ms-client-principal` headers (see

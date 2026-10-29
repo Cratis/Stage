@@ -192,7 +192,7 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, validationRefusal);
         }
         var valueContext = new SemanticApplicationContext(plan);
-        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
+        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type, bodies)).FirstOrDefault(refusal => refusal is not null);
         if (valueRefusal is not null)
         {
             return Block(StageExecutionCapability.Command, command.Id, valueRefusal);

@@ -13,15 +13,18 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 public class when_evaluating_worker_rules : Specification
 {
     [Theory]
-    [InlineData("satisfied", "Accepted", SemanticSpecificationOutcome.Passed)]
-    [InlineData("unsatisfied", "Rejected", SemanticSpecificationOutcome.Passed)]
-    [InlineData("exceeded-time", "Rejected", SemanticSpecificationOutcome.Unsupported)]
-    [InlineData("exceeded-memory", "Rejected", SemanticSpecificationOutcome.Unsupported)]
-    [InlineData("faulted", "Rejected", SemanticSpecificationOutcome.Unsupported)]
-    public async Task should_check_the_body_in_a_disposed_per_specification_session(string verdict, string specification, SemanticSpecificationOutcome expected)
+    [InlineData("satisfied", "Accepted", SemanticSpecificationOutcome.Passed, false)]
+    [InlineData("unsatisfied", "Rejected", SemanticSpecificationOutcome.Passed, false)]
+    [InlineData("exceeded-time", "Rejected", SemanticSpecificationOutcome.Unsupported, false)]
+    [InlineData("exceeded-memory", "Rejected", SemanticSpecificationOutcome.Unsupported, false)]
+    [InlineData("faulted", "Rejected", SemanticSpecificationOutcome.Unsupported, false)]
+    [InlineData("satisfied", "Accepted", SemanticSpecificationOutcome.Passed, true)]
+    [InlineData("unsatisfied", "Rejected", SemanticSpecificationOutcome.Passed, true)]
+    [InlineData("faulted", "Rejected", SemanticSpecificationOutcome.Unsupported, true)]
+    public async Task should_check_the_body_in_a_disposed_per_specification_session(string verdict, string specification, SemanticSpecificationOutcome expected, bool concept)
     {
-        var compilation = Compile();
-        var plan = SemanticExecutionPlan.Compile(compilation.Model).Plan!;
+        var compilation = Compile(concept);
+        var plan = SemanticExecutionPlan.Compile(compilation.Model).Plan;
         var workers = new List<IBodyWorkerClient>();
         var bodies = Execution(compilation, verdict, workers);
         var selected = plan.Specifications.Values.Single(candidate => candidate.Name == specification).Id;
@@ -34,14 +37,14 @@ public class when_evaluating_worker_rules : Specification
         await workers.Single().Received(1).EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>());
         await ((IAsyncDisposable)workers.Single()).Received(1).DisposeAsync();
         facts.ShouldEqual(verdict == "satisfied" ? 1 : 0);
-        if (expected == SemanticSpecificationOutcome.Unsupported) result.Unsupported!.Details.Contains("STAGE-", StringComparison.Ordinal).ShouldBeTrue();
+        if (expected == SemanticSpecificationOutcome.Unsupported) result.Unsupported.Details.Contains("STAGE-", StringComparison.Ordinal).ShouldBeTrue();
     }
 
     [Fact]
     public async Task should_not_share_workers_between_specifications_or_repeat_runs()
     {
         var compilation = Compile();
-        var plan = SemanticExecutionPlan.Compile(compilation.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Model).Plan;
         var workers = new List<IBodyWorkerClient>();
         var bodies = Execution(compilation, "satisfied", workers);
         var executor = new SemanticSpecificationExecutor();
@@ -63,7 +66,7 @@ public class when_evaluating_worker_rules : Specification
         });
     }
 
-    static LoadedSemanticModel Compile()
+    static LoadedSemanticModel Compile(bool concept = false)
     {
         const string source = """
             module M
@@ -95,14 +98,45 @@ public class when_evaluating_worker_rules : Specification
                     then error "Amount refused"
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Rules"));
-        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("rules"), "rules", "Rules.play", source);
+        var document = SemanticSourceDocument.Create(catalog.ResolveDocument("rules"), "rules", "Rules.play", concept ? ConceptModel : source);
         var result = new SemanticModelCompiler().Compile("Rules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(result.Success, string.Join(';', result.Diagnostics));
-        var model = result.Value!.Model;
-        return new(model, SemanticExecutionPlan.Compile(model).Plan!)
+        var model = result.Value.Model;
+        return new(model, SemanticExecutionPlan.Compile(model).Plan)
         {
             ImplementationRequirements = result.ImplementationRequirements,
             ImplementationContents = SemanticImplementationBodies.Resolve(result.Value.Documents, result.ImplementationRequirements)
         };
     }
+
+    const string ConceptModel = """
+        concept Amount : Int
+          validate
+            rule Positive message "Amount refused"
+              ```csharp
+              return context.Value > 0;
+              ```
+        module M
+          feature F
+            slice StateChange Add
+              command Add
+                id String identifier
+                amount Amount
+                produces Added
+                  for id
+                  amount = amount
+              event Added
+                amount Amount
+              specification Accepted
+                when Add
+                  id = "one"
+                  amount = 5
+                then Added
+                  amount = 5
+              specification Rejected
+                when Add
+                  id = "one"
+                  amount = -5
+                then error "Amount refused"
+        """;
 }

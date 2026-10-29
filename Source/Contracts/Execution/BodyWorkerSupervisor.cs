@@ -77,7 +77,7 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
                 ? Failure(request.Id, BodyDiagnostics.WorkerFailed, "Body worker is shutting down.")
                 : Failure(request.Id, BodyDiagnostics.ExceededTime, "Body worker exceeded its wall-time limit.");
         }
-        catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException or System.ComponentModel.Win32Exception or ArgumentException)
+        catch (Exception exception) when (exception is IOException or JsonException or InvalidOperationException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ArgumentException)
         {
             await KillAsync(active).ConfigureAwait(false);
             return WorkerFailure(request.Id, active);

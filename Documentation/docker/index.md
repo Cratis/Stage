@@ -465,7 +465,15 @@ to SpecRunner, so the same limits apply to live commands and specification runs.
 | `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 50–30000 ms per evaluation. |
 | `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–600 seconds. |
 | `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–4096 MB managed heap; working-set watchdog at twice this value. |
-| `Stage__BodyWorker__CacheDirectory` | `cratis-stage-bodies` beneath the system temporary directory | Relative overrides resolve against the working directory. |
+| `Stage__BodyWorker__CacheDirectory` | `Cratis/Stage/Bodies` beneath your local application-data directory | Relative overrides resolve against the working directory. The cache must be owned by the current user and protected from other users. |
+
+The cache holds executable assemblies, so do not share it between operating-system users. On Unix,
+Stage creates new cache directories with mode `0700` and uses `/usr/bin/stat` (or `/bin/stat`) to check
+ownership. It refuses foreign-owned or group/world-writable caches, symbolic-link cache roots and
+replaceable parent directories; root-owned sticky temporary parents are allowed. Windows checks ownership
+and write/delete permissions. An unsafe cache produces an explicit worker failure, not cached execution;
+Stage does not repair its permissions. If local application data is unavailable, the default is a private,
+user-suffixed directory beneath the system temporary directory.
 
 These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
 For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,

@@ -44,7 +44,7 @@ public sealed record BodyWorkerOptions(string WorkerPath, string CacheDirectory)
             values[args[index][prefix.Length..]] = args[++index];
         }
         if (values.Count == 0) return null;
-        return new(WorkerPathArgument(values), values.GetValueOrDefault("cache", Path.Combine(Path.GetTempPath(), "cratis-stage-body-cache")))
+        return new(WorkerPathArgument(values), values.GetValueOrDefault("cache", BodyWorkerCacheDirectory.Default))
         {
             DotnetPath = values.GetValueOrDefault("dotnet", "dotnet"),
             TimeoutMs = LimitArgument(values, "timeout-ms", 2000),

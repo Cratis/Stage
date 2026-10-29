@@ -30,6 +30,7 @@ public static class BodyUnitCompiler
 
     internal static BodyUnitManifest Compile(LoadedSemanticModel loaded, string cacheDirectory, Action emitting)
     {
+        cacheDirectory = BodyWorkerCacheDirectory.Prepare(cacheDirectory);
         var context = CreateContext(loaded);
         return new(loaded.Model.Revision.ToString(), [.. loaded.ImplementationRequirements.Select(requirement => CompileUnit(context, requirement, cacheDirectory, emitting))]);
     }

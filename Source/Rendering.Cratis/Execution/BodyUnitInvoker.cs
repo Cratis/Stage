@@ -21,6 +21,7 @@ public static class BodyUnitInvoker
     {
         if (!Supported(unit))
             return new("refused", Diagnostic: BodyDiagnostics.Format("STAGE-IMPL-003", $"{unit.Role} is not executed by `cratis run` in Stage#891 slice S1."));
+        cacheDirectory = BodyWorkerCacheDirectory.Prepare(cacheDirectory);
         if (!Verified(cacheDirectory, unit, request))
             return Fault("refused", "Body unit bytes or manifest integrity could not be verified.");
         var load = new AssemblyLoadContext($"body-{unit.UnitHash}", isCollectible: true);

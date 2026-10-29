@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Execution;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
@@ -15,7 +16,7 @@ public class when_configuring_a_body_worker : Specification
         var settings = SemanticBodyWorkerOptions.From(new ConfigurationBuilder().Build());
         settings.Enabled.ShouldBeTrue();
         settings.WorkerPath.ShouldEqual(Path.Combine(AppContext.BaseDirectory, "bodyworker", "Cratis.Stage.BodyWorker.dll"));
-        settings.CacheDirectory.ShouldEqual(Path.Combine(Path.GetTempPath(), "cratis-stage-bodies"));
+        settings.CacheDirectory.ShouldEqual(BodyWorkerCacheDirectory.Default);
         settings.CallTimeoutMilliseconds.ShouldEqual(2000);
         settings.CompileTimeoutSeconds.ShouldEqual(120);
         settings.MemoryLimitMegabytes.ShouldEqual(256);

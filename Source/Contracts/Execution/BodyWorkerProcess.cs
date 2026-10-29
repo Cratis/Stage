@@ -46,7 +46,7 @@ internal sealed class BodyWorkerProcess(BodyWorkerOptions options, string role) 
     internal async Task StartAsync(CancellationToken token)
     {
         if (_process is not null) return;
-        Directory.CreateDirectory(options.CacheDirectory);
+        BodyWorkerCacheDirectory.Prepare(options.CacheDirectory);
         var info = StartInfo();
         _process = Process.Start(info) ?? throw new IOException("Body worker did not start.");
         _stderr = DrainStderrAsync(_process.StandardError);

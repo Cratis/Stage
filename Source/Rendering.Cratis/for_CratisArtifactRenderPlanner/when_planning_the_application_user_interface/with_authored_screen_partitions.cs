@@ -20,7 +20,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    const string Before = "24d4ba156a435ef403714742de1d95387674e9620d68f07aa05602b9e07ea017";
+    // Re-frozen for #873: generated README startup instructions and Mongo compose readiness.
+    const string Before = "c3cc3707cdb635305c592ac91da28d2d6435e815c388e7dc0bf2cce65e698e27";
 
     void Because() => _application = AppPlan(_profile);
 

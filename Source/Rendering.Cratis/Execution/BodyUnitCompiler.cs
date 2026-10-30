@@ -19,10 +19,11 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace Cratis.Stage.Rendering.Cratis.Execution;
 
-/// <summary>Compiles admitted rendered validation units. Call only in the isolated worker.</summary>
+/// <summary>Compiles admitted rendered body units. Call only in the isolated worker.</summary>
 public static partial class BodyUnitCompiler
 {
     /// <summary>Compiles one immutable model revision and returns explicit verdicts for all requirements.</summary>
+    /// <remarks>Run uses the new-application convention so admission matches a fresh Cratis render, not a legacy classic profile.</remarks>
     /// <param name="loaded">The resolved immutable semantic model.</param>
     /// <param name="cacheDirectory">The compiled unit cache.</param>
     /// <returns>The admission and compilation manifest.</returns>
@@ -39,7 +40,7 @@ public static partial class BodyUnitCompiler
     {
         var name = Identifiers.ToPascalCase(loaded.Model.Application.Name);
         var options = new CratisRenderingOptions(name, name);
-        var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, CratisRendering.CreateProfile(name, options), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, CratisRendering.CreateNewApplicationProfile(loaded.Model.Application.Name, options), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             TypedContextDescriptors = loaded.TypedContextDescriptors,

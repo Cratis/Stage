@@ -312,8 +312,8 @@ internal static class SemanticSurfaceLedger
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
 
-        // Public admission remains exact. The prospective range finder treats anonymous access as a security-relevant unknown.
-        Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
+        // Whole-policy anonymous access renders AllowAnonymous (STAGE-ESM-060); nested use is refused (STAGE-ESM-015).
+        Add(entries, "SemanticAnonymousCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");

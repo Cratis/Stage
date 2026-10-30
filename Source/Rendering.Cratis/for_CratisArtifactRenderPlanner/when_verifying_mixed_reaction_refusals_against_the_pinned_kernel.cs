@@ -34,13 +34,11 @@ public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : 
         }
     }
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     public Task should_match_default_refusal_and_redelivery_when_configured() => Verify(false);
 
     [MongoFact]
     public Task should_match_atomic_refusal_and_redelivery_when_configured() => Verify(true);
-#pragma warning restore CRSPEC0004
 
     async Task Verify(bool atomic)
     {

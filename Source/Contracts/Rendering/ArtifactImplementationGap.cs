@@ -38,7 +38,7 @@ public sealed record ArtifactImplementationGap(
     {
         if (!HasValidMetadata() || !HasValidCollections())
         {
-            throw new InvalidArtifactRenderContract("An implementation gap requires an origin, requirement identity, owner, role, hints, v1 contracts, and stubs.");
+            throw new InvalidArtifactRenderContract("An implementation gap requires an origin, requirement identity, owner, role, hints, positive contract versions, and stubs.");
         }
 
         var stubs = Stubs.Select(stub => stub.Normalize())
@@ -52,10 +52,10 @@ public sealed record ArtifactImplementationGap(
         return this with { Stubs = stubs };
     }
 
-    bool HasValidMetadata() => HasKnownRoleAndOrigin() && HasIdentity() && HasV1Contracts();
+    bool HasValidMetadata() => HasKnownRoleAndOrigin() && HasIdentity() && HasPositiveContracts();
     bool HasKnownRoleAndOrigin() => Origin is ArtifactImplementationGapOrigin.Described or ArtifactImplementationGapOrigin.Unverified && Enum.IsDefined(Role);
     bool HasIdentity() => !string.IsNullOrWhiteSpace(RequirementId) && !string.IsNullOrWhiteSpace(Owner);
-    bool HasV1Contracts() => ContextVersion == 1 && ResultVersion == 1;
+    bool HasPositiveContracts() => ContextVersion >= 1 && ResultVersion >= 1;
     bool HasValidCollections() => HasValidHints() && HasValidStubs();
     bool HasValidHints() => !Hints.IsDefault && !Hints.Any(string.IsNullOrWhiteSpace);
     bool HasValidStubs() => !Stubs.IsDefaultOrEmpty && Stubs.All(stub => stub is not null);

@@ -136,6 +136,7 @@ internal static partial class SemanticCratisAdmission
             SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolved =>
                 source.Properties.Any(property => property.Id == resolved.Target && property.Type == target),
             SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence => occurrence.Type == target,
+            SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } identity => identity.Type == target && new SemanticTypeSystem(context).SupportsReducerIdentifier(target),
             SemanticValueExpression value => ReactionValueMatches(context, value.Value, target),
             _ => false
         };

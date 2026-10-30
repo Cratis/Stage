@@ -15,7 +15,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 /// </summary>
 public class with_an_authored_scene : a_screen_composition_render
 {
-    const string Before = "eb3f40aaf69c16eb0da1cb337861e4a4cf257edbf29ec329cf76f88d3374693e";
+    const string Before = "ada41bdbd3fe652fd2c82439493fc50a3b41a86d6cec9a4b8cb8bb20edcaef83";
 
     ArtifactRenderPlan _plan = null!;
 

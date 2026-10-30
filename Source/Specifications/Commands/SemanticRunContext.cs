@@ -37,6 +37,9 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
     internal SemanticSpecification WorldFixture { get; } = parent?.WorldFixture ?? specification;
+
+    // Whether a reaction invoked this command, rather than the specification's own action.
+    internal bool IsInvocation => parent is not null;
     internal SemanticExecutionPlan Plan => plan;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;

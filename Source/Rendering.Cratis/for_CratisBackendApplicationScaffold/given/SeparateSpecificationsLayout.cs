@@ -61,6 +61,14 @@ internal static class SeparateSpecificationsLayout
 
     static string ApplicationProject(string text, string project)
     {
+        // The unconditional GenerateProgramFile setting arrived with the layout that compiles specifications into the application.
+        text = text.Replace(
+            "    <!-- Program.cs is the entry point; the test SDK must not generate another one. This holds in every\n" +
+            "         configuration: a restore for Debug writes the test SDK's targets into the restore assets, which a\n" +
+            "         later Release build without a restore still imports. -->\n" +
+            "    <GenerateProgramFile>false</GenerateProgramFile>\n",
+            string.Empty,
+            StringComparison.Ordinal);
         var start = text.IndexOf("  <PropertyGroup Condition=\"'$(Configuration)' == 'Debug'\">", StringComparison.Ordinal);
         var end = text.IndexOf("  <ItemGroup>\n    <PackageReference Include=\"Cratis.Screenplay.Matching\" />", StringComparison.Ordinal);
         var debug = text.IndexOf("  <ItemGroup Condition=\"'$(Configuration)' == 'Debug'\">", StringComparison.Ordinal);

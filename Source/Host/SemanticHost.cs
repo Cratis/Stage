@@ -117,6 +117,7 @@ internal static class SemanticHost
 
             notes.AddRange(seeds.Diagnostics);
             world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, seeds);
+            await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (Stage.Semantics.ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
         }
         catch (SemanticWorldRebuildRefused exception)
         {
@@ -255,6 +256,7 @@ internal static class SemanticHost
 
     static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)
     {
-        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues));
+        app.MapMethods("/api/{**path}", ["GET", "POST", "PUT", "DELETE", "PATCH", "QUERY"], (HttpContext context, string path) => RefusedResponse(context, issues))
+            .ExcludeFromDescription();
     }
 }

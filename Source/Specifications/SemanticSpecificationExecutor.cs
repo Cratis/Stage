@@ -125,6 +125,8 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static async Task<SemanticSpecificationRunRecord> Execute(SemanticSpecification specification, SemanticSlice slice, SemanticExecutionPlan plan, SemanticSpecificationRunOptions options, Action<SemanticId, int>? observeWorldFacts, CancellationToken cancellationToken)
     {
+        // A specification is about the slice it belongs to and nothing else: other slices' reactions, captures and publications do not run.
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         if (SemanticRunContext.OccurrenceOf(specification) is { } instant) options = options with { Clock = new FixedSemanticClock(instant) };
         var when = specification.When;
         var command = when is null ? null : plan.Commands[when.Command];
@@ -179,7 +181,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         };
         if (reactionFailure is { } failure) return failure.ToRecord(slice, specification);
 
-        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts);
+        return await Accepted(slice, specification, context, eventScenario, runtimeTypes, defaults, actionFacts, reactions.Invocations);
     }
 
     static DynamicCommand Materialize(Type runtimeType, SemanticCommand command, SemanticSpecificationCommand when, SemanticExecutionPlan plan)
@@ -378,7 +380,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
 
     static bool IsUuidFixture(SemanticValue value) => value is SemanticTextValue text && Guid.TryParse(text.Value, out _);
 
-    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts)
+    static async Task<SemanticSpecificationRunRecord> Accepted(SemanticSlice slice, SemanticSpecification specification, SemanticRunContext context, EventScenario eventScenario, SemanticRuntimeTypes runtimeTypes, Defaults defaults, int actionFacts, IReadOnlyList<SemanticRecordedInvocation> invocations)
     {
         var plan = context.Plan;
         var persisted = await eventScenario.EventLog.GetFromSequenceNumber(EventSequenceNumber.First);
@@ -400,7 +402,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
                 return Rejected(slice, specification, new SemanticRejection(validation.Message) { Category = SemanticRejectionCategory.Validation });
             }
         }
-        var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts)).ToList();
+        var failures = SemanticExpectationComparer.Compare(specification, new(facts, destinations, plan, actionFacts) { Invocations = invocations }).ToList();
         IReadOnlyList<SemanticRunProjections.Projected> projected = [];
         var expectsRejection = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
 

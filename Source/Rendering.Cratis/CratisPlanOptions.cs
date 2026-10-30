@@ -56,6 +56,17 @@ public sealed record CratisPlanOptions(string ApplicationName, string ProjectNam
     public PlanSelection? UserInterface { get; init; }
 
     /// <summary>
+    /// Gets the slices whose generated code is already present under the application's other domain folders, so the
+    /// shared UI of an application that is generated one domain at a time composes the UI of every domain. Empty, the
+    /// default, means every present slice lives under this plan's <see cref="Domain"/>, as named by <see cref="UserInterface"/>.
+    /// Requires <see cref="UserInterface"/>. Each domain is named once and differs from this plan's domain, and a slice is
+    /// present under one domain only; a slice this plan generates is always placed under this plan's domain.
+    /// Pass the same domains to every plan of the same application state: the shared UI is then the same whichever
+    /// domain is generated.
+    /// </summary>
+    public ImmutableArray<UserInterfaceDomain> UserInterfaceDomains { get; init; } = [];
+
+    /// <summary>
     /// Gets the caller's complete Cratis profile for source and scaffold planning, or null to use the default profile.
     /// The profile must match the application names and omit domain placement, which is owned by <see cref="Domain"/>.
     /// Scaffold-only planning includes its strings catalog but reports Scene output as application-scope only.

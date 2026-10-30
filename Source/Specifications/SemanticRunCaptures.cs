@@ -117,7 +117,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         return new([.. fields.Values]);
     }
     IEnumerable<SemanticCapture> Matching(SemanticSpecificationEvent fact) =>
-        plan.Captures.Values.Where(capture => SemanticTranslationSupport.Capture(capture, plan.Events) && capture.EventsSource!.Events.Contains(fact.EventContract))
+        plan.RunningCaptures.Where(capture => SemanticTranslationSupport.Capture(capture, plan.Events) && capture.EventsSource!.Events.Contains(fact.EventContract))
             .OrderBy(capture => capture.Id.ToString(), StringComparer.Ordinal);
 
     SemanticCaptureRecord EventRecord(SemanticSpecificationEvent fact)

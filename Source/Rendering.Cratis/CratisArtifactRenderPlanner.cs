@@ -305,8 +305,29 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             diagnostics.Add(Error("STAGE-SCREEN-007", $"The user interface input names '{unknown}', which is not a slice of this model.", context.Application.Id));
         }
 
-        var included = named.Concat(selected.Select(slice => slice.Slice.Id.ToString())).ToHashSet(StringComparer.Ordinal);
-        return [.. context.AllSlices.Where(slice => included.Contains(slice.Slice.Id.ToString()))];
+        UserInterfaceDomainsInput.TryRead(request.Profile, out var domains);
+        var elsewhere = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (domain, identities) in domains?.AsEnumerable() ?? [])
+        {
+            foreach (var identity in identities)
+            {
+                if (!known.Contains(identity))
+                {
+                    diagnostics.Add(Error("STAGE-SCREEN-007", $"The user interface domains input names '{identity}', which is not a slice of this model.", context.Application.Id));
+                }
+
+                elsewhere[identity] = domain;
+            }
+        }
+
+        // A slice this plan generates is placed under the plan's own domain, wherever it was generated before.
+        var own = selected.Select(slice => slice.Slice.Id.ToString()).ToHashSet(StringComparer.Ordinal);
+        var included = named.Concat(own).Concat(elsewhere.Keys).ToHashSet(StringComparer.Ordinal);
+        return [.. context.AllSlices
+            .Where(slice => included.Contains(slice.Slice.Id.ToString()))
+            .Select(slice => !own.Contains(slice.Slice.Id.ToString()) && elsewhere.TryGetValue(slice.Slice.Id.ToString(), out var domain)
+                ? slice with { Path = [.. domain.Split('/', StringSplitOptions.RemoveEmptyEntries), .. slice.Path.Skip(context.Domain.Count)] }
+                : slice)];
     }
 
     static string? AdmittedScene(ArtifactRenderRequest request, ScreenPartitionsInput.Catalog? partitions, IReadOnlyList<LocatedSemanticSlice>? userInterface, List<ArtifactRenderDiagnostic> diagnostics)

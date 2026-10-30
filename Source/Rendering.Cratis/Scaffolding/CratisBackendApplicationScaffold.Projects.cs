@@ -80,11 +80,13 @@ public sealed partial class CratisBackendApplicationScaffold
             <CratisProxiesSkipOutputDeletion>true</CratisProxiesSkipOutputDeletion>
             <CratisProxiesSkipCommandNameInRoute>true</CratisProxiesSkipCommandNameInRoute>
             <CratisProxiesUseSourceFileAsOutputFile>true</CratisProxiesUseSourceFileAsOutputFile>
+            <!-- Program.cs is the entry point; the test SDK must not generate another one. This holds in every
+                 configuration: a restore for Debug writes the test SDK's targets into the restore assets, which a
+                 later Release build without a restore still imports. -->
+            <GenerateProgramFile>false</GenerateProgramFile>
           </PropertyGroup>
           <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
             <IsTestProject>true</IsTestProject>
-            <!-- Program.cs is the entry point; the test SDK must not generate another one. -->
-            <GenerateProgramFile>false</GenerateProgramFile>
           </PropertyGroup>
           <ItemGroup>
             <Content Remove="package.json" />

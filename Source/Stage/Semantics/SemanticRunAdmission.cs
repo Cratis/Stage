@@ -29,6 +29,16 @@ public static class SemanticRunAdmission
             : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
 
     /// <summary>
+    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v34's
+    /// <c language="text">then invokes</c> expectations (compared).
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>Whether the executor runs the version pair.</returns>
+    public static bool SupportsRun(ExecutableSemanticModel model) =>
+        SemanticVersionFeatures.Supports(model) ||
+        (model.LanguageVersion == LanguageVersion.V34 && model.SemanticVersion == SemanticVersion.V34);
+
+    /// <summary>
     /// Finds later-version constructs that block live model admission.
     /// </summary>
     /// <param name="application">The application.</param>
@@ -55,7 +65,7 @@ public static class SemanticRunAdmission
 
     /// <summary>
     /// Says how the live runtime runs a public-event or translation construct without an external integration: public events
-    /// are appended to the application's own event log, and foreign events arrive through seeds.
+    /// are appended to the application's own outbox, and foreign events arrive through seeds or its inbox.
     /// </summary>
     /// <param name="application">The application the feature belongs to.</param>
     /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
@@ -64,12 +74,12 @@ public static class SemanticRunAdmission
     {
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
         {
-            return $"{SemanticVersionFeatures.PublicEvents}: Published locally only: the sandbox appends the public event to its own event log; no external publication occurs. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
+            return $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
         }
 
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
         {
-            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation is not executed in the sandbox: foreign events arrive only through seeds; captures do not poll external sources.";
+            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources.";
         }
 
         if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
@@ -109,7 +119,10 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+        if (!SupportsRun(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+
+        // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
         if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;

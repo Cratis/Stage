@@ -50,7 +50,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         Program.cs f148d2954e15bdf675f63ed1472c70b1f6396db6a826f7644c4cedad3ca5dd56 847
         README.md 7217ef0b3fb886c022bd062ad77bbf730a262d0d9c9b05958fe1efcb1c5d9ffd 1819
-        Workspaces.csproj be51b9ca9e3e9b812562cdff2805f005d25cd3cc4a64ff8633f85ad9e8ad4e83 2175
+        Workspaces.csproj 93f351d3db49bcdc4dbc03efab9b636a6820f3e724aa6ed7ae944c0e31c7db2b 2364
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs 61d1be7adb16c8720965320ec9d5f0a57957a5e2bcfff37557c4343d03a77edb 513
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 7fde109bec5d420e1abc797e0fae200abd0b1e46d85edd6cd976743d9ca4eef5 1442

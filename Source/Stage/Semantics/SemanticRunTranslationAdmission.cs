@@ -48,9 +48,9 @@ internal static class SemanticRunTranslationAdmission
                 reachable.UnionWith(effects);
                 commands.UnionWith(invoked);
             }
-            reachable.UnionWith(plan.Captures.Values.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains))
+            reachable.UnionWith(plan.RunningCaptures.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains))
                 .SelectMany(capture => capture.Appends).Select(append => append.EventContract));
-            reachable.UnionWith(plan.Projections.Values.Where(projection => projection.Target == SemanticProjectionTargetKind.Event &&
+            reachable.UnionWith(plan.Projections.Values.Where(projection => projection.Target == SemanticProjectionTargetKind.Event && plan.Runs(projection.Id) &&
                 Observes(projection, reachable))
                 .Select(projection => projection.ReadModel));
         }
@@ -60,16 +60,16 @@ internal static class SemanticRunTranslationAdmission
         if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
         foreach (var slice in slices)
         {
-            var projections = slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event &&
+            var projections = slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event && plan.Runs(projection.Id) &&
                 Observes(projection, reachable)).Select(projection => projection.Id);
             var reducers = slice.Reducers.Where(reducer => reducer.Target == SemanticProjectionTargetKind.Event &&
                 reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract))).Select(reducer => reducer.ReadModel);
-            var captures = (slice.Captures.IsDefault ? [] : slice.Captures).Where(capture =>
+            var captures = (slice.Captures.IsDefault ? [] : slice.Captures).Where(capture => plan.Runs(capture.Id) &&
                 capture.EventsSource is { } source && source.Events.Any(reachable.Contains)).Select(capture => capture.Id);
             var artifacts = projections.Concat(reducers).Concat(captures).ToHashSet();
             feature = features.FirstOrDefault(candidate => candidate.Kind != "event" && (candidate.Kind != "capture" || candidate.Code == SemanticVersionFeatures.ForeignEvents) && artifacts.Contains(candidate.Artifact));
             if (feature is not null) return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
-            if (slice.Kind == SemanticSliceKind.Translate && Reached(slice, specification, reachable, commands))
+            if (slice.Kind == SemanticSliceKind.Translate && Reached(plan, slice, specification, reachable, commands))
             {
                 feature = features.First(candidate => candidate.Artifact == slice.Id && candidate.Kind == "slice");
                 return new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
@@ -79,15 +79,15 @@ internal static class SemanticRunTranslationAdmission
         return feature is null ? null : new(feature.Capability, feature.Artifact.ToString(), $"{feature.Code}: {feature.Message}");
     }
 
-    static bool Reached(SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable, HashSet<SemanticId> commands) =>
+    static bool Reached(SemanticExecutionPlan plan, SemanticSlice slice, SemanticSpecification specification, HashSet<SemanticId> reachable, HashSet<SemanticId> commands) =>
         slice.Commands.Any(command => commands.Contains(command.Id)) ||
-        slice.Reactions.Any(reaction => Selected(reaction, specification, reachable)) ||
+        slice.Reactions.Any(reaction => (plan.Runs(reaction.Id) || specification.WhenRedelivered?.Reaction == reaction.Id) && Selected(reaction, specification, reachable)) ||
         slice.Projections.Any(projection => projection.Target != SemanticProjectionTargetKind.Event && Observes(projection, reachable)) ||
         slice.Reducers.Any(reducer => reducer.Transitions.Any(transition => reachable.Contains(transition.EventContract)));
 
     static SemanticUnsupportedCapability? CheckReachableCaptureIdentities(SemanticExecutionPlan plan, HashSet<SemanticId> reachable)
     {
-        foreach (var capture in plan.Captures.Values.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains)))
+        foreach (var capture in plan.RunningCaptures.Where(capture => capture.EventsSource is { } source && source.Events.Any(reachable.Contains)))
         {
             if (SemanticCaptureIdentitySupport.Check(capture, plan.Model, plan.Events) is { } identityFailure)
             {

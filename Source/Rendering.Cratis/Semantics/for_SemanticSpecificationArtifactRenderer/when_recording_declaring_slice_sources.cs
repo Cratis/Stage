@@ -54,12 +54,12 @@ public class when_recording_declaring_slice_sources
 
     public static TheoryData<string, string> Models => new()
     {
-        { when_rendering_scoped_projections.ScopedSource, "1afbe1461d5cad81bbcecb298f7ef6ef58799ed7398355280bcac48ee91833e9" },
+        { when_rendering_scoped_projections.ScopedSource, "12a3c13a91b8c9e603092bafee31187701d5bfee5189e1d5cc968afd9ff156b3" },
         { QuerySource, "593e95a70877d953aa788243bb021925a7ac07762a4fdaaabc89593f12a5d442" },
-        { DeniedQuerySource(), "be08c539e9769ae6b0b341606359f2c20670ac32b14dcdab7d18e32ecd090190" },
-        { a_reaction_specification.ProductionSource, "a126793aa88e2d18154a56d2f9b639bccbf39ad32c3c4ef68deb0d95ac22a116" },
-        { a_redelivery_specification.RedeliverySource, "874c5afa44cd2e0597b983df8fca086b43797312d68967b39ae6651451f0e177" },
-        { a_specification_case_table.Source, "eecd08b06586899a7a5f8abc44bcfbdc58471fd61140898e5b98072befdad986" }
+        { DeniedQuerySource(), "d45d344c09ce37bf5a41c6d292c81fc81deba6726e8ac7756624fa2d47a30186" },
+        { a_reaction_specification.ProductionSource, "6c211eb14541824cc2e064f98614fe05fa7da434c48eb6a0878e17eaf3d3a1d4" },
+        { a_redelivery_specification.RedeliverySource, "eddf3cdb309d1e26b163ac02c410814af987398276582de0f4cfbeb3b8625db2" },
+        { a_specification_case_table.Source, "6ca60f1c765682df171c58ec29112df9d9d125e31e041e88f54a2c107f83e653" }
     };
 
     public static TheoryData<string> Sources

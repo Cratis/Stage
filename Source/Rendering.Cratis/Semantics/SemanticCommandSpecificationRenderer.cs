@@ -59,7 +59,15 @@ internal static partial class SemanticCommandSpecificationRenderer
         builder.EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
-        return new(path, types.SpecificationContent(builder));
+        // AppendedEvents is an extension on CommandScenario in the Arc Chronicle testing namespace, so the using is
+        // decided from the rendered content: every assertion shape that reads it needs it, and none else does.
+        var content = types.SpecificationContent(builder);
+        if (content.Contains("_scenario.AppendedEvents", StringComparison.Ordinal) && !content.Contains("using Cratis.Arc.Chronicle.Testing.Commands;", StringComparison.Ordinal))
+        {
+            content = types.SpecificationContent(builder.Using("Cratis.Arc.Chronicle.Testing.Commands"));
+        }
+
+        return new(path, content);
     }
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)

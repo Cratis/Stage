@@ -29,7 +29,7 @@ public class when_calls_overlap_or_stop : Specification
         var second = supervisor.SendAsync(new("second", "evaluate"));
         var responses = await Task.WhenAll(first, second);
         responses.Select(response => response.Id).ShouldEqual(["first", "second"]);
-        responses.All(response => response.Evaluation!.Outcome == "satisfied").ShouldBeTrue();
+        responses.All(response => response.Evaluation.Outcome == "satisfied").ShouldBeTrue();
         supervisor.ProcessId.ShouldEqual(pid);
     }
 
@@ -53,11 +53,11 @@ public class when_calls_overlap_or_stop : Specification
         var queued = supervisor.SendAsync(new("queued", "evaluate"));
         var disposing = supervisor.DisposeAsync().AsTask();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => queued);
-        (await active).Evaluation!.Outcome.ShouldEqual("faulted");
+        (await active).Evaluation.Outcome.ShouldEqual("faulted");
         await disposing;
         await supervisor.DisposeAsync();
         supervisor.ProcessId.ShouldBeNull();
-        (await supervisor.SendAsync(new("after", "evaluate"))).Evaluation!.Outcome.ShouldEqual("faulted");
+        (await supervisor.SendAsync(new("after", "evaluate"))).Evaluation.Outcome.ShouldEqual("faulted");
     }
 
     static BodyWorkerSupervisor Supervisor(string script)

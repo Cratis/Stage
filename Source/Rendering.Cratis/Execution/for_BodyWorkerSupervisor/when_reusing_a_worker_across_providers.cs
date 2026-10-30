@@ -27,7 +27,11 @@ public class when_reusing_a_worker_across_providers : Specification
         var manifest = await worker.CompileAsync(path);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(path);
         var created = 0;
-        var execution = SemanticBodyExecution.From(loaded, manifest, () => { created++; return worker; });
+        var execution = SemanticBodyExecution.From(loaded, manifest, () =>
+        {
+            created++;
+            return worker;
+        });
         var body = Assert.Single(execution.Bodies);
         var context = new SemanticRuleContext(SemanticValue.Null, SemanticValue.Number(1), "amount", null, null, null);
         var first = await execution.CreateAsync(loaded.Model.Application, ImmutableDictionary<string, SemanticImplementationBody>.Empty, default);
@@ -41,10 +45,11 @@ public class when_reusing_a_worker_across_providers : Specification
         worker.ProcessId.ShouldEqual(pid);
         created.ShouldEqual(1);
         await second.DisposeAsync();
+
         // The application owner, not either provider, releases the process.
-        await ((IAsyncDisposable)execution).DisposeAsync();
+        await execution.DisposeAsync();
         worker.ProcessId.ShouldBeNull();
-        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid!.Value));
+        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid.Value));
     }
 }
 #endif

@@ -73,7 +73,7 @@ internal static partial class BodyUnitSources
     {
         var token = CSharpSyntaxTree.ParseText(SemanticReducerContextRuntime.Render(context).Content).GetCompilationUnitRoot();
         var boundary = token.DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
-        return token.RemoveNode(boundary, Microsoft.CodeAnalysis.SyntaxRemoveOptions.KeepNoTrivia)!.ToFullString();
+        return token.RemoveNode(boundary, SyntaxRemoveOptions.KeepNoTrivia)!.ToFullString();
     }
 
     // Arc attributes are not part of the helper-only projection. Its two boundary-only imports

@@ -151,7 +151,7 @@ internal static class SemanticWorldRebuilder
         return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
-    static SemanticEventRoute? Route(SemanticExecutionPlan plan, Cratis.Chronicle.Contracts.Sequences.EventContext context)
+    static SemanticEventRoute? Route(SemanticExecutionPlan plan, Chronicle.Contracts.Sequences.EventContext context)
     {
         if (context.EventSourceType == EventSourceType.Default.Value &&
             context.EventStreamType == EventStreamType.All.Value && context.EventStreamId == EventStreamId.Default)
@@ -293,7 +293,7 @@ internal static class SemanticWorldRebuilder
         SemanticProducedEvent produced,
         SemanticEventContract contract,
         ImmutableArray<SemanticPropertyValue> values,
-        Cratis.Chronicle.Contracts.Sequences.EventContext context,
+        Chronicle.Contracts.Sequences.EventContext context,
         DateTimeOffset occurred)
     {
         if (!contract.Tags.AddRange(produced.Tags).SequenceEqual(context.Tags))

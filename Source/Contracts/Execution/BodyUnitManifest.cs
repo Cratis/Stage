@@ -6,6 +6,16 @@ using System.Collections.Immutable;
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>Admission and executable identity for one implementation requirement.</summary>
+/// <param name="RequirementId">The implementation requirement identity.</param>
+/// <param name="Role">The implementation role name.</param>
+/// <param name="Admitted">Whether the requirement was admitted for execution.</param>
+/// <param name="DiagnosticCode">The diagnostic code when not admitted.</param>
+/// <param name="DiagnosticMessage">The diagnostic message when not admitted.</param>
+/// <param name="UnitHash">The hash of the compiled unit.</param>
+/// <param name="PeSha256">The SHA-256 of the compiled assembly.</param>
+/// <param name="EntryType">The full name of the entry type.</param>
+/// <param name="EntryMethod">The name of the entry method.</param>
+/// <param name="WrapperType">The full name of the rendered wrapper type.</param>
 public sealed record BodyUnitEntry(
     string RequirementId,
     string Role,
@@ -35,4 +45,6 @@ public sealed record BodyUnitEntry(
 }
 
 /// <summary>The immutable compilation result for one model revision.</summary>
+/// <param name="Revision">The model revision that was compiled.</param>
+/// <param name="Entries">The per-requirement admission and identity entries.</param>
 public sealed record BodyUnitManifest(string Revision, ImmutableArray<BodyUnitEntry> Entries);

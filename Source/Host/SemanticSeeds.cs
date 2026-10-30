@@ -172,7 +172,7 @@ internal static class SemanticSeeds
             EventSourceType = EventSourceType.Default.Value,
             EventStreamType = EventStreamType.All.Value,
             EventStreamId = EventStreamId.Default,
-            Occurred = (Cratis.Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
+            Occurred = (Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
             Tags = [.. fact.Tags],
             CausedBy = new() { Subject = SemanticChronicleRegistration.SeedSubject, Name = SemanticChronicleRegistration.SeedSubject, UserName = SemanticChronicleRegistration.SeedSubject }
         },

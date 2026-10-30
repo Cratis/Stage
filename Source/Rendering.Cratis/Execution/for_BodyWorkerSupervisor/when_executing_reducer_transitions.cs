@@ -58,12 +58,12 @@ public class when_executing_reducer_transitions : Specification
         var deleting = fixture.StressUnit("return null;", reducer: true);
         var hanging = fixture.StressUnit("System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite); return null;", reducer: true);
         await using var worker = fixture.Create(timeout: 5000);
-        (await worker.SendAsync(fixture.Request(deleting) with { Kind = "reduce" })).Evaluation!.Outcome.ShouldEqual("delete");
+        (await worker.SendAsync(fixture.Request(deleting) with { Kind = "reduce" })).Evaluation.Outcome.ShouldEqual("delete");
         var response = await worker.SendAsync(fixture.Request(hanging) with { Kind = "reduce" });
-        response.Evaluation!.Outcome.ShouldEqual("exceeded-time");
+        response.Evaluation.Outcome.ShouldEqual("exceeded-time");
         Assert.StartsWith(BodyDiagnostics.ExceededTime, response.Evaluation.Diagnostic, StringComparison.Ordinal);
         worker.ProcessId.ShouldBeNull();
-        (await worker.SendAsync(fixture.Request(deleting) with { Kind = "reduce" })).Evaluation!.Outcome.ShouldEqual("delete");
+        (await worker.SendAsync(fixture.Request(deleting) with { Kind = "reduce" })).Evaluation.Outcome.ShouldEqual("delete");
     }
 
     static BodyEvaluationRequest Request(LoadedSemanticModel loaded, BodyUnitEntry entry, SemanticValue state, decimal score = 5)

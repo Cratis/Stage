@@ -31,7 +31,8 @@ public class when_executing_validation_iterators : Specification
         (await worker.ValidateAsync(Request(loaded, entry, 1, concept))).Outcome.ShouldEqual("satisfied");
         var rejected = await worker.ValidateAsync(Request(loaded, entry, 0, concept));
         rejected.Outcome.ShouldEqual("unsatisfied");
-        Assert.Equal(["first", "second"], rejected.Messages.ToArray());
+        Assert.Equal(["first", "second"], [.. rejected.Messages]);
+
         // A different request kind cannot invoke an iterator as a predicate.
         (await worker.EvaluateAsync(Request(loaded, entry, 0, concept))).Outcome.ShouldEqual("faulted");
     }
@@ -44,11 +45,12 @@ public class when_executing_validation_iterators : Specification
     async Task should_refuse_invalid_or_unbounded_messages(string body)
     {
         using var fixture = new a_real_worker();
+
         // Stress units intentionally bypass purity, as in the existing worker resource-limit specs.
         var unit = fixture.StressUnit(body, iterator: true);
         await using var worker = fixture.Create();
         var response = await worker.SendAsync(fixture.Request(unit) with { Kind = "validate" });
-        var result = response.Evaluation!;
+        var result = response.Evaluation;
         result.Outcome.ShouldEqual("faulted");
         result.Messages.ShouldBeEmpty();
         Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Diagnostic, StringComparison.Ordinal);
@@ -61,12 +63,12 @@ public class when_executing_validation_iterators : Specification
         var good = fixture.StressUnit("yield break;", iterator: true);
         var bad = fixture.StressUnit("System.Threading.Thread.Sleep(System.Threading.Timeout.Infinite); yield break;", iterator: true);
         await using var worker = fixture.Create(timeout: 5000);
-        (await worker.SendAsync(fixture.Request(good) with { Kind = "validate" })).Evaluation!.Outcome.ShouldEqual("satisfied");
+        (await worker.SendAsync(fixture.Request(good) with { Kind = "validate" })).Evaluation.Outcome.ShouldEqual("satisfied");
         var response = await worker.SendAsync(fixture.Request(bad) with { Kind = "validate" });
-        response.Evaluation!.Outcome.ShouldEqual("exceeded-time");
+        response.Evaluation.Outcome.ShouldEqual("exceeded-time");
         Assert.StartsWith(BodyDiagnostics.ExceededTime, response.Evaluation.Diagnostic, StringComparison.Ordinal);
         worker.ProcessId.ShouldBeNull();
-        (await worker.SendAsync(fixture.Request(good) with { Kind = "validate" })).Evaluation!.Outcome.ShouldEqual("satisfied");
+        (await worker.SendAsync(fixture.Request(good) with { Kind = "validate" })).Evaluation.Outcome.ShouldEqual("satisfied");
     }
 
     static async Task<string> Model(a_real_worker fixture, string body, bool concept)

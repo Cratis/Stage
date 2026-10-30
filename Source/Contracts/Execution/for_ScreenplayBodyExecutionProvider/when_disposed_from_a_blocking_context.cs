@@ -28,9 +28,9 @@ public class when_disposed_from_a_blocking_context : Specification
         var thread = new Thread(() => DisposeSynchronously(provider, disposed)) { IsBackground = true };
         thread.Start();
         await disposed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        (await pending).Evaluation!.Outcome.ShouldEqual("faulted");
+        (await pending).Evaluation.Outcome.ShouldEqual("faulted");
         worker.ProcessId.ShouldBeNull();
-        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid!.Value));
+        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid.Value));
         await provider.DisposeAsync();
     }
 

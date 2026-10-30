@@ -26,7 +26,7 @@ public class when_validating_with_malformed_messages : Specification
     [Fact]
     void should_normalize_a_missing_wire_message_collection_to_empty()
     {
-        var evaluation = JsonSerializer.Deserialize<BodyEvaluation>("""{"outcome":"satisfied"}""", BodyWorkerMessages.Json)!;
+        var evaluation = JsonSerializer.Deserialize<BodyEvaluation>("""{"outcome":"satisfied"}""", BodyWorkerMessages.Json);
         evaluation.Messages.IsDefault.ShouldBeFalse();
         evaluation.Messages.IsEmpty.ShouldBeTrue();
     }

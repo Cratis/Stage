@@ -12,7 +12,7 @@ using Cratis.Stage.Running;
 using Cratis.Stage.Specifications;
 using Cratis.Stage.SpecRunner;
 
-return await Program.Run(args, Console.Out, Console.Error);
+return await Run(args, Console.Out, Console.Error);
 
 /// <summary>
 /// Runs modeled specifications from a Screenplay file or folder.

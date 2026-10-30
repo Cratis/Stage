@@ -34,10 +34,10 @@ public class when_retaining_reducer_compilations
         var (_, body, refusal) = BodyUnitAdmission.AdmitReducer(context, requirement);
         Assert.Null(refusal);
         var transition = Assert.Single(reducer.Transitions);
-        var original = PureTransitionAdmission.Analyze(body!, context, context.ReadModels[reducer.ReadModel], context.Events[transition.EventContract], descriptor, requirement);
+        var original = PureTransitionAdmission.Analyze(body, context, context.ReadModels[reducer.ReadModel], context.Events[transition.EventContract], descriptor, requirement);
         Assert.True(original.Accepted, original.Reason);
-        var unit = BodyUnitSources.RenderReducer(context, descriptor, body!);
-        var trees = unit.Sources.Select((source, index) => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest), index == 0 ? unit.Path : $"worker/declarations/{index}.cs"));
+        var unit = BodyUnitSources.RenderReducer(context, descriptor, body);
+        var trees = unit.Sources.Select((source, index) => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest), index == 0 ? unit.Path : $"worker/declarations/{index}.cs"));
         var compilation = CSharpCompilation.Create("WorkerParity", trees, [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference], new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
         var errors = compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
         Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors.Select(error => error.ToString())));

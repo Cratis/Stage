@@ -94,9 +94,9 @@ public static class BodyWorkerLoop
 
     static bool MatchesRole(string kind, string bodyRole) => bodyRole switch
     {
-        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.RulePredicate) => kind == "evaluate",
-        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.CommandValidation) or nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ConceptValidation) => kind == "validate",
-        nameof(global::Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition) => kind == "reduce",
+        nameof(Screenplay.Semantics.SemanticImplementationRole.RulePredicate) => kind == "evaluate",
+        nameof(Screenplay.Semantics.SemanticImplementationRole.CommandValidation) or nameof(Screenplay.Semantics.SemanticImplementationRole.ConceptValidation) => kind == "validate",
+        nameof(Screenplay.Semantics.SemanticImplementationRole.ReducerTransition) => kind == "reduce",
         _ => false
     };
 

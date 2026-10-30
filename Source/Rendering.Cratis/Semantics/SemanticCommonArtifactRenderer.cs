@@ -25,6 +25,7 @@ internal static class SemanticCommonArtifactRenderer
     /// <returns>The generated source artifact.</returns>
     public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context, bool qualified = false, bool declarationOnly = false)
     {
+        qualified |= QualifiedSpelling.IsActive;
         var name = Identifiers.ToPascalCase(concept.Name);
         var builder = Builder(context, qualified);
         builder.Pin(name, $"{name}Validator");
@@ -51,6 +52,7 @@ internal static class SemanticCommonArtifactRenderer
     /// <returns>The generated source artifact.</returns>
     public static RenderedFile Render(SemanticCompositeType type, SemanticApplicationContext context, bool qualified = false)
     {
+        qualified |= QualifiedSpelling.IsActive;
         var builder = Builder(context, qualified);
         var types = new SemanticTypeSystem(context, builder);
         var name = Identifiers.ToPascalCase(type.Name);
@@ -67,7 +69,7 @@ internal static class SemanticCommonArtifactRenderer
             ? SemanticGenerationShapes.Supported(concept) : concept.Primitive == SemanticPrimitiveType.Uuid);
 
     static CSharpCodeBuilder Builder(SemanticApplicationContext context, bool qualified) =>
-        (qualified ? new CSharpCodeBuilder() : new(new ImportRequest(context.CommonNamespace, GeneratedProjects.Application, context.GeneratedTypes, [])))
+        (qualified ? new CSharpCodeBuilder() : context.CodeBuilder())
             .Namespace(context.CommonNamespace);
 
     static void RenderEnum(CSharpCodeBuilder builder, SemanticConcept concept, string name)
@@ -142,7 +144,7 @@ internal static class SemanticCommonArtifactRenderer
         var value = string.Empty;
         if (!declarationOnly)
         {
-            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
+            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, context, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
         }
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
         var name = Identifiers.ToPascalCase(concept.Name);

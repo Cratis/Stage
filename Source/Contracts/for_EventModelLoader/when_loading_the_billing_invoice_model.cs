@@ -34,6 +34,7 @@ public class when_loading_the_billing_invoice_model : Specification
         _register = slices.Single(_ => _.Name == "RegisterInvoice").Command!;
     }
 
+    [Fact] void should_preserve_protected_command_reads() => _model.ProtectedCommandReads.ShouldBeTrue();
     [Fact] void should_map_the_customer_name_into_the_summary() => Mapping(_summary, "InvoiceRegistered", "customerName").ShouldEqual("customerName");
     [Fact] void should_start_the_summary_as_a_draft() => Mapping(_summary, "InvoiceRegistered", "status").ShouldEqual("\"draft\"");
     [Fact] void should_allow_cancelling_a_draft() => Mapping(_summary, "InvoiceRegistered", "canCancel").ShouldEqual("True");
@@ -47,9 +48,8 @@ public class when_loading_the_billing_invoice_model : Specification
     [Fact] void should_initialize_the_command_state_amount() => Mapping(_state, "InvoiceRegistered", "amount").ShouldEqual("amount");
     [Fact] void should_transition_the_command_state_to_issued() => Mapping(_state, "InvoiceIssued", "status").ShouldEqual("\"issued\"");
     [Fact] void should_update_the_command_state_amount_on_issue() => Mapping(_state, "InvoiceIssued", "amount").ShouldEqual("amount");
-    [Fact] void should_transition_the_command_state_to_cancelled() => Mapping(_state, "InvoiceCancelled", "status").ShouldEqual("\"cancelled\"");
-    [Fact] void should_preserve_the_amount_on_cancellation() => _state.From["InvoiceCancelled"].Properties.Any(_ => _.Property == "amount").ShouldBeFalse();
-    [Fact] void should_key_all_state_transitions_by_invoice() => _state.From.Values.All(_ => _.Key == "invoiceId").ShouldBeTrue();
+    [Fact] void should_remove_the_command_state_on_cancellation() => _state.RemovedWith.ContainsKey("InvoiceCancelled").ShouldBeTrue();
+    [Fact] void should_key_all_state_transitions_by_the_event_source() => _state.From.Values.All(_ => _.Key.Length == 0).ShouldBeTrue();
 
     static string Mapping(ProjectionDefinition projection, string eventName, string property) =>
         projection.From[eventName].Properties.Single(_ => _.Property == property).Expression;

@@ -6,7 +6,7 @@ module Invoicing
       description "The list every billing day starts from"
 
       readmodel InvoiceSummary
-        invoiceId InvoiceId
+        id InvoiceId key
         invoiceNumber InvoiceNumber
         customerName CustomerName
         amount Money
@@ -14,29 +14,26 @@ module Invoicing
         canCancel Bool
 
       projection InvoiceSummaryProjection => InvoiceSummary
-        from InvoiceRegistered key invoiceId
+        from InvoiceRegistered
           invoiceNumber = invoiceNumber
           customerName = customerName
           amount = amount
           status = "draft"
           canCancel = true
-        from InvoiceIssued key invoiceId
+        from InvoiceIssued
           status = "issued"
           canCancel = true
-        from InvoiceCancelled key invoiceId
+        from InvoiceCancelled
           status = "cancelled"
           canCancel = false
 
       query Invoices => observable InvoiceSummary[]
         description "Every invoice the caller is allowed to see"
-        filter status InvoiceStatus
-        scoped to tenant
+        filter status InvoiceStatus optional
         authorize IsBillingClerk or IsBillingManager
 
       query InvoiceById => InvoiceSummary?
-        by invoiceId InvoiceId
-
-      query NextInvoiceNumber => InvoiceNumber
+        by id InvoiceId
 
       screen InvoiceList
         template InvoiceWorkspace
@@ -52,7 +49,7 @@ module Invoicing
               column customerName label $strings.invoice.customer
               column amount label $strings.invoice.amount
               column status label $strings.invoice.status
-              on row-click navigate to InvoiceDetails by invoiceId
+              on row-click navigate to InvoiceDetails by id
             uses RefreshOnReturn
             on double click
               open dialog ConfirmationDialog
@@ -65,7 +62,7 @@ module Invoicing
                 field status label $strings.invoice.status
 
       screen InvoiceDetails
-        data InvoiceSummary via query InvoiceById by invoiceId
+        data InvoiceSummary via query InvoiceById by id
         title $strings.invoice.detailsTitle
         section Details
           summary InvoiceSummary

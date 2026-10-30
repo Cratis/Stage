@@ -4,9 +4,10 @@
 namespace Cratis.Stage.Rendering.Cratis.Naming.Imports;
 
 /// <summary>
-/// Models how C# binds a simple name at the top level of a generated file's file-scoped namespace: hidden first by
-/// type parameters and nested types, then members of the file namespace and imports declared inside it. A short name
-/// must bind at that innermost level; enclosing namespaces and global usings cannot establish a safe short spelling.
+/// Models how C# binds a simple name in a generated file with one file-scoped namespace: hidden first by type parameters
+/// and nested types, then members of the file namespace and the imports declared inside it, then members of every
+/// enclosing namespace out to the global namespace, and last the using directives of the compilation unit together with
+/// the global usings of the project. A level whose names are not all known makes the binding unknown.
 /// </summary>
 internal sealed class NameScope
 {
@@ -64,10 +65,10 @@ internal sealed class NameScope
     }
 
     /// <summary>
-    /// Gets a value indicating whether a namespace encloses the file.
+    /// Gets a value indicating whether a namespace is the file's own namespace, whose members need no import.
     /// </summary>
     /// <param name="namespace">The namespace.</param>
-    /// <returns><see langword="true"/> when the file is in the namespace or one nested in it.</returns>
+    /// <returns><see langword="true"/> when the file is in the namespace.</returns>
     public bool Encloses(string @namespace) => FileNamespace == @namespace;
 
     /// <summary>
@@ -76,6 +77,33 @@ internal sealed class NameScope
     /// <param name="name">The first segment of the directive.</param>
     /// <returns>Whether the directive could be shadowed.</returns>
     public bool HidesImport(string name) => TypeNames(string.Empty).Contains(name, StringComparer.Ordinal);
+
+    /// <summary>
+    /// Determines whether a directive inside the file-scoped namespace may name a namespace without
+    /// <c language="csharp">global::</c>: its first segment is looked up from the file namespace outwards, so no
+    /// enclosing namespace may hold a type or namespace of that name, and no global type may hide it.
+    /// </summary>
+    /// <param name="namespace">The namespace the directive imports.</param>
+    /// <returns><see langword="true"/> when the first segment provably binds to the global namespace member.</returns>
+    public bool BindsFromGlobal(string @namespace)
+    {
+        var first = @namespace.Split('.')[0];
+        if (HidesImport(first)) return false;
+        foreach (var enclosing in CatalogNames.SelfAndContaining(FileNamespace).Where(enclosing => enclosing.Length > 0))
+        {
+            if (!Knows(enclosing) || IsNamespace(CatalogNames.Qualify(enclosing, first))) return false;
+            if (TypeNames(enclosing).Contains(first, StringComparer.Ordinal)) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the renderer declares a type in exactly this namespace.
+    /// </summary>
+    /// <param name="namespace">The namespace.</param>
+    /// <returns><see langword="true"/> when a generated type lives there.</returns>
+    public bool DeclaresGeneratedTypes(string @namespace) => _generatedNames.ContainsKey(@namespace);
 
     /// <summary>
     /// Gets the names of every top-level type in a namespace, generated or referenced.
@@ -93,26 +121,95 @@ internal sealed class NameScope
     public IEnumerable<string> ExtensionNames(string @namespace) => _catalog.ExtensionNames(@namespace, _project);
 
     /// <summary>
-    /// Finds what a simple name binds to at the file's top level.
+    /// Finds what a simple name binds to.
     /// </summary>
     /// <param name="name">The simple name.</param>
     /// <param name="arity">The number of type arguments written with it.</param>
     /// <param name="imports">The namespaces imported inside the file-scoped namespace.</param>
+    /// <param name="compilationUnit">The namespaces the compilation unit imports, including the global usings, or <see langword="null"/> when they are not known.</param>
     /// <param name="target">The type the name is meant to bind to.</param>
     /// <returns>What the name binds to.</returns>
-    public NameLookup Find(string name, int arity, IReadOnlyCollection<string> imports, TypeReference target)
+    public NameLookup Find(string name, int arity, IReadOnlyCollection<string> imports, IReadOnlyCollection<string>? compilationUnit, TypeReference target)
     {
         if (_typeNames.Contains(name)) return NameLookup.Other;
-        if (arity == 0 && IsNamespace(CatalogNames.Qualify(FileNamespace, name))) return NameLookup.Other;
-        if (!Knows(FileNamespace) && FileNamespace.Length > 0) return NameLookup.Unknown;
-        var found = Count(FileNamespace, name, arity);
-        if (found > 0) return found == 1 && Is(target, FileNamespace, name, arity) ? NameLookup.Target : NameLookup.Other;
+        var member = Member(FileNamespace, name, arity, target);
+        if (member != NameLookup.Nothing) return member;
 
-        return Imported(name, arity, imports, target);
+        var imported = Imported(name, arity, imports, target);
+        if (imported != NameLookup.Nothing) return imported;
+        foreach (var @namespace in CatalogNames.SelfAndContaining(FileNamespace).Skip(1))
+        {
+            member = Member(@namespace, name, arity, target);
+            if (member != NameLookup.Nothing) return member;
+        }
+
+        return compilationUnit is null ? NameLookup.Unknown : Imported(name, arity, compilationUnit, target);
+    }
+
+    /// <summary>
+    /// Determines whether a simple name is ambiguous where the compilation unit's imports are searched, with nothing of
+    /// that name in any closer scope. A use of such a name in a file that compiles never reaches the namespaces: it binds
+    /// to a member, parameter or local first.
+    /// </summary>
+    /// <param name="name">The simple name.</param>
+    /// <param name="compilationUnit">The namespaces the compilation unit imports, including the global usings.</param>
+    /// <returns><see langword="true"/> when the name is provably ambiguous at the compilation unit only.</returns>
+    public bool IsAmbiguousOnlyInCompilationUnit(string name, IReadOnlyCollection<string> compilationUnit)
+    {
+        if (_typeNames.Contains(name)) return false;
+        foreach (var @namespace in CatalogNames.SelfAndContaining(FileNamespace))
+        {
+            if (IsNamespace(CatalogNames.Qualify(@namespace, name))) return false;
+            if (@namespace.Length > 0 && !Knows(@namespace)) return false;
+            if (TypeNames(@namespace).Contains(name, StringComparer.Ordinal)) return false;
+        }
+
+        if (compilationUnit.Any(@namespace => !Knows(@namespace))) return false;
+        return compilationUnit.Sum(@namespace => Count(@namespace, name, 0)) > 1;
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a simple name binds only to framework types that are not attributes, so that an
+    /// attribute written with that name still binds to the type with the <c language="csharp">Attribute</c> suffix.
+    /// </summary>
+    /// <param name="name">The simple name.</param>
+    /// <param name="arity">The number of type arguments written with it.</param>
+    /// <param name="imports">The namespaces imported inside the file-scoped namespace.</param>
+    /// <param name="compilationUnit">The namespaces the compilation unit imports, or <see langword="null"/> when they are not known.</param>
+    /// <returns><see langword="true"/> when every type the name binds to is known not to be an attribute.</returns>
+    public bool BindsOnlyNonAttributes(string name, int arity, IReadOnlyCollection<string> imports, IReadOnlyCollection<string>? compilationUnit)
+    {
+        if (_typeNames.Contains(name)) return false;
+        IEnumerable<(IReadOnlyCollection<string> Namespaces, bool Imported)> levels =
+        [
+            ([FileNamespace], false),
+            (imports, true),
+            .. CatalogNames.SelfAndContaining(FileNamespace).Skip(1).Select(@namespace => ((IReadOnlyCollection<string>)[@namespace], false)),
+            (compilationUnit ?? [], true)
+        ];
+        foreach (var (namespaces, imported) in levels)
+        {
+            if (!imported && arity == 0 && namespaces.Any(@namespace => IsNamespace(CatalogNames.Qualify(@namespace, name)))) return false;
+            if (namespaces.Any(@namespace => @namespace.Length > 0 && !Knows(@namespace))) return false;
+            if (namespaces.Any(@namespace => _generated.GetValueOrDefault((@namespace, name, arity)) > 0)) return false;
+            var types = namespaces.SelectMany(@namespace => _catalog.TypesNamed(@namespace, name, arity, _project)).ToArray();
+            if (types.Length > 0) return types.All(type => type.Kind != "attribute");
+        }
+
+        return false;
     }
 
     static bool Is(TypeReference target, string @namespace, string name, int arity) =>
         target.Namespace == @namespace && target.Arity == arity && target.Name == name;
+
+    NameLookup Member(string @namespace, string name, int arity, TypeReference target)
+    {
+        if (arity == 0 && IsNamespace(CatalogNames.Qualify(@namespace, name))) return NameLookup.Other;
+        if (@namespace.Length > 0 && !Knows(@namespace)) return NameLookup.Unknown;
+        var found = Count(@namespace, name, arity);
+        if (found == 0) return NameLookup.Nothing;
+        return found == 1 && Is(target, @namespace, name, arity) ? NameLookup.Target : NameLookup.Other;
+    }
 
     NameLookup Imported(string name, int arity, IReadOnlyCollection<string> imports, TypeReference target)
     {

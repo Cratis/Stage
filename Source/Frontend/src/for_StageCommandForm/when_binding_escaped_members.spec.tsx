@@ -46,11 +46,11 @@ describe('when binding escaped command members', () => {
         const input = screen.getByLabelText('Identity') as HTMLInputElement;
         await waitFor(() => expect(input.value).toEqual('prefilled'));
         fireEvent.change(input, { target: { value: '' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Text' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
         await waitFor(() => expect(screen.getAllByText('Identity is required').length).toBeGreaterThan(0));
         expect(fetched).not.toHaveBeenCalled();
         fireEvent.change(input, { target: { value: 'submitted' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Text' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
         await waitFor(() => expect(fetched).toHaveBeenCalled());
         expect(JSON.parse(String((fetched.mock.calls[0][1] as RequestInit).body))).toEqual({ text_: 'submitted' });
     });

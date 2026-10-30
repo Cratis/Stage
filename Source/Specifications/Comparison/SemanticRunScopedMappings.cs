@@ -45,7 +45,11 @@ internal static class SemanticRunScopedMappings
 #pragma warning disable CHR0002
         builder.From<TEvent>(from =>
         {
-            if (key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } })
+            if (key is SemanticProjectionPartsKey parts)
+            {
+                SemanticRunCompositeKeys.Define(from, typeof(IReadModelPropertiesBuilder<TReadModel, TEvent, IFromBuilder<TReadModel, TEvent>>), typeof(TReadModel), typeof(TEvent), model, @event, parts, plan);
+            }
+            else if (key is SemanticProjectionValueKey { Value: SemanticProjectionLiteral { Value: SemanticTextValue text } })
             {
                 from.UsingConstantKey(text.Value);
             }

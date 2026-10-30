@@ -80,7 +80,7 @@ internal static partial class SemanticRunProjectionAdmission
             }
             if (plan.Projections.Values.Any(projection => projection.ReadModel == seed.ReadModel) &&
                 (model.Properties.Any(property => seed.Values.All(value => value.TargetProperty != property.Id || value.Value is SemanticNullValue)) ||
-                    !seed.Values.Any(value => value.TargetProperty == model.Properties.Single(property => property.IsIdentifier).Id && SameScalar(value.Value, seed.Key))))
+                    !SeedKeyMatches(model, seed)))
             {
                 return new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "A projected read-model seed requires every scalar property and an identifier equal to its key; partial state cannot preserve property presence through the concrete scenario.");
             }
@@ -90,8 +90,7 @@ internal static partial class SemanticRunProjectionAdmission
             .Concat(specification.ThenAbsentReadModels.Select(assertion => assertion.ReadModel));
         foreach (var readModel in assertedModels)
         {
-            if (!plan.ReadModels.ContainsKey(readModel) ||
-                (plan.Projections.Values.All(projection => projection.ReadModel != readModel) && specification.GivenReadModels.All(seed => seed.ReadModel != readModel)))
+            if (!plan.ReadModels.ContainsKey(readModel) || !SemanticRunAdmission.HasReadModelProvider(plan, specification, readModel))
             {
                 return new(StageExecutionCapability.Projection, readModel.ToString(), "The asserted read model has no projection in this run.");
             }
@@ -101,9 +100,8 @@ internal static partial class SemanticRunProjectionAdmission
             if (emptyQuery && plan.Queries.ContainsKey(assertion.Query)) continue;
             if (!plan.Queries.TryGetValue(assertion.Query, out var query) ||
                 !plan.ReadModels.TryGetValue(query.ReadModel, out var model) ||
-                (!query.KeyParts.IsDefaultOrEmpty && query.KeyParts.Length > 1) ||
                 (query.Filters.IsEmpty && (query.Delivery != SemanticQueryDelivery.Snapshot || query.Cardinality != SemanticQueryCardinality.ZeroOrOne ||
-                    model.Properties.Where(property => property.IsIdentifier).Select(property => (SemanticId?)property.Id).ToArray() is not [var identifier] || identifier != query.KeyProperty)) ||
+                    !QueryKeyMatches(model, query))) ||
                 (plan.Projections.Values.All(projection => projection.ReadModel != query.ReadModel) && specification.GivenReadModels.All(seed => seed.ReadModel != query.ReadModel)))
             {
                 return new(StageExecutionCapability.Query, assertion.Query.ToString(), "Only optional snapshot queries by read-model identifier are admitted.");
@@ -131,7 +129,7 @@ internal static partial class SemanticRunProjectionAdmission
         var identifiers = readModel.Properties.Where(property => property.IsIdentifier).ToArray();
         if (identifiers.Length > 1)
         {
-            return $"Read model '{readModel.Name}' has several key parts (ESM v27 composite read-model keys); the per-run projection scenario seeds and looks up instances by one event-source key, so it cannot run composite read-model keys yet.";
+            return scope is null ? "Composite read-model keys require a scoped projection." : null;
         }
         if (identifiers.Length != 1 || identifiers[0].Type.IsOptional)
         {
@@ -179,6 +177,11 @@ internal static partial class SemanticRunProjectionAdmission
         {
             return "Read-model property names are not unique under case-insensitive runtime JSON binding.";
         }
+        if (readModel.Properties.Count(property => property.IsIdentifier) > 1)
+        {
+            return CompositeProjectionRejection(plan, specification, projection, reachable);
+        }
+
         var identifier = readModel.Properties.Single(property => property.IsIdentifier);
         var primitive = identifier.Type.Kind == SemanticTypeReferenceKind.Concept
             ? plan.Model.Application.Concepts.Single(concept => concept.Id == identifier.Type.Target).Primitive : identifier.Type.Primitive;
@@ -205,10 +208,6 @@ internal static partial class SemanticRunProjectionAdmission
             if (ProductRejection(plan, scope, readModel, reachable) is { } product)
             {
                 return $"A projection adds or subtracts a product of two event values (ESM v29) that cannot be carried on the event: {product}.";
-            }
-            if (readModel.Properties.All(property => property.IsIdentifier || property.Type.IsOptional) && scope.From.Any(from => from.Mappings.IsEmpty))
-            {
-                return "A mapping-free from block on a read model without required properties does not materialize a Chronicle read model.";
             }
             if (scope.Removals.Any(removal => !RemovalKeySupported(plan, removal, identifier.Type)))
             {
@@ -305,7 +304,7 @@ internal static partial class SemanticRunProjectionAdmission
         return IsScalar(identity) && !identity.IsOptional && !identity.IsCollection &&
             Primitive(plan, identity) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
             ChronicleReadModelPropertyNamesAreSafe.Check(properties, rootLevel: false) && SemanticRunAdmission.RuntimePropertyNamesAreUnique(properties) &&
-            properties.All(property => (IsScalar(property.Type) && !property.Type.IsCollection && Primitive(plan, property.Type) != SemanticPrimitiveType.DateTime) || scope.Children.Any(child => child.Property == property.Id)) &&
+            properties.All(property => (IsScalar(property.Type) && !property.Type.IsCollection) || scope.Children.Any(child => child.Property == property.Id)) &&
             scope.Nested.IsEmpty && scope.Children.IsEmpty && scope.JoinRemovals.IsEmpty && scope.Every is null &&
             scope.From.All(from => FromKeySupported(plan, specification, from, identity) && ParentMatches(from.ParentKey, from.EventContract) && from.Mappings.All(MappingSupported)) &&
             scope.Removals.All(removal => RemovalKeySupported(plan, removal, identity) && ParentMatches(removal.ParentKey, removal.EventContract)) &&

@@ -12,6 +12,34 @@ internal static class SemanticTypedContextAdmission
 {
     internal const uint SupportedTypedContextContractRevision = 1;
 
+    // Screenplay's SemanticTypedContextCatalog requires descriptors only for these six roles.
+    // Documentation/screenplay/context.md: query performers, reactions and constraints have no descriptors yet.
+    static readonly ImmutableHashSet<SemanticImplementationRole> _descriptorBackedRoles =
+    [
+        SemanticImplementationRole.CommandHandler,
+        SemanticImplementationRole.CommandValidation,
+        SemanticImplementationRole.ConceptValidation,
+        SemanticImplementationRole.RulePredicate,
+        SemanticImplementationRole.ReducerTransition,
+        SemanticImplementationRole.ValueGeneration
+    ];
+
+    // QueryPerformer carries its query shape on the requirement.
+    // ReactionEffect is refused elsewhere by SemanticVersionFeatures.
+    // ConstraintPredicate's file-backed constraints are a Screenplay binder error.
+    // PolicyPredicate retains the per-use-site descriptor check below.
+    static readonly ImmutableHashSet<SemanticImplementationRole> _descriptorExemptRoles =
+    [
+        SemanticImplementationRole.QueryPerformer,
+        SemanticImplementationRole.ReactionEffect,
+        SemanticImplementationRole.ConstraintPredicate,
+        SemanticImplementationRole.PolicyPredicate
+    ];
+
+    internal static bool RequiresDescriptor(SemanticImplementationRole role) => _descriptorBackedRoles.Contains(role);
+
+    internal static bool IsDescriptorExempt(SemanticImplementationRole role) => _descriptorExemptRoles.Contains(role);
+
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request) => Verify(request, out _);
 
     internal static ImmutableArray<ArtifactRenderDiagnostic> Verify(ArtifactRenderRequest request, out ImmutableArray<SemanticTypedContextDescriptor> admitted)
@@ -107,7 +135,7 @@ internal static class SemanticTypedContextAdmission
                         errors.Add(Error($"Implementation requirement '{requirement.RequirementId}' has no typed context for use site '{site}' from this compilation.", owner));
                     }
                 }
-                if (requirement.Role != SemanticImplementationRole.PolicyPredicate &&
+                if (RequiresDescriptor(requirement.Role) &&
                     !request.TypedContextDescriptors.Any(descriptor => descriptor is not null && descriptor.RequirementId == requirement.RequirementId))
                 {
                     errors.Add(Error($"Implementation requirement '{requirement.RequirementId}' has no typed context from this compilation.", owner));
@@ -115,8 +143,13 @@ internal static class SemanticTypedContextAdmission
             }
         }
 
-        return errors.ToImmutable();
+        // Unknown roles are unsafe even when the descriptor envelope is empty.
+        return [.. errors, .. UnsupportedRoleErrors(requirements, owner)];
     }
+
+    static IEnumerable<ArtifactRenderDiagnostic> UnsupportedRoleErrors(IEnumerable<SemanticImplementationRequirement> requirements, SemanticId owner) =>
+        requirements.Where(requirement => !RequiresDescriptor(requirement.Role) && !IsDescriptorExempt(requirement.Role))
+            .Select(requirement => Error($"Implementation requirement '{requirement.RequirementId}' has role '{requirement.Role}', which this Stage version does not support for typed-context admission.", owner));
 
     static IEnumerable<SemanticId> PolicySites(SemanticApplication application, string requirementId)
     {

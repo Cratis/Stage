@@ -55,13 +55,20 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual({"live-custom-packages", "live-blueprints"}, self.select("Source/Frontend/src/main.tsx"))
         for folder in ("Semantics", "Renderers", "Specifications", "Types", "Emission", "Validation", "Authorization", "NewDependency"):
             with self.subTest(folder=folder):
-                self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
-                                 self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
+                self.assertEqual(ALL, self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
         self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
                          self.select("Source/Rendering.Cratis.Scaffolding/Scaffold.cs"))
         # Specifications (name matrix) references Stage; the Host image compiles it.
         self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
                          self.select("Source/Stage/Runtime/Query.cs"))
+
+    def test_host_inputs_follow_the_published_body_worker_to_the_renderer(self):
+        # Host publishes BodyWorker, whose renderer reference changes the image's runtime behavior.
+        inputs = CI["project_inputs"]("Source/Host/Host.csproj")
+        self.assertIn("Source/BodyWorker/**", inputs)
+        self.assertIn("Source/Rendering.Cratis/**", inputs)
+        self.assertLessEqual({"reducer-mongo", "live-custom-packages", "live-blueprints"},
+                             self.select("Source/BodyWorker/Program.cs"))
 
     def test_live_probe_inputs_and_blueprint_pins(self):
         for folder in ("live-custom-packages", "live-navigation"):
@@ -229,12 +236,6 @@ class RoutingTests(unittest.TestCase):
         self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS["routing"])
         for job in ("preflight", "dotnet-build", "specs"):
             self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) }}}}\n", JOBS[job], job)
-        self.assertIn("skip: ${{ steps.already-ran.outputs.skip }}", JOBS["routing"])
-        self.assertIn("actions: read", JOBS["routing"])
-        self.assertIn("uses: Cratis/Workflows/.github/actions/skip-if-already-ran@main", JOBS["routing"])
-        for job in JOBS:
-            if job != "routing":
-                self.assertIn("routing", JOBS[job].split("runs-on:")[0], job)
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
             self.assertIn(f"\n      && needs.routing.outputs.{lane} == 'true'\n", JOBS[lane])
         live = JOBS["live-custom-packages"]
@@ -255,6 +256,17 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(1, WORKFLOW.count("issues: write"))
         self.assertIn("issues: write", JOBS["nightly-red"])
 
+    def test_every_downstream_job_honors_the_scheduled_skip(self):
+        self.assertIn("skip: ${{ steps.already-ran.outputs.skip }}", JOBS["routing"])
+        self.assertIn("actions: read", JOBS["routing"])
+        self.assertIn("uses: Cratis/Workflows/.github/actions/skip-if-already-ran@main", JOBS["routing"])
+        self.assertTrue(JOBS)
+        for job in JOBS:
+            if job != "routing":
+                gate = JOBS[job].split("runs-on:")[0]
+                self.assertIn("routing", gate, job)
+                self.assertIn(SKIP_GATE, gate, job)
+
     def test_every_job_gates_draft_pull_requests_without_skipping_other_events(self):
         self.assertTrue(JOBS)
         for job, definition in JOBS.items():
@@ -262,20 +274,28 @@ class RoutingTests(unittest.TestCase):
                 self.assertIn(DRAFT_GATE, definition)
 
     def test_pull_requests_start_heavy_lanes_only_after_build_and_specs(self):
-        gate = f"""    needs: [preflight, routing, dotnet-build, specs]
+        live_packages_gate = f"""    needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
       {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
+        # Lanes that reuse the Debug build output cannot run without it, on any trigger.
+        gate = f"""    needs: [preflight, routing, dotnet-build, specs]
+    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
+    if: >-
+      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')"""
         standalone_gate = f"""    needs: [preflight, routing, dotnet-build]
     # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
     # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
       {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
+      && needs.dotnet-build.result == 'success'"""
         heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
         self.assertEqual(5, len(heavy))
-        for job in heavy:
+        self.assertIn("live-custom-packages", heavy)
+        self.assertTrue(JOBS["live-custom-packages"].startswith(live_packages_gate), "live-custom-packages")
+        for job in heavy - {"live-custom-packages"}:
             self.assertTrue(JOBS[job].startswith(gate), job)
         self.assertTrue(JOBS["generated-react"].startswith(gate + "\n    runs-on:"), "generated-react")
         self.assertTrue(
@@ -289,7 +309,7 @@ class RoutingTests(unittest.TestCase):
             CI["dry_run_table"]()
         self.assertEqual(11, len(output.getvalue().splitlines()))
         self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
-        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes", output.getvalue())
+        self.assertIn("Source/Rendering.Cratis only | yes | yes | yes | yes | yes", output.getvalue())
 
 
 class RequiredChecksTests(unittest.TestCase):

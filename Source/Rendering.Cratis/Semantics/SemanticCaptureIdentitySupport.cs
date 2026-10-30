@@ -11,7 +11,7 @@ internal static class SemanticCaptureIdentitySupport
 
     internal static string? Check(SemanticCapture capture, ExecutableSemanticModel model, IReadOnlyDictionary<SemanticId, SemanticEventContract> events)
     {
-        if (model.SemanticVersion != SemanticVersion.V32 || capture.EventsSource is not { } source) return null;
+        if (!UsesTypedIdentity(model.SemanticVersion) || capture.EventsSource is not { } source) return null;
         var keys = source.Events.SelectMany(id => events[id].Properties.Where(property => property.Name == capture.Key)).ToArray();
         if (!HasEverySourceKey(keys.Length, source.Events.Length) || keys.Any(key => !RequiredScalar(key.Type)))
         {
@@ -24,6 +24,8 @@ internal static class SemanticCaptureIdentitySupport
         }
         return CheckAppendIdentities(capture, type);
     }
+
+    internal static bool UsesTypedIdentity(SemanticVersion version) => version.Major == SemanticVersion.V32.Major || version.Major == SemanticVersion.V33.Major;
 
     static bool HasEverySourceKey(int keyCount, int sourceCount) => keyCount == sourceCount && keyCount > 0;
 

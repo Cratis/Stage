@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticCratisAdmission;
@@ -35,18 +36,32 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
     }
 
     [Fact]
-    public void should_refuse_mixed_effects_across_triggers_on_one_event()
+    public void should_render_mixed_effects_in_one_trigger()
     {
         var production = _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge");
         var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
-        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = [production.Triggers.Single(), invocation] }] });
+        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = [production.Triggers.Single() with { Invokes = invocation.Invokes }] }] });
+        Plan();
+        _plan.Success.ShouldBeTrue();
+        _plan.Artifacts.ShouldNotBeEmpty();
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-037");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_refuse_mixed_effects_across_triggers_on_one_event(bool invocationFirst)
+    {
+        var production = _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge");
+        var invocation = _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive").Triggers.Single();
+        ReplaceAutomation(_located.Slice with { Reactions = [production with { Triggers = invocationFirst ? [invocation, production.Triggers.Single()] : [production.Triggers.Single(), invocation] }] });
         Plan();
         _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-037"]);
         _plan.Artifacts.ShouldBeEmpty();
     }
 
     [Fact]
-    public void should_refuse_command_specifications_that_cascade_into_reactions()
+    public void should_omit_command_specifications_that_cascade_into_reactions()
     {
         const string specification = """
                   specification Starting
@@ -57,10 +72,20 @@ public class when_admitting_reactions : for_SemanticAutomationArtifactRenderer.g
                       id = "one"
                       amount = 5
             """;
-        SetContext(Compile(Source.Replace("    slice Automation FollowUp", specification + "\n    slice Automation FollowUp", StringComparison.Ordinal)));
+
+        // A specification runs only its own slice's reactions (Screenplay decision 0115), so the command and the specification
+        // move into the slice that reacts.
+        var oneSlice = Source.Replace("    slice Automation FollowUp\n", string.Empty, StringComparison.Ordinal)
+            .Replace("    slice StateChange Start\n", "    slice Automation FollowUp\n", StringComparison.Ordinal);
+        SetContext(Compile(oneSlice + "\n" + specification));
         Plan();
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).Distinct().ShouldContainOnly(["STAGE-ESM-011"]);
-        _plan.Artifacts.ShouldBeEmpty();
+        _plan.Success.ShouldBeTrue();
+        _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        _plan.Artifacts.ShouldNotBeEmpty();
+        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-PLAN-007");
+        _plan.Refusals.Single().Artifact.ShouldEqual(_located.Slice.Specifications.Single().Id);
+        _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_located.Slice.Specifications.Single().Id);
     }
 
     [Fact]

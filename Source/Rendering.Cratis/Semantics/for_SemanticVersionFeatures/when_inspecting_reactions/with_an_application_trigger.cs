@@ -8,7 +8,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticVersionFeatures.wh
 
 public class with_an_application_trigger : given.an_event_reaction
 {
-    void Establish() => _trigger = _slice.Reactions.Single(reaction => reaction.Name == "PaymentImporter").Triggers.Single();
+    // Screenplay 4.246 made this trigger also produce PaymentReceived, which STAGE-ESM-037 refuses first; keep the invoke-only shape under test.
+    void Establish() => _trigger = _slice.Reactions.Single(reaction => reaction.Name == "PaymentImporter").Triggers.Single() with { Produces = [] };
     void Because() => _features = Inspect();
 
     [Fact] void should_name_the_trigger_kind_before_generic_admission() => _features[0].Message.ShouldEqual("Reaction 'ReminderScheduler' uses trigger kind 'ApplicationTrigger', which Stage does not support yet.");

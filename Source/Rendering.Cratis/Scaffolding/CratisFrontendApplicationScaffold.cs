@@ -154,6 +154,9 @@ public sealed class CratisFrontendApplicationScaffold
           },
           "devDependencies": {
         {{string.Join(",\n", DevDependencies(frontend).Select(_ => $"    \"{_.Name}\": \"{_.Version}\""))}}
+          },
+          "resolutions": {
+            "@cratis/fundamentals": "{{frontend.FundamentalsPackageVersion}}"
           }
         }
         """;
@@ -172,6 +175,7 @@ public sealed class CratisFrontendApplicationScaffold
 
         # Node.js
         node_modules/
+        .yarn/
         npm-debug.log*
         yarn-debug.log*
         yarn-error.log*

@@ -21,6 +21,11 @@ import xml.etree.ElementTree as ET
 SHARDS = runpy.run_path(str(Path(__file__).with_name("spec-shards.py")))
 
 
+def project_test_status(command, **kwargs):
+    stdout = "false\n" if command[2] == "Source/BodyWorker/BodyWorker.csproj" else "true\n"
+    return subprocess.CompletedProcess(command, 0, stdout=stdout)
+
+
 class SpecShardsTests(unittest.TestCase):
     def test_every_known_prefix_and_new_namespace_has_exactly_one_shard(self):
         for sharding in SHARDS["SHARDED"]:
@@ -67,9 +72,11 @@ class SpecShardsTests(unittest.TestCase):
                 self.assertEqual(expected, shards[sharding.name + "-remainder"]["filter"])
         self.assertTrue(all(shard["filter"].startswith(SHARDS["EXCLUSIONS"]) for shard in shards.values()))
 
-    def test_small_projects_shard_runs_exactly_the_six_merged_projects_with_unchanged_filters(self):
+    def test_small_projects_shard_runs_exactly_the_eight_merged_projects_with_unchanged_filters(self):
         expected = ["Source/Host/Host.csproj", "Source/Specifications/Specifications.csproj",
-                    "Source/Contracts/Contracts.csproj", "Source/Stage/Stage.csproj",
+                    "Source/Contracts/Contracts.csproj", "Source/Rendering.Kits/Rendering.Kits.csproj",
+                    "Source/Rendering.Templates/Rendering.Templates.csproj",
+                    "Source/Rendering.Declarative/Rendering.Declarative.csproj", "Source/Stage/Stage.csproj",
                     "Source/SpecRunner/SpecRunner.csproj",
                     "Source/Rendering.Cratis.Scaffolding/Rendering.Cratis.Scaffolding.csproj"]
         for lane in (False, True):
@@ -88,7 +95,7 @@ class SpecShardsTests(unittest.TestCase):
                 shards = {"include": [dict(merged, projects=projects) if shard is merged else shard
                                       for shard in full["include"]]}
                 with patch("subprocess.run") as run, self.assertRaises(SystemExit):
-                    run.return_value.stdout = "true\n"
+                    run.side_effect = project_test_status
                     SHARDS["guard_solution"](shards)
 
     def test_specifications_is_one_shard_and_conformance_three_disjoint_shards(self):
@@ -341,12 +348,18 @@ class SpecShardsTests(unittest.TestCase):
 
     def test_solution_guard_accepts_exact_project_coverage(self):
         with patch("subprocess.run") as run, contextlib.redirect_stdout(io.StringIO()):
-            run.return_value.stdout = "true\n"
+            run.side_effect = project_test_status
             SHARDS["guard_solution"](SHARDS["matrix"]())
-            self.assertEqual(8, run.call_count)
+            self.assertEqual(12, run.call_count)
             for call in run.call_args_list:
                 self.assertIn("-property:Configuration=Debug", call.args[0])
                 self.assertTrue(call.kwargs["check"])
+
+    def test_solution_guard_rejects_a_new_unsharded_test_project(self):
+        with patch("subprocess.run") as run, self.assertRaisesRegex(
+                SystemExit, r"missing=\['Source/BodyWorker/BodyWorker.csproj'\]"):
+            run.return_value.stdout = "true\n"
+            SHARDS["guard_solution"](SHARDS["matrix"]())
 
     def test_solution_guard_requires_exactly_three_conformance_shards(self):
         original = SHARDS["matrix"]()
@@ -354,7 +367,7 @@ class SpecShardsTests(unittest.TestCase):
         others = [shard for shard in original["include"] if SHARDS["CONFORMANCE"] not in shard["projects"]]
         for shards in (conformance[:2], conformance + conformance[:1]):
             with self.subTest(count=len(shards)), patch("subprocess.run") as run, self.assertRaises(SystemExit):
-                run.return_value.stdout = "true\n"
+                run.side_effect = project_test_status
                 SHARDS["guard_solution"]({"include": others + shards})
 
     def test_solution_guard_rejects_unsharded_or_duplicate_projects(self):
@@ -365,7 +378,7 @@ class SpecShardsTests(unittest.TestCase):
         duplicate["include"].append(duplicate["include"][0])
         for shards in (missing, duplicate):
             with patch("subprocess.run") as run, self.assertRaises(SystemExit):
-                run.return_value.stdout = "true\n"
+                run.side_effect = project_test_status
                 SHARDS["guard_solution"](shards)
 
     def test_shard_runs_every_project_and_reports_all_failures(self):

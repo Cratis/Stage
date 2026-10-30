@@ -35,7 +35,7 @@ internal static class SemanticSurfaceLedger
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
 
     /// <summary>
-    /// Gets the query shape matrix. Snapshot optional lookups require a key; snapshot and live collections may be keyed or unkeyed.
+    /// Gets the query shape matrix. Snapshot and live optional lookups require an identifier key; snapshot and live collections may be keyed or unkeyed.
     /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
     /// </summary>
     public static IReadOnlyDictionary<(SemanticQueryCardinality Cardinality, SemanticQueryDelivery Delivery, bool Keyed), SemanticSurfaceDisposition> QueryShapes { get; } =
@@ -44,22 +44,20 @@ internal static class SemanticSurfaceLedger
          from keyed in new[] { false, true }
          select (Cardinality: cardinality, Delivery: delivery, Keyed: keyed))
         .ToDictionary(shape => shape, shape =>
-            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery == SemanticQueryDelivery.Snapshot && shape.Keyed) ||
+            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live && shape.Keyed) ||
             (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live)
                 ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
 
     /// <summary>
-    /// Gets reaction side-effect combinations. Events and commands from one trigger cannot share an Arc handler result
-    /// at the pinned Arc version; event-only, command-only and empty results render.
+    /// Gets reaction side-effect combinations. One trigger can return events and commands together;
+    /// refusal-branch productions and cross-trigger scheduling have separate admission checks.
     /// </summary>
     public static IReadOnlyDictionary<(bool Produces, bool Invokes), SemanticSurfaceDisposition> ReactionSideEffectShapes { get; } =
         (from produces in new[] { false, true }
          from invokes in new[] { false, true }
          select (Produces: produces, Invokes: invokes))
-        .ToDictionary(shape => shape, shape => shape.Produces && shape.Invokes
-            ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, SemanticVersionFeatures.MixedReactionEffects)
-            : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
+        .ToDictionary(shape => shape, _ => new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered));
 
     /// <summary>
     /// Gets the default Scene disposition for list queries. Composition has no diagnostic channel;
@@ -91,7 +89,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticApplication", rendered, "Concepts Id Modules Name Types Policies EventSources");
 
         // Atomic batches use the existing event collection return. Multiple same-event production triggers
-        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved.
+        // and routed productions retain STAGE-ESM-043 because their batch boundaries cannot be preserved: a Chronicle reactor
+        // returns one append batch, and ordered per-trigger batches that are not duplicated on redelivery need Cratis/Chronicle#5248.
         Add(entries, "SemanticApplication", rendered, "ReactionProductionMode");
         Add(entries, "SemanticReactionProductionMode", rendered, "Atomic");
         Add(entries, "SemanticModule", rendered, "Features Id Name");
@@ -115,7 +114,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticGeneration", rendered, "RequirementId");
         Add(entries, "SemanticConceptCompliance", rendered, "Personal Secret");
         Add(entries, "SemanticSecret", rendered, "Scope");
-        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via opt-in [ComplianceDetails] (#259)."), "Special Criminal");
+        Add(entries, "SemanticPersonalData", ignored("GDPR qualifiers only travel via [ComplianceDetails] on the syntax renderer (#259)."), "Special Criminal");
         Add(entries, "SemanticCompositeType", rendered, "Id Name Properties");
         Add(entries, "SemanticProperty", rendered, "Id IsIdentifier Name Type IsGenerated");
         Add(entries, "SemanticTypeReference", rendered, "IsCollection IsOptional Kind Primitive Target");
@@ -148,7 +147,9 @@ internal static class SemanticSurfaceLedger
 
         // The render request now carries compiler requirements and resolved bodies by requirement id.
         // Their content hashes are checked before rendering. Pure reducer transitions and whole opaque policies are
-        // admitted through the closed-compilation pure gate; validation bodies refuse ambient context reads.
+        // admitted through the closed-compilation pure gate. Validation bodies admit declared-value conversions and
+        // audited pure members (ESM-022 otherwise). Receipt-time Occurred requires a given clock in generated specs;
+        // Tenant and CausedBy remain ESM-015 refusals because no constructor-free ambient source supplies them.
         Add(entries, "SemanticImplementationRequirement", ignored("Compiler metadata is supplied with the request and content hashes are verified; opaque owning behavior still fails admission."), "Role Owner Member Language File ContentHash Source RequirementId ContextVersion ResultVersion RequiredCapability AttachmentResolution BodySpan BodyLines");
         Add(entries, "SemanticImplementationRequirement", rendered, "QueryShape");
         Add(entries, "SemanticImplementationRequirement", rejected(SemanticVersionFeatures.PendingCommandHandler), "Hints IsProvisional IsAmbiguous");
@@ -180,8 +181,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");
         Add(entries, "SemanticExpressionSourceKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticEventContextExpression", rendered, "Type Value");
-        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred");
-        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown EventSourceIdentity CausedBySubject CausedByName CausedByUserName");
+        Add(entries, "SemanticEventContextValueKind", rendered, "Occurred EventSourceIdentity");
+        Add(entries, "SemanticEventContextValueKind", rejected("STAGE-ESM-013"), "Unknown CausedBySubject CausedByName CausedByUserName");
         Add(entries, "SemanticValueExpression", rejected("STAGE-ESM-006"), "Value");
 
         // State view: an optional snapshot lookup by identifier or a snapshot/live collection (keyed by one `by` or unkeyed).
@@ -209,17 +210,19 @@ internal static class SemanticSurfaceLedger
 
         // Supported scoped blocks render; conflicting roles and nested from without a matching root
         // from and identical key fail STAGE-ESM-017. Composite type keys remain rejected; read models with several key parts render through parts keys, but Stage
-        // cannot issue single-instance lookups by key parts (Chronicle#4265). Every literals lower to from
-        // Set mappings only at join-free levels (Chronicle#4663); prefix overlaps and non-Set collisions remain refused. All literals and
-        // text literals outside Chronicle's fluent $value grammar, expression-like event-property
-        // names (including derived functions), unsafe read-model property paths and camel-case
-        // collisions, and unvalidated $eventSourceId mapping targets also fail STAGE-ESM-017.
-        // Identity-only all renders as FromAll; literals in all remain rejected (Chronicle#4663), because
-        // lowering onto from blocks would miss unrelated event types and sources.
+        // cannot issue single-instance lookups by key parts (Chronicle#4265). Safe scalar all literals render
+        // natively through FromAll.ToValue, including unrelated event types/sources. Root every literals at
+        // join levels render through FromEvery.ToValue and preserve original from mappings for join backfill.
+        // Join-free every literals still lower to from Set mappings; prefix overlaps and non-Set collisions
+        // remain refused. Clear in every/all, empty all, unsafe fluent text and expression-like event-property
+        // names (including derived functions), unsafe read-model paths and camel-case collisions, and
+        // unvalidated $eventSourceId targets fail STAGE-ESM-017. Every-with-join at child/nested levels and
+        // IncludeChildren remain unverified by Stage and refused; Screenplay rejects synthetic null Sets.
         // Child join removal across parents and nested clear/recreation render on Chronicle 19.32.0;
         // differential and MongoDB probes cover both sequences. Root join removal remains blocked by
-        // Chronicle#4263 and Screenplay#563; joins/children inside nested by Chronicle#4125. Nested clear requires a matching root from
-        // and identical key.
+        // Chronicle#4263 and Screenplay#563; joins inside nested remain blocked by the pinned Screenplay
+        // reference (Screenplay#1078). Children inside nested remain unsupported. Nested clear requires
+        // a matching root from and identical key.
         Add(entries, "SemanticProjectionScope", rendered, "Children From Joins Every JoinRemovals Nested Removals");
         Add(entries, "SemanticProjectionChildren", rendered, "IdentifiedBy Property Scope");
         Add(entries, "SemanticProjectionCompositeKey", rejected("STAGE-ESM-017"), "Parts Type");
@@ -309,7 +312,7 @@ internal static class SemanticSurfaceLedger
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
 
-        // ESM v31 anonymous access: Stage admits ESM v1-v30 pairs only, so a model that uses it is refused whole (STAGE-ESM-016) before any condition renders.
+        // Public admission remains exact. The prospective range finder treats anonymous access as a security-relevant unknown.
         Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
@@ -349,22 +352,23 @@ internal static class SemanticSurfaceLedger
 
         // Screenplay 4.61 added ESM v6 reactions, captures, application triggers and clock/capture
         // specifications. Event reactions and their Automation slice artifacts render as Chronicle reactors.
-        // Non-event triggers and opaque bodies still refuse with STAGE-ESM-024; mixed handler results fail 037.
+        // Single application-trigger direct productions render as receipted occurrences. Other non-event
+        // triggers and opaque bodies still refuse with STAGE-ESM-024; mixed handler results fail 037.
         // Conditions, mappings and destinations outside the faithful target subset fail STAGE-ESM-039.
         var v6 = rejected(SemanticVersionFeatures.Automation);
-        Add(entries, "SemanticApplication", v6, "Triggers");
-        Add(entries, "SemanticApplicationTrigger", v6, "Id Name Properties");
+        Add(entries, "SemanticApplication", rendered, "Triggers");
+        Add(entries, "SemanticApplicationTrigger", rendered, "Id Name Properties");
         Add(entries, "SemanticSlice", rendered, "Captures");
         Add(entries, "SemanticSliceKind", rendered, "Translate");
-        Add(entries, "SemanticExpressionRootKind", v6, "Trigger");
+        Add(entries, "SemanticExpressionRootKind", rendered, "Trigger");
         Add(entries, "SemanticProducedEvent", rendered, "DestinationType");
         Add(entries, "SemanticInvocation", rendered, "Command Mappings OnRefused");
         Add(entries, "SemanticInvocationRefusal", rendered, "Selector Constraint Produces");
         Add(entries, "SemanticReaction", rendered, "Id Name Triggers");
         Add(entries, "SemanticReactionTrigger", rendered, "Invokes Kind Produces Source Where");
         Add(entries, "SemanticReactionTrigger", v6, "At Every OnDayOfMonth OnDayOfWeek RequirementId");
-        Add(entries, "SemanticReactionTriggerKind", rendered, "Event");
-        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown ApplicationTrigger Interval Schedule Shutdown Startup");
+        Add(entries, "SemanticReactionTriggerKind", rendered, "Event ApplicationTrigger");
+        Add(entries, "SemanticReactionTriggerKind", v6, "Unknown Interval Schedule Shutdown Startup");
         Add(entries, "SemanticCapture", rendered, "Appends Id Key Name");
         Add(entries, "SemanticCapture", v6, "Children Map Nested");
 
@@ -425,8 +429,16 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");
+        Add(entries, "SemanticTranslationDirection", rendered, "Inbound Outbound");
         Add(entries, "SemanticCapture", foreign, "EventsSource");
         Add(entries, "SemanticCaptureEventsSource", foreign, "Events");
+
+        // Screenplay 4.247 added ESM v33 (a capture keyed by its event source, decision 0114) and ESM v34 ('then invokes', decision 0115).
+        // ESM v33 `key <property> is event source`: the rendered capture checks the key against the delivered event source before reading the inbox and reads only that source's history (Stage#752).
+        // Public admission remains exact. The prospective range finder reports non-default gated use as security-relevant unknowns.
+        Add(entries, "SemanticCaptureEventsSource", rendered, "KeyIsEventSource");
+        Add(entries, "SemanticSpecification", rejected("STAGE-ESM-016"), "ThenInvocations");
+        Add(entries, "SemanticSpecificationInvocation", rejected("STAGE-ESM-016"), "Command Values");
 
         // Screenplay 4.125 added ESM v10: reaction execution identity, observer filters and production routes.
         // Admit each construct only on the paths that can preserve it.

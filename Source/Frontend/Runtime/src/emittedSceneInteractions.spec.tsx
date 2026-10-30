@@ -30,7 +30,7 @@ function respond(payload: unknown): Promise<Response> {
 
 // The same hash `when_carrying_the_authored_screens_vector` pins on the .NET side: the fixture below is the planned
 // artifact byte for byte, so these behaviours are those of what a generated application is actually given.
-const authoredSceneSha256 = 'e524a689c963763badb0ce485df5a9660115c9cd57429509e204ec34ec05578b';
+const authoredSceneSha256 = '7ae5805b0ad92428d3eb6fe353097b051271e825fde1009a3b1d976b146b15cd';
 
 describe('the emitted screens scene in a generated application', () => {
     it('is the scene the conformance corpus pins', async () => {

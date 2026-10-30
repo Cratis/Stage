@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cratis.Stage.Semantics;
@@ -32,11 +33,18 @@ public static class SemanticRuntimeHosting
     /// <param name="services">The host service collection.</param>
     /// <param name="plan">The admitted plan.</param>
     /// <param name="world">The validated world provider.</param>
-    public static void Add(IServiceCollection services, SemanticExecutionPlan plan, Func<SemanticWorld> world)
+    public static void Add(IServiceCollection services, SemanticExecutionPlan plan, Func<SemanticWorld> world) => Add(services, plan, world, null);
+
+    /// <summary>Registers a runtime with source-bound, renderer-admitted body execution.</summary>
+    /// <param name="services">The host services.</param>
+    /// <param name="plan">The admitted plan.</param>
+    /// <param name="world">The validated world provider.</param>
+    /// <param name="bodies">The optional compiled bodies.</param>
+    public static void Add(IServiceCollection services, SemanticExecutionPlan plan, Func<SemanticWorld> world, SemanticBodyExecution? bodies)
     {
         services.AddSingleton(plan);
         services.AddSingleton<IAppendSemanticFacts, SemanticFactAppender>();
-        services.AddSingleton<ISemanticRuntime>(provider => new SemanticRuntime(plan, provider.GetRequiredService<IAppendSemanticFacts>(), world)
+        services.AddSingleton<ISemanticRuntime>(provider => new SemanticRuntime(plan, provider.GetRequiredService<IAppendSemanticFacts>(), world, bodies)
         {
             FactReader = provider.GetService<ISemanticFactReader>()
         });
@@ -58,4 +66,12 @@ public static class SemanticRuntimeHosting
     /// <param name="world">The reconstructed world.</param>
     /// <returns>An isolated runtime.</returns>
     public static ISemanticRuntime Create(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld world) => new SemanticRuntime(plan, appender, world);
+
+    /// <summary>Creates an isolated runtime with renderer-admitted body execution.</summary>
+    /// <param name="plan">The admitted plan.</param>
+    /// <param name="appender">The atomic fact appender.</param>
+    /// <param name="world">The validated initial world.</param>
+    /// <param name="bodies">The optional compiled bodies.</param>
+    /// <returns>The isolated runtime.</returns>
+    public static ISemanticRuntime Create(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld world, SemanticBodyExecution? bodies) => new SemanticRuntime(plan, appender, world, bodies);
 }

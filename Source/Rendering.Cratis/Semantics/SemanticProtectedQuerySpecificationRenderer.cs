@@ -19,15 +19,11 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var readModel = context.ReadModels[query.ReadModel];
         var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var located = context.DeclaringSlice(specification.Id);
-        var name = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
-        if (specification.ThenQueries.Length > 1)
-        {
-            name += $"_through_{Identifiers.ToSnakeCase(query.Name)}";
-        }
+        var name = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: true);
 
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
             .Using("System.Security.Claims")
             .Using("Cratis.Arc.Authorization")
@@ -81,10 +77,10 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         Write(builder, Assertions(specification, expected, readModelName, context, types));
         RenderDispose(builder, routedReplay);
         builder.EndBlock();
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);
@@ -130,8 +126,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
             var @event = context.Events[given.EventContract];
             var arguments = @event.Properties.Select(property =>
                 types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-            var source = given.EventSource!;
-            yield return $"{seed}.Given.ForEventSource({types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";
+            yield return $"{seed}.Given.ForEventSource({SemanticSpecificationEventSources.Expression(context, types, given)}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.Events(new {types.EventType(@event)}({string.Join(", ", arguments)}));";
         }
 
         if (specification.When is { } action)

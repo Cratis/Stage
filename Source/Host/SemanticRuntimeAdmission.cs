@@ -3,6 +3,8 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
@@ -12,10 +14,11 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
 
 internal sealed class SemanticRuntimeAdmission
 {
-    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null)
+    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null, SemanticBodyExecution? bodies = null)
     {
         var entries = new List<SemanticAdmissionEntry>();
         var blocking = new List<SemanticAdmissionEntry>();
+        entries.AddRange(RangeDegradations(plan));
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
@@ -48,9 +51,22 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            var (entry, blocksModel) = CommandEntry(plan, command, ruleName);
+            var (entry, blocksModel) = CommandEntry(plan, command, ruleName, bodies);
             entries.Add(entry);
             if (blocksModel) blocking.Add(entry);
+        }
+
+        foreach (var reaction in plan.Reactions)
+        {
+            var refusal = SemanticPlanAdmission.Check(plan, reaction.Id);
+            if (refusal is not null)
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "unsupported", refusal.Capability.ToString(), refusal.Details));
+            }
+            else if (!entries.Exists(entry => entry.Artifact == reaction.Id.ToString() && entry.Kind == "reaction"))
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "supported", null, null));
+            }
         }
 
         foreach (var readModel in plan.ReadModels.Values)
@@ -68,7 +84,7 @@ internal sealed class SemanticRuntimeAdmission
         foreach (var specification in plan.Specifications.Values)
         {
             // A refused specification does not block the live model; runs report the same typed refusal.
-            var refusal = SemanticRunAdmission.Check(plan, specification);
+            var refusal = SemanticRunAdmission.Check(plan, specification, bodies);
             entries.Add(SemanticRunAdmission.SpecificationFeatures(specification).FirstOrDefault() is { } feature
                 ? Refused(feature)
                 : new(specification.Id.ToString(), "specification", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
@@ -82,16 +98,16 @@ internal sealed class SemanticRuntimeAdmission
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
-    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName)
+    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
-            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), planRefusal.Details), false);
+            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), command.Handler is null ? planRefusal.Details : $"{planRefusal.Details} {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
-        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName).FirstOrDefault() is { } feature)
+        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName, bodies).FirstOrDefault() is { } feature)
         {
             // An implementation body refuses only this command, not the live model.
-            return (Refused(feature), !feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal));
+            return (Refused(feature), !SemanticImplementationReach.IsBodyRefusal(feature.Details, bodies));
         }
         if (command.Handler is { } handler)
         {
@@ -100,7 +116,7 @@ internal sealed class SemanticRuntimeAdmission
                 "command",
                 "unsupported",
                 nameof(SemanticExecutionCapability.ImplementationBody),
-                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."), false);
+                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target. {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
 
         return (CommandDestinationEntry(command), false);
@@ -118,6 +134,19 @@ internal sealed class SemanticRuntimeAdmission
             problem is null ? "supported" : "unsupported",
             problem is null ? null : nameof(SemanticExecutionCapability.IdentityAllocation),
             problem);
+    }
+
+    static IEnumerable<SemanticAdmissionEntry> RangeDegradations(SemanticExecutionPlan plan)
+    {
+        if (CratisEsmSupport.Descriptor.Classify(plan.Model.LanguageVersion, plan.Model.SemanticVersion) == EsmVersionStanding.NewerWithinRange)
+        {
+            yield return new(
+                plan.Model.Application.Id.ToString(),
+                "application",
+                "supported",
+                null,
+                $"{ArtifactRenderDegradationCodes.NewerEsmWithinDeclaredRange}: ESM pair {plan.Model.LanguageVersion}/{plan.Model.SemanticVersion} is within {CratisEsmSupport.Descriptor.Accepts} but has not been audited by this Stage version.");
+        }
     }
 
     static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>

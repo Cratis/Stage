@@ -1,6 +1,10 @@
 - name: Generate identifiers and values from a model
   href: generated-values.md
+- name: Author a renderer kit
+  href: template-kits.md
 - name: Build a renderer target
   href: build-renderer-target.md
+- name: Organize render target and source adapter repositories
+  href: target-repository-model.md
 - name: Customize a rendered application
   href: customize-rendered-application.md

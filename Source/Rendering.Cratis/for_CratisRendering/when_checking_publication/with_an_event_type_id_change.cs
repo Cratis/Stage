@@ -15,7 +15,7 @@ public class with_an_event_type_id_change : given.an_event_plan
     void Establish() => _existing[EventPath] = "namespace Records; [EventType] public record Renamed;";
     void Because()
     {
-        const string code = "namespace Records; [global::Cratis.Chronicle.Events.EventTypeAttribute(\"Original\")] public record Renamed;";
+        const string code = "namespace Records; [EventType(\"Original\")] public record Renamed;";
         _check = CratisRendering.CheckPublication(Events(code), Read);
         _applicationCheck = CratisRendering.CheckPublication(Events(code, application: true), Read);
     }

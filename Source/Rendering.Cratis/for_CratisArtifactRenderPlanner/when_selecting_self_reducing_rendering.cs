@@ -7,6 +7,7 @@ using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -46,7 +47,7 @@ public class when_selecting_self_reducing_rendering
         var combined = self.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal));
         var previous = classic.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith("Fold.cs", StringComparison.Ordinal));
         Assert.Equal(previous.SelectMany(artifact => artifact.Sources).Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal), combined.Sources.Select(id => id.ToString()).Distinct().Order(StringComparer.Ordinal));
-        Assert.Contains("public static global::Projects.Orders.Ordering.Totals.Total? Reduce(", Text(combined), StringComparison.Ordinal);
+        Assert.Contains("public static Total? Reduce(", Text(combined), StringComparison.Ordinal);
         var root = await CSharpSyntaxTree.ParseText(Text(combined)).GetRootAsync();
         var record = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single();
         Assert.DoesNotContain(record.Members.OfType<MethodDeclarationSyntax>(), method => method.Identifier.Text.StartsWith("Transition_", StringComparison.Ordinal));
@@ -148,7 +149,11 @@ public class when_selecting_self_reducing_rendering
         var scoped = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Slice("Orders", "Ordering", "Totals")]), new("Projects", "Projects", "Projects") { Domain = domain, Profile = profile });
         Assert.True(scoped.Success, string.Join(Environment.NewLine, scoped.Diagnostics));
         var model = full.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Totals.cs", StringComparison.Ordinal));
-        Assert.Equal(model.Sha256, scoped.Artifacts.Single(artifact => artifact.RelativePath == model.RelativePath).Sha256);
+        var scopedModel = scoped.Artifacts.Single(artifact => artifact.RelativePath == model.RelativePath);
+
+        // A scoped render cannot know its destination holds the scaffold-owned GlobalUsings.cs, so it keeps the usings
+        // the file relies on from those namespaces; apart from them the bytes are the full model bytes.
+        Assert.Equal(Text(model), WithoutScaffoldGlobalUsings(Text(scopedModel)));
     }
 
     internal static ArtifactRenderPlan Plan(LoadedSemanticModel loaded, ArtifactRenderProfile profile) => new CratisArtifactRenderPlanner().Plan(new(loaded.Model, loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
@@ -159,6 +164,12 @@ public class when_selecting_self_reducing_rendering
     });
 
     internal static RenderedFile[] Files(ArtifactRenderPlan plan) => [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs").Select(artifact => new RenderedFile(artifact.RelativePath, Text(artifact)))];
+    static string WithoutScaffoldGlobalUsings(string text)
+    {
+        var scaffold = FrameworkNameCatalog.Current.ScaffoldGlobalUsings(GeneratedProjects.Application).Select(@namespace => $"using {@namespace};").ToHashSet(StringComparer.Ordinal);
+        return string.Join("\n", text.Split('\n').Where(line => !scaffold.Contains(line.TrimEnd('\r'))));
+    }
+
     static string Text(PlannedArtifact artifact) => Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
 }
 #endif

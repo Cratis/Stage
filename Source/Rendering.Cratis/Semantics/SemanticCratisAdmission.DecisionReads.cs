@@ -42,10 +42,9 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var read in command.Reads)
             {
-                var key = context.ReadModels.TryGetValue(read.ReadModel, out var readModel) ? readModel.Properties.FirstOrDefault(property => property.IsIdentifier) : null;
-                if (key is not null && Identifiers.ToPascalCase(key.Name) != "Id")
+                if (NonIdReadModelKey(context, read.ReadModel) is { } selected)
                 {
-                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' whose key property is '{key.Name}'; Chronicle's decision-read guard admits only a read model whose key property is named 'id' (a string or Guid, concepts included), so the command could never succeed. Rename the key property, and the query's key argument with it, to 'id'."));
+                    diagnostics.Add(DecisionRead(command, $"reads '{read.Name}' (read model '{selected.Model.Name}') whose key property is '{selected.Key.Name}'; Chronicle's decision reads find a read model's key only in a property named 'id' and refuse any other with DecisionReadRefusalReason.KeyConversion when the command runs, so the command could never succeed. Rename the key property to 'id' together with the query 'by' and 'filter' arguments, specification expectations and sample data that name it, or read a separate decision-only read model keyed by 'id'."));
                 }
             }
         }
@@ -54,6 +53,16 @@ internal static partial class SemanticCratisAdmission
         {
             diagnostics.Add(DecisionRead(command, "combines protected reads with generated-value freshness scopes; Arc's explicit scope must cover the reads and that interaction is unproven. Declare the reads on a command without generated event-source destinations."));
         }
+    }
+
+    static (SemanticReadModel Model, SemanticProperty Key)? NonIdReadModelKey(SemanticApplicationContext context, SemanticId readModelId)
+    {
+        if (!context.ReadModels.TryGetValue(readModelId, out var readModel)) return null;
+        var key = readModel.Properties.FirstOrDefault(property => property.IsIdentifier);
+        if (key is null) return null;
+        if (Identifiers.ToPascalCase(key.Name) == "Id") return null;
+
+        return (readModel, key);
     }
 
     static ArtifactRenderDiagnostic DecisionRead(SemanticCommand command, string reason) =>

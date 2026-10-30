@@ -54,7 +54,7 @@ public class with_described_command_handlers : Specification
     [Fact] void should_report_the_reached_body() => _body.ExceptionMessages.Single().ShouldContain("Unsupported(ImplementationBody)");
     [Fact] void should_set_the_capability_header() => _http.Response.Headers["Stage-Unsupported-Capability"].ToString().ShouldEqual("ImplementationBody");
     [Fact] void should_set_the_artifact_header() => _http.Response.Headers["Stage-Unsupported-Artifact"].ToString().ShouldEqual(_command.Name);
-    [Fact] void should_preserve_the_reference_message_without_a_stage_prefix() => _body.ExceptionMessages.Single().ShouldContain($"Command 'ApplyLateFee' is described but not implemented (requirement {_command.Handler!.RequirementId}); its handler body requires a target.");
+    [Fact] void should_preserve_the_reference_body_message_inside_the_capability_envelope() => _body.ExceptionMessages.Single().ShouldEqual($"Unsupported(ImplementationBody) ApplyLateFee: Command 'ApplyLateFee' handler body requires a target (requirement {_command.Handler!.RequirementId}); the reference executor does not run implementation bodies.");
     [Fact] async Task should_never_append_handler_facts() => await _appender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 
     [Fact]
@@ -109,7 +109,8 @@ public class with_described_command_handlers : Specification
                 {
                     unsupported.Capability.ShouldEqual(SemanticExecutionCapability.ImplementationBody);
                     host.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.ImplementationBody);
-                    host.Unsupported.Details.ShouldEqual($"STAGE-IMPL-002: {unsupported.Details}");
+                    unsupported.Details.ShouldEqual($"Command 'ApplyLateFee' handler body requires a target (requirement {_command.Handler!.RequirementId}); the reference executor does not run implementation bodies.");
+                    host.Unsupported.Details.ShouldEqual($"STAGE-IMPL-002: Command 'ApplyLateFee' is described but not implemented (requirement {_command.Handler!.RequirementId}); its handler body requires a target.");
                 }
                 else if (reference.Execution is SemanticRejected rejected)
                 {

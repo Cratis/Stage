@@ -32,7 +32,7 @@ internal static class SemanticProjectionFactSpecification
             (specification.ThenReadModels.IsEmpty && specification.ThenAbsentReadModels.IsEmpty) || !specification.ThenEvents.IsEmpty || specification.ThenNoEvents ||
             specification.ThenEventsInAnyOrder || !specification.ThenQueries.IsEmpty || !specification.ThenErrors.IsEmpty ||
             specification.ThenDenied || specification.ThenReturns is not null ||
-            (!specification.GivenReadModels.IsEmpty && specification.ThenAbsentReadModels.IsEmpty))
+            HasUnsupportedSeedExpectation(specification))
         {
             return false;
         }
@@ -43,19 +43,14 @@ internal static class SemanticProjectionFactSpecification
             return true;
         }
 
-        // An event something reacts to would have to be settled; an event an append-time constraint governs would have to be refused.
-        if (SemanticSpecificationAdmission.EventReactionTriggers(context).Any(trigger => trigger.Source == appended.EventContract) ||
+        // An event the specification's own slice reacts to would have to be settled; an event an append-time constraint governs would have to be refused.
+        // Another slice's reactions do not run in this specification (Screenplay decision 0115).
+        if (SemanticSpecificationAdmission.EventReactionTriggers(context, specification).Any(trigger => trigger.Source == appended.EventContract) ||
             context.Constraints.Any(selected => selected.Constraint.Targets.Any(target => target.EventContract == appended.EventContract)))
         {
             return false;
         }
 
-        // An unsourced removal has no observable source when every observing projection keys it
-        // solely by its event property. Use that property as the concrete scenario's required source.
-        if (appended.EventSource is null)
-        {
-            appended = appended with { EventSource = PropertyRemovalSource(context, appended.EventContract, appended.Values) };
-        }
         lowered = specification with { WhenAppended = appended };
         if (specification.GivenReadModels.IsEmpty) lowered = WithAppendedFact(lowered);
         return true;
@@ -68,35 +63,6 @@ internal static class SemanticProjectionFactSpecification
             GivenEvents = specification.GivenEvents.Add(new(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route })
         };
 
-    static SemanticEventSourceIdentity? PropertyRemovalSource(
-        SemanticApplicationContext context,
-        SemanticId eventContract,
-        System.Collections.Immutable.ImmutableArray<SemanticPropertyValue> values)
-    {
-        // All blocks observe the fact even when they do not name its contract, so an invented source is visible to them.
-        if (context.Projections.Values.Any(projection => ObservesAllEvents(projection.Scope))) return null;
-        var projections = context.Projections.Values.Where(projection =>
-            Projections.ProjectionReferencedEventNamesAreUnique.Contracts(projection).Contains(eventContract)).ToArray();
-        if (projections.Length == 0 || context.Reducers.Any(reducer => reducer.Transitions.Any(transition => transition.EventContract == eventContract)) ||
-            projections.Any(projection => projection.Scope is not { Every: null } scope ||
-                !scope.Removals.Any(removal => removal.EventContract == eventContract && removal.ParentKey is null &&
-                    removal.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path.Length: 1 } })))
-        {
-            return null;
-        }
-        var removal = projections[0].Scope!.Removals.Single(removal => removal.EventContract == eventContract);
-        var propertyId = ((SemanticProjectionEventProperty)((SemanticProjectionValueKey)removal.Key).Value).Path[0];
-        var property = context.Events[eventContract].Properties.SingleOrDefault(property => property.Id == propertyId);
-        if (property is null) return null;
-        var value = values.SingleOrDefault(value => value.TargetProperty == property.Id)?.Value;
-        return value is null || property.Type.IsOptional || !IsTextKey(context, property.Type) ? null : new(property.Type, value);
-    }
-
-    static bool ObservesAllEvents(SemanticProjectionScope? scope) =>
-        scope is not null && (scope.Every is { SubscribesToAllEvents: true } ||
-            scope.Children.Any(child => ObservesAllEvents(child.Scope)) || scope.Nested.Any(nested => ObservesAllEvents(nested.Scope)));
-
-    static bool IsTextKey(SemanticApplicationContext context, SemanticTypeReference type) =>
-        !type.IsCollection && (type.Kind == SemanticTypeReferenceKind.Concept ? context.Concepts[type.Target].Primitive : type.Primitive)
-            is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid;
+    static bool HasUnsupportedSeedExpectation(SemanticSpecification specification) =>
+        specification.ThenAbsentReadModels.IsEmpty && specification.GivenReadModels.Any(seed => seed.Key is not SemanticCompositeValue);
 }

@@ -8,7 +8,7 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Verifies that ambiguous constraint histories and role claims never produce artifacts.
+/// Verifies that ambiguous constraint histories and role claims never produce misleading artifacts.
 /// </summary>
 public class when_rejecting_constraint_and_role_mismatches
 {
@@ -46,7 +46,8 @@ public class when_rejecting_constraint_and_role_mismatches
             StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("Given events violate", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        Assert.True(plan.Success);
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(plan.Refusals.Single().Artifact));
     }
 
     [Theory]
@@ -80,7 +81,8 @@ public class when_rejecting_constraint_and_role_mismatches
             StringComparison.Ordinal).Replace("\n      slice StateView Lookup", "\n    slice StateView Lookup", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("role claim URI", StringComparison.Ordinal));
-        Assert.Empty(plan.Artifacts);
+        Assert.True(plan.Success);
+        Assert.DoesNotContain(plan.Artifacts, artifact => artifact.Sources.Contains(plan.Refusals.Single().Artifact));
     }
 
     static string ConstrainedInvoice() => invoice_model.Source("String", invoice_model.TextSource, invoice_model.OtherTextSource)

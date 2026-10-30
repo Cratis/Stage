@@ -7,19 +7,39 @@
 //
 // usage: node prepare.cjs <node_modules directory> <blueprints.json entry index> <output directory>
 const { cpSync, mkdirSync, writeFileSync } = require('node:fs');
-const { join } = require('node:path');
+const { join, resolve } = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-const [modules, index, out] = process.argv.slice(2);
-const entry = require('./blueprints.json')[Number(index)];
-const published = require(join(modules, '@cratis', entry.npm));
-const manifest = published[`${entry.export}Manifest`];
-if (!manifest) throw new Error(`@cratis/${entry.npm} does not export ${entry.export}Manifest`);
+// Some published blueprint packages' CJS build requires an ESM-only subpath of one of their own
+// dependencies (@cratis/components), which throws ERR_PACKAGE_PATH_NOT_EXPORTED under `require()`.
+// Following the package's own declared ESM entry point avoids that broken CJS path entirely.
+async function loadPublished(packageDir) {
+    const pkg = require(join(packageDir, 'package.json'));
+    const mainExport = pkg.exports?.['.'];
+    const importPath = typeof mainExport === 'string' ? mainExport : mainExport?.import;
+    return importPath ? import(pathToFileURL(join(packageDir, importPath)).href) : require(packageDir);
+}
 
-const folder = join(out, '@cratis', entry.npm);
-mkdirSync(folder, { recursive: true });
-cpSync(join(modules, '@cratis', entry.npm), folder, { recursive: true, dereference: true });
-writeFileSync(join(out, 'approved-packages.json'), `${JSON.stringify({
-    version: 1,
-    packages: [{ manifest, module: { npm: `@cratis/${entry.npm}`, version: require(join(modules, '@cratis', entry.npm, 'package.json')).version, export: entry.export, styles: [] } }],
-}, null, 2)}\n`);
-console.log(`${manifest.name} ${manifest.version} <- @cratis/${entry.npm}`);
+async function main() {
+    const [modules, index, out] = process.argv.slice(2);
+    const entry = require('./blueprints.json')[Number(index)];
+    // Absolute, so require() of package.json and the file URL do not depend on how the caller spelled the path.
+    const packageDir = resolve(modules, '@cratis', entry.npm);
+    const published = await loadPublished(packageDir);
+    const manifest = published[`${entry.export}Manifest`];
+    if (!manifest) throw new Error(`@cratis/${entry.npm} does not export ${entry.export}Manifest`);
+
+    const folder = join(out, '@cratis', entry.npm);
+    mkdirSync(folder, { recursive: true });
+    cpSync(packageDir, folder, { recursive: true, dereference: true });
+    writeFileSync(join(out, 'approved-packages.json'), `${JSON.stringify({
+        version: 1,
+        packages: [{ manifest, module: { npm: `@cratis/${entry.npm}`, version: require(join(packageDir, 'package.json')).version, export: entry.export, styles: [] } }],
+    }, null, 2)}\n`);
+    console.log(`${manifest.name} ${manifest.version} <- @cratis/${entry.npm}`);
+}
+
+main().catch(error => {
+    console.error(error);
+    process.exitCode = 1;
+});

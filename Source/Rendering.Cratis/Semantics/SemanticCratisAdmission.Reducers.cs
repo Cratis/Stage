@@ -69,7 +69,7 @@ internal static partial class SemanticCratisAdmission
 
             foreach (var transition in reducer.Transitions)
             {
-                var requirement = context.Request.ImplementationRequirements.FirstOrDefault(_ => _.RequirementId == transition.RequirementId);
+                var requirement = context.Request.ImplementationRequirements.FirstOrDefault(candidate => candidate.RequirementId == transition.RequirementId);
                 var verified = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
                 if (!SemanticImplementationAdmission.TryGetVerifiedBody(context.Request, transition.RequirementId, reducer.ReadModel, verified, out var body))
                 {
@@ -80,11 +80,16 @@ internal static partial class SemanticCratisAdmission
                 if (requirement is null || requirement.Role != SemanticImplementationRole.ReducerTransition ||
                     requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
                     requirement.RequiredCapability != "pure" ||
-                    !((requirement.Language == "csharp" && requirement.File is null) ||
-                        (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)) ||
+                    SemanticImplementationBodySelector.Select(requirement).Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage ||
                     !context.Events.TryGetValue(transition.EventContract, out var @event))
                 {
                     diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' has an unsupported transition envelope or language.", reducer.ReadModel));
+                    continue;
+                }
+
+                if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, reducer.ReadModel, $"Reducer transition for '{reducer.Name}'") is { } language)
+                {
+                    diagnostics.Add(language);
                     continue;
                 }
 

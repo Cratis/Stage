@@ -32,11 +32,11 @@ public sealed partial class CratisBackendApplicationScaffold
             ("Directory.Build.targets", DirectoryBuildTargets()),
             ("Directory.Packages.props", DirectoryPackagesProps(profile)),
             ($"{request.ProjectName}.csproj", Project(request)),
-            ($"{request.ProjectName}.Specs/{request.ProjectName}.Specs.csproj", SpecificationsProject(request)),
             ("README.md", Readme(request)),
             ($"{request.ProjectName}.slnx", Solution(request)),
             ("Program.cs", Program(request)),
             ("GeneratedPolicyRegistration.cs", PolicyRegistration(request)),
+            ("GlobalUsings.cs", GlobalUsings()),
             ("appsettings.json", AppSettings(request)),
             ("docker-compose.yml", DockerCompose(profile))
         };
@@ -54,6 +54,26 @@ public sealed partial class CratisBackendApplicationScaffold
         ];
     }
 
+    // The development image keeps its bundled MongoDB data in anonymous volumes, which a recreated container does not
+    // get back: `docker compose down` followed by `up` would start from an empty store. Named volumes make the
+    // lifecycle explicit - data survives restarts, recreation and regeneration, and only `down --volumes` removes it.
+    internal static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
+        $$"""
+        services:
+          chronicle:
+            image: cratis/chronicle:{{profile.ChronicleImageVersion}}-development
+            ports:
+              - "27017:27017"
+              - "35000:35000"
+            volumes:
+              - chronicle-data:/data/db
+              - chronicle-config:/data/configdb
+
+        volumes:
+          chronicle-data:
+          chronicle-config:
+        """;
+
     static ArtifactRenderInput Input(string relativePath, string version, string content)
     {
         var withSingleTrailingLineFeed = $"{content.TrimEnd('\r', '\n')}\n";
@@ -62,9 +82,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string Program(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Cratis.Arc.MongoDB;
 
         var builder = WebApplication.CreateBuilder(args);
@@ -95,9 +112,6 @@ public sealed partial class CratisBackendApplicationScaffold
 
     static string PolicyRegistration(CratisBackendApplicationScaffoldRequest request) =>
         $$"""
-        // Copyright (c) Cratis. All rights reserved.
-        // Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
         using Microsoft.Extensions.DependencyInjection;
 
         namespace {{request.RootNamespace}}.GeneratedPolicies;
@@ -138,25 +152,5 @@ public sealed partial class CratisBackendApplicationScaffold
             }
           }
         }
-        """;
-
-    // The development image keeps its bundled MongoDB data in anonymous volumes, which a recreated container does not
-    // get back: `docker compose down` followed by `up` would start from an empty store. Named volumes make the
-    // lifecycle explicit - data survives restarts, recreation and regeneration, and only `down --volumes` removes it.
-    static string DockerCompose(CratisBackendApplicationScaffoldProfile profile) =>
-        $$"""
-        services:
-          chronicle:
-            image: cratis/chronicle:{{profile.ChronicleImageVersion}}-development
-            ports:
-              - "27017:27017"
-              - "35000:35000"
-            volumes:
-              - chronicle-data:/data/db
-              - chronicle-config:/data/configdb
-
-        volumes:
-          chronicle-data:
-          chronicle-config:
         """;
 }

@@ -11,12 +11,22 @@ public enum ArtifactRenderOutcome
     /// <summary>
     /// The plan has no blocking diagnostics.
     /// </summary>
-    Complete = 0,
+    Rendered = 0,
+
+    /// <summary>
+    /// Compatibility alias for Rendered.
+    /// </summary>
+    Complete = Rendered,
 
     /// <summary>
     /// The plan renders artifacts while explicitly listing omitted refusals.
     /// </summary>
-    Partial = 1,
+    Degraded = 1,
+
+    /// <summary>
+    /// Compatibility alias for Degraded.
+    /// </summary>
+    Partial = Degraded,
 
     /// <summary>
     /// The plan could not render the requested output.

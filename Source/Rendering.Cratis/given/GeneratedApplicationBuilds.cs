@@ -7,9 +7,10 @@ namespace Cratis.Stage.Rendering.Cratis.given;
 /// Limits how many generated-application build and test processes the specs run at once.
 /// </summary>
 /// <remarks>
-/// Each generated application starts its own dotnet or npm process tree. Unbounded, a local spec run starts
-/// many of them in parallel and starves the machine. STAGE_MAX_PARALLEL_APP_BUILDS sets the limit; without
-/// it the limit is a quarter of the processors locally and unlimited in CI.
+/// Each generated application starts its own dotnet or npm process tree. Unbounded, a spec run starts
+/// many of them in parallel and starves the machine. By default one runs at a time, locally and in CI;
+/// STAGE_MAX_PARALLEL_APP_BUILDS sets a higher limit explicitly. Each dotnet build or test is also
+/// capped at <see cref="MaxCpuCount"/> MSBuild nodes.
 /// </remarks>
 public static class GeneratedApplicationBuilds
 {
@@ -18,10 +19,12 @@ public static class GeneratedApplicationBuilds
     /// </summary>
     public const string LimitVariable = "STAGE_MAX_PARALLEL_APP_BUILDS";
 
-    static readonly SemaphoreSlim? _slots = Limit(
-        Environment.GetEnvironmentVariable(LimitVariable),
-        string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase),
-        Environment.ProcessorCount) is { } limit ? new SemaphoreSlim(limit, limit) : null;
+    /// <summary>
+    /// The most MSBuild nodes one generated-application dotnet build or test may use.
+    /// </summary>
+    public const int MaxCpuCount = 3;
+
+    static readonly SemaphoreSlim _slots = new(Limit(Environment.GetEnvironmentVariable(LimitVariable)));
 
     /// <summary>
     /// Waits for a free slot before a build or test process starts.
@@ -29,42 +32,49 @@ public static class GeneratedApplicationBuilds
     /// <returns>The slot, released when disposed.</returns>
     public static async Task<IDisposable> Enter()
     {
-        if (_slots is null)
-        {
-            return new Slot(null);
-        }
-
         await _slots.WaitAsync();
         return new Slot(_slots);
     }
 
     /// <summary>
-    /// Resolves the limit from its configured value, whether the run is in CI, and the processor count.
+    /// Resolves the limit from its configured value.
     /// </summary>
     /// <param name="configured">The value of <see cref="LimitVariable"/>, if any.</param>
-    /// <param name="ci">Whether the run is in CI.</param>
-    /// <param name="processors">The processor count.</param>
-    /// <returns>The number of concurrent processes, or null for no limit.</returns>
+    /// <returns>The number of concurrent processes; one when nothing is configured.</returns>
     /// <exception cref="ArgumentException">The configured value is not a positive whole number.</exception>
-    public static int? Limit(string? configured, bool ci, int processors)
+    public static int Limit(string? configured)
     {
-        if (!string.IsNullOrWhiteSpace(configured))
+        if (string.IsNullOrWhiteSpace(configured))
         {
-            return int.TryParse(configured, out var value) && value > 0
-                ? value
-                : throw new ArgumentException($"{LimitVariable} must be a positive whole number, not '{configured}'.", nameof(configured));
+            return 1;
         }
 
-        return ci ? null : Math.Max(1, processors / 4);
+        return int.TryParse(configured, out var value) && value > 0
+            ? value
+            : throw new ArgumentException($"{LimitVariable} must be a positive whole number, not '{configured}'.", nameof(configured));
     }
 
-    sealed class Slot(SemaphoreSlim? slots) : IDisposable
+    /// <summary>
+    /// Adds the MSBuild node cap to a dotnet build or test that does not set one.
+    /// </summary>
+    /// <param name="fileName">The tool being started.</param>
+    /// <param name="arguments">The tool's arguments.</param>
+    /// <returns>The arguments, with the cap right after the dotnet verb when one was missing.</returns>
+    public static string[] Capped(string fileName, string[] arguments) =>
+        string.Equals(fileName, "dotnet", StringComparison.Ordinal)
+        && arguments.Length > 0
+        && (string.Equals(arguments[0], "build", StringComparison.Ordinal) || string.Equals(arguments[0], "test", StringComparison.Ordinal))
+        && !arguments.Any(argument => argument.StartsWith("-m:", StringComparison.Ordinal))
+            ? [arguments[0], $"-m:{MaxCpuCount}", .. arguments.Skip(1)]
+            : arguments;
+
+    sealed class Slot(SemaphoreSlim slots) : IDisposable
     {
         int _released;
 
         public void Dispose()
         {
-            if (slots is not null && Interlocked.Exchange(ref _released, 1) == 0)
+            if (Interlocked.Exchange(ref _released, 1) == 0)
             {
                 slots.Release();
             }

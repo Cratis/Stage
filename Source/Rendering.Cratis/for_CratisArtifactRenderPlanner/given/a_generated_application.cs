@@ -145,13 +145,10 @@ public class a_generated_application : a_register_project_render_request
 
     protected string[] GeneratedFiles(string pattern) => [.. Directory.GetFiles(_application!.FullName, pattern, SearchOption.AllDirectories).Select(path => Path.GetRelativePath(_application.FullName, path))];
 
-    protected void AddGeneratedSpecification(string name, string content)
-    {
-        var project = Directory.GetFiles(_application!.FullName, "*.csproj").Single();
-        WriteGeneratedSupport(Path.Combine($"{Path.GetFileNameWithoutExtension(project)}.Specs", name), content);
-    }
+    // Specifications compile into the application in Debug; a for_ folder keeps them out of its Release build.
+    protected void AddGeneratedSpecification(string name, string content) => WriteGeneratedSupport(Path.Combine("for_GeneratedApplication", name), content);
 
-    // Partial Program hooks must compile into the host, not the separate specification assembly.
+    // Partial Program hooks are application code, compiled in every configuration.
     protected void AddGeneratedHostSupport(string name, string content) => WriteGeneratedSupport(Path.Combine("Customizations", name), content);
 
     void WriteGeneratedSupport(string relativePath, string content)
@@ -168,7 +165,7 @@ public class a_generated_application : a_register_project_render_request
     {
         // Bounded so a local run does not start every generated application's build at once.
         using var slot = await GeneratedApplicationBuilds.Enter();
-        arguments = SpecificationsArguments(arguments);
+        arguments = GeneratedApplicationBuilds.Capped("dotnet", SpecificationsArguments(arguments));
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = _application!.FullName,
@@ -229,7 +226,7 @@ public class a_generated_application : a_register_project_render_request
         return output;
     }
 
-    // Callers name the host they rendered; restore/build cover both projects and test targets only specs.
+    // Callers name the application they rendered; restore and build cover its solution, test runs the application's specs.
     static string[] SpecificationsArguments(string[] arguments)
     {
         if (arguments.Length < 2 || !arguments[1].EndsWith(".csproj", StringComparison.Ordinal))
@@ -241,7 +238,6 @@ public class a_generated_application : a_register_project_render_request
         return arguments[0] switch
         {
             "restore" or "build" => [arguments[0], $"{project}.slnx", .. arguments.Skip(2)],
-            "test" => [arguments[0], $"{project}.Specs/{project}.Specs.csproj", .. arguments.Skip(2)],
             _ => arguments
         };
     }

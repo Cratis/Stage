@@ -1,9 +1,6 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Collections.Immutable;
-using System.Reflection;
-using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
 using Xunit;
 
@@ -12,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSurfaceLedger;
 /// <summary>
 /// Guards the audited Screenplay semantic surface against drift.
 /// </summary>
-public class when_auditing_the_executable_model : Specification
+public class when_auditing_the_executable_model : given.the_executable_surface
 {
     IReadOnlyDictionary<string, SemanticSurfaceDisposition> _ledger = null!;
     string[] _missing = [];
@@ -45,16 +42,28 @@ public class when_auditing_the_executable_model : Specification
             $"Stale ({_stale.Length}): {string.Join(", ", _stale)}; Invalid ({_invalid.Length}): {string.Join(", ", _invalid)}");
 
     [Theory]
-    [InlineData("SemanticEventContract.Visibility", "STAGE-ESM-032")]
-    [InlineData("SemanticEventContract.Origin", "STAGE-ESM-033")]
-    [InlineData("SemanticEventVisibility.Public", "STAGE-ESM-032")]
-    [InlineData("SemanticProjection.Target", "STAGE-ESM-032")]
-    [InlineData("SemanticReducer.Target", "STAGE-ESM-032")]
-    [InlineData("SemanticProjectionTargetKind.Event", "STAGE-ESM-032")]
-    [InlineData("SemanticSlice.Direction", "STAGE-ESM-024")]
-    [InlineData("SemanticCapture.EventsSource", "STAGE-ESM-033")]
-    [InlineData("SemanticCaptureEventsSource.Events", "STAGE-ESM-033")]
-    public void should_classify_v9_members_by_construct(string member, string code) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, code));
+    [InlineData("SemanticEventContract.Visibility")]
+    [InlineData("SemanticEventContract.Origin")]
+    [InlineData("SemanticEventVisibility.Public")]
+    [InlineData("SemanticProjection.Target")]
+    [InlineData("SemanticProjectionTargetKind.Event")]
+    [InlineData("SemanticSlice.Direction")]
+    [InlineData("SemanticTranslationDirection.Inbound")]
+    [InlineData("SemanticTranslationDirection.Outbound")]
+    [InlineData("SemanticSliceKind.Translate")]
+    [InlineData("SemanticCapture.EventsSource")]
+    [InlineData("SemanticCaptureEventsSource.Events")]
+    [InlineData("SemanticCaptureCondition.Kind")]
+    [InlineData("SemanticCaptureConditionKind.Added")]
+    [InlineData("SemanticCaptureConditionKind.AnyChanged")]
+    [InlineData("SemanticCaptureConditionKind.AllChanged")]
+    [InlineData("SemanticCaptureConditionKind.Transition")]
+    [InlineData("SemanticCaptureConditionKind.Removed")]
+    public void should_classify_translation_members_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
+
+    [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]
@@ -74,23 +83,29 @@ public class when_auditing_the_executable_model : Specification
     public void should_classify_supported_identities_and_filters_as_rendered(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
-    [InlineData("SemanticApplication.Triggers")]
     [InlineData("SemanticReactionTrigger.RequirementId")]
     [InlineData("SemanticReactionTriggerKind.Unknown")]
-    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
     [InlineData("SemanticReactionTriggerKind.Interval")]
     [InlineData("SemanticReactionTriggerKind.Schedule")]
     [InlineData("SemanticReactionTriggerKind.Startup")]
     [InlineData("SemanticReactionTriggerKind.Shutdown")]
-    public void should_keep_every_trigger_kind_and_opaque_body_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+    public void should_keep_other_trigger_kinds_and_opaque_bodies_refused(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
+
+    [Theory]
+    [InlineData("SemanticApplication.Triggers")]
+    [InlineData("SemanticApplicationTrigger.Id")]
+    [InlineData("SemanticApplicationTrigger.Name")]
+    [InlineData("SemanticApplicationTrigger.Properties")]
+    [InlineData("SemanticReactionTriggerKind.ApplicationTrigger")]
+    [InlineData("SemanticExpressionRootKind.Trigger")]
+    public void should_render_the_application_occurrence_subset(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public void should_render_unmixed_reaction_side_effects(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
-
-    [Fact] void should_refuse_mixed_reaction_side_effects() => SemanticSurfaceLedger.ReactionSideEffectShapes[(true, true)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-037"));
+    [InlineData(true, true)]
+    public void should_render_reaction_side_effect_combinations(bool produces, bool invokes) => SemanticSurfaceLedger.ReactionSideEffectShapes[(produces, invokes)].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSliceKind.Automation")]
@@ -150,89 +165,4 @@ public class when_auditing_the_executable_model : Specification
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
          (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
         code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
-
-    static IEnumerable<string> EnumerateSurface()
-    {
-        var assembly = typeof(ExecutableSemanticModel).Assembly;
-        var types = assembly.GetExportedTypes().Where(type => type.Namespace == typeof(SemanticApplication).Namespace).ToArray();
-
-        foreach (var member in EnumerateSupplementarySurface())
-        {
-            yield return member;
-        }
-
-        var pending = new Queue<Type>([typeof(ExecutableSemanticModel), typeof(SemanticApplication)]);
-        var visited = new HashSet<Type>();
-        while (pending.TryDequeue(out var type))
-        {
-            type = Unwrap(type);
-            if (!types.Contains(type) || !visited.Add(type) || (!type.IsClass && !type.IsValueType))
-            {
-                continue;
-            }
-
-            if (type.IsEnum)
-            {
-                foreach (var member in Enum.GetNames(type))
-                {
-                    yield return $"{type.Name}.{member}";
-                }
-
-                continue;
-            }
-
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            if (properties.Length == 0)
-            {
-                // An empty new expression/value variant must still be explicitly classified.
-                yield return $"{type.Name}.$type";
-            }
-
-            foreach (var property in properties)
-            {
-                yield return $"{type.Name}.{property.Name}";
-                pending.Enqueue(property.PropertyType);
-            }
-
-            if (type.IsAbstract)
-            {
-                foreach (var derived in types.Where(candidate => candidate.IsSubclassOf(type)))
-                {
-                    pending.Enqueue(derived);
-                }
-            }
-        }
-    }
-
-    static IEnumerable<string> EnumerateSupplementarySurface()
-    {
-        // Compilation exposes implementation attachments beside (not inside) the executable model.
-        // Audit their metadata separately without treating compiler source-map types as rendered input.
-        foreach (var property in typeof(SemanticImplementationRequirement).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-        {
-            yield return $"{nameof(SemanticImplementationRequirement)}.{property.Name}";
-        }
-
-        // Pending attachment state and the evaluator's body capability are not ESM members,
-        // but both must retain an explicit refusal until described bodies are implemented.
-        foreach (var member in Enum.GetNames<SemanticAttachmentResolution>())
-        {
-            yield return $"{nameof(SemanticAttachmentResolution)}.{member}";
-        }
-        yield return "SemanticExecutionCapability.ImplementationBody";
-
-        // The application exposes these enums through Nullable<T>, outside the ordinary ESM traversal.
-        foreach (var member in Enum.GetNames<SemanticCommandReadMode>())
-        {
-            yield return $"{nameof(SemanticCommandReadMode)}.{member}";
-        }
-        foreach (var member in Enum.GetNames<SemanticReactionProductionMode>())
-        {
-            yield return $"{nameof(SemanticReactionProductionMode)}.{member}";
-        }
-    }
-
-    static Type Unwrap(Type type) => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>)
-        ? type.GetGenericArguments()[0]
-        : type;
 }

@@ -12,7 +12,7 @@ public class when_refusing_seeded_query_validation_rejections : Specification
     [Theory]
     [InlineData("given InvoiceIssued\n          for \"invoice-one\"")]
     [InlineData("given readmodel InvoiceSummary")]
-    public void should_refuse_the_seeded_fixture_without_partial_artifacts(string given)
+    public void should_omit_the_unsupported_seeded_fixture(string given)
     {
         var source = a_validated_query_key_model.Source + "\n" + $$"""
                   specification InvalidQueryWithState
@@ -24,9 +24,9 @@ public class when_refusing_seeded_query_validation_rejections : Specification
                     then error
             """;
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        var diagnostic = plan.Diagnostics.Single();
+        var diagnostic = plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011");
         diagnostic.Code.ShouldEqual("STAGE-ESM-011");
         diagnostic.Message.ShouldContain("only empty fixtures are supported");
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
     }
 }

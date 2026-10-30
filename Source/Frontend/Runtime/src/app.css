@@ -10,6 +10,14 @@
 body { margin: 0; min-width: 20rem; min-height: 100vh; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
 button { font: inherit; }
 
+/* The blueprint's dark menu inverts the text colour, which in a dark scheme is a light surface. A dark menu is the one just darker than the page in either scheme. */
+:root[data-scene-color-scheme='dark'] .layout-menu-dark {
+    --layout-sidebar-surface: color-mix(in srgb, var(--layout-background) 70%, black);
+    --layout-sidebar-text: var(--layout-text);
+    --layout-sidebar-muted: var(--layout-text-muted);
+    --layout-sidebar-hover: color-mix(in srgb, var(--layout-text) 10%, transparent);
+}
+
 .stage-message { display: grid; min-height: 100vh; padding: 2rem; place-content: center; text-align: center; }
 
 
@@ -44,6 +52,9 @@ button { font: inherit; }
 .stage-action { display: grid; gap: 0.75rem; justify-items: start; }
 .stage-command-form__layout { display: grid; gap: var(--layout-gap, 1rem); min-width: 0; width: 100%; }
 .stage-command-form__field { display: block; min-width: 0; }
+/* One line is always reserved under the control, so a message that fits it never shifts the fields below; a longer one grows in flow and pushes them down instead of covering the control. */
+.stage-command-form__field small.p-error { min-height: 1.25rem; line-height: 1.25rem; margin: 0.25rem 0 0; }
+.stage-command-form__field:not(:has(small.p-error))::after { content: ''; display: block; min-height: 1.5rem; }
 .stage-record-field,
 .stage-list-field { border: 1px solid var(--layout-border, #e2e5e9); border-radius: var(--layout-radius, 0.5rem); display: grid; gap: 0.6rem; margin: 0; min-width: 0; padding: 0.75rem; }
 .stage-record-field legend,
@@ -81,3 +92,33 @@ pre { background: var(--layout-background, #f4f5f7); border-radius: 0.4rem; over
     padding: 0.55rem 1.1rem;
 }
 .stage-confirm-dialog button[type='submit']:focus-visible { box-shadow: var(--scene-focus-ring, 0 0 0 2px rgb(79 70 229 / 0.4)); outline: none; }
+
+/* Cratis Components size a field with Tailwind utilities (`cratis:w-full`) the Stage does not compile: a field fills its column. */
+.stage-command-form__field > div,
+.stage-command-form__field .cratis-dropdown,
+.stage-command-form__field .cratis-field-input { width: 100%; box-sizing: border-box; }
+.stage-command-form__field .cratis-dropdown__select { width: 100%; }
+.stage-command-form__field .cratis-dropdown__trigger { width: 100%; }
+
+/* The submit of a form outside a dialog looks like the dialog's: the primary action. */
+.stage-command-form__submit,
+.scene-slice-dialog-submit {
+    padding: 0.55rem 1.1rem;
+    font: inherit;
+    cursor: pointer;
+    color: var(--scene-primary-contrast-color, #fff);
+    background: var(--scene-primary-color, #4f46e5);
+    border: 1px solid var(--scene-primary-color, #4f46e5);
+    border-radius: var(--scene-content-border-radius, 0.5rem);
+}
+.stage-command-form__submit { margin-top: 1rem; }
+.scene-slice-dialog-footer { margin-top: 1rem; }
+
+.stage-theme-toggle { display: flex; flex-direction: column; align-items: center; }
+.stage-theme-toggle__button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.25rem; height: 2.25rem; padding: 0; cursor: pointer;
+    color: var(--layout-text, inherit); background: var(--layout-card, #fff);
+    border: 1px solid var(--layout-border, #e2e5e9); border-radius: 50%;
+}
+.stage-theme-toggle__button:hover { background: var(--layout-hover, #eceef1); }

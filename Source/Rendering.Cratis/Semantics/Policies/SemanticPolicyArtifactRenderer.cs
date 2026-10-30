@@ -13,35 +13,33 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 /// </summary>
 internal static class SemanticPolicyArtifactRenderer
 {
-    public static string Name(SemanticId id) => $"StagePolicy_{id.ToString().Replace('-', '_').Replace(':', '_')}";
-
     public static string PolicyName(SemanticApplicationContext context, SemanticId id) =>
-        string.Join('.', context.Domain.Append(Name(id)));
+        SemanticPolicyNames.PolicyNameOf(context, id);
 
     public static IEnumerable<RenderedFile> Render(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
         yield return RenderShared(context);
-        var operations = slices.SelectMany(slice => slice.Slice.Commands.Where(command => command.Authorization is not null)
-                .Select(command => (command.Id, Authorization: command.Authorization!, IsCommand: true, Argument: string.Empty, Subject: command.Properties.Single(property => property.IsIdentifier).Name, Properties: (IReadOnlyList<SemanticProperty>)command.Properties)))
-            .Concat(slices.SelectMany(slice => slice.Slice.Queries.Where(query => query.Authorization is not null)
-                .Select(query =>
-                {
-                    var argument = query.Argument;
-                    return (query.Id, Authorization: query.Authorization!, IsCommand: false,
-                        Argument: argument is null ? string.Empty : Identifiers.ToCamelCase(argument.Name),
-                        Subject: argument?.Name ?? string.Empty,
-                        Properties: (IReadOnlyList<SemanticProperty>)(argument is null ? [] : [new(argument.Id, argument.Name, argument.Type, false)]));
-                })))
-            .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal).ToArray();
-        foreach (var operation in operations)
+        var names = SemanticPolicyNames.For(context);
+
+        // Operations that share a policy share one file. Its bytes depend on the whole application, never on
+        // which of its operations are selected, so independent renders of different scopes agree.
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var operation in SemanticPolicyNames.Operations(slices))
         {
-            var builder = new CSharpCodeBuilder()
+            var name = names[operation.Id];
+            if (!emitted.Add(name.ClassName))
+            {
+                continue;
+            }
+
+            var (properties, isCommand, argument, subject) = operation.Inputs();
+            var builder = context.CodeBuilder()
                 .Namespace(context.PoliciesNamespace)
                 .Using("Cratis.Arc.Authorization");
-            var expression = Authorization(operation.Authorization, context, operation.Properties, operation.IsCommand, operation.Argument, operation.Subject, operation.Id);
+            var expression = Authorization(operation.Authorization, context, properties, isCommand, argument, subject, operation.Id);
             const string signature = "public global::System.Threading.Tasks.ValueTask<bool> IsAuthorized(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, global::System.Threading.CancellationToken cancellationToken)";
-            builder.Summary("Enforces the effective Screenplay authorization for one operation.")
-                .OpenBlock($"public sealed class {Name(operation.Id)} : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
+            builder.Summary("Enforces the effective Screenplay authorization of a modeled policy.")
+                .OpenBlock($"public sealed class {name.ClassName} : global::Cratis.Arc.Authorization.IAuthorizationPolicy")
                 .Line("/// <inheritdoc/>");
             if (SemanticCratisAdmission.OpaquePolicies(operation.Authorization, context.Application.Policies).Any())
             {
@@ -58,20 +56,20 @@ internal static class SemanticPolicyArtifactRenderer
                 builder.ExpressionMember(signature, $"global::System.Threading.Tasks.ValueTask.FromResult({expression})");
             }
 
-            // Arc strips guest roles and claims. Preserve this operation's exact anonymous opt-in.
-            var anonymous = AllowsGuest(operation.Authorization, context, operation.Properties, operation.Subject) ? ", evaluatesAnonymous: true" : string.Empty;
+            // Arc strips guest roles and claims. Preserve this policy's exact anonymous opt-in.
+            var anonymous = AllowsGuest(operation.Authorization, context, properties, subject) ? ", evaluatesAnonymous: true" : string.Empty;
             var registration = context.Domain.Count == 0 ? "Registration" : $"global::{context.RootNamespace}.GeneratedPolicies.Registration";
             var policyName = CSharpCodeBuilder.StringLiteral(PolicyName(context, operation.Id));
             builder.BlankLine()
                 .Line("// Module initialization registers a known generated policy, without assembly scanning.")
                 .Line("#pragma warning disable CA2255 // Generated application registration is intentionally initialized at module load.")
                 .Line("[global::System.Runtime.CompilerServices.ModuleInitializer]")
-                .OpenBlock("internal static void RegisterPolicy()")
-                .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{Name(operation.Id)}>({policyName}{anonymous}));")
+                .OpenBlock("internal static void InitializeGeneratedAuthorization()")
+                .Line($"{registration}.Add({policyName}, services => services.AddArcAuthorizationPolicy<{name.ClassName}>({policyName}{anonymous}));")
                 .EndBlock()
                 .Line("#pragma warning restore CA2255")
                 .EndBlock();
-            yield return new(Path.Combine(context.PoliciesFolder, $"{Name(operation.Id)}.cs"), builder.ToString()) { Sources = [operation.Id] };
+            yield return new(Path.Combine(context.PoliciesFolder, $"{name.ClassName}.cs"), builder.ToString()) { Sources = [.. name.Sources] };
         }
     }
 
@@ -82,7 +80,9 @@ internal static class SemanticPolicyArtifactRenderer
     /// <returns>The shared runtime file.</returns>
     public static RenderedFile RenderShared(SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies");
+        // Every reflection call below is an instance member of Type, PropertyInfo or MethodInfo, which C# prefers over the
+        // extension members System.Reflection also declares, so importing it cannot change what those calls bind to.
+        var builder = context.CodeBuilder().Namespace($"{context.RootNamespace}.GeneratedPolicies").Using("System.Reflection");
         builder.Summary("Registers every generated authorization policy with Arc.")
             .OpenBlock("public static partial class Registration")
             .Line("static readonly global::System.Collections.Generic.List<(string Name, global::System.Action<global::Microsoft.Extensions.DependencyInjection.IServiceCollection> Apply)> _policies = [];")
@@ -210,24 +210,39 @@ internal static class SemanticPolicyArtifactRenderer
                 .Select(policy => (((SemanticOpaquePolicyCondition)policy.Condition).RequirementId, operation.Id)))
             .Distinct();
 
-    static SemanticTypedContextDescriptor Descriptor(SemanticApplicationContext context, string requirementId, SemanticId operation) =>
-        context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == operation);
-
-    static string Authorization(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, SemanticId operation) => authorization switch
+    internal static string Authorization(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, SemanticId operation, bool naming = false) => authorization switch
     {
         // Admission accepts an opaque predicate only as a whole named policy; its term is the verified body.
         SemanticPolicyReference reference when context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition opaque =>
-            Opaque(opaque, context, properties, command, argument, subject, operation),
+            naming ? $"opaque:{operation}" : Opaque(opaque, context, properties, command, argument, subject, operation),
 
         // A policy without negation keeps its two-valued rendering: without `not`, mapping unknown to false decides
         // exactly as three-valued logic followed by deny-on-unknown, so the generated bytes stay unchanged.
         SemanticPolicyReference reference => context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is var condition && Negates(condition)
             ? $"({Truth(condition, context, properties, command, argument, subject)} == true)"
             : Condition(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, command, argument, subject),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation)} && {Authorization(logical.Right, context, properties, command, argument, subject, operation)})",
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation)} || {Authorization(logical.Right, context, properties, command, argument, subject, operation)})",
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation, naming)} && {Authorization(logical.Right, context, properties, command, argument, subject, operation, naming)})",
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => $"({Authorization(logical.Left, context, properties, command, argument, subject, operation, naming)} || {Authorization(logical.Right, context, properties, command, argument, subject, operation, naming)})",
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
     };
+
+    internal static bool AllowsGuest(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => authorization switch
+    {
+        // An opaque body is unknown until it runs, so it never makes an operation guest-satisfiable.
+        SemanticPolicyReference reference when context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition => false,
+
+        // Unknown denies at each named policy boundary, before composing the effective authorization.
+        SemanticPolicyReference reference => GuestTruth(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, subject) == true,
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => AllowsGuest(logical.Left, context, properties, subject) && AllowsGuest(logical.Right, context, properties, subject),
+        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => AllowsGuest(logical.Left, context, properties, subject) || AllowsGuest(logical.Right, context, properties, subject),
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
+    };
+
+    // A guest has no authentication, roles or claims. A supported claim target can be supplied by the request,
+    // so its comparison is false for that guest. Missing/null targets remain unknown in the runtime policy;
+    // a statically non-text target is always unknown and cannot justify anonymous opt-in even under `not`.
+    static SemanticTypedContextDescriptor Descriptor(SemanticApplicationContext context, string requirementId, SemanticId operation) =>
+        context.Request.TypedContextDescriptors.Single(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == operation);
 
     static string Opaque(SemanticOpaquePolicyCondition opaque, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject, SemanticId operation)
     {
@@ -274,21 +289,6 @@ internal static class SemanticPolicyArtifactRenderer
         _ => throw UnsupportedSemanticRendering.For(nameof(SemanticPolicyCondition), condition.GetType().Name)
     };
 
-    static bool AllowsGuest(SemanticAuthorization authorization, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => authorization switch
-    {
-        // An opaque body is unknown until it runs, so it never makes an operation guest-satisfiable.
-        SemanticPolicyReference reference when context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition is SemanticOpaquePolicyCondition => false,
-
-        // Unknown denies at each named policy boundary, before composing the effective authorization.
-        SemanticPolicyReference reference => GuestTruth(context.Application.Policies.Single(policy => policy.Name == reference.Name).Condition, context, properties, subject) == true,
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.And } logical => AllowsGuest(logical.Left, context, properties, subject) && AllowsGuest(logical.Right, context, properties, subject),
-        SemanticLogicalAuthorization { Operator: SemanticLogicalOperator.Or } logical => AllowsGuest(logical.Left, context, properties, subject) || AllowsGuest(logical.Right, context, properties, subject),
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticAuthorization), authorization.GetType().Name)
-    };
-
-    // A guest has no authentication, roles or claims. A supported claim target can be supplied by the request,
-    // so its comparison is false for that guest. Missing/null targets remain unknown in the runtime policy;
-    // a statically non-text target is always unknown and cannot justify anonymous opt-in even under `not`.
     static bool? GuestTruth(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, string subject) => condition switch
     {
         SemanticAuthenticatedCondition or SemanticRoleCondition => false,

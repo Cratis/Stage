@@ -22,5 +22,5 @@ public class when_rejecting_a_given_event_with_a_different_projection_key : Spec
     }
 
     [Fact] void should_refuse_the_specification() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-011");
-    [Fact] void should_emit_no_partial_application() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

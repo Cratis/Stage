@@ -19,8 +19,9 @@ internal static class SemanticRunReactionExpressions
         [SemanticComparisonOperator.LessThanOrEqual] = (left, right) => left <= right
     };
 
-    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values, SemanticInvocationRefusalOutcome? refusal = null, DateTimeOffset? occurred = null) => expression switch
+    internal static SemanticValue Evaluate(SemanticExpression expression, IReadOnlyDictionary<SemanticId, SemanticValue> values, SemanticInvocationRefusalOutcome? refusal = null, DateTimeOffset? occurred = null, SemanticValue? eventSource = null) => expression switch
     {
+        SemanticEventContextExpression { Value: SemanticEventContextValueKind.EventSourceIdentity } when eventSource is { } and not SemanticNullValue => eventSource,
         SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } when occurred is { } instant => SemanticValue.Text(instant.UtcDateTime.ToString("O", CultureInfo.InvariantCulture)),
         SemanticRefusalExpression member when refusal is not null => refusal.ValueOf(member.Member),
         SemanticValueExpression literal => literal.Value,
@@ -47,7 +48,13 @@ internal static class SemanticRunReactionExpressions
             if (!type.IsOptional) throw new InvalidSemanticContract($"A null {description} is incompatible with a required target.");
             return;
         }
-        if (type.IsCollection) throw new UnsupportedSemanticMapping();
+        if (type.IsCollection)
+        {
+            if (value is not SemanticArrayValue array) throw new InvalidSemanticContract($"A {description} is incompatible with its collection target type.");
+            foreach (var member in array.Values)
+                Validate(plan, member, type with { IsCollection = false, IsOptional = false }, description, depth + 1);
+            return;
+        }
         if (type.Kind == SemanticTypeReferenceKind.CompositeType)
         {
             ValidateObject(plan, value, type, description, depth);

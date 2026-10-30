@@ -24,7 +24,7 @@ public class when_rendering_generated_concept_rules : Specification
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Text(plan, "Common/CustomerId.cs").ShouldContain("GenerateValue.Ulid(context)");
         Text(plan, "Common/CustomerId.cs").ShouldContain("ConceptValidator<CustomerId>");
-        Text(plan, "Common/CustomerId.cs").ShouldContain("MatchesPattern(");
+        Text(plan, "Common/CustomerId.cs").ShouldContain("PortableMatcher.Compile(");
     }
 
     [Theory]
@@ -112,8 +112,8 @@ public class when_rendering_generated_concept_rules : Specification
                     then error "Generated fixture 'code' fails concept 'Code' rules"
             """);
         var plan = Render(model);
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("fails concept 'Code' rules", StringComparison.Ordinal));
     }
 

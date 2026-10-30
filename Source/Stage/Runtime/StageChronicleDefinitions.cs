@@ -215,6 +215,12 @@ public static class StageChronicleDefinitions
         var properties = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var mapping in mappings)
         {
+            if (mapping.Factor is not null)
+            {
+                // Chronicle's $add and $subtract take one event property; dropping the factor would add the first operand alone.
+                throw new UnsupportedProjectionRuntimeExpression($"{mapping.Expression} by {mapping.Factor}");
+            }
+
             properties[mapping.Property] = ProjectionRuntimeExpression.Translate(mapping.Expression);
         }
 

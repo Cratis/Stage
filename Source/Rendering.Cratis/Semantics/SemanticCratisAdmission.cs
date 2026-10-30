@@ -30,8 +30,9 @@ internal static partial class SemanticCratisAdmission
         // Standalone admission callers still need the version gates; the planner has already run them.
         if (!SemanticVersionFeatures.Supports(context.Request.Model))
         {
-            diagnostics.Add(Error("STAGE-ESM-016", "The model's language/semantic version is not one the Cratis ESM planner has audited.", context.Application.Id));
-            return [.. diagnostics];
+            var range = CratisEsmRangeAdmission.Evaluate(context.Request, context);
+            diagnostics.AddRange(range.Diagnostics);
+            if (!range.IsAdmitted) return [.. diagnostics];
         }
 
         diagnostics.AddRange(SemanticVersionFeatureAdmission.Verify(context, slices));
@@ -46,20 +47,22 @@ internal static partial class SemanticCratisAdmission
     {
         // Keep the audited surface available in Release as well as in the Debug-only specifications.
         _ = SemanticSurfaceLedger.Entries;
+        _ = SemanticDependencyIndex.OutOfIndex;
         PassesPreconditions(context, slices, diagnostics);
 
-        Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateTypes(context, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateCompliance(context, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateConstraints(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateGeneratedTypeNames(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateEventTypeIdentities(context, slices, diagnostics), context.Application.Id, diagnostics);
+        ValidatePolicyBindings(context, diagnostics);
+        Collect(() => ValidateStrings(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateMatchPatterns(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateTypes(context, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateCompliance(context, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateConstraints(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateGeneratedTypeNames(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateEventTypeIdentities(context, slices, diagnostics), context.Application.Id, diagnostics, context);
 
         var analysedBodies = 0;
         foreach (var located in slices)
         {
-            Collect(() => analysedBodies += ValidateSlice(context, located, diagnostics), located.Slice.Id, diagnostics);
+            Collect(() => analysedBodies += ValidateSlice(context, located, diagnostics), located.Slice.Id, diagnostics, context);
         }
 
         if (slices.Any(_ => !_.Slice.Reducers.IsEmpty))
@@ -100,15 +103,16 @@ internal static partial class SemanticCratisAdmission
     /// </summary>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="type">The declared type.</param>
+    /// <param name="owner">The owning event, when checking an event property whose failure must refuse the whole render.</param>
     /// <returns>Whether the declared type exists.</returns>
     /// <exception cref="UnsupportedSemanticRendering">The type reference kind is not handled.</exception>
-    internal static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type) => type.Kind switch
+    internal static bool TypeExists(SemanticApplicationContext context, SemanticTypeReference type, SemanticId? owner = null) => type.Kind switch
     {
         SemanticTypeReferenceKind.Primitive => type.Primitive != SemanticPrimitiveType.Unknown,
         SemanticTypeReferenceKind.Concept => context.Concepts.ContainsKey(type.Target),
         SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target),
         SemanticTypeReferenceKind.Unknown => false,
-        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind)
+        _ => throw UnsupportedSemanticRendering.For(nameof(SemanticTypeReferenceKind), type.Kind, owner)
     };
 
     internal static bool UsesOpaquePolicies(SemanticApplicationContext context, IEnumerable<LocatedSemanticSlice> slices) =>
@@ -131,12 +135,34 @@ internal static partial class SemanticCratisAdmission
             SelectedConstraints(context, slices).Select(selected =>
                 ((IEnumerable<string>)context.Slice(selected.Slice.Id).Path, selected.Slice.Id, selected.Constraint)),
             rendersStringsCatalog: context.Strings is not null,
-            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices)),
+            opaquePolicyTypes: SemanticPolicyContextRuntime.GeneratedTypes(context, slices).Concat(ValidationTypes(context, slices))
+                .Concat(SemanticReducerTypedContexts.Declarations(context, slices)),
             commonNamespace: string.Join('.', context.Domain.Append("Common")),
             eventSources: SemanticEventSourceArtifactRenderer.Selected(context, slices),
             eventSourcesNamespace: string.Join('.', context.Domain.Append("EventSources")),
             policiesNamespace: string.Join('.', context.Domain.Append("GeneratedPolicies")),
-            selfReduces: context.SelfReduces);
+            selfReduces: context.SelfReduces,
+            policyClassName: operation => SemanticPolicyNames.For(context)[operation].ClassName,
+            commandReceiptTime: SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))
+            .Concat(SemanticTranslationAdmission.Declarations(context, slices))
+            .Concat(SemanticOccurrenceAdmission.Declarations(context, slices));
+
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedResponseDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Commands
+            .Where(command => command.Response is SemanticRecordCommandResponse)
+            .Select(command => new GeneratedTypeDeclaration(
+                command.Id,
+                "Response",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase)),
+                context.ResponseType(command))));
+
+    internal static IEnumerable<GeneratedTypeDeclaration> GeneratedSpecificationDeclarations(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices) =>
+        slices.SelectMany(located => located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)).SelectMany(specification =>
+            SemanticSpecificationArtifactRenderer.ClassNames(specification, context).Select(name => new GeneratedTypeDeclaration(
+                specification.Id,
+                "Specification",
+                string.Join('.', located.Path.Select(Identifiers.ToPascalCase).Append(name)),
+                name))));
 
     static IEnumerable<(string Namespace, string Name)> ValidationTypes(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices)
     {
@@ -151,14 +177,28 @@ internal static partial class SemanticCratisAdmission
     {
         // These checks refuse target capabilities, not the model's indexed structure. Current event
         // shapes remain available after a migration refusal, so independent body/spec checks can run.
-        Collect(() => diagnostics.AddRange(SemanticDateComparisonAdmission.Verify(context, slices)), context.Application.Id, diagnostics);
-        Collect(() => ValidateEventRevisions(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateReservedNamespace(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateEventSourceRoutes(context, slices, diagnostics), context.Application.Id, diagnostics);
-        Collect(() => ValidateWholeNumberLiterals(context, slices, diagnostics), context.Application.Id, diagnostics);
+        Collect(() => diagnostics.AddRange(SemanticDateComparisonAdmission.Verify(context, slices)), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateEventRevisions(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateReservedNamespace(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateEventSourceRoutes(context, slices, diagnostics), context.Application.Id, diagnostics, context);
+        Collect(() => ValidateWholeNumberLiterals(context, slices, diagnostics), context.Application.Id, diagnostics, context);
     }
 
-    static void Collect(Action validate, SemanticId artifact, List<ArtifactRenderDiagnostic> diagnostics)
+    static void ValidatePolicyBindings(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var conflict in SemanticPolicyNames.Conflicts(context))
+        {
+            foreach (var operation in conflict.Operations)
+            {
+                if (!diagnostics.Exists(diagnostic => diagnostic.Code == ConflictingPolicyBindings.Code && diagnostic.Artifact == operation))
+                {
+                    diagnostics.Add(Error(ConflictingPolicyBindings.Code, conflict.Message, operation));
+                }
+            }
+        }
+    }
+
+    static void Collect(Action validate, SemanticId artifact, List<ArtifactRenderDiagnostic> diagnostics, SemanticApplicationContext context)
     {
         try
         {
@@ -166,7 +206,9 @@ internal static partial class SemanticCratisAdmission
         }
         catch (UnsupportedSemanticRendering exception)
         {
-            diagnostics.Add(Error(exception.Code, exception.Message, artifact));
+            var diagnostic = Error(exception.Code, exception.Message, exception.Owner ?? artifact);
+            diagnostics.Add(diagnostic);
+            if (exception.OwnerScoped) context.OwnerScopedRefusals.Add(diagnostic);
         }
         catch (InvalidTypedContext exception)
         {
@@ -189,7 +231,10 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateGeneratedTypeNames(SemanticApplicationContext context, IReadOnlyList<LocatedSemanticSlice> slices, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var (artifact, kind, name) in GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), GeneratedDeclarations(context, slices)))
+        var declarations = GeneratedDeclarations(context, slices).ToArray();
+        var collisions = GeneratedTypeNames.Collisions(slices.Select(located => (IEnumerable<string>)located.Path), declarations)
+            .Concat(SemanticCaptureDeclarationCollisions.Find(slices, declarations)).Distinct();
+        foreach (var (artifact, kind, name) in collisions)
         {
             var message = kind == "Namespace"
                 ? $"Generated type '{name}' collides with a generated C# namespace."
@@ -207,10 +252,13 @@ internal static partial class SemanticCratisAdmission
         }
 
         var analysedBodies = 0;
-        Collect(() => analysedBodies = ValidateReducers(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
-        Collect(() => ValidateSliceKind(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
-        Collect(() => ValidateCallerFixtures(located.Slice, diagnostics), located.Slice.Id, diagnostics);
-        Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics);
+        Collect(() => analysedBodies = ValidateReducers(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
+        Collect(() => ValidateSliceKind(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
+        Collect(() => ValidateCallerFixtures(located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
+        if (located.Slice.Kind != SemanticSliceKind.Translate)
+        {
+            Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
+        }
 
         return analysedBodies;
     }
@@ -221,6 +269,9 @@ internal static partial class SemanticCratisAdmission
         {
             case SemanticSliceKind.StateChange:
                 ValidateStateChange(context, slice, diagnostics);
+                break;
+            case SemanticSliceKind.Translate:
+                SemanticTranslationAdmission.Validate(context, slice, diagnostics);
                 break;
             case SemanticSliceKind.Automation:
                 ValidateAutomation(context, slice, diagnostics);

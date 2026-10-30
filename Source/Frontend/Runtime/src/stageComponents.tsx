@@ -7,10 +7,13 @@ import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
 import type { ComponentType, ReactNode } from 'react';
-import { Button } from 'primereact/button';
-import { PrimeDialog, PrimeMessage } from '@cratis/scene.primereact';
+import { Button } from '@cratis/components/Common';
+import { Dialog } from '@cratis/components/Dialogs';
+import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
-import { StageCommandForm, StageDialogContext, carriedBy, identifiersAwaitingSelection, selectableRowsOf, selectedIdentifier, selectedRowsOf, suppliedWithoutAsking } from './StageCommandForm';
+import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
+import { useScreenRows } from './stageScreenTables';
+import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
 import { humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -18,6 +21,7 @@ import { isGuardedAction, StageGuardedAction } from './StageGuardedAction';
 import { useRowInteractions } from './stageRowInteractions';
 import { StageConfirmDialog } from './StageConfirmDialog';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
+import { StageKanbanBoard, kanbanBoardKey } from './stageItemChange';
 
 export const stageCommandFormComponent = 'Stage:commandForm';
 
@@ -180,8 +184,8 @@ export function StageTable({ element, slots }: RegisteredProps) {
 
     return (
         <section className='stage-table' data-scene-id={element.id}>
-            {(loading || awaitingCommand) && <PrimeMessage element={syntheticElement(`${element.id}-loading`, { severity: 'info', text: 'Loading…' })} slots={{}} />}
-            {error && <PrimeMessage element={syntheticElement(`${element.id}-error`, { severity: 'error', text: error })} slots={{}} />}
+            {(loading || awaitingCommand) && <Message severity='info' text='Loading…' />}
+            {error && <Message severity='error' text={error} />}
             {selected && <Button type='button' size='small' onClick={clear}>Clear selection</Button>}
             <table aria-label={text(element, 'label', text(element, 'typeName', 'Results'))}>
                 <thead>
@@ -233,30 +237,74 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
         : <StageCommandAction element={element} interactions={interactions} slots={slots} />;
 }
 
+/**
+ * A command action. An action on a list screen - a screen toolbar's Dispatch next to the shipments table - acts on the row the person selects:
+ * while the command's key is one the screen's rows carry, the form does not ask for it and no row is selected, the action waits, visible
+ * and disabled, instead of opening a form that would act on an entity nobody chose.
+ */
 function StageCommandAction({ element, interactions }: RegisteredProps) {
     const label = text(element, 'label', text(element, 'command'));
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
+    const subject = actionSubjectOf(element);
+    const awaiting = useIdentifiersAwaitingSelection(element, subject);
+    const schema = text(element, 'schema');
+    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
+    const { selectedRows } = useScreenRows();
+    const row = subjectRowOf(subject, selectedRows);
 
     if (!command) {
         return <Button type='button' data-scene-id={element.id} disabled title='This command is not exposed as an API yet' {...interactions}>{label}</Button>;
     }
 
-    return <StageCommandDialog element={element} label={label} />;
+    // An explicit `for item` acts on exactly one selected row, even when the screen has no table to select from.
+    if (awaiting.length > 0 || awaitsSubjectRow(subject, row)) {
+        return <Button type='button' data-scene-id={element.id} disabled title='Select a row first' {...interactions}>{label}</Button>;
+    }
+
+    return <StageCommandDialog element={row ? itemSubjectElement(element, properties, row) : element} label={label} />;
+}
+
+/**
+ * The keys an action's command acts on that the action's form does not ask for, that a row of the screen carries and that no selected row or
+ * address supplies yet. A form that asks for every property of the schema - one with no fields of its own that is not manual - asks for its keys too.
+ */
+function useIdentifiersAwaitingSelection(element: ExternalComponent, subject?: ActionSubject): string[] {
+    const { parameters } = useStageData();
+    const schema = text(element, 'schema');
+    const fields = element.properties.fields;
+    const generationMode = text(element, 'generationMode').toLowerCase();
+    const properties = useMemo(() => schemaPropertiesOf(schema), [schema]);
+    const { selectableRows, selectedRows } = useScreenRows();
+    const formFields: unknown[] = Array.isArray(fields) ? fields : [];
+    const asked = formFields.length > 0 || generationMode === 'manual'
+        ? new Set(formFields.map(askedProperty).filter(name => name !== ''))
+        : undefined;
+    if (!asked || subject !== undefined) return [];
+
+    return identifiersAwaitingSelection(properties.filter(property => !asked.has(property.name)), parameters, selectedRows, selectableRows);
+}
+
+/** The command property a form field asks for: its source property when it names one, as the form binds it, else its name. */
+function askedProperty(field: unknown): string {
+    if (!isRecord(field)) return '';
+    if (typeof field.sourceProperty === 'string' && field.sourceProperty !== '') return field.sourceProperty;
+    return typeof field.name === 'string' ? field.name : '';
 }
 
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
-    const close = useCallback(() => setGeneration(current => current + 1), []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm element={element} /></StageDialogContext.Provider>;
+    const [visible, setVisible] = useState(false);
+    const close = useCallback(() => {
+        setVisible(false);
+        setGeneration(current => current + 1);
+    }, []);
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
 
     return (
         <div className='stage-action' data-scene-id={element.id}>
-            <PrimeDialog
-                key={generation}
-                element={syntheticElement(element.id, { visible: false, header: label, triggerLabel: label })}
-                slots={{ content: [content] }}
-            />
+            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
+            <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable>{content}</Dialog>
         </div>
     );
 }
@@ -271,15 +319,15 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
 export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const element = props.element ?? syntheticElement('slice-dialog', {});
     const navigation = useOptionalSceneNavigation();
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
     const title = text(element, 'title') || opened?.title || command;
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const close = useCallback(() => navigation?.closeDialog(), [navigation]);
+    const [footer, setFooter] = useState<HTMLElement | null>(null);
 
     // A key the row the person selected carries is not asked for: the form fills it from that row (the command acts on it).
     const fromSelectedRow = (property: SchemaProperty) => property.identifier && property.required && carriedBy(property, selectableRows) && selectedIdentifier(property, selectedRows) !== undefined;
@@ -297,8 +345,8 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     return (
         <section className='scene-slice-dialog' data-scene-slice-dialog={text(element, 'slice') || opened?.slice} data-scene-command={command}>
             <header className='scene-slice-dialog-header'><h2 className='scene-slice-dialog-title'>{title}</h2></header>
-            <StageDialogContext.Provider value={close}><StageCommandForm element={form} /></StageDialogContext.Provider>
-            <footer className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
+            <StageDialogContext.Provider value={close}><StageDialogFooterContext.Provider value={footer}><StageCommandForm element={form} /></StageDialogFooterContext.Provider></StageDialogContext.Provider>
+            <footer ref={setFooter} className='scene-slice-dialog-footer'><button type='button' className='scene-slice-dialog-cancel' onClick={close}>Cancel</button></footer>
         </section>
     );
 }
@@ -324,13 +372,12 @@ function StageToolbarItem(props: RegisteredProps) {
  */
 function StageToolbarSliceButton(props: RegisteredProps) {
     const { element } = props;
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const slice = text(element, 'slice');
     const command = text(element, 'command') || slice.split('.').at(-1) || '';
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
+    const { selectableRows, selectedRows } = useScreenRows();
     const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
     if (awaiting.length === 0) return <CoreToolbarItem {...props} />;
 
@@ -342,24 +389,31 @@ function StageToolbarSliceButton(props: RegisteredProps) {
     );
 }
 
+/** Whether the screen's rows supply a required identifier, so the form does not ask for it; a `screen` subject never reads a row. */
+function carriedByRows(property: SchemaProperty, subject: ActionSubject | undefined, selectableRows: Record<string, unknown>[]): boolean {
+    return subject !== 'screen' && Boolean(property.identifier) && property.required && carriedBy(property, selectableRows);
+}
+
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
-    const { routes, parameters, queries, selections } = useStageData();
+    const { routes, parameters } = useStageData();
     const name = text(element, 'name', element.id);
     const command = text(element, 'target');
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const selectableRows = useMemo(() => selectableRowsOf(queries), [queries]);
-    const selectedRows = useMemo(() => selectedRowsOf(selections, queries), [selections, queries]);
-    const awaiting = identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows);
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !(property.identifier && property.required && carriedBy(property, selectableRows)));
+    const { selectableRows, selectedRows } = useScreenRows();
+    const subject = actionSubjectOf(element);
+
+    // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action.
+    const awaiting = subject === undefined ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, rowAction: true, ...askedFields } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>
@@ -383,6 +437,7 @@ export const stageComponents: Record<string, ComponentType<RegisteredProps>> = {
     'core:sliceDialog': StageSliceDialog as ComponentType<RegisteredProps>,
     [stageCommandFormComponent]: StageCommandForm,
     [stageConfirmDialogComponent]: StageConfirmDialog,
+    [kanbanBoardKey]: StageKanbanBoard,
 };
 
 /** Whether an element tree contains anything the Stage can act on. */

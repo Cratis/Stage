@@ -40,7 +40,7 @@
         <PackageReference Include="Cratis.Arc.MongoDB" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Swagger" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Arc.Testing" ExcludeAssets="analyzers" />
-        <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers" />
+        <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="analyzers" />
         <PackageReference Include="Cratis.Chronicle.Testing" ExcludeAssets="analyzers" />
         <PackageReference Include="MongoDB.Driver" />
         <!--
@@ -70,6 +70,10 @@
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' != 'Debug'">
         <PackageReference Include="Cratis.Fundamentals" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+        <!-- Release takes only the package path of Chronicle, embedded below for reaction body admission. -->
+        <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
@@ -104,6 +108,7 @@
              WithCulture prevents System.IO.dll from becoming a spurious IO satellite assembly. -->
         <EmbeddedResource Include="$(PkgMicrosoft_NETCore_App_Ref)/ref/net10.0/*.dll" LogicalName="PureTransitionReferences.$(PureTransitionReferencePackVersion).%(Filename)%(Extension)" WithCulture="false" />
         <EmbeddedResource Include="$(PkgCratis_Fundamentals)/lib/net10.0/Cratis.Fundamentals.dll" LogicalName="GenerationReferences.Cratis.Fundamentals.dll" WithCulture="false" />
+        <EmbeddedResource Include="$(PkgCratis_Chronicle)/lib/net10.0/Cratis.Chronicle.dll" LogicalName="GenerationReferences.Cratis.Chronicle.dll" WithCulture="false" />
     </ItemGroup>
     <!-- The SDK already loads these analyzers from its framework pack; loading the NuGet
          copy a second time makes the regex generator emit duplicate partial members. -->
@@ -120,16 +125,19 @@
     <!-- The emitted NuGet pins come from the same evaluated CPM items as Stage's build, in both configurations. -->
     <Target Name="GenerateScaffoldPackageVersions" BeforeTargets="CoreCompile">
         <ItemGroup>
+            <_ScaffoldPackage Include="Cratis.Screenplay.Matching" Constant="ScreenplayMatching" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Screenplay.Matching')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis" Constant="Cratis" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.MongoDB" Constant="ArcMongoDB" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.MongoDB')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions" Constant="TelemetryAbstractions" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Extensions.Telemetry.Abstractions')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit.runner.visualstudio" Constant="XunitRunner" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.runner.visualstudio')->Metadata('Version'))" />
             <_ScaffoldPackage Include="@cratis/stage.runtime" Constant="StageRuntime" PinVersion="$(Version)" />
+            <_ScaffoldPackage Include="Aspire.Hosting.AppHost" Constant="AspireAppHost" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Aspire.Hosting.AppHost')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

@@ -36,7 +36,7 @@ public class when_refusing_the_canonical_v6_corpus : Specification
     void should_name_every_unsupported_reaction() => _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
         .SelectMany(slice => slice.Reactions).Where(reaction => reaction.Triggers.Any(trigger => trigger.Kind != SemanticReactionTriggerKind.Event || trigger.RequirementId is not null)).All(reaction => _plan.Diagnostics.Any(diagnostic => diagnostic.Artifact == reaction.Id)).ShouldBeTrue();
     [Fact] void should_not_refuse_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
-    [Fact] void should_also_report_unsupported_slice_kinds() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-001" && _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).Any(slice => slice.Kind == SemanticSliceKind.Translate && slice.Id == diagnostic.Artifact));
+    [Fact] void should_name_unsupported_translation_constructs() => _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-024" && _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).Any(slice => slice.Kind == SemanticSliceKind.Translate && slice.Id == diagnostic.Artifact));
     [Fact] void should_not_publish_a_partial_plan() => _plan.Success.ShouldBeFalse();
     [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
     [Fact]
@@ -52,9 +52,24 @@ public class when_refusing_the_canonical_v6_corpus : Specification
     {
         var entries = SemanticSurfaceLedger.Entries.Values.Where(entry => entry.Detail == "STAGE-ESM-024").ToArray();
 
-        // Event reactions render; clock/capture/translation surface remains rejected.
-        entries.Length.ShouldEqual(87);
+        // #343 admits six application-trigger surface keys alongside event reactions, bounded translations and state-decided capture guards.
+        entries.Length.ShouldEqual(57);
         entries.All(entry => entry.Kind == SemanticSurfaceDispositionKind.Rejected).ShouldBeTrue();
+    }
+
+    [Fact]
+    void should_render_the_six_admitted_application_trigger_keys()
+    {
+        string[] keys = ["SemanticApplication.Triggers", "SemanticApplicationTrigger.Id", "SemanticApplicationTrigger.Name", "SemanticApplicationTrigger.Properties", "SemanticExpressionRootKind.Trigger", "SemanticReactionTriggerKind.ApplicationTrigger"];
+        keys.All(key => SemanticSurfaceLedger.Entries[key].Kind == SemanticSurfaceDispositionKind.Rendered).ShouldBeTrue();
+    }
+    [Fact]
+    void should_keep_opaque_reaction_bodies_refused()
+    {
+        var reactions = _model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
+            .SelectMany(slice => slice.Reactions).Where(reaction => reaction.Triggers.Any(trigger => trigger.RequirementId is not null)).ToArray();
+        reactions.ShouldNotBeEmpty();
+        reactions.All(reaction => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-024" && diagnostic.Artifact == reaction.Id)).ShouldBeTrue();
     }
 
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) => feature.Slices.Concat(feature.Features.SelectMany(AllSlices));

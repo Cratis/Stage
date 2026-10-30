@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <StartupObject>Cratis.Stage.BodyWorker.Program</StartupObject>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>false</IsTestProject>
+        <AssemblyName>Cratis.Stage.BodyWorker</AssemblyName>
+        <RootNamespace>Cratis.Stage.BodyWorker</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Contracts/Contracts.csproj" />
+        <ProjectReference Include="../Rendering.Cratis/Rendering.Cratis.csproj" />
+        <PackageReference Include="Cratis.Chronicle" ExcludeAssets="analyzers;build;buildTransitive" />
+        <PackageReference Include="Cratis.Fundamentals" ExcludeAssets="analyzers;build;buildTransitive" />
+    </ItemGroup>
+</Project>

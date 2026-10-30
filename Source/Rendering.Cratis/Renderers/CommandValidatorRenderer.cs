@@ -34,9 +34,11 @@ public static class CommandValidatorRenderer
         }
 
         var validatorName = $"{typeName}Validator";
-        var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, string Code)>();
+        var ruleMethods = new List<(string Name, string ParameterType, string PropertyName, CodeBlockSyntax Code)>();
 
-        builder.BlankLine().OpenBlock($"public class {validatorName} : CommandValidator<{typeName}>").OpenBlock($"public {validatorName}()");
+        builder.BlankLine().OpenBlock($"public class {validatorName} : global::Cratis.Arc.Commands.CommandValidator<{typeName}>");
+        ValidationRuleRenderer.RenderMatchFields(builder, rules, typeName);
+        builder.OpenBlock($"public {validatorName}()");
 
         foreach (var rule in rules)
         {
@@ -47,7 +49,7 @@ public static class CommandValidatorRenderer
 
         foreach (var method in ruleMethods)
         {
-            builder.BlankLine().OpenBlock($"static bool {method.Name}({method.ParameterType} {method.PropertyName})").Raw(method.Code).EndBlock();
+            builder.BlankLine().OpenBlock($"static bool {method.Name}({method.ParameterType} {method.PropertyName})").Validation(method.Code, typeName, method.Name).EndBlock();
         }
 
         builder.EndBlock();
@@ -58,7 +60,7 @@ public static class CommandValidatorRenderer
         ValidationRuleSyntax rule,
         CommandSyntax command,
         ApplicationSet applicationSet,
-        List<(string Name, string ParameterType, string PropertyName, string Code)> ruleMethods,
+        List<(string Name, string ParameterType, string PropertyName, CodeBlockSyntax Code)> ruleMethods,
         ICollection<string> diagnostics)
     {
         ValidationRuleRenderer.EnsureSupported(rule);
@@ -113,7 +115,7 @@ public static class CommandValidatorRenderer
                 return $"{enumName}.{Identifiers.ToPascalCase(text)}";
 
             default:
-                return ExpressionRenderer.Render(rule.Value);
+                return ExpressionRenderer.RenderValidationValue(rule.Value);
         }
     }
 
@@ -122,11 +124,11 @@ public static class CommandValidatorRenderer
         string property,
         PropertySyntax? subject,
         ApplicationSet applicationSet,
-        List<(string Name, string ParameterType, string PropertyName, string Code)> ruleMethods)
+        List<(string Name, string ParameterType, string PropertyName, CodeBlockSyntax Code)> ruleMethods)
     {
         var parameterType = subject is null ? "string" : TypeResolver.Resolve(subject.Type, applicationSet).ToTypeSyntax();
         var methodName = $"Satisfy{property}Rule{ruleMethods.Count(method => method.Name.StartsWith($"Satisfy{property}Rule", StringComparison.Ordinal)) + 1}";
-        ruleMethods.Add((methodName, parameterType, property, rule.Code!.Code));
+        ruleMethods.Add((methodName, parameterType, property, rule.Code!));
         return $".Must({methodName})";
     }
 

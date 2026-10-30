@@ -10,7 +10,7 @@ public class when_rendering_a_located_redelivery : given.a_redelivery_specificat
 {
     void Because() => Render();
 
-    [Fact] void should_select_only_the_named_reactor() => _source.ShouldContain("ReactorScenario<global::Reactions.Work.Processing.FollowUp.Worker>");
+    [Fact] void should_select_only_the_named_reactor() => _source.ShouldContain("ReactorScenario<Worker>");
     [Fact] void should_record_the_first_given_without_observing_it() => _source.ShouldContain("var occurrence0 = await _reactor.Given.ForEventSource(_id).History(");
     [Fact] void should_record_the_selected_given_with_its_source() => _source.ShouldContain("var occurrence1 = await _reactor.Given.ForEventSource(_text).History(");
     [Fact] void should_deliver_the_existing_nonzero_occurrence() => _source.ShouldContain("await _reactor.Redeliver(occurrence1);");

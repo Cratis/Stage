@@ -30,7 +30,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_create_the_exact_shell_roster() => _first.Select(PathOf).SequenceEqual(_expectedShellPaths).ShouldBeTrue();
     [Fact] void should_not_copy_the_stage_runtime_beside_the_shell() => _first.Select(PathOf).Count(IsRuntime).ShouldEqual(0);
     [Fact] void should_create_the_roster_in_ordinal_order() => _first.Select(PathOf).SequenceEqual(_first.Select(PathOf).Order(StringComparer.Ordinal)).ShouldBeTrue();
-    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "2").ShouldBeTrue();
+    [Fact] void should_version_every_input_with_the_scaffold_contract() => _first.All(input => input.Version == "3").ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_names() => _second.Select(input => input.Name).SequenceEqual(_first.Select(input => input.Name)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_hashes() => _second.Select(input => input.Sha256).SequenceEqual(_first.Select(input => input.Sha256)).ShouldBeTrue();
     [Fact] void should_repeat_the_same_input_bytes() => _second.Zip(_first).All(pair => pair.First.Bytes.SequenceEqual(pair.Second.Bytes)).ShouldBeTrue();
@@ -72,14 +72,15 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_resolve_components_through_the_cratis_package_registry() => Content(".frontend/main.tsx").ShouldContain("<App components={cratisComponentsRuntimePackage.components} />");
     [Fact] void should_load_the_runtime_only_components_entry() => Content(".frontend/main.tsx").ShouldContain("import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';");
     [Fact] void should_not_load_the_design_time_components_package() => Content(".frontend/main.tsx").ShouldNotContain("import { cratisComponentsPackage }");
-    [Fact] void should_apply_the_stage_theme() => Content(".frontend/main.tsx").ShouldContain("<PrimeReactProvider license={primeUiLicense} theme={stageTheme}>");
-    [Fact] void should_serve_styled_primereact_components() => Content(".frontend/vite.config.ts").ShouldContain("styledPrimeReact(),");
+    [Fact] void should_not_mount_a_prime_provider_by_default() => Content(".frontend/main.tsx").ShouldNotContain("PrimeReactProvider");
+    [Fact] void should_not_install_the_prime_styling_plugin_by_default() => Content(".frontend/vite.config.ts").ShouldNotContain("styledPrimeReact");
     [Fact] void should_load_the_metadata_reflection_polyfill_first() => Content(".frontend/main.tsx").Split('\n')[0].ShouldEqual("import 'reflect-metadata';");
     [Fact] void should_build_into_the_hosted_web_root() => Content(".frontend/vite.config.ts").ShouldContain("outDir: '../wwwroot'");
     [Fact] void should_emit_arc_metadata_for_the_frontend() => Content(".frontend/vite.config.ts").ShouldContain("EmitMetadataPlugin");
     [Fact] void should_proxy_every_backend_surface_while_developing() => ProxiedPaths().ShouldEqual("/.cratis|/api|/swagger");
     [Fact] void should_name_the_package_after_the_application() => PackageProperty("name").ShouldEqual("myapp");
     [Fact] void should_keep_the_package_private() => PackageJson().RootElement.GetProperty("private").GetBoolean().ShouldBeTrue();
+    [Fact] void should_resolve_fundamentals_to_the_pinned_version_so_arc_does_not_nest_a_second_copy() => PackageJson().RootElement.GetProperty("resolutions").GetProperty("@cratis/fundamentals").GetString().ShouldEqual(CratisFrontendPackageSet.Current.FundamentalsPackageVersion);
     [Fact] void should_pin_modern_yarn_for_typescript_seven() => PackageProperty("packageManager").ShouldEqual("yarn@4.18.1");
     [Fact] void should_install_node_modules_for_the_typescript_and_vite_toolchain() => Content(".yarnrc.yml").ShouldEqual("nodeLinker: node-modules\n");
     [Fact] void should_run_vite_through_the_frontend_configuration() => PackageScript("dev").ShouldEqual("vite --config .frontend/vite.config.ts");
@@ -88,6 +89,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
     [Fact] void should_type_check_the_bundler_configuration_through_the_referenced_project() => Content(".frontend/tsconfig.json").ShouldContain("\"path\": \"./tsconfig.node.json\"");
     [Fact] void should_type_the_react_shell_it_compiles() => DependencyVersions().ShouldContain("@types/react=");
     [Fact] void should_ignore_the_bundled_web_root_and_node_modules() => Content(".gitignore").ShouldContain("wwwroot/");
+    [Fact] void should_ignore_yarn_install_state() => Content(".gitignore").ShouldContain("\n.yarn/\n");
     [Fact] void should_not_emit_wildcard_range_or_latest_versions() => HasForbiddenValues().ShouldBeFalse();
 
     static bool IsRuntime(string path) => path.StartsWith(".frontend/stage/", StringComparison.Ordinal) || path == ".frontend/styledPrimeReact.ts";
@@ -121,23 +123,13 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             $"@cratis/scene.components={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.engine={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.model={CratisFrontendPackageSet.Current.ScenePackageVersion}",
-            $"@cratis/scene.primereact={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/scene.react={CratisFrontendPackageSet.Current.ScenePackageVersion}",
             $"@cratis/stage.runtime={ScaffoldPackageVersions.StageRuntime}",
-            "@primereact/core=11.2.0",
-            "@primereact/headless=11.2.0",
-            "@primereact/hooks=11.2.0",
-            "@primereact/styles=11.2.0",
-            "@primereact/types=11.2.0",
-            "@primereact/ui=11.2.0",
-            "@primeuix/themes=3.0.1",
             "@types/node=26.6.4",
             "@types/react=19.3.0",
             "@types/react-dom=19.3.0",
             "@vitejs/plugin-react=6.1.1",
-            "primeicons=8.0.2",
             "lucide-react=1.52.0",
-            "primereact=11.2.0",
             "react=19.3.0",
             "react-dom=19.3.0",
             "react-router-dom=7.18.4",
@@ -145,7 +137,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
             "rxjs=7.8.2",
             "tsyringe=4.10.0",
             "typescript=7.0.2",
-            "vite=8.3.2"
+            "vite=8.3.5"
         }.Order(StringComparer.Ordinal));
 
     string ProxiedPaths() => string.Join(

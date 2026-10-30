@@ -73,7 +73,7 @@ public class with_offsetless_datetime_inputs : Specification
             reference.Details.ShouldEqual("DateTime command property 'to' requires an explicit offset or Z.");
             var unsupported = Assert.IsType<SemanticUnsupported>(execution);
             unsupported.Capability.ShouldEqual(SemanticExecutionCapability.Command);
-            unsupported.Details.ShouldEqual($"STAGE-IMPL-003: Command 'Keep' validation '{command.CodeValidations.Single().RequirementId}' is an implementation body; Stage does not execute implementation bodies without a target.");
+            unsupported.Details.ShouldEqual($"STAGE-IMPL-003: Command 'Keep' validation '{command.CodeValidations.Single().RequirementId}' is an implementation body; CommandValidation is not executed by `cratis run` yet (Stage#891 slice S2).");
             unsupported.World.Facts.ShouldBeEmpty();
             await appender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
             return;

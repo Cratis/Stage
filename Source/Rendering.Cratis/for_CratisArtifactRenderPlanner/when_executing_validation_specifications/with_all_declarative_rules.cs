@@ -18,7 +18,8 @@ public class with_all_declarative_rules(context fixture) : IClassFixture<context
     [Fact] void should_execute_each_modeled_specification() => fixture.Results.Length.ShouldEqual((18 * 4) + 3);
     [Fact] void should_render_each_authored_rejection_message() => Rules.Where(_ => _.Rule.Length > 0).All(_ => fixture.Generated.Contains($".WithMessage(\"{_.Message}\")", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_assert_the_first_rejection_message() => fixture.GeneratedRejection.ShouldContain("_result.ValidationResults.First().Message.ShouldEqual(\"minimum must be less than maximum\")");
-    [Fact] void should_match_without_backtracking_or_timeout_as_false() => fixture.Generated.ShouldContain("RegexOptions.NonBacktracking | global::System.Text.RegularExpressions.RegexOptions.CultureInvariant, global::System.Text.RegularExpressions.Regex.InfiniteMatchTimeout");
+    [Fact] void should_match_with_the_portable_matcher() => fixture.Generated.ShouldContain("PortableMatcher.Compile(\"^A\")");
+    [Fact] void should_not_match_with_a_platform_regex() => fixture.Generated.ShouldNotContain("System.Text.RegularExpressions");
 
     public class context : a_generated_invoice_application
     {

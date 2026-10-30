@@ -141,7 +141,10 @@ public static partial class conformance_outcomes
         return Classify(refused, problems);
     }
 
-    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    internal static ArtifactRenderPlan? RenderPlan(conformance_vector vector) =>
+        SemanticExecutionPlan.Compile(vector.Model, []).Plan is { } plan ? RenderPlan(vector, plan) : null;
+
+    static ArtifactRenderPlan? RenderPlan(conformance_vector vector, SemanticExecutionPlan plan)
     {
         var name = vector.Name.Replace('.', '_').Replace('[', '_').Replace("]", string.Empty, StringComparison.Ordinal);
 
@@ -157,20 +160,53 @@ public static partial class conformance_outcomes
         var source = conformance_source_bodies.Compile(vector);
         if (source.Problem is not null)
         {
-            return conformance_observation.WithoutRefusals($"gap:{source.Problem}");
+            return null;
         }
 
         var scope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id);
 
         // A vector with source forms is planned from its compiled source with the implementation requirements, bodies and typed contexts,
         // as the three-way specs plan it. Without them every inline body would be refused as a missing envelope whatever Stage can do.
-        var rendered = source.Loaded is { } loaded
-            ? CratisRendering.Plan(loaded.Model, loaded.Plan, scope, new(name, name), loaded.ImplementationRequirements, loaded.ImplementationContents, loaded.AttachmentDiagnostics, loaded.TypedContextDescriptors)
-            : CratisRendering.Plan(model, plan, scope, new(name, name));
+        var profile = CratisRendering.CreateProfile(source.Loaded?.Model.Application.Name ?? model.Application.Name, new(name, name), null, canonical_strings_catalog.Files, "en");
+        var request = source.Loaded is { } loaded
+            ? new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, scope)
+            {
+                ImplementationRequirements = loaded.ImplementationRequirements,
+                ImplementationContents = loaded.ImplementationContents,
+                AttachmentDiagnostics = loaded.AttachmentDiagnostics,
+                TypedContextDescriptors = loaded.TypedContextDescriptors
+            }
+            : new ArtifactRenderRequest(model, plan, profile, scope);
+        return new CratisArtifactRenderPlanner().Plan(request);
+    }
+
+    internal static void RecordCompilation(string vector, IReadOnlyList<compile_error> errors, Dictionary<refusal_fingerprint, string> codes)
+    {
+        if (errors.Count > 0)
+        {
+            var first = errors[0];
+            codes[new(first.Code, "compile", first.Path)] = $"{vector}: {first.Path}({first.Line}): {first.Code} {first.Message} (+{errors.Count - 1} more)";
+        }
+    }
+
+    static conformance_observation Renderer(conformance_vector vector, SemanticExecutionPlan plan)
+    {
+        var rendered = RenderPlan(vector, plan);
+        if (rendered is null)
+        {
+            return conformance_observation.WithoutRefusals($"gap:{conformance_source_bodies.Compile(vector).Problem}");
+        }
+
         var codes = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
         if (rendered.Success)
         {
+            RecordSpecificationRefusals(rendered, codes);
+            if (rendered.Artifacts.Length > 0)
+            {
+                RecordCompilation(vector.Name, rendered_compilation.Errors(rendered), codes);
+            }
+
             if (rendered.Artifacts.Length == 0)
             {
                 problems.Add("rendered-nothing");
@@ -202,6 +238,19 @@ public static partial class conformance_outcomes
         }
 
         return Classify(codes, problems);
+    }
+
+    static void RecordSpecificationRefusals(ArtifactRenderPlan rendered, Dictionary<refusal_fingerprint, string> codes)
+    {
+        var warnings = rendered.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).ToArray();
+        foreach (var refusal in rendered.Refusals)
+        {
+            foreach (var code in refusal.Codes)
+            {
+                codes[new(code, null, refusal.Artifact.ToString())] =
+                    warnings.FirstOrDefault(diagnostic => diagnostic.Code == code && diagnostic.Artifact == refusal.Artifact)?.Message ?? code;
+            }
+        }
     }
 
     // A refusal typed by a STAGE code is that code. One typed only by its capability also carries a short reason key (the first words of

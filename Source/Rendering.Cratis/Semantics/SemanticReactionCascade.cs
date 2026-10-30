@@ -38,7 +38,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         var taken = SemanticProductionSelection.Taken(context.Application, command, specification);
         var triggers = taken.Select(produced => (Produced: produced, Append: Append(context, specification, command, produced)))
             .Where(item => item.Append is not null)
-            .SelectMany(item => SemanticReactionSpecification.Candidates(context, item.Append!).Where(candidate => candidate.Fires).Select(candidate => (item.Append, Selection: candidate)))
+            .SelectMany(item => SemanticReactionSpecification.Candidates(context, specification, item.Append!).Where(candidate => candidate.Fires).Select(candidate => (item.Append, Selection: candidate)))
             .ToArray();
         if (triggers.Length != 1 || triggers[0].Selection.Trigger.Invokes.Length != 1 || !triggers[0].Selection.Trigger.Produces.IsEmpty)
         {
@@ -87,8 +87,10 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             return false;
         }
 
+        // Only the declaring slice's reactions run (Screenplay decision 0115). A command they invoke is decided wherever it is declared,
+        // so its rejection messages still count, even when another slice owns it.
         var own = Messages(context, command);
-        var triggered = SemanticSpecificationAdmission.EventReactionTriggers(context)
+        var triggered = SemanticSpecificationAdmission.EventReactionTriggers(context, specification)
             .Where(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source))
             .SelectMany(trigger => trigger.Invokes)
             .Select(invocation => context.Commands[invocation.Command])
@@ -96,7 +98,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             .ToHashSet(StringComparer.Ordinal);
 
         var absences = ReadAbsences(context, command);
-        var triggeredAbsences = SemanticSpecificationAdmission.EventReactionTriggers(context)
+        var triggeredAbsences = SemanticSpecificationAdmission.EventReactionTriggers(context, specification)
             .Where(trigger => command.Produces.Any(produced => produced.EventContract == trigger.Source))
             .SelectMany(trigger => trigger.Invokes)
             .SelectMany(invocation => ReadAbsences(context, context.Commands[invocation.Command]))
@@ -115,13 +117,14 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         !command.Reads.IsDefaultOrEmpty && command.Reads.Any(read =>
             specification.When!.Values.FirstOrDefault(input => input.TargetProperty == read.Key)?.Value is SemanticTextValue key &&
             message == $"{context.ReadModels[read.ReadModel].Name} '{key.Value}' does not exist." &&
-            !CascadeEvents(context, command).Any(@event => CanRemove(context, read.ReadModel, @event)));
+            !CascadeEvents(context, specification, command).Any(@event => CanRemove(context, read.ReadModel, @event)));
 
-    // Every event the triggering command can set off: its own productions, and to a fixpoint every reaction any of those events
-    // triggers, through reaction productions, refusal-branch productions and invoked commands' productions.
-    static HashSet<SemanticId> CascadeEvents(SemanticApplicationContext context, SemanticCommand command)
+    // Every event the triggering command can set off: its own productions, and to a fixpoint what every reaction of the specification's
+    // own slice that reacts to one of those events adds, through reaction productions, refusal-branch productions and the productions of
+    // invoked commands the slice owns. A command another slice owns is decided without its facts being kept (Screenplay decision 0115).
+    static HashSet<SemanticId> CascadeEvents(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
     {
-        var triggers = SemanticSpecificationAdmission.EventReactionTriggers(context).ToArray();
+        var triggers = SemanticSpecificationAdmission.EventReactionTriggers(context, specification).ToArray();
         var events = command.Produces.Select(produced => produced.EventContract).ToHashSet();
         var commands = new HashSet<SemanticId> { command.Id };
         var reacted = new HashSet<int>();
@@ -138,7 +141,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
                 foreach (var invocation in trigger.Invokes)
                 {
                     foreach (var produced in invocation.OnRefused.SelectMany(refusal => refusal.Produces)) events.Add(produced.EventContract);
-                    if (!commands.Add(invocation.Command)) continue;
+                    if (!SemanticSpecificationAdmission.AdoptsInvocation(context, specification, invocation.Command) || !commands.Add(invocation.Command)) continue;
                     foreach (var produced in context.Commands[invocation.Command].Produces) events.Add(produced.EventContract);
                 }
             }

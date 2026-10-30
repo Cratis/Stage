@@ -2,12 +2,15 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
 /// Inventories top-level C# declarations in each emitted namespace, including validators and constraints.
-/// Both render and execution admission use the same inventory.
+/// Both render and execution admission use the same inventory. The context inventory the C# import resolver
+/// resolves against is these declarations plus the command response types and, once admission has decided which specifications are refused, the classes of
+/// the specifications that are rendered; specification classes stay out of the collision admission.
 /// </summary>
 internal static class GeneratedTypeNames
 {
@@ -90,6 +93,8 @@ internal static class GeneratedTypeNames
     /// <param name="eventSourcesNamespace">The namespace, relative to the root, of event sources.</param>
     /// <param name="policiesNamespace">The namespace, relative to the root, of generated policies.</param>
     /// <param name="selfReduces">Decides, per read model, whether reducer members are emitted on the model rather than as a separate type.</param>
+    /// <param name="policyClassName">Gives the policy class of a protected operation; operations that share a policy share the class.</param>
+    /// <param name="commandReceiptTime">Whether selected artifacts require the receipt-time helper; null derives it from command mappings.</param>
     /// <returns>The generated declarations.</returns>
     internal static IEnumerable<GeneratedTypeDeclaration> Declarations(
         SemanticApplication application,
@@ -101,7 +106,9 @@ internal static class GeneratedTypeNames
         IEnumerable<SemanticEventSource>? eventSources = null,
         string eventSourcesNamespace = "EventSources",
         string policiesNamespace = "GeneratedPolicies",
-        Func<SemanticId, bool>? selfReduces = null)
+        Func<SemanticId, bool>? selfReduces = null,
+        Func<SemanticId, string>? policyClassName = null,
+        bool? commandReceiptTime = null)
     {
         var selectedSlices = slices.Select(selected => (Path: selected.Path.Select(GeneratedPascalCase.From).ToArray(), selected.Slice)).ToArray();
         foreach (var source in eventSources ?? application.EventSources)
@@ -146,6 +153,10 @@ internal static class GeneratedTypeNames
             foreach (var readModel in slice.ReadModels)
             {
                 foreach (var name in Names(ns, readModel.Name, readModel.Id, "ReadModel")) yield return name;
+                if (SemanticVersionFeatures.HasCompositeKey(readModel))
+                {
+                    foreach (var name in Names(ns, $"{GeneratedPascalCase.From(readModel.Name)}Key", readModel.Id, "ReadModelKey", generated: true)) yield return name;
+                }
             }
             foreach (var projection in slice.Projections.Where(projection => projection.Scope is not null))
             {
@@ -169,24 +180,25 @@ internal static class GeneratedTypeNames
         }
 
         // The scaffold declares Registration; the selection-independent Policies.cs implements it and
-        // adds PolicyValues. Each protected operation has a separate policy declaration.
+        // adds PolicyValues. Operations that share an effective policy share one `{name}Policy` declaration.
         foreach (var name in Names("GeneratedPolicies", "Registration", application.Id, "Generated")) yield return name;
         if (selectedSlices.Any(located => located.Slice.Commands.Any(command => command.Authorization is not null) ||
             located.Slice.Queries.Any(query => query.Authorization is not null)))
         {
             foreach (var name in Names("GeneratedPolicies", "PolicyValues", application.Id, "Generated")) yield return name;
+            var declared = new HashSet<string>(StringComparer.Ordinal);
             foreach (var operation in selectedSlices.SelectMany(located => located.Slice.Commands.Where(command => command.Authorization is not null).Select(command => command.Id)
                 .Concat(located.Slice.Queries.Where(query => query.Authorization is not null).Select(query => query.Id))))
             {
-                var policyName = $"StagePolicy_{operation.ToString().Replace('-', '_').Replace(':', '_')}";
-                foreach (var name in Names(policiesNamespace, policyName, operation, "Generated", generated: true)) yield return name;
+                if (policyClassName is null || !declared.Add(policyClassName(operation))) continue;
+                foreach (var name in Names(policiesNamespace, policyClassName(operation), operation, "Generated", generated: true)) yield return name;
             }
         }
         foreach (var (ns, type) in opaquePolicyTypes ?? [])
         {
             foreach (var name in Names(ns, type, application.Id, "Generated", generated: true)) yield return name;
         }
-        if (UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
+        if (commandReceiptTime ?? UsesCommandReceiptTime(selectedSlices.SelectMany(located => located.Slice.Commands)))
         {
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTime", application.Id, "Generated")) yield return name;
             foreach (var name in Names("GeneratedCommands", "CommandReceiptTimeUnavailable", application.Id, "Generated")) yield return name;

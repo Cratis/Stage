@@ -311,9 +311,11 @@ npm ci --prefix Source/Frontend
 npm test --prefix Source/Frontend
 npm run build --prefix Source/Frontend
 dotnet build -c Debug
-dotnet test -c Debug
+dotnet test -c Debug --no-build
 dotnet build -c Release
 ```
+
+Inner-loop builds may use `-p:RunAnalyzers=false`, but analyzer-complete Debug and Release gate builds remain mandatory before pushing.
 
 `dotnet test` needs a Chronicle source checkout for the projection conformance specs. They compile Chronicle's actual
 `ProjectionDefinitionSyntaxVisitor` in memory against the released `Cratis.Chronicle.Infrastructure` package and
@@ -327,9 +329,9 @@ CHRONICLE_SOURCE_ROOT=/path/to/Chronicle dotnet test -c Debug
 ```
 
 The Rendering.Cratis specs build and test generated applications in their own `dotnet` and `npm` processes. Locally,
-each test project (Rendering.Cratis and Conformance.Specs count separately) runs at most a quarter of the processors'
-worth of those processes at once (at least one); in CI (`CI=true`) they are unlimited. Set
-`STAGE_MAX_PARALLEL_APP_BUILDS` to choose the per-project limit yourself:
+each test project (Rendering.Cratis and Conformance.Specs count separately) runs one of those processes at a time,
+locally and in CI, and caps each `dotnet build` or `dotnet test` at three MSBuild nodes. Set
+`STAGE_MAX_PARALLEL_APP_BUILDS` to raise the per-project limit:
 
 ```shell
 STAGE_MAX_PARALLEL_APP_BUILDS=2 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj -c Debug

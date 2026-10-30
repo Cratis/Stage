@@ -161,12 +161,14 @@ in refused mode: `/stage/status` reports `state: "unsupported"` and `/api/**` re
 The semantic sandbox reports public events and public-event projections (`STAGE-ESM-032`), foreign events
 and `source events` captures (`STAGE-ESM-033`), directed Translate slices and captures (`STAGE-ESM-024`)
 as `renderedAround` entries on `/stage/semantic/admission`, with a startup warning for each artifact. They do
-not block unrelated local commands or queries. Public events are **published locally only**, into the sandbox's
-own event log, including supported outbound event projections; there is no external publication. Inbound
-translation is not executed: foreign events arrive only through seeds, and captures do not poll external
-sources. Unsupported public-projection shapes still refuse the affected command without appending facts.
-Published events are not yet rebuilt after a restart: a host that restarts over a Chronicle log holding a local
-publication reports `World rebuild refused` on `/stage/status`; start a fresh session instead (see [Cratis/Screenplay#1008](https://github.com/Cratis/Screenplay/issues/1008)).
+not block unrelated local commands or queries. Public events are **published to the outbox**: a local public event is registered as public and appended to the
+application's own outbox, never to its event log, including supported outbound event projections. Another
+application receives it through its inbox when the two run against the same Chronicle kernel. Foreign
+events are registered with the store they come from, and the application's store is subscribed to that store's
+outbox: what arrives in the inbox joins the world, sets off its captures and reactions, and what they append reaches
+the event log. The origin store need not be running first: Chronicle creates it when the foreign event is registered and starts delivering once the application that owns it publishes, so nothing arrives from an origin until that application runs against the same kernel. Run the applications of a project together, pinning each one's event store name (`STAGE_EVENT_STORE`) to the name its consumers write after `from`. Foreign events also still arrive through seeds, and captures do not poll external sources. A restart
+does not replay the inbox into the world, so start a fresh session after restarting a running host. Unsupported public-projection shapes still refuse the affected command without appending facts.
+Because the event log holds no publication, a restart over a log is rebuilt without the former `World rebuild refused` stop for local publications.
 The legacy engine continues to refuse these constructs. Both engines refuse reducer observer filters
 (`STAGE-ESM-035`). The legacy engine also refuses reaction execution identity
 (`STAGE-ESM-034`) and reaction observer filters (`STAGE-ESM-035`). Semantic rendering supports reaction filters; neither that support nor the renderer's narrowed `034` refusal for claim-reading or opaque gates changes these legacy-engine refusals.
@@ -182,9 +184,10 @@ the declaration retain legacy per-fact reaction evaluation and the same Host rol
 This differs from rendered Chronicle reactors, which run eventually and retry failed partitions.
 Clock, application, startup and shutdown triggers and opaque reaction bodies still fail `STAGE-ESM-024`
 naming the trigger kind; unsupported context mappings such as `$context.causedBy.*` fail `STAGE-ESM-013`.
-The independent specification executor also settles event reactions, including identity, filters and mixed effects;
-see [The spec runner](spec-runner.md) for its scenario limits.
-The semantic engine uses Screenplay 4.240.2 and admits exact ESM v1–v30 version pairs; unaudited
+The independent specification executor also settles event reactions, including identity, filters and mixed effects,
+but runs only the slice that declares each specification: other slices' reactions and publications do not run, and an
+invoked command another slice owns is decided without keeping its events. See [The spec runner](spec-runner.md#a-specification-runs-its-own-slice-only) for this and its scenario limits.
+The semantic engine uses Screenplay 4.247.3 and admits exact ESM v1–v30 and v32 version pairs; unaudited
 language/semantic versions (v29 and later, mixed or noncanonical pairs) refuse the whole model with `STAGE-ESM-016` before registration or execution.
 A v22 model that uses `reaction batches atomic` executes atomic production units while retaining the Host's whole-command rollback boundary.
 At v28 the semantic engine runs Uuid `==` and `!=` in command `require` conditions and `produces when` guards, including
@@ -199,13 +202,14 @@ and a single-instance query by parts takes one parameter per part, validated aga
 Such a read model has no conventional `Get<ReadModel>ById` query, and the read-model browser shows each key as an
 object keyed by part name. The renderer emits such a read model with a synthetic `Id` key record holding the parts and a
 `UsingCompositeKey` projection, and refuses shapes it cannot express (reducers and flat projections, joins, children, `every`,
-optional, date-time or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048`. It refuses a single-instance query by parts with `STAGE-ESM-047` until
+optional, date-time, decimal (Chronicle#5427) or non-primitive parts, incomplete `parts` keys) with `STAGE-ESM-048`. It refuses a single-instance query by parts with `STAGE-ESM-047` until
 Chronicle can look up an instance by a composite key (Chronicle#4265); the legacy engine refuses the read model with
 `STAGE-ESM-048`.
 At v26 the semantic engine executes Date/DateTime ordering and instant equality in command requirements,
 conditional productions and validation rules, including concept-backed properties. Participating DateTime inputs
 must carry an explicit offset or `Z`; validation rejects missing offsets after authorization and before other
 input validation, including reaction invocations. Date compares calendar days; DateTime compares UTC ticks.
+DateTime event and read-model assertions instead compare ordinally after both sides use Screenplay's round-trip canonical text: zero offsets become UTC `Z`, while non-zero offsets remain distinct.
 Specification expectations remain ordinal. Opaque `validate csharp` is an explicit ordering difference:
 the specification executor refuses it at run admission, and the Host refuses it before authorization and
 input validation. The reference checks authorization, then offsets, then opaque validation, so an offset-less
@@ -231,7 +235,7 @@ retried or reported as success: the session faults until it can be reconstructed
 outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
 capabilities retain their conservative safety checks.
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
-refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The legacy engines still refuse the preamble with the same code; without it,
+refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
@@ -448,6 +452,50 @@ changing source files after startup requires restarting the host before they can
 host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (default 120, clamped to 1–600
 seconds, including queued time). The same keys can be set in deployment configuration as
 `Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
+
+Named C# rules on command inputs and their concepts run in a separate body worker. The Host compiles the
+admitted units once at startup; specification runs compile once in the runner and use a fresh worker session
+for each specification. Neither process loads the units into the Host. The Host forwards its worker settings
+to SpecRunner, so the same limits apply to live commands and specification runs.
+
+| Environment variable | Default | Range or resolution |
+| --- | --- | --- |
+| `Stage__BodyWorker__Enabled` | `true` | Set `false` to keep implementation bodies unsupported. |
+| `Stage__BodyWorker__WorkerPath` | `bodyworker/Cratis.Stage.BodyWorker.dll` | Relative to the Host output directory. |
+| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 50–30000 ms per evaluation. |
+| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–600 seconds. |
+| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–4096 MB managed heap; working-set watchdog at twice this value. |
+| `Stage__BodyWorker__CacheDirectory` | `Cratis/Stage/Bodies` beneath your local application-data directory | Relative overrides resolve against the working directory. The cache must be owned by the current user and protected from other users. |
+
+The cache holds executable assemblies, so do not share it between operating-system users. On Unix,
+Stage creates new cache directories with mode `0700` and uses `/usr/bin/stat` (or `/bin/stat`) to check
+ownership. It refuses foreign-owned or group/world-writable caches, symbolic-link cache roots and
+replaceable parent directories; root-owned sticky temporary parents are allowed. Windows checks ownership
+and effective write/delete permissions, including inherited permissions on the cache itself. Inherit-only
+ACEs and CREATOR OWNER / CREATOR GROUP templates do not grant access to the directory being checked.
+An unsafe cache produces an explicit worker failure, not cached execution; Stage does not repair its
+permissions. If local application data is unavailable, the default is a private, user-suffixed directory
+beneath the system temporary directory.
+
+**macOS limitation:** Unix validation checks ownership and POSIX mode bits, not extended ACL grants.
+Mode `0700` alone is not proof of isolation when a named ACL grants another user access. In a hostile
+multi-user environment, use a cache directory and ancestors with no effective extended ACL grants that
+let other users write, delete or replace the cache or its contents; Stage does not verify this condition.
+
+Stage rechecks cache ownership, permissions and ancestors before compilation and every evaluation.
+On Unix, each check starts a metadata process, so short, frequently evaluated bodies incur that overhead.
+These checks are not memoized: permissions or ancestors can change after startup or compilation, and
+reusing an earlier verdict would weaken the execution-time check.
+
+These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
+`--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
+and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+without worker arguments it returns no configuration and body rules remain unsupported.
+A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
+worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
+The managed heap limit plus working-set watchdog is not an OS memory cap or a hostile-code security boundary.
 
 `GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for

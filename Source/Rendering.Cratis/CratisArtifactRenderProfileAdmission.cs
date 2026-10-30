@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using Cratis.Scene.Engine.Packages;
@@ -22,6 +23,47 @@ static class CratisArtifactRenderProfileAdmission
 
     internal static bool MatchesScaffold(ArtifactRenderProfile profile, string applicationName, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
         => Matches(profile, applicationName, null, out admittedOptions, out mismatch);
+
+    internal static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    {
+        options = null;
+        var projectInputs = profile.Inputs
+            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
+                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
+                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
+            .ToArray();
+        if (projectInputs.Length != 1)
+        {
+            return false;
+        }
+
+        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
+        if (relativePath.Contains('/') || relativePath.Contains('\\'))
+        {
+            return false;
+        }
+
+        try
+        {
+            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
+            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
+            if (rootNamespaces.Length != 1)
+            {
+                return false;
+            }
+
+            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
+            {
+                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
+            };
+            return true;
+        }
+        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        {
+            return false;
+        }
+    }
 
     static bool Matches(ArtifactRenderProfile profile, string applicationName, ExecutableSemanticModel? model, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
     {
@@ -49,7 +91,7 @@ static class CratisArtifactRenderProfileAdmission
         ArtifactRenderProfile expected;
         try
         {
-            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages);
+            expected = CratisRendering.CreateProfile(applicationName, options!, null, null, null, approvedPackages, ListsPrimeReact(profile));
         }
         catch (InvalidCratisBackendApplicationScaffold)
         {
@@ -60,7 +102,7 @@ static class CratisArtifactRenderProfileAdmission
         // A composed Scene is application content, so it is admitted separately rather than compared against the
         // package-owned roster - which is application-agnostic and could never contain one. Every scaffold input
         // is still matched byte for byte, and at most one Scene payload may accompany them.
-        var scaffold = profile.Inputs.Where(_ => !IsComposedScene(_) && _.Name != StringsCatalogInput.Name && _.Name != AuthoringMetadataInput.Name && _.Name != DomainPlacementInput.Name && _.Name != Scene.ScreenPartitionsInput.Name && _.Name != ReducerConventionInput.Name && _.Name != ReducerMigrationInput.Name && _.Name != RefusalModeInput.Name).ToArray();
+        var scaffold = profile.Inputs.Where(input => !IsComposedScene(input) && !CratisScaffoldProtocolInputs.Contains(input.Name)).ToArray();
         if (profile.Inputs.Count(IsComposedScene) > 1)
         {
             mismatch = "The Cratis profile carries more than one composed Scene payload.";
@@ -129,8 +171,41 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
-        admittedOptions = options! with { Refusals = refusals };
+        // Header admission belongs to the final artifact pipeline, including malformed inputs.
+        if (!ArtifactFileHeader.TryRead(profile, out var fileHeader)) fileHeader = [];
+
+        if (!UserInterfaceInput.TryRead(profile, out var userInterface))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate user interface input.";
+            return false;
+        }
+
+        if (!UserInterfaceDomainsInput.TryRead(profile, out var userInterfaceDomains) ||
+            (userInterfaceDomains is { } named && (userInterface is null || named.Keys.Any(domain => DomainPlacementInput.IsReserved(domain, expected)))))
+        {
+            mismatch = "The Cratis profile carries an invalid, duplicate, reserved or unaccompanied user interface domains input.";
+            return false;
+        }
+
+        if (!CratisStrictProfileInput.TryAdmit(profile, options! with { Refusals = refusals, FileHeader = fileHeader }, out var strictOptions, out mismatch))
+        {
+            return false;
+        }
+
+        return TryAdmitServiceLayout(profile, strictOptions, out admittedOptions, out mismatch);
+    }
+
+    static bool TryAdmitServiceLayout(ArtifactRenderProfile profile, CratisRenderingOptions options, [NotNullWhen(true)] out CratisRenderingOptions? admittedOptions, out string mismatch)
+    {
+        admittedOptions = null;
         mismatch = string.Empty;
+        if (!ServiceLayoutInput.TryAdmit(profile, options, out var serviceLayout))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate service layout input, or combines it with the repository root.";
+            return false;
+        }
+
+        admittedOptions = options with { ServiceLayout = serviceLayout };
         return true;
     }
 
@@ -165,49 +240,35 @@ static class CratisArtifactRenderProfileAdmission
         }
     }
 
-    static bool IsComposedScene(ArtifactRenderInput input) =>
-        string.Equals(input.Name, $"{ProjectInputPrefix}{Scene.SceneCompositionInput.RelativePath}", StringComparison.Ordinal);
-
-    static bool TryGetOptions(ArtifactRenderProfile profile, out CratisRenderingOptions? options)
+    // The composed Scene is application content, so whether the application opted in to PrimeReact is read from the ui profiles it declares.
+    static bool ListsPrimeReact(ArtifactRenderProfile profile)
     {
-        options = null;
-        var projectInputs = profile.Inputs
-            .Where(input => input.Name.StartsWith(ProjectInputPrefix, StringComparison.Ordinal) &&
-                            input.Name.EndsWith(".csproj", StringComparison.Ordinal) &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('/') &&
-                            !input.Name[ProjectInputPrefix.Length..].Contains('\\'))
-            .ToArray();
-        if (projectInputs.Length != 1)
-        {
-            return false;
-        }
-
-        var relativePath = projectInputs[0].Name[ProjectInputPrefix.Length..];
-        if (relativePath.Contains('/') || relativePath.Contains('\\'))
+        var scene = profile.Inputs.FirstOrDefault(IsComposedScene);
+        if (scene is null)
         {
             return false;
         }
 
         try
         {
-            var project = XDocument.Parse(new UTF8Encoding(false, true).GetString(projectInputs[0].Bytes.AsSpan()));
-            var rootNamespaces = project.Descendants("RootNamespace").Select(_ => _.Value).ToArray();
-            if (rootNamespaces.Length != 1)
-            {
-                return false;
-            }
-
-            options = new(relativePath[..^".csproj".Length], rootNamespaces[0])
-            {
-                RepositoryRoot = profile.Inputs.Any(input => input.Name.StartsWith($"{ProjectInputPrefix}{CratisContinuousIntegration.Directory}", StringComparison.Ordinal))
-            };
-            return true;
+            using var document = JsonDocument.Parse(scene.Bytes.AsMemory());
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("uiProfiles", out var profiles) &&
+                profiles.ValueKind == JsonValueKind.Array &&
+                CratisRendering.ListsPrimeReact(profiles.EnumerateArray()
+                    .Where(uiProfile => uiProfile.ValueKind == JsonValueKind.Object && uiProfile.TryGetProperty("packages", out var packages) && packages.ValueKind == JsonValueKind.Array)
+                    .SelectMany(uiProfile => uiProfile.GetProperty("packages").EnumerateArray())
+                    .Where(package => package.ValueKind == JsonValueKind.String)
+                    .Select(package => package.GetString()!));
         }
-        catch (Exception exception) when (exception is DecoderFallbackException or XmlException)
+        catch (JsonException)
         {
             return false;
         }
     }
+
+    static bool IsComposedScene(ArtifactRenderInput input) =>
+        string.Equals(input.Name, $"{ProjectInputPrefix}{Scene.SceneCompositionInput.RelativePath}", StringComparison.Ordinal);
 
     static bool InputMatches((ArtifactRenderInput First, ArtifactRenderInput Second) pair) =>
         string.Equals(pair.First.Name, pair.Second.Name, StringComparison.Ordinal) &&

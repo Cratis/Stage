@@ -22,7 +22,7 @@ internal static class SemanticStateChangeArtifactRenderer
     /// <returns>The generated slice source.</returns>
     public static RenderedFile Render(LocatedSemanticSlice located, SemanticApplicationContext context)
     {
-        var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         Configure(builder, located, context);
         RenderMembers(builder, located, context);
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), SliceNaming.FileName(located.Slice.Name)]);
@@ -68,6 +68,15 @@ internal static class SemanticStateChangeArtifactRenderer
             .Attribute(@event.StoredName is { } stored
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
+
+        if (@event.Origin is { } origin)
+        {
+            builder.Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(origin)})");
+        }
+        else if (@event.Visibility == SemanticEventVisibility.Public)
+        {
+            builder.Attribute("global::Cratis.Chronicle.Events.PublicAttribute");
+        }
 
         // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
         var products = SemanticProjectionProducts.For(@event, context);
@@ -126,10 +135,6 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
         context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
-        if (results.Reads.HasReads)
-        {
-            builder.Attribute(SemanticDecisionReadRendering.ProtectionAttribute);
-        }
         if (command.Route is { } route)
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);
@@ -154,6 +159,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
+            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, locals);
             var @event = context.Events[produced.EventContract];
             var arguments = @event.Properties.Select(property =>
             {
@@ -162,7 +168,7 @@ internal static class SemanticStateChangeArtifactRenderer
                 if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                 if (mapping.Source is SemanticReadPathExpression readPath) return results.Reads.ReadPath(readPath);
                 var commandProperty = command.Properties.Single(_ => _.Id == ((SemanticResolvedExpression)mapping.Source).Target);
-                var expression = SemanticCommandResultRendering.PropertyValue(commandProperty, context);
+                var expression = EventPropertyValue(commandProperty, property, command, context);
                 return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
             });
             return $"new {types.EventType(@event)}({string.Join(", ", arguments)})";
@@ -205,12 +211,18 @@ internal static class SemanticStateChangeArtifactRenderer
                 var result = $"global::OneOf.OneOf<{eventResult}, global::Cratis.Arc.Validation.ValidationResult>";
                 builder.OpenBlock($"public {result} Handle({(hasOccurrence ? $"global::Cratis.Arc.IOperationContextAccessor {locals.Name("operation")}" : string.Empty)})");
                 routing.RenderChecks(builder, result);
+                SemanticCommandHandlerRendering.Prepare(builder, command, context, locals);
                 if (hasOccurrence)
                 {
                     builder.Line($"var {locals.Name("occurred")} = global::{context.RootNamespace}.GeneratedCommands.CommandReceiptTime.OccurredAtReceipt({locals.Name("operation")});");
                 }
                 var events = command.Produces.Length == 1 ? WrappedEvent(command.Produces[0]) : $"new global::Cratis.Chronicle.EventSequences.EventForEventSourceId[] {{ {string.Join(", ", command.Produces.Select(WrappedEvent))} }}";
                 builder.Line($"return {result}.FromT0({events});").EndBlock();
+            }
+            else if (command.Handler is not null)
+            {
+                var bare = command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides;
+                new SemanticCommandHandlerHandleRendering(command, context, locals, hasOccurrence).Render(builder, bare, EventValue, WrappedEvent);
             }
             else if (command.Produces.Length == 1 && !hasOccurrence && !hasTags && streamId is null && !routing.HasOverrides)
             {
@@ -221,7 +233,7 @@ internal static class SemanticStateChangeArtifactRenderer
                     if (mapping.Source is SemanticValueExpression value) return types.Value(value.Value, property.Type);
                     var source = (SemanticResolvedExpression)mapping.Source;
                     var commandProperty = command.Properties.Single(_ => _.Id == source.Target);
-                    var expression = SemanticCommandResultRendering.PropertyValue(commandProperty, context);
+                    var expression = EventPropertyValue(commandProperty, property, command, context);
                     return ReducerCollection(@event, property, context) ? ImmutableSnapshot(expression, commandProperty.Type.IsOptional) : expression;
                 });
                 builder.ExpressionMember($"public {types.EventType(@event)} Handle()", $"new({string.Join(", ", arguments)})");
@@ -251,8 +263,45 @@ internal static class SemanticStateChangeArtifactRenderer
             }
         });
 
+        SemanticCommandHandlerRendering.Render(builder, command, context);
         builder.EndBlock().BlankLine();
         results.RenderResponseType(builder);
+    }
+
+    static string EventPropertyValue(SemanticProperty source, SemanticProperty target, SemanticCommand command, SemanticApplicationContext context)
+    {
+        var expression = SemanticCommandResultRendering.PropertyValue(source, context);
+        if (source.Type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false } ||
+            target.Type is not { Kind: SemanticTypeReferenceKind.Concept, IsOptional: false, IsCollection: false })
+        {
+            return expression;
+        }
+
+        if (source.Type.Target == target.Type.Target)
+        {
+            return expression;
+        }
+
+        var sourceConcept = context.Concepts[source.Type.Target];
+        var targetConcept = context.Concepts[target.Type.Target];
+        if (!sourceConcept.Values.IsEmpty || !targetConcept.Values.IsEmpty)
+        {
+            return expression;
+        }
+
+        if (SemanticDateComparisonAdmission.Raw(context.Application, command).Contains(source.Id))
+        {
+            return expression;
+        }
+
+        return CompatibleConceptValue(sourceConcept, targetConcept, expression);
+    }
+
+    static string CompatibleConceptValue(SemanticConcept sourceConcept, SemanticConcept targetConcept, string expression)
+    {
+        var compatible = sourceConcept.Primitive == targetConcept.Primitive ||
+            (sourceConcept.Primitive, targetConcept.Primitive) is (SemanticPrimitiveType.WholeNumber, SemanticPrimitiveType.DecimalNumber);
+        return compatible ? $"new {Identifiers.ToPascalCase(targetConcept.Name)}({expression}.Value)" : expression;
     }
 
     static IEnumerable<SemanticValidationRule> ReferencedValidations(
@@ -304,8 +353,9 @@ internal static class SemanticStateChangeArtifactRenderer
 
         var commandName = Identifiers.ToPascalCase(command.Name);
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
-            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>")
-            .OpenBlock($"public {commandName}Validator()");
+            .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>");
+        SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
+        builder.OpenBlock($"public {commandName}Validator()");
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         foreach (var rule in command.Validations)
         {
@@ -321,6 +371,8 @@ internal static class SemanticStateChangeArtifactRenderer
                 SemanticValidationRendering.Render(builder, rule, property.Name, primitive, property.Type.IsCollection, false, wrapped, property.Type.IsOptional, context.RootNamespace, CommandConceptRendering(rule, property, context), generatedMember: context.MemberNames.Property(property));
             }
         }
+
+        RenderInlineConceptRules(builder, command, context);
 
         foreach (var validation in command.CodeValidations)
         {
@@ -338,13 +390,50 @@ internal static class SemanticStateChangeArtifactRenderer
             SemanticRequirementRendering.Render(builder, requirement, command, context);
         }
 
-        builder.EndBlock();
-        if (command.Validations.Any(_ => _.Kind == SemanticValidationRuleKind.Matches))
+        builder.EndBlock().EndBlock();
+    }
+
+    static void RenderInlineConceptRules(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)
+    {
+        if (command.Requirements.IsEmpty) return;
+        if (!command.Reads.IsEmpty) return;
+        if (!command.CodeValidations.IsEmpty) return;
+
+        var types = new SemanticTypeSystem(context, builder);
+        foreach (var (property, concept) in InlineProperties())
         {
-            SemanticValidationRendering.RenderMatchHelper(builder);
+            var member = context.MemberNames.Property(property);
+            builder.Line($"RuleFor(_ => _.{member}{(property.Type.IsOptional ? "!" : string.Empty)}).IgnoreConceptRules();");
+            foreach (var rule in concept.Validations)
+            {
+                var rendering = CommandConceptRendering(rule, property, context);
+                rendering = rendering with { OptionalType = rendering.OptionalType is null ? null : types.Type(property.Type) };
+                SemanticValidationRendering.Render(
+                    builder,
+                    rule,
+                    property.Name,
+                    concept.Primitive,
+                    false,
+                    false,
+                    wrapped: true,
+                    optional: property.Type.IsOptional,
+                    rootNamespace: context.RootNamespace,
+                    conceptRendering: rendering,
+                    typeBuilder: builder,
+                    generatedMember: member,
+                    conceptMessage: true);
+            }
         }
 
-        builder.EndBlock();
+        IEnumerable<(SemanticProperty Property, SemanticConcept Concept)> InlineProperties() =>
+            from property in command.Properties
+            where !property.IsGenerated && property.Type is { Kind: SemanticTypeReferenceKind.Concept, IsCollection: false }
+            let concept = context.Concepts[property.Type.Target]
+            where !concept.Validations.IsEmpty &&
+                concept.Values.IsEmpty &&
+                concept.Primitive is not (SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime) &&
+                concept.Validations.All(rule => rule.Kind != SemanticValidationRuleKind.Checksum && SemanticValidationRendering.CanRender(rule, context))
+            select (property, concept);
     }
 
     static SemanticValidationRendering.ConceptRendering CommandConceptRendering(SemanticValidationRule rule, SemanticProperty property, SemanticApplicationContext context)

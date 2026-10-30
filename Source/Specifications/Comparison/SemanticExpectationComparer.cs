@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Semantics;
 using Cratis.Stage.Specifications.Commands;
 
 namespace Cratis.Stage.Specifications.Comparison;
@@ -60,6 +61,10 @@ internal static class SemanticExpectationComparer
             // A direct append's then-events describe only its reaction effects; commands include action facts.
             CompareFacts(expected, Following(expected, run), failures, plan!);
         }
+        if (!expected.ThenInvocations.IsDefaultOrEmpty)
+        {
+            SemanticInvocationComparison.Compare(plan!, expected.ThenInvocations, run.Invocations, expected.ThenEventsInAnyOrder, failures);
+        }
 
         CompareCommandDestination(expected, ActionDestinations(run), plan, failures);
 
@@ -79,7 +84,7 @@ internal static class SemanticExpectationComparer
         var failures = new List<string>();
         foreach (var state in expected.ThenReadModels)
         {
-            if (!MatchesState(state, projected))
+            if (!MatchesState(state, projected, plan))
             {
                 failures.Add($"Expected read model '{state.ReadModel}' with key '{state.Key}' was not found with matching values.");
             }
@@ -95,7 +100,7 @@ internal static class SemanticExpectationComparer
         {
             var query = expected.ThenQueries[index];
             var rows = SemanticRunQueries.Select(plan, query, projected);
-            if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, query.Exactly)))
+            if (rows.Length != query.Results.Length || query.Results.Any(result => !MatchesState(result, rows, plan, query.Exactly)))
             {
                 failures.Add($"Query result at index {index} expected {query.Results.Length} row(s) with matching values, got {rows.Length}.");
             }
@@ -197,13 +202,20 @@ internal static class SemanticExpectationComparer
 
     static bool MatchesRoute(SemanticSpecificationEvent expected, SemanticSpecificationEvent actual, SemanticExecutionPlan plan) =>
         expected.EventContract == actual.EventContract && expected.Values.Length == actual.Values.Length &&
-        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty && AreEqual(candidate.Value, value.Value))) &&
+        expected.Values.All(value => actual.Values.Any(candidate => candidate.TargetProperty == value.TargetProperty &&
+            AreEqual(candidate.Value, value.Value, plan.Events[expected.EventContract].Properties.Single(property => property.Id == value.TargetProperty).Type, plan))) &&
         (expected.Route is null || SemanticRunRoutes.Format(plan, expected.Route) == SemanticRunRoutes.Format(plan, actual.Route)) &&
         (!expected.Unrouted || actual.Route is null) &&
         (expected.EventSource is null || (actual.EventSource is not null && expected.EventSource.Type == actual.EventSource.Type && AreEqual(expected.EventSource.Value, actual.EventSource.Value)));
 
-    static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, bool exactly = false) =>
+    static bool MatchesState(SemanticSpecificationReadModel state, IReadOnlyList<SemanticRunProjections.Projected> rows, SemanticExecutionPlan plan, bool exactly = false) =>
         rows.Any(row => row.ReadModel == state.ReadModel && AreEqual(row.Key, state.Key) &&
             (!(state.Exactly || exactly) || state.Values.Length == row.Values.Length) &&
-            state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty && AreEqual(actual.Value, expected.Value))));
+            state.Values.All(expected => row.Values.Any(actual => actual.TargetProperty == expected.TargetProperty &&
+                AreEqual(actual.Value, expected.Value, plan.ReadModels[row.ReadModel].Properties.Single(property => property.Id == actual.TargetProperty).Type, plan))));
+
+    static bool AreEqual(SemanticValue actual, SemanticValue expected, SemanticTypeReference type, SemanticExecutionPlan plan) =>
+        AreEqual(
+            SemanticDateTimeCanonicalization.Normalize(actual, type, plan.Model.Application),
+            SemanticDateTimeCanonicalization.Normalize(expected, type, plan.Model.Application));
 }

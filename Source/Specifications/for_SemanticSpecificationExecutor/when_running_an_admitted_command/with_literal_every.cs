@@ -12,5 +12,6 @@ public class with_literal_every : a_universal_projection
 
     Task Because() => Run();
 
-    [Fact] void should_report_the_expected_outcome() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
+    [Fact] void should_report_the_expected_outcome() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_match_the_reference() => _reference.Passed.ShouldBeTrue();
 }

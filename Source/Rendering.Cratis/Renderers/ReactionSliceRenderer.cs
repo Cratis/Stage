@@ -135,12 +135,12 @@ public class ReactionSliceRenderer : ISliceRenderer
         {
             var triggeringEvent = slice.Events.FirstOrDefault(candidate => candidate.Name == eventName);
             var propertyNames = triggeringEvent?.Properties.Select(property => Identifiers.ToPascalCase(property.Name)).ToArray() ?? [];
-            if (propertyNames.Length > 0)
+            foreach (var name in CSharpBodyBindings.Referenced(trigger.Code.Code, propertyNames))
             {
-                builder.Line($"var ({string.Join(", ", propertyNames)}) = @event;");
+                builder.Line($"var {name} = @event.{name};");
             }
 
-            builder.Raw(trigger.Code.Code);
+            builder.AuthoredBody(trigger.Code, new("reaction", slice.Name, eventTypeName));
         }
         else if (trigger.File is not null)
         {

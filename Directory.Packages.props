@@ -2,19 +2,20 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.254.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Fundamentals" Version="7.25.1" />
-    <PackageVersion Include="Cratis.Arc" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.112.1" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.112.1" />
+    <PackageVersion Include="Cratis" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Fundamentals" Version="7.27.0" />
+    <PackageVersion Include="Cratis.Arc" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.143.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.143.0" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
         management only pins what a project references directly, so a version that arrives transitively through the
@@ -23,17 +24,28 @@
         TypeLoadException for the renamed EnsureEventStore contract. The Host Dockerfile's cratis/chronicle base
         image tag must track this version too, so the bundled kernel and the client never drift apart.
     -->
-    <PackageVersion Include="Cratis.Chronicle" Version="19.83.4" />
-    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.83.4" />
-    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.83.4" />
-    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.83.4" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="4.79.1" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="4.79.1" />
-    <PackageVersion Include="Cratis.Screenplay" Version="4.240.2" />
+    <PackageVersion Include="Cratis.Chronicle" Version="19.112.1" />
+    <!-- Only the multi-service repository scaffold emits this pin (Stage references no Aspire package). It matches the Aspire version of Chronicle and Studio. -->
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.6.1" />
+    <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="19.112.1" />
+    <PackageVersion Include="Cratis.Chronicle.Contracts" Version="19.112.1" />
+    <PackageVersion Include="Cratis.Chronicle.Testing" Version="19.112.1" />
+    <!--
+        Cratis.Chronicle.Testing 19.112.1 bundles Cratis.Chronicle.Core and Cratis.Chronicle.Grpc, which are built against
+        Microsoft.Extensions.Telemetry.Abstractions 10.11.0, but the package does not declare that dependency. Without this
+        pin the Arc packages resolve 10.10.0 and the in-process kernel fails to load the assembly when a command runs.
+        Remove it once Cratis.Chronicle.Testing declares the dependency itself.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="4.80.2" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="4.80.2" />
+    <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
+    <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
-    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.240.2" />
-    <PackageVersion Include="Cratis.Templates" Version="1.7.4" />
+    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.247.3" />
+    <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
+    <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->
     <!-- Audited reducer-binding references, embedded in the renderer for runtime-only hosts. -->
     <PackageVersion Include="Microsoft.NETCore.App.Ref" Version="$(PureTransitionReferencePackVersion)" />

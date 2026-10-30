@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
+using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -27,14 +28,19 @@ internal static class SemanticVersionFeatureAdmission
         var features = slices.Select(located => located.Slice).SelectMany(slice =>
             SemanticVersionFeatures.InSlice(slice).Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
                 .Except(SemanticVersionFeatures.AutomationSlices(slice)).Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+                .Except(SemanticVersionFeatures.StandaloneReactionBodiesInSlice(slice))
+                .Except(SemanticTranslationAdmission.AdmittedFeatures(slice, context))
+                .Except(SemanticOccurrenceAdmission.ReplacedFeatures(slice))
                 .Except(SemanticVersionFeatures.ReactionIdentitiesInSlice(slice)).Except(SemanticVersionFeatures.ReactionFiltersInSlice(slice))
+                .Concat(SemanticOccurrenceAdmission.RefusalsInSlice(slice, context))
                 .Concat(SemanticVersionFeatures.EventReferences(slice, context.Events))
+                .Where(feature => feature.Kind != "event" || feature.Code is not (SemanticVersionFeatures.PublicEvents or SemanticVersionFeatures.ForeignEvents) || !SemanticTranslationAdmission.AdmitsEvent(feature.Artifact, slice, context))
                 .Concat(SemanticVersionFeatures.CompositeKeysInSlice(slice))
                 .Concat(SemanticVersionFeatures.ProjectionProductsInSlice(slice, context))
                 .Concat(SemanticVersionFeatures.ReactionBatchesInSlice(context.Application, slice))
                 .Concat(slice.Commands.SelectMany(command => SemanticVersionFeatures.InCommand(command).Except(SemanticVersionFeatures.RoutesInCommand(command))
                     .Concat(SemanticVersionFeatures.UnsupportedGenerated(command, context.Application.Concepts))))
-                .Concat(slice.Specifications.SelectMany(specification => SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))));
+                .Concat(slice.Kind == SemanticSliceKind.Translate ? [] : slice.Specifications.SelectMany(specification => SemanticVersionFeatures.InSpecification(specification).Except(SemanticVersionFeatures.RoutesInSpecification(specification)))));
 
         // A scoped render also emits sibling constraints that govern its produced events.
         features = features.Concat(SemanticVersionFeatures.EventReferences(
@@ -43,9 +49,26 @@ internal static class SemanticVersionFeatureAdmission
         // Application triggers belong to no slice; only an application render would otherwise drop them.
         if (context.Request.Scope.Kind == ArtifactRenderScopeKind.Application)
         {
-            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application)).Concat(features);
+            features = SemanticVersionFeatures.InApplication(context.Application).Except(SemanticVersionFeatures.RoutesInApplication(context.Application))
+                .Except(SemanticOccurrenceAdmission.AdmittedTriggers(context)).Concat(features);
         }
 
-        return [.. features.Distinct().Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact))];
+        return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct()
+            .Select(feature => Diagnostic(feature, context))
+            .Concat(slices.SelectMany(located => SemanticReactionBodyRendering.ReturnDiagnostics(located, context)))];
     }
+
+    static ArtifactRenderDiagnostic Diagnostic(SemanticVersionFeature feature, SemanticApplicationContext context)
+    {
+        var original = new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact);
+        if (feature.Code != SemanticVersionFeatures.PendingCommandHandler) return original;
+        if (!context.Commands.TryGetValue(feature.Artifact, out var command)) return original;
+        if (SemanticCommandHandlerAdmission.Classify(command, context.Request) is not { Kind: SemanticCommandHandlerAdmission.HandlerKind.Foreign, Requirement: { } requirement }) return original;
+        return SemanticImplementationBodySelector.LanguageDiagnostic(requirement, command.Id, $"Command handler for '{command.Name}'") ?? original;
+    }
+
+    // Render-only: the execution runtime still sees PendingCommandHandler as unsupported.
+    static bool AdmittedCommandHandler(SemanticVersionFeature feature, SemanticApplicationContext context) =>
+        feature.Code == SemanticVersionFeatures.PendingCommandHandler && context.Commands.TryGetValue(feature.Artifact, out var command) &&
+        SemanticCommandBodyAdmission.IsCSharp(command, context);
 }

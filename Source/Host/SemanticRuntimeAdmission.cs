@@ -3,6 +3,8 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Semantics;
 
@@ -12,16 +14,17 @@ internal sealed record SemanticAdmissionEntry(string Artifact, string Kind, stri
 
 internal sealed class SemanticRuntimeAdmission
 {
-    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null)
+    internal SemanticRuntimeAdmission(SemanticExecutionPlan plan, Func<string, string?>? ruleName = null, SemanticBodyExecution? bodies = null)
     {
         var entries = new List<SemanticAdmissionEntry>();
         var blocking = new List<SemanticAdmissionEntry>();
+        entries.AddRange(RangeDegradations(plan));
 
         // External integrations remain visible without blocking unrelated local behavior.
         // Other unsupported constructs still refuse the model rather than silently losing behavior.
         foreach (var feature in SemanticRunAdmission.ModelFeatures(plan.Model))
         {
-            var details = RenderedAround(plan, feature);
+            var details = SemanticRunAdmission.RunsAround(plan.Model.Application, feature);
             var entry = details is null ? Refused(feature) : new(feature.Artifact, feature.Kind, "renderedAround", feature.Capability, details);
             entries.Add(entry);
             if (details is null) blocking.Add(entry);
@@ -48,9 +51,22 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var command in plan.Commands.Values)
         {
-            var (entry, blocksModel) = CommandEntry(plan, command, ruleName);
+            var (entry, blocksModel) = CommandEntry(plan, command, ruleName, bodies);
             entries.Add(entry);
             if (blocksModel) blocking.Add(entry);
+        }
+
+        foreach (var reaction in plan.Reactions)
+        {
+            var refusal = SemanticPlanAdmission.Check(plan, reaction.Id);
+            if (refusal is not null)
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "unsupported", refusal.Capability.ToString(), refusal.Details));
+            }
+            else if (!entries.Exists(entry => entry.Artifact == reaction.Id.ToString() && entry.Kind == "reaction"))
+            {
+                entries.Add(new(reaction.Id.ToString(), "reaction", "supported", null, null));
+            }
         }
 
         foreach (var readModel in plan.ReadModels.Values)
@@ -68,7 +84,7 @@ internal sealed class SemanticRuntimeAdmission
         foreach (var specification in plan.Specifications.Values)
         {
             // A refused specification does not block the live model; runs report the same typed refusal.
-            var refusal = SemanticRunAdmission.Check(plan, specification);
+            var refusal = SemanticRunAdmission.Check(plan, specification, bodies);
             entries.Add(SemanticRunAdmission.SpecificationFeatures(specification).FirstOrDefault() is { } feature
                 ? Refused(feature)
                 : new(specification.Id.ToString(), "specification", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
@@ -82,16 +98,16 @@ internal sealed class SemanticRuntimeAdmission
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
-    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName)
+    static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {
         if (SemanticPlanAdmission.Check(plan, command.Id) is { } planRefusal)
         {
-            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), planRefusal.Details), false);
+            return (new(command.Id.ToString(), "command", "unsupported", planRefusal.Capability.ToString(), command.Handler is null ? planRefusal.Details : $"{planRefusal.Details} {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
-        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName).FirstOrDefault() is { } feature)
+        if (SemanticRunAdmission.RuntimeCommandFeatures(plan, command, ruleName, bodies).FirstOrDefault() is { } feature)
         {
             // An implementation body refuses only this command, not the live model.
-            return (Refused(feature), !feature.Details.StartsWith($"{SemanticImplementationReach.Code}:", StringComparison.Ordinal));
+            return (Refused(feature), !SemanticImplementationReach.IsBodyRefusal(feature.Details, bodies));
         }
         if (command.Handler is { } handler)
         {
@@ -100,7 +116,7 @@ internal sealed class SemanticRuntimeAdmission
                 "command",
                 "unsupported",
                 nameof(SemanticExecutionCapability.ImplementationBody),
-                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target."), false);
+                $"STAGE-IMPL-002: Command '{command.Name}' is described but not implemented (requirement {handler.RequirementId}); its handler body requires a target. {BodyDiagnostics.NotExecuted(SemanticImplementationRole.CommandHandler)}"), false);
         }
 
         return (CommandDestinationEntry(command), false);
@@ -120,28 +136,18 @@ internal sealed class SemanticRuntimeAdmission
             problem);
     }
 
-    static string? RenderedAround(SemanticExecutionPlan plan, SemanticAdmissionFeature feature)
+    static IEnumerable<SemanticAdmissionEntry> RangeDegradations(SemanticExecutionPlan plan)
     {
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
+        if (CratisEsmSupport.Descriptor.Classify(plan.Model.LanguageVersion, plan.Model.SemanticVersion) == EsmVersionStanding.NewerWithinRange)
         {
-            return $"{SemanticVersionFeatures.PublicEvents}: Published locally only: the sandbox appends the public event to its own event log; no external publication occurs. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
+            yield return new(
+                plan.Model.Application.Id.ToString(),
+                "application",
+                "supported",
+                null,
+                $"{ArtifactRenderDegradationCodes.NewerEsmWithinDeclaredRange}: ESM pair {plan.Model.LanguageVersion}/{plan.Model.SemanticVersion} is within {CratisEsmSupport.Descriptor.Accepts} but has not been audited by this Stage version.");
         }
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
-        {
-            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation is not executed in the sandbox: foreign events arrive only through seeds; captures do not poll external sources.";
-        }
-        if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
-            (IsKind(feature, "capture") || (IsKind(feature, "slice") && SemanticVersionFeatures.Slices(plan.Model.Application)
-                .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate))))
-        {
-            return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
-        }
-
-        return null;
     }
-
-    static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
-        kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));
 
     static SemanticAdmissionEntry Refused(SemanticAdmissionFeature feature) =>
         new(feature.Artifact, feature.Kind, "unsupported", feature.Capability, feature.Details);

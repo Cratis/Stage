@@ -1,9 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
@@ -16,17 +19,34 @@ namespace Cratis.Stage.Semantics;
 /// </summary>
 public static class SemanticRunAdmission
 {
-    const string UnsupportedVersion = "STAGE-ESM-016: The model's language/semantic version is not one Stage has audited.";
+    static readonly ConditionalWeakTable<ExecutableSemanticModel, ConcurrentDictionary<string, EsmSupportStanding>> _standings = [];
 
     /// <summary>
     /// Checks the audited version pair before finding constructs that block live model admission.
     /// </summary>
     /// <param name="model">The executable model.</param>
     /// <returns>The precise capability refusals.</returns>
-    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model) =>
-        SemanticVersionFeatures.Supports(model)
-            ? ModelFeatures(model.Application)
-            : [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion)];
+    public static IEnumerable<SemanticAdmissionFeature> ModelFeatures(ExecutableSemanticModel model)
+    {
+        var standing = RunStanding(model, new HashSet<SemanticId>());
+        if (standing.Version is not (EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange))
+        {
+            return [new(model.Application.Id.ToString(), "application", nameof(StageExecutionCapability.PlanIssue), UnsupportedVersion(model))];
+        }
+        return standing.UnknownMembers.Select(member => new SemanticAdmissionFeature(member.Owner.ToString(), member.OwnerKind, nameof(StageExecutionCapability.PlanIssue), UnauditedMember(member)))
+            .Concat(ModelFeatures(model.Application));
+    }
+
+    /// <summary>
+    /// Checks the version pairs the specification executor runs: every pair Stage renders, plus ESM v34, whose only addition
+    /// is <c language="text">then invokes</c> expectations (compared).
+    /// </summary>
+    /// <param name="model">The executable model.</param>
+    /// <returns>Whether the executor runs the version pair.</returns>
+    public static bool SupportsRun(ExecutableSemanticModel model) =>
+        CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion) is EsmVersionStanding.Audited or EsmVersionStanding.NewerWithinRange ||
+        (model.LanguageVersion == LanguageVersion.V33 && model.SemanticVersion == SemanticVersion.V33) ||
+        (model.LanguageVersion == LanguageVersion.V34 && model.SemanticVersion == SemanticVersion.V34);
 
     /// <summary>
     /// Finds later-version constructs that block live model admission.
@@ -42,6 +62,44 @@ public static class SemanticRunAdmission
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
             .Distinct().Select(Feature);
+    }
+
+    /// <summary>
+    /// Finds later-version constructs that block live model admission, leaving out the translation constructs the live
+    /// runtime runs around (see <see cref="RunsAround"/>).
+    /// </summary>
+    /// <param name="application">The application.</param>
+    /// <returns>The precise capability refusals.</returns>
+    public static IEnumerable<SemanticAdmissionFeature> BlockingModelFeatures(SemanticApplication application) =>
+        ModelFeatures(application).Where(feature => RunsAround(application, feature) is null);
+
+    /// <summary>
+    /// Says how the live runtime runs a public-event or translation construct without an external integration: public events
+    /// are appended to the application's own outbox, and foreign events arrive through seeds or its inbox.
+    /// </summary>
+    /// <param name="application">The application the feature belongs to.</param>
+    /// <param name="feature">The feature found by <see cref="ModelFeatures(SemanticApplication)"/>.</param>
+    /// <returns>The note describing what is and is not executed, or null when the live runtime does not run the construct at all.</returns>
+    public static string? RunsAround(SemanticApplication application, SemanticAdmissionFeature feature)
+    {
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.PublicEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "projection"))
+        {
+            return $"{SemanticVersionFeatures.PublicEvents}: Published to the outbox only: the sandbox appends the public event to its own event store's outbox, never to its event log; nothing outside the sandbox reads it unless another application is run against the same kernel. Projection shapes the evaluator cannot fold refuse the affected command instead of appending.";
+        }
+
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.ForeignEvents}:", StringComparison.Ordinal) && IsKind(feature, "event", "capture"))
+        {
+            return $"{SemanticVersionFeatures.ForeignEvents}: Inbound translation runs on what reaches the application's inbox: foreign events arrive through seeds or through the event store's subscription to the origin store's outbox; captures do not poll external sources.";
+        }
+
+        if (feature.Details.StartsWith($"{SemanticVersionFeatures.Automation}:", StringComparison.Ordinal) &&
+            (IsKind(feature, "capture") || (IsKind(feature, "slice") && SemanticVersionFeatures.Slices(application)
+                .Any(slice => slice.Id.ToString() == feature.Artifact && slice.Kind == SemanticSliceKind.Translate))))
+        {
+            return $"{SemanticVersionFeatures.Automation}: Translation integrations are not executed in the sandbox: inbound facts require seeds; outbound event projections publish locally only.";
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -68,12 +126,23 @@ public static class SemanticRunAdmission
     /// <param name="plan">The executable plan.</param>
     /// <param name="specification">The specification to check.</param>
     /// <returns>A typed blocker, or null when execution is safe.</returns>
-    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification)
+    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification) => Check(plan, specification, null);
+
+    /// <summary>Checks the reachable behavior, admitting only renderer-approved rule bodies.</summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="specification">The specification.</param>
+    /// <param name="bodies">The optional compiled bodies.</param>
+    /// <returns>The first unsupported capability, or null.</returns>
+    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticBodyExecution? bodies)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (!SemanticVersionFeatures.Supports(plan.Model)) return Block(StageExecutionCapability.PlanIssue, plan.Model.Application.Id, UnsupportedVersion);
+        if (RangeRefusal(plan, specification) is { } rangeRefusal) return rangeRefusal;
+
+        // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
         var slices = plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices).ToArray();
         if (LaterVersionConstruct(plan, slices, specification) is { } later) return later;
+        if (SemanticRunTranslationAdmission.Check(plan, specification) is { } translation) return translation;
 
         // Runtime contracts keep authored property names, not the renderer's PascalCase members.
         // Case-insensitive duplicates still make JSON binding and Chronicle payloads ambiguous.
@@ -96,7 +165,7 @@ public static class SemanticRunAdmission
         }
         var collidingType = plan.Model.Application.Types.FirstOrDefault(type => !RuntimePropertyNamesAreUnique(type.Properties));
         if (collidingType is not null) return Block(StageExecutionCapability.Command, collidingType.Id, "Type property names are not unique under case-insensitive runtime JSON binding.");
-        if (SemanticImplementationReach.ForSpecification(plan, specification) is { } implementation) return implementation;
+        if (SemanticImplementationReach.ForSpecification(plan, specification, bodies) is { } implementation) return implementation;
         if (specification.GivenCaller is { Authenticated: false } caller && (!caller.Roles.IsEmpty || !caller.Claims.IsEmpty))
         {
             return Block(StageExecutionCapability.Authorization, specification.Id, "An unauthenticated caller cannot carry roles or claims; Arc supplies an empty guest principal.");
@@ -108,12 +177,12 @@ public static class SemanticRunAdmission
         if (specification.WhenAppended is { } appended)
         {
             if (!plan.Events.TryGetValue(appended.EventContract, out var appendedContract)) return Block(StageExecutionCapability.PlanIssue, appended.EventContract, "The appended event is not in the plan.");
-            if (EventValueRefusal(plan, appendedContract, "Only scalar appended event values are admitted.") is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
+            if (EventValueRefusal(plan, appendedContract, appended.Values) is { } appendedRefusal) return Block(StageExecutionCapability.Occurrence, appended.EventContract, appendedRefusal);
         }
         foreach (var given in specification.GivenEvents)
         {
             if (!plan.Events.TryGetValue(given.EventContract, out var givenContract)) return Block(StageExecutionCapability.PlanIssue, given.EventContract, "The Given event is not in the plan.");
-            if (EventValueRefusal(plan, givenContract, "Only scalar Given event values are admitted.") is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
+            if (EventValueRefusal(plan, givenContract, given.Values) is { } givenRefusal) return Block(StageExecutionCapability.Command, given.EventContract, givenRefusal);
         }
         if (specification.WhenAppended is not null) return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract).Append(specification.WhenAppended.EventContract));
         if (specification.When is not { } when)
@@ -127,7 +196,7 @@ public static class SemanticRunAdmission
             return Block(StageExecutionCapability.Command, command.Id, validationRefusal);
         }
         var valueContext = new SemanticApplicationContext(plan);
-        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type)).FirstOrDefault(refusal => refusal is not null);
+        var valueRefusal = command.Properties.Select(property => SemanticValueShapeAdmission.Refusal(valueContext, property.Type, bodies)).FirstOrDefault(refusal => refusal is not null);
         if (valueRefusal is not null)
         {
             return Block(StageExecutionCapability.Command, command.Id, valueRefusal);
@@ -136,7 +205,7 @@ public static class SemanticRunAdmission
         // A described handler determines its own productions. Only history can be projected before its body is reached.
         if (command.Handler is not null)
         {
-            if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
+            if (command.Validations.Any(rule => !SupportedRule(rule, bodies)))
             {
                 return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
             }
@@ -144,25 +213,26 @@ public static class SemanticRunAdmission
             return SemanticRunReactionAdmission.CheckProjections(plan, specification, specification.GivenEvents.Select(given => given.EventContract));
         }
 
-        // The reference projects given events while establishing the world, and produced facts only when the command
-        // is accepted. A specification expecting a rejection appends nothing, so its produced events reach no projection.
-        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
+        // Projections never run for expected rejection/denial, whether the command rejects or reports an acceptance mismatch.
+        var produced = specification.ThenErrors.IsEmpty && !specification.ThenDenied
+            ? SemanticProductionConditions.Taken(command, when, plan.Model.Application).Select(produce => produce.EventContract) : [];
         var reachableEvents = specification.GivenEvents.Select(given => given.EventContract).Concat(produced).ToHashSet();
         if (SemanticRunReactionAdmission.CheckProjections(plan, specification, reachableEvents) is { } projectionBlock) return projectionBlock;
 
         foreach (var production in command.Produces)
         {
             if (!plan.Events.TryGetValue(production.EventContract, out var eventContract)) return Block(StageExecutionCapability.Command, command.Id, "The produced event is not in the plan.");
-            if (EventValueRefusal(plan, eventContract, "Only scalar command and event values are admitted.") is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
+            if (EventValueRefusal(plan, eventContract) is { } eventRefusal) return Block(StageExecutionCapability.Command, command.Id, eventRefusal);
         }
 
-        if (command.Validations.Any(rule => !SupportedRule(rule.Kind)))
+        if (command.Validations.Any(rule => !SupportedRule(rule, bodies)))
         {
             return Block(StageExecutionCapability.Command, command.Id, "A command validation rule is not admitted.");
         }
 
         if (command.Produces.Any(produced => produced.Condition is not null || produced.Mappings.Any(mapping => mapping.Source is not (SemanticValueExpression or SemanticReadPathExpression or SemanticResolvedExpression { Root: SemanticExpressionRootKind.Command, Source: SemanticExpressionSourceKind.Property }) &&
-                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } && SemanticSpecificationClock.TryGetOccurrence(specification, out _)))))
+                !(mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } &&
+                    (SemanticSpecificationClock.TryGetOccurrence(specification, out _) || !specification.ThenErrors.IsEmpty || specification.ThenDenied)))))
         {
             return Block(StageExecutionCapability.Command, command.Id, "Expression conditions or non-command mappings are not admitted.");
         }
@@ -187,13 +257,71 @@ public static class SemanticRunAdmission
     /// <param name="fact">The fact about to be appended.</param>
     /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
     public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact) =>
-        SemanticRunProjectionAdmission.CheckFact(plan, fact);
+        CheckProjectionFact(plan, fact, SemanticObserverFilters.Kinds(plan, fact.Route));
+
+    /// <summary>
+    /// Checks a concrete fact and its formatted route before projection replay or append.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="fact">The fact about to be appended.</param>
+    /// <param name="route">The formatted fact route, or null for an unrouted fact.</param>
+    /// <returns>The projection refusal, or null when the fact is safe to project.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact, SemanticEventRoute? route) => CheckProjectionFact(plan, fact, route, null);
+
+    /// <summary>Checks a projected fact with the optional compiled body catalog.</summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="fact">The candidate fact.</param>
+    /// <param name="route">The formatted route.</param>
+    /// <param name="bodies">The compiled bodies.</param>
+    /// <returns>The first projection refusal, or null.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionFact(SemanticExecutionPlan plan, SemanticSpecificationEvent fact, SemanticEventRoute? route, SemanticBodyExecution? bodies) =>
+        SemanticImplementationReach.ForFact(plan, fact.EventContract, route, bodies) ??
+        SemanticRunTranslationAdmission.Check(plan, new SemanticSpecification(fact.EventContract, "Reaction production", [], [], null, [], [], [], [])
+        { WhenAppended = new(fact.EventContract, fact.Values) { EventSource = fact.EventSource, Route = fact.Route } }) ?? SemanticRunProjectionAdmission.CheckFact(plan, fact);
+
+    /// <summary>
+    /// Checks completed world rows for reducer-backed state, even when no query was requested.
+    /// </summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="readModels">The read-model identities present in the completed world.</param>
+    /// <returns>The projection refusal, or null when no world row requires a reducer body.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionWorld(SemanticExecutionPlan plan, IEnumerable<SemanticId> readModels) =>
+        CheckProjectionWorld(plan, readModels, null);
+
+    /// <summary>Checks completed world rows with the optional compiled body catalog.</summary>
+    /// <param name="plan">The executable plan.</param>
+    /// <param name="readModels">The completed read models.</param>
+    /// <param name="bodies">The compiled bodies.</param>
+    /// <returns>The first projection refusal, or null.</returns>
+    public static SemanticUnsupportedCapability? CheckProjectionWorld(SemanticExecutionPlan plan, IEnumerable<SemanticId> readModels, SemanticBodyExecution? bodies) =>
+        SemanticImplementationReach.ForWorld(plan, readModels, bodies);
+
+    internal static bool HasReadModelProvider(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticId readModel) =>
+        plan.Projections.Values.Any(projection => projection.ReadModel == readModel) ||
+        specification.GivenReadModels.Any(seed => seed.ReadModel == readModel) ||
+        plan.Model.Application.Modules.SelectMany(module => module.Features).SelectMany(AllSlices)
+            .SelectMany(slice => slice.Reducers).Any(reducer => reducer.ReadModel == readModel);
+
+    internal static EsmSupportStanding RunStanding(ExecutableSemanticModel model, IReadOnlySet<SemanticId> excluded)
+    {
+        var version = CratisEsmSupport.Descriptor.Classify(model.LanguageVersion, model.SemanticVersion);
+        if (version != EsmVersionStanding.NewerWithinRange) return new(version, []);
+        var key = string.Join('/', excluded.Select(id => id.ToString()).Order(StringComparer.Ordinal));
+        return _standings.GetOrCreateValue(model).GetOrAdd(
+            key,
+            static (_, state) =>
+            {
+                var owners = SemanticVersionFeatures.Slices(state.Model.Application).Select(slice => slice.Id).Append(state.Model.Application.Id).ToHashSet();
+                return EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, state.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, state.Excluded));
+            },
+            (Model: model, Excluded: excluded));
+    }
 
     // Live commands cannot consume pinned generation fixtures. Other bodies refuse only their reachable commands.
-    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null)
+    internal static IEnumerable<SemanticAdmissionFeature> RuntimeCommandFeatures(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName = null, SemanticBodyExecution? bodies = null)
     {
         var features = CommandFeatures(command).Concat(SemanticVersionFeatures.ImplementationGenerationInCommand(command, plan.Model.Application.Concepts, ruleName).Select(Feature));
-        var refusal = SemanticImplementationReach.ForCommand(plan, command);
+        var refusal = SemanticImplementationReach.ForCommand(plan, command, bodies);
         if (CommandValidationRefusal(plan, command) is { } validationRefusal)
         {
             features = features.Append(new(command.Id.ToString(), "command", nameof(StageExecutionCapability.Command), validationRefusal));
@@ -235,15 +363,31 @@ public static class SemanticRunAdmission
         return null;
     }
 
+    static SemanticUnsupportedCapability? RangeRefusal(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
+        if (!SupportsRun(plan.Model)) return new(StageExecutionCapability.PlanIssue, plan.Model.Application.Id.ToString(), UnsupportedVersion(plan.Model));
+        if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
+        var excluded = SemanticVersionFeatures.Slices(plan.Model.Application).Where(slice => plan.IsolatedSlice is not null && slice.Id != plan.IsolatedSlice).Select(slice => slice.Id).ToHashSet();
+        return RunStanding(plan.Model, excluded).UnknownMembers.FirstOrDefault() is { } unknown
+            ? new(StageExecutionCapability.PlanIssue, unknown.Owner.ToString(), UnauditedMember(unknown))
+            : null;
+    }
+
+    static string UnsupportedVersion(ExecutableSemanticModel model) =>
+        $"STAGE-ESM-016: ESM pair {model.LanguageVersion}/{model.SemanticVersion} is not an audited pair and is outside the range Stage runs ({CratisEsmSupport.Descriptor.Accepts}).";
+
+    static string UnauditedMember(SemanticUnknownMember member) => $"STAGE-ESM-016: Unaudited ESM member {member.Member} at {member.Path}.";
+
     static SemanticUnsupportedCapability? CommandPlanRefusal(SemanticExecutionPlan plan, SemanticCommand command) =>
         SemanticPlanAdmission.Check(plan, command.Id);
 
-    // Settlement executes event productions, invocations, system identities, route filters and mixed effects.
+    // Settlement matches reaction and reducer filters against concrete routes before projection reach.
     // Keep non-event triggers, opaque bodies and unsupported context mappings refused in both engines.
     static IEnumerable<SemanticVersionFeature> LiveSliceFeatures(SemanticSlice slice) =>
         SemanticVersionFeatures.InSlice(slice)
             .Except(SemanticVersionFeatures.AutomationSlices(slice))
             .Except(SemanticVersionFeatures.EventReactionsInSlice(slice))
+            .Except(SemanticVersionFeatures.ReducerFiltersInSlice(slice))
             .Where(feature => feature.Kind != "reaction" || feature.Code is not ("STAGE-ESM-034" or "STAGE-ESM-035" or "STAGE-ESM-037"));
 
     static SemanticAdmissionFeature Feature(SemanticVersionFeature feature) => new(feature.Artifact.ToString(), feature.Kind, feature.Capability.ToString(), $"{feature.Code}: {feature.Message}");
@@ -258,7 +402,8 @@ public static class SemanticRunAdmission
             .Except(SemanticVersionFeatures.TriggersInApplication(plan.Model.Application))
             .Except(SemanticVersionFeatures.RoutesInApplication(plan.Model.Application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
-            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events))))
+            .Concat(slices.SelectMany(slice => RunSliceFeatures(slice).Except(SemanticVersionFeatures.TranslationFeaturesInSlice(slice))
+                .Concat(SemanticVersionFeatures.EventReferences(slice, plan.Events).Where(feature => feature.Code is not (SemanticVersionFeatures.PublicEvents or SemanticVersionFeatures.ForeignEvents)))))
             .Concat(RunSpecificationFeatures(specification))
             .Concat(command is null ? [] : SemanticVersionFeatures.InCommand(command)
                 .Except(SemanticVersionFeatures.RoutesInCommand(command))
@@ -283,6 +428,9 @@ public static class SemanticRunAdmission
     static IEnumerable<SemanticSlice> AllSlices(SemanticFeature feature) =>
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 
+    static bool SupportedRule(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
+        SupportedRule(rule.Kind) || (rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true);
+
     static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or
         SemanticValidationRuleKind.Equal or SemanticValidationRuleKind.NotEqual or SemanticValidationRuleKind.GreaterThan or
@@ -292,14 +440,37 @@ public static class SemanticRunAdmission
         SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith or SemanticValidationRuleKind.DecimalPlaces or
         SemanticValidationRuleKind.AllGreaterThan or SemanticValidationRuleKind.AllGreaterThanOrEqual;
 
-    static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, string collectionRefusal)
+    static string? EventValueRefusal(SemanticExecutionPlan plan, SemanticEventContract eventContract, IEnumerable<SemanticPropertyValue>? values = null)
     {
         var context = new SemanticApplicationContext(plan);
         foreach (var property in eventContract.Properties)
         {
             if (SemanticValueShapeAdmission.PayloadRefusal(context, property.Type) is { } refusal) return refusal;
-            if (SemanticValueShapeAdmission.Closure(context, property.Type).Any(member => member.Type.IsCollection)) return collectionRefusal;
+        }
+        var properties = eventContract.Properties.ToLookup(property => property.Id);
+        foreach (var value in values ?? [])
+        {
+            if (properties[value.TargetProperty].ToArray() is not [var property])
+            {
+                return $"Event '{eventContract.Name}' payload property '{value.TargetProperty}' must identify exactly one declared property.";
+            }
+            if (!EventValueMatches(context, property.Type, value.Value))
+            {
+                return "An event payload value does not match its declared structure.";
+            }
         }
         return null;
     }
+
+    static bool EventValueMatches(SemanticApplicationContext context, SemanticTypeReference type, SemanticValue value)
+    {
+        if (value is SemanticNullValue) return type.IsOptional;
+        if (type.IsCollection) return value is SemanticArrayValue array && array.Values.All(member => EventValueMatches(context, type with { IsCollection = false, IsOptional = false }, member));
+        if (type.Kind != SemanticTypeReferenceKind.CompositeType) return value is not SemanticArrayValue and not SemanticCompositeValue;
+        return value is SemanticCompositeValue composite && composite.Properties.All(member =>
+            context.Types[type.Target].Properties.FirstOrDefault(property => property.Id == member.TargetProperty) is { } property && EventValueMatches(context, property.Type, member.Value));
+    }
+
+    static bool IsKind(SemanticAdmissionFeature feature, params string[] kinds) =>
+        kinds.Any(kind => string.Equals(feature.Kind, kind, StringComparison.Ordinal));
 }

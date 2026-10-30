@@ -8,7 +8,9 @@ using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -24,18 +26,26 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
 /// <param name="plan">The model's execution plan.</param>
 /// <param name="parent">The scenario state shared by an invoked command.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null)
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null) : IAsyncDisposable
 {
     readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
     readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = new(ReferenceEqualityComparer.Instance);
+    readonly SemanticBodyRuleSession? _bodyRules = parent is null && options.BodyExecution is { } execution ? new(plan.Model.Application, execution) : null;
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
+    internal SemanticBodyExecution? BodyExecution => options.BodyExecution;
+    internal SemanticBodyRuleSession? BodyRules => parent?.BodyRules ?? _bodyRules;
+    internal CancellationToken CancellationToken { get; init; }
+    internal CancellationToken BodyCancellation => parent?.BodyCancellation ?? CancellationToken;
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
     internal SemanticSpecification WorldFixture { get; } = parent?.WorldFixture ?? specification;
+
+    // Whether a reaction invoked this command, rather than the specification's own action.
+    internal bool IsInvocation => parent is not null;
     internal SemanticExecutionPlan Plan => plan;
     internal IReadOnlyList<SemanticSpecificationEvent> Facts => _facts;
     internal IReadOnlyList<SemanticValue> Destinations => _destinations;
@@ -45,6 +55,9 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal string Tenant => options.Tenant;
     internal SemanticExecutionResponse? Response { get; private set; }
     internal bool HandlerBodyReached { get; set; }
+    internal SemanticProjectionLoweringRefused? ProjectionLoweringRefusal { get; set; }
+
+    public ValueTask DisposeAsync() => _bodyRules?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     // An absent authored fixture must stay absent in semantic reactions, regardless of the injectable storage clock.
     internal static DateTimeOffset? OccurrenceOf(SemanticSpecification fixture) =>
@@ -102,11 +115,18 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, CancellationToken cancellationToken) =>
         Append(fact, destination, AuthoredOccurrence, cancellationToken);
 
-    internal Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
+    internal async Task Append(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        return Append(Prepare(fact, destination, occurred), cancellationToken);
+        try
+        {
+            await Append(Prepare(fact, destination, occurred), cancellationToken);
+        }
+        catch (SemanticProjectionLoweringRefused exception)
+        {
+            ProjectionLoweringRefusal = exception;
+            throw;
+        }
     }
 
     internal SemanticPreparedFact Prepare(SemanticSpecificationEvent fact, SemanticValue destination, DateTimeOffset? occurred)
@@ -178,7 +198,7 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
         var identityType = expression is SemanticResolvedExpression resolved
             ? command.Properties.Single(property => property.Id == resolved.Target).Type
             : command.Destination?.Type ?? specification.When!.EventSource?.Type;
-        var identity = plan.Model.SemanticVersion != SemanticVersion.V1 && identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
+        var identity = identityType is not null ? new SemanticEventSourceIdentity(identityType, destination) : null;
         var values = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred }
             ? SemanticValue.Text(Occurred.UtcDateTime.ToString("O", CultureInfo.InvariantCulture))
             : Evaluate(mapping.Source, inputs, Reads.Values))).ToImmutableArray();

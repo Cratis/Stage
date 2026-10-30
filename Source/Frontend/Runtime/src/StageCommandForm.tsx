@@ -1,7 +1,9 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { subjectFormOf } from './stageActionSubject';
+import { createContext, useContext, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import type { CommandFormLayout, ExternalComponent, FormColumn, FormField, FormFieldPlacement, FormWidth } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
@@ -17,6 +19,7 @@ import type { StageDataState } from './stageData';
 import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './stageFormSchema';
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
+import { useScreenRows } from './stageScreenTables';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -26,6 +29,9 @@ export type { SchemaProperty };
  * - the next step of a wizard - is reachable again. A form outside a dialog has nothing to close.
  */
 export const StageDialogContext = createContext<(() => void) | undefined>(undefined);
+
+/** The footer of the dialog a form sits in, where its submit button belongs beside Cancel; absent outside a dialog. */
+export const StageDialogFooterContext = createContext<HTMLElement | null>(null);
 
 interface NativeFormProperties {
     command: string;
@@ -48,21 +54,24 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
+    const footer = useContext(StageDialogFooterContext);
+    const section = useRef<HTMLElement>(null);
     const form = useMemo(() => formProperties(element), [element]);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
+    const submitLabel = text(element, 'submitLabel') || 'Submit';
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const answered = usePopulatedValues(element, schema, data);
 
     // The answer is a new object each time the query is read again; only a different answer is a different starting point for the form.
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
-    const selectedRows = useMemo(() => selectedRowsOf(data.selections, data.queries), [data.selections, data.queries]);
-    const selectableRows = useMemo(() => selectableRowsOf(data.queries), [data.queries]);
-    const rowAction = element.properties.rowAction === true;
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction]);
+    const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, useScreenRows());
+
+    // What the action binds from its subject row wins over the session, which only holds what nobody chose.
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, subjectValues]);
     const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
@@ -78,7 +87,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
 
     return (
-        <section className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
+        <section ref={section} className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
             <NativeCommandForm
                 key={populationKey}
                 command={commandType}
@@ -88,7 +97,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
                 onFieldValidate={(_command, fieldName, _oldValue, newValue) => requiredMessage(fields, schema, fieldName, newValue)}
-                onValidationFailure={validation => setMessages(validation.map(_ => _.message))}
+                onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={() => {
@@ -103,7 +112,10 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}
                 {messages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
-                <button type='submit'>{text(element, 'submitLabel') || `Execute ${form.label}`}</button>
+                {footer
+                    // In a dialog the submit sits in the footer beside Cancel; it submits the form it belongs to.
+                    ? createPortal(<button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</button>, footer)
+                    : <button type='submit' className='stage-command-form__submit'>{submitLabel}</button>}
             </NativeCommandForm>
         </section>
     );
@@ -133,7 +145,7 @@ function formProperties(element: ExternalComponent): NativeFormProperties | unde
 
 function fieldsFor(form: NativeFormProperties, schema: SchemaProperty[]): FormField[] {
     if (form.generationMode === FormGenerationMode.Manual || form.fields.length > 0) return form.fields;
-    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: property.name }));
+    return schema.filter(property => !property.unsupportedReason).map(property => ({ name: property.name, label: humanize(property.name) }));
 }
 
 function renderFields(form: NativeFormProperties, fields: FormField[], schema: SchemaProperty[]): ReactNode {
@@ -528,6 +540,19 @@ function widthToCss(width: FormWidth | undefined): string | undefined {
         case FormWidthUnit.Percent: return `${width.value ?? 100}%`;
         case FormWidthUnit.Auto: return 'auto';
     }
+}
+
+/**
+ * The validation messages Arc's command form does not already show next to a field. Arc shows one message per field - the first result
+ * whose member is the field or a path under it - so exactly those are left out; any further message about the same field, and every
+ * message about no field of this form, is listed under the fields.
+ */
+export function unboundValidationMessages(fields: FormField[], validation: { message: string; members?: string[] }[]): string[] {
+    const matches = (result: { members?: string[] }, name: string) => !!result.members?.some(member => member === name || member.startsWith(`${name}.`));
+    const shown = new Set(fields
+        .map(field => validation.find(result => matches(result, field.sourceProperty ?? field.name)))
+        .filter(result => result !== undefined));
+    return [...new Set(validation.filter(result => !shown.has(result)).map(result => result.message))];
 }
 
 function requiredMessage(fields: FormField[], schema: SchemaProperty[], fieldName: string, value: unknown): string | undefined {

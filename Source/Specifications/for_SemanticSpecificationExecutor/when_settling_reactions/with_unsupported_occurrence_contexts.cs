@@ -8,18 +8,12 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_set
 public class with_unsupported_occurrence_contexts : given.a_reaction_plan
 {
     [Theory]
-    [InlineData("$eventSourceId", StageExecutionCapability.IdentityAllocation, "direct")]
-    [InlineData("$eventContext.eventSourceId", StageExecutionCapability.IdentityAllocation, "direct")]
     [InlineData("$context.causedBy.name", StageExecutionCapability.Occurrence, "direct")]
     [InlineData("$context.causedBy.subject", StageExecutionCapability.Occurrence, "direct")]
     [InlineData("$context.causedBy.userName", StageExecutionCapability.Occurrence, "direct")]
-    [InlineData("$eventSourceId", StageExecutionCapability.IdentityAllocation, "refusal")]
-    [InlineData("$eventContext.eventSourceId", StageExecutionCapability.IdentityAllocation, "refusal")]
     [InlineData("$context.causedBy.name", StageExecutionCapability.Occurrence, "refusal")]
-    [InlineData("$eventSourceId", StageExecutionCapability.IdentityAllocation, "invoke")]
-    [InlineData("$eventContext.eventSourceId", StageExecutionCapability.IdentityAllocation, "invoke")]
     [InlineData("$context.causedBy.name", StageExecutionCapability.Occurrence, "invoke")]
-    public async Task should_keep_identity_and_audit_contexts_as_named_typed_refusals(string expression, StageExecutionCapability capability, string position)
+    public async Task should_keep_audit_contexts_as_named_typed_refusals(string expression, StageExecutionCapability capability, string position)
     {
         var production = $"produces Followed\n  item = {expression}";
         var effect = position switch

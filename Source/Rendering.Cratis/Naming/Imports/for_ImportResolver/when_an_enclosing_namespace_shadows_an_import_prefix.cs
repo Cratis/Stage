@@ -14,6 +14,6 @@ public class when_an_enclosing_namespace_shadows_an_import_prefix : given.a_fram
     void Establish() => _generated = [.. _generated, new("Shop.System.Text.RegularExpressions", "Regex")];
     void Because() => _result = ImportResolver.Resolve(Request(_regex), _catalog);
 
-    [Fact] void should_allow_the_globally_rooted_import() => _result.Usings.ShouldContain("System.Text.RegularExpressions");
+    [Fact] void should_import_it_above_the_namespace_where_the_prefix_binds_globally() => _result.TopLevelUsings.ShouldContain("System.Text.RegularExpressions");
     [Fact] void should_spell_the_global_type_short() => _result.Spell(_regex).ShouldEqual("Regex");
 }

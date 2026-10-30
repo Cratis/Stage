@@ -12,7 +12,17 @@ internal static class SemanticQueryValidation
     {
         var concepts = plan.Model.Application.Concepts.ToDictionary(concept => concept.Id);
         var composites = plan.Model.Application.Types.ToDictionary(composite => composite.Id);
-        var arguments = query.Argument is { } key ? new[] { (key.Type, Value: request.Key) } : [];
+        var arguments = query.Argument is { } key ? new List<(SemanticTypeReference Type, SemanticValue Value)> { (key.Type, request.Key) } : [];
+        if (request.Key is SemanticCompositeValue composite)
+        {
+            foreach (var part in query.KeyParts)
+            {
+                if (composite.Properties.FirstOrDefault(value => value.TargetProperty == part.KeyProperty) is { } member)
+                {
+                    arguments.Add((part.Type, member.Value));
+                }
+            }
+        }
         var supplied = query.Filters.Where(filter => request.Filters.Any(value => value.Filter == filter.Id))
             .Select(filter => (filter.Type, request.Filters.Single(value => value.Filter == filter.Id).Value));
 

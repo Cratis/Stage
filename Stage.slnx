@@ -1,5 +1,6 @@
 <Solution>
     <Folder Name="/Source/">
+        <Project Path="Source/BodyWorker/BodyWorker.csproj" />
         <Project Path="Source/Conformance.Specs/Conformance.Specs.csproj" />
         <Project Path="Source/Contracts/Contracts.csproj" />
         <Project Path="Source/Rendering.Kits/Rendering.Kits.csproj" />

@@ -61,7 +61,8 @@ internal static class SemanticReadModelSpecificationRenderer
         var givenEvents = reducer is null ? SemanticProjectionSpecificationSeeds.Given(specification, projection!) : SemanticReducerSpecificationEvents.Given(specification, expected, reducer);
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var behavior = SemanticSpecificationClassNames.Projected(specification, readModel, absentIndex);
+        var thenIndex = absentIndex is null ? specification.ThenReadModels.IndexOf(expected) : -1;
+        var behavior = SemanticSpecificationClassNames.Projected(specification, readModel, absentIndex, thenIndex >= 0 ? thenIndex : null);
         var builder = Builder(behavior, located, readModel, context);
         var scope = new SemanticReadModelSpecificationScope(builder, types, context, located);
         var seeds = SemanticProjectionSpecificationSeeds.For(specification, readModel.Id).ToArray();

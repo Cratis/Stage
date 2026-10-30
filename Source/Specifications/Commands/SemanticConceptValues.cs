@@ -19,6 +19,9 @@ internal static class SemanticConceptValues
         IReadOnlyDictionary<SemanticId, SemanticCompositeType> composites) =>
         Validate(type, value, new ConceptContext(concepts, composites));
 
+    internal static IEnumerable<SemanticValidationFailure> Validate(SemanticTypeReference type, SemanticValue value, SemanticRunContext run) =>
+        Validate(type, value, new ConceptContext(run.Plan.Model.Application.Concepts.ToDictionary(concept => concept.Id), run.Plan.Model.Application.Types.ToDictionary(composite => composite.Id)) { Run = run });
+
     // Compile indexes capability-admitted declarations; it does not validate typed fixture values.
     // Match SemanticEvaluator.ValidateRequest before command rules, not only for reaction invocations.
     internal static string? RequestFailure(SemanticExecutionPlan plan, SemanticCommand command, ImmutableArray<SemanticPropertyValue> values)
@@ -37,7 +40,7 @@ internal static class SemanticConceptValues
 
         return type.Kind switch
         {
-            SemanticTypeReferenceKind.Concept => ConceptFailures(context.Concepts[type.Target], value),
+            SemanticTypeReferenceKind.Concept => ConceptFailures(context.Concepts[type.Target], value, context.Run),
             SemanticTypeReferenceKind.CompositeType => CompositeFailures(type, value, context),
             _ => []
         };
@@ -48,9 +51,9 @@ internal static class SemanticConceptValues
             ? array.Values.SelectMany(element => Validate(type with { IsCollection = false, IsOptional = false }, element, context))
             : [];
 
-    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticConcept concept, SemanticValue value) =>
-        concept.Validations.Where(rule => !SemanticRuleEvaluation.Satisfies(rule, value))
-            .Select(rule => new SemanticValidationFailure(rule.Message ?? SemanticRuleEvaluation.Message(rule, value, "A required concept value is empty."), rule.Severity));
+    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticConcept concept, SemanticValue value, SemanticRunContext? run) =>
+        concept.Validations.Select(rule => SemanticRuleEvaluation.ConceptCheck(rule, value, run)).Where(check => !SemanticRuleEvaluation.Satisfies(check))
+            .Select(check => new SemanticValidationFailure(check.Rule.Message ?? (check.Rule.Kind == SemanticValidationRuleKind.NotEmpty ? "A required concept value is empty." : check.Message), check.Rule.Severity));
 
     static IEnumerable<SemanticValidationFailure> CompositeFailures(SemanticTypeReference type, SemanticValue value, ConceptContext context) =>
         value is SemanticCompositeValue composite
@@ -181,7 +184,10 @@ internal static class SemanticConceptValues
 
     sealed record ConceptContext(
         IReadOnlyDictionary<SemanticId, SemanticConcept> Concepts,
-        IReadOnlyDictionary<SemanticId, SemanticCompositeType> Composites);
+        IReadOnlyDictionary<SemanticId, SemanticCompositeType> Composites)
+    {
+        internal SemanticRunContext? Run { get; init; }
+    }
 
     sealed record ShapeContext(SemanticExecutionPlan Plan, string Description, int Depth)
     {

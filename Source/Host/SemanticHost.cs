@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Api;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Host.Workbench;
@@ -25,12 +26,6 @@ internal static class SemanticHost
         var notes = new List<SemanticModelLoadDiagnostic>();
         var (loaded, scene) = await LoadModel(modelPath, issues, notes);
 
-        var admission = loaded is null ? null : new SemanticRuntimeAdmission(loaded.Plan, id => loaded.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member);
-        if (admission is not null)
-        {
-            issues.AddRange(admission.Blocking.Select(entry => new StageUnsupportedIssue(entry.Capability!, entry.Artifact, entry.Details!)));
-        }
-
         var eventStore = ContainerEventStoreName.Resolve();
         SemanticWorld? world = null;
         var builder = WebApplication.CreateBuilder(args);
@@ -41,12 +36,16 @@ internal static class SemanticHost
             optional: true,
             reloadOnChange: true);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
+        var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
+        var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
+        var admission = CreateAdmission(loaded, bodies, issues);
         var surface = loaded is not null && issues.Count == 0 ? StageHttpSurface.Create(loaded.Model, routeOptions) : null;
         builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions);
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {
-            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world));
+            SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world), bodies);
+            builder.Services.AddSingleton(bodySettings);
             builder.Services.AddSingleton<ISemanticFactReader, SemanticFactReader>();
             builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
             builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
@@ -225,7 +224,8 @@ internal static class SemanticHost
     internal static StageStatus Status(ISemanticRuntime runtime, string modelName, string modelPath) => runtime is ISemanticRuntimeStatus { FaultReason: { } reason }
         ? new StageStatus("unsupported", null, WarmStageHandoff.ReadHandoffId(modelPath))
         {
-            Engine = "semantic", Issues = [new StageUnsupportedIssue("World", "model", reason)]
+            Engine = "semantic",
+            Issues = [new StageUnsupportedIssue("World", "model", reason)]
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 
@@ -252,6 +252,14 @@ internal static class SemanticHost
         context.Response.Headers["Stage-Unsupported-Artifact"] = issue.Artifact;
 
         return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
+    }
+
+    static SemanticRuntimeAdmission? CreateAdmission(LoadedSemanticModel? loaded, SemanticBodyExecution? bodies, List<StageUnsupportedIssue> issues)
+    {
+        if (loaded is null) return null;
+        var admission = new SemanticRuntimeAdmission(loaded.Plan, id => loaded.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member, bodies);
+        issues.AddRange(admission.Blocking.Select(entry => new StageUnsupportedIssue(entry.Capability!, entry.Artifact, entry.Details!)));
+        return admission;
     }
 
     static void MapRefusedApi(WebApplication app, List<StageUnsupportedIssue> issues)

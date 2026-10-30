@@ -54,13 +54,20 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual({"live-custom-packages", "live-blueprints"}, self.select("Source/Frontend/src/main.tsx"))
         for folder in ("Semantics", "Renderers", "Specifications", "Types", "Emission", "Validation", "Authorization", "NewDependency"):
             with self.subTest(folder=folder):
-                self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
-                                 self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
+                self.assertEqual(ALL, self.select(f"Source/Rendering.Cratis/{folder}/Implementation.cs"))
         self.assertEqual({"reducer-mongo", "generated-name-matrix", "generated-react-blueprint-templates"},
                          self.select("Source/Rendering.Cratis.Scaffolding/Scaffold.cs"))
         # Specifications (name matrix) references Stage; the Host image compiles it.
         self.assertEqual({"reducer-mongo", "live-custom-packages", "live-blueprints", "generated-name-matrix"},
                          self.select("Source/Stage/Runtime/Query.cs"))
+
+    def test_host_inputs_follow_the_published_body_worker_to_the_renderer(self):
+        # Host publishes BodyWorker, whose renderer reference changes the image's runtime behavior.
+        inputs = CI["project_inputs"]("Source/Host/Host.csproj")
+        self.assertIn("Source/BodyWorker/**", inputs)
+        self.assertIn("Source/Rendering.Cratis/**", inputs)
+        self.assertLessEqual({"reducer-mongo", "live-custom-packages", "live-blueprints"},
+                             self.select("Source/BodyWorker/Program.cs"))
 
     def test_live_probe_inputs_and_blueprint_pins(self):
         for folder in ("live-custom-packages", "live-navigation"):
@@ -289,7 +296,7 @@ class RoutingTests(unittest.TestCase):
             CI["dry_run_table"]()
         self.assertEqual(11, len(output.getvalue().splitlines()))
         self.assertIn("ci:full | yes | yes | yes | yes | yes", output.getvalue())
-        self.assertIn("Source/Rendering.Cratis only | yes | no | no | yes | yes", output.getvalue())
+        self.assertIn("Source/Rendering.Cratis only | yes | yes | yes | yes | yes", output.getvalue())
 
 
 class RequiredChecksTests(unittest.TestCase):

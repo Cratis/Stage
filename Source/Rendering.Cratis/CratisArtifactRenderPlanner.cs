@@ -43,17 +43,18 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
     /// <inheritdoc/>
     public ArtifactRenderPlan Plan(ArtifactRenderRequest request)
     {
-        var plan = PlanCore(request);
+        var plan = PlanCore(request, out var omissionAttempt);
         var warnings = ReleaseBaselineWarnings.For(request);
 
         plan = warnings.IsEmpty ? plan : CratisPlanDiagnosticReconstruction.Append(request, plan, warnings);
         return CratisArtifactRenderProfileAdmission.Matches(request, out var options, out _)
-            ? CratisPlanReports.Finalize(request, CratisPlanAcceptance.Apply(request, plan, options), options)
+            ? FinalizeOmission(request, plan, options, omissionAttempt)
             : plan;
     }
 
-    static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request)
+    static ArtifactRenderPlan PlanCore(ArtifactRenderRequest request, out OwnerOmissionAttempt? omissionAttempt)
     {
+        omissionAttempt = null;
         if (!CratisArtifactRenderProfileAdmission.Matches(request, out var options, out var mismatch))
         {
             // Without exact profile options, later admission gates have no target to reason about.
@@ -69,7 +70,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         try
         {
-            return PlanAdmitted(request, options, diagnostics);
+            var result = PlanAdmitted(request, options, diagnostics);
+            omissionAttempt = result.Attempt;
+            return result.Plan;
         }
         catch (CSharpImportRejected exception)
         {
@@ -95,11 +98,11 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return CreatePlan(request, [], diagnostics);
     }
 
-    static ArtifactRenderPlan PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options, List<ArtifactRenderDiagnostic> diagnostics)
+    static (ArtifactRenderPlan Plan, OwnerOmissionAttempt? Attempt) PlanAdmitted(ArtifactRenderRequest request, CratisRenderingOptions options, List<ArtifactRenderDiagnostic> diagnostics, OwnerOmissionAttempt? attempt = null)
     {
         var artifacts = new List<PlannedArtifact>();
         var range = AdmitVersion(request, options);
-        if (!range.IsAdmitted) return CreatePlan(request, [], [.. range.Diagnostics]);
+        if (!range.IsAdmitted) return (CreatePlan(request, [], [.. range.Diagnostics]), null);
         diagnostics.AddRange(range.Diagnostics);
 
         var context = new SemanticApplicationContext(request, options);
@@ -124,12 +127,15 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         context = new SemanticApplicationContext(admittedRequest, options);
         context.ScopeFlatProjections();
         context.DegradeEventContextMappings(diagnostics);
-        slices = context.SelectedSlices();
+
+        var omission = OmissionFor(attempt);
+        context.OmittedOwners = omission.Closure;
+        slices = omission.Apply(context.SelectedSlices());
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
-        var selectedReducers = SemanticReducerTypedContexts.Selected(context, slices)
+        var selectedReducers = omission.Apply(SemanticReducerTypedContexts.Selected(context, slices))
             .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
-        foreach (var descriptor in descriptors)
+        foreach (var descriptor in omission.Apply(descriptors))
         {
             try
             {
@@ -150,16 +156,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         ScreenPartitionsInput.TryRead(request.Profile, request.Model, out var partitions, out _);
-        var userInterface = UserInterfaceSlices(request, context, slices, diagnostics);
+        var userInterface = UserInterfaceSlices(request, context, slices, diagnostics) is { } interfaceSlices ? omission.Apply(interfaceSlices) : null;
         var sceneJson = AdmittedScene(request, partitions, userInterface, diagnostics);
+        var evidence = OmissionEvidence(attempt);
+        diagnostics.AddRange(evidence.Warnings);
         var refusals = SemanticRefusalScope.Degrade(context, diagnostics);
-        if (diagnostics.Exists(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error) && refusals.IsEmpty)
-        {
-            return CreatePlan(request, [], diagnostics);
-        }
+        if (PassFailed(diagnostics, refusals, attempt)) return FailedPass(request, options, new(context, diagnostics, removals), attempt);
+        refusals = refusals.AddRange(evidence.Refusals);
         context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
-        var validations = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
+        var validations = omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)).ToArray();
         foreach (var descriptor in validations)
         {
             artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));
@@ -240,7 +246,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         {
             plan = plan.WithAcceptance([.. plan.Degradations, .. context.Degradations]);
         }
-        return range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence);
+        return CompletePass(plan, range, attempt);
     }
 
     // Only a pair inside the declared range is interpreted; every other unaudited pair is refused before any context is built.
@@ -460,11 +466,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             {
                 return ArtifactRenderPlan.Create(request, [], [.. diagnostics]);
             }
-            diagnostics.Add(new(
-                "STAGE-PLAN-007",
-                ArtifactRenderDiagnosticSeverity.Information,
-                $"Rendered around {refusals.Length} refused specifications",
-                request.Model.Application.Id));
+            AddSpecificationRefusalSummary(request, diagnostics, refusals);
         }
 
         // A plan carrying errors never removes files; publication then refuses the leftover classic reducer.
@@ -475,8 +477,86 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         return ServiceLayout.Plan(request, plan);
     }
 
+    static SemanticOwnerOmission OmissionFor(OwnerOmissionAttempt? attempt) => attempt?.Omission ?? SemanticOwnerOmission.None;
+
+    static (ImmutableArray<ArtifactRenderDiagnostic> Warnings, ImmutableArray<ArtifactRenderDegradation> Degradations,
+        ImmutableArray<ArtifactRenderRefusal> Refusals) OmissionEvidence(OwnerOmissionAttempt? attempt) => attempt?.Evidence ?? ([], [], []);
+
+    static bool PassFailed(List<ArtifactRenderDiagnostic> diagnostics, ImmutableArray<ArtifactRenderRefusal> refusals, OwnerOmissionAttempt? attempt) =>
+        diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) && (refusals.IsEmpty || attempt is not null);
+
+    static (ArtifactRenderPlan Plan, OwnerOmissionAttempt? Attempt) FailedPass(ArtifactRenderRequest request, CratisRenderingOptions options, OwnerOmissionFailure failure, OwnerOmissionAttempt? attempt)
+    {
+        var refused = CreatePlan(request, [], failure.Diagnostics);
+        if (attempt is not null || options.Strict) return (refused, null);
+        try
+        {
+            return RetryOmission(request, options, failure, refused);
+        }
+        catch (Exception)
+        {
+            return (refused, null);
+        }
+    }
+
+    static (ArtifactRenderPlan Plan, OwnerOmissionAttempt? Attempt) RetryOmission(ArtifactRenderRequest request, CratisRenderingOptions options, OwnerOmissionFailure failure, ArtifactRenderPlan refused)
+    {
+        if (!failure.Diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error && failure.Context.OwnerScopedRefusals.Contains(diagnostic))) return (refused, null);
+        var index = new SemanticDependencyIndex(failure.Context);
+        var roots = SemanticOwnerScopedDegradation.TryRoots(failure.Context, failure.Diagnostics, index, new(false, failure.Removals));
+        if (roots is null || SemanticOwnerOmission.Compute(failure.Context, index, roots) is not { } omission) return (refused, null);
+        if (!HasCompleteCauses(omission)) return (refused, null);
+        var attempt = new OwnerOmissionAttempt(omission, failure.Context, refused);
+        var result = PlanAdmitted(request, options, [], attempt);
+        return result.Plan.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? (refused, null) : result;
+    }
+
+    static bool HasCompleteCauses(SemanticOwnerOmission omission) =>
+        omission.OrderedClosure.All(owner => omission.Causes.TryGetValue(owner, out var roots) && !roots.IsEmpty);
+
+    static (ArtifactRenderPlan Plan, OwnerOmissionAttempt? Attempt) CompletePass(ArtifactRenderPlan plan, CratisEsmRangeVerdict range, OwnerOmissionAttempt? attempt)
+    {
+        if (attempt is not null)
+        {
+            if (SemanticOwnerOmission.Overlaps(plan.Artifacts, attempt.Omission.Closure).Count > 0)
+                throw new InvalidArtifactRenderContract("An artifact realizes an omitted semantic owner.");
+            plan = plan.WithAcceptance([.. plan.Degradations, .. attempt.Evidence.Degradations]);
+        }
+        return (range.Evidence.IsEmpty ? plan : plan.WithPlanEvidence(range.Evidence), attempt);
+    }
+
+    static ArtifactRenderPlan FinalizeOmission(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options, OwnerOmissionAttempt? attempt)
+    {
+        try
+        {
+            return CratisPlanReports.Finalize(request, CratisPlanAcceptance.Apply(request, plan, options), options, attempt?.Omission.Causes);
+        }
+        catch (InvalidArtifactRenderContract) when (attempt is not null)
+        {
+            var warnings = ReleaseBaselineWarnings.For(request);
+            var refused = warnings.IsEmpty ? attempt.Fallback : CratisPlanDiagnosticReconstruction.Append(request, attempt.Fallback, warnings);
+            return CratisPlanReports.Finalize(request, CratisPlanAcceptance.Apply(request, refused, options), options);
+        }
+    }
+
+    static void AddSpecificationRefusalSummary(ArtifactRenderRequest request, List<ArtifactRenderDiagnostic> diagnostics, ImmutableArray<ArtifactRenderRefusal> refusals)
+    {
+        var specifications = refusals.Count(refusal => refusal.Kind == "specification" && refusal.Codes.All(code => !code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal)));
+        if (specifications == 0) return;
+        diagnostics.Add(new("STAGE-PLAN-007", ArtifactRenderDiagnosticSeverity.Information, $"Rendered around {specifications} refused specifications", request.Model.Application.Id));
+    }
+
     static PlannedArtifact Artifact(RenderedFile file) => PlannedArtifact.CreateText(file.RelativePath, file.Content, file.Sources);
 
     static ArtifactRenderDiagnostic Error(string code, string message, SemanticId artifact) =>
         new(code, ArtifactRenderDiagnosticSeverity.Error, message, artifact);
+
+    sealed record OwnerOmissionFailure(SemanticApplicationContext Context, List<ArtifactRenderDiagnostic> Diagnostics, ImmutableArray<ArtifactRemoval> Removals);
+
+    sealed record OwnerOmissionAttempt(SemanticOwnerOmission Omission, SemanticApplicationContext Context, ArtifactRenderPlan Fallback)
+    {
+        internal (ImmutableArray<ArtifactRenderDiagnostic> Warnings, ImmutableArray<ArtifactRenderDegradation> Degradations,
+            ImmutableArray<ArtifactRenderRefusal> Refusals) Evidence
+        { get; } = SemanticOwnerScopedDegradation.Evidence(Context, Omission);
+    }
 }

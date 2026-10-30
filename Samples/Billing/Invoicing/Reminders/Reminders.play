@@ -5,15 +5,12 @@ module Invoicing
 
     slice Automation RemindAboutOverdueInvoices
 
-      reaction OverdueInvoiceReminder
-        description "Nudges the customer once a day about anything still unpaid"
-        every 1 day
+      reaction InvoiceIssuedReminder
+        description "Sends the customer a reminder as soon as an invoice is issued"
+        when InvoiceIssued
+          invoiceId
           invokes SendInvoiceReminder
             invoiceId = invoiceId
-        at 09:00 on Monday
-          invokes SendInvoiceReminder
-            invoiceId = invoiceId
-        where status == "issued"
 
       reaction ExportRequested
         description "Turns the frontend's export request into the work that answers it"

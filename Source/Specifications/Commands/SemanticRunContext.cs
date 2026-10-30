@@ -8,6 +8,7 @@ using Cratis.Chronicle.Events;
 using Cratis.Chronicle.EventSequences;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Specifications.Comparison;
 using Cratis.Stage.Specifications.Types;
@@ -25,14 +26,19 @@ namespace Cratis.Stage.Specifications.Commands;
 /// <param name="eventLog">The fresh Chronicle in-memory event log.</param>
 /// <param name="plan">The model's execution plan.</param>
 /// <param name="parent">The scenario state shared by an invoked command.</param>
-internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null)
+internal sealed class SemanticRunContext(Type commandType, SemanticCommand command, SemanticSpecification specification, SemanticSpecificationRunOptions options, SemanticRuntimeTypes runtimeTypes, IEventLog eventLog, SemanticExecutionPlan plan, SemanticRunContext? parent = null) : IAsyncDisposable
 {
     readonly List<SemanticSpecificationEvent> _facts = parent?._facts ?? [];
     readonly List<SemanticValue> _destinations = parent?._destinations ?? [];
     readonly List<DateTimeOffset?> _occurrences = parent?._occurrences ?? [];
     readonly Dictionary<SemanticCommandRoute, SemanticFixtureRoute> _routes = new(ReferenceEqualityComparer.Instance);
+    readonly SemanticBodyRuleSession? _bodyRules = parent is null && options.BodyExecution is { } execution ? new(plan.Model.Application, execution) : null;
 
     internal SemanticRunReads Reads { get; } = new(runtimeTypes);
+    internal SemanticBodyExecution? BodyExecution => options.BodyExecution;
+    internal SemanticBodyRuleSession? BodyRules => parent?.BodyRules ?? _bodyRules;
+    internal CancellationToken CancellationToken { get; init; }
+    internal CancellationToken BodyCancellation => parent?.BodyCancellation ?? CancellationToken;
     internal Type CommandType => commandType;
     internal SemanticCommand Command => command;
     internal SemanticSpecification Specification => specification;
@@ -50,6 +56,8 @@ internal sealed class SemanticRunContext(Type commandType, SemanticCommand comma
     internal SemanticExecutionResponse? Response { get; private set; }
     internal bool HandlerBodyReached { get; set; }
     internal SemanticProjectionLoweringRefused? ProjectionLoweringRefusal { get; set; }
+
+    public ValueTask DisposeAsync() => _bodyRules?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     // An absent authored fixture must stay absent in semantic reactions, regardless of the injectable storage clock.
     internal static DateTimeOffset? OccurrenceOf(SemanticSpecification fixture) =>

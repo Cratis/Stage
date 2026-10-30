@@ -131,6 +131,7 @@
             <_ScaffoldPackage Include="Cratis.Arc.Chronicle.Testing" Constant="ArcChronicleTesting" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Arc.Chronicle.Testing')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications" Constant="Specifications" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Specifications.XUnit" Constant="SpecificationsXUnit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Specifications.XUnit')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Microsoft.Extensions.Telemetry.Abstractions" Constant="TelemetryAbstractions" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.Extensions.Telemetry.Abstractions')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Microsoft.NET.Test.Sdk" Constant="TestSdk" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk')->Metadata('Version'))" />
             <_ScaffoldPackage Include="NSubstitute" Constant="NSubstitute" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'NSubstitute')->Metadata('Version'))" />
             <_ScaffoldPackage Include="xunit" Constant="Xunit" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit')->Metadata('Version'))" />

@@ -35,11 +35,18 @@ public class when_validating_responses : Specification
     [InlineData("evaluate", "state", "state", false)]
     [InlineData("validate", "refused", "empty", true)]
     [InlineData("reduce", "faulted", "empty", true)]
+    [InlineData("handle", "state", "empty", false)]
+    [InlineData("handle", "produced", "empty", false)]
+    [InlineData("handle", "produced", "events", true)]
+    [InlineData("handle", "produced", "state", false)]
+    [InlineData("handle", "produced", "messages", false)]
+    [InlineData("handle", "refused", "empty", true)]
+    [InlineData("handle", "faulted", "empty", true)]
     async Task should_accept_only_the_outcomes_of_the_requested_kind(string kind, string outcome, string payload, bool valid)
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
         var cache = Path.Combine(root, ".ai-work", "891", "specs", Guid.NewGuid().ToString("N"));
-        var response = new BodyWorkerResponse("probe") { Evaluation = new(outcome, payload == "state" ? JsonSerializer.SerializeToElement(1) : null, payload == "messages" ? ["first"] : []) };
+        var response = new BodyWorkerResponse("probe") { Evaluation = new(outcome, payload switch { "state" => JsonSerializer.SerializeToElement(1), "events" => JsonSerializer.SerializeToElement(new { kind = "array", value = new[] { new { kind = "composite", value = Array.Empty<object>() } } }), _ => null }, payload == "messages" ? ["first"] : []) };
         var hello = JsonSerializer.Serialize(new BodyWorkerHello("hello", BodyWorkerMessages.ProtocolVersion, "fixture"), BodyWorkerMessages.Json);
         var script = $"printf '%s\\n' '{hello}'\nread -r line\nprintf '%s\\n' '{JsonSerializer.Serialize(response, BodyWorkerMessages.Json)}'\nread -r another";
         await using var worker = new BodyWorkerSupervisor(new(string.Empty, cache) { Launch = new("/bin/sh", ["-c", script]), TimeoutMs = 10000 });

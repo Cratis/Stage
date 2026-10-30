@@ -56,6 +56,9 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
     /// <inheritdoc/>
     public Task<BodyEvaluation> ReduceAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) => InvokeAsync("reduce", request, cancellationToken);
 
+    /// <inheritdoc/>
+    public Task<BodyEvaluation> HandleAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) => InvokeAsync("handle", request, cancellationToken);
+
     /// <summary>Issues one correlated request. Only a subsequent call can restart a failed execute worker.</summary>
     /// <param name="request">The correlated worker request.</param>
     /// <param name="cancellationToken">The caller cancellation.</param>
@@ -115,6 +118,7 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         "evaluate" => new[] { "satisfied", "unsatisfied", "refused", "faulted", "exceeded-time", "exceeded-memory" }.Contains(evaluation.Outcome, StringComparer.Ordinal),
         "validate" => ValidationOutcome(evaluation),
         "reduce" => ReductionOutcome(evaluation),
+        "handle" => HandlerOutcome(evaluation),
         _ => false
     };
 
@@ -131,6 +135,17 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         "delete" => true,
         _ => FailureOutcome(reduction.Outcome)
     };
+
+    static bool HandlerOutcome(BodyEvaluation handler) => handler.Outcome == "produced"
+        ? handler.Messages.IsDefaultOrEmpty && handler.Value is { } value && IsCompositeArray(value)
+        : FailureOutcome(handler.Outcome);
+
+    static bool IsCompositeArray(JsonElement wire) =>
+        HasKind(wire, "array") && wire.TryGetProperty("value", out var items) && items.ValueKind == JsonValueKind.Array &&
+        items.EnumerateArray().All(item => HasKind(item, "composite"));
+
+    static bool HasKind(JsonElement wire, string expected) =>
+        wire is { ValueKind: JsonValueKind.Object } && wire.TryGetProperty("kind", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == expected;
 
     static bool FailureOutcome(string outcome) =>
         outcome == "refused" || outcome == "faulted" || outcome == "exceeded-time" || outcome == "exceeded-memory";

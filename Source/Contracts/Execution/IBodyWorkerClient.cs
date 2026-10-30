@@ -31,4 +31,11 @@ public interface IBodyWorkerClient
     /// <returns>The next state, deletion or an explicit refusal.</returns>
     Task<BodyEvaluation> ReduceAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
         Task.FromResult(new BodyEvaluation("refused", Diagnostic: BodyDiagnostics.NotExecuted(Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition)));
+
+    /// <summary>Executes an admitted command handler body against its Command snapshot.</summary>
+    /// <param name="request">The single Command member holding the portable command composite.</param>
+    /// <param name="cancellationToken">The caller's cancellation.</param>
+    /// <returns>The produced event payloads in produces order, or an explicit refusal or fault.</returns>
+    Task<BodyEvaluation> HandleAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new BodyEvaluation("refused", Diagnostic: BodyDiagnostics.NotExecuted(Cratis.Screenplay.Semantics.SemanticImplementationRole.CommandHandler)));
 }

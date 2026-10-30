@@ -20,6 +20,9 @@ internal sealed class BodyWorkerLease(IBodyWorkerClient worker) : IBodyWorkerCli
     public Task<BodyEvaluation> ReduceAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
         Volatile.Read(ref _released) == 0 ? worker.ReduceAsync(request, cancellationToken) : Task.FromResult(Disposed());
 
+    public Task<BodyEvaluation> HandleAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
+        Volatile.Read(ref _released) == 0 ? worker.HandleAsync(request, cancellationToken) : Task.FromResult(Disposed());
+
     public ValueTask DisposeAsync()
     {
         Interlocked.Exchange(ref _released, 1);

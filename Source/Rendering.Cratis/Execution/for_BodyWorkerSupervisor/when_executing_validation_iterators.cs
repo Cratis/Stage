@@ -88,7 +88,9 @@ public class when_executing_validation_iterators : Specification
         var artifact = concept ? SemanticValue.Number(amount) : SemanticValue.Composite([.. values]);
         return new(entry.RequirementId, new Dictionary<string, SemanticValue>
         {
-            ["Artifact"] = artifact, ["Value"] = artifact, ["Property"] = SemanticValue.Text(string.Empty)
+            ["Artifact"] = artifact,
+            ["Value"] = artifact,
+            ["Property"] = SemanticValue.Text(string.Empty)
         }.ToImmutableDictionary(pair => pair.Key, pair => SemanticValueWire.Write(pair.Value), StringComparer.Ordinal));
     }
 }

@@ -33,7 +33,8 @@ public class when_executing_reducer_bodies : Specification
                 path,
                 new(true, Path.Combine(AppContext.BaseDirectory, "bodyworker", "Cratis.Stage.BodyWorker.dll"))
                 {
-                    CacheDirectory = Path.Combine(directory, "cache"), CallTimeoutMilliseconds = 30000
+                    CacheDirectory = Path.Combine(directory, "cache"),
+                    CallTimeoutMilliseconds = 30000
                 },
                 notes);
             Assert.True(bodies is not null, string.Join(';', notes.Select(note => note.Message)));

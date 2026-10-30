@@ -30,7 +30,8 @@ public class when_executing_command_validation_bodies : Specification
                 path,
                 new(true, Path.Combine(AppContext.BaseDirectory, "bodyworker", "Cratis.Stage.BodyWorker.dll"))
                 {
-                    CacheDirectory = Path.Combine(directory, "cache"), CallTimeoutMilliseconds = 30000
+                    CacheDirectory = Path.Combine(directory, "cache"),
+                    CallTimeoutMilliseconds = 30000
                 },
                 notes);
             Assert.NotNull(bodies);

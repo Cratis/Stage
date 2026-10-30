@@ -224,7 +224,8 @@ internal static class SemanticHost
     internal static StageStatus Status(ISemanticRuntime runtime, string modelName, string modelPath) => runtime is ISemanticRuntimeStatus { FaultReason: { } reason }
         ? new StageStatus("unsupported", null, WarmStageHandoff.ReadHandoffId(modelPath))
         {
-            Engine = "semantic", Issues = [new StageUnsupportedIssue("World", "model", reason)]
+            Engine = "semantic",
+            Issues = [new StageUnsupportedIssue("World", "model", reason)]
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 

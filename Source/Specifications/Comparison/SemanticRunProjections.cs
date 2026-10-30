@@ -184,11 +184,11 @@ internal static class SemanticRunProjections
             var fixtureKey = transitionKey is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolvedKey
                 ? fact.Values.Single(value => value.TargetProperty == resolvedKey.Target).Value
                 : projectedKey switch
-            {
-                SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
-                SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
-                _ => destination
-            };
+                {
+                    SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
+                    SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
+                    _ => destination
+                };
             if (index < context.WorldFixture.GivenEvents.Length && Seeds(context, projection.ReadModel)
                 .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, fixtureKey)))
             {

@@ -68,11 +68,33 @@ public class when_mapping_authored_bodies_to_play_lines
     }
 
     [Fact]
+    void should_not_map_a_file_backed_reaction_body()
+    {
+        var loaded = Semantics.for_SemanticReactorArtifactRenderer.when_rendering_authenticated_reaction_bodies.reaction_body_model.LoadSource(native_reaction_model.Source(file: true), native_reaction_model.Body);
+        Assert.Empty(a_source_line_mapped_plan.InlineRequirements(loaded));
+        AssertNoDirectives(a_source_line_mapped_plan.Plan(loaded));
+    }
+
+    [Fact]
+    void should_not_map_an_attached_command_handler_body()
+    {
+        var request = when_planning_body_carrying_command_handlers.handler_model.Request();
+        var documents = request.ImplementationRequirements.Select(requirement => KeyValuePair.Create(requirement.Source.Span.Document, "Orders.play"));
+        var mapped = request with { Profile = CratisRendering.WithSourceLineMapping(request.Profile, "Model", documents) };
+        var plan = when_planning_body_carrying_command_handlers.handler_model.Plan(mapped);
+        Assert.Contains(plan.Artifacts, artifact => a_source_line_mapped_plan.Lines(artifact).Any(line => line.Contains("ToUpperInvariant", StringComparison.Ordinal)));
+        AssertNoDirectives(plan);
+    }
+
+    [Fact]
     void should_emit_no_directives_without_the_input()
     {
         var loaded = opaque_policy_model.Load(opaque_policy_model.Source("return context.Identity.IsAuthenticated;"));
         var plan = a_source_line_mapped_plan.Plan(loaded, mapped: false);
         Assert.DoesNotContain(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)), artifact => a_source_line_mapped_plan.Lines(artifact).Any(line => line.StartsWith("#line", StringComparison.Ordinal)));
     }
+
+    static void AssertNoDirectives(ArtifactRenderPlan plan) =>
+        Assert.DoesNotContain(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)), artifact => a_source_line_mapped_plan.Lines(artifact).Any(line => line.StartsWith("#line", StringComparison.Ordinal)));
 }
 #endif

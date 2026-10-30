@@ -17,7 +17,6 @@ internal static class SemanticProtectedQuerySpecificationRenderer
     {
         var query = context.Queries[expected.Query];
         var readModel = context.ReadModels[query.ReadModel];
-        var queryNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path);
         var located = context.DeclaringSlice(specification.Id);
         var name = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: true);
 
@@ -25,21 +24,9 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
         var builder = context.SpecificationBuilder()
             .Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{name}")
-            .Using("System.Security.Claims")
-            .Using("Cratis.Arc.Authorization")
             .Using("Cratis.Arc.Chronicle.Testing.Queries")
-            .Using("Cratis.Arc.Http")
-            .Using("Cratis.Arc.Queries")
-            .Using("Cratis.Arc.Testing.Queries")
-            .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Specifications")
-            .Using("Microsoft.Extensions.DependencyInjection")
-            .Using("Xunit")
-            .Using(context.CommonNamespace)
-            .Using(queryNamespace);
-
-        var replay = Replay(specification, readModel, context);
-        UseEventNamespaces(builder, [.. replay.Select(_ => _.Produced.EventContract), .. specification.GivenEvents.Select(given => given.EventContract)], queryNamespace, context);
+            .Using("Microsoft.Extensions.DependencyInjection");
 
         var routedReplay = specification.GivenEvents.Any(given => given.Route is not null) ||
             SemanticSpecificationRouteRendering.RoutesCommand(specification, context);
@@ -47,7 +34,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         {
             builder.Using("Cratis.Chronicle.Testing.ReadModels");
         }
-        context.Docs(specification.Id).Render(builder)
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {name} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{readModelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -77,22 +64,7 @@ internal static class SemanticProtectedQuerySpecificationRenderer
         Write(builder, Assertions(specification, expected, readModelName, context, types));
         RenderDispose(builder, routedReplay);
         builder.EndBlock();
-        var content = types.SpecificationContent(builder);
-        if (SpecificationValues.NeedsGlobalization(content))
-        {
-            content = types.SpecificationContent(builder.Using("System.Globalization"));
-        }
-
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), content);
-    }
-
-    static void UseEventNamespaces(CSharpCodeBuilder builder, IEnumerable<SemanticId> events, string queryNamespace, SemanticApplicationContext context)
-    {
-        foreach (var eventNamespace in events.Select(@event => SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(@event).Path))
-            .Where(eventNamespace => !string.Equals(eventNamespace, queryNamespace, StringComparison.Ordinal)))
-        {
-            builder.Using(eventNamespace);
-        }
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{name}.cs"]), types.SpecificationContent(builder));
     }
 
     static string Key(SemanticSpecificationQueryResult expected, SemanticApplicationContext context, SemanticTypeSystem types)

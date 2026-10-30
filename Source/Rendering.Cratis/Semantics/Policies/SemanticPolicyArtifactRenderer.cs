@@ -96,38 +96,62 @@ internal static class SemanticPolicyArtifactRenderer
 
         // Reflection is limited to the declared public property path, using ordinal names. Missing values
         // deny; an empty-string text target matches an empty claim. Uuid, Date and DateTime targets must be canonical.
-        builder.OpenBlock("internal static class PolicyValues")
+        builder.Summary("Evaluates policy claim targets and three-valued authorization expressions.")
+            .OpenBlock("internal static class PolicyValues")
+            .Summary("Matches a claim against the target using ordinal value comparison.")
+            .Parameter("context", "The authorization context.").Parameter("claim", "The claim type.").Parameter("target", "The expected claim value.")
+            .Returns("Whether a matching claim exists; false when the target is missing.")
             .ExpressionMember(
                 "public static bool Match(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is not null && context.Principal.Claims.Any(value => global::System.String.Equals(value.Type, claim, global::System.StringComparison.OrdinalIgnoreCase) && global::System.String.Equals(value.Value, target, global::System.StringComparison.Ordinal))");
 
         // Always emit Screenplay's three-valued helpers: shared bytes never depend on selected operations.
         // Missing targets stay unknown under negation; only a definite true allows.
-        builder.ExpressionMember(
+        builder.Summary("Matches a claim while preserving an unknown target.")
+            .Parameter("context", "The authorization context.").Parameter("claim", "The claim type.").Parameter("target", "The expected claim value.")
+            .Returns("The claim comparison, or null when the target is missing.")
+            .ExpressionMember(
                 "public static bool? Truth(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string claim, string? target)",
                 "target is null ? null : Match(context, claim, target)")
+            .Summary("Negates a policy value while preserving unknown.")
+            .Parameter("value", "The policy value.").Returns("The negated value, or null for unknown.")
             .ExpressionMember("public static bool? Not(bool? value)", "value is null ? null : !value.Value")
+            .Summary("Combines policy values using three-valued conjunction.")
+            .Parameter("left", "The left policy value.").Parameter("right", "The right policy value.").Returns("The conjunction, preserving unknown unless either value is false.")
             .ExpressionMember("public static bool? And(bool? left, bool? right)", "(left, right) switch { (false, _) or (_, false) => false, (true, true) => true, _ => null }")
+            .Summary("Combines policy values using three-valued disjunction.")
+            .Parameter("left", "The left policy value.").Parameter("right", "The right policy value.").Returns("The disjunction, preserving unknown unless either value is true.")
             .ExpressionMember("public static bool? Or(bool? left, bool? right)", "(left, right) switch { (true, _) or (_, true) => true, (false, false) => false, _ => null }");
 
-        builder
+        builder.Summary("Resolves a canonical UUID policy target.")
+            .Parameter("value", "The target value.").Returns("The canonical UUID text, or null for an unsupported value.")
             .OpenBlock("public static string? Uuid(object? value)")
             .Line("if (value is global::System.Guid uuid) return uuid.ToString(\"D\");")
             .Line("if (value is string text && global::System.Guid.TryParseExact(text, \"D\", out var parsed) &&")
             .Line("    global::System.String.Equals(text, parsed.ToString(\"D\"), global::System.StringComparison.Ordinal)) return text;")
             .Line("return null;")
             .EndBlock()
+            .Summary("Resolves a canonical calendar-date policy target.")
+            .Parameter("value", "The target value.").Returns("The canonical date text, or null for an unsupported value.")
             .OpenBlock("public static string? Date(object? value)")
             .Line("if (value is global::System.DateOnly date) return date.ToString(\"yyyy-MM-dd\", global::System.Globalization.CultureInfo.InvariantCulture);")
             .Line("if (value is string text && global::System.DateOnly.TryParseExact(text, \"yyyy-MM-dd\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.None, out _)) return text;")
             .Line("return null;")
             .EndBlock()
+            .Summary("Resolves a canonical date-time policy target.")
+            .Parameter("value", "The target value.").Returns("The round-trip date-time text, or null for an unsupported value.")
             .OpenBlock("public static string? DateTime(object? value)")
             .Line("if (value is global::System.DateTimeOffset instant) return instant.Offset == global::System.TimeSpan.Zero ? instant.UtcDateTime.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture) : instant.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture);")
             .Line("if (value is string text && global::System.DateTimeOffset.TryParseExact(text, \"O\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.RoundtripKind, out var parsed) &&")
             .Line("    global::System.String.Equals(text, DateTime(parsed), global::System.StringComparison.Ordinal)) return text;")
             .Line("return null;")
             .EndBlock()
+            .Summary("Resolves a primitive or concept policy target without coercing unsupported types.")
+            .Parameter("value", "The target value.")
+            .Parameter("uuidTarget", "Whether the target requires canonical UUID text.")
+            .Parameter("dateTarget", "Whether the target requires canonical date text.")
+            .Parameter("dateTimeTarget", "Whether the target requires canonical date-time text.")
+            .Returns("The target text, or null when unavailable or unsupported.")
             .OpenBlock("public static string? Value(object? value, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
             .Line("if (value is string text) return dateTarget ? Date(text) : dateTimeTarget ? DateTime(text) : uuidTarget ? Uuid(text) : text;")
             .Line("if (value is global::System.DateOnly) return dateTarget ? Date(value) : null;")
@@ -146,6 +170,12 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("}")
             .Line("return false;")
             .EndBlock()
+            .Summary("Resolves a declared public-property path as a policy target.")
+            .Parameter("value", "The object owning the path.").Parameter("path", "The dot-separated public-property path.")
+            .Parameter("uuidTarget", "Whether the target requires canonical UUID text.")
+            .Parameter("dateTarget", "Whether the target requires canonical date text.")
+            .Parameter("dateTimeTarget", "Whether the target requires canonical date-time text.")
+            .Returns("The target text, or null when the path is unavailable or unsupported.")
             .OpenBlock("public static string? Path(object? value, string path, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
             .Line("foreach (var segment in path.Split('.'))")
             .Line("{")
@@ -154,6 +184,13 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("}")
             .Line("return Value(value, uuidTarget, dateTarget, dateTimeTarget);")
             .EndBlock()
+            .Summary("Resolves a declared query argument or its public-property path as a policy target.")
+            .Parameter("context", "The query authorization context.").Parameter("argument", "The declared query argument name.")
+            .Parameter("path", "The target path beginning with the argument name.")
+            .Parameter("uuidTarget", "Whether the target requires canonical UUID text.")
+            .Parameter("dateTarget", "Whether the target requires canonical date text.")
+            .Parameter("dateTimeTarget", "Whether the target requires canonical date-time text.")
+            .Returns("The target text, or null when the query argument is unavailable or unsupported.")
             .OpenBlock("public static string? Query(global::Cratis.Arc.Authorization.AuthorizationPolicyContext context, string argument, string path, bool uuidTarget = false, bool dateTarget = false, bool dateTimeTarget = false)")
             .Line("if (context.Target is not global::System.Reflection.MethodInfo method || !method.GetParameters().Any(parameter => string.Equals(parameter.Name, argument, global::System.StringComparison.Ordinal)) ||")
             .Line("    context.Resource is not global::Cratis.Arc.Queries.QueryContext { Arguments: { } arguments } || !arguments.TryGetValue(argument, out var key)) return null;")

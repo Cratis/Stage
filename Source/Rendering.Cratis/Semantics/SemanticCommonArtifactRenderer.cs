@@ -60,6 +60,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.Scope([], type.Properties.Select(property => Identifiers.ToPascalCase(property.Name)));
         var parameters = string.Join(", ", type.Properties.Select(_ => $"{types.Type(_.Type)} {Identifiers.ToPascalCase(_.Name)}"));
         context.Docs(type.Id).Render(builder, $"Represents {Identifiers.ToWords(type.Name)}.")
+            .Parameters(type.Properties)
             .Line($"public record {name}({parameters});");
         return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }
@@ -77,7 +78,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.Summary($"Represents the possible values of {name}.").OpenBlock($"public enum {name}");
         foreach (var member in SemanticEnumMembers.Declarations(concept))
         {
-            builder.Line($"{member},");
+            builder.Summary($"The {Identifiers.ToWords(member)} value.").Line($"{member},");
         }
 
         builder.EndBlock();
@@ -99,24 +100,32 @@ internal static class SemanticCommonArtifactRenderer
         builder.Inherits(isIdentifier ? "Cratis.Chronicle.Events.EventSourceId`1" : "Cratis.Concepts.ConceptAs`1");
         var baseType = isIdentifier ? $"{builder.Type(new("Cratis.Chronicle.Events", "EventSourceId", 1, ReferenceContext.Type))}<{primitive}>" : $"{builder.Type(new("Cratis.Concepts", "ConceptAs", 1, ReferenceContext.Type))}<{primitive}>";
         var generationInterface = GenerationInterface(concept, context, builder);
-        builder.Summary($"Represents {Identifiers.ToWords(concept.Name)}.");
+        context.Docs(concept.Id).Render(builder, $"Represents {Identifiers.ToWords(concept.Name)}.")
+            .Parameter("Value", "The underlying value.");
         if (!declarationOnly) ConceptComplianceRendering.Render(builder, concept.Compliance);
         builder.OpenBlock($"public record {name}({primitive} Value) : {baseType}(Value){generationInterface}")
+            .Summary($"Represents an unset {Identifiers.ToWords(concept.Name)}.")
             .Line($"public static readonly {name} NotSet = new({types.NotSet(concept.Primitive)});")
             .BlankLine();
 
         RenderFactory(builder, concept, context, declarationOnly);
         if (!isIdentifier)
         {
-            builder.Line($"public static implicit operator {primitive}({name} value) => value.Value;");
+            builder.Summary("Converts the concept to its underlying value.")
+                .Parameter("value", "The concept to convert.").Returns("The underlying value.")
+                .Line($"public static implicit operator {primitive}({name} value) => value.Value;");
         }
 
-        builder.Line($"public static implicit operator {name}({primitive} value) => new(value);");
+        builder.Summary($"Converts a value to {name}.")
+            .Parameter("value", "The underlying value.").Returns("The concept wrapping the value.")
+            .Line($"public static implicit operator {name}({primitive} value) => new(value);");
         if (!isIdentifier)
         {
             foreach (var source in SemanticProjectionConversions.Into(concept, context))
             {
-                builder.Line($"public static implicit operator {name}({types.CommonType(source.Name)} value) => new(value.Value);");
+                builder.Summary($"Converts {Identifiers.ToWords(source.Name)} to {name}.")
+                    .Parameter("value", "The concept to convert.").Returns("The concept wrapping the value.")
+                    .Line($"public static implicit operator {name}({types.CommonType(source.Name)} value) => new(value.Value);");
             }
         }
 
@@ -153,7 +162,10 @@ internal static class SemanticCommonArtifactRenderer
         // IGeneratable, so the colliding factory implements the interface explicitly and the type keeps its name.
         var factory = name == "New" && IsGeneratable(concept, context) ? $"static {name} {GeneratableType(concept, context, builder)}.New" : $"public static {name} New";
         var implementation = declarationOnly ? "throw new global::System.NotImplementedException()" : $"new({value})";
-        builder.Line($"{factory}({parameters}) => {implementation};").BlankLine();
+        builder.Summary($"Creates a {Identifiers.ToWords(concept.Name)} using its modeled generation rule.");
+        if (usesContext) builder.Parameter("context", "The generation context.");
+        builder.Returns("The generated concept.")
+            .Line($"{factory}({parameters}) => {implementation};").BlankLine();
         if (!declarationOnly) SemanticGenerationRendering.RenderBody(builder, concept, context);
     }
 
@@ -170,7 +182,8 @@ internal static class SemanticCommonArtifactRenderer
             .Summary($"Validates {name}.")
             .OpenBlock($"public class {name}Validator : {builder.Type(new("Cratis.Arc.Validation", "ConceptValidator", 1, ReferenceContext.Type))}<{name}>");
         SemanticValidationRendering.RenderMatchFields(builder, concept.Validations, name);
-        builder.OpenBlock($"public {name}Validator()");
+        builder.Summary($"Initializes validation rules for {name}.")
+            .OpenBlock($"public {name}Validator()");
         foreach (var rule in concept.Validations)
         {
             if (SemanticValidationContextRuntime.IsBody(rule))

@@ -118,7 +118,12 @@ internal static class SemanticStateViewArtifactRenderer
                 builder.Line("// STAGE-DEGRADE-002: no projection or reducer builds this read model");
             }
 
-            context.Docs(readModel.Id).Render(builder);
+            context.Docs(readModel.Id).Render(builder, $"Represents {Identifiers.ToWords(readModel.Name)}.")
+                .Parameters(OrderedProperties(readModel.Properties));
+            if (SemanticVersionFeatures.HasCompositeKey(readModel))
+            {
+                builder.Parameter(SemanticCompositeKeyAdmission.KeyPropertyName, "The composite read-model key.");
+            }
             RenderProjectionAttributes(builder, readModel, context);
             RenderReducerAttributes(builder, readModel, located, context);
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
@@ -261,8 +266,20 @@ internal static class SemanticStateViewArtifactRenderer
 
     static CSharpCodeBuilder RenderQueryDocumentation(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticApplicationContext context)
     {
-        var documentation = context.Docs(query.Id).Render(builder.BlankLine())
-            .Attribute(SemanticAuthorizationAttributes.For(query, context));
+        var documentation = context.Docs(query.Id).Render(builder.BlankLine(), $"Queries {Identifiers.ToWords(context.ReadModels[query.ReadModel].Name)} through {context.MemberNames.Query(query)}.");
+        if (!context.PerformedQueries.Contains(query.Id))
+        {
+            documentation.Parameter("readModels", "The read-model store.");
+            if (query.Argument is { } argument)
+            {
+                documentation.Parameter(QueryArgument.For(argument, new SemanticTypeSystem(context)).Name, $"The {Identifiers.ToWords(argument.Name)} to query.");
+            }
+            foreach (var filter in query.Filters)
+            {
+                documentation.Parameter(Identifiers.EscapeKeyword(Identifiers.ToCamelCase(filter.Name)), $"The {Identifiers.ToWords(filter.Name)} filter.");
+            }
+        }
+        documentation.Returns("The matching read-model result.").Attribute(SemanticAuthorizationAttributes.For(query, context));
         if (context.MemberNames.Query(query) != Identifiers.ToPascalCase(query.Name))
         {
             var path = GeneratedApiRoutes.QueryPath(SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(query.Id).Path), Identifiers.ToPascalCase(query.Name));

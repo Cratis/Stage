@@ -22,8 +22,9 @@ public class when_preserving_state_change_bytes : given.an_automation
         }
 
         /// <summary>
-        /// The event that occurs when started.
+        /// Records that started.
         /// </summary>
+        /// <param name="Value">The value.</param>
         [EventType]
         public record Started(string Id, decimal Amount);
 

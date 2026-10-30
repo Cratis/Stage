@@ -99,6 +99,7 @@ internal static class SemanticStateViewArtifactRenderer
 
             firstModel = false;
             var projection = context.Projections.Values.SingleOrDefault(_ => _.ReadModel == readModel.Id);
+            var modelBound = projection is not null && ModelBoundProjectionEligibility.CanRender(projection, readModel, context);
             var transition = projection?.Scope is null && projection is not null ? projection.Transitions.Single() : null;
             var @event = transition is null ? null : context.Events[transition.EventContract];
             var queries = located.Slice.Queries.Where(_ => _.ReadModel == readModel.Id).ToArray();
@@ -106,6 +107,11 @@ internal static class SemanticStateViewArtifactRenderer
             if (@event is not null)
             {
                 builder.Attribute($"global::Cratis.Chronicle.Projections.ModelBound.FromEventAttribute<{types.EventType(@event)}>");
+            }
+
+            if (modelBound)
+            {
+                ModelBoundProjectionRenderer.Attributes(builder, projection!.Scope!, readModel, context);
             }
 
             var reducer = located.Slice.Reducers.SingleOrDefault(candidate => candidate.ReadModel == readModel.Id);
@@ -119,9 +125,14 @@ internal static class SemanticStateViewArtifactRenderer
                 // A migrated model keeps the previous classic reducer's observer, so Chronicle never starts a new one.
                 builder.Attribute($"global::Cratis.Chronicle.Reducers.ReducerAttribute({CSharpCodeBuilder.StringLiteral(observerId)})");
             }
-            builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute")
-                .OpenBlock(transition is null ? ModelDeclaration(readModel, types, queries, reducer is not null) :
-                    $"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne))})");
+            var declaration = transition is null
+                ? ModelDeclaration(readModel, types, queries, reducer is not null)
+                : $"public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(readModel, transition, @event!, types, queries.FirstOrDefault(query => query.Cardinality == SemanticQueryCardinality.ZeroOrOne))})";
+            if (modelBound)
+            {
+                declaration = $"public record {Identifiers.ToPascalCase(readModel.Name)}({ModelBoundProjectionRenderer.Parameters(projection!.Scope!, readModel, context, queries)})";
+            }
+            builder.Attribute("global::Cratis.Arc.Queries.ModelBound.ReadModelAttribute").OpenBlock(declaration);
             foreach (var query in queries)
             {
                 RenderQuery(builder, query, readModel, types, context);
@@ -138,7 +149,7 @@ internal static class SemanticStateViewArtifactRenderer
                 builder.BlankLine().Raw(CompositeKeyRecord(readModel, types));
             }
 
-            if (projection?.Scope is { } scope)
+            if (!modelBound && projection?.Scope is { } scope)
             {
                 builder.BlankLine().Raw(SemanticScopedProjectionRenderer.Render(projection, readModel, scope, context));
             }

@@ -26,6 +26,8 @@ public class when_selecting_self_reducing_rendering
         Assert.True(scaffold.Success, string.Join(Environment.NewLine, scaffold.Diagnostics));
         var config = Assert.Single(scaffold.Artifacts, artifact => artifact.RelativePath == ReducerConventionInput.RelativePath);
         var reloaded = CratisRendering.WithReducerConvention(CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), ReducerConventionInput.Read("Projects", Text(config)));
+        var projectionConfig = Assert.Single(scaffold.Artifacts, artifact => artifact.RelativePath == ProjectionConventionInput.RelativePath);
+        reloaded = CratisRendering.WithProjectionConvention(reloaded, ProjectionConventionInput.Read("Projects", Text(projectionConfig)));
         Assert.Equal(profile.Inputs.Select(input => (input.Name, input.Version, input.Sha256)), reloaded.Inputs.Select(input => (input.Name, input.Version, input.Sha256)));
         var loaded = await when_rendering_a_pure_reducer.Load(Source);
         Assert.Equal(Plan(loaded, profile).Digest, Plan(loaded, reloaded).Digest);

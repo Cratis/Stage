@@ -16,7 +16,7 @@ internal static class CratisScaffoldArtifacts
     {
         var strings = StringsCatalogInput.From(profile);
         var sceneName = $"cratis-scaffold:text:{SceneCompositionInput.RelativePath}";
-        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name and not ScreenPartitionsInput.Name and not ReducerConventionInput.Name and not ReducerMigrationInput.Name and not RefusalModeInput.Name))
+        foreach (var input in profile.Inputs.Where(input => input.Name != sceneName && input.Name is not StringsCatalogInput.Name and not AuthoringMetadataInput.Name and not DomainPlacementInput.Name and not ScreenPartitionsInput.Name and not ProjectionConventionInput.Name and not ReducerConventionInput.Name and not ReducerMigrationInput.Name and not RefusalModeInput.Name))
         {
             if (!CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact))
             {
@@ -31,6 +31,11 @@ internal static class CratisScaffoldArtifacts
         if (profile.Inputs.SingleOrDefault(input => input.Name == ReducerConventionInput.Name) is { } convention)
         {
             yield return PlannedArtifact.CreateText(ReducerConventionInput.RelativePath, Encoding.UTF8.GetString(convention.Bytes.AsSpan()), sources);
+        }
+
+        if (profile.Inputs.SingleOrDefault(input => input.Name == ProjectionConventionInput.Name) is { } projectionConvention)
+        {
+            yield return PlannedArtifact.CreateText(ProjectionConventionInput.RelativePath, Encoding.UTF8.GetString(projectionConvention.Bytes.AsSpan()), sources);
         }
 
         if (strings is not null)

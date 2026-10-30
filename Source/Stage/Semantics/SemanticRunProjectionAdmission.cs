@@ -312,15 +312,24 @@ internal static partial class SemanticRunProjectionAdmission
             scope.Children.All(nested => ChildrenSupported(plan, specification, nested, properties, identity));
     }
 
-    // Stage lowers every event-source identity to text, so Chronicle's join would match Text "1" with Number 1,
-    // while the reference keeps them distinct. Admit a join only when its event's identities have the joined key's type.
+    // Stage lowers identities to text; retain the reference's value types for either source or property correlation.
     static bool JoinIdentityMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionJoin join, System.Collections.Immutable.ImmutableArray<SemanticProperty> properties, SemanticId? childIdentity) =>
-        join.Key is null &&
-        (childIdentity is null || join.On == childIdentity) &&
+        (childIdentity is null || (join.Key is null && join.On == childIdentity)) &&
         properties.SingleOrDefault(property => property.Id == join.On) is { Type: { IsCollection: false } onType } &&
         IsScalar(onType) &&
         Primitive(plan, onType) is SemanticPrimitiveType.Text or SemanticPrimitiveType.Uuid &&
-        ScopedKeysMatch(plan, specification, join.EventContract, onType);
+        JoinKeyMatches(plan, specification, join, onType);
+
+    static bool JoinKeyMatches(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionJoin join, SemanticTypeReference onType) =>
+        join.Key switch
+        {
+            null => ScopedKeysMatch(plan, specification, join.EventContract, onType),
+            SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var key] } } =>
+                plan.Events[join.EventContract].Properties.Single(property => property.Id == key) is { Type: { IsOptional: false, IsCollection: false } } source &&
+                IsScalar(source.Type) && SourceTypeMatches(plan, source.Type, onType) &&
+                ScopedKeysMatch(plan, specification, join.EventContract, onType, key),
+            _ => false
+        };
 
     static bool ChildJoinIdentitiesMatch(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticProjectionChildren child, System.Collections.Immutable.ImmutableArray<SemanticProperty> parentProperties)
     {

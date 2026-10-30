@@ -24,6 +24,7 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
     [Fact] void should_have_no_gap_on_any_surface() => Assert.True(fixture.Gaps.Count == 0, $"{fixture.Gaps.Count} gaps (exception, untyped refusal, partial or silent outcome):{Environment.NewLine}{string.Join(Environment.NewLine, fixture.Gaps)}");
     [Fact] void should_match_the_expected_outcome_of_every_cell() => Assert.True(fixture.Mismatches.Count == 0, $"{fixture.Mismatches.Count} cells differ from conformance-matrix.json:{Environment.NewLine}{string.Join(Environment.NewLine, fixture.Mismatches)}");
     [Fact] void should_load_only_the_per_refusal_schema() => Assert.True(fixture.Expected.SchemaProblems.Count == 0, string.Join(Environment.NewLine, fixture.Expected.SchemaProblems));
+    [Fact] void should_admit_the_golden_property_keyed_root_joins() => Assert.Empty(fixture.PropertyKeyedRootJoinRefusals);
     [Fact] void should_record_every_refusal_exactly() => Assert.True(fixture.RecordProblems.Count == 0, string.Join(Environment.NewLine, fixture.RecordProblems));
     [Fact] void should_give_every_refusal_one_disposition() => Assert.True(fixture.DispositionProblems.Count == 0, string.Join(Environment.NewLine, fixture.DispositionProblems));
     [Fact] void should_compile_every_published_render() => Assert.True(fixture.UntrackedCompileErrors.Count == 0, string.Join(Environment.NewLine, fixture.UntrackedCompileErrors));
@@ -76,6 +77,12 @@ public class when_running_every_canonical_vector(when_running_every_canonical_ve
         public IReadOnlyList<string> VectorsWithoutRows => [.. Actual.Keys.Where(name => !Expected.Vectors.ContainsKey(name))];
 
         public IReadOnlyList<string> RowsWithoutVectors => [.. Expected.Vectors.Keys.Where(name => !Actual.ContainsKey(name))];
+
+        public IReadOnlyList<refusal_fingerprint> PropertyKeyedRootJoinRefusals => [.. Enumerable.Range(1, 24)
+            .SelectMany(version => Actual[$"EsmGoldenVectors.V{version}"][conformance_surface.Renderer].Refusals)
+            .Where(refusal => refusal.Code == "STAGE-ESM-017" &&
+                (refusal.Artifact == "sem1:00000000000000000000000000000000000000000000000000000000000001b8" ||
+                 refusal.Artifact == "sem1:00000000000000000000000000000000000000000000000000000000000001b9"))];
 
         public IReadOnlyList<string> Gaps => [.. Cells().Where(cell => cell.Actual.Outcome.StartsWith("gap:", StringComparison.Ordinal)).Select(cell => $"  {cell.Vector} / {cell.Surface}: {cell.Actual.Outcome}")];
 

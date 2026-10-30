@@ -53,6 +53,12 @@ export interface StageQueryRequest {
 export interface StageQueryResult {
     rows: Record<string, unknown>[];
     loading: boolean;
+
+    /**
+     * The query has held no rows since it was shown, and a command that just succeeded may still be projecting the one it is waiting for -
+     * a list opened right after adding to it. Until the command's reads settle, an empty answer is not yet the answer.
+     */
+    awaitingCommand: boolean;
     error: string;
     refresh: () => void;
 }
@@ -96,6 +102,9 @@ export interface StageDataState {
     queryResults: Record<string, unknown>;
     refreshQuery: (query?: string) => void;
     refreshAfterCommand: () => void;
+
+    /** A command succeeded and its queries are still being read again while its projections catch up (see `commandSettleDelays`). */
+    settling: boolean;
     resolveBinding: (binding: BindingExpression | string | undefined) => unknown;
     /**
      * Resolves a command argument source the way Scene does: `component.<id>.<output>` reads what another
@@ -128,6 +137,7 @@ const emptyState: StageDataState = {
     queryResults: {},
     refreshQuery: () => undefined,
     refreshAfterCommand: () => undefined,
+    settling: false,
     resolveBinding: () => undefined,
     resolveArgument: () => undefined,
     registerQueryResult: () => undefined,
@@ -136,8 +146,12 @@ const emptyState: StageDataState = {
 
 const StageDataContext = createContext<StageDataState>(emptyState);
 
-/** When, after a command's own refresh, its queries are read again so an asynchronous projection has caught up. */
-export const commandSettleDelays = [500, 1500, 3000];
+/**
+ * When, after a command's own refresh, its queries are read again so an asynchronous projection has caught up. A projection under load can take
+ * several seconds (Stage#720), so the reads go on for a while; the last delay is how long a list opened after the command waits before it
+ * says it is empty.
+ */
+export const commandSettleDelays = [500, 1500, 3000, 6000, 10000, 15000];
 
 export interface StageDataProviderProps {
     routes: StageRoutes | undefined;
@@ -214,10 +228,22 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     // read the read model one event behind. Reading again once the projection has had time to run is what makes
     // the screen show what the command did; a stale response is still discarded by the query's own sequencing.
     const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const commandsSettling = useRef(0);
+    const [settling, setSettling] = useState(false);
     const refreshAfterCommand = useCallback(() => {
         setSessionVersion(current => current + 1);
         refreshQuery();
-        for (const delay of commandSettleDelays) settleTimers.current.push(setTimeout(() => refreshQuery(), delay));
+        commandsSettling.current += 1;
+        setSettling(true);
+        const last = commandSettleDelays[commandSettleDelays.length - 1];
+        for (const delay of commandSettleDelays) {
+            settleTimers.current.push(setTimeout(() => {
+                refreshQuery();
+                if (delay !== last) return;
+                commandsSettling.current -= 1;
+                if (commandsSettling.current === 0) setSettling(false);
+            }, delay));
+        }
     }, [refreshQuery]);
     useEffect(() => () => settleTimers.current.forEach(clearTimeout), []);
 
@@ -290,12 +316,13 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         queryResults,
         refreshQuery,
         refreshAfterCommand,
+        settling,
         resolveBinding,
         resolveArgument,
         registerQueryResult,
         refreshVersion: refreshRequests.version,
         refreshQueryName: refreshRequests.query,
-    }), [clearSelection, locale, locales, queries, refreshAfterCommand, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
+    }), [clearSelection, locale, locales, queries, refreshAfterCommand, settling, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
 
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
@@ -303,20 +330,24 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
 export const useStageData = (): StageDataState => useContext(StageDataContext);
 
 export function useStageQuery(request: StageQueryRequest): StageQueryResult {
-    const { refreshQueryName, refreshVersion, registerQueryResult } = useStageData();
+    const { refreshQueryName, refreshVersion, registerQueryResult, settling } = useStageData();
     const arc = useContext(ArcContext);
     const publish = request.publish !== false;
     const publishResult = useCallback((scope: string, state: QueryState | undefined) => {
         if (publish) registerQueryResult(scope, state);
     }, [publish, registerQueryResult]);
+    const ready = request.ready ?? true;
+    const active = !!request.name && ready;
     const [rows, setRows] = useState<Record<string, unknown>[]>([]);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+
+    // A query that will be read is loading from its first render: the read starts in an effect, and nothing has answered yet.
+    const [loading, setLoading] = useState(active);
     const [localRefresh, setLocalRefresh] = useState(0);
     const latest = useRef(0);
     const liveOpen = useRef(false);
-    const ready = request.ready ?? true;
-    const active = !!request.name && ready;
+    const hadRows = useRef(false);
+    if (rows.length > 0) hadRows.current = true;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {
@@ -426,7 +457,8 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         });
     }, [active, argumentsKey, error, loading, publishResult, request.alias, request.list, request.name, request.route, request.scope, rows]);
 
-    return { rows, loading, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
+    const awaitingCommand = active && settling && !error && rows.length === 0 && !hadRows.current;
+    return { rows, loading, awaitingCommand, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
 }
 
 export function dataChanged() {

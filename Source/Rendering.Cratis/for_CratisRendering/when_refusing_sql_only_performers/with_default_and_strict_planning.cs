@@ -55,7 +55,7 @@ public class with_default_and_strict_planning : given.a_source_plan
     {
         Assert.Empty(result.Artifacts);
         Assert.Empty(result.ImplementationGaps);
-        Assert.Empty(result.Plan!.Artifacts);
+        Assert.Empty(result.Plan.Artifacts);
         Assert.Empty(result.Plan.ImplementationGaps);
     });
 }

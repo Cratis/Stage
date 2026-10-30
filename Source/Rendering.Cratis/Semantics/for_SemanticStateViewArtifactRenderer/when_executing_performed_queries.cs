@@ -109,18 +109,18 @@ public class when_executing_performed_queries
         var method = Method(loaded);
         var (_, row) = Rows(method);
         var (_, secondRow) = Rows(method);
-        var rows = Array.CreateInstance(method.DeclaringType!, 2);
+        var rows = Array.CreateInstance(method.DeclaringType, 2);
         rows.SetValue(row, 0);
         rows.SetValue(secondRow, 1);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"]);
         await task;
-        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Collection(result.Cast<object>(), item => Assert.Same(row, item), item => Assert.Same(secondRow, item));
-        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"])!;
+        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"]);
         await unmatched;
-        var empty = (System.Collections.IEnumerable)unmatched.GetType().GetProperty("Result")!.GetValue(unmatched)!;
+        var empty = (System.Collections.IEnumerable)unmatched.GetType().GetProperty("Result").GetValue(unmatched);
         Assert.Empty(empty.Cast<object>());
     }
 
@@ -140,7 +140,7 @@ public class when_executing_performed_queries
         Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
         Assert.Contains("StagePerformer_FindPeople.Perform(", rendered, StringComparison.Ordinal);
         var method = Method(loaded);
-        var helper = method.DeclaringType!.GetNestedType("StagePerformer_FindPeople", BindingFlags.NonPublic)!;
+        var helper = method.DeclaringType.GetNestedType("StagePerformer_FindPeople", BindingFlags.NonPublic);
         Assert.NotNull(helper);
         Assert.True(helper.IsNestedPrivate);
         Assert.True(helper.IsAbstract && helper.IsSealed);
@@ -179,12 +179,12 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"]);
         await task;
-        Assert.Same(row, task.GetType().GetProperty("Result")!.GetValue(task));
-        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"])!;
+        Assert.Same(row, task.GetType().GetProperty("Result").GetValue(task));
+        var unmatched = (Task)method.Invoke(null, [.. Dependencies(readModels), "Other"]);
         await unmatched;
-        Assert.Null(unmatched.GetType().GetProperty("Result")!.GetValue(unmatched));
+        Assert.Null(unmatched.GetType().GetProperty("Result").GetValue(unmatched));
     }
 
     [Fact]
@@ -197,9 +197,9 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), null])!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), null]);
         await task;
-        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
@@ -253,9 +253,9 @@ public class when_executing_performed_queries
         var (rows, row) = Rows(method);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"]);
         await task;
-        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
@@ -304,9 +304,9 @@ public class when_executing_performed_queries
         ((IQueryContextManager)dependencies[1]).Current.Returns(QueryContext.NotSet);
         ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns((ClaimsPrincipal?)null);
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"]);
         await task;
-        var snapshot = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var snapshot = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Same(row, Assert.Single(snapshot.Cast<object>()));
     }
 
@@ -320,13 +320,13 @@ public class when_executing_performed_queries
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
         var dependencies = Dependencies(readModels);
         var authorizedContext = QueryContext.NotSet with { ReceivedAt = DateTimeOffset.MinValue };
-        typeof(QueryContext).GetProperty(nameof(QueryContext.AuthorizedPrincipal))!.SetValue(authorizedContext,
+        typeof(QueryContext).GetProperty(nameof(QueryContext.AuthorizedPrincipal)).SetValue(authorizedContext,
             new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Ada")], "authorized")));
         ((IQueryContextManager)dependencies[1]).Current.Returns(authorizedContext);
         ((ICurrentPrincipalAccessor)dependencies[3]).Current.Returns(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "Other")], "ambient")));
-        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. dependencies, "Ada"]);
         await task;
-        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
@@ -357,7 +357,7 @@ public class when_executing_performed_queries
         var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
         Assert.Contains(loaded.Model.Application.Concepts.Single(concept => concept.Name == "PersonId").Id, context.IdentifierConcepts);
         var method = Method(loaded);
-        var constructor = method.DeclaringType!.GetConstructors().Single();
+        var constructor = method.DeclaringType.GetConstructors().Single();
         var properties = constructor.GetParameters();
         var row = constructor.Invoke([
             Activator.CreateInstance(properties[0].ParameterType, Guid.NewGuid()),
@@ -367,9 +367,9 @@ public class when_executing_performed_queries
         rows.SetValue(row, 0);
         var readModels = Substitute.For<IReadModels>();
         SupplyMethod(nameof(Supply), method).Invoke(null, [readModels, rows]);
-        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"])!;
+        var task = (Task)method.Invoke(null, [.. Dependencies(readModels), "Ada"]);
         await task;
-        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result")!.GetValue(task)!;
+        var result = (System.Collections.IEnumerable)task.GetType().GetProperty("Result").GetValue(task);
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
@@ -444,7 +444,7 @@ public class when_executing_performed_queries
     }
 
     static ArtifactRenderRequest Request(LoadedSemanticModel loaded) =>
-        new(loaded.Model, SemanticExecutionPlan.Compile(loaded.Model).Plan!, CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        new(loaded.Model, SemanticExecutionPlan.Compile(loaded.Model).Plan, CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = loaded.ImplementationContents,
@@ -506,7 +506,7 @@ public class when_executing_performed_queries
 
     static (Array Rows, object Row) Rows(MethodInfo method)
     {
-        var model = method.DeclaringType!;
+        var model = method.DeclaringType;
         var constructor = model.GetConstructors().Single(candidate => candidate.GetParameters().Length == 2);
         var values = constructor.GetParameters().Select(parameter => parameter.ParameterType == typeof(Guid) ? (object)Guid.NewGuid() : "Ada").ToArray();
         var row = constructor.Invoke(values);
@@ -516,7 +516,7 @@ public class when_executing_performed_queries
     }
 
     static MethodInfo SupplyMethod(string name, MethodInfo query) =>
-        typeof(when_executing_performed_queries).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(query.DeclaringType!);
+        typeof(when_executing_performed_queries).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(query.DeclaringType);
 
     static void Supply<T>(IReadModels readModels, Array rows)
         where T : class => readModels.GetInstances<T>().Returns(Task.FromResult(rows.Cast<T>().AsEnumerable()));

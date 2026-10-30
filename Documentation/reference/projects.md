@@ -26,6 +26,26 @@ The worker isolates accidental loops, crashes and excessive allocation in truste
 model code. The execute role has a managed heap limit plus a working-set watchdog; this
 is not an OS memory cap or a security boundary for hostile multi-tenant code.
 
+### Reusing body execution for an on-disk root
+
+`Cratis.Stage.Contracts.Execution.ModelRootBodyExecution` implements
+`ISemanticBodyExecutionProviderFactory` for a model folder. Construct it with the root
+and `BodyWorkerOptions`, and dispose it asynchronously when the host shuts down.
+Construction starts background compilation; the first `CreateAsync` awaits it.
+Unchanged roots reuse the manifest and execute worker. Changed files trigger one new
+compilation; existing runs retain their previous worker until they are disposed.
+
+The factory reads an existing `.screenplay/identities.json` without modifying it.
+Its change fingerprint uses relative paths, lengths and UTC modification times. It
+ignores `.git`, `.ai-work`, `bin`, `obj`, `node_modules`, `.screenplay/notes.json`
+and `.screenplay/release-baseline.json`. Compile failures become unsupported-body
+diagnostics rather than escaping from run creation.
+
+`BodyWorkerLaunch.ForCurrentProcess(verb)` relaunches a host with its hidden worker
+verb. It prepends the entry assembly only when the executable is `dotnet`; apphosts
+and installed tools receive the verb directly. The host must dispatch that verb to
+its worker implementation.
+
 ## What Stage does with the folder
 
 1. **Discovers** every `.play` file beneath the folder, recursively — the glob is `**/*.play`, so nesting is

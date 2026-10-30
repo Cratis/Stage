@@ -11,6 +11,11 @@ public class when_preserving_state_change_bytes : given.an_automation
     const string Expected = """
         namespace Reactions.Work.Processing.Start;
 
+        /// <summary>
+        /// Represents the StartWork command.
+        /// </summary>
+        /// <param name="Id">The id.</param>
+        /// <param name="Amount">The amount.</param>
         [Command]
         [AllowAnonymous]
         public record StartWork(string Id, decimal Amount) : ICanProvideEventSourceId
@@ -18,13 +23,18 @@ public class when_preserving_state_change_bytes : given.an_automation
             /// <inheritdoc/>
             public EventSourceId GetEventSourceId() => Id;
 
+            /// <summary>
+            /// Handles the StartWork command.
+            /// </summary>
+            /// <returns>The modeled command outcome.</returns>
             public Started Handle() => new(Id, Amount);
         }
 
         /// <summary>
         /// Records that started.
         /// </summary>
-        /// <param name="Value">The value.</param>
+        /// <param name="Id">The id.</param>
+        /// <param name="Amount">The amount.</param>
         [EventType]
         public record Started(string Id, decimal Amount);
 

@@ -48,7 +48,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         _result = await From("performer.play");
         var loaded = await SemanticModelLoader.LoadAsync(_root, [], null, _planOptions.ApplicationName);
         Assert.True(loaded.Success, string.Join("; ", loaded.Diagnostics));
-        var model = loaded.Loaded!;
+        var model = loaded.Loaded;
         Assert.NotNull(model.IdentityCatalog);
         _catalog = model.IdentityCatalog;
         var projects = model.Model.Application.Modules.Single(module => module.Name == "Projects");
@@ -94,7 +94,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
         Assert.Equal("808e870d1954437fa83b83745e01c5638eb673b44b08f7610caa7900494e7654", _defaultLegacy.Digest);
-        Assert.DoesNotContain(_normal.Plan!.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
+        Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);
         Assert.DoesNotContain(_normal.Plan.Artifacts, IsReport);
@@ -106,7 +106,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.NotNull(_normal.Plan);
         Assert.NotEmpty(_normal.Artifacts);
         Assert.True(_normal.Plan.Success);
-        Assert.True(_result.Plan!.Strict);
+        Assert.True(_result.Plan.Strict);
         Assert.True(_result.Plan.CanPublishArtifacts);
         Assert.False(_result.Plan.Success);
         Assert.Equal(ArtifactRenderOutcome.Degraded, _result.Plan.Outcome);
@@ -123,12 +123,12 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         foreach (var diagnostic in source)
         {
             Assert.NotNull(diagnostic.Source);
-            Assert.Contains(_result.Plan!.Diagnostics, actual => actual.Code == diagnostic.Code && actual.Message == $"{diagnostic.Source}: {diagnostic.Message}");
+            Assert.Contains(_result.Plan.Diagnostics, actual => actual.Code == diagnostic.Code && actual.Message == $"{diagnostic.Source}: {diagnostic.Message}");
         }
-        Assert.Contains(_result.Plan!.Diagnostics, diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        Assert.Contains(_result.Plan.Diagnostics, diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
         var original = _result.Plan.WithAcceptance(_result.Plan.Degradations);
         Assert.All(original.Degradations, evidence => Assert.Contains(evidence.Diagnostic, original.Diagnostics));
-        Assert.Equal(_normal.Plan!.InputVersions, original.InputVersions);
+        Assert.Equal(_normal.Plan.InputVersions, original.InputVersions);
         Assert.Equal(_normal.Plan.SemanticRevision, original.SemanticRevision);
         Assert.NotEqual(_normal.Plan.Digest, _result.Plan.Digest);
     }
@@ -159,7 +159,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
     [Fact]
     void should_transport_exact_catalog_locations_into_scoped_managed_reports()
     {
-        var plan = _result.Plan!;
+        var plan = _result.Plan;
         Assert.NotNull(plan.Inventory);
         Assert.NotEmpty(plan.Inventory.Constructs);
         var query = plan.Inventory.Constructs.Single(construct => construct.Identity == _performerRequirement.Source.SemanticId);
@@ -176,7 +176,7 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.True(json.RootElement.GetProperty("strict").GetBoolean());
         Assert.False(json.RootElement.GetProperty("success").GetBoolean());
         Assert.True(json.RootElement.GetProperty("canPublishArtifacts").GetBoolean());
-        Assert.Equal(ArtifactRenderReports.Create(plan, new(plan.InputVersions!, new([plan.InputVersions!]), [new(plan.Renderer, plan.RendererVersion)])).Completeness.Sha256, report.Sha256);
+        Assert.Equal(ArtifactRenderReports.Create(plan, new(plan.InputVersions, new([plan.InputVersions]), [new(plan.Renderer, plan.RendererVersion)])).Completeness.Sha256, report.Sha256);
         Assert.All(report.Sources, source => Assert.Contains(new[] { plan.Scope }.Concat(plan.AdditionalScopes), scope => scope.Artifact == source));
     }
 
@@ -227,13 +227,13 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
             Assert.True(expected.Sources.SequenceEqual(report.Sources));
             Assert.True(new[] { plan.Scope.Artifact }.Concat(plan.AdditionalScopes.Select(scope => scope.Artifact)).ToHashSet().SetEquals(report.Sources));
         }
-        Assert.NotEmpty(plan.Inventory!.Constructs.SelectMany(construct => construct.Degradations));
+        Assert.NotEmpty(plan.Inventory.Constructs.SelectMany(construct => construct.Degradations));
         using var json = JsonDocument.Parse(plan.Artifacts.Single(artifact => artifact.RelativePath == prefix + ".stage/completeness.json").Bytes.AsMemory());
         Assert.True(json.RootElement.GetProperty("strict").GetBoolean());
         Assert.False(json.RootElement.GetProperty("success").GetBoolean());
         Assert.True(json.RootElement.GetProperty("canPublishArtifacts").GetBoolean());
         Assert.Equal("Degraded", json.RootElement.GetProperty("outcome").GetString());
-        Assert.Equal(root.Inventory!.Constructs.Select(construct => (construct.Identity, construct.Outcome)), plan.Inventory.Constructs.Select(construct => (construct.Identity, construct.Outcome)));
+        Assert.Equal(root.Inventory.Constructs.Select(construct => (construct.Identity, construct.Outcome)), plan.Inventory.Constructs.Select(construct => (construct.Identity, construct.Outcome)));
         Assert.Equal(plan.Inventory.Constructs.Length, json.RootElement.GetProperty("inventory").GetProperty("constructs").GetArrayLength());
         foreach (var artifact in plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)))
         {

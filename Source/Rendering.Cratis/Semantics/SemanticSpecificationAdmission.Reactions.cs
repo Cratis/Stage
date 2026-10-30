@@ -79,8 +79,11 @@ internal static partial class SemanticSpecificationAdmission
         if (!HasRenderableReactionRoute(context, append))
             return "The append route's stream identity cannot be formatted portably.";
 
-        return IsReactionConstraintTarget(context, append.EventContract)
-            ? "The appended event is an append-time constraint target; a reactor scenario does not enforce that append." : null;
+        var constraints = context.Constraints.Select(selected => selected.Constraint)
+            .Where(constraint => constraint.Targets.Any(target => target.EventContract == append.EventContract) || constraint.ReleasedBy.Contains(append.EventContract))
+            .Select(constraint => $"'{constraint.Name}'").ToArray();
+        return constraints.Length > 0
+            ? $"Appended event '{context.Events[append.EventContract].Name}' participates in append-time constraint(s) {string.Join(", ", constraints)}; ReactorScenario delivers directly to the reactor and does not enforce the append. Keep this constraint and verify through an event-log append and settlement harness, or use a command specification that appends the event." : null;
     }
 
     static string? RefusalScenarioRejection(SemanticApplicationContext context, SemanticSpecification specification, SemanticReactionSpecification selected)
@@ -107,9 +110,16 @@ internal static partial class SemanticSpecificationAdmission
         }
 
         var commands = trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
-        if (commands.Any(command => command.Properties.Any(property => property.IsGenerated || !IsRefusalScalarType(property.Type))))
+        foreach (var command in commands)
         {
-            return "Refusal scenarios require scalar commands without generated fixtures.";
+            if (command.Properties.FirstOrDefault(property => property.IsGenerated) is { } generated)
+            {
+                return $"Invoked command '{command.Name}' generates property '{generated.Name}' inside a reaction with 'on refused' branches; the refusal scenario cannot supply a deterministic generated fixture to that invocation. Use a caller-supplied property, or verify the command separately with a pinned 'given generated {command.Name}.{generated.Name}' fixture until generated invocation fixtures are supported.";
+            }
+            if (command.Properties.FirstOrDefault(property => !IsRefusalScalarType(property.Type)) is { } property)
+            {
+                return $"Invoked command '{command.Name}' has non-scalar property '{property.Name}'; refusal scenarios require non-optional, non-collection primitive or concept properties.";
+            }
         }
 
         var products = SemanticReactionProductions.For(trigger).Concat(commands.SelectMany(command => command.Produces)).ToArray();

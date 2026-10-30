@@ -300,6 +300,7 @@ internal static partial class SemanticSpecificationAdmission
             return CompositeResponseRejection;
         }
 
-        return "The scenario cannot preserve all of its declared fixtures or expectations.";
+        return GivenProjectionKeysRejection(context, specification) ??
+            "The scenario cannot preserve all of its declared fixtures or expectations.";
     }
 }

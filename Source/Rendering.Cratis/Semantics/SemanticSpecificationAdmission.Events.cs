@@ -29,6 +29,29 @@ internal static partial class SemanticSpecificationAdmission
                 given.Values.SingleOrDefault(value => value.TargetProperty == key.Target)?.Value is { } propertyValue &&
                 given.EventSource is { } source && Equals(propertyValue, source.Value)));
 
+    static string? GivenProjectionKeysRejection(SemanticApplicationContext context, SemanticSpecification specification)
+    {
+        foreach (var given in specification.GivenEvents)
+        {
+            foreach (var projection in context.Projections.Values)
+            {
+                foreach (var transition in projection.Transitions.Where(transition => transition.EventContract == given.EventContract))
+                {
+                    if (transition.AffectedInstance.Key is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event } key &&
+                        given.Values.SingleOrDefault(value => value.TargetProperty == key.Target)?.Value is { } value &&
+                        Equals(value, given.EventSource?.Value))
+                    {
+                        continue;
+                    }
+
+                    return $"Given event '{context.Events[given.EventContract].Name}' feeds projection '{projection.Name}' with an instance key that is not a payload property equal to its explicit 'for' source. Generated command scenarios cannot preserve this projection fixture; model a matching payload key or verify it with an event-source-key-preserving projection scenario.";
+                }
+            }
+        }
+
+        return null;
+    }
+
     static bool CommandValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         ValuesMatch(
             specification.When!.Values,

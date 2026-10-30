@@ -63,6 +63,7 @@
     </ItemGroup>
     <PropertyGroup>
         <!-- BaseIntermediateOutputPath may already be absolute; NormalizeDirectory combines it safely. No trailing separator, so a quoted Windows path cannot end in an escaped quote. -->
+        <BodyWorkerArtifactsPath>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath), 'bodyworker-artifacts').TrimEnd('\').TrimEnd('/'))</BodyWorkerArtifactsPath>
         <SpecificationRunnerArtifactsPath>$([MSBuild]::NormalizeDirectory($(MSBuildProjectDirectory), $(BaseIntermediateOutputPath), 'specrunner-artifacts').TrimEnd('\').TrimEnd('/'))</SpecificationRunnerArtifactsPath>
     </PropertyGroup>
     <!--
@@ -73,6 +74,12 @@
     <Target Name="BuildSpecificationRunner" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
         <!-- The solution build owns analyzers for these projects; keep generators in this isolated publish. -->
         <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration Debug --output &quot;$(TargetDir)specrunner/&quot; --artifacts-path &quot;$(SpecificationRunnerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />
+    </Target>
+    <Target Name="BuildBodyWorker" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../BodyWorker/BodyWorker.csproj&quot; --configuration Debug --output &quot;$(TargetDir)bodyworker/&quot; --artifacts-path &quot;$(BodyWorkerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />
+    </Target>
+    <Target Name="PublishBodyWorker" AfterTargets="Publish">
+        <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../BodyWorker/BodyWorker.csproj&quot; --configuration $(Configuration) --output &quot;$(PublishDir)bodyworker/&quot; --artifacts-path &quot;$(BodyWorkerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />
     </Target>
     <!-- Publish in a separate probing directory: none of the runner's kernel/testing dependencies enter Host.deps.json. -->
     <Target Name="PublishSpecificationRunner" AfterTargets="Publish">

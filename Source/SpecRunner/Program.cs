@@ -4,6 +4,7 @@
 using System.Globalization;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Screenplay;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Contracts.Specifications.Semantic;
@@ -48,7 +49,7 @@ public static partial class Program
 
         if (string.Equals(arguments.Engine, "semantic", StringComparison.OrdinalIgnoreCase))
         {
-            return await RunSemantic(arguments, output, error);
+            return await RunSemantic(arguments, args, output, error);
         }
 
         if (!string.Equals(arguments.Engine, "structural", StringComparison.OrdinalIgnoreCase))
@@ -63,6 +64,7 @@ public static partial class Program
         try
         {
             model = await load(arguments.ModelPath);
+            ProtectedCommandReadsAdmission.EnsureExecutableBy(model, arguments.ModelPath, "structural");
         }
         catch (InvalidEventModel exception)
         {
@@ -86,7 +88,18 @@ public static partial class Program
         return 0;
     }
 
-    static async Task<int> RunSemantic(SpecRunnerArguments arguments, TextWriter output, TextWriter error)
+    internal static BodyWorkerOptions? ParseBodyWorkerOptions(string[] args) => BodyWorkerOptions.FromArguments(args);
+
+    static async Task<SemanticBodyExecution?> CompileBodies(LoadedSemanticModel loaded, SpecRunnerArguments arguments, string[] args)
+    {
+        var options = ParseBodyWorkerOptions(args);
+        if (options is null || loaded.ImplementationRequirements.Length == 0) return null;
+        await using var worker = new BodyWorkerSupervisor(options);
+        var manifest = await worker.CompileAsync(arguments.ModelPath, arguments.CatalogPath, loaded.Model.Application.Name);
+        return SemanticBodyExecution.From(loaded, manifest, () => new BodyWorkerSupervisor(options, manifest));
+    }
+
+    static async Task<int> RunSemantic(SpecRunnerArguments arguments, string[] args, TextWriter output, TextWriter error)
     {
         if (arguments.HasStructuralFilter)
         {
@@ -110,7 +123,12 @@ public static partial class Program
         try
         {
             var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName);
-            var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions { SpecificationOrigins = loaded.SpecificationOrigins });
+            var bodies = await CompileBodies(loaded, arguments, args);
+            var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions
+            {
+                SpecificationOrigins = loaded.SpecificationOrigins,
+                BodyExecution = bodies
+            });
             await SemanticSpecificationRunReportFile.WriteToFile(result, arguments.OutputPath);
             await output.WriteLineAsync($"Ran {result.Results.Count} semantic specification(s). Results written to {arguments.OutputPath}.");
             return 0;

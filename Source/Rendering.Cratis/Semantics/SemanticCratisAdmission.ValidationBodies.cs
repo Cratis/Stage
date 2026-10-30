@@ -40,10 +40,15 @@ internal static partial class SemanticCratisAdmission
         }
         var requirement = context.Request.ImplementationRequirements.SingleOrDefault(requirement => requirement.RequirementId == requirementId);
         if (requirement is null || requirement.Role != role || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
-            requirement.RequiredCapability != "pure" || !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
+            requirement.RequiredCapability != "pure" || SemanticImplementationBodySelector.Select(requirement).Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage)
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"Validation '{name ?? requirementId}' has an unsupported envelope or language.", owner));
+            return;
+        }
+        var operation = role == SemanticImplementationRole.RulePredicate ? "Rule predicate" : "Code validation";
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, owner, $"{operation} for '{name ?? requirementId}'") is { } language)
+        {
+            diagnostics.Add(language);
             return;
         }
         var descriptors = context.Request.TypedContextDescriptors.Where(descriptor => descriptor.RequirementId == requirementId && descriptor.OperationId == owner).ToArray();

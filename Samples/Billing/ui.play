@@ -1,6 +1,6 @@
 theme Corporate
   compatible with core
-  compatible with primereact
+  compatible with PrimeReact
 
 theme HighContrast
   compatible with core
@@ -56,7 +56,7 @@ ui profile Desktop
   target size expanded
   packages
     core
-    primereact
+    PrimeReact
   root template AppShell
   theme Corporate
   sample data

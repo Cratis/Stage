@@ -29,7 +29,7 @@ internal static partial class SemanticSpecificationAdmission
         {
             return true;
         }
-        if (specification.ThenAbsentReadModels.IsEmpty || !specification.ThenQueries.IsEmpty ||
+        if (!HasProjectedSeedExpectation(context, specification) || !specification.ThenQueries.IsEmpty ||
             (specification.When is { } when && !context.Commands[when.Command].Reads.IsDefaultOrEmpty))
         {
             return false;
@@ -37,7 +37,7 @@ internal static partial class SemanticSpecificationAdmission
         return specification.GivenReadModels.All(seed => CanSeedProjection(context, seed));
     }
 
-    static bool CanSeedProjection(SemanticApplicationContext context, SemanticSpecificationReadModel seed)
+    static bool CanSeedScalarProjection(SemanticApplicationContext context, SemanticSpecificationReadModel seed)
     {
         if (!context.ReadModels.TryGetValue(seed.ReadModel, out var model) ||
             model.Properties.Count(property => property.IsIdentifier) != 1 ||

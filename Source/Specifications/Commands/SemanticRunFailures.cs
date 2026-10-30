@@ -20,4 +20,10 @@ public sealed class UnsupportedSemanticMapping : Exception
     public UnsupportedSemanticMapping() : base("A mapping escaped semantic admission.")
     {
     }
+
+    /// <summary>Creates a body refusal that retains its stable execution diagnostic.</summary>
+    /// <param name="diagnostic">The source-bound body execution diagnostic.</param>
+    public UnsupportedSemanticMapping(string diagnostic) : base(diagnostic)
+    {
+    }
 }

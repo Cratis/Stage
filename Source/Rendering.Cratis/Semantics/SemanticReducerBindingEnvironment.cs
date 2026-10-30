@@ -26,6 +26,13 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
                 .Using("Cratis.Chronicle.Reducers")
                 .Using($"{context.RootNamespace}.TypedContexts")
                 .Using(SliceNaming.Namespace(context.RootNamespace, located.Path));
+
+            // Like a self reducer, a body may name the concepts and types its read model is built from.
+            if (context.ReadModels[classicReducer.ReadModel].Properties.Any(property => SemanticTypeSystem.DeclarationNeedsCommon(property.Type)))
+            {
+                builder.Using(context.CommonNamespace);
+            }
+
             reducers = [classicReducer];
         }
         else

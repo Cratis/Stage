@@ -156,7 +156,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene) => CreateProfile(applicationName, options, scene, null, null);
+        SceneApplication? scene) => CreateProfile(applicationName, options, scene, null, null);
 
     /// <summary>
     /// Creates the profile with validated locale resources from companion Screenplay strings files.
@@ -168,12 +168,12 @@ public static partial class CratisRendering
     /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
     /// <returns>The immutable Cratis render profile.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options or strings input is invalid.</exception>
-    /// <exception cref="Contracts.Scene.UnsupportedGuardedScreenAction">Thrown when the Scene contains guarded screen actions.</exception>
-    /// <exception cref="Contracts.Scene.UnsupportedGuardedInteraction">Thrown when the Scene contains guarded interaction alternatives.</exception>
+    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when the Scene contains guarded screen actions.</exception>
+    /// <exception cref="UnsupportedGuardedInteraction">Thrown when the Scene contains guarded interaction alternatives.</exception>
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale) => CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, null);
 
@@ -197,7 +197,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages) =>
@@ -387,7 +387,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages,
@@ -405,12 +405,12 @@ public static partial class CratisRendering
 
         if (scene is not null)
         {
-            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
             if (errors.Length > 0)
             {
                 throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
             }
-            Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
+            SceneRuntimeAdmission.RequireSupported(scene);
         }
 
         var request = CratisBackendApplicationScaffoldRequest.Create(

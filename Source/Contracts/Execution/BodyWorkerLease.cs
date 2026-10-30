@@ -4,6 +4,7 @@
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>A per-run handle that never owns the application's worker process.</summary>
+/// <param name="worker">The application-owned worker this lease forwards to.</param>
 internal sealed class BodyWorkerLease(IBodyWorkerClient worker) : IBodyWorkerClient, IAsyncDisposable
 {
     int _released;

@@ -19,9 +19,14 @@ public static class BodyWorkerMessages
 }
 
 /// <summary>The worker's startup handshake.</summary>
+/// <param name="Kind">The handshake message kind.</param>
+/// <param name="ProtocolVersion">The protocol version the worker speaks.</param>
+/// <param name="WorkerVersion">The worker build version.</param>
 public sealed record BodyWorkerHello(string Kind, int ProtocolVersion, string WorkerVersion);
 
 /// <summary>A correlated request, with exactly one operation on the pipe.</summary>
+/// <param name="Id">The correlation id echoed by the response.</param>
+/// <param name="Kind">The single operation requested.</param>
 public sealed record BodyWorkerRequest(string Id, string Kind)
 {
     /// <summary>Gets the model path used only by the compile role.</summary>
@@ -44,6 +49,7 @@ public sealed record BodyWorkerRequest(string Id, string Kind)
 }
 
 /// <summary>A correlated compile or evaluation response.</summary>
+/// <param name="Id">The correlation id of the request answered.</param>
 public sealed record BodyWorkerResponse(string Id)
 {
     /// <summary>Gets the compilation result.</summary>

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using Cratis.Screenplay.Semantics;
 
 namespace Cratis.Stage.Contracts.Execution;
 
@@ -140,12 +141,18 @@ public sealed class BodyWorkerSupervisor(BodyWorkerOptions options) : IBodyWorke
         ? handler.Messages.IsDefaultOrEmpty && handler.Value is { } value && IsCompositeArray(value)
         : FailureOutcome(handler.Outcome);
 
-    static bool IsCompositeArray(JsonElement wire) =>
-        HasKind(wire, "array") && wire.TryGetProperty("value", out var items) && items.ValueKind == JsonValueKind.Array &&
-        items.EnumerateArray().All(item => HasKind(item, "composite"));
-
-    static bool HasKind(JsonElement wire, string expected) =>
-        wire is { ValueKind: JsonValueKind.Object } && wire.TryGetProperty("kind", out var kind) && kind.ValueKind == JsonValueKind.String && kind.GetString() == expected;
+    // Produced payloads are accepted only when the whole portable structure decodes; anything malformed fails closed.
+    static bool IsCompositeArray(JsonElement wire)
+    {
+        try
+        {
+            return SemanticValueWire.Read(wire) is SemanticArrayValue array && array.Values.All(item => item is SemanticCompositeValue);
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or ArgumentException or OverflowException or InvalidSemanticContract)
+        {
+            return false;
+        }
+    }
 
     static bool FailureOutcome(string outcome) =>
         outcome == "refused" || outcome == "faulted" || outcome == "exceeded-time" || outcome == "exceeded-memory";

@@ -80,7 +80,8 @@ public static class BodyUnitInvoker
     static bool Matches(BodyUnitEntry canonical, BodyUnitEntry unit) =>
         canonical.Admitted && ScalarIdentity(canonical) == ScalarIdentity(unit) &&
         MapEquals(canonical.PropertyPaths, unit.PropertyPaths) && MapEquals(canonical.PropertyNames, unit.PropertyNames) &&
-        MapEquals(canonical.StateMembers, unit.StateMembers) && MapEquals(canonical.EnumValues, unit.EnumValues);
+        MapEquals(canonical.StateMembers, unit.StateMembers) && MapEquals(canonical.EnumValues, unit.EnumValues) &&
+        canonical.EventTypes.AsEnumerable().SequenceEqual(unit.EventTypes.AsEnumerable(), StringComparer.Ordinal);
 
     // The renderer's reducer helper is private (classic) or internal (self-reducing); every other entry is public.
     static BindingFlags EntryBinding(BodyUnitEntry unit) => unit.Role == nameof(SemanticImplementationRole.ReducerTransition)

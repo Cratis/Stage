@@ -18,7 +18,7 @@ public class when_validating_responses : Specification
         var script = $"printf '%s\\n' '{hello}'\nread -r line";
         await using var worker = new BodyWorkerSupervisor(new(string.Empty, cache) { Launch = new("/bin/sh", ["-c", script]), TimeoutMs = 10000 });
         var result = await worker.SendAsync(new("probe", "validate"));
-        Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation!.Diagnostic, StringComparison.Ordinal);
+        Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation.Diagnostic, StringComparison.Ordinal);
         worker.ProcessId.ShouldBeNull();
     }
 
@@ -39,6 +39,10 @@ public class when_validating_responses : Specification
     [InlineData("handle", "produced", "empty", false)]
     [InlineData("handle", "produced", "events", true)]
     [InlineData("handle", "produced", "state", false)]
+    [InlineData("handle", "produced", "composite-without-value", false)]
+    [InlineData("handle", "produced", "property-without-value", false)]
+    [InlineData("handle", "produced", "bad-nested-kind", false)]
+    [InlineData("handle", "produced", "bad-number", false)]
     [InlineData("handle", "produced", "messages", false)]
     [InlineData("handle", "refused", "empty", true)]
     [InlineData("handle", "faulted", "empty", true)]
@@ -46,19 +50,32 @@ public class when_validating_responses : Specification
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
         var cache = Path.Combine(root, ".ai-work", "891", "specs", Guid.NewGuid().ToString("N"));
-        var response = new BodyWorkerResponse("probe") { Evaluation = new(outcome, payload switch { "state" => JsonSerializer.SerializeToElement(1), "events" => JsonSerializer.SerializeToElement(new { kind = "array", value = new[] { new { kind = "composite", value = Array.Empty<object>() } } }), _ => null }, payload == "messages" ? ["first"] : []) };
+        var response = new BodyWorkerResponse("probe") { Evaluation = new(outcome, Payload(payload), payload == "messages" ? ["first"] : []) };
         var hello = JsonSerializer.Serialize(new BodyWorkerHello("hello", BodyWorkerMessages.ProtocolVersion, "fixture"), BodyWorkerMessages.Json);
         var script = $"printf '%s\\n' '{hello}'\nread -r line\nprintf '%s\\n' '{JsonSerializer.Serialize(response, BodyWorkerMessages.Json)}'\nread -r another";
         await using var worker = new BodyWorkerSupervisor(new(string.Empty, cache) { Launch = new("/bin/sh", ["-c", script]), TimeoutMs = 10000 });
         var result = await worker.SendAsync(new("probe", kind));
         if (valid)
         {
-            result.Evaluation!.Outcome.ShouldEqual(outcome);
+            result.Evaluation.Outcome.ShouldEqual(outcome);
         }
         else
         {
-            Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation!.Diagnostic, StringComparison.Ordinal);
+            Assert.StartsWith(BodyDiagnostics.WorkerFailed, result.Evaluation.Diagnostic, StringComparison.Ordinal);
             worker.ProcessId.ShouldBeNull();
         }
     }
+
+    static JsonElement? Payload(string payload) => payload switch
+    {
+        "state" => JsonSerializer.SerializeToElement(1),
+        "events" => Wire("array", new[] { Wire("composite", Array.Empty<object>()) }),
+        "composite-without-value" => Wire("array", new[] { JsonSerializer.SerializeToElement(new { kind = "composite" }) }),
+        "property-without-value" => Wire("array", new[] { Wire("composite", new[] { new { property = "a" } }) }),
+        "bad-nested-kind" => Wire("array", new[] { Wire("composite", new[] { new { property = "a", value = Wire("mystery", Array.Empty<object>()) } }) }),
+        "bad-number" => Wire("array", new[] { Wire("composite", new[] { new { property = "a", value = Wire("number", "x") } }) }),
+        _ => null
+    };
+
+    static JsonElement Wire<T>(string kind, T value) => JsonSerializer.SerializeToElement(new { kind, value });
 }

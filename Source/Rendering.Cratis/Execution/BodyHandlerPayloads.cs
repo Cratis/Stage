@@ -23,6 +23,12 @@ internal static class BodyHandlerPayloads
         var events = result is ITuple tuple ? Enumerable.Range(0, tuple.Length).Select(index => tuple[index]) : [result];
         return SemanticValue.Array([.. events.Select(@event => @event is null
             ? throw new ArgumentException("A command handler returned a null event.")
-            : BodyStateWriter.Write(@event, unit))]);
+            : WriteEvent(@event, unit))]);
     }
+
+    // A declared event without properties has no state members to discover, so its type is matched by the declared list.
+    static SemanticValue WriteEvent(object @event, BodyUnitEntry unit) =>
+        unit.EventTypes.Contains(@event.GetType().FullName!) && !unit.StateMembers.Keys.Any(key => key.StartsWith(@event.GetType().FullName + ".", StringComparison.Ordinal))
+            ? SemanticValue.Composite([])
+            : BodyStateWriter.Write(@event, unit);
 }

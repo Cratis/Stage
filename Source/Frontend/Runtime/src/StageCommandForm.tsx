@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { subjectFormOf } from './stageActionSubject';
+import { subjectFormOf, type ScreenRows } from './stageActionSubject';
 import { createContext, useContext, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
@@ -49,6 +49,12 @@ interface StageCommandContent {
     [key: string]: unknown;
 }
 
+// Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
+function commandFormSubject(element: ExternalComponent, rows: ScreenRows) {
+    const subjectRows = element.properties.createsEntity === true ? { selectableRows: [], selectedRows: [] } : rows;
+    return subjectFormOf(element, subjectRows);
+}
+
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
 export function StageCommandForm({ element }: StageCommandFormProps) {
     const data = useStageData();
@@ -69,9 +75,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     const rows = useScreenRows();
-    // Creating an entity is about no row, even when a list on the screen carries one of the command's identifiers.
-    const creates = element.properties.createsEntity === true;
-    const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, creates ? { selectableRows: [], selectedRows: [] } : rows);
+    const { selectableRows, selectedRows, rowAction, subjectValues } = commandFormSubject(element, rows);
 
     // What the action binds from its subject row wins over the session, which only holds what nobody chose.
     const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, subjectValues]);

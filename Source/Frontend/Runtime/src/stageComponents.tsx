@@ -414,8 +414,7 @@ function StageToolbarCommand(props: RegisteredProps) {
 
     // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action. A creation is about no row.
     const awaiting = subject === undefined && !creates ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
-    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
-    const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
+    const askedFields = toolbarCommandFields(schema, properties, parameters, subject, selectableRows);
     const intent = creates ? { createsEntity: true } : subjectActionProperties(element, subject);
     const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...intent } } as ExternalComponent;
 
@@ -426,6 +425,12 @@ function StageToolbarCommand(props: RegisteredProps) {
                 : <StageAction element={action} interactions={props.interactions} slots={props.slots} />}
         </span>
     );
+}
+
+function toolbarCommandFields(schema: string | undefined, properties: SchemaProperty[], parameters: Record<string, string>, subject: ActionSubject | undefined, selectableRows: Record<string, unknown>[]) {
+    if (!schema) return {};
+    const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
+    return { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' };
 }
 
 /**

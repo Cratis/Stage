@@ -19,12 +19,13 @@ public class and_a_table_column_is_an_enumeration : Specification
         {
             Enumerations = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>
             {
-                ["Opportunity"] = new Dictionary<string, IReadOnlyList<string>> { ["stage"] = new[] { "newLead", "inProgress", "won" } }
+                ["Opportunity"] = new Dictionary<string, IReadOnlyList<string>> { ["stage"] = ["newLead", "inProgress", "won"] }
             }
         };
         var table = (ExternalComponent)ScreenDirectiveConverter.Convert(
             [new ScreenTableSyntax("Opportunity", [new ScreenColumnSyntax("stage", "Stage", SourceLocation.Start)], null, SourceLocation.Start)],
-            "Pipeline", scope)[0];
+            "Pipeline",
+            scope)[0];
         _column = (ExternalComponent)table.Slots["columns"].Single();
     }
 

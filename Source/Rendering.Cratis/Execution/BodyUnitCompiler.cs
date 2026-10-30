@@ -40,7 +40,10 @@ public static partial class BodyUnitCompiler
     {
         var name = Identifiers.ToPascalCase(loaded.Model.Application.Name);
         var options = new CratisRenderingOptions(name, name);
-        var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, CratisRendering.CreateNewApplicationProfile(loaded.Model.Application.Name, options), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
+        var profile = CratisRendering.WithReducerConvention(
+            CratisRendering.CreateProfile(name, options),
+            ReducerConventionInput.Create(loaded.Model.Application.Name, ReducerConvention.Classic with { SelfDefault = true, ModelBoundProjections = true }));
+        var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             TypedContextDescriptors = loaded.TypedContextDescriptors,

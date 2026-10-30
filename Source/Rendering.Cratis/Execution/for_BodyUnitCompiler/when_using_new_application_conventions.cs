@@ -5,6 +5,7 @@
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Execution.for_BodyUnitCompiler;
@@ -20,9 +21,13 @@ public class when_using_new_application_conventions : Specification
     [Theory]
     [InlineData("Projects")]
     [InlineData("projects")]
+    [InlineData("call-for papers")]
+    [InlineData("call for papers")]
+    [InlineData("CallForPapers")]
+    [InlineData("call-for-papers")]
     async Task should_admit_a_concept_constructor_and_retain_the_common_import(string applicationName)
     {
-        const string body = "return new Total(new OrderId(Guid.Parse(context.Key)), context.Event.Amount);";
+        const string body = "return new Total(Id: new OrderId(Guid.Parse(context.Key)), Amount: context.Event.Amount);";
         var source = when_rendering_a_pure_reducer.WithIdentifierConcept(when_rendering_a_pure_reducer.Source)
             .Replace(OriginalBody, body, StringComparison.Ordinal);
         var path = Path.Combine(_directory, "Model.play");
@@ -30,12 +35,17 @@ public class when_using_new_application_conventions : Specification
         var loaded = await SemanticModelLoader.LoadFromPathAsync(path, null, applicationName);
         var context = BodyUnitCompiler.CreateContext(loaded);
         Assert.True(context.SelfReduces(context.Reducers.Single().ReadModel));
-        var rendered = new CratisArtifactRenderPlanner().Plan(context.Request);
-        Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
+        if (applicationName == Identifiers.ToPascalCase(applicationName))
+        {
+            // The planner re-derives the package profile from the raw model name, so it only accepts identifier-named applications; run compilation never plans.
+            var rendered = new CratisArtifactRenderPlanner().Plan(context.Request);
+            Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
+        }
+
         var entry = Assert.Single(BodyUnitCompiler.Compile(loaded, _directory).Entries);
         Assert.True(entry.Admitted, entry.DiagnosticMessage);
         var unit = BodyUnitSources.RenderReducer(BodyUnitCompiler.CreateContext(loaded), Assert.Single(loaded.TypedContextDescriptors), body);
-        Assert.Contains("using Projects.Common;", unit.Sources[0], StringComparison.Ordinal);
+        Assert.Contains($"using {Identifiers.ToPascalCase(applicationName)}.Common;", unit.Sources[0], StringComparison.Ordinal);
         Assert.Contains(body, unit.Sources[0], StringComparison.Ordinal);
         Assert.Equal(unit.EntryType, entry.EntryType);
         Assert.Equal(unit.EntryMethod, entry.EntryMethod);

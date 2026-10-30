@@ -106,6 +106,7 @@ internal static class SemanticScopedProjectionRenderer
                 code.Line($"join.On(model => model.{Identifiers.ToPascalCase(on.Name)});");
             }
 
+            RenderJoinKey(code, join.Key, @event, context);
             RenderMappings(code, join.Mappings, properties, @event, context, "join");
             code.EndBlock().Line(");");
         }
@@ -168,6 +169,14 @@ internal static class SemanticScopedProjectionRenderer
 
         var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
         return mappings.Where(mapping => !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals);
+    }
+
+    static void RenderJoinKey(CSharpCodeBuilder code, SemanticProjectionKey? key, SemanticEventContract @event, SemanticApplicationContext context)
+    {
+        if (key is not null)
+        {
+            RenderKey(code, key, @event, context, "join", "UsingKey");
+        }
     }
 
     static void RenderKey(

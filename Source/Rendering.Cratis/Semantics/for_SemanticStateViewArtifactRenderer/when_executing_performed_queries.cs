@@ -24,7 +24,6 @@ public class when_executing_performed_queries
 {
     [Theory]
     [InlineData("live", "observable")]
-    [InlineData("language", "language")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]
@@ -34,7 +33,6 @@ public class when_executing_performed_queries
     {
         var source = Source(failure is "compile" or "authorized" ? "return missing;" : "return readModels;", live: failure == "live");
         if (failure == "authorized") source = "policy Buyers\n  require claim \"role\" matches \"buyer\"\n" + source.Replace("module People", "module People\n  authorize Buyers", StringComparison.Ordinal);
-        if (failure == "language") source = source.Replace("```csharp", "```sql", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
         var request = GapRequest((loaded, failure));
         var requirement = Assert.Single(request.ImplementationRequirements);
@@ -260,19 +258,37 @@ public class when_executing_performed_queries
         Assert.Same(row, Assert.Single(result.Cast<object>()));
     }
 
-    [Fact]
-    public async Task should_leave_a_non_csharp_performer_stub_and_report_its_unsupported_language()
+    [Theory]
+    [InlineData("java", false)]
+    [InlineData("sql", false)]
+    [InlineData("typescript", false)]
+    [InlineData("java", true)]
+    public async Task should_refuse_a_non_csharp_inline_performer_on_its_query(string language, bool live)
     {
-        var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;").Replace("```csharp", "```sql", StringComparison.Ordinal));
-        var request = Request(loaded);
-        var diagnostics = SemanticImplementationAdmission.Verify(request);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
-        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-005");
-        var context = new SemanticApplicationContext(request, new("Projects", "Projects"));
-        var rendered = SemanticStateViewArtifactRenderer.Render(context.SelectedSlices().Single(), context).Content;
-        Assert.Contains("throw new global::System.NotImplementedException(", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
-        Assert.DoesNotContain("return readModels;", rendered, StringComparison.Ordinal);
+        var loaded = await when_rendering_a_pure_reducer.Load(Source("return readModels;", live: live).Replace("```csharp", $"```{language}", StringComparison.Ordinal));
+        AssertLanguageRefusal(Request(loaded));
+    }
+
+    [Theory]
+    [InlineData("java")]
+    [InlineData("ts")]
+    public async Task should_refuse_a_non_csharp_file_performer_on_its_query(string extension)
+    {
+        var loaded = await LoadFile("return readModels;", extension);
+        AssertLanguageRefusal(Request(loaded));
+    }
+
+    static void AssertLanguageRefusal(ArtifactRenderRequest request)
+    {
+        var plan = new CratisArtifactRenderPlanner().Plan(request);
+        var requirement = Assert.Single(request.ImplementationRequirements);
+        var diagnostic = Assert.Single(plan.Diagnostics.Where(diagnostic => diagnostic.Code == "STAGE-ESM-019"));
+        Assert.Equal(ArtifactRenderDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(requirement.Source.SemanticId, diagnostic.Artifact);
+        Assert.Contains("language", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Empty(plan.Artifacts);
+        Assert.Empty(plan.ImplementationGaps);
+        Assert.DoesNotContain(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
     }
 
     [Fact]
@@ -354,7 +370,7 @@ public class when_executing_performed_queries
                   ```
         """;
 
-    static async Task<LoadedSemanticModel> LoadFile(string body)
+    static async Task<LoadedSemanticModel> LoadFile(string body, string extension = "cs")
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, ".git")) && !Directory.Exists(Path.Combine(root.FullName, ".git"))) root = root.Parent;
@@ -363,9 +379,9 @@ public class when_executing_performed_queries
         Directory.CreateDirectory(Path.Combine(folder, "Queries"));
         try
         {
-            var source = Source("return readModels;").Replace("```csharp\n          return readModels;\n          ```", "file Queries/FindPeople.cs", StringComparison.Ordinal);
+            var source = Source("return readModels;").Replace("```csharp\n          return readModels;\n          ```", $"file Queries/FindPeople.{extension}", StringComparison.Ordinal);
             await File.WriteAllTextAsync(Path.Combine(folder, "People.play"), source);
-            await File.WriteAllTextAsync(Path.Combine(folder, "Queries", "FindPeople.cs"), body);
+            await File.WriteAllTextAsync(Path.Combine(folder, "Queries", $"FindPeople.{extension}"), body);
             return await SemanticModelLoader.LoadFromPathAsync(folder, null, "Projects");
         }
         finally

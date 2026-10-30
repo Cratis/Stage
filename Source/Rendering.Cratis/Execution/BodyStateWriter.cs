@@ -37,11 +37,15 @@ internal static class BodyStateWriter
         if (ConceptValue(type) is { } concept) return Write(concept.GetValue(value), unit);
         var prefix = type.FullName + ".";
         var members = unit.StateMembers.Where(pair => pair.Key.StartsWith(prefix, StringComparison.Ordinal) && !pair.Key[prefix.Length..].Contains('.')).ToArray();
-        if (members.Length == 0) throw new ArgumentException("The reducer returned a type the unit does not declare.");
+        if (members.Length == 0) return RecordConcept(type) is { } scalar ? Write(scalar.GetValue(value), unit) : throw new ArgumentException("The reducer returned a type the unit does not declare.");
         return SemanticValue.Composite([.. members.Select(pair => new SemanticPropertyValue(
             SemanticId.Parse(pair.Value),
             Write((type.GetProperty(pair.Key[prefix.Length..]) ?? throw new ArgumentException("The reducer state lacks a declared member.")).GetValue(value), unit)))]);
     }
+
+    // Analysis-time concept declarations are plain records over one Value member, which handler units compile against.
+    static System.Reflection.PropertyInfo? RecordConcept(Type type) =>
+        type.GetConstructors() is [{ } constructor] && constructor.GetParameters() is [{ Name: "Value" }] ? type.GetProperty("Value") : null;
 
     // Concepts carry their scalar on the inherited ConceptAs<T>.Value, the same member the materializer constructs.
     static System.Reflection.PropertyInfo? ConceptValue(Type type)

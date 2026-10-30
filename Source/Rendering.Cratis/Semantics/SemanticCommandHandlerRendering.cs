@@ -86,5 +86,5 @@ internal static class SemanticCommandHandlerRendering
         return $"{value}.Item{index + 1}";
     }
 
-    static string SnapshotType(SemanticCommand command) => $"HandlerCommand_{Suffix(command)}";
+    internal static string SnapshotType(SemanticCommand command) => $"HandlerCommand_{Suffix(command)}";
 }

@@ -73,6 +73,24 @@ internal static class SemanticCommandBodyAdmission
         }
     }
 
+    /// <summary>Builds the one closed compilation unit that both admission and the worker compile for a handler.</summary>
+    /// <param name="command">The command whose handler is compiled.</param>
+    /// <param name="context">Semantic application and generated type context.</param>
+    /// <param name="className">The class that holds the rendered handler members.</param>
+    /// <returns>The complete C# source.</returns>
+    internal static string HandlerSource(SemanticCommand command, SemanticApplicationContext context, string className)
+    {
+        var builder = new CSharpCodeBuilder();
+        SemanticCommandHandlerRendering.Render(builder, command, context);
+        var located = context.DeclaringSlice(command.Id);
+        var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
+        var events = command.Produces.Select(produced => context.Events[produced.EventContract]).DistinctBy(@event => @event.Id);
+        var eventTypes = SemanticBodyDeclarations.Events(context, events);
+        var imports = SemanticBodyDeclarations.EventNamespaces(context, events);
+        return SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
+            $"namespace {ownNamespace} {{ internal class {className} {{ {builder} }} }}";
+    }
+
     static bool IsCommandDescriptorProbe(SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context) =>
         descriptor.Role == SemanticImplementationRole.CommandHandler && descriptor.OperationId is { } owner &&
         context.Commands.TryGetValue(owner, out var command) && IsCSharp(command, context);
@@ -148,16 +166,7 @@ internal static class SemanticCommandBodyAdmission
 
     static void Analyze(SemanticCommand command, SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        var builder = new CSharpCodeBuilder();
-        SemanticCommandHandlerRendering.Render(builder, command, context);
-        var located = context.DeclaringSlice(command.Id);
-        var ownNamespace = SliceNaming.Namespace(context.RootNamespace, located.Path);
-        var types = new SemanticTypeSystem(context);
-        var events = command.Produces.Select(produced => context.Events[produced.EventContract]).DistinctBy(@event => @event.Id);
-        var eventTypes = SemanticBodyDeclarations.Events(context, events);
-        var imports = SemanticBodyDeclarations.EventNamespaces(context, events);
-        var source = SemanticBodyCompilation.ImplicitUsings + string.Join(Environment.NewLine, imports.Select(@namespace => $"using {@namespace};")) + SemanticValidationContextRuntime.AnalysisDeclarations(context) + string.Join(Environment.NewLine, eventTypes) +
-            $"namespace {ownNamespace} {{ internal class HandlerProbe {{ {builder} }} }}";
+        var source = HandlerSource(command, context, "HandlerProbe");
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));
         var compilation = SemanticBodyCompilation.Create("CommandBodyProbe", tree);
         var model = compilation.GetSemanticModel(tree);

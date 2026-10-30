@@ -82,7 +82,7 @@ public class when_compiling_validation_units : Specification
             "envelope" => requirement with { ContextVersion = 2 },
             "language" => requirement with { Language = "javascript" },
             "binding" => requirement with { Source = null! },
-            "unsupported-kind" => requirement with { Role = SemanticImplementationRole.CommandHandler },
+            "unsupported-kind" => requirement with { Role = SemanticImplementationRole.QueryPerformer },
             _ => throw new ArgumentException("Unknown invalid-unit fixture.", nameof(invalid))
         };
 

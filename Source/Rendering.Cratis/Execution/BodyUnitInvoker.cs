@@ -60,6 +60,7 @@ public static class BodyUnitInvoker
         if (bytes is null) return Fault("refused", "Body unit bytes changed before loading.");
         using var stream = new MemoryStream(bytes, writable: false);
         var assembly = load.LoadFromStream(stream);
+        if (unit.Role == nameof(SemanticImplementationRole.CommandHandler)) return Result(unit, BodyHandlerInvocation.Invoke(assembly, unit, request));
         var wrapper = assembly.GetType(unit.WrapperType!, throwOnError: true)!;
         var context = BodyValueMaterializer.Wrapper(wrapper, request, unit);
         var method = assembly.GetType(unit.EntryType!, throwOnError: true)!.GetMethod(unit.EntryMethod!, EntryBinding(unit), [wrapper]);
@@ -71,6 +72,7 @@ public static class BodyUnitInvoker
     {
         nameof(SemanticImplementationRole.RulePredicate) when result is bool boolean => new(boolean ? "satisfied" : "unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(boolean))),
         nameof(SemanticImplementationRole.CommandValidation) or nameof(SemanticImplementationRole.ConceptValidation) => BodyValidationMessages.Read(result),
+        nameof(SemanticImplementationRole.CommandHandler) => new("produced", SemanticValueWire.Write(BodyHandlerPayloads.Write(result, unit))),
         nameof(SemanticImplementationRole.ReducerTransition) => result is null ? new("delete") : new("state", SemanticValueWire.Write(BodyStateWriter.Write(result, unit))),
         _ => Fault("refused", "This body role is not executed by Stage#891 slice S2.")
     };

@@ -52,6 +52,7 @@ public static partial class BodyUnitCompiler
     static BodyUnitEntry CompileUnit(SemanticApplicationContext context, SemanticImplementationRequirement requirement, string cacheDirectory, Action emitting)
     {
         if (requirement.Role == SemanticImplementationRole.ReducerTransition) return CompileReducer(context, requirement, cacheDirectory, emitting);
+        if (requirement.Role == SemanticImplementationRole.CommandHandler) return CompileHandler(context, requirement, cacheDirectory, emitting);
         var (descriptor, body, refusal) = BodyUnitAdmission.Admit(context, requirement);
         if (refusal is not null) return refusal;
         try
@@ -98,12 +99,15 @@ public static partial class BodyUnitCompiler
         return entry;
     }
 
-    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string[] sources, MetadataReference[] references, string language)
+    static string Hash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string[] sources, MetadataReference[] references, string language) =>
+        Hash(context, JsonSerializer.Serialize(descriptor), sources, references, language);
+
+    static string Hash(SemanticApplicationContext context, string descriptorIdentity, string[] sources, MetadataReference[] references, string language)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(SemanticModelSerializer.Serialize(context.Request.Model));
         Add(JsonSerializer.Serialize(context.Request.ImplementationRequirements));
-        Add(JsonSerializer.Serialize(descriptor));
+        Add(descriptorIdentity);
         Add(typeof(BodyUnitCompiler).Module.ModuleVersionId.ToString());
         Add(typeof(SemanticApplication).Assembly.FullName!);
         Add(typeof(CSharpCompilation).Assembly.FullName!);

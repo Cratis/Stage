@@ -11,6 +11,8 @@ namespace Cratis.Stage.Contracts.Execution;
 public static class SemanticValueWire
 {
     /// <summary>Encodes a portable value. Dates, identities and enum names remain portable text.</summary>
+    /// <param name="value">The portable value to encode.</param>
+    /// <exception cref="ArgumentException">The value is of an unknown portable kind.</exception>
     public static JsonElement Write(SemanticValue value) => value switch
     {
         SemanticNullValue => JsonSerializer.SerializeToElement(new { kind = "null" }),
@@ -27,6 +29,8 @@ public static class SemanticValueWire
     };
 
     /// <summary>Decodes a tagged portable value.</summary>
+    /// <param name="wire">The tagged wire element.</param>
+    /// <exception cref="JsonException">The tag names an unknown portable kind.</exception>
     public static SemanticValue Read(JsonElement wire) => wire.GetProperty("kind").GetString() switch
     {
         "null" => SemanticValue.Null,

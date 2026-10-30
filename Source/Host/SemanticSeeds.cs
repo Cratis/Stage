@@ -11,6 +11,7 @@ using Cratis.Screenplay.Files;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Syntax;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Semantics;
 
@@ -60,15 +61,16 @@ internal static class SemanticSeeds
     /// </summary>
     /// <param name="modelPath">A .play file or a folder of .play sources.</param>
     /// <param name="plan">The execution plan compiled from the same source.</param>
+    /// <param name="bodies">The out-of-process body execution reducer transitions replay through, if any.</param>
     /// <returns>The lowered seeds.</returns>
-    internal static SemanticSeedPlan Read(string modelPath, SemanticExecutionPlan plan)
+    internal static SemanticSeedPlan Read(string modelPath, SemanticExecutionPlan plan, SemanticBodyExecution? bodies = null)
     {
         try
         {
             var compiler = new PlayFileCompiler();
             var result = Directory.Exists(modelPath) ? compiler.CompileFolder(modelPath).Result : compiler.CompileFile(modelPath).Result;
             return result.Success
-                ? Admit(Create(result.Value!.Seeds, plan), plan)
+                ? Admit(Create(result.Value!.Seeds, plan), plan, bodies)
                 : new([], [Warning(SemanticSeedPlan.Unreadable, "The model's seed blocks could not be read because the source did not compile again.")]);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or AggregateException)
@@ -117,13 +119,14 @@ internal static class SemanticSeeds
     /// </summary>
     /// <param name="seeds">The lowered seeds.</param>
     /// <param name="plan">The execution plan.</param>
+    /// <param name="bodies">The out-of-process body execution reducer transitions replay through, if any.</param>
     /// <returns>The groups whose events the world reconstruction accepts, and the reason for each that it does not.</returns>
     /// <remarks>
     /// The runtime reconstructs its world from the log, and refuses the whole application when a stored event does not match what the model
     /// produces (a missing required value, an event nothing produces). Seeding is only worth it when that cannot happen, so each group is
     /// replayed through the same reconstruction before anything is appended; a group it refuses is left out whole.
     /// </remarks>
-    internal static SemanticSeedPlan Admit(SemanticSeedPlan seeds, SemanticExecutionPlan plan)
+    internal static SemanticSeedPlan Admit(SemanticSeedPlan seeds, SemanticExecutionPlan plan, SemanticBodyExecution? bodies = null)
     {
         var accepted = new List<SemanticSeedGroup>();
         var stored = new List<AppendedEventResponse>();
@@ -133,7 +136,7 @@ internal static class SemanticSeeds
             var trial = stored.Concat(Stored(plan, group.Facts, (ulong)stored.Count, seeds.Occurred)).ToArray();
             try
             {
-                SemanticWorldRebuilder.Create(plan, trial, (ulong)(trial.Length - 1), exact: false);
+                SemanticWorldRebuilder.Create(new SemanticReplayPlan(plan, bodies), trial, (ulong)(trial.Length - 1), exact: false);
                 stored = [.. trial];
                 accepted.Add(group);
             }
@@ -169,7 +172,7 @@ internal static class SemanticSeeds
             EventSourceType = EventSourceType.Default.Value,
             EventStreamType = EventStreamType.All.Value,
             EventStreamId = EventStreamId.Default,
-            Occurred = (Cratis.Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
+            Occurred = (Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
             Tags = [.. fact.Tags],
             CausedBy = new() { Subject = SemanticChronicleRegistration.SeedSubject, Name = SemanticChronicleRegistration.SeedSubject, UserName = SemanticChronicleRegistration.SeedSubject }
         },

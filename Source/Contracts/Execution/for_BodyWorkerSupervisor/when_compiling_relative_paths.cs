@@ -38,7 +38,7 @@ public class when_compiling_relative_paths : Specification
     }
 
     const string Script = """
-        printf '%s\n' '{"kind":"hello","protocolVersion":1,"workerVersion":"fixture"}'
+        printf '%s\n' '{"kind":"hello","protocolVersion":2,"workerVersion":"fixture"}'
         IFS= read -r line
         printf '%s\n' "$line" > request.json
         id=$(printf '%s' "$line" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')

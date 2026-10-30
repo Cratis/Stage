@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Cratis.Stage.Rendering.Cratis.Execution;
 
 /// <summary>Obtains executable declarations from the renderer, never from analysis-only stand-ins.</summary>
-internal static class BodyUnitSources
+internal static partial class BodyUnitSources
 {
     internal static string[] Render(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, string body)
     {

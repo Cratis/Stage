@@ -451,7 +451,7 @@ public class when_executing_performed_queries
             TypedContextDescriptors = loaded.TypedContextDescriptors
         };
 
-    static MethodInfo Method(LoadedSemanticModel loaded)
+    internal static MethodInfo Method(LoadedSemanticModel loaded)
     {
         var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -489,7 +489,7 @@ public class when_executing_performed_queries
         source.Dispose();
     }
 
-    static object[] Dependencies(IReadModels readModels)
+    internal static object[] Dependencies(IReadModels readModels)
     {
         var clock = Substitute.For<TimeProvider>();
         clock.GetUtcNow().Returns(new DateTimeOffset(2026, 10, 20, 23, 59, 0, TimeSpan.Zero));
@@ -504,7 +504,7 @@ public class when_executing_performed_queries
         return [readModels, manager, tenant, caller];
     }
 
-    static (Array Rows, object Row) Rows(MethodInfo method)
+    internal static (Array Rows, object Row) Rows(MethodInfo method)
     {
         var model = method.DeclaringType;
         var constructor = model.GetConstructors().Single(candidate => candidate.GetParameters().Length == 2);

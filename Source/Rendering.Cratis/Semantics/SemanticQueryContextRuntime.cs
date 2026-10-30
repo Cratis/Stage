@@ -36,7 +36,7 @@ internal static class SemanticQueryContextRuntime
                 .Line($"var __stageReadModels = new StagePerformer_{method}.LiveReadModels<{model}>(__stageReadModelStore.Observe<{model}>());")
                 .Line($"return StagePerformer_{method}.ToSubject(StagePerformer_{method}.Perform(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))}));")
                 .EndBlock().BlankLine();
-            RenderBody(builder, query, model, method, types, body);
+            RenderBody(builder, query, model, method, types, body, requirement.RequirementId);
             return;
         }
         var invocation = $"StagePerformer_{method}.Perform(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";

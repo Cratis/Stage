@@ -237,6 +237,36 @@ public static partial class CratisRendering
     }
 
     /// <summary>
+    /// Maps spliced inline authored bodies back to their <c language="text">.play</c> lines with <c language="csharp">#line</c> directives.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="modelRoot">The path from the destination root to the folder holding the <c language="text">.play</c> files, with <c language="text">/</c> separators; empty when they share the destination root.</param>
+    /// <param name="compilation">The compilation whose documents the bodies were authored in.</param>
+    /// <returns>The profile carrying the source line mapping input, replacing any existing one.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Thrown when a path is not a relative path made of plain segments.</exception>
+    public static ArtifactRenderProfile WithSourceLineMapping(ArtifactRenderProfile profile, string modelRoot, SemanticCompilation compilation)
+    {
+        ArgumentNullException.ThrowIfNull(compilation);
+        return WithSourceLineMapping(profile, modelRoot, compilation.Documents.Documents.Select(document => KeyValuePair.Create(document.Id, document.DisplayPath)));
+    }
+
+    /// <summary>
+    /// Maps spliced inline authored bodies back to their <c language="text">.play</c> lines with <c language="csharp">#line</c> directives.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="modelRoot">The path from the destination root to the folder holding the <c language="text">.play</c> files, with <c language="text">/</c> separators; empty when they share the destination root.</param>
+    /// <param name="documents">The document identities with their display paths relative to the model root.</param>
+    /// <returns>The profile carrying the source line mapping input, replacing any existing one.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Thrown when a path is not a relative path made of plain segments.</exception>
+    public static ArtifactRenderProfile WithSourceLineMapping(ArtifactRenderProfile profile, string modelRoot, IEnumerable<KeyValuePair<DocumentId, string>> documents) =>
+        ArtifactRenderProfile.Create(
+            profile.Target,
+            profile.TargetVersion,
+            profile.Renderer,
+            profile.RendererVersion,
+            [.. profile.Inputs.Where(existing => existing.Name != SourceLineMappingInput.Name), SourceLineMappingInput.Create(modelRoot, documents)]);
+
+    /// <summary>
     /// Plans exact Cratis artifacts without file-system, process, network, environment, random, or clock access.
     /// </summary>
     /// <param name="model">The immutable executable semantic model.</param>

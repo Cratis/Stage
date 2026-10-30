@@ -471,6 +471,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
 
         // The layout is applied last: the checks above and the renderers work on application-relative paths.
+        if (SourceLineMappingInput.TryRead(request.Profile, out var lineMapping) && lineMapping is not null) unique = [.. SourceLineDirectives.Relocate(request.Profile, lineMapping, unique)];
+
         var plan = ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
         return ServiceLayout.Plan(request, plan);
     }

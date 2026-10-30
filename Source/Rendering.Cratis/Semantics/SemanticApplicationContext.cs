@@ -44,6 +44,7 @@ internal sealed partial class SemanticApplicationContext
         ReducerConvention = reducerConvention;
         var metadata = request.Profile.Inputs.SingleOrDefault(input => input.Name == AuthoringMetadataInput.Name);
         Documentation = metadata is not null && AuthoringMetadataInput.TryRead(metadata, request.Model, out var catalog) ? catalog : null;
+        SourceLines = InlineSourceLine.Map(request);
         Concepts = IndexIdentities(Application.Concepts, _ => _.Id, "concept");
         Types = IndexIdentities(Application.Types, _ => _.Id, "composite type");
 
@@ -207,6 +208,7 @@ internal sealed partial class SemanticApplicationContext
     internal string TypedContextsNamespace => string.Join('.', new[] { RootNamespace }.Concat(Domain).Append("TypedContexts"));
 
     internal AuthoringMetadataInput.Catalog? Documentation { get; }
+    internal IReadOnlyDictionary<string, InlineSourceLine>? SourceLines { get; }
 
     internal Dictionary<string, IReadOnlySet<string>> ReducerContextReads { get; } = new(StringComparer.Ordinal);
 
@@ -247,7 +249,7 @@ internal sealed partial class SemanticApplicationContext
     /// names wherever that provably binds the same and decides the file's using directives.
     /// </summary>
     /// <returns>The builder.</returns>
-    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application);
+    internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application) { SourceLines = SourceLines };
 
     /// <summary>
     /// Creates a builder for a generated specification file.

@@ -25,7 +25,7 @@ internal static class SemanticQueryContextRuntime
         string method,
         string returnType,
         SemanticTypeSystem types,
-        SemanticImplementationRequirement _,
+        SemanticImplementationRequirement requirement,
         string body)
     {
         var arguments = Arguments(query).ToArray();
@@ -35,7 +35,7 @@ internal static class SemanticQueryContextRuntime
             .Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
             .Line($"return {invocation};")
             .EndBlock().BlankLine();
-        RenderBody(builder, query, model, method, types, body);
+        RenderBody(builder, query, model, method, types, body, requirement.RequirementId);
     }
 
     internal static void RenderGap(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticApplicationContext context, SemanticImplementationAdmission.PerformerAdmission admission)
@@ -111,7 +111,7 @@ internal static class SemanticQueryContextRuntime
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path)).Using(context.CommonNamespace);
         var declaration = SemanticStateViewArtifactRenderer.ModelDeclaration(model, types, [query], context.Reducers.Any(reducer => reducer.ReadModel == model.Id));
         builder.OpenBlock(declaration.Replace("[global::Cratis.Chronicle.Keys.KeyAttribute] ", string.Empty, StringComparison.Ordinal));
-        RenderBody(builder, query, modelName, context.MemberNames.Query(query), types, body);
+        RenderBody(builder, query, modelName, context.MemberNames.Query(query), types, body, requirement.RequirementId);
         builder.EndBlock();
         var code = builder.ToString();
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
@@ -158,7 +158,7 @@ internal static class SemanticQueryContextRuntime
         return string.Join(", ", dependencies.Concat(Arguments(query).Select(argument => Parameter(argument, types, optionalDefault: true))));
     }
 
-    static void RenderBody(CSharpCodeBuilder builder, SemanticKeyedQuery query, string model, string method, SemanticTypeSystem types, string body)
+    static void RenderBody(CSharpCodeBuilder builder, SemanticKeyedQuery query, string model, string method, SemanticTypeSystem types, string body, string requirementId)
     {
         RenderContextDeclarations(builder, query, method, types);
         var parameters = Arguments(query).Select(argument => Parameter(argument, types));
@@ -168,7 +168,7 @@ internal static class SemanticQueryContextRuntime
         // takes for a query that was forgotten to be made public (ARC0029).
         builder.OpenBlock($"static class StagePerformer_{method}")
             .OpenBlock($"public static {result} Perform(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})")
-            .RawVerbatim(body)
+            .RawVerbatim(body, requirementId)
             .EndBlock()
             .EndBlock();
     }

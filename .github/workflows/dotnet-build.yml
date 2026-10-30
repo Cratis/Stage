@@ -169,6 +169,9 @@ jobs:
       - name: Verify standalone packed reducer consumer
         run: python3 Verification/verify-packed-reducer-consumer.py ./Artifacts/NuGet
 
+      - name: Verify standalone packed third-party planner
+        run: python3 Verification/verify-packed-third-party-planner.py ./Artifacts/NuGet
+
   specs:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: specs (${{ matrix.name }})

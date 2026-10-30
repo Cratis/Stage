@@ -44,6 +44,7 @@ class RoutingTests(unittest.TestCase):
                      "Source/Directory.Build.targets", "Source/Directory.Build.rsp", "global.json", "NuGet.config", "Source/Host/packages.lock.json",
                      "Source/Contracts/Scene/Screen.cs", "Source/Host/Dockerfile",
                      "Verification/verify-runtime-compatibility.py", "Verification/synchronize-rendered-pins.py",
+                     "Verification/verify-packed-third-party-planner.py",
                      ".github/workflows/publish.yml", ".github/ci-routing.py", ".github/test_spec_shards.py"):
             with self.subTest(path=path):
                 self.assertEqual(ALL, self.select(path))

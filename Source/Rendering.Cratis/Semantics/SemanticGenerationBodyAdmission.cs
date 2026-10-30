@@ -17,8 +17,13 @@ internal static class SemanticGenerationBodyAdmission
 {
     const string FundamentalsResource = "GenerationReferences.Cratis.Fundamentals.dll";
     const string ChronicleResource = "GenerationReferences.Cratis.Chronicle.dll";
+    const string ReactiveResource = "GenerationReferences.System.Reactive.dll";
     static readonly Lazy<PortableExecutableReference> _fundamentals = new(() => LoadEmbedded(FundamentalsResource, "Fundamentals generation"));
     static readonly Lazy<PortableExecutableReference> _chronicle = new(() => LoadEmbedded(ChronicleResource, "Chronicle"));
+
+    static readonly Lazy<PortableExecutableReference> _reactive = new(() => LoadEmbedded(ReactiveResource, "System.Reactive"));
+
+    internal static PortableExecutableReference ReactiveReference => _reactive.Value;
 
     internal static PortableExecutableReference FundamentalsReference => _fundamentals.Value;
 

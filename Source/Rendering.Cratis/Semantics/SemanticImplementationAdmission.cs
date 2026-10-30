@@ -62,10 +62,8 @@ internal static class SemanticImplementationAdmission
         var requirement = requirements.IsDefault ? null : requirements.FirstOrDefault(candidate =>
             candidate is { Role: SemanticImplementationRole.QueryPerformer } && candidate.Source?.SemanticId == query.Id);
         if (requirement is null) return new(null, null, "The performer requirement is missing.");
-        if (query.Delivery == SemanticQueryDelivery.Live)
-        {
-            return new(requirement, null, "An observable performer has no body-owned stream; live performer bodies are not supported.");
-        }
+        var contractGap = PerformerContractGap(context, query, requirement);
+        if (contractGap is not null) return new(requirement, null, contractGap);
         if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
         {
             return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
@@ -123,6 +121,23 @@ internal static class SemanticImplementationAdmission
                 .ToDictionary(group => group.Key, group => group.Single(), StringComparer.Ordinal);
         return TryGetVerifiedBody(request, byId, requirementId, owner, diagnostics, out body);
     }
+
+    static string? PerformerContractGap(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticImplementationRequirement requirement)
+    {
+        var live = query.Delivery == SemanticQueryDelivery.Live;
+        var expectedResult = live ? 2u : 1u;
+        if ((requirement.ContextVersion, requirement.ResultVersion) != (1u, expectedResult))
+        {
+            return $"performer contract version {requirement.ContextVersion}/{requirement.ResultVersion} is not supported; this host renders 1/{expectedResult}";
+        }
+        if (!live) return null;
+        if (IsBuiltReadModel(context, query)) return null;
+        return $"read model '{context.ReadModels[query.ReadModel].Name}' cannot be observed: no projection or reducer builds it";
+    }
+
+    static bool IsBuiltReadModel(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel) ||
+        context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel);
 
     static Dictionary<string, SemanticImplementationRequirement> IndexRequirements(ArtifactRenderRequest request, ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics)
     {

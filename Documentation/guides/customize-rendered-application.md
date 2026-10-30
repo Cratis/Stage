@@ -33,6 +33,16 @@ Every file is optional. Without them, the application builds and runs as rendere
   that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
   before rendering React. An application rendered before these hooks existed has neither; render it again first.
 
+Before starting the backend, start the rendered development services with Docker Compose v2 supporting `--wait`:
+
+```bash
+docker compose up -d --wait
+```
+
+The generated compose file checks Chronicle's TLS `/health` endpoint on port 35000. The command waits for
+Chronicle to become healthy before returning, so the backend does not try to connect while the kernel is still
+starting. Follow the generated README's `dotnet run` step after this command completes.
+
 The rendered `Program.cs` provides the hooks:
 
 ```csharp title="Program.cs (managed)"

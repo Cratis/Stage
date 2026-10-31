@@ -21,17 +21,7 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
         IEnumerable<SemanticReducer> reducers;
         if (classicReducer is not null)
         {
-            // A classic reducer has its own file. Preserve its historical imports exactly.
-            builder.Using("Cratis.Chronicle.Events")
-                .Using("Cratis.Chronicle.Reducers")
-                .Using($"{context.RootNamespace}.TypedContexts")
-                .Using(SliceNaming.Namespace(context.RootNamespace, located.Path));
-
-            // Like a self reducer, a body may name the concepts and types its read model is built from.
-            if (context.ReadModels[classicReducer.ReadModel].Properties.Any(property => SemanticTypeSystem.DeclarationNeedsCommon(property.Type)))
-            {
-                builder.Using(context.CommonNamespace);
-            }
+            ConfigureClassicImports(builder, located, context, classicReducer);
 
             reducers = [classicReducer];
         }
@@ -69,4 +59,19 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
 
     internal static string Qualify(SemanticApplicationContext context, string relativeNamespace) =>
         relativeNamespace.Length == 0 ? context.RootNamespace : $"{context.RootNamespace}.{relativeNamespace}";
+
+    static void ConfigureClassicImports(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context, SemanticReducer reducer)
+    {
+        // A classic reducer has its own file. Preserve its historical imports unless its model needs Common.
+        builder.Using("Cratis.Chronicle.Events")
+            .Using("Cratis.Chronicle.Reducers")
+            .Using($"{context.RootNamespace}.TypedContexts")
+            .Using(SliceNaming.Namespace(context.RootNamespace, located.Path));
+
+        // Like a self reducer, a body may name the concepts and types its read model is built from.
+        if (context.ReadModels[reducer.ReadModel].Properties.Any(property => SemanticTypeSystem.DeclarationNeedsCommon(property.Type)))
+        {
+            builder.Using(context.CommonNamespace);
+        }
+    }
 }

@@ -31,7 +31,7 @@ public class of_an_event_returned_by_a_command_handler : for_SemanticOwnerOmissi
     [Fact] void should_cover_the_reference_shape() => Assert.True(_index.IsSemanticGraphComplete, string.Join(Environment.NewLine, _index.IncompleteReasons));
     [Fact] void should_find_the_command_depending_on_the_returned_event() => _index.Dependents(_registerProject.Events.Single().Id).ShouldContain(_registerProject.Commands.Single().Id);
     [Fact] void should_prove_the_owner_omission() => _omission.ShouldNotBeNull();
-    [Fact] void should_include_the_handler_command_in_the_omission() => _omission!.Closure.ShouldContain(_registerProject.Commands.Single().Id);
-    [Fact] void should_not_omit_the_upstream_concept() => _omission!.Closure.ShouldNotContain(_projectName.Id);
+    [Fact] void should_include_the_handler_command_in_the_omission() => _omission.Closure.ShouldContain(_registerProject.Commands.Single().Id);
+    [Fact] void should_not_omit_the_upstream_concept() => _omission.Closure.ShouldNotContain(_projectName.Id);
     [Fact] void should_record_the_handler_event_edge() => _index.Edges.Any(edge => edge.Member == "SemanticProducedEvent.EventContract" && edge.Kind == SemanticDependencyKind.ProducedEvent && edge.Dependency == _registerProject.Events.Single().Id && edge.Dependent == _registerProject.Commands.Single().Id).ShouldBeTrue();
 }

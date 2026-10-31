@@ -16,11 +16,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 public class with_an_authored_scene : a_screen_composition_render
 {
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
-    // Re-captured on Train 8b: relative to main, only #660 adds CratisReadProtection On in Directory.Build.props; all other bytes match main.
-    // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
-    // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
-    // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    const string Before = "dbb0d8069f29fcad5ab406987c8a785d352268f54d94c9a7394ea019f8e03221";
+    // Re-frozen for Cratis/Stage#873
+    const string Before = "db8e1a3580297bdc9c2b744191573b38c251671d7e34714f827db220e16b2822";
 
     ArtifactRenderPlan _plan = null!;
 

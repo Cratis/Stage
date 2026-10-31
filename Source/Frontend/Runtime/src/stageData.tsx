@@ -14,6 +14,7 @@ import { guardPath } from './stageGuards';
 import { sessionIdentities } from './stageSession';
 
 const DATA_CHANGED = 'cratis.stage.data-changed';
+const AwaitingQueryContext = createContext<() => () => void>(() => () => undefined);
 
 interface QueryState {
     name?: string;
@@ -223,7 +224,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     const refreshQuery = useCallback((query?: string) =>
         setRefreshRequests(current => ({ query, version: current.version + 1 })), []);
 
-    const { settling, refreshAfterCommand } = useCommandSettlement(refreshQuery, setSessionVersion);
+    const { settling, refreshAfterCommand, registerAwaitingQuery } = useCommandSettlement(refreshQuery, setSessionVersion);
 
     useEffect(() => {
         const dataChanged = () => refreshQuery();
@@ -302,7 +303,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
         refreshQueryName: refreshRequests.query,
     }), [clearSelection, locale, locales, queries, refreshAfterCommand, settling, refreshQuery, refreshRequests.query, refreshRequests.version, registerQueryResult, publishComponentOutputs, withdrawComponentOutputs, queryResults, resolveArgument, resolveBinding, routes, routesReady, parameters, session, screen, selectRow, selected, selections, setComponentOutput]);
 
-    return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
+    return <StageDataContext.Provider value={state}><AwaitingQueryContext.Provider value={registerAwaitingQuery}>{children}</AwaitingQueryContext.Provider></StageDataContext.Provider>;
 }
 
 // A command answers once its events are appended; a projection applies them afterwards. Chronicle - what a
@@ -312,24 +313,49 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
 function useCommandSettlement(refreshQuery: () => void, setSessionVersion: React.Dispatch<React.SetStateAction<number>>) {
     const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
     const commandsSettling = useRef(0);
+    const awaitingQueries = useRef(0);
+    const tailStops = useRef(new Set<() => void>());
     const [settling, setSettling] = useState(false);
+    const registerAwaitingQuery = useCallback(() => {
+        awaitingQueries.current += 1;
+        return () => {
+            awaitingQueries.current -= 1;
+            if (awaitingQueries.current === 0) tailStops.current.forEach(stop => stop());
+        };
+    }, []);
     const refreshAfterCommand = useCallback(() => {
         setSessionVersion(current => current + 1);
         refreshQuery();
         commandsSettling.current += 1;
         setSettling(true);
-        const last = commandSettleDelays[commandSettleDelays.length - 1];
-        for (const delay of commandSettleDelays) {
-            settleTimers.current.push(setTimeout(() => {
-                refreshQuery();
-                if (delay !== last) return;
-                commandsSettling.current -= 1;
-                if (commandsSettling.current === 0) setSettling(false);
-            }, delay));
-        }
+        settleTimers.current.push(...scheduleCommandReads(refreshQuery, tailStops.current, () => {
+            commandsSettling.current -= 1;
+            if (commandsSettling.current === 0) setSettling(false);
+        }, () => awaitingQueries.current > 0));
     }, [refreshQuery, setSessionVersion]);
     useEffect(() => () => settleTimers.current.forEach(clearTimeout), []);
-    return { settling, refreshAfterCommand };
+    return { settling, refreshAfterCommand, registerAwaitingQuery };
+}
+
+function scheduleCommandReads(refreshQuery: () => void, tailStops: Set<() => void>, finish: () => void, hasAwaitingQuery: () => boolean) {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const stop = () => {
+        timers.forEach(clearTimeout);
+        tailStops.delete(stop);
+        finish();
+    };
+    const last = commandSettleDelays[commandSettleDelays.length - 1];
+    for (const delay of commandSettleDelays) {
+        timers.push(setTimeout(() => {
+            refreshQuery();
+            if (delay === 3000) {
+                tailStops.add(stop);
+                if (!hasAwaitingQuery()) stop();
+            }
+            if (delay === last) stop();
+        }, delay));
+    }
+    return timers;
 }
 
 export const useStageData = (): StageDataState => useContext(StageDataContext);
@@ -467,9 +493,18 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
 function useAwaitingCommand(active: boolean, rows: Record<string, unknown>[], error: string, settling: boolean): boolean {
     const hadRows = useRef(false);
     if (rows.length > 0) hadRows.current = true;
+    const registerAwaitingQuery = useContext(AwaitingQueryContext);
+    const awaiting = isAwaitingCommand(active, rows, error, settling) && !hadRows.current;
+    useEffect(() => {
+        if (awaiting) return registerAwaitingQuery();
+    }, [awaiting, registerAwaitingQuery]);
+    return awaiting;
+}
+
+function isAwaitingCommand(active: boolean, rows: Record<string, unknown>[], error: string, settling: boolean): boolean {
     if (!active || !settling) return false;
     if (error || rows.length !== 0) return false;
-    return !hadRows.current;
+    return true;
 }
 
 export function dataChanged() {

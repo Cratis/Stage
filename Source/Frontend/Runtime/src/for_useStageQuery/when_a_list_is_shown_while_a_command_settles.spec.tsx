@@ -19,7 +19,7 @@ function Pets() {
 function AfterCommand({ show }: { show: boolean }) {
     const data = useStageData();
     useEffect(() => data.refreshAfterCommand(), []); // eslint-disable-line react-hooks/exhaustive-deps
-    return show ? <Pets /> : null;
+    return <><output aria-label='settling'>{String(data.settling)}</output>{show ? <Pets /> : null}</>;
 }
 
 function view(show: boolean) {
@@ -57,6 +57,42 @@ describe('when a list is shown while a command settles', () => {
         rerender(view(true));
         await advance(7000);
         expect(screen.getByLabelText('pets').textContent).toBe('Fido');
+    });
+
+    it('stops the tail reads when no query is awaiting the command', async () => {
+        const perform = vi.spyOn(QueryFor.prototype, 'perform').mockResolvedValue(QueryResult.empty([{ name: 'Fido' }]));
+        render(view(true));
+        await advance(0);
+        const initialReads = perform.mock.calls.length;
+        await advance(500);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 1);
+        await advance(1000);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 2);
+        await advance(1500);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 3);
+        expect(screen.getByLabelText('settling').textContent).toBe('false');
+        await advance(12000);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 3);
+    });
+
+    it('continues the tail reads while an empty list awaits the command', async () => {
+        const perform = vi.spyOn(QueryFor.prototype, 'perform').mockResolvedValue(QueryResult.empty([]));
+        render(view(true));
+        await advance(0);
+        const initialReads = perform.mock.calls.length;
+        await advance(500);
+        await advance(1000);
+        await advance(1500);
+        expect(screen.getByLabelText('settling').textContent).toBe('true');
+        await advance(3000);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 4);
+        expect(screen.getByLabelText('settling').textContent).toBe('true');
+        await advance(4000);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 5);
+        expect(screen.getByLabelText('settling').textContent).toBe('true');
+        await advance(5000);
+        expect(perform).toHaveBeenCalledTimes(initialReads + 6);
+        expect(screen.getByLabelText('settling').textContent).toBe('false');
     });
 
     it('says it is empty once the command has settled', async () => {

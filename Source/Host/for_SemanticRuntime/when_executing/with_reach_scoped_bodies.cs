@@ -74,8 +74,8 @@ public class with_reach_scoped_bodies : a_semantic_runtime
     [Fact] void should_refuse_the_reducer_query() => ((SemanticUnsupported)_query).Details.ShouldContain("STAGE-IMPL-003: Reducer 'Fold'");
     [Fact] void should_not_block_the_live_model() => _admission.Blocking.ShouldBeEmpty();
     [Fact] void should_admit_the_unrelated_command() => Entry("Clean").Status.ShouldEqual("supported");
-    [Fact] void should_report_the_feeding_command_refusal() => Entry("Feed").Details!.ShouldContain("STAGE-IMPL-003: Reducer 'Fold'");
-    [Fact] void should_report_the_query_refusal() => _admission.Entries.Single(entry => entry.Kind == "query").Details!.ShouldContain("STAGE-IMPL-003: Reducer 'Fold'");
+    [Fact] void should_report_the_feeding_command_refusal() => Entry("Feed").Details.ShouldContain("STAGE-IMPL-003: Reducer 'Fold'");
+    [Fact] void should_report_the_query_refusal() => _admission.Entries.Single(entry => entry.Kind == "query").Details.ShouldContain("STAGE-IMPL-003: Reducer 'Fold'");
     [Fact] async Task should_append_only_once() => await ((IAppendSemanticFacts)_appender).Received(1).Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 
     SemanticAdmissionEntry Entry(string name) => _admission.Entries.Single(entry => entry.Kind == "command" && entry.Artifact == _plan.Commands.Values.Single(command => command.Name == name).Id.ToString());

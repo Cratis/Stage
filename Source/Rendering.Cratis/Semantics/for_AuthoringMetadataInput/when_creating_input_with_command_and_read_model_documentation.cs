@@ -21,7 +21,7 @@ public class when_creating_input_with_command_and_read_model_documentation : Spe
     {
         var input = AuthoringMetadataInput.Create(_compilation);
         input.ShouldNotBeNull();
-        _accepted = AuthoringMetadataInput.TryRead(input!, _compilation.Model, out _catalog);
+        _accepted = AuthoringMetadataInput.TryRead(input, _compilation.Model, out _catalog);
     }
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();

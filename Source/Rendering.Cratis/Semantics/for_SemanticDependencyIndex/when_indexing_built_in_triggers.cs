@@ -59,10 +59,10 @@ public class when_indexing_built_in_triggers : given.a_dependency_index
     public void should_still_refuse_a_missing_application_trigger_in_a_specification()
     {
         var specification = _registerProject.Specifications[0] with { When = null, WhenTrigger = new(SemanticReactionTriggerKind.ApplicationTrigger, []) };
-        _registerProject = _registerProject with { Specifications = [specification] };
-        BuildIndex();
+        var registerProject = _registerProject with { Specifications = [specification] };
+        var index = CreateIndex(registerProject: registerProject);
 
-        _index.IsSemanticGraphComplete.ShouldBeFalse();
-        _index.IncompleteReasons.Any(reason => reason.StartsWith("SemanticSpecificationTrigger.Trigger:", StringComparison.Ordinal)).ShouldBeTrue();
+        index.IsSemanticGraphComplete.ShouldBeFalse();
+        index.IncompleteReasons.Any(reason => reason.StartsWith("SemanticSpecificationTrigger.Trigger:", StringComparison.Ordinal)).ShouldBeTrue();
     }
 }

@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticDependencyIndex.given;
@@ -29,16 +30,18 @@ public class a_dependency_index : a_register_project_render_request
         _projectName = _application.Concepts.Single(concept => concept.Name == "ProjectName");
     }
 
-    protected void BuildIndex()
+    protected void BuildIndex() => _index = CreateIndex();
+
+    private protected SemanticDependencyIndex CreateIndex(SemanticSlice? registerProject = null, SemanticSlice? projectLookup = null, ArtifactRenderRequest? request = null)
     {
         var application = _application with
         {
-            Modules = [_module with { Features = [_feature with { Slices = [_registerProject, _projectLookup] }] }]
+            Modules = [_module with { Features = [_feature with { Slices = [registerProject ?? _registerProject, projectLookup ?? _projectLookup] }] }]
         };
 
         // Index-only fixtures also exercise refused/future shapes. Do not let model validation preempt the index's incomplete signal.
         var model = _model with { };
         Replace(model, "Application", application);
-        _index = new(new SemanticApplicationContext(_request with { Model = model }, _options));
+        return new(new SemanticApplicationContext((request ?? _request) with { Model = model }, _options));
     }
 }

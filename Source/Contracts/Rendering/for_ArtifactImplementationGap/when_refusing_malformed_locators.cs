@@ -21,5 +21,10 @@ public class when_refusing_malformed_locators : given.a_gap
     [Fact] void should_refuse_negative_starts() => _negative.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_empty_bodies() => _empty.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_overflowing_ends() => _overflowing.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    Exception Refuse(ArtifactImplementationBodyLocator locator) => Catch.Exception(() => Digest([_gap with { Stubs = [_stub with { BodyLocator = locator }] }]));
+    Exception Refuse(ArtifactImplementationBodyLocator locator)
+    {
+        var exception = Catch.Exception(() => Digest([_gap with { Stubs = [_stub with { BodyLocator = locator }] }]));
+        exception.ShouldNotBeNull();
+        return exception;
+    }
 }

@@ -28,7 +28,7 @@ public class when_planning_without_analysis_references : Specification
             var exception = Catch.Exception(() => plan = opaque_policy_model.Plan(loaded));
             exception.ShouldBeNull();
             plan.ShouldNotBeNull();
-            plan!.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
+            plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Refused);
             plan.Artifacts.ShouldBeEmpty();
             plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-021" &&
                 diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error &&

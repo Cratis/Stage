@@ -30,13 +30,15 @@ public class a_translation_application : Specification
         _model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.ToArray()), slice => slice with { Specifications = [] });
     }
 
-    protected void Render(bool clientOnly = false)
+    protected void Render(bool clientOnly = false) => (_plan, _sources, _assembly) = RenderModel(_model, clientOnly);
+
+    protected static (ArtifactRenderPlan Plan, RenderedFile[] Sources, Assembly Assembly) RenderModel(ExecutableSemanticModel model, bool clientOnly = false)
     {
-        _plan = Plan(_model);
-        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-        _sources = [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+        var plan = Plan(model);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+        RenderedFile[] sources = [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
-        _assembly = RenderedOutput.Load(_sources, clientOnly);
+        return (plan, sources, RenderedOutput.Load(sources, clientOnly));
     }
 
     private protected (SemanticApplicationContext Context, LocatedSemanticSlice Located, SemanticCapture Capture, SemanticId First, SemanticId Second) InternalCaptureProbe(bool sameNamespace, bool reverse = false)

@@ -23,10 +23,10 @@ public class when_executing_renamed_capture_members : given.a_translation_specif
     [Fact]
     public async Task should_compile_and_execute_a_generated_specification_calling_a_renamed_handler()
     {
-        _model = Transform(_model, slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched" })] });
-        Render(clientOnly: true);
-        Assert.Empty(RenderedOutput.Warnings(_sources));
-        await RunGenerated("when_receiving_a_shipment");
+        var model = Transform(_model, slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched" })] });
+        var (_, sources, assembly) = RenderModel(model, clientOnly: true);
+        Assert.Empty(RenderedOutput.Warnings(sources));
+        await RunGenerated(assembly, "when_receiving_a_shipment");
     }
 
     [Theory]
@@ -41,21 +41,21 @@ public class when_executing_renamed_capture_members : given.a_translation_specif
     [InlineData("OnShipmentDispatched")]
     public async Task should_keep_arrival_suppression_key_isolation_and_replay_with_renamed_declarations(string name)
     {
-        _model = Transform(_model, slice => slice with { Specifications = [], Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
-        Render();
+        var model = Transform(_model, slice => slice with { Specifications = [], Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
+        var (_, _, assembly) = RenderModel(model);
         var store = Substitute.For<IEventStore>();
         var inbox = Substitute.For<IEventSequence>();
         var history = new List<AppendedEvent>();
         store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
         store.GetEventSequence(new EventSequenceId("inbox-shipping")).Returns(inbox);
         inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(_ => Task.FromResult<IImmutableList<AppendedEvent>>([.. history]));
-        var reactorType = Generated("TrackShipments", name);
-        var sourceType = Generated("TrackShipments", "ShipmentDispatched");
+        var reactorType = assembly.GetType($"Contracts.Integration.Translation.TrackShipments.{name}", true)!;
+        var sourceType = assembly.GetType("Contracts.Integration.Translation.TrackShipments.ShipmentDispatched", true)!;
         var method = reactorType.GetMethods().Single(candidate => candidate.GetParameters() is { Length: 3 } parameters && parameters[0].ParameterType == sourceType && parameters[1].ParameterType == typeof(EventContext) && parameters[2].ParameterType == typeof(ReactorDelivery));
         var effects = new List<EventForEventSourceId>();
         foreach (var key in new[] { First, First, Second })
         {
-            var source = Activator.CreateInstance(sourceType, Activator.CreateInstance(_assembly.GetType("Contracts.Common.OrderId", true)!, Guid.Parse(key)))!;
+            var source = Activator.CreateInstance(sourceType, Activator.CreateInstance(assembly.GetType("Contracts.Common.OrderId", true)!, Guid.Parse(key)))!;
             var position = (ulong)history.Count;
             var context = EventContext.Empty with { SequenceNumber = position, EventType = sourceType.GetEventType() };
             history.Add(new(context, source));
@@ -82,12 +82,12 @@ public class when_executing_renamed_capture_members : given.a_translation_specif
     [InlineData("Observe")]
     public async Task should_keep_added_transition_and_overlay_guards_in_actual_generated_specifications(string name)
     {
-        _model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.ToArray()), slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
-        Render(clientOnly: true);
-        Assert.Empty(RenderedOutput.Warnings(_sources));
-        await RunGenerated("when_first_arrival");
-        await RunGenerated("when_given_transition");
-        await RunGenerated("when_overlay");
+        var model = Transform(SemanticModelSerializer.Deserialize(PublicEventsCorpus.CapturesFromEventsV9.EsmBytes.ToArray()), slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
+        var (_, sources, assembly) = RenderModel(model, clientOnly: true);
+        Assert.Empty(RenderedOutput.Warnings(sources));
+        await RunGenerated(assembly, "when_first_arrival");
+        await RunGenerated(assembly, "when_given_transition");
+        await RunGenerated(assembly, "when_overlay");
     }
 }
 #endif

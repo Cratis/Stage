@@ -68,7 +68,7 @@ public class when_rendering_typed_capture_keys_at_a_newer_minor : Specification
     {
         SetTypes(SemanticTypeReference.ForPrimitive(source), SemanticTypeReference.ForPrimitive(append));
         var audited = Check();
-        audited!.ShouldContain(expected);
+        audited.ShouldContain(expected);
         Versions(32, 1);
         Check().ShouldEqual(audited);
     }

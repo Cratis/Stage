@@ -36,6 +36,6 @@ public class when_admitting_v33 : Specification
         var events = slice.Events.ToDictionary(contract => contract.Id);
         SemanticCaptureIdentitySupport.Check(capture, model, events).ShouldBeNull();
         var mismatched = capture with { Appends = [capture.Appends.Single() with { EventSourceType = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) }] };
-        SemanticCaptureIdentitySupport.Check(mismatched, model, events)!.ShouldContain("will not coerce");
+        SemanticCaptureIdentitySupport.Check(mismatched, model, events).ShouldContain("will not coerce");
     }
 }

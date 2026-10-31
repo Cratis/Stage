@@ -164,7 +164,7 @@ public class when_asserting_production_destinations : given.a_slice_with_specifi
     {
         var slice = application.Slices.Single();
         var command = slice.Slice.Commands.Single();
-        var specification = Specification("Destinations", when: When("Change", ("id", command.Properties.First().Type.Name == "DestinationId" ? "137ac9e1-a91f-4b49-a44c-72bf086dfaf5" : "command-source"), ("destination", destination), ("other", "another"), ("name", "payload")), then: events);
+        var specification = Specification("Destinations", when: WhenCommand("Change", ("id", command.Properties.First().Type.Name == "DestinationId" ? "137ac9e1-a91f-4b49-a44c-72bf086dfaf5" : "command-source"), ("destination", destination), ("other", "another"), ("name", "payload")), then: events);
         var assertions = SpecificationRenderer.Render(specification, command, slice, application, "Generated");
         assertions.Diagnostics.ShouldBeEmpty();
         var tree = CSharpSyntaxTree.ParseText(assertions.Content, new CSharpParseOptions(preprocessorSymbols: ["DEBUG"]));

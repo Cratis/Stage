@@ -57,5 +57,5 @@ public class a_root_string_key_slice : Specification
         _slice = _context.Slices.Single().Slice;
     }
 
-    protected RenderedFile Render() => new StateViewSliceRenderer().Render(new(_slice, ["Sales", "Orders"]), _context, "OrdersApp");
+    protected RenderedFile Render(SliceSyntax? slice = null) => new StateViewSliceRenderer().Render(new(slice ?? _slice, ["Sales", "Orders"]), _context, "OrdersApp");
 }

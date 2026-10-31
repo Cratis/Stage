@@ -42,8 +42,8 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(25179);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);
-    [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations!.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);
-    [Fact] void should_restrict_the_editable_fields_of_a_collection() => Exposed("WorkspaceFeatureShell", "actions").EditableFields!.ShouldContainOnly(["label", "icon"]);
+    [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);
+    [Fact] void should_restrict_the_editable_fields_of_a_collection() => Exposed("WorkspaceFeatureShell", "actions").EditableFields.ShouldContainOnly(["label", "icon"]);
     [Fact] void should_carry_the_exposed_label() => Exposed("WorkspaceFeatureShell", "title").Label.ShouldEqual("Header title");
     [Fact] void should_carry_a_re_exposure() => Exposed("EditWorkItemDialog", "title").ReExposes.ShouldEqual("WorkspaceFeatureShell");
 

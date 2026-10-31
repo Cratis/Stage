@@ -33,7 +33,7 @@ public class when_delivering_application_trigger_invocations : Specification
         _assembly = for_CratisRenderer.RenderedOutput.Load(when_rendering_application_trigger_productions.Files(plan));
     }
 
-    async Task Deliver()
+    async Task Deliver(OccurrenceCommandResult? result = null)
     {
         var executor = Substitute.For<IOccurrenceCommandExecutor>();
         executor.Execute(Arg.Any<object>(), Arg.Any<OccurrenceContext>(), Arg.Any<EffectName>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
@@ -41,7 +41,7 @@ public class when_delivering_application_trigger_invocations : Specification
             {
                 _keys.Add(call.ArgAt<OccurrenceContext>(1).EffectKey(call.ArgAt<EffectName>(2)));
                 _roles.Add([.. call.ArgAt<IEnumerable<string>>(3)]);
-                return _result;
+                return result ?? _result;
             });
         var type = _assembly.GetTypes().Single(item => item.Name == "ProcessBatch");
         var payload = Activator.CreateInstance(_assembly.GetTypes().Single(item => item.Name == "BatchRequested"), "batch-42")!;
@@ -80,16 +80,14 @@ public class when_delivering_application_trigger_invocations : Specification
         await Deliver();
         _keys.Count.ShouldEqual(1);
         _failure.ShouldNotBeNull();
-        _failure!.Message.ShouldContain(message);
+        _failure.Message.ShouldContain(message);
     }
 
     [Fact]
     public async Task should_reuse_the_same_effect_keys_on_redelivery()
     {
-        _result = new(OccurrenceCommandDisposition.Recorded, new NoEvents(), null, null);
-        await Deliver();
-        _result = new(OccurrenceCommandDisposition.AlreadyRecorded, new NoEvents(), null, null);
-        await Deliver();
+        await Deliver(new(OccurrenceCommandDisposition.Recorded, new NoEvents(), null, null));
+        await Deliver(new(OccurrenceCommandDisposition.AlreadyRecorded, new NoEvents(), null, null));
         _deliveries.ShouldEqual(2);
         _failure.ShouldBeNull();
         _keys.Count.ShouldEqual(4);

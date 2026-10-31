@@ -59,5 +59,10 @@ public class when_refusing_malformed_gaps : given.a_gap
     [Fact] void should_refuse_default_stubs() => _defaultStubs.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_null_stubs() => _nullStub.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_duplicate_requirement_ids() => _duplicateGap.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    Exception Refuse(ArtifactImplementationGap gap) => Catch.Exception(() => Digest([gap]));
+    Exception Refuse(ArtifactImplementationGap gap)
+    {
+        var exception = Catch.Exception(() => Digest([gap]));
+        exception.ShouldNotBeNull();
+        return exception;
+    }
 }

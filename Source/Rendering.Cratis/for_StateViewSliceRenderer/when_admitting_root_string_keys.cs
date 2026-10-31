@@ -153,10 +153,10 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
         var blocked = _slice.Projections.Single();
         Compile("from OrderCreated\n  total = total");
         var safe = _slice.Projections.Single();
-        _slice = _slice with { Projections = [safe, blocked with { Name = "Ignored" }] };
-        Render().Content.ShouldNotContain("ConstantKey");
-        _slice = _slice with { Projections = [blocked, safe with { Name = "Ignored" }] };
-        Reject(UnsupportedRootStringKeyReason.ExplicitIdentity);
+        var slice = _slice with { Projections = [safe, blocked with { Name = "Ignored" }] };
+        Render(slice).Content.ShouldNotContain("ConstantKey");
+        slice = slice with { Projections = [blocked, safe with { Name = "Ignored" }] };
+        Reject(UnsupportedRootStringKeyReason.ExplicitIdentity, slice);
     }
 
     [Theory]
@@ -168,9 +168,9 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
         Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
     }
 
-    UnsupportedRootStringKey Reject(UnsupportedRootStringKeyReason reason)
+    UnsupportedRootStringKey Reject(UnsupportedRootStringKeyReason reason, SliceSyntax? slice = null)
     {
-        var failure = Assert.IsType<UnsupportedRootStringKey>(Catch.Exception(() => Render()));
+        var failure = Assert.IsType<UnsupportedRootStringKey>(Catch.Exception(() => Render(slice)));
         failure.Reason.ShouldEqual(reason);
         return failure;
     }

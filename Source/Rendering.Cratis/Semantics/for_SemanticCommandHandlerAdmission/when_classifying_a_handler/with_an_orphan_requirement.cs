@@ -13,5 +13,5 @@ public class with_an_orphan_requirement : given.a_described_handler
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_classify_as_invalid() => _classification.Kind.ShouldEqual(HandlerKind.Invalid);
-    [Fact] void should_explain_the_wrong_owner() => _classification.Reason!.ShouldContain("command");
+    [Fact] void should_explain_the_wrong_owner() => _classification.Reason.ShouldContain("command");
 }

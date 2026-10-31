@@ -54,12 +54,12 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     [Fact]
     void should_not_bypass_append_time_constraints_on_the_produced_fact()
     {
-        Prepare(Source);
-        _model = Transform(_model, slice => slice with
+        var model = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(Source);
+        model = Transform(model, slice => slice with
         {
             Constraints = [new("UniqueId", SemanticConstraintKind.UniquePropertyValue, SemanticConstraintScope.EventSequence, [new(slice.Events.Single(contract => contract.Name == "Received").Id, [slice.Events.Single(contract => contract.Name == "Received").Properties.Single().Id])], [], false, null)]
         });
-        Refuses("append-time constraints");
+        Refuses("append-time constraints", model);
     }
 
     // A specification runs only its own slice (Screenplay decision 0115): another slice's publication of the output does not run.
@@ -67,27 +67,27 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     void should_not_settle_another_slices_publication_of_the_output()
     {
         Prepare(Source + "\n" + Publication);
-        _plan = Plan(_model);
-        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
+        var plan = Plan(_model);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
     }
 
     [Fact]
     void should_refuse_a_publication_named_after_the_generated_failure_type()
     {
         Prepare(Source + "\n" + Publication.Replace("projection ReceiptPublisher", "projection PublicationAppendFailed", StringComparison.Ordinal));
-        _plan = Plan(_model);
-        _plan.Success.ShouldBeFalse();
-        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("append failure", StringComparison.Ordinal));
+        var plan = Plan(_model);
+        plan.Success.ShouldBeFalse();
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-012" && diagnostic.Message.Contains("append failure", StringComparison.Ordinal));
     }
 
     void Prepare(string source) => _model = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source);
 
-    void Refuses(string reason)
+    void Refuses(string reason, ExecutableSemanticModel? model = null)
     {
-        _plan = Plan(_model);
-        _plan.Success.ShouldBeTrue();
-        _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
-        _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
+        var plan = Plan(model ?? _model);
+        plan.Success.ShouldBeTrue();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
     }
 }
 #endif

@@ -21,7 +21,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for Components 4.37.0 and Scene 4.86.0: the scaffold now emits those npm pins.
-    const string Before = "cb0bde14a7582c9aada74cc2c91241588b95b3d5ffd15e9469696c8d046cd0bc";
+    // Recomputed for Components 4.38.1: only the npm package pin changes.
+    const string Before = "54af53219f4b3d24b21dc823b030c23e9697db6dab3835d6d3d8f210c6d33f97";
 
     void Because() => _application = AppPlan(_profile);
 

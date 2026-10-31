@@ -18,7 +18,7 @@ public class and_the_gap_belongs_to_an_item : given.a_declarative_planner
     [Fact] void should_render_every_output() => _plan.Artifacts.Length.ShouldEqual(4);
     [Fact] void should_record_one_degradation_warning() => _plan.Diagnostics.Select(_ => (_.Code, _.Severity)).ShouldEqual([(ArtifactRenderDegradationCodes.UnsupportedConstruct, ArtifactRenderDiagnosticSeverity.Warning)]);
     [Fact] void should_own_the_warning_by_the_item() => _plan.Diagnostics[0].Artifact.ShouldEqual(_plan.Artifacts.Single(_ => _.RelativePath == "Commands/Echo.test").Sources.Single());
-    [Fact] void should_record_the_degradation_for_the_item() => _plan.Degradations.Select(_ => _.Diagnostic).ShouldEqual(_plan.Diagnostics);
+    [Fact] void should_record_the_degradation_for_the_item() => _plan.Degradations.Select(_ => _.Diagnostic).ShouldEqualInOrder([.. _plan.Diagnostics]);
     [Fact] void should_have_no_plan_evidence() => _plan.PlanEvidence.ShouldBeEmpty();
     [Fact] void should_still_succeed() => _plan.Success.ShouldBeTrue();
 }

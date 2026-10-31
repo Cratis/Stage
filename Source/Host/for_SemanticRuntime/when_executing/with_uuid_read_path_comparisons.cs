@@ -12,6 +12,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
+[PerFactSpecificationLifecycle]
 public class with_uuid_read_path_comparisons : Specification
 {
     const string Granted = "a1111111-1111-4111-8111-111111111111";

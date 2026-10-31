@@ -19,15 +19,16 @@ public class and_a_table_column_is_an_enumeration : Specification
         {
             Enumerations = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<string>>>
             {
-                ["Opportunity"] = new Dictionary<string, IReadOnlyList<string>> { ["stage"] = new[] { "newLead", "inProgress", "won" } }
+                ["Opportunity"] = new Dictionary<string, IReadOnlyList<string>> { ["stage"] = ["newLead", "inProgress", "won"] }
             }
         };
         var table = (ExternalComponent)ScreenDirectiveConverter.Convert(
             [new ScreenTableSyntax("Opportunity", [new ScreenColumnSyntax("stage", "Stage", SourceLocation.Start)], null, SourceLocation.Start)],
-            "Pipeline", scope)[0];
+            "Pipeline",
+            scope)[0];
         _column = (ExternalComponent)table.Slots["columns"].Single();
     }
 
     [Fact] void should_not_carry_numbers_for_an_implicitly_numbered_enumeration() => _column.Properties.ContainsKey("optionValues").ShouldBeFalse();
-    [Fact] void should_carry_the_members_of_the_columns_read_model_property() => ((IReadOnlyList<string>)_column.Properties["options"]!).ShouldContainOnly("newLead", "inProgress", "won");
+    [Fact] void should_carry_the_members_of_the_columns_read_model_property() => ((IReadOnlyList<string>)_column.Properties["options"]).ShouldContainOnly("newLead", "inProgress", "won");
 }

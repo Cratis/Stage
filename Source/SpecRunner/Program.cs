@@ -12,7 +12,7 @@ using Cratis.Stage.Running;
 using Cratis.Stage.Specifications;
 using Cratis.Stage.SpecRunner;
 
-return await Program.Run(args, Console.Out, Console.Error);
+return await Run(args, Console.Out, Console.Error);
 
 /// <summary>
 /// Runs modeled specifications from a Screenplay file or folder.
@@ -64,6 +64,7 @@ public static partial class Program
         try
         {
             model = await load(arguments.ModelPath);
+            ProtectedCommandReadsAdmission.EnsureExecutableBy(model, arguments.ModelPath, "structural");
         }
         catch (InvalidEventModel exception)
         {

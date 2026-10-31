@@ -37,7 +37,7 @@ public static partial class BodyUnitCompiler
 
         // The worker compiles with the very references render admission analyzed the handler against.
         var references = PureTransitionAdmission.AnalysisReferences().ToArray();
-        var hash = Hash(context, "retained-handler-v2:" + command.Id, [unit.Source, unit.Path, unit.EntryType, unit.EntryMethod, "retained-handler-v2"], references, nameof(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));
+        var hash = Hash(context, "retained-handler-v2:" + command.Id, new([unit.Source, unit.Path, unit.EntryType, unit.EntryMethod, "retained-handler-v2"], references, nameof(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview)));
         var cached = BodyUnitCache.Read(cacheDirectory, hash);
         if (cached is not null) return cached;
         var tree = CSharpSyntaxTree.ParseText(unit.Source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview), unit.Path);

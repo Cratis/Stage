@@ -25,13 +25,20 @@ internal static class SemanticSpecificationClassNames
     /// <param name="specification">The semantic specification.</param>
     /// <param name="readModel">The asserted read model.</param>
     /// <param name="absentIndex">The position of the absence expectation, or null for a present one.</param>
+    /// <param name="thenIndex">The position of a present expectation in <see cref="SemanticSpecification.ThenReadModels"/>, when known.</param>
     /// <returns>The class name.</returns>
-    internal static string Projected(SemanticSpecification specification, SemanticReadModel readModel, int? absentIndex)
+    internal static string Projected(SemanticSpecification specification, SemanticReadModel readModel, int? absentIndex, int? thenIndex = null)
     {
         var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_projected";
         if (specification.ThenReadModels.Length > 1)
         {
             behavior += $"_into_{Identifiers.ToSnakeCase(readModel.Name)}";
+
+            // Several expectations on one read model (a seeded composite key per row) would otherwise share a file.
+            if (thenIndex is { } position && specification.ThenReadModels.Count(then => then.ReadModel == readModel.Id) > 1)
+            {
+                behavior += $"_{specification.ThenReadModels.Take(position + 1).Count(then => then.ReadModel == readModel.Id)}";
+            }
         }
         if (absentIndex is { } index)
         {

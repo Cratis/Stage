@@ -51,6 +51,7 @@ internal static class StageSceneDocument
     {
         var diagnostics = new ConversionDiagnostics();
         var schemas = context.Commands.Values
+            .Where(command => !context.OmittedOwners.Contains(command.Id))
             .GroupBy(command => command.Name, StringComparer.Ordinal)
             .Select(group =>
             {

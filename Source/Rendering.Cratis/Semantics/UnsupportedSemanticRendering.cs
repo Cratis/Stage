@@ -21,7 +21,7 @@ public sealed class UnsupportedSemanticRendering : Exception
 
     internal SemanticId? Owner { get; private init; }
 
-    internal bool WholeRenderOnly { get; private init; }
+    internal bool OwnerScoped { get; private init; }
 
     /// <summary>
     /// Creates a failure naming the semantic variant that cannot be rendered.
@@ -35,6 +35,6 @@ public sealed class UnsupportedSemanticRendering : Exception
         new($"The Cratis ESM renderer cannot handle {category} '{value}'.")
         {
             Owner = owner,
-            WholeRenderOnly = owner.HasValue
+            OwnerScoped = owner.HasValue
         };
 }

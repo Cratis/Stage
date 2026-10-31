@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -9,12 +10,16 @@ namespace Cratis.Stage.Rendering.Cratis;
 
 static class CratisPlanReports
 {
-    internal static ArtifactRenderPlan Finalize(ArtifactRenderRequest request, ArtifactRenderPlan plan, CratisRenderingOptions options)
+    internal static ArtifactRenderPlan Finalize(
+        ArtifactRenderRequest request,
+        ArtifactRenderPlan plan,
+        CratisRenderingOptions options,
+        IReadOnlyDictionary<SemanticId, ImmutableArray<SemanticId>>? omissionCauses = null)
     {
         if (request.IdentityCatalog is null && request.SemanticIdentities.IsDefaultOrEmpty) return plan;
         if (!plan.CanPublishArtifacts) return plan;
         if (!plan.ImplementationGaps.IsEmpty && plan.Degradations.IsEmpty) return plan;
-        plan = plan.WithInventory(CratisSemanticInventory.Create(request, plan, options));
+        plan = plan.WithInventory(CratisSemanticInventory.Create(request, plan, options, omissionCauses));
         var context = new ArtifactRenderReportContext(plan.InputVersions!, Support(plan), [new(request.Profile.Renderer, request.Profile.RendererVersion)]);
         var reports = ArtifactRenderReports.Create(plan, context);
         var placedReports = ServiceLayout.Apply(request.Profile, [reports.Completeness, reports.Unsupported]);

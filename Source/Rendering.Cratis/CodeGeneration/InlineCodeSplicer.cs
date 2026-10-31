@@ -45,14 +45,23 @@ internal static class InlineCodeSplicer
         {
             output.Append(skeleton.AsSpan(copied, start - copied));
             var slot = registry.Slots[spelling];
+            var mapped = slot.Source is not null && IsMappable(output, slot, slot.Source);
+            if (mapped) output.Append($"#line {slot.Source!.Line} \"{slot.Source.Path}\"\n");
             if (slot.IsAuthored) authored.Add(new(output.Length, slot.Presentation.Length));
             output.Append(slot.Presentation);
+            if (mapped) output.Append("#line default\n");
             copied = start + spelling.Length;
         }
 
         output.Append(skeleton.AsSpan(copied));
         return new(output.ToString(), authored.ToImmutable(), []);
     }
+
+    static bool IsMappable(StringBuilder output, InlineCodeSlot slot, InlineSourceLine source) =>
+        slot.IsAuthored
+        && (output.Length == 0 || output[^1] == (char)10)
+        && slot.Presentation.EndsWith((char)10)
+        && slot.Presentation.Count(character => character == (char)10) == source.LineCount;
 
     static bool SameSites(string original, string finished, InlineCodeTokens registry)
     {

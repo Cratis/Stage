@@ -24,6 +24,11 @@ internal static class SemanticReactionBodyRendering
         (slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers)
             .Select(trigger => trigger.RequirementId).OfType<string>();
 
+    // Refuse before the artifact renderer can wrap an inline diagnostic in STAGE-ESM-012.
+    internal static IEnumerable<ArtifactRenderDiagnostic> LanguageDiagnostics(SemanticApplicationContext context) =>
+        context.SelectedSlices().SelectMany(located => (located.Slice.Reactions.IsDefault ? [] : located.Slice.Reactions)
+            .Select(reaction => LanguageDiagnostic(located, reaction, context))).OfType<ArtifactRenderDiagnostic>();
+
     internal static SemanticInlineCodeResult Inline(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
     {
         var requirementId = reaction.Triggers.Single().RequirementId!;
@@ -36,9 +41,15 @@ internal static class SemanticReactionBodyRendering
         }
 
         var requirement = context.Request.ImplementationRequirements.Single(item => item.RequirementId == requirementId);
-        if (!EnvelopeMatches(requirement, owner) || code!.Language != "csharp")
+        if (!EnvelopeMatches(requirement, owner) || SemanticImplementationBodySelector.Select(requirement).Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage)
         {
             diagnostics.Add(new("STAGE-INLINE-INTEGRITY", ArtifactRenderDiagnosticSeverity.Error, "The reaction envelope has an invalid role, owner, language, version or capability.", reaction.Id));
+            return new(null, placement, diagnostics.ToImmutable());
+        }
+
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, reaction.Id, $"Reaction effect for '{reaction.Name}'") is { } language)
+        {
+            diagnostics.Add(language);
             return new(null, placement, diagnostics.ToImmutable());
         }
 
@@ -51,6 +62,7 @@ internal static class SemanticReactionBodyRendering
                 ArtifactRenderDiagnosticSeverity.Error,
                 returnShape switch
                 {
+                    { HasInvalidEventPayload: true } => $"Reaction '{reaction.Name}' returns an invalid wrapper: its EventForEventSourceId payload is not proven to be a single non-null modeled event. Return a wrapper containing one proven modeled event, not a null, value, collection, command or unproven expression.",
                     { HasNestedCollections: true } => $"Reaction '{reaction.Name}' returns a collection as a result item. Reactor side-effect handling does not flatten nested collections. Return a flat collection of modeled events or commands, using spreads only for proven result collections.",
                     { HasNullItems: true } => $"Reaction '{reaction.Name}' returns a null result item. Reactor side-effect handling does not skip null items. Return modeled events or commands, or a whole null or empty result.",
                     { HasValueItems: true } => $"Reaction '{reaction.Name}' returns an item that is a value, not a modeled event or command, and would fail at run time. Return modeled events or commands, or an empty result.",
@@ -67,6 +79,15 @@ internal static class SemanticReactionBodyRendering
             .Where(reaction => reaction.Triggers is [var trigger] && trigger.RequirementId is not null && SemanticVersionFeatures.HasStandaloneEventBody(reaction, trigger))
             .SelectMany(reaction => Inline(located, reaction, context).Diagnostics)
             .Where(diagnostic => diagnostic.Code == SemanticVersionFeatures.MixedReactionEffects);
+
+    static ArtifactRenderDiagnostic? LanguageDiagnostic(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
+    {
+        if (reaction.Triggers.Length != 1) return null;
+        if (!SemanticVersionFeatures.HasStandaloneEventBody(reaction, reaction.Triggers[0])) return null;
+        var requirement = context.Request.ImplementationRequirements.FirstOrDefault(requirement => requirement.RequirementId == reaction.Triggers[0].RequirementId);
+        if (requirement is null || !EnvelopeMatches(requirement, located.Slice.Id)) return null;
+        return SemanticImplementationBodySelector.LanguageDiagnostic(requirement, reaction.Id, $"Reaction effect for '{reaction.Name}'");
+    }
 
     static bool EnvelopeMatches(SemanticImplementationRequirement requirement, SemanticId owner) =>
         requirement is { Role: SemanticImplementationRole.ReactionEffect, ContextVersion: 1, ResultVersion: 1 } &&

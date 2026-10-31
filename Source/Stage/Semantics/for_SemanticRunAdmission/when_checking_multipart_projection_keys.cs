@@ -29,10 +29,10 @@ public class when_checking_multipart_projection_keys : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("MultipartAdmission", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var model = plan.ReadModels.Values.Single();
         var spec = plan.Specifications.Values.Single();
-        var scope = plan.Projections.Values.Single().Scope!;
+        var scope = plan.Projections.Values.Single().Scope;
         var projectionFrom = scope.From.Single();
         var parts = (SemanticProjectionPartsKey)projectionFrom.Key;
         string? Reject(SemanticProjectionKey key) => SemanticRunProjectionAdmission.CheckCompositeKey(plan, spec, model, scope with { From = [projectionFrom with { Key = key }] });
@@ -64,11 +64,11 @@ public class when_checking_multipart_projection_keys : Specification
     [Fact] void should_refuse_parent_keys() => _parent.ShouldNotBeNull();
     [Fact] void should_refuse_optional_parts() => _optional.ShouldNotBeNull();
     [Fact] void should_refuse_collection_parts() => _collection.ShouldNotBeNull();
-    [Fact] void should_explain_seed_refusal_before_scalar_seed_lookup() => _seed!.ShouldContain("Given readmodel seeds with composite keys");
+    [Fact] void should_refuse_a_malformed_seed_without_a_scalar_seed_lookup() => _seed.ShouldContain("requires every scalar property");
     [Fact] void should_keep_typed_composite_keys_refused() => _typedComposite.ShouldNotBeNull();
-    [Fact] void should_refuse_text_to_uuid_from_parts() => _mixedFrom!.ShouldContain("compatible required event properties");
-    [Fact] void should_refuse_decimal_parts_whose_scale_would_split_rows() => _decimal!.ShouldContain("non-decimal");
-    [Fact] void should_refuse_text_to_uuid_removal_parts() => _mixedRemoval!.ShouldContain("compatible required event properties");
+    [Fact] void should_refuse_text_to_uuid_from_parts() => _mixedFrom.ShouldContain("compatible required event properties");
+    [Fact] void should_refuse_decimal_parts_whose_scale_would_split_rows() => _decimal.ShouldContain("non-decimal");
+    [Fact] void should_refuse_text_to_uuid_removal_parts() => _mixedRemoval.ShouldContain("compatible required event properties");
 
     const string Source = """
         module Billing

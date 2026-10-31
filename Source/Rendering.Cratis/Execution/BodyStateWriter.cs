@@ -14,16 +14,24 @@ internal static class BodyStateWriter
     internal static SemanticValue Write(object? value, BodyUnitEntry unit) => value switch
     {
         null => SemanticValue.Null,
+        IEnumerable sequence and not string => SemanticValue.Array([.. sequence.Cast<object?>().Select(element => Write(element, unit))]),
+        _ => Scalar(value, unit) ?? Structured(value, unit)
+    };
+
+    static SemanticValue? Scalar(object value, BodyUnitEntry unit) => value switch
+    {
         string text => SemanticValue.Text(text),
         bool boolean => SemanticValue.Boolean(boolean),
+        Enum member => SemanticValue.Text(EnumValue(member, unit)),
+        _ => Formatted(value) ?? BodyStateNumbers.Write(value)
+    };
+
+    static SemanticValue? Formatted(object value) => value switch
+    {
         Guid uuid => SemanticValue.Text(uuid.ToString("D", CultureInfo.InvariantCulture)),
         DateOnly date => SemanticValue.Text(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
         DateTimeOffset moment => SemanticValue.Text(moment.ToString("O", CultureInfo.InvariantCulture)),
-        Enum member => SemanticValue.Text(EnumValue(member, unit)),
-        byte or sbyte or short or ushort or int or uint or long or ulong or decimal => SemanticValue.Number(Convert.ToDecimal(value, CultureInfo.InvariantCulture)),
-        double or float => SemanticValue.Number(checked((decimal)Convert.ToDouble(value, CultureInfo.InvariantCulture))),
-        IEnumerable sequence => SemanticValue.Array([.. sequence.Cast<object?>().Select(element => Write(element, unit))]),
-        _ => Structured(value, unit)
+        _ => null
     };
 
     static string EnumValue(Enum member, BodyUnitEntry unit) =>

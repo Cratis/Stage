@@ -23,9 +23,9 @@ public class when_reducing : Specification
         BodyEvaluationRequest? sent = null;
         var (result, calls) = await Reduce(new BodyEvaluation("state", SemanticValueWire.Write(state)), Context(SemanticValue.Text("key")), request => sent = request);
         result.Outcome.ShouldEqual(SemanticReducerBodyOutcome.State);
-        Wire(result.State!).ShouldEqual(Wire(state));
+        Wire(result.State).ShouldEqual(Wire(state));
         calls.ShouldEqual(1);
-        Assert.Equal(["Event", "Key", "Occurred", "SequenceNumber", "State", "Tenant"], [.. sent!.Members.Keys.Order(StringComparer.Ordinal)]);
+        Assert.Equal(["Event", "Key", "Occurred", "SequenceNumber", "State", "Tenant"], [.. sent.Members.Keys.Order(StringComparer.Ordinal)]);
         sent.Members["Key"].GetRawText().ShouldEqual(Wire(SemanticValue.Text("key")));
         sent.Members["State"].GetRawText().ShouldEqual(Wire(SemanticValue.Null));
     }

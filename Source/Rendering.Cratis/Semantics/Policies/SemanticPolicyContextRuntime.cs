@@ -175,7 +175,7 @@ internal static class SemanticPolicyContextRuntime
             }
 
             builder.OpenBlock($"static bool {Body(descriptor)}({contexts}.{Wrapper(descriptor)} context)")
-                .RawVerbatim(body)
+                .RawVerbatim(body, descriptor.RequirementId)
                 .EndBlock()
                 .BlankLine();
         }

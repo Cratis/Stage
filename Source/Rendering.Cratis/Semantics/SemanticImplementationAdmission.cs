@@ -51,6 +51,7 @@ internal static class SemanticImplementationAdmission
         {
             var context = new SemanticApplicationContext(request, options);
             diagnostics.AddRange(PerformerDiagnostics(context));
+            diagnostics.AddRange(SemanticReactionBodyRendering.LanguageDiagnostics(context));
         }
 
         return diagnostics.ToImmutable();
@@ -62,23 +63,7 @@ internal static class SemanticImplementationAdmission
         var requirement = requirements.IsDefault ? null : requirements.FirstOrDefault(candidate =>
             candidate is { Role: SemanticImplementationRole.QueryPerformer } && candidate.Source?.SemanticId == query.Id);
         if (requirement is null) return new(null, null, "The performer requirement is missing.");
-        if (query.Delivery == SemanticQueryDelivery.Live)
-        {
-            return new(requirement, null, "An observable performer has no body-owned stream; live performer bodies are not supported.");
-        }
-        if (!SemanticCratisAdmission.IsCSharpImplementation(requirement))
-        {
-            return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
-        }
-
-        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
-        if (!TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) || body is null)
-        {
-            return new(requirement, null, string.Join(' ', diagnostics.Select(diagnostic => diagnostic.Message)));
-        }
-
-        var analysis = SemanticQueryContextRuntime.Analyze(context, query, requirement, body);
-        return new(requirement, body, analysis?.Message);
+        return AdmitPerformerBody(context, query, requirement);
     }
 
     // This is the only path by which an implementation body can be obtained. Any future admitted
@@ -99,7 +84,7 @@ internal static class SemanticImplementationAdmission
             return false;
         }
 
-        var language = requirement.Language ?? (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true ? "csharp" : string.Empty);
+        var language = SemanticImplementationBodySelector.EffectiveLanguage(requirement) ?? string.Empty;
 
         // This request contract supplies strings only: never claim these are the original disk bytes.
         var verified = InlineCode.VerifyUtf8Text(body!, new(requirement.ContentHash!, language, placement, requirementId));
@@ -124,6 +109,42 @@ internal static class SemanticImplementationAdmission
         return TryGetVerifiedBody(request, byId, requirementId, owner, diagnostics, out body);
     }
 
+    static PerformerAdmission AdmitPerformerBody(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticImplementationRequirement requirement)
+    {
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, query.Id, $"Query performer for '{query.Name}'") is { } refusal)
+        {
+            return new(requirement, null, null, refusal);
+        }
+        var contractGap = PerformerContractGap(context, query, requirement);
+        if (contractGap is not null) return new(requirement, null, contractGap);
+        if (!SemanticImplementationBodySelector.IsTarget(requirement)) return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
+        var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
+        if (!TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) || body is null)
+        {
+            return new(requirement, null, string.Join(' ', diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        var analysis = SemanticQueryContextRuntime.Analyze(context, query, requirement, body);
+        return new(requirement, body, analysis?.Message);
+    }
+
+    static string? PerformerContractGap(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticImplementationRequirement requirement)
+    {
+        var live = query.Delivery == SemanticQueryDelivery.Live;
+        var expectedResult = live ? 2u : 1u;
+        if ((requirement.ContextVersion, requirement.ResultVersion) != (1u, expectedResult))
+        {
+            return $"performer contract version {requirement.ContextVersion}/{requirement.ResultVersion} is not supported; this host renders 1/{expectedResult}";
+        }
+        if (!live) return null;
+        if (IsBuiltReadModel(context, query)) return null;
+        return $"read model '{context.ReadModels[query.ReadModel].Name}' cannot be observed: no projection or reducer builds it";
+    }
+
+    static bool IsBuiltReadModel(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel) ||
+        context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel);
+
     static Dictionary<string, SemanticImplementationRequirement> IndexRequirements(ArtifactRenderRequest request, ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics)
     {
         var byId = new Dictionary<string, SemanticImplementationRequirement>(StringComparer.Ordinal);
@@ -143,6 +164,11 @@ internal static class SemanticImplementationAdmission
         foreach (var query in context.Queries.Values.Where(query => context.PerformedQueries.Contains(query.Id)))
         {
             var admission = AdmitPerformer(context, query);
+            if (admission.Refusal is { } refusal)
+            {
+                yield return refusal;
+                continue;
+            }
             if (admission.Reason is not { } reason) continue;
             yield return new(
                 PerformerGapCode,
@@ -177,8 +203,10 @@ internal static class SemanticImplementationAdmission
             return false;
         }
 
-        if (requirement.AttachmentResolution != SemanticAttachmentResolution.Resolved ||
-            request.ImplementationContents is null || !request.ImplementationContents.TryGetValue(requirementId, out var candidate) || candidate is null)
+        var selection = SemanticImplementationBodySelector.Select(requirement);
+        var selected = selection.Selected ?? selection.Requirement;
+        if (selected.AttachmentResolution != SemanticAttachmentResolution.Resolved ||
+            request.ImplementationContents is null || !request.ImplementationContents.TryGetValue(selection.ContentKey, out var candidate) || candidate is null)
         {
             var reason = request.AttachmentDiagnostics.IsDefault ? null : request.AttachmentDiagnostics.FirstOrDefault(diagnostic =>
                 requirement.File is not null && diagnostic.Code.StartsWith("PLAY043", StringComparison.Ordinal) &&
@@ -192,7 +220,7 @@ internal static class SemanticImplementationAdmission
         }
 
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(candidate))).ToLowerInvariant();
-        if (!string.Equals(hash, requirement.ContentHash, StringComparison.Ordinal))
+        if (!string.Equals(hash, selected.ContentHash, StringComparison.Ordinal))
         {
             diagnostics.Add(new(BodyIntegrityCode, ArtifactRenderDiagnosticSeverity.Error, $"Implementation requirement '{requirementId}' has a body whose SHA-256 differs from ContentHash.", owner));
             return false;
@@ -279,5 +307,5 @@ internal static class SemanticImplementationAdmission
     static ArtifactRenderDiagnostic Error(string message, SemanticId artifact) =>
         new("STAGE-ESM-020", ArtifactRenderDiagnosticSeverity.Error, message, artifact);
 
-    internal sealed record PerformerAdmission(SemanticImplementationRequirement? Requirement, string? Body, string? Reason);
+    internal sealed record PerformerAdmission(SemanticImplementationRequirement? Requirement, string? Body, string? Reason, ArtifactRenderDiagnostic? Refusal = null);
 }

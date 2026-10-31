@@ -33,6 +33,16 @@ Every file is optional. Without them, the application builds and runs as rendere
   that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
   before rendering React. An application rendered before these hooks existed has neither; render it again first.
 
+Before starting the backend, start the rendered development services with Docker Compose v2 supporting `--wait`:
+
+```bash
+docker compose up -d --wait
+```
+
+The generated compose file checks Chronicle's TLS `/health` endpoint on port 35000. The command waits for
+Chronicle to become healthy before returning, so the backend does not try to connect while the kernel is still
+starting. Follow the generated README's `dotnet run` step after this command completes.
+
 The rendered `Program.cs` provides the hooks:
 
 ```csharp title="Program.cs (managed)"
@@ -196,6 +206,39 @@ End the base address with `/` so the relative `rates/...` request keeps the `/v1
 above, the host refuses to start when the setting is missing instead of failing on the first request. Keep secrets
 in a secret store or environment variables, not in files under `Customizations/`.
 
+## Behind an authenticating proxy
+
+Generated applications register Arc's Microsoft Identity Platform header authentication scheme. Forwarded
+`x-ms-client-principal*` headers are ignored by default. To accept identity from an authenticating proxy, opt in
+with the environment variable `Cratis__Arc__TrustForwardedIdentityHeaders=true`, or configure Arc through the
+existing services hook:
+
+```csharp title="Customizations/Program.cs"
+using Cratis.Arc;
+
+public partial class Program
+{
+    static partial void ConfigureServices(WebApplicationBuilder builder)
+    {
+        builder.Services.Configure<ArcOptions>(options => options.TrustForwardedIdentityHeaders = true);
+    }
+}
+```
+
+Keep this hook in the global namespace and do not edit the managed `appsettings.json`. Without a trusted
+identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers.
+
+:::danger
+These are ordinary request headers: anyone can forge them. Enable this option only when every request passes
+through a trusted authenticating proxy that strips incoming identity headers and sets its own, and the backend
+cannot be reached directly. Examples include Azure App Service authentication and Cratis AuthProxy.
+:::
+
+Outside the Development environment, Arc's discovery endpoints (`/.cratis/commands`, `/.cratis/queries`,
+`/.cratis/users`, `/.cratis/tenants` and `/.cratis/identity-details/schema`) also require an authenticated caller.
+The generated frontend does not use these discovery catalogs. The Docker sandbox keeps this secure default;
+its persona is not a proxy identity and does not authenticate discovery requests.
+
 ## Add project and package references
 
 The rendered project file imports `Customizations/Dependencies.props` when it exists. Use it to move adapters into
@@ -285,7 +328,8 @@ that has one.
   Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
   See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
 - **No authorization is applied to your code.** Endpoints you map are anonymous unless you secure them with ASP.NET
-  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders.
+  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders. For forwarded
+  identity, see [Behind an authenticating proxy](#behind-an-authenticating-proxy).
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
   generated middleware. You cannot place middleware before static files or Cratis through this hook.
 - **Registrations can replace Cratis services.** `ConfigureServices` runs after `AddCratis`, and the last

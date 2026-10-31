@@ -689,10 +689,22 @@ jobs:
         run: dotnet restore --verbosity minimal
 
       - name: Build, test and serve the standalone generated application
+        env:
+          AI_WORK_KEEP: ${{ github.workspace }}/TestResults/standalone-generated-application
         run: >-
           dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build
           --filter "FullyQualifiedName~when_verifying_a_standalone_generated_application"
           --logger "trx;LogFileName=standalone-generated-application.trx" --results-directory ./TestResults/standalone-generated-application
+
+      - name: Summarize standalone phase timings
+        if: always()
+        run: |
+          timings=TestResults/standalone-generated-application/standalone-phase-timings.txt
+          if [ -f "$timings" ]; then
+            { echo '### Standalone generated application phases (phase, seconds, exit)'; echo '```'; cat "$timings"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No standalone phase timings recorded.' >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       # A zero exit from dotnet test can mean that nothing ran, or that assertions were skipped.
       - name: Require every standalone application assertion to execute and pass

@@ -3,7 +3,6 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
-using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -14,12 +13,17 @@ internal static partial class SemanticRunProjectionAdmission
     internal static string? CheckCompositeKey(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticReadModel readModel, SemanticProjectionScope scope) =>
         CompositeKeyRejection(plan, specification, readModel, scope);
 
-    static SemanticUnsupportedCapability? CompositeSeedRejection(SemanticExecutionPlan plan, SemanticSpecification specification)
+    static bool SeedKeyMatches(SemanticReadModel model, SemanticSpecificationReadModel seed)
     {
-        var seed = specification.GivenReadModels.FirstOrDefault(seed =>
-            plan.ReadModels.TryGetValue(seed.ReadModel, out var model) && model.Properties.Count(property => property.IsIdentifier) > 1);
-
-        return seed is null ? null : new(StageExecutionCapability.GivenReadModel, seed.ReadModel.ToString(), "Given readmodel seeds with composite keys are not supported by the per-run projection scenario.");
+        var identifiers = model.Properties.Where(property => property.IsIdentifier).ToArray();
+        if (identifiers.Length == 1)
+        {
+            return seed.Values.Any(value => value.TargetProperty == identifiers[0].Id && SameScalar(value.Value, seed.Key));
+        }
+        return seed.Key is SemanticCompositeValue key && key.Properties.Length == identifiers.Length &&
+            key.Properties.Select(part => part.TargetProperty).Distinct().Count() == identifiers.Length &&
+            identifiers.All(identifier => key.Properties.SingleOrDefault(part => part.TargetProperty == identifier.Id) is { } part &&
+                seed.Values.Any(value => value.TargetProperty == identifier.Id && SameScalar(value.Value, part.Value)));
     }
 
     static bool QueryKeyMatches(SemanticReadModel model, SemanticKeyedQuery query)
@@ -57,10 +61,6 @@ internal static partial class SemanticRunProjectionAdmission
         if (!CompositeShapeSupported(plan, readModel))
         {
             return "Composite key parts must be required, single, non-date, non-decimal primitives or concepts and must not collide with the runtime Id property.";
-        }
-        if (specification.GivenReadModels.Any(given => given.ReadModel == readModel.Id))
-        {
-            return "Given readmodel seeds with composite keys are not supported by the per-run projection scenario.";
         }
         if (!CompositeRootScope(scope))
         {

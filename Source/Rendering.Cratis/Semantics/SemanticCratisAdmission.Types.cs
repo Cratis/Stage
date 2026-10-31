@@ -80,10 +80,15 @@ internal static partial class SemanticCratisAdmission
         var requirement = context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == generation.RequirementId);
         if (requirement.Role != SemanticImplementationRole.ValueGeneration || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
             requirement.RequiredCapability != "provider-defined" ||
-            !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
+            SemanticImplementationBodySelector.Select(requirement).Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage)
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"Concept '{concept.Name}' has an unsupported generation envelope or language.", concept.Id));
+            return;
+        }
+
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, concept.Id, $"Value generation for '{concept.Name}'") is { } language)
+        {
+            diagnostics.Add(language);
             return;
         }
 

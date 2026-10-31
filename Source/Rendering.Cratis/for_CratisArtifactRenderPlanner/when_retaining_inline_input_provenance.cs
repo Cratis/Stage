@@ -137,10 +137,11 @@ public class when_retaining_inline_input_provenance : Specification
 
     static string Expected(ArtifactRenderRequest request)
     {
+        var context = new SemanticApplicationContext(request, new("Shop", "Shop"));
         var codes = request.ImplementationRequirements.Select(requirement =>
         {
             var concept = request.Model.Application.Concepts.Single(item => item.Generation!.RequirementId == requirement.RequirementId);
-            var placement = new InlineCodePlacement("generation", concept.Id.ToString(), SemanticGenerationRendering.BodyMethod(concept));
+            var placement = new InlineCodePlacement("generation", concept.Id.ToString(), SemanticGenerationRendering.BodyMethod(concept, context));
             return InlineCode.VerifyUtf8Text(request.ImplementationContents[requirement.RequirementId],
                 new(requirement.ContentHash!, requirement.Language!, placement, requirement.RequirementId)).Value!;
         });

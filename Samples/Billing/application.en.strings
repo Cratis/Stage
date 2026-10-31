@@ -1,1 +1,4 @@
 validation.emailAddress = "Enter a valid email address"
+invoice.number   = "Invoice #"
+invoice.customer = "Customer"
+invoice.amount   = "Amount"

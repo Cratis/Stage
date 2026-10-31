@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -26,7 +27,7 @@ internal static class SemanticQuerySpecificationRenderer
         SemanticApplicationContext context)
     {
         var query = context.Queries[expected.Query];
-        if (query.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(query.Authorization, context.Application.Policies))
         {
             return SemanticProtectedQuerySpecificationRenderer.Render(specification, expected, context);
         }
@@ -47,7 +48,7 @@ internal static class SemanticQuerySpecificationRenderer
             .Using("Xunit")
             .Using(context.CommonNamespace)
             .Using(queryNamespace);
-        if (!IsLiveList(query))
+        if (!IsLive(query))
         {
             builder.Using("Cratis.Chronicle.ReadModels")
                 .Using("Cratis.Chronicle.Testing.ReadModels")
@@ -101,10 +102,10 @@ internal static class SemanticQuerySpecificationRenderer
         }
         else
         {
-            builder.Line($"_readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);")
-                .EndBlock()
+            RenderLookupSetup(builder, query, readModelName, key);
+            builder.EndBlock()
                 .BlankLine()
-                .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {readModelName}.{context.MemberNames.Query(query)}(_readModels, {key});")
+                .Line($"async global::System.Threading.Tasks.Task Because() => _result = await {CollectionExecution(query, readModelName, collectionCall, context)};")
                 .BlankLine()
                 .Line("[global::Xunit.FactAttribute] void should_return_the_expected_read_model() => (_result is not null).ShouldBeTrue();");
             RenderProperties(builder, expected.Results.Single().Values, readModel, types, context);
@@ -187,12 +188,20 @@ internal static class SemanticQuerySpecificationRenderer
         return new(path, content);
     }
 
+    static void RenderLookupSetup(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string key)
+    {
+        if (!IsLive(query))
+        {
+            builder.Line($"_readModels.GetInstanceById<{readModelName}>((global::Cratis.Chronicle.Events.EventSourceId){key}).Returns(_scenario.InstanceForEventSourceId((global::Cratis.Chronicle.Events.EventSourceId){key})!);");
+        }
+    }
+
     static void RenderScenario(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName)
     {
-        builder.Line(IsLiveList(query)
+        builder.Line(IsLive(query)
                 ? "global::Cratis.Chronicle.ReadModels.IReadModels _readModels => _scenario.ReadModels;"
                 : "readonly global::Cratis.Chronicle.ReadModels.IReadModels _readModels = global::NSubstitute.Substitute.For<global::Cratis.Chronicle.ReadModels.IReadModels>();")
-            .Line(IsLiveList(query)
+            .Line(IsLive(query)
                 ? "readonly global::Cratis.Chronicle.Testing.Events.EventStoreForTesting _scenario = new();"
                 : $"readonly global::Cratis.Chronicle.Testing.ReadModels.ReadModelScenario<{readModelName}> _scenario = new();")
 
@@ -205,7 +214,7 @@ internal static class SemanticQuerySpecificationRenderer
     static void RenderCollectionExpectation(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticSpecificationQueryResult expected, SemanticReadModel readModel, SemanticTypeSystem types, string arguments, SemanticApplicationContext context)
     {
         var readModelName = types.SliceType(readModel.Id, readModel.Name);
-        if (!IsLiveList(query))
+        if (!IsLive(query))
         {
             builder.Line($"_readModels.GetInstances<{readModelName}>().Returns(_scenario.Instances.Values);");
         }
@@ -230,11 +239,10 @@ internal static class SemanticQuerySpecificationRenderer
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
     }
 
-    static bool IsLiveList(SemanticKeyedQuery query) =>
-        query is { Cardinality: SemanticQueryCardinality.Many, Delivery: SemanticQueryDelivery.Live };
+    static bool IsLive(SemanticKeyedQuery query) => query.Delivery == SemanticQueryDelivery.Live;
 
     static string SeedEvent(SemanticKeyedQuery query, string source, string @event, SemanticFixtureRoute? route, SemanticApplicationContext context, SemanticTypeSystem types) =>
-        IsLiveList(query)
+        IsLive(query)
             ? $"(await _scenario.EventLog.Append({source}, {@event}{(route is null ? string.Empty : $", {SemanticSpecificationRouteRendering.Arguments(route, context, types)}")})).IsSuccess.ShouldBeTrue();"
             : $"await _scenario.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(route, context, types)}.Events({@event});";
 

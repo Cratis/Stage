@@ -32,7 +32,7 @@ public static partial class BodyUnitCompiler
                     StateMembers = StateProperties(context).ToImmutableDictionary(member => $"{member.Type}.{Identifiers.ToPascalCase(member.Property.Name)}", member => member.Property.Id.ToString()),
                     EnumValues = EnumValues(context)
                 });
-            return BuildReducer(context, requirement, descriptor!, unit, cacheDirectory, compilation.Emitting, build);
+            return BuildReducer(new(context, requirement, descriptor!, cacheDirectory, compilation.Emitting), unit, build);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or IOException)
         {
@@ -43,29 +43,20 @@ public static partial class BodyUnitCompiler
     internal static string ReducerHash(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor, BodyUnitSources.ReducerSources unit, MetadataReference[] references)
     {
         var identity = string.Join(":", "retained-reducer-v1", unit.Path, unit.EntryType, unit.EntryMethod, EmbeddedHash("Fundamentals"), EmbeddedHash("Chronicle"));
-        return Hash(context, descriptor, [.. unit.Sources, identity], references, nameof(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest));
+        return Hash(context, descriptor, new([.. unit.Sources, identity], references, nameof(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest)));
     }
 
     static BodyUnitEntry CompileReducer(SemanticApplicationContext context, SemanticImplementationRequirement requirement, string cacheDirectory, Action emitting) =>
         CompileReducer(context, requirement, cacheDirectory, (emitting, BodyUnitSources.RenderReducer));
 
-    static BodyUnitEntry BuildReducer(SemanticApplicationContext context, SemanticImplementationRequirement requirement, SemanticTypedContextDescriptor descriptor, BodyUnitSources.ReducerSources unit, string cacheDirectory, Action emitting, UnitBuild build)
+    static BodyUnitEntry BuildReducer(UnitScope scope, BodyUnitSources.ReducerSources unit, UnitBuild build)
     {
-        var hash = ReducerHash(context, descriptor, unit, build.References);
+        var hash = ReducerHash(scope.Context, scope.Descriptor, unit, build.References);
         var trees = build.Sources.Select((source, index) => CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(build.Language), index == 0 ? unit.Path : $"worker/declarations/{index}.cs"));
         var compilation = CSharpCompilation.Create($"BodyUnit_{hash}", trees, build.References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release, generalDiagnosticOption: ReportDiagnostic.Error, deterministic: true, nullableContextOptions: NullableContextOptions.Enable));
-        var verdict = PureTransitionAdmission.AnalyzeRendered(compilation, unit.Path, descriptor, context);
-        if (!verdict.Accepted) return BodyUnitAdmission.Refuse(requirement, verdict.Code!, verdict.Reason!);
-        var cached = BodyUnitCache.Read(cacheDirectory, hash);
-        if (cached is not null) return cached;
-        using var stream = new MemoryStream();
-        emitting();
-        var emitted = compilation.Emit(stream);
-        if (!emitted.Success) return BodyUnitAdmission.Refuse(requirement, "STAGE-ESM-021", "Rendered declaration compilation failed: " + emitted.Diagnostics.First(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).GetMessage(System.Globalization.CultureInfo.InvariantCulture));
-        var pe = stream.ToArray();
-        var entry = build.Entry(hash, Convert.ToHexString(SHA256.HashData(pe)));
-        BodyUnitCache.Write(cacheDirectory, entry, pe);
-        return entry;
+        var verdict = PureTransitionAdmission.AnalyzeRendered(compilation, unit.Path, scope.Descriptor, scope.Context);
+        if (!verdict.Accepted) return BodyUnitAdmission.Refuse(scope.Requirement, verdict.Code!, verdict.Reason!);
+        return BodyUnitCache.Read(scope.CacheDirectory, hash) ?? EmitUnit(scope, build, hash, compilation);
     }
 
     static string EmbeddedHash(string name)
@@ -89,6 +80,10 @@ public static partial class BodyUnitCompiler
         context.Application.Concepts.Where(concept => !concept.Values.IsEmpty)
             .SelectMany(concept => concept.Values.Select(value => (Key: $"{context.CommonNamespace}.{Identifiers.ToPascalCase(concept.Name)}.{Identifiers.ToPascalCase(value)}", Value: value)))
             .ToImmutableDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+
+    sealed record UnitScope(SemanticApplicationContext Context, SemanticImplementationRequirement Requirement, SemanticTypedContextDescriptor Descriptor, string CacheDirectory, Action Emitting);
+
+    sealed record HashInput(string[] Sources, MetadataReference[] References, string Language);
 
     sealed record UnitBuild(string[] Sources, MetadataReference[] References, Microsoft.CodeAnalysis.CSharp.LanguageVersion Language, Func<string, string, BodyUnitEntry> Entry);
 }

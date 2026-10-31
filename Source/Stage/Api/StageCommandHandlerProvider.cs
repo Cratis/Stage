@@ -54,6 +54,11 @@ public sealed class StageCommandHandlerProvider : ICommandHandlerProvider
         IEnumerable<ITenantIdAccessor> tenants)
     {
         var model = models.FirstOrDefault();
+        if (model is not null)
+        {
+            ProtectedCommandReadsAdmission.EnsureExecutableBy(model, model.Name, "eventmodel");
+        }
+
         var typeFactory = typeFactories.FirstOrDefault();
         var appender = appenders.FirstOrDefault();
         var identity = identities.FirstOrDefault();

@@ -17,8 +17,13 @@ internal static class SemanticGenerationBodyAdmission
 {
     const string FundamentalsResource = "GenerationReferences.Cratis.Fundamentals.dll";
     const string ChronicleResource = "GenerationReferences.Cratis.Chronicle.dll";
+    const string ReactiveResource = "GenerationReferences.System.Reactive.dll";
     static readonly Lazy<PortableExecutableReference> _fundamentals = new(() => LoadEmbedded(FundamentalsResource, "Fundamentals generation"));
     static readonly Lazy<PortableExecutableReference> _chronicle = new(() => LoadEmbedded(ChronicleResource, "Chronicle"));
+
+    static readonly Lazy<PortableExecutableReference> _reactive = new(() => LoadEmbedded(ReactiveResource, "System.Reactive"));
+
+    internal static PortableExecutableReference ReactiveReference => _reactive.Value;
 
     internal static PortableExecutableReference FundamentalsReference => _fundamentals.Value;
 
@@ -29,7 +34,7 @@ internal static class SemanticGenerationBodyAdmission
         var parsed = PureTransitionAdmission.ParseBody(body, new HashSet<string>(StringComparer.Ordinal), "generation", enforcePurity: false);
         if (parsed.Rejection is not null) return parsed.Rejection;
 
-        var method = SemanticGenerationRendering.BodyMethod(concept);
+        var method = SemanticGenerationRendering.BodyMethod(concept, context);
         var signature = $"static string {method}(global::Cratis.Concepts.GenerationContext context)";
 
         // Match the scaffold's SDK implicit usings and RenderBody's explicit Cratis.Concepts import.

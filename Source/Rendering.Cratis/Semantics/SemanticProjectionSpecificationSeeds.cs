@@ -13,10 +13,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class SemanticProjectionSpecificationSeeds
 {
     internal static IEnumerable<SemanticSpecificationReadModel> For(SemanticSpecification specification, SemanticId readModel) =>
-        specification.GivenReadModels.Where(seed => seed.ReadModel == readModel).GroupBy(seed => seed.Key).Select(group => group.Last());
+        [.. specification.GivenReadModels.Where(seed => seed.ReadModel == readModel).GroupBy(seed => seed.Key, SemanticSeedKeyComparer.Instance).Select(group => group.Last())];
 
     internal static bool Contains(SemanticSpecification specification, SemanticSpecificationReadModel expected) =>
-        For(specification, expected.ReadModel).Any(seed => Equals(seed.Key, expected.Key));
+        For(specification, expected.ReadModel).Any(seed => SemanticSeedKeyComparer.Instance.Equals(seed.Key, expected.Key));
 
     internal static IReadOnlyList<SemanticSpecificationEvent> Given(SemanticSpecification specification, SemanticProjection projection)
     {
@@ -35,13 +35,24 @@ internal static class SemanticProjectionSpecificationSeeds
         SemanticReadModel readModel,
         SemanticTypeSystem types)
     {
-        var identifier = readModel.Properties.Single(property => property.IsIdentifier);
+        var identifiers = readModel.Properties.Where(property => property.IsIdentifier).OrderBy(property => property.Id.ToString(), StringComparer.Ordinal).ToArray();
         var name = types.SliceType(readModel.Id, readModel.Name);
         foreach (var seed in For(specification, readModel.Id))
         {
-            var key = types.EventSourceExpression(types.Value(seed.Key, identifier.Type), identifier.Type);
             var values = readModel.Properties.Select(property => $"{Identifiers.ToPascalCase(property.Name)}: {types.Value(seed.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type)}");
-            builder.Line($"await _scenario.Given.ForEventSource({key}).ReadModel(new {name}({string.Join(", ", values)}));");
+            if (seed.Key is SemanticCompositeValue composite)
+            {
+                var parts = identifiers.Select(property => types.Value(composite.Properties.Single(part => part.TargetProperty == property.Id).Value, property.Type));
+                var keyType = types.SliceType(readModel.Id, Projections.SemanticCompositeKeyAdmission.KeyTypeName(readModel));
+                var entries = identifiers.Select(property => $"[new global::Cratis.Serialization.CamelCaseNamingPolicy().GetPropertyName(nameof({name}.{Identifiers.ToPascalCase(property.Name)}))] = {types.Value(composite.Properties.Single(part => part.TargetProperty == property.Id).Value, property.Type)}");
+                builder.Line($"await _scenario.Given.ForKey(new global::System.Collections.Generic.Dictionary<string, object?> {{ {string.Join(", ", entries)} }})" +
+                    $".ReadModel(new {name}(Id: new {keyType}({string.Join(", ", parts)}), {string.Join(", ", values)}));");
+            }
+            else
+            {
+                var key = types.EventSourceExpression(types.Value(seed.Key, identifiers[0].Type), identifiers[0].Type);
+                builder.Line($"await _scenario.Given.ForEventSource({key}).ReadModel(new {name}({string.Join(", ", values)}));");
+            }
         }
     }
 

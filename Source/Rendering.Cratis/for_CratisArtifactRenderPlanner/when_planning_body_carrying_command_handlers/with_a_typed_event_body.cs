@@ -16,8 +16,8 @@ public class with_a_typed_event_body
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var source = string.Join('\n', plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         Assert.Contains(handler_model.Body, source, StringComparison.Ordinal);
-        Assert.Contains("HandlerBody_", source, StringComparison.Ordinal);
-        Assert.Contains("HandlerCommand_", source, StringComparison.Ordinal);
+        Assert.Contains("HandlePlaceOrder", source, StringComparison.Ordinal);
+        Assert.Contains("PlaceOrderCommand", source, StringComparison.Ordinal);
         Assert.DoesNotContain("object[]", source, StringComparison.Ordinal);
     }
 

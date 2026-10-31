@@ -136,7 +136,7 @@ internal static class SemanticSeeds
             var trial = stored.Concat(Stored(plan, group.Facts, (ulong)stored.Count, seeds.Occurred)).ToArray();
             try
             {
-                SemanticWorldRebuilder.Create(plan, trial, (ulong)(trial.Length - 1), exact: false, bodies);
+                SemanticWorldRebuilder.Create(new SemanticReplayPlan(plan, bodies), trial, (ulong)(trial.Length - 1), exact: false);
                 stored = [.. trial];
                 accepted.Add(group);
             }
@@ -172,7 +172,7 @@ internal static class SemanticSeeds
             EventSourceType = EventSourceType.Default.Value,
             EventStreamType = EventStreamType.All.Value,
             EventStreamId = EventStreamId.Default,
-            Occurred = (Cratis.Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
+            Occurred = (Chronicle.Contracts.Primitives.SerializableDateTimeOffset?)occurred ?? new(),
             Tags = [.. fact.Tags],
             CausedBy = new() { Subject = SemanticChronicleRegistration.SeedSubject, Name = SemanticChronicleRegistration.SeedSubject, UserName = SemanticChronicleRegistration.SeedSubject }
         },

@@ -12,4 +12,11 @@ namespace Cratis.Stage.Contracts;
 public record EventModel(
     Guid Id,
     string Name,
-    IReadOnlyList<ModuleCollection> Collections);
+    IReadOnlyList<ModuleCollection> Collections)
+{
+    /// <summary>
+    /// Gets a value indicating whether the application declares <c>command reads protected</c>. Engines that do not
+    /// evaluate and protect decision reads must refuse such a model.
+    /// </summary>
+    public bool ProtectedCommandReads { get; init; }
+}

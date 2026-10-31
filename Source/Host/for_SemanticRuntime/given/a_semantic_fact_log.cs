@@ -12,6 +12,7 @@ internal sealed class a_semantic_fact_log : IAppendSemanticFacts, IAppendSemanti
     internal readonly List<SemanticFact> Facts = [];
     internal readonly List<(SemanticFact[] Facts, ulong Tail)> Attempts = [];
     internal Action? BeforeAppend { get; set; }
+    internal Func<Task>? PauseBeforeAppend { get; set; }
     internal int Writes { get; private set; }
     internal ulong CurrentTail => Facts.Count == 0 ? ulong.MaxValue : (ulong)Facts.Count - 1;
 
@@ -24,10 +25,15 @@ internal sealed class a_semantic_fact_log : IAppendSemanticFacts, IAppendSemanti
 
     public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence) => Append(facts, occurrence, CurrentTail);
 
-    public Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail)
+    public async Task Append(IReadOnlyList<SemanticFact> facts, SemanticCommandOccurrence occurrence, ulong expectedTail)
     {
         Attempts.Add(([.. facts], expectedTail));
         BeforeAppend?.Invoke();
+        if (PauseBeforeAppend is { } pause)
+        {
+            await pause();
+        }
+
         if (expectedTail != CurrentTail)
         {
             throw new SemanticFactTailChanged(CurrentTail);
@@ -35,7 +41,5 @@ internal sealed class a_semantic_fact_log : IAppendSemanticFacts, IAppendSemanti
 
         Facts.AddRange(facts);
         Writes++;
-
-        return Task.CompletedTask;
     }
 }

@@ -115,8 +115,8 @@ internal static class SemanticHost
             }
 
             notes.AddRange(seeds.Diagnostics);
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, seeds, bodies);
-            await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (Stage.Semantics.ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
+            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds);
+            await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
         }
         catch (SemanticWorldRebuildRefused exception)
         {
@@ -224,7 +224,8 @@ internal static class SemanticHost
     internal static StageStatus Status(ISemanticRuntime runtime, string modelName, string modelPath) => runtime is ISemanticRuntimeStatus { FaultReason: { } reason }
         ? new StageStatus("unsupported", null, WarmStageHandoff.ReadHandoffId(modelPath))
         {
-            Engine = "semantic", Issues = [new StageUnsupportedIssue("World", "model", reason)]
+            Engine = "semantic",
+            Issues = [new StageUnsupportedIssue("World", "model", reason)]
         }
         : new StageStatus("ready", new StageStatusModel(modelName), WarmStageHandoff.ReadHandoffId(modelPath)) { Engine = "semantic" };
 

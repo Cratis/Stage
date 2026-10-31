@@ -18,7 +18,7 @@ internal static partial class BodyUnitSources
         var suffix = SemanticCommandHandlerRendering.Suffix(command);
         var unit = $"HandlerUnit_{suffix}";
         var ns = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path);
-        return new(SemanticCommandBodyAdmission.HandlerSource(command, context, unit), $"worker/handlers/{unit}.cs", $"{ns}.{unit}", SemanticCommandHandlerRendering.Method(command), $"{ns}.{unit}+{SemanticCommandHandlerRendering.SnapshotType(command)}");
+        return new(SemanticCommandBodyAdmission.HandlerSource(command, context, unit), $"worker/handlers/{unit}.cs", $"{ns}.{unit}", SemanticCommandHandlerRendering.Method(command, context), $"{ns}.{unit}+{SemanticCommandHandlerRendering.SnapshotType(command, context)}");
     }
 
     internal sealed record HandlerSources(string Source, string Path, string EntryType, string EntryMethod, string SnapshotType);

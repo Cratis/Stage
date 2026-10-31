@@ -23,14 +23,14 @@ public class with_an_unaudited_version : Specification
     void Because()
     {
         // Simulate dependency versions Stage has not audited.
-        _admissions = [.. new uint[] { 31, 34 }.Select(version =>
+        _admissions = [.. new uint[] { 35, 34 }.Select(version =>
         {
-            typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new LanguageVersion(version, 0));
-            typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_plan.Model, new SemanticVersion(version, 0));
+            typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_plan.Model, new LanguageVersion(version, 0));
+            typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_plan.Model, new SemanticVersion(version, 0));
             return new SemanticRuntimeAdmission(_plan);
         })];
     }
 
     [Fact] void should_refuse_the_whole_model() => _admissions.ShouldEachConformTo(admission => admission.Blocking.Single().Kind == "application");
-    [Fact] void should_report_the_stage_version_gate() => _admissions.ShouldEachConformTo(admission => admission.Blocking.Single().Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
+    [Fact] void should_report_the_stage_version_gate() => _admissions.ShouldEachConformTo(admission => admission.Blocking.Single().Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
 }

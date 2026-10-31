@@ -27,7 +27,7 @@ public class when_preserving_inventory_fixture_bytes
         ["query"] = "2b177e776044740057a19ddc3270b94dd9bd7fbc264fbc751160105e7548657f",
         ["reaction production"] = "6b382ed2e6093546c233a95f1edfc0e53dd55db3b6ec29dc043cdb67ff749efd",
         ["redelivery"] = "250bea136b3f4dceb4e0378f345d64e6e9f708519ecc5c2b8a5f5e42d4091392",
-        ["reducer typed contexts"] = "d25b6c2d8f5ad0b80973a7e3d89d082d339e868508912f256c97f2823b6c6adc",
+        ["reducer typed contexts"] = "32e2f14dca8bb900eddd8a2a2791b5577209f72af09877977b8ac3ef08e4c2bd",
         ["relocated"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
         ["reordered"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
         ["scoped projections"] = "dd1d283e2acd2dd3aaf27c4642045497091d5f7cadaba85c2f246ddc5c2bd485",

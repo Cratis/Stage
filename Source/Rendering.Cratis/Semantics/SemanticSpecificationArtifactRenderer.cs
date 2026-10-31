@@ -50,9 +50,9 @@ internal static class SemanticSpecificationArtifactRenderer
         }
         else if (SemanticProjectionFactSpecification.TryLower(context, spec, out var facts))
         {
-            foreach (var expected in spec.ThenReadModels)
+            foreach (var (expected, thenIndex) in spec.ThenReadModels.Select((expected, thenIndex) => (expected, thenIndex)))
             {
-                Add(SemanticSpecificationClassNames.Projected(facts, context.ReadModels[expected.ReadModel], null), () => SemanticReadModelSpecificationRenderer.Render(facts, expected, context));
+                Add(SemanticSpecificationClassNames.Projected(facts, context.ReadModels[expected.ReadModel], null, thenIndex), () => SemanticReadModelSpecificationRenderer.Render(facts, expected, context));
             }
             foreach (var (expected, index) in spec.ThenAbsentReadModels.Select((expected, index) => (expected, index)))
             {
@@ -101,9 +101,9 @@ internal static class SemanticSpecificationArtifactRenderer
     static void AddDefault(SemanticSpecification spec, SemanticApplicationContext context, Action<string, Func<RenderedFile>, SemanticId[]?> add)
     {
         add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticCommandSpecificationRenderer.Render(spec, context), null);
-        foreach (var expected in spec.ThenReadModels)
+        foreach (var (expected, thenIndex) in spec.ThenReadModels.Select((expected, thenIndex) => (expected, thenIndex)))
         {
-            add(SemanticSpecificationClassNames.Projected(spec, context.ReadModels[expected.ReadModel], null), () => SemanticReadModelSpecificationRenderer.Render(spec, expected, context), null);
+            add(SemanticSpecificationClassNames.Projected(spec, context.ReadModels[expected.ReadModel], null, thenIndex), () => SemanticReadModelSpecificationRenderer.Render(spec, expected, context), null);
         }
         foreach (var (expected, index) in spec.ThenAbsentReadModels.Select((expected, index) => (expected, index)))
         {

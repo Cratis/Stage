@@ -30,7 +30,7 @@ public class when_rejecting_cached_reducer_mismatches : Specification
         var descriptor = Assert.Single(loaded.TypedContextDescriptors);
         var (_, body, refusal) = BodyUnitAdmission.AdmitReducer(context, requirement);
         Assert.Null(refusal);
-        var unit = BodyUnitSources.RenderReducer(context, descriptor, body!);
+        var unit = BodyUnitSources.RenderReducer(context, descriptor, body);
         var admitted = BodyUnitCompiler.Compile(loaded, _directory).Entries.Single();
         Assert.True(admitted.Admitted, admitted.DiagnosticMessage);
         var cached = BodyUnitCompiler.Compile(loaded, _directory, () => Assert.Fail("An admitted cache hit must not emit.")).Entries.Single();
@@ -42,15 +42,15 @@ public class when_rejecting_cached_reducer_mismatches : Specification
         var sources = unit.Sources.ToArray();
         if (mismatch)
         {
-            Assert.Contains(body!, sources[0], StringComparison.Ordinal);
-            sources[0] = sources[0].Replace(body!, "return System.DateTime.UtcNow == default ? null! : null!;", StringComparison.Ordinal);
+            Assert.Contains(body, sources[0], StringComparison.Ordinal);
+            sources[0] = sources[0].Replace(body, "return System.DateTime.UtcNow == default ? null! : null!;", StringComparison.Ordinal);
         }
         var invalid = mismatch ? unit with { Sources = sources } : unit with { Path = "worker/missing-helper.cs" };
         if (!mismatch) invalid = invalid with { Sources = [.. invalid.Sources, unit.Sources[0]] };
         MetadataReference[] references = [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
         var hash = BodyUnitCompiler.ReducerHash(context, descriptor, invalid, references);
         Assert.NotEqual(admitted.UnitHash, hash);
-        var bytes = await File.ReadAllBytesAsync(BodyUnitCache.PePath(_directory, admitted.UnitHash!));
+        var bytes = await File.ReadAllBytesAsync(BodyUnitCache.PePath(_directory, admitted.UnitHash));
         var poisoned = admitted with { UnitHash = hash };
         BodyUnitCache.Write(_directory, poisoned, bytes);
         Assert.NotNull(BodyUnitCache.Read(_directory, hash));
@@ -79,7 +79,7 @@ public class when_rejecting_cached_reducer_mismatches : Specification
             (() => Assert.Fail("Original refusal must not emit."), (_, _, _) => throw new InvalidOperationException("Original refusal must precede rendering and cache lookup.")));
         Assert.False(result.Admitted);
         Assert.Equal("STAGE-ESM-056", result.DiagnosticCode);
-        Assert.NotNull(BodyUnitCache.Read(_directory, entry.UnitHash!));
+        Assert.NotNull(BodyUnitCache.Read(_directory, entry.UnitHash));
     }
 }
 #endif

@@ -157,6 +157,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (!SourceLineMappingInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries invalid or duplicate source line mapping.";
+            return false;
+        }
+
         if (scaffold.Length != expected.Inputs.Length || !scaffold.Zip(expected.Inputs).All(InputMatches))
         {
             mismatch = "The Cratis profile scaffold roster, versions, bytes, or SHA-256 hashes do not match the package-owned profile.";

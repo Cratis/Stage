@@ -14,7 +14,7 @@ public class when_admitting_v32 : Specification
 {
     [Theory]
     [InlineData(32, 0, 32, 0, true)]
-    [InlineData(31, 0, 31, 0, false)]
+    [InlineData(34, 0, 34, 0, false)]
     [InlineData(32, 0, 31, 0, false)]
     [InlineData(31, 0, 32, 0, false)]
     [InlineData(32, 1, 32, 1, false)]
@@ -22,8 +22,8 @@ public class when_admitting_v32 : Specification
     public void should_admit_only_the_audited_exact_pair(int languageMajor, int languageMinor, int semanticMajor, int semanticMinor, bool supported)
     {
         var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(32).Bytes.AsSpan());
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion((uint)languageMajor, (uint)languageMinor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion((uint)semanticMajor, (uint)semanticMinor));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion((uint)languageMajor, (uint)languageMinor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion((uint)semanticMajor, (uint)semanticMinor));
         SemanticVersionFeatures.Supports(model).ShouldEqual(supported);
     }
 

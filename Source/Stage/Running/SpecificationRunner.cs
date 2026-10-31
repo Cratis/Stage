@@ -47,6 +47,7 @@ public sealed class SpecificationRunner : ISpecificationRunner
     /// <inheritdoc/>
     public SpecificationRunResults Run(EventModel model, Guid? sliceId = null, Guid? specificationId = null)
     {
+        ProtectedCommandReadsAdmission.EnsureExecutableBy(model, model.Name, "structural");
         var results = new List<SpecificationRunResult>();
 
         foreach (var located in StageModelWalker.Slices(model))

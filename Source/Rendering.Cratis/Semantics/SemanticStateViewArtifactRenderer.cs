@@ -46,6 +46,7 @@ internal static class SemanticStateViewArtifactRenderer
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels");
+        ConfigurePerformerImports(builder, located, context);
         if (context.SelfReducers(located).Any())
         {
             builder.Using($"{context.RootNamespace}.TypedContexts");
@@ -323,6 +324,21 @@ internal static class SemanticStateViewArtifactRenderer
             rendering = rendering with { Attributes = property => SemanticModelBoundProjectionRenderer.ParameterAttributes(projection, property, context) };
         }
         return ModelDeclaration(readModel, types, queries, rendering);
+    }
+
+    static void ConfigurePerformerImports(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
+    {
+        if (located.Slice.Queries.Any(query => IsAdmittedLivePerformer(query, context)))
+        {
+            builder.Using("System.Reactive.Linq");
+        }
+    }
+
+    static bool IsAdmittedLivePerformer(SemanticKeyedQuery query, SemanticApplicationContext context)
+    {
+        if (!context.PerformedQueries.Contains(query.Id)) return false;
+        if (query is not { Delivery: SemanticQueryDelivery.Live, Cardinality: SemanticQueryCardinality.Many }) return false;
+        return SemanticImplementationAdmission.AdmitPerformer(context, query).Reason is null;
     }
 
     static void RenderPerformedQuery(CSharpCodeBuilder builder, SemanticKeyedQuery query, string readModelName, string methodName, SemanticTypeSystem types, SemanticApplicationContext context)

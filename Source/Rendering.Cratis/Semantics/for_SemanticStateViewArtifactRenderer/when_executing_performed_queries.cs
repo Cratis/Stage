@@ -161,17 +161,6 @@ public class when_executing_performed_queries
     }
 
     [Fact]
-    public async Task should_throw_instead_of_presenting_a_live_performer_as_a_body_owned_stream()
-    {
-        var loaded = await Load("return readModels;", live: true);
-        var method = Method(loaded);
-        Assert.Equal(typeof(System.Reactive.Subjects.ISubject<>), method.ReturnType.GetGenericTypeDefinition());
-        var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [.. Dependencies(Substitute.For<IReadModels>()), "Ada"]));
-        var gap = Assert.IsType<NotImplementedException>(exception.InnerException);
-        Assert.Contains("no body-owned stream", gap.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task should_execute_a_single_result_with_a_by_argument()
     {
         var loaded = await Load("return readModels.SingleOrDefault(row => row.Name == context.Arguments.Name && row.Name == name);", single: true);

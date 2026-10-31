@@ -159,6 +159,13 @@ objects appended to the outbox, including their payloads and source ids. Public 
 is not yet supported in generated specifications. Explicit `then none`
 is a zero-output assertion, not a skipped check.
 
+A given-only Translate specification can also assert exactly one read-model presence or absence
+over explicitly sourced, unrouted private events declared by that slice. It executes the generated
+projection and read-model assertions without inventing an action or seeding expected state. The
+read model may belong to a separate StateView in the same application. This bounded projection
+fixture does not settle foreign Given events or implicitly execute a capture. Other fixtures,
+routes, multiple read-model expectations and mixed event, query or invocation outcomes remain refused.
+
 These are isolated handler tests, not running Chronicle subscriptions. Capture specifications pass
 Chronicle delivery identity to the generated handler. They do not prove inbox transport,
 checkpointing, or replay delivery. Input fan-out, downstream captures/publications/reactions,

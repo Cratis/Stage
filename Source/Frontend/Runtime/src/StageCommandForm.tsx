@@ -114,13 +114,9 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
                 onSuccess={response => {
                     data.refreshAfterCommand();
-                    continuation.complete(response, findings => {
+                    continuation.complete(response, (findings, navigated) => {
                         setMessages(findings);
-
-                        // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
-                        const destination = text(element, 'navigateToScreen');
-                        if (destination) navigateToScreen(destination, {});
-                        closeDialog?.();
+                        if (!findings.length) leaveAfterSubmit(element, navigated, closeDialog);
                     });
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
@@ -133,6 +129,14 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
             </NativeCommandForm>
         </section>
     );
+}
+
+/** Findings keep the form open to show them, so this runs only for a clean submit. A continuation that already navigated owns the destination. */
+function leaveAfterSubmit(element: ExternalComponent, navigated: boolean, closeDialog: (() => void) | undefined) {
+    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+    const destination = text(element, 'navigateToScreen');
+    if (destination && !navigated) navigateToScreen(destination, {});
+    closeDialog?.();
 }
 
 function UnsupportedForm({ form, messages }: { form: NativeFormProperties; messages: string[] }) {

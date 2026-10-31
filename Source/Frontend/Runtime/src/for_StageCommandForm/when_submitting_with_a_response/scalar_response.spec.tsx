@@ -14,15 +14,17 @@ import { StageCommandForm } from '../../StageCommandForm';
 import { registerStageCommands } from '../../../../src/host/commandRegistration';
 import { StageDataProvider } from '../../stageData';
 import { element } from '../../testElements';
+import { stageResponseContracts } from '../../stageResponseContracts';
 
 const returnedId = '49f687cc-9e87-494e-8c70-8f779c919e17';
 const schema = JSON.stringify({ type: 'object', required: ['sku'], properties: { sku: { type: 'string' } } });
 const routes = { commands: { PlaceOrder: '/api/order/place' }, queries: {} };
 const onSubmit: NavigateAction[] = [{ kind: InteractionActionKind.Navigate, screen: 'Details', arguments: [{ name: 'orderId', value: { kind: BindingSourceKind.CommandResponse, path: '' } }] }];
-const contracts: ResponseValidationContracts = {
-    commandResponse: () => ({ kind: 'value', type: { kind: 'string' } }),
-    targetType: () => ({ kind: 'string' }),
-};
+const contracts = stageResponseContracts({
+    commands: { PlaceOrder: { kind: 'value', type: { kind: 'string' } } },
+    commandInputs: {},
+    screenInputs: { Details: { orderId: { kind: 'string' } } },
+});
 
 function form(result: Record<string, unknown>, responseContracts: ResponseValidationContracts = contracts, actions: InteractionAction[] = onSubmit) {
     const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => commandResult(result) });

@@ -53,6 +53,7 @@ import { StageQueryBindings } from './stageQueryBindings';
 import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { stageResponseContracts, type StageResponseContracts } from './stageResponseContracts';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
@@ -84,6 +85,7 @@ export interface StageSceneApplication {
 
     /** The JSON schema of every modeled command, by name, which a toolbar slice's task dialog reads its fields from. */
     commandSchemas?: Record<string, string>;
+    responseContracts?: StageResponseContracts;
 }
 
 interface SceneCommandDetail {
@@ -114,6 +116,7 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
         generationMode: form.generationMode,
         layout: form.layout,
         fields: form.fields,
+        onSubmit: form.onSubmit,
     });
 }
 
@@ -478,7 +481,7 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
             <SliceInvokerProvider invoker={invoker}>
                 <SliceCommandFieldsProvider fieldsFor={fieldsFor}>
-                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
+                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key, responseContracts: stageResponseContracts(scene.responseContracts) }} attachments={[]} onFindings={reportFindings}>
                         {children}
                     </InteractionScope>
                 </SliceCommandFieldsProvider>

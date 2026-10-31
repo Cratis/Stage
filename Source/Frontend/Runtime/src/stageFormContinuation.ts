@@ -2,12 +2,12 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import type { ExternalComponent, InteractionAction } from '@cratis/scene.model';
-import { commandResponseContext, runActions, validateResponseBindings } from '@cratis/scene.engine';
+import { commandResponseContext, InteractionStop, runActions, validateResponseBindings } from '@cratis/scene.engine';
 import type { InteractionScopeValue } from '@cratis/scene.react';
 
-type Completed = (messages: string[]) => void;
+type Completed = (messages: string[], navigated: boolean) => void;
 type Continuation = { messages: string[]; complete: (response: unknown, completed: Completed) => void };
-const noContinuation: Continuation = { messages: [], complete: (_response, completed) => completed([]) };
+const noContinuation: Continuation = { messages: [], complete: (_response, completed) => completed([], false) };
 
 /** Admits a form's successful-submit actions before the command can commit, then runs them in an invocation-local Scene response context. */
 export function formContinuation(element: ExternalComponent, form: { command: string } | undefined, scope: InteractionScopeValue | undefined): Continuation {
@@ -24,7 +24,7 @@ export function formContinuation(element: ExternalComponent, form: { command: st
             const context = commandResponseContext(scope.context, command, response);
             const result = await runActions(actions, scope.dispatcher, context);
             if (result.findings.length) scope.onFindings?.(result.findings);
-            completed(result.findings.map(finding => finding.detail));
+            completed(result.findings.map(finding => finding.detail), result.stop === InteractionStop.Navigated);
         },
     };
 }

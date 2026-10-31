@@ -13,8 +13,7 @@ namespace Cratis.Stage.Contracts.Scene;
 /// part of Cratis/Stage#37.
 /// </summary>
 /// <remarks>
-/// <see cref="ScreenplaySyntax.FormSyntax.OnSubmit"/> has no home on <see cref="SceneModel.Form"/> and is a
-/// known, deliberate gap - not carried through. For <c language="csharp">populate via query ... by &lt;param&gt;</c>, Screenplay
+/// For <c language="csharp">populate via query ... by &lt;param&gt;</c>, Screenplay
 /// carries only the bare parameter name, not a resolved binding path - this converter treats the parameter
 /// name as its own binding path (a value already in scope under that exact name), a documented assumption
 /// pending a real multi-screen translation to validate against.
@@ -39,7 +38,12 @@ public static class FormConverter
             ConvertPopulateSource(form.Populate),
             [.. form.Fields.Select(ConvertField)],
             ScreenplayRichSyntax.GenerationMode(form),
-            ScreenplayRichSyntax.Layout(form));
+            ScreenplayRichSyntax.Layout(form))
+        {
+            OnSubmit = form.OnSubmit is { } navigate
+                ? [Submit(navigate)]
+                : []
+        };
 
     /// <summary>
     /// Converts a form while omitting an unsupported population source.
@@ -55,6 +59,11 @@ public static class FormConverter
         diagnostics.Report(new("STAGE-SCENE-FORM-001", DiagnosticSeverity.Error, construct, path, form.Populate.Location, $"Unsupported {construct} was omitted from '{path}'."));
         return Convert(form with { Populate = null });
     }
+
+    static Cratis.Scene.Model.Interactions.NavigateAction Submit(ScreenplaySyntax.ScreenNavigateSyntax navigate) => new(navigate.Screen)
+    {
+        Arguments = navigate.By is { } by ? [new(by, new SceneCommon.BindingExpression(by))] : []
+    };
 
     static SceneModel.PopulateSource? ConvertPopulateSource(ScreenplaySyntax.FormPopulateSource? populate) =>
         populate switch

@@ -1,10 +1,12 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Rendering.Cratis.Naming;
 using Cratis.Stage.Semantics;
 using SceneElements = Cratis.Scene.Model.Elements;
 using SceneScreens = Cratis.Scene.Model.Screens;
@@ -36,6 +38,8 @@ public static class SceneSynthesizer
     /// The property a command element carries its JSON schema in, so a frontend can build its form.
     /// </summary>
     public const string SchemaProperty = SceneElementProperties.Schema;
+
+    static readonly JsonSerializerOptions _responseContractJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     /// <summary>
     /// Synthesizes the screens an event model implies.
@@ -85,9 +89,11 @@ public static class SceneSynthesizer
             .Select(group => (Name: group.Key, Schema: CommandFormSchemas.For(model.Application, group.First().Properties.Where(property => !property.IsGenerated), diagnostics, group.Key, SourceLocation.Start)))
             .Where(entry => entry.Schema is not null)
             .ToDictionary(entry => entry.Name, entry => CommandFormRuntimeMetadata.FromSchema(entry.Name, entry.Schema!), StringComparer.Ordinal);
+        scene = ResponseMemberNames.Apply(scene, ResponseMember);
         var enriched = CommandFormRuntimeMetadata.Apply(scene, commands) with
         {
-            ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. diagnostics.All]
+            ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. diagnostics.All],
+            ResponseContracts = new CommandResponseContracts(model.Application).From(JsonSerializer.SerializeToNode(scene, _responseContractJson)!.AsObject(), ResponseMember, property => property.Name)
         };
 
         return Synthesize(enriched, slices.Select(located =>
@@ -140,6 +146,8 @@ public static class SceneSynthesizer
 
         return scene with { Screens = screens };
     }
+
+    static string ResponseMember(string name) => JsonNamingPolicy.CamelCase.ConvertName(GeneratedPascalCase.From(name));
 
     static string UniqueName(SynthesizedSlice slice, HashSet<string> taken)
     {

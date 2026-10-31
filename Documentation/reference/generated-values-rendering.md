@@ -249,7 +249,9 @@ For time-ordered strategies, the Host uses the same occurrence instant for gener
 
 An accepted scalar response becomes the HTTP command result's `response` value. A named response becomes an object with camelCase field names. Rejected or unauthorized results carry no response. The Stage frontend passes the accepted response through Scene's `CommandOutcome.response`.
 
-Form `on submit` response binding and navigation remain blocked on [Scene #53](https://github.com/Cratis/Scene/issues/53). Generated TypeScript proxies already expose the scalar or named command response; they do not supply Scene's continuation binding.
+A form's successful `on submit` continuation can use the command's scalar return name or a named response field as a value in navigation arguments, subsequent command arguments or messages. Generated applications and the live Host carry the response and destination types to Scene; incompatible or unknown contracts prevent submission rather than falling back to request fields or selected rows. Named fields use the backend's camelCase wire names. Form fields and behavior parameters shadow matching response names.
+
+This first continuation slice supports primitive and concept values, including optional values and collections, and named records of those values. Non-command success branches retain the response. A nested command success uses that command's response; captures of an outer response across nested command success, failure or result branches are refused during translation. Guarded submit triggers are also refused because the pinned Scene form continuation cannot represent their guard. Composite response contracts and response-to-state assignments remain unsupported. These limits do not restrict generated TypeScript proxies, which expose the command's declared response independently of form continuations.
 
 ## Limits and diagnostics
 

@@ -20,6 +20,11 @@ internal sealed record ReducerConvention(bool SelfDefault, ImmutableDictionary<S
     /// </summary>
     internal bool ModelBoundProjections { get; init; }
 
+    /// <summary>
+    /// Gets whether eligible model-bound projections may also add, subtract, increment, decrement and clear (version 4).
+    /// </summary>
+    internal bool ModelBoundOperations { get; init; }
+
     internal bool SelfReduces(SemanticId readModel) => SelfDefault || Overrides.ContainsKey(readModel);
 
     internal string? PinnedObserverId(SemanticId readModel) => Overrides.TryGetValue(readModel, out var pinned) ? pinned.ObserverId : null;

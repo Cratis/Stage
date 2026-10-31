@@ -34,6 +34,12 @@ internal static class SemanticSpecificationArtifactRenderer
         SemanticApplicationContext context) =>
         [.. Dispatch(specification, context).Select(entry => entry.Name)];
 
+    static bool IsDirectTranslation(SemanticApplicationContext context, SemanticSpecification spec)
+    {
+        var slice = context.DeclaringSlice(spec.Id).Slice;
+        return slice.Kind == SemanticSliceKind.Translate && !SemanticSpecificationAdmission.CanRenderGivenOnlyTranslationProjection(context, slice, spec);
+    }
+
     static List<(string Name, Func<RenderedFile> Render, SemanticId[] Sources)> Dispatch(
         SemanticSpecification specification,
         SemanticApplicationContext context)
@@ -44,7 +50,7 @@ internal static class SemanticSpecificationArtifactRenderer
         var spec = specification;
         void Add(string name, Func<RenderedFile> render, SemanticId[]? entrySources = null) => entries.Add((name, render, entrySources ?? sources));
 
-        if (context.DeclaringSlice(spec.Id).Slice.Kind == SemanticSliceKind.Translate)
+        if (IsDirectTranslation(context, spec))
         {
             Add(SemanticSpecificationClassNames.Behavior(spec), () => SemanticTranslationSpecificationRenderer.Render(spec, context));
         }

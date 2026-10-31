@@ -71,12 +71,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var original = compilation.Value!.Model;
+        var original = compilation.Value.Model;
         var module = original.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(_ => _.Kind == SemanticSliceKind.StateView);
         var projection = view.Projections.Single(_ => _.Name == (variant == "composite-key" || Variant(variant, "flat-expression-event-property", "flat-derived-event-property", "flat-normalized-event-property", "flat-expression-read-model-property") ? "ProjectDetailsProjection" : "ProjectSummaryProjection"));
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         if (variant == "composite-key")
         {
             Assert.Contains("key ProjectKey", source, StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             "every-unsafe-literal" => scope with
             {
                 Joins = [],
-                Every = scope.Every! with
+                Every = scope.Every with
                 {
                     SubscribesToAllEvents = false,
                     IncludeChildren = false,
@@ -110,12 +110,12 @@ public class when_rejecting_unsupported_scoped_projections : Specification
                 Children = [],
                 Nested = [],
                 Removals = [],
-                Every = scope.Every! with { SubscribesToAllEvents = true, IncludeChildren = true, Mappings = [] }
+                Every = scope.Every with { SubscribesToAllEvents = true, IncludeChildren = true, Mappings = [] }
             },
             "every-arithmetic-collision" => scope with
             {
                 Joins = [],
-                Every = scope.Every! with
+                Every = scope.Every with
                 {
                     Mappings = [new SemanticProjectionMapping([visitsTarget], SemanticProjectionOperation.Set, new SemanticProjectionLiteral(SemanticValue.Number(12.5m)))]
                 }
@@ -132,7 +132,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             "every-including-children" => scope with { Every = new(true, false, []) },
             "every-whole-number" => scope with
             {
-                Every = scope.Every! with
+                Every = scope.Every with
                 {
                     Mappings = [new SemanticProjectionMapping([visitsTarget], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
                 }
@@ -253,7 +253,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
             })] }] }]
         };
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application);
-        var execution = SemanticExecutionPlan.Compile(original).Plan!;
+        var execution = SemanticExecutionPlan.Compile(original).Plan;
         var options = new CratisRenderingOptions("Projects", "Projects");
         var profile = CratisRendering.CreateProfile(model.Application.Name, options);
         var request = new ArtifactRenderRequest(model, execution, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
@@ -290,6 +290,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         if (variant == "composite-key")
         {
             Assert.Contains("keyed lookup", diagnostic.Message, StringComparison.Ordinal);
+            Assert.Contains("Stage#839", diagnostic.Message, StringComparison.Ordinal);
             Assert.Contains("Chronicle#4265", diagnostic.Message, StringComparison.Ordinal);
         }
 
@@ -311,7 +312,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         {
             var changedExecution = SemanticExecutionPlan.Compile(model);
             Assert.True(changedExecution.Success, string.Join(Environment.NewLine, changedExecution.Issues));
-            var blocked = CratisRendering.Plan(model, changedExecution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
+            var blocked = CratisRendering.Plan(model, changedExecution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
             Assert.False(blocked.Success);
             Assert.Empty(blocked.Artifacts);
             Assert.Contains(blocked.Diagnostics, item => item.Code == "STAGE-ESM-017");
@@ -327,13 +328,13 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("every-join-refusal"), "every-join-refusal", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var original = compilation.Value!.Model;
+        var original = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(original);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
         var (model, projection) = WithEveryJoinBelowRoot(original, child);
         var options = new CratisRenderingOptions("Projects", "Projects");
         var profile = CratisRendering.CreateProfile(model.Application.Name, options);
-        var request = new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = SemanticCratisAdmission.Evaluate(context, context.SelectedSlices());
         var diagnostic = Assert.Single(diagnostics, item => item.Code == "STAGE-ESM-017" && item.Artifact == projection);
@@ -350,7 +351,7 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var feature = module.Features.Single();
         var view = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var projection = view.Projections.Single(item => item.Name == "ProjectSummaryProjection");
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var joinedEvent = scope.Joins[0].EventContract;
         var changed = child
             ? scope with { Children = [.. scope.Children.Select(level => level with { Scope = EveryJoinScope(level.Scope, new(joinedEvent, level.IdentifiedBy, [])) })] }
@@ -417,16 +418,16 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all-clear"), "all-clear", "AllClear.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var view = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "AllLabelLookup");
         var projection = view.Projections.Single();
         var score = view.ReadModels.Single().Properties.Single(property => property.Name == "score");
-        var clear = Assert.Single(projection.Scope!.Every!.Mappings, item => item.Target.Contains(score.Id));
+        var clear = Assert.Single(projection.Scope.Every.Mappings, item => item.Target.Contains(score.Id));
         Assert.Equal(SemanticProjectionOperation.Clear, clear.Operation);
         Assert.Null(clear.Source);
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         var diagnostic = Assert.Single(plan.Diagnostics, item => item.Code == "STAGE-ESM-017" && item.Artifact == projection.Id);
@@ -441,10 +442,10 @@ public class when_rejecting_unsupported_scoped_projections : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("all"), "all", "All.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var rendered = Assert.Single(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .Select(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())),

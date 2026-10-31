@@ -34,7 +34,7 @@ public class with_a_root_template_appearance_defaults_and_sample_data : given.a_
                 SampleData: new SampleDataSelection([], [], "nordic"),
                 Root: new RootTemplate(
                     new SceneScreens.TemplateReference(SceneScreens.TemplateReferenceSource.Blueprint, "AppShell", "Cratis.Blueprint.Default", "^1.0"),
-                    new Dictionary<string, JsonNode?> { ["navigationMode"] = JsonValue.Create("slim"), ["showFooter"] = JsonValue.Create(false) }),
+                    new Dictionary<string, JsonNode?> { ["navigationMode"] = JsonValue.Create("slim"), ["showFooter"] = JsonValue.Create(false), ["showThemeSwitcher"] = JsonValue.Create(false) }),
                 Appearance: new ProfileAppearance(ColorScheme.Dark, "#4f46e5"),
                 Defaults: new ProfileDefaults(new SceneScreens.TemplateReference(SceneScreens.TemplateReferenceSource.Own, "MasterDetail")));
 
@@ -62,7 +62,7 @@ public class with_a_root_template_appearance_defaults_and_sample_data : given.a_
     [Fact] void should_carry_the_root_template_in_the_runtime_profile() => Profile(_runtime)["root"]!["template"]!["id"]!.GetValue<string>().ShouldEqual("AppShell");
     [Fact] void should_carry_the_blueprint_and_pin_of_the_root_template() => (Profile(_runtime)["root"]!["template"]!["blueprint"]!.GetValue<string>() + " " + Profile(_runtime)["root"]!["template"]!["version"]!.GetValue<string>()).ShouldEqual("Cratis.Blueprint.Default ^1.0");
     [Fact] void should_spell_the_root_source_the_way_the_scene_model_does() => Profile(_runtime)["root"]!["template"]!["source"]!.GetValue<string>().ShouldEqual("Blueprint");
-    [Fact] void should_carry_the_shell_options_with_their_kinds() => Profile(_runtime)["root"]!["options"]!.ToJsonString().ShouldEqual("{\"navigationMode\":\"slim\",\"showFooter\":false}");
+    [Fact] void should_carry_the_shell_options_with_their_kinds() => Profile(_runtime)["root"]!["options"]!.ToJsonString().ShouldEqual("{\"navigationMode\":\"slim\",\"showFooter\":false,\"showThemeSwitcher\":false}");
     [Fact] void should_carry_the_appearance_the_way_the_scene_model_spells_it() => Profile(_runtime)["appearance"]!.ToJsonString().ShouldEqual("{\"accent\":\"#4f46e5\",\"colorScheme\":\"Dark\"}");
     [Fact] void should_carry_the_template_new_screens_start_from() => Profile(_runtime)["defaults"]!["newScreenTemplate"]!["id"]!.GetValue<string>().ShouldEqual("MasterDetail");
     [Fact] void should_keep_the_root_in_the_composed_scene_a_designer_edits() => Profile(_composed)["root"].ShouldNotBeNull();

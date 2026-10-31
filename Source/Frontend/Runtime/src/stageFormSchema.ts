@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+import { humanize } from './humanize';
+
 /**
  * What a command's presentation schema says about one property, in the terms a form needs: its scalar type, the
  * values an enumeration declares, the members of a record and the element of a collection.
@@ -117,10 +119,7 @@ function recordType(definition: JsonSchemaDefinition | undefined, depth: number)
 }
 
 /** Humanizes a member name the way a field label reads: `postalCode` is “Postal code”. */
-export function humanize(name: string): string {
-    const words = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
-    return words.charAt(0).toUpperCase() + words.slice(1);
-}
+export { humanize };
 
 /**
  * What is missing from a record or collection a form is about to submit: a member the schema requires that holds nothing.

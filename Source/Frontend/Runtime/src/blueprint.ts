@@ -5,6 +5,8 @@ import { PackageKind, type SceneElement, type Screen, type UiProfile } from '@cr
 import { hostProfilePackages, type PackageCatalog } from '@cratis/scene.engine';
 import { coreComponents, type ComponentRegistry } from '@cratis/scene.react';
 import { authoredNavigationEntries, navigationPathTo, navigationTree, unlistedNavigationEntries } from './navigationTree';
+import { screenTitle } from './screenTitle';
+import { humanizeScreenName } from './humanize';
 import { cratisComponents, cratisComponentsPackageManifest } from '@cratis/scene.components/runtime';
 import {
     ComponentName,
@@ -141,7 +143,7 @@ function logo(id: string, application: ApplicationIdentity | undefined, landing:
  * the entries its screens authored as `Navigation` contributions - or one flat list of its screens - as the menu, and the topbar and
  * sidebar draw no region of their own.
  */
-export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, regions = false, showFooter = true): Record<string, SceneElement[]> {
+export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, regions = false, showFooter = true, showThemeSwitcher = true): Record<string, SceneElement[]> {
     const first = screens[0]?.name ?? '';
     const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
@@ -150,7 +152,9 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const listed = new Set(authored.map(entry => entry.targetScreen));
     const unlisted = unlistedNavigationEntries(screens, listed, 'Other screens');
     const tree = navigationTree([...authored, ...(authored.length > 0 ? unlisted : [])]);
-    const entries = screens.map((screen, index) => navigationElement({ label: screen.name, targetScreen: screen.name, icon: 'pi pi-table', group: 'Screens', order: index }, activeScreen));
+    const entries = screens.map((screen, index) => navigationElement({ label: screenTitle(screen), targetScreen: screen.name, icon: 'pi pi-table', group: 'Screens', order: index }, activeScreen));
+    const activeScreenModel = screens.find(screen => screen.name === activeScreen);
+    const activeTitle = activeScreenModel ? screenTitle(activeScreenModel) : humanizeScreenName(activeScreen);
     const authoredTrail = navigationPathTo(navigationTree(authored), activeScreen);
     // A screen no entry lists is still somewhere in the hierarchy when the model recorded where it was declared.
     const placed = screens.find(screen => screen.name === activeScreen)?.path?.length ? navigationPathTo(tree, activeScreen) : [];
@@ -160,7 +164,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
     const end: SceneElement[] = [];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
-    end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
+    if (showThemeSwitcher) end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
     const regionNavigation = { regionNavigation: regions };
 
     return {
@@ -169,9 +173,9 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
         ...(regions ? {} : { [SlotName.Menu]: [menu] }),
         [SlotName.Breadcrumb]: [externalComponent('breadcrumb', ComponentName.Breadcrumb, {
             homeTargetScreen: first,
-            items: (trail.length > 0 ? trail : [activeScreen]).map(label => ({ label })),
+            items: (trail.length > 0 ? trail : [activeTitle]).map(label => ({ label })),
         })],
-        ...(showFooter ? { [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: `${title} · rendered from your model` })] } : {}),
+        ...(showFooter ? { [SlotName.Footer]: [externalComponent('footer', ComponentName.Footer, { text: title })] } : {}),
         [SlotName.ConfigPanel]: [externalComponent(ComponentName.ConfigPanel, ComponentName.ConfigPanel, {
             title: 'Settings',
             themes: defaultBlueprintThemes.map(theme => ({ name: theme.name, label: theme.name, isDark: theme.isDark ?? false })),

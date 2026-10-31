@@ -3,6 +3,7 @@
 
 #if DEBUG
 using System.Text;
+using System.Xml.Linq;
 using Cratis.Arc.Screenplay;
 using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics;
@@ -45,11 +46,18 @@ public abstract class a_rendered_application : Specification
     void Establish()
     {
         _model = Compile(Source);
-        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Banking", "Banking"));
+        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Banking", "Banking"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs" && !artifact.RelativePath.StartsWith("Frontend/", StringComparison.Ordinal))
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
-        _compilation = RenderedOutput.CreateCompilation(files);
+        var properties = plan.Artifacts.Single(artifact => artifact.RelativePath == "Directory.Build.props");
+        var readProtection = XDocument.Parse(Encoding.UTF8.GetString(properties.Bytes.AsSpan())).Descendants("CratisReadProtection").Single().Value;
+        Assert.Contains(readProtection, new[] { "Off", "Measure", "On" });
+
+        // Raw Roslyn compilation bypasses Cratis.Arc.Core.targets, which emits this project policy as assembly metadata.
+        var assemblyInfo = new RenderedFile("GeneratedReadProtection.AssemblyInfo.g.cs",
+            $"[assembly: global::Cratis.Arc.Commands.ReadProtectionAttribute(global::Cratis.Arc.Commands.ReadProtectionMode.{readProtection})]");
+        _compilation = RenderedOutput.CreateCompilation(files.Append(assemblyInfo));
         Assert.Empty(_compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
     }
 
@@ -64,7 +72,7 @@ public abstract class a_rendered_application : Specification
         GenerateSource();
         var compilation = new ScreenplayCompiler().Compile(_result.Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _recoveredAuthoring = compilation.Value!;
+        _recoveredAuthoring = compilation.Value;
     }
 
     protected void AssertSourceDiagnosticsAbsent()
@@ -106,7 +114,7 @@ public abstract class a_rendered_application : Specification
         var compilation = new SemanticModelCompiler().Compile("Banking", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

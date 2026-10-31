@@ -24,10 +24,8 @@ public class when_verifying_reducer_migration_against_the_pinned_kernel : a_gene
 
     protected override bool DeferPlan => true;
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     async Task should_keep_one_builder_with_the_previous_observer_id_when_configured()
-#pragma warning restore CRSPEC0004
     {
         try
         {

@@ -136,7 +136,7 @@ For event reactions, `runs as system` supplies Arc's system principal only to re
 
 A denied, rejected or throwing invoked command fails the live reactor partition and can be retried. Screenplay's reference execution instead ends the scenario at that failure. A reaction without `runs as` can render while invoking an authorization-gated command, but the live invocation has no principal and can leave a failed partition. Rendering is not proof of successful authorization or settlement.
 
-A newly registered reactor catches up from the existing event log. `[OnceOnly]` prevents replay; it does **not** deduplicate ordinary deliveries or retries after failure. The one exception is a single-trigger mixed reaction, whose direct appends rely on the pinned Arc result handler’s delivery-based idempotency keys (see [Limits and diagnostics](#limits-and-diagnostics)). Keep commands and external effects safe for repeated delivery, and inspect failed partitions during operation.
+A newly registered reactor catches up from the existing event log. `[OnceOnly]` prevents replay; it does **not** deduplicate ordinary deliveries or retries after failure. The one exception is a single-trigger mixed reaction, whose direct appends rely on the pinned Arc result handler's delivery-based idempotency keys (see [Limits and diagnostics](#limits-and-diagnostics)). Keep commands and external effects safe for repeated delivery, and inspect failed partitions during operation.
 
 ## Specifications and verification
 

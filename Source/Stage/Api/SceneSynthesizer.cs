@@ -93,7 +93,7 @@ public static class SceneSynthesizer
         var enriched = CommandFormRuntimeMetadata.Apply(scene, commands) with
         {
             ConversionDiagnostics = [.. scene.ConversionDiagnostics, .. diagnostics.All],
-            ResponseContracts = new CommandResponseContracts(model.Application).From(JsonSerializer.SerializeToNode(scene, _responseContractJson)!.AsObject(), ResponseMember, property => property.Name)
+            ResponseContracts = new CommandResponseContracts(model.Application).FromScreens(JsonSerializer.SerializeToNode(scene.Screens, _responseContractJson)!.AsArray(), ResponseMember, property => property.Name)
         };
 
         return Synthesize(enriched, slices.Select(located =>

@@ -32,12 +32,22 @@ public sealed class CommandResponseContracts(SemanticApplication application, bo
     /// <param name="responseMember">The emitted name of a named response field.</param>
     /// <param name="commandMember">The emitted command property name.</param>
     /// <returns>The serializable Scene response and destination contracts.</returns>
-    public JsonObject From(JsonObject scene, Func<string, string> responseMember, Func<SemanticProperty, string> commandMember)
+    public JsonObject From(JsonObject scene, Func<string, string> responseMember, Func<SemanticProperty, string> commandMember) =>
+        FromScreens(scene["screens"] as JsonArray ?? [], responseMember, commandMember);
+
+    /// <summary>
+    /// Builds the response contracts used by the native form runtime from the serialized screens alone.
+    /// </summary>
+    /// <param name="screens">The serialized translated screens whose data queries declare navigation inputs.</param>
+    /// <param name="responseMember">The emitted name of a named response field.</param>
+    /// <param name="commandMember">The emitted command property name.</param>
+    /// <returns>The serializable Scene response and destination contracts.</returns>
+    public JsonObject FromScreens(JsonArray screens, Func<string, string> responseMember, Func<SemanticProperty, string> commandMember)
     {
         var slices = application.Modules.SelectMany(module => Slices(module.Features)).ToArray();
         var (responses, inputs) = Commands(slices, responseMember, commandMember);
         var queries = slices.SelectMany(slice => slice.Queries).GroupBy(query => query.Name, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        return new() { ["commands"] = responses, ["commandInputs"] = inputs, ["screenInputs"] = Screens(scene, queries) };
+        return new() { ["commands"] = responses, ["commandInputs"] = inputs, ["screenInputs"] = Screens(screens, queries) };
     }
 
     static JsonObject Wrap(SemanticTypeReference reference, string kind)
@@ -50,12 +60,26 @@ public sealed class CommandResponseContracts(SemanticApplication application, bo
 
     static IEnumerable<SemanticSlice> Slices(IEnumerable<SemanticFeature> features) => features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
 
-    static IEnumerable<JsonObject> Objects(JsonNode? node) => node switch
+    static List<JsonObject> Objects(JsonNode? node)
     {
-        JsonObject value => new[] { value }.Concat(value.SelectMany(pair => Objects(pair.Value))),
-        JsonArray array => array.SelectMany(Objects),
-        _ => []
-    };
+        var found = new List<JsonObject>();
+        Collect(node, found);
+        return found;
+    }
+
+    static void Collect(JsonNode? node, List<JsonObject> found)
+    {
+        switch (node)
+        {
+            case JsonObject value:
+                found.Add(value);
+                foreach (var pair in value) Collect(pair.Value, found);
+                break;
+            case JsonArray array:
+                foreach (var item in array) Collect(item, found);
+                break;
+        }
+    }
 
     static string? Text(JsonObject node, string name) => node[name] is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
 
@@ -72,10 +96,10 @@ public sealed class CommandResponseContracts(SemanticApplication application, bo
         return (responses, inputs);
     }
 
-    JsonObject Screens(JsonObject scene, IReadOnlyDictionary<string, SemanticKeyedQuery> queries)
+    JsonObject Screens(JsonArray sceneScreens, IReadOnlyDictionary<string, SemanticKeyedQuery> queries)
     {
         var screens = new JsonObject();
-        foreach (var screen in (scene["screens"] as JsonArray ?? []).OfType<JsonObject>())
+        foreach (var screen in sceneScreens.OfType<JsonObject>())
         {
             var parameters = ScreenInputs(screen, queries);
             if (Text(screen, "name") is { } screenName) screens[screenName] = parameters;

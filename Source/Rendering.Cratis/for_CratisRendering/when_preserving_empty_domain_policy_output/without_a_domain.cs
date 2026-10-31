@@ -21,21 +21,21 @@ public class without_a_domain : given.a_domain_policy_plan
     // SHA-256 of the matched pre-shortening raw corpus, not a dependency on its external export directory.
     static readonly Dictionary<string, string> _oldRawHashes = new(StringComparer.Ordinal)
     {
-        ["Billing/Invoicing/Issue/Issue.cs"] = "E06F05267ADAF055198F61D6490E2D56D98497FB516A31A97A6B06AE28C4FB01",
-        ["Billing/Invoicing/Lookup/Lookup.cs"] = "25C1F71D754F1E9109A39984F24A307A7A77E4700C8EE569781FDD2B479E8720",
-        ["Common/InvoiceId.cs"] = "48B7CBC08F6CC73F578CD60348D5EE3F40439958C163BB544C04A5A9BB87A7D7",
+        ["Billing/Invoicing/Issue/Issue.cs"] = "C91EB749EF823465099E6480F958BA9001F977183127E1053BEADCFAC04CACF6",
+        ["Billing/Invoicing/Lookup/Lookup.cs"] = "9423FF9F003DF886857BE90E7D39332A1E195FB3BAE79C032D116FED912AFB0F",
+        ["Common/InvoiceId.cs"] = "377D50B36B874DAD1FA359C9290694768F35720A1BB593AE8947D14EC0B6408B",
         ["GeneratedPolicies/CustomAndStaffPolicy.cs"] = "06F16654155FCAA82A5A3F2682944E465ED1EB26586E167B06635ADCBE10193C",
         ["GeneratedPolicies/CustomPolicy.cs"] = "5831484E030AF1BF941A4B319187DF8F66F0113848547CCE0D2B6770589BC872",
-        ["GeneratedPolicies/Policies.cs"] = "8DA393D01D52A652872B8F6792EE331E3F79023F09ECF21CA0882DDD3181A203",
+        ["GeneratedPolicies/Policies.cs"] = "D5AA46D6A3E5B25FE3A00CF17A6AC5C19E505287417687DC8D1B066A48D04A2D",
         ["GeneratedPolicies/PolicyBodies.cs"] = "49D87A004918A1E564EDC98124F641AFB7659C95D570D837E94FCF3A4B5F10EA",
         ["GeneratedPolicies/PolicyBodies_844D6619645B0916.cs"] = "10D86F000E0F8261514AF15F11623F5814CB7F263AD59D1D59C973C2BFFB40AE",
         ["GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs"] = "F454590E9DC9FD70434D5F9A77BC7FECF0B7748B09234296F311C1A9D1AB763D",
         ["GeneratedPolicies/StaffPolicy.cs"] = "44A83CDECBB3DDA179485476B949322A4F5BB2AEE58888996554548D45CF8AE3",
         ["GeneratedTenancy/PortableTenantValues.cs"] = "5A25F1D0A357CEDF31FADFDA45A2F2FC9F3C8BCD5D3CE6AAF0C32DFC20158AD5",
-        ["Orders/Ordering/PlaceOrder/PlaceOrder.cs"] = "1F1E7B9B431FFF207A200477B21AF9720E7019EBF02BAD7E82851E6CA50803AC",
-        ["Orders/Ordering/PlaceOrder/when_denied_order.cs"] = "9D5B5CEB8938B4A9D5CB1E2F5F737CA3CD389421C8EC4FC9E05811D9D139E016",
+        ["Orders/Ordering/PlaceOrder/PlaceOrder.cs"] = "9AAF44FDC02647745985D5FDDD90E39A11F4A9157CE86F8C587FD58EC089537B",
+        ["Orders/Ordering/PlaceOrder/when_denied_order.cs"] = "FB2ADCABE1B6E1F3E8E56348F7619FB239A897E7A6F929FFCD76010646ADFA39",
         ["Orders/Ordering/Totals/Fold.cs"] = "30105458D13DC42F707A46DB15912D9BA0BA1AEB7111D3555B4FE5F41E6A6450",
-        ["Orders/Ordering/Totals/Totals.cs"] = "017DB11CD90D5B229517693ED990D43E6ECFC05571A41B2E26989D5711B509F3",
+        ["Orders/Ordering/Totals/Totals.cs"] = "1BE5748D7D143575ED106A263730ACB4659D890CB0AABA93D7DCCFC587A57E47",
         ["TypedContexts/PolicyContext.cs"] = "FF9F71B76FEC280E43EF6501BD788D25F81CBB3249BE4E6B494E942C850A1A8A",
         ["TypedContexts/TenantId.cs"] = "D24AA192C5AFC27CA4A2660FEEEF8FC5146D2643E3B0FE5620C94443291DB23D",
         ["TypedContexts/TypedContext_31069AC315900585.cs"] = "C36D6D6E8ED3F85D5CAE12FE2F0A159D86D2A6469A0927D3041F1957E0DF0AD5",
@@ -60,10 +60,10 @@ public class without_a_domain : given.a_domain_policy_plan
         // Since #424 the output itself uses short names, so the HEAD pins are reproduced from the qualified restore.
         // Since Cratis/Stage#848 authored bodies are indented to their block; undoing only that indentation reproduces the same pins.
         var unindented = BeforeBodyIndentation(qualified).ToArray();
-        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(unindented))).ShouldEqual("0B882F2BC3D6D8157D3116BBFDA61AC3A79DFDAA00A4C1DA4ED508DCB0DBF015");
+        Digest(BeforeInitializerRename(LegacyLicenseHeader.Restore(unindented))).ShouldEqual("CC6123922024E13204531B1E8BF9364ECCB4BD6C5E509A936457D5EC4E506753");
 
         // Restoring the former license header must reproduce the pins from before headers became optional.
-        Digest(LegacyLicenseHeader.Restore(unindented)).ShouldEqual("9D2D04A6885FBC66D2A14ED794DDEE5202D65343904974FD000F86D0E4F39A70");
+        Digest(LegacyLicenseHeader.Restore(unindented)).ShouldEqual("462569B15BC832AF18A1E66AFDAA7E822D92A02817123A61C2F144D506C551BD");
         _digest = Digest(result.Artifacts);
         _qualifiedDigest = Digest(qualified);
     }
@@ -105,15 +105,15 @@ public class without_a_domain : given.a_domain_policy_plan
         var registration = new CratisBackendApplicationScaffold()
             .Create(CratisBackendApplicationScaffoldRequest.Create(_options.ApplicationName, _options.ProjectName, _options.RootNamespace))
             .Select(input => CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact) ? artifact : null)
-            .Single(artifact => artifact?.RelativePath == "GeneratedPolicyRegistration.cs")!;
+            .Single(artifact => artifact?.RelativePath == "GeneratedPolicyRegistration.cs");
         var assembly = RenderedOutput.Load(files.Append(new RenderedFile(registration.RelativePath, Encoding.UTF8.GetString(registration.Bytes.AsSpan()))));
         AssertReducerBinding(assembly);
-        var policyContext = assembly.GetType("Invoices.TypedContexts.PolicyContextValues", throwOnError: true)!;
-        var from = policyContext.GetMethod("From", BindingFlags.Public | BindingFlags.Static)!;
+        var policyContext = assembly.GetType("Invoices.TypedContexts.PolicyContextValues", throwOnError: true);
+        var from = policyContext.GetMethod("From", BindingFlags.Public | BindingFlags.Static);
         Assert.Equal(typeof(System.Security.Claims.ClaimsPrincipal), Assert.Single(from.GetParameters()).ParameterType);
-        var identity = assembly.GetType("Invoices.TypedContexts.Identity", throwOnError: true)!;
-        Assert.Equal(typeof(ImmutableArray<>), identity.GetProperty("Roles")!.PropertyType.GetGenericTypeDefinition());
-        var claims = identity.GetProperty("Claims")!.PropertyType;
+        var identity = assembly.GetType("Invoices.TypedContexts.Identity", throwOnError: true);
+        Assert.Equal(typeof(ImmutableArray<>), identity.GetProperty("Roles").PropertyType.GetGenericTypeDefinition());
+        var claims = identity.GetProperty("Claims").PropertyType;
         Assert.Equal(typeof(ImmutableArray<>), claims.GetGenericTypeDefinition());
         Assert.Equal(assembly.GetType("Invoices.TypedContexts.Claim", throwOnError: true), Assert.Single(claims.GetGenericArguments()));
     }
@@ -142,6 +142,7 @@ public class without_a_domain : given.a_domain_policy_plan
             .Where(artifact => Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan())) != _oldRawHashes[artifact.RelativePath])
             .Select(artifact => artifact.RelativePath)
             .Order(StringComparer.Ordinal);
+
         // Re-frozen for Cratis/Stage#848: the two policy body files change only by the body indentation.
         Assert.Equal(["GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
     }
@@ -222,8 +223,8 @@ public class without_a_domain : given.a_domain_policy_plan
 
     void AssertReducerBinding(Assembly assembly)
     {
-        var fold = assembly.GetType("Invoices.Orders.Ordering.Totals.Fold", throwOnError: true)!;
-        var transition = Assert.Single(fold.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).Where(method => method.Name.StartsWith("Transition_", StringComparison.Ordinal)));
+        var fold = assembly.GetType("Invoices.Orders.Ordering.Totals.Fold", throwOnError: true);
+        var transition = Assert.Single(fold.GetMethods(BindingFlags.NonPublic | BindingFlags.Static), method => method.Name.StartsWith("Transition_", StringComparison.Ordinal));
         var wrapper = Assert.Single(transition.GetParameters()).ParameterType;
         Assert.Equal("Invoices.TypedContexts", wrapper.Namespace);
         Assert.Contains(_rawPlan.Artifacts, artifact => artifact.RelativePath == $"TypedContexts/{wrapper.Name}.cs");
@@ -232,14 +233,14 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Contains($"new {wrapper.Name}(", text, StringComparison.Ordinal);
         Assert.Contains($"{wrapper.Name} context)", text, StringComparison.Ordinal);
         Assert.DoesNotContain($"global::Invoices.TypedContexts.{wrapper.Name}", text, StringComparison.Ordinal);
-        var observed = assembly.GetType("Invoices.Orders.Ordering.PlaceOrder.OrderPlaced", throwOnError: true)!;
-        Assert.Equal(observed, wrapper.GetProperty("Event")!.PropertyType);
+        var observed = assembly.GetType("Invoices.Orders.Ordering.PlaceOrder.OrderPlaced", throwOnError: true);
+        Assert.Equal(observed, wrapper.GetProperty("Event").PropertyType);
     }
 
     string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7281BBD55502D73D1916990F6B6D96F9567057AAABE6CA07FC79CC5E78B2DF03");
-    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("353B73D5BBCC2AA7CC0F8090D3FD2B01A35274305ACF7B96FFB97552750C6EEF");
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("69F11B545E614E5C616C2F46B578089B19542AE2108EE88F653ADB2C33827E66");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("355BBD5F2BA04106DE494150FD9DBED3E201A26C49D18B5AEFFE9A91A370DB21");
 }
 #endif

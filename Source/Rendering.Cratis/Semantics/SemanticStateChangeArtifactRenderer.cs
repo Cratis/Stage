@@ -64,7 +64,8 @@ internal static class SemanticStateChangeArtifactRenderer
         var name = Identifiers.ToPascalCase(@event.Name);
         var parameters = string.Join(", ", @event.Properties.Select(property =>
             $"{types.Type(property.Type, ReducerCollection(@event, property, context))} {Identifiers.ToPascalCase(property.Name)}"));
-        context.Docs(@event.Id).Render(builder, $"The event that occurs when {Identifiers.ToWords(@event.Name)}.")
+        context.Docs(@event.Id).Render(builder, $"Records that {Identifiers.ToWords(@event.Name)}.")
+             .Parameters(@event.Properties)
             .Attribute(@event.StoredName is { } stored
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
@@ -134,7 +135,9 @@ internal static class SemanticStateChangeArtifactRenderer
             .Concat(command.Requirements.Select(requirement => requirement.Severity))
             .Concat(command.Properties.SelectMany(property => ReferencedValidations(property.Type, context, []).Select(rule => rule.Severity)))
             .ToArray();
-        context.Docs(command.Id).Render(builder).Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
+        context.Docs(command.Id).Render(builder, $"Represents the {Identifiers.ToPascalCase(command.Name)} command.")
+            .Parameters(command.Properties.Where(property => !property.IsGenerated), context)
+            .Attribute("global::Cratis.Arc.Commands.ModelBound.CommandAttribute");
         if (command.Route is { } route)
         {
             var source = context.Application.EventSources.Single(source => source.Id == route.Source);
@@ -355,7 +358,8 @@ internal static class SemanticStateChangeArtifactRenderer
         builder.Summary($"Validates {Identifiers.ToWords(command.Name)}.")
             .OpenBlock($"public class {commandName}Validator : global::Cratis.Arc.Commands.CommandValidator<{commandName}>");
         SemanticValidationRendering.RenderMatchFields(builder, command.Validations, commandName);
-        builder.OpenBlock($"public {commandName}Validator()");
+        builder.Summary($"Initializes validation rules for {commandName}.")
+            .OpenBlock($"public {commandName}Validator()");
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
         foreach (var rule in command.Validations)
         {

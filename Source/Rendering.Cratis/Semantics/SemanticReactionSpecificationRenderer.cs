@@ -31,17 +31,13 @@ internal static partial class SemanticReactionSpecificationRenderer
     }
 
     internal static void RenderHeader(CSharpCodeBuilder builder, SemanticReactionSpecificationPrelude prelude, SemanticApplicationContext context) =>
-        builder.Using("Cratis.Chronicle.Testing.Reactors")
-            .Line($"readonly global::Cratis.Chronicle.Testing.Reactors.ReactorScenario<{ReactorType(prelude, context)}> _reactor = new();");
+        builder.Line($"readonly global::Cratis.Chronicle.Testing.Reactors.ReactorScenario<{ReactorType(prelude, context)}> _reactor = new();");
 
     internal static void RenderBecause(SpecificationScope scope)
     {
         var builder = scope.Builder;
         var prelude = scope.ReactionPrelude!;
         builder.Using("System.Reflection")
-            .Using("Cratis.Arc.Authorization")
-            .Using("Cratis.Arc.Chronicle.Reactors")
-            .Using("Cratis.Arc.Http")
             .OpenBlock("async global::System.Threading.Tasks.Task Because()");
         RenderAppend(builder, prelude, scope.Context, scope.Types);
         builder.Line($"var command = _reactor.Produced.OfType<{scope.CommandName}>().Single();")
@@ -114,15 +110,15 @@ internal static partial class SemanticReactionSpecificationRenderer
         var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Specifications").Using("Xunit");
-        context.Docs(specification.Id).Render(builder)
+            .Using("Cratis.Specifications");
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
         RenderHeader(builder, prelude, context);
         builder.Line(SemanticSpecificationValuesRenderer.Declarations).BlankLine().OpenBlock("async global::System.Threading.Tasks.Task Because()");
         RenderAppend(builder, prelude, context, types);
         builder.EndBlock().BlankLine();
         RenderProductionExpectations(builder, specification, prelude, context, types);
-        builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
+        builder.BlankLine().Line("/// <inheritdoc/>").ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }

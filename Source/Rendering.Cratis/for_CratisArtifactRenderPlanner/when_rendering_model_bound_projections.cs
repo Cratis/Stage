@@ -41,7 +41,7 @@ public class when_rendering_model_bound_projections
                   name = name
         """;
 
-    const string PinnedClassic = "58EA4B059E0EBD54CC7EB1ECCE6F27B2D4F1366E3312CD9EBC875E722165F0B9";
+    const string PinnedClassic = "33A3A2A573D202B0115A92DAA4132D969143482DD9931898AB5E29C73BAFE356";
 
     static string Bytes(ArtifactRenderPlan plan) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Code(plan))));
 
@@ -54,10 +54,10 @@ public class when_rendering_model_bound_projections
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model-bound"), "model-bound", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
     internal static string Code(ArtifactRenderPlan plan)
@@ -111,7 +111,7 @@ public class when_rendering_model_bound_projections
             Overrides = System.Collections.Immutable.ImmutableDictionary<SemanticId, ReducerOverride>.Empty.Add(reducer.ReadModel, new("Projects.Projects.Registration.Folded.Fold", "Projects/Registration/Folded/Fold.cs"))
         }));
         Assert.Equal("2", v2.Inputs.Single(input => input.Name == ReducerConventionInput.Name).Version);
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, v2, new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, v2, new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = loaded.ImplementationContents,

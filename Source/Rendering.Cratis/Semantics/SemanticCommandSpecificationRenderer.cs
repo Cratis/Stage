@@ -32,11 +32,12 @@ internal static partial class SemanticCommandSpecificationRenderer
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
         var builder = context.SpecificationBuilder()
             .Namespace(ownNamespace)
-            .Using("Cratis.Arc.Commands")
             .Using("Cratis.Arc.Testing.Commands")
-            .Using("Cratis.Specifications")
-            .Using("Xunit");
-        AddInputUsings(builder, specification, command, context, located, generated);
+            .Using("Cratis.Specifications");
+        if (!specification.GivenEvents.IsEmpty)
+        {
+            builder.Using("Cratis.Arc.Chronicle.Testing.Commands");
+        }
 
         var commandName = types.SliceType(command.Id, command.Name);
         var arguments = generated.Arguments();
@@ -47,7 +48,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         RenderBecause(scope);
         RenderOutcome(scope, generated);
 
-        builder.BlankLine();
+        builder.BlankLine().Line("/// <inheritdoc/>");
         if (reaction is null)
         {
             builder.ExpressionMember("public void Dispose()", "_scenario.Dispose()");
@@ -59,52 +60,15 @@ internal static partial class SemanticCommandSpecificationRenderer
         builder.EndBlock();
         var path = Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]);
 
-        // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
-        // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting
-        // it regardless leaves a using nobody uses in every generated specification.
+        // AppendedEvents is an extension on CommandScenario in the Arc Chronicle testing namespace, so the using is
+        // decided from the rendered content: every assertion shape that reads it needs it, and none else does.
         var content = types.SpecificationContent(builder);
-        if (SpecificationValues.NeedsGlobalization(content))
+        if (content.Contains("_scenario.AppendedEvents", StringComparison.Ordinal) && !content.Contains("using Cratis.Arc.Chronicle.Testing.Commands;", StringComparison.Ordinal))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization"));
+            content = types.SpecificationContent(builder.Using("Cratis.Arc.Chronicle.Testing.Commands"));
         }
 
         return new(path, content);
-    }
-
-    static void AddInputUsings(
-        CSharpCodeBuilder builder,
-        SemanticSpecification specification,
-        SemanticCommand command,
-        SemanticApplicationContext context,
-        LocatedSemanticSlice located,
-        SemanticGeneratedCommandSpecification generated)
-    {
-        if (command.Properties.Any(generated.NeedsCommon))
-        {
-            builder.Using(context.CommonNamespace);
-        }
-
-        if (specification.GivenCaller is not null)
-        {
-            builder.Using("Cratis.Arc.Authorization")
-                .Using("Cratis.Arc.Http")
-                .Using("System.Security.Claims");
-        }
-
-        if (!specification.GivenEvents.IsEmpty)
-        {
-            builder.Using("Cratis.Arc.Chronicle.Testing.Commands")
-                .Using("Cratis.Chronicle.Events");
-        }
-
-        foreach (var expected in specification.GivenEvents.Concat(specification.ThenEvents))
-        {
-            var eventNamespace = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(expected.EventContract).Path);
-            if (!string.Equals(eventNamespace, SliceNaming.Namespace(context.RootNamespace, located.Path), StringComparison.Ordinal))
-            {
-                builder.Using(eventNamespace);
-            }
-        }
     }
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)
@@ -128,7 +92,7 @@ internal static partial class SemanticCommandSpecificationRenderer
         // analysis as errors, and an undisposed owned resource is a build failure there that they cannot fix
         // by editing the file.
         var builder = scope.Builder;
-        scope.Context.Docs(scope.Specification.Id).Render(builder)
+        scope.Context.Docs(scope.Specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(scope.Specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{scope.CommandName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)

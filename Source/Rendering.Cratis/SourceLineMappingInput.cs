@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
@@ -79,7 +80,7 @@ public static class SourceLineMappingInput
         }
     }
 
-    static bool IsValidPayload(Payload? payload) =>
+    static bool IsValidPayload([NotNullWhen(true)] Payload? payload) =>
         payload?.Documents is not null && payload.Root is not null && IsValidRoot(payload.Root);
 
     static bool TryParseDocuments(Payload payload, out Dictionary<DocumentId, string> documents)

@@ -59,7 +59,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile(Composite.Replace("from OrderCreated", "from OrderCreated key orderNumber, OrderUpdated", StringComparison.Ordinal));
         var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
         failure.EventName.ShouldEqual("OrderUpdated");
-        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key!.Location);
+        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key.Location);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile(Composite + "\nfrom OrderCreated key orderNumber\n  total = total");
         var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
         failure.EventName.ShouldEqual("OrderCreated");
-        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().First().Key!.Location);
+        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().First().Key.Location);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         var projection = _slice.Projections.Single();
         var from = projection.Blocks.OfType<FromSyntax>().Single();
         var location = SourceLocation.Start with { Path = "./Models/../Orders.play", Line = 37, Column = 13 };
-        var composite = (CompositeKeySyntax)from.Key! with { Location = location };
+        var composite = (CompositeKeySyntax)from.Key with { Location = location };
         var slice = _slice with { Projections = [projection with { Name = "orderProjection", ReadModel = "orderView", Blocks = [@from with { Key = composite }] }] };
         var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render(slice)));
         failure.ProjectionName.ShouldEqual("orderProjection");
@@ -145,7 +145,7 @@ public class when_admitting_effective_root_composite_keys : Specification
                     filter number String
             """);
         compilation.Success.ShouldBeTrue();
-        var slice = _slice with { Queries = compilation.Value!.Modules.Single().Features.Single().Slices.Single().Queries };
+        var slice = _slice with { Queries = compilation.Value.Modules.Single().Features.Single().Slices.Single().Queries };
         Assert.IsType<UnsupportedQueryIntent>(Catch.Exception(() => Render(slice)));
     }
 

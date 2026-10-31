@@ -52,7 +52,7 @@ public class with_reach_scoped_bodies : a_semantic_runtime
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var compilation = new SemanticModelCompiler().Compile("HostBodyReach", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _admission = new(_plan);
     }
 

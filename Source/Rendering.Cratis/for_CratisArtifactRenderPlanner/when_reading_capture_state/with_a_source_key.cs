@@ -24,7 +24,7 @@ public class with_a_source_key : given.a_captured_delivery
         var first = Fact(0, source: "parcel");
         var (effects, inbox) = await EffectsFromHistory(Fact(2, source: "parcel"), [first, Fact(1, "unrelated", source: "another")]);
         effects.ShouldBeEmpty();
-        var expectedTypes = new[] { first.Content.GetType().GetEventType(), _assembly.GetType("Contracts.Shipping.Tracking.Receive.Labelled", true)!.GetEventType() };
+        var expectedTypes = new[] { first.Content.GetType().GetEventType(), _assembly.GetType("Contracts.Shipping.Tracking.Receive.Labelled", true).GetEventType() };
         await inbox.Received(1).GetFromSequenceNumber(
             EventSequenceNumber.First,
             new EventSourceId("parcel"),
@@ -46,8 +46,8 @@ public class with_a_source_key : given.a_captured_delivery
         store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
         inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(call =>
             Task.FromResult<IImmutableList<AppendedEvent>>([.. history.Where(item => call.Arg<EventSourceId?>() is null || call.Arg<EventSourceId?>() == EventSourceId.Unspecified || item.Context.EventSourceId == call.Arg<EventSourceId?>())]));
-        var reactor = Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true)!, store)!;
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived")!.Invoke(reactor, [fact.Content, fact.Context, ReactorDelivery.For(reactor, fact.Context)])!;
+        var reactor = Activator.CreateInstance(_assembly.GetType("Contracts.Shipping.Tracking.Receive.Feed", throwOnError: true), store);
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived").Invoke(reactor, [fact.Content, fact.Context, ReactorDelivery.For(reactor, fact.Context)]);
         return ([.. effects.Cast<EventForEventSourceId>()], inbox);
     }
 }

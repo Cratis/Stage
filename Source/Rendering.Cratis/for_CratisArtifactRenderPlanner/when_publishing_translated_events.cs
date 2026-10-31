@@ -49,7 +49,7 @@ public class when_publishing_translated_events : given.a_translation_application
 
     [Fact] void should_suppress_an_unchanged_public_record_after_reactivation() => _published.Count.ShouldEqual(4);
     [Fact] void should_keep_independent_event_source_keys() => _published.Select(fact => fact.Context.EventSourceId.Value).ShouldEqual([First, Second, First, First]);
-    [Fact] void should_compare_to_the_last_fact_not_all_historical_facts() => _published.Select(fact => fact.Content.GetType().GetProperty("Carrier")!.GetValue(fact.Content)).ShouldEqual(["DHL", "DHL", "UPS", "DHL"]);
+    [Fact] void should_compare_to_the_last_fact_not_all_historical_facts() => _published.Select(fact => fact.Content.GetType().GetProperty("Carrier").GetValue(fact.Content)).ShouldEqual(["DHL", "DHL", "UPS", "DHL"]);
     [Fact] void should_publish_the_public_contract_not_the_private_trigger() => _published.ShouldEachConformTo(fact => fact.Content.GetType() == Generated("PublishOrderShipped", "OrderShipped"));
     [Fact]
     public async Task should_never_append_public_events_to_the_local_log()
@@ -112,10 +112,10 @@ public class when_publishing_translated_events : given.a_translation_application
 
     static async Task Publish(Assembly assembly, IEventStore store, string key, object carrier)
     {
-        var type = assembly.GetType("Contracts.Integration.Translation.PublishOrderShipped.OrderShippedPublisher", true)!;
-        var reactor = Activator.CreateInstance(type, store)!;
-        var source = Activator.CreateInstance(assembly.GetType("Contracts.Integration.Translation.PackOrder.OrderPacked", true)!, carrier)!;
-        await (Task)type.GetMethod("OnOrderPacked")!.Invoke(reactor, [source, EventContext.EmptyWithEventSourceId(key)])!;
+        var type = assembly.GetType("Contracts.Integration.Translation.PublishOrderShipped.OrderShippedPublisher", true);
+        var reactor = Activator.CreateInstance(type, store);
+        var source = Activator.CreateInstance(assembly.GetType("Contracts.Integration.Translation.PackOrder.OrderPacked", true), carrier);
+        await (Task)type.GetMethod("OnOrderPacked").Invoke(reactor, [source, EventContext.EmptyWithEventSourceId(key)]);
     }
 }
 #endif

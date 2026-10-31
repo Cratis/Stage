@@ -57,11 +57,11 @@ public class a_translation_application : Specification
             slice => slice.Captures.IsEmpty ? slice with { Events = sameNamespace ? [] : [other], Commands = [] } : slice with
             {
                 Events = sameNamespace ? slice.Events.Add(other) : slice.Events,
-                Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched", EventsSource = capture.EventsSource! with { Events = reverse ? [other.Id, source.Id] : [source.Id, other.Id] } })]
+                Captures = [.. slice.Captures.Select(capture => capture with { Name = "OnShipmentDispatched", EventsSource = capture.EventsSource with { Events = reverse ? [other.Id, source.Id] : [source.Id, other.Id] } })]
             },
             include: slice => slice.Name != "PublishOrderShipped");
         var options = new CratisRenderingOptions("Contracts", "Contracts");
-        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         var located = context.SelectedSlices().Single(slice => slice.Slice.Name == "TrackShipments");
         return (context, located, located.Slice.Captures.Single(), source.Id, other.Id);
     }
@@ -77,7 +77,7 @@ public class a_translation_application : Specification
         {
             profile = ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, [.. profile.Inputs, RefusalModeInput.Create(refusals)]);
         }
-        return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        return new CratisArtifactRenderPlanner().Plan(new(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
     protected static ExecutableSemanticModel Transform(ExecutableSemanticModel model, Func<SemanticSlice, SemanticSlice> transform, bool recovery = false, Func<SemanticSlice, bool>? include = null) => ExecutableSemanticModel.Create(recovery ? LanguageVersion.V17 : model.LanguageVersion, recovery ? SemanticVersion.V17 : model.SemanticVersion, model.Application with

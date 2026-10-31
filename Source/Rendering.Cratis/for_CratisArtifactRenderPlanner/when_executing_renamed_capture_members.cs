@@ -49,24 +49,24 @@ public class when_executing_renamed_capture_members : given.a_translation_specif
         store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
         store.GetEventSequence(new EventSequenceId("inbox-shipping")).Returns(inbox);
         inbox.GetFromSequenceNumber(Arg.Any<EventSequenceNumber>(), Arg.Any<EventSourceId>(), Arg.Any<IEnumerable<EventType>>()).Returns(_ => Task.FromResult<IImmutableList<AppendedEvent>>([.. history]));
-        var reactorType = assembly.GetType($"Contracts.Integration.Translation.TrackShipments.{name}", true)!;
-        var sourceType = assembly.GetType("Contracts.Integration.Translation.TrackShipments.ShipmentDispatched", true)!;
+        var reactorType = assembly.GetType($"Contracts.Integration.Translation.TrackShipments.{name}", true);
+        var sourceType = assembly.GetType("Contracts.Integration.Translation.TrackShipments.ShipmentDispatched", true);
         var method = reactorType.GetMethods().Single(candidate => candidate.GetParameters() is { Length: 3 } parameters && parameters[0].ParameterType == sourceType && parameters[1].ParameterType == typeof(EventContext) && parameters[2].ParameterType == typeof(ReactorDelivery));
         var effects = new List<EventForEventSourceId>();
         foreach (var key in new[] { First, First, Second })
         {
-            var source = Activator.CreateInstance(sourceType, Activator.CreateInstance(assembly.GetType("Contracts.Common.OrderId", true)!, Guid.Parse(key)))!;
+            var source = Activator.CreateInstance(sourceType, Activator.CreateInstance(assembly.GetType("Contracts.Common.OrderId", true), Guid.Parse(key)));
             var position = (ulong)history.Count;
             var context = EventContext.Empty with { SequenceNumber = position, EventType = sourceType.GetEventType() };
             history.Add(new(context, source));
-            var reactor = Activator.CreateInstance(reactorType, store)!;
-            var result = await (Task<IEnumerable<object>>)method.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
+            var reactor = Activator.CreateInstance(reactorType, store);
+            var result = await (Task<IEnumerable<object>>)method.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)]);
             effects.AddRange(result.Cast<EventForEventSourceId>());
         }
         Assert.Equal([First, Second], effects.Select(effect => effect.EventSourceId.Value));
-        Assert.All(effects, effect => Assert.Equal(effect.EventSourceId.Value, effect.Event.GetType().GetProperty("OrderId")!.GetValue(effect.Event)!.ToString()));
-        var replayReactor = Activator.CreateInstance(reactorType, store)!;
-        var replay = await (Task<IEnumerable<object>>)method.Invoke(replayReactor, [history[0].Content, history[0].Context, ReactorDelivery.For(replayReactor, history[0].Context)])!;
+        Assert.All(effects, effect => Assert.Equal(effect.EventSourceId.Value, effect.Event.GetType().GetProperty("OrderId").GetValue(effect.Event).ToString()));
+        var replayReactor = Activator.CreateInstance(reactorType, store);
+        var replay = await (Task<IEnumerable<object>>)method.Invoke(replayReactor, [history[0].Content, history[0].Context, ReactorDelivery.For(replayReactor, history[0].Context)]);
         var replayEffect = Assert.Single(replay.Cast<EventForEventSourceId>());
         Assert.Equal(First, replayEffect.EventSourceId.Value);
         Assert.NotNull(effects[0].IdempotencyKey);

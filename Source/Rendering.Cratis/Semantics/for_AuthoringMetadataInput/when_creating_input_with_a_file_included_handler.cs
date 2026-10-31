@@ -38,7 +38,7 @@ public class when_creating_input_with_a_file_included_handler : Specification
         var attachments = ImmutableDictionary<string, string>.Empty.Add("Handlers/RegisterProject.cs", "return new ProjectRegistered(command.ProjectId);");
         var result = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog, attachments));
         Assert.True(result.Success, string.Join("; ", result.Diagnostics));
-        _compilation = result.Value!;
+        _compilation = result.Value;
     }
 
     void Because()
@@ -49,5 +49,5 @@ public class when_creating_input_with_a_file_included_handler : Specification
     }
 
     [Fact] void should_admit_the_metadata_it_creates() => _accepted.ShouldBeTrue();
-    [Fact] void should_preserve_the_command_description() => _catalog!.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Registers a project", null));
+    [Fact] void should_preserve_the_command_description() => _catalog.Entries.Values.ShouldContain(new AuthoringMetadataInput.Metadata("Registers a project", null));
 }

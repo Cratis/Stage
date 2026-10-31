@@ -16,7 +16,7 @@ public class with_opaque_generated_concept_rules : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan())).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan())).Plan;
 
     void Because() => _admission = new(_plan);
 

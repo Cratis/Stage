@@ -39,7 +39,7 @@ public class when_capturing_foreign_events : given.a_translation_application
 
     [Fact] void should_append_nothing_for_an_unchanged_foreign_record() => _effects.Count.ShouldEqual(2);
     [Fact] void should_derive_the_local_destination_from_the_capture_key_not_the_inbox_stream() => _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First, Second]);
-    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId")!.GetValue(effect.Event)!.ToString()).ShouldEqual([First, Second]);
+    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId").GetValue(effect.Event).ToString()).ShouldEqual([First, Second]);
     [Fact] void should_read_capture_state_from_the_inbox_it_observes() => _inbox.ReceivedCalls().ShouldNotBeEmpty();
     [Fact] void should_produce_only_local_private_facts() => _effects.ShouldEachConformTo(effect => effect.Event.GetType() == Generated("TrackShipments", "OrderDispatched"));
 
@@ -91,7 +91,7 @@ public class when_capturing_foreign_events : given.a_translation_application
     async Task Invoke(object reactor, object source, ulong sequenceNumber, List<EventForEventSourceId>? destination = null)
     {
         var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched").Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)]);
         (destination ?? _effects).AddRange(effects.Cast<EventForEventSourceId>());
     }
 }

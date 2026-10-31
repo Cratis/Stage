@@ -32,7 +32,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
     {
         Render();
         var identity = _assembly.GetTypes().Single(type => type.Name == "OrderId");
-        identity.BaseType!.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
+        identity.BaseType.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
         var reactor = _sources.Single(source => source.RelativePath.EndsWith("OrderIntake.cs", StringComparison.Ordinal)).Content;
         reactor.ShouldContain("EventForEventSourceId(@event.OrderId,");
         reactor.ShouldNotContain("@event.OrderId.ToString()");

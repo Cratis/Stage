@@ -20,7 +20,7 @@ public class a_dependency_index : a_register_project_render_request
     protected static void Replace<T>(T node, string property, object value)
         where T : class
     {
-        typeof(T).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(node, value);
+        typeof(T).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(node, value);
     }
 
     void Establish()

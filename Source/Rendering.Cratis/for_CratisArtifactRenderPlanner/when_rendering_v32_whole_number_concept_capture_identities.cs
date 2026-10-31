@@ -42,7 +42,7 @@ public class when_rendering_v32_whole_number_concept_capture_identities : given.
     public void should_append_with_a_whole_number_concept_as_the_declared_identity()
     {
         var identity = _assembly.GetTypes().Single(type => type.Name == "OrderId");
-        identity.BaseType!.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
+        identity.BaseType.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
         new[] { typeof(int), typeof(long) }.ShouldContain(identity.BaseType.GetGenericArguments().Single());
         var reactor = Reactor();
         reactor.ShouldContain("EventForEventSourceId(@event.OrderId,");

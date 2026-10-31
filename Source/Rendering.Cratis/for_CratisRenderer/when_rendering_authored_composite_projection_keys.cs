@@ -47,7 +47,7 @@ public class when_rendering_authored_composite_projection_keys : a_multi_slice_a
         var compilation = new NativeScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, $"Invalid authored application: {string.Join(Environment.NewLine, compilation.Diagnostics)}");
         compilation.Diagnostics.ShouldBeEmpty();
-        var application = compilation.Value!;
+        var application = compilation.Value;
         var projection = application.Modules.Single().Features.Single().Slices.Single().Projections.Single();
         var from = Assert.IsType<FromSyntax>(Assert.Single(projection.Blocks));
         var key = Assert.IsType<CompositeKeySyntax>(from.Key);

@@ -28,7 +28,7 @@ public class when_delivering_application_trigger_invocations : Specification
             .Replace("      reaction ProcessBatch", "      reaction ProcessBatch\n        runs as system role \"Worker\"", StringComparison.Ordinal)
             + "\n          invokes FinishBatch\n            batchId = \"second\"\n";
         var model = for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source);
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
         plan.Diagnostics.ShouldBeEmpty();
         _assembly = for_CratisRenderer.RenderedOutput.Load(when_rendering_application_trigger_productions.Files(plan));
     }
@@ -44,12 +44,12 @@ public class when_delivering_application_trigger_invocations : Specification
                 return result ?? _result;
             });
         var type = _assembly.GetTypes().Single(item => item.Name == "ProcessBatch");
-        var payload = Activator.CreateInstance(_assembly.GetTypes().Single(item => item.Name == "BatchRequested"), "batch-42")!;
-        var handler = Activator.CreateInstance(type, executor)!;
+        var payload = Activator.CreateInstance(_assembly.GetTypes().Single(item => item.Name == "BatchRequested"), "batch-42");
+        var handler = Activator.CreateInstance(type, executor);
         _deliveries++;
         try
         {
-            await (Task)type.GetMethod("Handle")!.Invoke(handler, [payload, _context, CancellationToken.None])!;
+            await (Task)type.GetMethod("Handle").Invoke(handler, [payload, _context, CancellationToken.None]);
         }
         catch (InvalidOperationException exception)
         {

@@ -77,7 +77,7 @@ internal sealed class SemanticRuntimeAdmission
 
         foreach (var query in plan.Queries.Values)
         {
-            var refusal = SemanticPlanAdmission.Check(plan, query.Id) ?? SemanticImplementationReach.ForQuery(plan, query);
+            var refusal = SemanticPlanAdmission.Check(plan, query.Id) ?? SemanticImplementationReach.ForQuery(plan, query, bodies);
             entries.Add(new(query.Id.ToString(), "query", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 

@@ -71,12 +71,87 @@
         The nested publish gets its own artifacts path, so its restore/build never shares obj/ or bin/ with the
         solution build of SpecRunner, Specifications, Stage or Contracts running on parallel MSBuild nodes.
     -->
-    <Target Name="BuildSpecificationRunner" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <!--
+        The Debug nested publishes are incremental: each re-runs only when something in its source closure (below), the
+        version, or its published output changes. Inputs are the files of every project directory the nested build
+        compiles, including the Rendering.Cratis files Stage links in, plus the repository build configuration.
+        The stamp is touched after a successful publish; _Prepare*Publish drops it when the published dll is gone.
+        _Check*Closure fails the build if a project in the closure gains a reference to a directory not listed here.
+    -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <_SpecificationRunnerPublishStamp>$(IntermediateOutputPath)specrunner-publish.stamp</_SpecificationRunnerPublishStamp>
+        <_SpecificationRunnerPublishIdentity>$(IntermediateOutputPath)specrunner-publish.identity</_SpecificationRunnerPublishIdentity>
+        <_BodyWorkerPublishStamp>$(IntermediateOutputPath)bodyworker-publish.stamp</_BodyWorkerPublishStamp>
+        <_BodyWorkerPublishIdentity>$(IntermediateOutputPath)bodyworker-publish.identity</_BodyWorkerPublishIdentity>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- Directory names (under Source) of the SpecRunner closure; Rendering.Cratis is listed because Stage links files from it. BodyWorker lists Stage and Specifications because Rendering.Cratis embeds Stage files and Stage links Specifications files. -->
+        <_SpecificationRunnerDir Include="SpecRunner;Stage;Specifications;Contracts;Rendering.Cratis" />
+        <_BodyWorkerDir Include="BodyWorker;Contracts;Rendering.Cratis;Stage;Specifications" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../SpecRunner/**" Exclude="$(MSBuildThisFileDirectory)../SpecRunner/**/bin/**;$(MSBuildThisFileDirectory)../SpecRunner/**/obj/**;$(MSBuildThisFileDirectory)../SpecRunner/**/node_modules/**" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Stage/**" Exclude="$(MSBuildThisFileDirectory)../Stage/**/bin/**;$(MSBuildThisFileDirectory)../Stage/**/obj/**;$(MSBuildThisFileDirectory)../Stage/**/node_modules/**" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Specifications/**" Exclude="$(MSBuildThisFileDirectory)../Specifications/**/bin/**;$(MSBuildThisFileDirectory)../Specifications/**/obj/**;$(MSBuildThisFileDirectory)../Specifications/**/node_modules/**" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Contracts/**" Exclude="$(MSBuildThisFileDirectory)../Contracts/**/bin/**;$(MSBuildThisFileDirectory)../Contracts/**/obj/**;$(MSBuildThisFileDirectory)../Contracts/**/node_modules/**" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Rendering.Cratis/**" Exclude="$(MSBuildThisFileDirectory)../Rendering.Cratis/**/bin/**;$(MSBuildThisFileDirectory)../Rendering.Cratis/**/obj/**;$(MSBuildThisFileDirectory)../Rendering.Cratis/**/node_modules/**" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../BodyWorker/**" Exclude="$(MSBuildThisFileDirectory)../BodyWorker/**/bin/**;$(MSBuildThisFileDirectory)../BodyWorker/**/obj/**;$(MSBuildThisFileDirectory)../BodyWorker/**/node_modules/**" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Contracts/**" Exclude="$(MSBuildThisFileDirectory)../Contracts/**/bin/**;$(MSBuildThisFileDirectory)../Contracts/**/obj/**;$(MSBuildThisFileDirectory)../Contracts/**/node_modules/**" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Rendering.Cratis/**" Exclude="$(MSBuildThisFileDirectory)../Rendering.Cratis/**/bin/**;$(MSBuildThisFileDirectory)../Rendering.Cratis/**/obj/**;$(MSBuildThisFileDirectory)../Rendering.Cratis/**/node_modules/**" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Stage/**" Exclude="$(MSBuildThisFileDirectory)../Stage/**/bin/**;$(MSBuildThisFileDirectory)../Stage/**/obj/**;$(MSBuildThisFileDirectory)../Stage/**/node_modules/**" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Specifications/**" Exclude="$(MSBuildThisFileDirectory)../Specifications/**/bin/**;$(MSBuildThisFileDirectory)../Specifications/**/obj/**;$(MSBuildThisFileDirectory)../Specifications/**/node_modules/**" />
+        <!-- Repository build configuration the nested publish evaluates. Only files that exist: a missing input would keep the target permanently out of date. -->
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.props')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../Directory.Build.targets" Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.targets')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../Directory.Build.targets" Condition="Exists('$(MSBuildThisFileDirectory)../Directory.Build.targets')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Build.props')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Build.props" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Build.props')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Build.targets" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Build.targets')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Build.targets" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Build.targets')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Packages.props" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Packages.props')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../Directory.Packages.props" Condition="Exists('$(MSBuildThisFileDirectory)../../Directory.Packages.props')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../global.json" Condition="Exists('$(MSBuildThisFileDirectory)../../global.json')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../global.json" Condition="Exists('$(MSBuildThisFileDirectory)../../global.json')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../NuGet.config" Condition="Exists('$(MSBuildThisFileDirectory)../../NuGet.config')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../NuGet.config" Condition="Exists('$(MSBuildThisFileDirectory)../../NuGet.config')" />
+        <_SpecificationRunnerPublishInput Include="$(MSBuildThisFileDirectory)../../nuget.config" Condition="Exists('$(MSBuildThisFileDirectory)../../nuget.config')" />
+        <_BodyWorkerPublishInput Include="$(MSBuildThisFileDirectory)../../nuget.config" Condition="Exists('$(MSBuildThisFileDirectory)../../nuget.config')" />
+        <_SpecificationRunnerPublishInput Include="$(_SpecificationRunnerPublishIdentity)" />
+        <_BodyWorkerPublishInput Include="$(_BodyWorkerPublishIdentity)" />
+    </ItemGroup>
+    <Target Name="_CheckNestedPublishClosure" Condition="'$(Configuration)' == 'Debug'">
+        <XmlPeek XmlInputPath="$(MSBuildThisFileDirectory)../%(_SpecificationRunnerDir.Identity)/%(_SpecificationRunnerDir.Identity).csproj" Query="//@Include[starts-with(., '../')]">
+            <Output TaskParameter="Result" ItemName="_SpecificationRunnerRef" />
+        </XmlPeek>
+        <XmlPeek XmlInputPath="$(MSBuildThisFileDirectory)../%(_BodyWorkerDir.Identity)/%(_BodyWorkerDir.Identity).csproj" Query="//@Include[starts-with(., '../')]">
+            <Output TaskParameter="Result" ItemName="_BodyWorkerRef" />
+        </XmlPeek>
+        <ItemGroup>
+            <_SpecificationRunnerRefDir Include="$([System.String]::Copy('%(_SpecificationRunnerRef.Identity)').Split('/')[1])" />
+            <_BodyWorkerRefDir Include="$([System.String]::Copy('%(_BodyWorkerRef.Identity)').Split('/')[1])" />
+            <_SpecificationRunnerUnlisted Include="@(_SpecificationRunnerRefDir->Distinct())" Exclude="@(_SpecificationRunnerDir)" />
+            <_BodyWorkerUnlisted Include="@(_BodyWorkerRefDir->Distinct())" Exclude="@(_BodyWorkerDir)" />
+        </ItemGroup>
+        <Error Condition="'@(_SpecificationRunnerUnlisted)' != ''" Text="The SpecRunner closure references directories not in _SpecificationRunnerDir in Host.csproj: @(_SpecificationRunnerUnlisted). Add them so the incremental nested publish tracks them." />
+        <Error Condition="'@(_BodyWorkerUnlisted)' != ''" Text="The BodyWorker closure references directories not in _BodyWorkerDir in Host.csproj: @(_BodyWorkerUnlisted). Add them so the incremental nested publish tracks them." />
+    </Target>
+    <Target Name="_PrepareSpecificationRunnerPublish" DependsOnTargets="_CheckNestedPublishClosure" Condition="'$(Configuration)' == 'Debug'">
+        <MakeDir Directories="$(IntermediateOutputPath)" />
+        <WriteLinesToFile File="$(_SpecificationRunnerPublishIdentity)" Lines="Version=$(Version)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+        <Delete Files="$(_SpecificationRunnerPublishStamp)" Condition="!Exists('$(TargetDir)specrunner/Cratis.Stage.SpecRunner.dll')" />
+    </Target>
+    <Target Name="_PrepareBodyWorkerPublish" DependsOnTargets="_CheckNestedPublishClosure" Condition="'$(Configuration)' == 'Debug'">
+        <MakeDir Directories="$(IntermediateOutputPath)" />
+        <WriteLinesToFile File="$(_BodyWorkerPublishIdentity)" Lines="Version=$(Version)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+        <Delete Files="$(_BodyWorkerPublishStamp)" Condition="!Exists('$(TargetDir)bodyworker/Cratis.Stage.BodyWorker.dll')" />
+    </Target>
+    <Target Name="BuildSpecificationRunner" AfterTargets="Build" DependsOnTargets="_PrepareSpecificationRunnerPublish" Condition="'$(Configuration)' == 'Debug'" Inputs="@(_SpecificationRunnerPublishInput)" Outputs="$(_SpecificationRunnerPublishStamp)">
         <!-- The solution build owns analyzers for these projects; keep generators in this isolated publish. -->
         <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../SpecRunner/SpecRunner.csproj&quot; --configuration Debug --output &quot;$(TargetDir)specrunner/&quot; --artifacts-path &quot;$(SpecificationRunnerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />
+        <Touch Files="$(_SpecificationRunnerPublishStamp)" AlwaysCreate="true" />
     </Target>
-    <Target Name="BuildBodyWorker" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Target Name="BuildBodyWorker" AfterTargets="Build" DependsOnTargets="_PrepareBodyWorkerPublish" Condition="'$(Configuration)' == 'Debug'" Inputs="@(_BodyWorkerPublishInput)" Outputs="$(_BodyWorkerPublishStamp)">
         <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../BodyWorker/BodyWorker.csproj&quot; --configuration Debug --output &quot;$(TargetDir)bodyworker/&quot; --artifacts-path &quot;$(BodyWorkerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />
+        <Touch Files="$(_BodyWorkerPublishStamp)" AlwaysCreate="true" />
     </Target>
     <Target Name="PublishBodyWorker" AfterTargets="Publish">
         <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)../BodyWorker/BodyWorker.csproj&quot; --configuration $(Configuration) --output &quot;$(PublishDir)bodyworker/&quot; --artifacts-path &quot;$(BodyWorkerArtifactsPath)&quot; --self-contained false -p:Version=$(Version) -p:RunAnalyzers=false" />

@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime.when_executing;
 
+[PerFactSpecificationLifecycle]
 public class with_competing_protected_decisions : Specification
 {
     static readonly TimeSpan _limit = TimeSpan.FromSeconds(10);

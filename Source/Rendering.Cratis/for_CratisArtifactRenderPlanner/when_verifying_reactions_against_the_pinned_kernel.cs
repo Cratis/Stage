@@ -261,10 +261,8 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
         AddGeneratedSpecification("ReactionProbe.cs", Probe);
     }
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     async Task should_settle_event_reactions_when_configured()
-#pragma warning restore CRSPEC0004
     {
         try
         {

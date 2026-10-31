@@ -90,6 +90,8 @@ public class a_composite_input : Specification
         }));
     }
 
+    protected void VerifyReferenceFailures() => _failures.ShouldEqualInOrder([.. ((SemanticRejected)_reference.Execution).ValidationFailures]);
+
     protected async Task Execute()
     {
         _reference = new SemanticSpecificationRunner().Run(_plan, _specification.Id);

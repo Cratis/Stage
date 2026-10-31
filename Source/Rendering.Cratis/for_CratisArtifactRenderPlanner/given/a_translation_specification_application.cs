@@ -42,12 +42,14 @@ public class a_translation_specification_application : a_translation_application
         });
     }
 
-    protected async Task RunGenerated(string name)
+    protected Task RunGenerated(string name) => RunGenerated(_assembly, name);
+
+    protected static async Task RunGenerated(Assembly assembly, string name)
     {
-        var type = _assembly.GetTypes().Single(type => type.Name == name);
-        var instance = Activator.CreateInstance(type)!;
-        type.GetMethod("Establish", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(instance, null);
-        await (Task)type.GetMethod("Because", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(instance, null)!;
+        var type = assembly.GetTypes().Single(type => type.Name == name);
+        var instance = Activator.CreateInstance(type);
+        type.GetMethod("Establish", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, null);
+        await (Task)type.GetMethod("Because", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, null);
         var facts = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Where(method => Attribute.IsDefined(method, typeof(FactAttribute))).ToArray();
         facts.ShouldNotBeEmpty();
         foreach (var fact in facts) fact.Invoke(instance, null);

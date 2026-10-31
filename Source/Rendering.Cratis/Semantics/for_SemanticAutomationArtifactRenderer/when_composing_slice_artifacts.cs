@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Text;
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
@@ -48,13 +49,13 @@ public class when_composing_slice_artifacts : given.an_automation
         var loaded = await when_rendering_a_pure_reducer.Load(when_rendering_a_pure_reducer.Source
             .Replace("slice StateView Totals", "slice Automation Totals", StringComparison.Ordinal)
             .Replace("Guid.Parse(\"00000000-0000-0000-0000-000000000001\")", "context.Event.Id", StringComparison.Ordinal));
-        _plan = when_rendering_a_pure_reducer.Plan(loaded);
-        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
-        _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/Fold.cs", StringComparison.Ordinal)).ShouldBeTrue();
-        var source = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Totals.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+        var plan = when_rendering_a_pure_reducer.Plan(loaded);
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/Fold.cs", StringComparison.Ordinal)).ShouldBeTrue();
+        var source = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Totals.cs", StringComparison.Ordinal)).Bytes.AsSpan());
         source.ShouldContain("public record Total");
         source.ShouldContain("ById(");
-        RenderedOutput.Errors(Files()).ShouldBeEmpty();
+        RenderedOutput.Errors(Files(plan)).ShouldBeEmpty();
     }
 
     [Fact]
@@ -78,7 +79,9 @@ public class when_composing_slice_artifacts : given.an_automation
         Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/FollowUp.cs", StringComparison.Ordinal)).Bytes.AsSpan()).ShouldContain("FromEvent<Started>");
     }
 
-    RenderedFile[] Files() => [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+    RenderedFile[] Files() => Files(_plan);
+
+    static RenderedFile[] Files(ArtifactRenderPlan plan) => [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
         .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
 }
 #endif

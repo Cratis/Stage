@@ -9,8 +9,8 @@ pin	Cratis.Chronicle	19.112.1
 pin	Cratis.Chronicle.AspNetCore	19.112.1
 pin	Cratis.Chronicle.Testing	19.112.1
 pin	Cratis.Screenplay.Matching	4.256.0
-pin	Cratis.Specifications	4.1.1
-pin	Cratis.Specifications.XUnit	4.1.1
+pin	Cratis.Specifications	5.1.0
+pin	Cratis.Specifications.XUnit	5.1.0
 pin	Microsoft.NET.Test.Sdk	18.11.0
 pin	NSubstitute	6.2.0
 pin	TargetFramework	net10.0
@@ -43,8 +43,8 @@ package	AS	Cratis.Orleans.Storage.MongoDB	1.32.1
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
 package	AS	Cratis.Screenplay.Matching	4.256.0
-package	AS	Cratis.Specifications	4.1.1
-package	AS	Cratis.Specifications.XUnit	4.1.1
+package	AS	Cratis.Specifications	5.1.0
+package	AS	Cratis.Specifications.XUnit	5.1.0
 package	AS	DnsClient	1.8.0
 package	AS	FluentValidation	12.2.0
 package	AS	Grpc.Core.Api	2.84.0
@@ -717,6 +717,7 @@ namespace	AS	Cratis.Screenplay.Validation
 namespace	AS	Cratis.Screenplay.Workspaces
 namespace	AS	Cratis.Serialization
 namespace	AS	Cratis.Specifications
+namespace	AS	Cratis.Specifications.Resources
 namespace	AS	Cratis.Strings
 namespace	AS	Cratis.Tasks
 namespace	AS	Cratis.Timers
@@ -5282,24 +5283,41 @@ type	AS	Cratis.Serialization	MissingTargetTypeForDerivedType	class
 type	AS	Cratis.Serialization	NamespacedNamingPolicy	class
 type	AS	Cratis.Serialization	NamingPolicy	class
 type	AS	Cratis.Serialization	TargetTypeMismatchForDerivedType	class
+type	AS	Cratis.Specifications	AmbiguousLifecycleMethod	class
+type	AS	Cratis.Specifications	AssertionFailureRegistration	static
 type	AS	Cratis.Specifications	Catch	static
+type	AS	Cratis.Specifications	PerFactSpecificationLifecycleAttribute	attribute
+type	AS	Cratis.Specifications	ReadableSpecificationNamesAttribute	attribute
 type	AS	Cratis.Specifications	ShouldCollectionExtensions	static
 type	AS	Cratis.Specifications	ShouldComparableExtensions	static
 type	AS	Cratis.Specifications	ShouldEqualityExtensions	static
 type	AS	Cratis.Specifications	ShouldStringExtensions	static
 type	AS	Cratis.Specifications	ShouldTypeExtensions	static
 type	AS	Cratis.Specifications	Specification	class
+type	AS	Cratis.Specifications	SpecificationAssertionException	class
 type	AS	Cratis.Specifications	SpecificationCancelledException	class
+type	AS	Cratis.Specifications	SpecificationDisplayNames	static
 type	AS	Cratis.Specifications	SpecificationMethods`2	static
+type	AS	Cratis.Specifications	SpecificationSessionHook	static
 type	AS	Cratis.Specifications	SpecificationTestAssemblyRunner	class
+type	AS	Cratis.Specifications	SpecificationTestCase	class
 type	AS	Cratis.Specifications	SpecificationTestCaseRunner	class
 type	AS	Cratis.Specifications	SpecificationTestClassRunner	class
 type	AS	Cratis.Specifications	SpecificationTestCollectionRunner	class
 type	AS	Cratis.Specifications	SpecificationTestFramework	class
+type	AS	Cratis.Specifications	SpecificationTestFrameworkDiscoverer	class
 type	AS	Cratis.Specifications	SpecificationTestFrameworkExecutor	class
 type	AS	Cratis.Specifications	SpecificationTestInvoker	class
 type	AS	Cratis.Specifications	SpecificationTestMethodRunner	class
 type	AS	Cratis.Specifications	SpecificationTestRunner	class
+type	AS	Cratis.Specifications	SpecificationTheoryTestCase	class
+type	AS	Cratis.Specifications.Resources	ISpecificationResource	interface
+type	AS	Cratis.Specifications.Resources	ISpecificationResource`1	interface
+type	AS	Cratis.Specifications.Resources	SpecificationLeaseContext	class
+type	AS	Cratis.Specifications.Resources	SpecificationResourceAttribute	attribute
+type	AS	Cratis.Specifications.Resources	SpecificationResourceOrderException	class
+type	AS	Cratis.Specifications.Resources	SpecificationResources	static
+type	AS	Cratis.Specifications.Resources	SpecificationResourcesHook	static
 type	AS	Cratis.Strings	StringExtensions	static
 type	AS	Cratis.Tasks	AsyncManualResetEvent	class
 type	AS	Cratis.Tasks	AwaitableHelpers	static
@@ -12243,7 +12261,7 @@ extensions	AS	Cratis.Orleans.Tenancy	AddTenancy
 extensions	AS	Cratis.Reactive	CompletedBy InvokeAndWrapWithSubject InvokeAndWrapWithTransformSubject
 extensions	AS	Cratis.Reflection	AllBaseAndImplementingTypes CallGenericMethod GetActualReturnType GetAsyncEnumerableElementType GetDefaultConstructor GetEnumerableElementType GetFieldInfo GetInstance GetKeyType GetKeyValuePairs GetMemberExpression GetMethodArguments GetMethodInfo GetNonDefaultConstructor GetNonDefaultConstructorWithGreatestNumberOfParameters GetNullableType GetPropertyInfo GetSettableProperties GetTypeInfoDetails GetTypeString GetValueType HasAttribute HasDefaultConstructor HasInterface HasNonDefaultConstructor HasVisibleProperties Implements ImplementsOpenGeneric Is IsAPrimitiveType IsAsync IsBoolean IsComparable IsDate IsDateOnly IsDateTimeOffset IsDelegate IsDerivedFromOpenGeneric IsDictionary IsEnumerable IsGuid IsNullable IsNullableContext IsNullableReferenceType IsNumericType IsRecord IsString IsTimeOnly IsTimeSpan Unwrap
 extensions	AS	Cratis.Screenplay.Semantics	GetAffectedInstances Keyword
-extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldEachConformTo ShouldEqual ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
+extensions	AS	Cratis.Specifications	ShouldBeAssignableFrom ShouldBeEmpty ShouldBeFalse ShouldBeGreaterThan ShouldBeGreaterThanOrEqual ShouldBeInRange ShouldBeLessThan ShouldBeLessThanOrEqual ShouldBeNull ShouldBeOfExactType ShouldBeSame ShouldBeTrue ShouldContain ShouldContainOnly ShouldContainSingleItem ShouldContainSingleMatching ShouldEachConformTo ShouldEqual ShouldEqualInAnyOrder ShouldEqualInOrder ShouldMatch ShouldNotBeEmpty ShouldNotBeInRange ShouldNotBeNull ShouldNotBeSame ShouldNotBeSimilar ShouldNotContain ShouldNotEqual
 extensions	AS	Cratis.Strings	ToCamelCase ToPascalCase
 extensions	AS	FluentValidation	Cascade ChildRules Configurable Configure CreditCard Custom CustomAsync EmailAddress Empty Equal ExclusiveBetween ForEach GreaterThan GreaterThanOrEqualTo InclusiveBetween IsEnumName IsInEnum Length LessThan LessThanOrEqualTo Matches MaximumLength MinimumLength Must MustAsync NotEmpty NotEqual NotNull Null OverrideIndexer OverridePropertyName PrecisionScale SetAsyncValidator SetInheritanceValidator SetValidator Unless UnlessAsync Validate ValidateAndThrow ValidateAndThrowAsync ValidateAsync When WhenAsync Where WhereAsync WithErrorCode WithMessage WithName WithSeverity WithState
 extensions	AS	FluentValidation.Internal	GetMember
@@ -14013,17 +14031,21 @@ base	AS	Cratis.Serialization.MissingTargetTypeForDerivedType	System.Exception	-	
 base	AS	Cratis.Serialization.NamespacedNamingPolicy	Cratis.Serialization.NamingPolicy	GetPropertyNameImplementation GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.NamingPolicy	System.Object	GetPropertyName GetPropertyNameImplementation GetReadModelName GetReadModelNameImplementation JsonPropertyNamingPolicy	-
 base	AS	Cratis.Serialization.TargetTypeMismatchForDerivedType	System.Exception	-	-
+base	AS	Cratis.Specifications.AmbiguousLifecycleMethod	System.Exception	-	-
 base	AS	Cratis.Specifications.Specification	System.Object	DisposeAsync InitializeAsync	-
 base	AS	Cratis.Specifications.SpecificationCancelledException	System.Exception	-	-
-base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.Sdk.XunitTestAssemblyRunner	Dispose RunTestCollectionAsync	-
+base	AS	Cratis.Specifications.SpecificationTestAssemblyRunner	Xunit.Sdk.XunitTestAssemblyRunner	BeforeTestAssemblyFinishedAsync Dispose RunTestCollectionAsync	-
+base	AS	Cratis.Specifications.SpecificationTestCase	Xunit.Sdk.XunitTestCase	GetDisplayName	-
 base	AS	Cratis.Specifications.SpecificationTestCaseRunner	Xunit.Sdk.XunitTestCaseRunner	CreateTestRunner	-
 base	AS	Cratis.Specifications.SpecificationTestClassRunner	Xunit.Sdk.XunitTestClassRunner	AfterTestClassStartingAsync BeforeTestClassFinishedAsync RunTestMethodAsync	-
 base	AS	Cratis.Specifications.SpecificationTestCollectionRunner	Xunit.Sdk.XunitTestCollectionRunner	RunTestClassAsync	-
-base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.Sdk.XunitTestFramework	CreateExecutor	-
+base	AS	Cratis.Specifications.SpecificationTestFramework	Xunit.Sdk.XunitTestFramework	CreateDiscoverer CreateExecutor	-
+base	AS	Cratis.Specifications.SpecificationTestFrameworkDiscoverer	Xunit.Sdk.XunitTestFrameworkDiscoverer	FindTestsForMethod	-
 base	AS	Cratis.Specifications.SpecificationTestFrameworkExecutor	Xunit.Sdk.XunitTestFrameworkExecutor	RunTestCases	-
-base	AS	Cratis.Specifications.SpecificationTestInvoker	Xunit.Sdk.XunitTestInvoker	CreateTestClass	-
+base	AS	Cratis.Specifications.SpecificationTestInvoker	Xunit.Sdk.XunitTestInvoker	CreateTestClass RunAsync	-
 base	AS	Cratis.Specifications.SpecificationTestMethodRunner	Xunit.Sdk.XunitTestMethodRunner	RunTestCaseAsync	-
 base	AS	Cratis.Specifications.SpecificationTestRunner	Xunit.Sdk.XunitTestRunner	InvokeTestMethodAsync	-
+base	AS	Cratis.Specifications.SpecificationTheoryTestCase	Xunit.Sdk.XunitTheoryTestCase	GetDisplayName	-
 base	AS	Cratis.Tasks.TaskFactory	System.Object	Delay Run	-
 base	AS	Cratis.Timers.Timer	System.Object	Dispose	-
 base	AS	Cratis.Timers.TimerFactory	System.Object	Create	-

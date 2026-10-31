@@ -39,7 +39,7 @@ public abstract class a_three_way_application : a_generated_application
     }
 
     protected virtual ArtifactRenderPlan Render(ExecutableSemanticModel model) =>
-        CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new(ProjectFile[..^7], ApplicationName));
+        CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new(ProjectFile[..^7], ApplicationName));
 
     protected async Task Verify()
     {
@@ -71,11 +71,11 @@ public abstract class a_three_way_application : a_generated_application
             var results = rendered.Success
                 ? XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
                     .Descendants(ns + "UnitTestResult")
-                    .Select(result => (Name: result.Attribute("testName")!.Value, Outcome: result.Attribute("outcome")!.Value)).ToArray()
+                    .Select(result => (Name: result.Attribute("testName").Value, Outcome: result.Attribute("outcome").Value)).ToArray()
                 : [];
             foreach (var (form, model) in models)
             {
-                var plan = SemanticExecutionPlan.Compile(model).Plan!;
+                var plan = SemanticExecutionPlan.Compile(model).Plan;
                 if (Baseline is { } baseline && (plan.Specifications.Count != baseline.SpecificationExpectations.Length ||
                     baseline.SpecificationExpectations.Any(expectation => !plan.Specifications.ContainsKey(expectation.Specification))))
                 {
@@ -158,7 +158,7 @@ public abstract class a_three_way_application : a_generated_application
             catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        Assert.Equal(corpus.SemanticRevision, compilation.Value!.Model.Revision);
+        Assert.Equal(corpus.SemanticRevision, compilation.Value.Model.Revision);
         return compilation.Value.Model;
     }
 
@@ -211,7 +211,7 @@ public abstract class a_three_way_application : a_generated_application
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing-validation"), "billing-validation", "RegisterInvoice.play", when_running_inline_billing_validation.Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

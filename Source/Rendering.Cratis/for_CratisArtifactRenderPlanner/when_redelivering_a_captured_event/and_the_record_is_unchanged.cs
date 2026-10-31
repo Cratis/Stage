@@ -9,15 +9,18 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_red
 
 public class and_the_record_is_unchanged : given.a_captured_delivery
 {
-    void Because() => Render();
-
-    [Fact]
-    public async Task should_not_append_for_an_unchanged_record_at_a_new_inbox_position()
+    async Task Because()
     {
+        Render();
         var first = Fact(0);
         await Deliver(first);
         _history.Add(first);
         await Deliver(Fact(1));
+    }
+
+    [Fact]
+    public void should_not_append_for_an_unchanged_record_at_a_new_inbox_position()
+    {
         _log.Attempts.Count.ShouldEqual(1);
         _log.Committed.Count().ShouldEqual(2);
     }

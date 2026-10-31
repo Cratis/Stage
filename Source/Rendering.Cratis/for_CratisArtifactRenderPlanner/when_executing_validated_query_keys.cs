@@ -80,10 +80,15 @@ public class when_executing_validated_query_keys(when_executing_validated_query_
             DebugWarnings = BuildWarnings(await Run("validated-query-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             Results = await Run("validated-query-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-keys.trx", "--results-directory", _evidence.FullName);
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "query-keys.trx"));
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            CompanionOutcomes = [.. results.Descendants(ns + "UnitTestResult")
-                .Where(result => ((string)result.Attribute("testName")!).Contains("_is_queried", StringComparison.Ordinal))
-                .Select(result => (string)result.Attribute("outcome")!)];
+            var outcomes = GeneratedTestResults.Read(results);
+            string[] companions =
+            [
+                "Invoices.Billing.Invoicing.Lookup.when_looking_up_invoice_is_queried.when_looking_up_invoice_is_queried",
+                "Invoices.Billing.Invoicing.Lookup.when_looking_up_issued_invoice_is_queried.when_looking_up_issued_invoice_is_queried",
+                "Invoices.Billing.Invoicing.Lookup.when_filtering_issued_invoices_is_queried.when_filtering_issued_invoices_is_queried"
+            ];
+            Assert.All(companions, name => Assert.Equal(3, outcomes.Count(result => result.ClassName == name)));
+            CompanionOutcomes = [.. outcomes.Where(result => companions.Contains(result.ClassName, StringComparer.Ordinal)).Select(result => result.Outcome)];
         }
     }
 }

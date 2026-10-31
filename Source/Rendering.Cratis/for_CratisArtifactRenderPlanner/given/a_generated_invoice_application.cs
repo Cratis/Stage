@@ -13,6 +13,7 @@ public abstract class a_generated_invoice_application : a_generated_application
     public string DebugWarnings { get; private set; } = null!;
     public string ReleaseWarnings { get; private set; } = null!;
     public ImmutableArray<(string Name, string Outcome)> Results { get; private set; }
+    public ImmutableArray<GeneratedTestResult> StructuralResults { get; private set; }
     protected abstract string InvoiceSource { get; }
 
     protected override ArtifactRenderPlan CreatePlan() => invoice_model.Plan(invoice_model.Compile(InvoiceSource));
@@ -25,8 +26,8 @@ public abstract class a_generated_invoice_application : a_generated_application
             await Run("debug-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _evidence.FullName, "-m:3", "--", "RunConfiguration.MaxCpuCount=3", "xUnit.MaxParallelThreads=3");
             ReleaseWarnings = BuildWarnings(await Run("release-build.log", "build", "InvoiceApp.csproj", "-c", "Release", "-t:Rebuild", "-warnaserror", "-m:3", "--nologo"));
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "generated.trx"));
-            XNamespace testNamespace = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName")!.Value, _.Attribute("outcome")!.Value))];
+            StructuralResults = GeneratedTestResults.Read(results);
+            Results = [.. StructuralResults.Select(result => ($"{result.ClassName}.{result.MethodName}", result.Outcome))];
         }
         finally
         {

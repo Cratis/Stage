@@ -35,25 +35,25 @@ public class with_native_bodies : a_generated_application
     void should_execute_more_than_zero_generated_tests()
     {
         var results = Results("native.trx");
-        Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal("Passed", result.Attribute("outcome")!.Value));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("high_score", StringComparison.Ordinal));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("low_score", StringComparison.Ordinal));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("file_highlight", StringComparison.Ordinal));
+        Assert.Equal(20, results.Length);
+        Assert.All(results, result => Assert.Equal("Passed", result.Outcome));
+        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.Highlighting.when_high_score_highlights.when_high_score_highlights");
+        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.Highlighting.when_low_score_does_not_highlight.when_low_score_does_not_highlight");
+        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.FileHighlighting.when_high_score_file_highlights.when_high_score_file_highlights");
     }
 
     [Fact]
     void should_fail_the_unchanged_payload_expectation_for_a_mutated_body()
     {
         _mutation.ShouldContain("Failed!");
-        Assert.Contains(Results("mutant.trx"), result => result.Attribute("outcome")!.Value == "Failed" &&
-            result.Attribute("testName")!.Value.EndsWith("should_produce_event_1_with_score", StringComparison.Ordinal));
+        var results = Results("mutant.trx");
+        Assert.Equal(10, results.Length);
+        Assert.Equal(9, results.Count(result => result.Outcome == "Passed"));
+        var failed = Assert.Single(results, result => result.Outcome == "Failed");
+        Assert.Equal("Invoices.CallForPapers.Review.MutatedHighlighting.when_high_score_mutated_highlights.when_high_score_mutated_highlights", failed.ClassName);
+        Assert.Equal("should_produce_event_1_with_score", failed.MethodName);
     }
 
-    XElement[] Results(string file)
-    {
-        XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-        return [.. XDocument.Load(Path.Combine(_evidence.FullName, file)).Descendants(ns + "UnitTestResult")];
-    }
+    GeneratedTestResult[] Results(string file) => [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, file)))];
 }
 #endif

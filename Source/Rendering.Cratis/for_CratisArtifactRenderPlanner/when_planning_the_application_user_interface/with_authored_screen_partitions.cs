@@ -18,7 +18,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Re-frozen for Cratis/Stage#757: the only changed artifact is package.json, which gains the @cratis/fundamentals resolution.
     // Re-captured on Train 8b: relative to main, only #660 adds CratisReadProtection On in Directory.Build.props; all other bytes match main.
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
-    const string Before = "97346b8307c33b0fcaca1ae60866fce8c3b0ba41954f0c7897976d34f5d3a13f";
+    const string Before = "ed73c75cedef4738111e7f0c436d78912dd27ffaf8fce5ee9348277e8de41d86";
 
     void Because() => _application = AppPlan(_profile);
 

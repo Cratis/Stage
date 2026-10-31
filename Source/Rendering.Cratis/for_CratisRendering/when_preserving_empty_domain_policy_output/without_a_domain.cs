@@ -89,7 +89,7 @@ public class without_a_domain : given.a_domain_policy_plan
     {
         // Pins the unchanged payload: paths, wrappers, bodies, policies and generated specs. Managed reports have separate byte goldens.
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (var artifact in artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal)).OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
+        foreach (var artifact in artifacts.Select(BeforeHostAuthorizationDefault).Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal)).OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal))
         {
             hash.AppendData(Encoding.UTF8.GetBytes(artifact.RelativePath + "\n"));
             hash.AppendData(artifact.Bytes.AsSpan());
@@ -195,7 +195,30 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.All(files, artifact => Assert.All(RawText(artifact.RelativePath).Split('\n').Where(line => !line.TrimStart().StartsWith("using ", StringComparison.Ordinal)), line => Assert.DoesNotContain("global::", line, StringComparison.Ordinal)));
     }
 
-    IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
+    // Restore only #494's absent authorization attribute, keeping the historical spelling pins independent.
+    static PlannedArtifact BeforeHostAuthorizationDefault(PlannedArtifact artifact)
+    {
+        if (artifact.RelativePath != "Orders/Ordering/Totals/Totals.cs") return artifact;
+        var text = Encoding.UTF8.GetString(artifact.Bytes.AsSpan());
+        var qualified = text.Contains("global::", StringComparison.Ordinal);
+        var attribute = qualified ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute" : "AllowAnonymous";
+        text = text.Replace("    public static async ", $"    [{attribute}]\n    public static async ", StringComparison.Ordinal);
+        if (qualified && !text.Contains("using Cratis.Arc.Authorization;", StringComparison.Ordinal))
+        {
+            text = text.Replace("using Cratis.Arc.Queries.ModelBound;", "using Cratis.Arc.Authorization;\nusing Cratis.Arc.Queries.ModelBound;", StringComparison.Ordinal);
+        }
+        return PlannedArtifact.CreateText(artifact.RelativePath, text, artifact.Sources);
+    }
+
+    [Fact]
+    void should_leave_the_unmodeled_query_policy_to_the_host()
+    {
+        var text = RawText("Orders/Ordering/Totals/Totals.cs");
+        Assert.DoesNotContain("[Authorize", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[AllowAnonymous", text, StringComparison.Ordinal);
+    }
+
+    IEnumerable<PlannedArtifact> HashedArtifacts() => _rawPlan.Artifacts.Select(BeforeHostAuthorizationDefault).Where(artifact => !string.Equals(artifact.RelativePath, ".stage/completeness.json", StringComparison.Ordinal) && !string.Equals(artifact.RelativePath, "UNSUPPORTED.md", StringComparison.Ordinal));
 
     void AssertReducerBinding(Assembly assembly)
     {

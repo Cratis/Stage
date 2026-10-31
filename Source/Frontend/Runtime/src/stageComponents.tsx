@@ -408,8 +408,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const subject = actionSubjectOf(element);
-    const schemaCreates = useMemo(() => createsEntity(schema ?? ''), [schema]);
-    const creates = subject === undefined && schemaCreates;
+    const creates = useMemo(() => subject === undefined && createsEntity(schema ?? ''), [schema, subject]);
     const { selectableRows: screenRows, selectedRows } = useScreenRows();
     const selectableRows = creates ? [] : screenRows;
 

@@ -22,10 +22,10 @@ internal sealed class InlineCodeTokens
 
     internal IReadOnlyDictionary<string, InlineCodeSlot> Slots => _slots;
 
-    internal InlineCodeTokenIssuance Issue(InlineCode code, InlineCodePlacement actualPlacement, int indent = 0, bool verbatim = false, InlineSourceLine? source = null)
+    internal InlineCodeTokenIssuance Issue(InlineCode code, InlineCodePlacement actualPlacement, InlineCodeInsertionSite site = default)
     {
         if (code.Placement != actualPlacement) return new(null, [new("STAGE-INLINE-INTEGRITY", "The verified placement differs from the insertion site.")]);
-        return Register(code, CSharpInlineLanguagePack.Present(code, indent, verbatim), source);
+        return Register(code, CSharpInlineLanguagePack.Present(code, site.Indent, site.Verbatim), site.Source);
     }
 
     internal InlineCodeTokenIssuance IssueLegacy(InlineCode code, InlineCodePresentationOptions options, InlineSourceLine? source = null) =>

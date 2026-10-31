@@ -66,7 +66,7 @@ public static class SourceLineMappingInput
         try
         {
             var payload = JsonSerializer.Deserialize<Payload>(input.Bytes.AsSpan(), _options);
-            if (payload?.Documents is null || payload.Root is null || !IsValidRoot(payload.Root)) return false;
+            if (!IsValidPayload(payload)) return false;
             if (!TryParseDocuments(payload, out var documents)) return false;
             if (!input.Bytes.AsSpan().SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(new Payload(new(payload.Documents, StringComparer.Ordinal), payload.Root), _options))) return false;
 
@@ -78,6 +78,9 @@ public static class SourceLineMappingInput
             return false;
         }
     }
+
+    static bool IsValidPayload(Payload? payload) =>
+        payload?.Documents is not null && payload.Root is not null && IsValidRoot(payload.Root);
 
     static bool TryParseDocuments(Payload payload, out Dictionary<DocumentId, string> documents)
     {

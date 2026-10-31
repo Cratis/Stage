@@ -12,7 +12,7 @@ public class when_mapping_source_lines : Specification
     static InlineCodeSplice Splice(string before, string body, InlineSourceLine? source, string after = "}\n")
     {
         var registry = new InlineCodeTokens();
-        var token = registry.Issue(Code(body), Site, source: source).Token;
+        var token = registry.Issue(Code(body), Site, new(Source: source)).Token;
         return InlineCodeSplicer.Splice($"{before}{token}{after}", registry);
     }
 

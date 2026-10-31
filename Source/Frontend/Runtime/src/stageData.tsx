@@ -223,29 +223,7 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     const refreshQuery = useCallback((query?: string) =>
         setRefreshRequests(current => ({ query, version: current.version + 1 })), []);
 
-    // A command answers once its events are appended; a projection applies them afterwards. Chronicle - what a
-    // generated application runs on - does that asynchronously, so a single refresh right after the answer can
-    // read the read model one event behind. Reading again once the projection has had time to run is what makes
-    // the screen show what the command did; a stale response is still discarded by the query's own sequencing.
-    const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-    const commandsSettling = useRef(0);
-    const [settling, setSettling] = useState(false);
-    const refreshAfterCommand = useCallback(() => {
-        setSessionVersion(current => current + 1);
-        refreshQuery();
-        commandsSettling.current += 1;
-        setSettling(true);
-        const last = commandSettleDelays[commandSettleDelays.length - 1];
-        for (const delay of commandSettleDelays) {
-            settleTimers.current.push(setTimeout(() => {
-                refreshQuery();
-                if (delay !== last) return;
-                commandsSettling.current -= 1;
-                if (commandsSettling.current === 0) setSettling(false);
-            }, delay));
-        }
-    }, [refreshQuery]);
-    useEffect(() => () => settleTimers.current.forEach(clearTimeout), []);
+    const { settling, refreshAfterCommand } = useCommandSettlement(refreshQuery, setSessionVersion);
 
     useEffect(() => {
         const dataChanged = () => refreshQuery();
@@ -327,6 +305,33 @@ export function StageDataProvider({ routes, routesReady = true, parameters: addr
     return <StageDataContext.Provider value={state}>{children}</StageDataContext.Provider>;
 }
 
+// A command answers once its events are appended; a projection applies them afterwards. Chronicle - what a
+// generated application runs on - does that asynchronously, so a single refresh right after the answer can
+// read the read model one event behind. Reading again once the projection has had time to run is what makes
+// the screen show what the command did; a stale response is still discarded by the query's own sequencing.
+function useCommandSettlement(refreshQuery: () => void, setSessionVersion: React.Dispatch<React.SetStateAction<number>>) {
+    const settleTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const commandsSettling = useRef(0);
+    const [settling, setSettling] = useState(false);
+    const refreshAfterCommand = useCallback(() => {
+        setSessionVersion(current => current + 1);
+        refreshQuery();
+        commandsSettling.current += 1;
+        setSettling(true);
+        const last = commandSettleDelays[commandSettleDelays.length - 1];
+        for (const delay of commandSettleDelays) {
+            settleTimers.current.push(setTimeout(() => {
+                refreshQuery();
+                if (delay !== last) return;
+                commandsSettling.current -= 1;
+                if (commandsSettling.current === 0) setSettling(false);
+            }, delay));
+        }
+    }, [refreshQuery, setSessionVersion]);
+    useEffect(() => () => settleTimers.current.forEach(clearTimeout), []);
+    return { settling, refreshAfterCommand };
+}
+
 export const useStageData = (): StageDataState => useContext(StageDataContext);
 
 export function useStageQuery(request: StageQueryRequest): StageQueryResult {
@@ -346,8 +351,6 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
     const [localRefresh, setLocalRefresh] = useState(0);
     const latest = useRef(0);
     const liveOpen = useRef(false);
-    const hadRows = useRef(false);
-    if (rows.length > 0) hadRows.current = true;
     const argumentsKey = JSON.stringify(request.arguments ?? {});
 
     useEffect(() => {
@@ -457,8 +460,16 @@ export function useStageQuery(request: StageQueryRequest): StageQueryResult {
         });
     }, [active, argumentsKey, error, loading, publishResult, request.alias, request.list, request.name, request.route, request.scope, rows]);
 
-    const awaitingCommand = active && settling && !error && rows.length === 0 && !hadRows.current;
+    const awaitingCommand = useAwaitingCommand(active, rows, error, settling);
     return { rows, loading, awaitingCommand, error, refresh: () => { if (!liveOpen.current) setLocalRefresh(current => current + 1); } };
+}
+
+function useAwaitingCommand(active: boolean, rows: Record<string, unknown>[], error: string, settling: boolean): boolean {
+    const hadRows = useRef(false);
+    if (rows.length > 0) hadRows.current = true;
+    if (!active || !settling) return false;
+    if (error || rows.length !== 0) return false;
+    return !hadRows.current;
 }
 
 export function dataChanged() {

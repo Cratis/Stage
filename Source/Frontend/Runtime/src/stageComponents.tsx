@@ -210,13 +210,17 @@ export function StageTable({ element, slots }: RegisteredProps) {
                             </tr>
                         );
                     })}
-                    {rows.length === 0 && !loading && !awaitingCommand && (
-                        <tr><td colSpan={Math.max(columns.length, 1)}>No records found</td></tr>
-                    )}
+                    <EmptyTableRows rowCount={rows.length} columnCount={columns.length} loading={loading} awaitingCommand={awaitingCommand} />
                 </tbody>
             </table>
         </section>
     );
+}
+
+function EmptyTableRows({ rowCount, columnCount, loading, awaitingCommand }: { rowCount: number; columnCount: number; loading: boolean; awaitingCommand: boolean }) {
+    if (rowCount !== 0) return null;
+    if (loading || awaitingCommand) return null;
+    return <tr><td colSpan={Math.max(columnCount, 1)}>No records found</td></tr>;
 }
 
 function isBinding(value: unknown): value is Parameters<ReturnType<typeof useStageData>['resolveBinding']>[0] {

@@ -321,7 +321,7 @@ public class CSharpCodeBuilder
 
     internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true, Action<InlineCodeDiagnostic>? reportDegradation = null)
     {
-        var issued = _inline.Issue(code, placement, _indent, verbatim, SourceLines?.GetValueOrDefault(code.RequirementId));
+        var issued = _inline.Issue(code, placement, new(_indent, verbatim, SourceLines?.GetValueOrDefault(code.RequirementId)));
         foreach (var diagnostic in issued.Diagnostics)
         {
             if (diagnostic.Code == "STAGE-DEGRADE-003" && reportDegradation is not null) reportDegradation(diagnostic);

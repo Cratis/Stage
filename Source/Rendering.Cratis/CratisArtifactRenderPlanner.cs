@@ -472,11 +472,14 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
 
         // The layout is applied last: the checks above and the renderers work on application-relative paths.
-        if (SourceLineMappingInput.TryRead(request.Profile, out var lineMapping) && lineMapping is not null) unique = [.. SourceLineDirectives.Relocate(request.Profile, lineMapping, unique)];
-
-        var plan = ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        var plan = ArtifactRenderPlan.Create(request, [.. RelocateSourceLines(request.Profile, unique)], [.. diagnostics], gaps, refusals, required);
         return ServiceLayout.Plan(request, plan);
     }
+
+    static IEnumerable<PlannedArtifact> RelocateSourceLines(ArtifactRenderProfile profile, IEnumerable<PlannedArtifact> artifacts) =>
+        SourceLineMappingInput.TryRead(profile, out var mapping) && mapping is not null
+            ? SourceLineDirectives.Relocate(profile, mapping, artifacts)
+            : artifacts;
 
     static SemanticOwnerOmission OmissionFor(OwnerOmissionAttempt? attempt) => attempt?.Omission ?? SemanticOwnerOmission.None;
 

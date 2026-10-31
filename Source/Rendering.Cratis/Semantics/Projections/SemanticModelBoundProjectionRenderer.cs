@@ -9,6 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
 /// <summary>
 /// Renders flat From-only scoped projections as model-bound read model attributes for applications selecting that convention.
+/// Version three expresses sets; version four also expresses running totals (add, subtract, increment, decrement) and clears.
 /// </summary>
 internal static class SemanticModelBoundProjectionRenderer
 {
@@ -16,6 +17,7 @@ internal static class SemanticModelBoundProjectionRenderer
 
     /// <summary>
     /// Gets whether the projection is expressed as model-bound attributes. Any other shape stays a fluent projection class.
+    /// Under version four, add and subtract by one event property, increment, decrement, clear of an optional property and zero starts are also expressed.
     /// </summary>
     /// <param name="projection">The projection.</param>
     /// <param name="readModel">The projected read model.</param>
@@ -23,6 +25,7 @@ internal static class SemanticModelBoundProjectionRenderer
     /// <returns>Whether the projection renders as model-bound attributes.</returns>
     public static bool Expresses(SemanticProjection projection, SemanticReadModel readModel, SemanticApplicationContext context)
     {
+        var operations = context.ReducerConvention.ModelBoundOperations;
         if (!context.ReducerConvention.ModelBoundProjections || projection.Scope is not { } scope)
         {
             return false;
@@ -33,13 +36,12 @@ internal static class SemanticModelBoundProjectionRenderer
             return false;
         }
 
-        if (scope.From.Select(from => from.EventContract).Distinct().Count() != scope.From.Length || !scope.From.All(ExpressesFrom))
+        if (scope.From.Select(from => from.EventContract).Distinct().Count() != scope.From.Length || !scope.From.All(from => ExpressesFrom(from, operations, readModel, context)))
         {
             return false;
         }
 
-        var mapped = scope.From.SelectMany(from => from.Mappings).Select(mapping => mapping.Target[0]).ToHashSet();
-        return readModel.Properties.All(property => property.IsIdentifier || mapped.Contains(property.Id));
+        return EveryPropertyHasASource(scope, readModel, operations, context);
     }
 
     /// <summary>
@@ -82,9 +84,10 @@ internal static class SemanticModelBoundProjectionRenderer
             var mappings = from.Mappings.Where(mapping => mapping.Target[0] == property.Id).ToArray();
             foreach (var mapping in mappings)
             {
-                attributes.Add(mapping.Source is SemanticProjectionEventProperty source
-                    ? $"{Namespace}.SetFromAttribute<{name}>(nameof({name}.{EventProperty(source, @event)}))"
-                    : $"{Namespace}.SetFromContextAttribute<{name}>({CSharpCodeBuilder.StringLiteral("EventSourceId")})");
+                if (OperationAttribute(mapping, property, name, @event, context) is { } attribute)
+                {
+                    attributes.Add(attribute);
+                }
             }
 
             if (mappings.Length == 0 && property.IsIdentifier)
@@ -103,15 +106,73 @@ internal static class SemanticModelBoundProjectionRenderer
         readModel.Properties.Count(property => property.IsIdentifier) == 1 &&
         !SemanticVersionFeatures.HasCompositeKey(readModel) && !context.Reducers.Any(reducer => reducer.ReadModel == readModel.Id);
 
+    // A zero start and a clear render no source attribute, so a property needs another mapping to have a source at all.
+    static bool EveryPropertyHasASource(SemanticProjectionScope scope, SemanticReadModel readModel, bool operations, SemanticApplicationContext context)
+    {
+        var mapped = scope.From.SelectMany(from => from.Mappings)
+            .Where(mapping => !operations || HasSource(mapping, readModel, context))
+            .Select(mapping => mapping.Target[0]).ToHashSet();
+        return readModel.Properties.All(property => property.IsIdentifier || mapped.Contains(property.Id));
+    }
+
     static bool FromOnly(SemanticProjectionScope scope) =>
         scope.Joins.Length == 0 && scope.Children.Length == 0 && scope.Nested.Length == 0 && scope.Removals.Length == 0 &&
         scope.JoinRemovals.Length == 0 && scope.Every is null && scope.From.Length > 0;
 
-    static bool ExpressesFrom(SemanticProjectionFrom from) =>
+    static bool ExpressesFrom(SemanticProjectionFrom from, bool operations, SemanticReadModel readModel, SemanticApplicationContext context) =>
         from.ParentKey is null &&
         from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity or SemanticProjectionEventProperty { Path.Length: 1 } } &&
-        from.Mappings.All(mapping => mapping.Operation == SemanticProjectionOperation.Set && mapping.Target.Length == 1 && mapping.Factor is null &&
-            mapping.Source is SemanticProjectionEventSourceIdentity or SemanticProjectionEventProperty { Path.Length: 1 });
+        from.Mappings.All(mapping => ExpressesMapping(mapping, operations, readModel, context));
+
+    static bool ExpressesMapping(SemanticProjectionMapping mapping, bool operations, SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        if (mapping.Target.Length != 1 || mapping.Factor is not null)
+        {
+            return false;
+        }
+
+        if (mapping.Operation == SemanticProjectionOperation.Set)
+        {
+            return mapping.Source is SemanticProjectionEventSourceIdentity or SemanticProjectionEventProperty { Path.Length: 1 };
+        }
+
+        return operations && ExpressesOperation(mapping, SemanticScopedProjectionSupport.Target(mapping.Target, readModel.Properties, context), context);
+    }
+
+    static bool ExpressesOperation(SemanticProjectionMapping mapping, SemanticProperty? target, SemanticApplicationContext context) =>
+        mapping.Operation switch
+        {
+            SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract =>
+                mapping.Source is SemanticProjectionEventProperty { Path.Length: 1 } || SemanticScopedProjectionSupport.IsZeroTotalStart(mapping, target, context),
+            SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => mapping.Source is null,
+            SemanticProjectionOperation.Clear => mapping.Source is null && target is { Type.IsOptional: true },
+            _ => false
+        };
+
+    static bool HasSource(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context) =>
+        mapping.Operation != SemanticProjectionOperation.Clear &&
+        !SemanticScopedProjectionSupport.IsZeroTotalStart(mapping, SemanticScopedProjectionSupport.Target(mapping.Target, readModel.Properties, context), context);
+
+    static string? OperationAttribute(SemanticProjectionMapping mapping, SemanticProperty property, string name, SemanticEventContract @event, SemanticApplicationContext context)
+    {
+        if (SemanticScopedProjectionSupport.IsZeroTotalStart(mapping, property, context))
+        {
+            return null;
+        }
+
+        var eventProperty = mapping.Source is SemanticProjectionEventProperty source ? EventProperty(source, @event) : null;
+        return mapping.Operation switch
+        {
+            SemanticProjectionOperation.Add => $"{Namespace}.AddFromAttribute<{name}>(nameof({name}.{eventProperty}))",
+            SemanticProjectionOperation.Subtract => $"{Namespace}.SubtractFromAttribute<{name}>(nameof({name}.{eventProperty}))",
+            SemanticProjectionOperation.Increment => $"{Namespace}.IncrementAttribute<{name}>",
+            SemanticProjectionOperation.Decrement => $"{Namespace}.DecrementAttribute<{name}>",
+            SemanticProjectionOperation.Clear => $"{Namespace}.ClearWithAttribute<{name}>",
+            _ => eventProperty is not null
+                ? $"{Namespace}.SetFromAttribute<{name}>(nameof({name}.{eventProperty}))"
+                : $"{Namespace}.SetFromContextAttribute<{name}>({CSharpCodeBuilder.StringLiteral("EventSourceId")})"
+        };
+    }
 
     static string? PayloadKey(SemanticProjectionFrom from, SemanticEventContract @event) =>
         from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } ? EventProperty(property, @event) : null;

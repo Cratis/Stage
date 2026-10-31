@@ -9,7 +9,7 @@ using Xunit;
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
-/// Pins the bytes of running-total projections under the classic and version three conventions.
+/// Renders running totals and clears as model-bound attributes for new applications, and pins the bytes of the classic and version three conventions.
 /// </summary>
 public class when_rendering_model_bound_running_totals
 {
@@ -132,7 +132,7 @@ public class when_rendering_model_bound_running_totals
     internal static ArtifactRenderProfile VersionThree() =>
         CratisRendering.WithReducerConvention(
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
-            ReducerConventionInput.Read("Projects", "{\"version\":3,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}"));
+            ReducerConventionInput.Read("Projects", /* lang=json */ "{\"version\":3,\"application\":\"Projects\",\"reducerConvention\":\"self\",\"projectionConvention\":\"model-bound\"}"));
 
     internal static string Shelf(ArtifactRenderPlan plan)
     {
@@ -144,6 +144,55 @@ public class when_rendering_model_bound_running_totals
     }
 
     static string Hash(string text) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+
+    static string Projection(ArtifactRenderPlan plan)
+    {
+        Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
+        return Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Shelf/Shelf.cs", StringComparison.Ordinal)).Bytes.AsSpan());
+    }
+
+    [Fact]
+    public void should_render_running_totals_and_clears_as_attributes()
+    {
+        var code = Projection(when_rendering_model_bound_projections.Plan(Source, true));
+        Assert.DoesNotContain("#pragma", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("IProjectionFor<ShelfFigures>", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("NoAutoMap()", code, StringComparison.Ordinal);
+        Assert.Contains("[NoAutoMap]", code, StringComparison.Ordinal);
+        foreach (var @event in new[] { "SkuRegistered", "StockReceived", "StockDispatched", "ShelfReset" })
+        {
+            Assert.Contains($"FromEvent<{@event}>(nameof({@event}.Sku))", code, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("[Increment<StockReceived>]", code, StringComparison.Ordinal);
+        Assert.Contains("[AddFrom<StockReceived>(nameof(StockReceived.Quantity))]", code, StringComparison.Ordinal);
+        Assert.Contains("[SubtractFrom<StockDispatched>(nameof(StockDispatched.Quantity))]", code, StringComparison.Ordinal);
+        Assert.Contains("[ClearWith<ShelfReset>]", code, StringComparison.Ordinal);
+        Assert.Contains("[Decrement<StockDispatched>]", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddFrom<ShelfReset>", code, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("product")]
+    [InlineData("literal")]
+    [InlineData("constant-key")]
+    [InlineData("clear-only")]
+    public void should_stay_fluent_for_shapes_version_four_cannot_express(string shape)
+    {
+        var source = shape switch
+        {
+            "product" => Source.Replace("add unitsOnHand by quantity\n", "add unitsOnHand by quantity * quantity\n", StringComparison.Ordinal),
+            "literal" => Source.Replace("        lastBatch String optional\n", "        lastBatch String optional\n        label String optional\n", StringComparison.Ordinal)
+                .Replace("        from SkuRegistered key sku\n          sku = sku\n", "        from SkuRegistered key sku\n          sku = sku\n          label = \"new\"\n", StringComparison.Ordinal)
+                .Replace("          lastBatch = batch\n", "          lastBatch = batch\n          label = batch\n", StringComparison.Ordinal),
+            "constant-key" => Source.Replace("from ShelfReset key sku\n", "from ShelfReset key \"global\"\n          sku = \"global\"\n", StringComparison.Ordinal),
+            _ => Source.Replace("        lastBatch String optional\n", "        lastBatch String optional\n        note String optional\n", StringComparison.Ordinal)
+                .Replace("          clear lastBatch\n", "          clear lastBatch\n          clear note\n", StringComparison.Ordinal)
+        };
+        Assert.NotEqual(Source, source);
+        var code = Projection(when_rendering_model_bound_projections.Plan(source, true));
+        Assert.Contains("IProjectionFor<ShelfFigures>", code, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void should_keep_version_three_bytes_for_running_totals()

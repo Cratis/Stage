@@ -134,19 +134,27 @@ public class when_rendering_model_bound_projections
 
     [Theory]
     [InlineData("remove")]
-    [InlineData("counter")]
     [InlineData("unmapped")]
     public void should_keep_fluent_for_shapes_model_bound_cannot_express(string shape)
     {
         var source = shape switch
         {
             "remove" => Source + "\n        remove with ProjectRemoved",
-            "counter" => Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        visits Decimal?\n      query ProjectById", StringComparison.Ordinal)
-                .Replace("        from ProjectNamed\n          name = name\n", "        from ProjectNamed\n          name = name\n          increment visits\n", StringComparison.Ordinal),
             "unmapped" => Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        label ProjectName?\n      query ProjectById", StringComparison.Ordinal),
             _ => Source + "\n        from ProjectRegistered key projectId\n          name = name"
         };
         var code = Code(Plan(source, true));
         Assert.Contains("IProjectionFor<ProjectSummary>", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void should_express_the_counter_shape_only_from_version_four()
+    {
+        var source = Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        visits Decimal?\n      query ProjectById", StringComparison.Ordinal)
+            .Replace("        from ProjectNamed\n          name = name\n", "        from ProjectNamed\n          name = name\n          increment visits\n", StringComparison.Ordinal);
+        Assert.Contains("IProjectionFor<ProjectSummary>", Code(Plan(source, when_rendering_model_bound_running_totals.VersionThree())), StringComparison.Ordinal);
+        var modern = Code(Plan(source, true));
+        Assert.Contains("Increment<ProjectNamed>", modern, StringComparison.Ordinal);
+        Assert.DoesNotContain("IProjectionFor<ProjectSummary>", modern, StringComparison.Ordinal);
     }
 }

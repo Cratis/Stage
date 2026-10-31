@@ -397,7 +397,7 @@ function carriedByRows(property: SchemaProperty, subject: ActionSubject | undefi
 /**
  * A toolbar item that executes a command. The command's own schema, when the Stage carries one, makes the form: what a selectable row supplies
  * is not asked for, and an action on a list waits - visible, disabled - until a row is selected, instead of acting on an entity nobody chose.
- * A command that creates an entity (`x-creates`) is about no row: it neither waits for selection nor takes a selected row's identifiers.
+ * Without an explicit subject, a command that creates an entity (`x-creates`) is about no row: it neither waits for selection nor takes a selected row's identifiers.
  */
 function StageToolbarCommand(props: RegisteredProps) {
     const { element } = props;
@@ -407,12 +407,12 @@ function StageToolbarCommand(props: RegisteredProps) {
     const label = text(element, 'label', name);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
-    const creates = createsEntity(schema ?? '');
+    const subject = actionSubjectOf(element);
+    const creates = subject === undefined && createsEntity(schema ?? '');
     const { selectableRows: screenRows, selectedRows } = useScreenRows();
     const selectableRows = creates ? [] : screenRows;
-    const subject = actionSubjectOf(element);
 
-    // `for item` waits for exactly one selected row; `for screen` never waits and never reads a row; an omitted subject is the inferred row action. A creation is about no row.
+    // `for item` waits for exactly one selected row; `for screen` never reads a row. Only an omitted subject uses creation inference.
     const awaiting = subject === undefined && !creates ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
     const askedFields = toolbarCommandFields(schema, properties, parameters, subject, selectableRows);
     const intent = creates ? { createsEntity: true } : subjectActionProperties(element, subject);

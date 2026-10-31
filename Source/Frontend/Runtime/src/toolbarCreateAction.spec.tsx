@@ -27,7 +27,7 @@ const routes = { commands: { PlanShipment: '/api/plan' }, queries: { AllShipment
 const rows = [{ orderId: '7d1c8f3a-0000-4000-8000-000000000001', consignee: 'Fjordline' }, { orderId: '7d1c8f3a-0000-4000-8000-000000000002', consignee: 'Norsk Fisk' }];
 const typedOrder = '9a9a9a9a-0000-4000-8000-000000000009';
 
-async function renderShipments() {
+async function renderShipments(actionProperties: Record<string, unknown> = {}) {
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
@@ -36,7 +36,7 @@ async function renderShipments() {
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/Shipments';
     const table = element('shipments', 'core:table', { query: 'AllShipments', typeName: 'ShipmentRow' }, { columns: [element('consignee', 'core:column', { property: 'consignee', label: 'Consignee' })] });
-    const item = element('plan', 'core:toolbarItem', { name: 'plan', kind: 'Action', label: 'Add shipment', target: 'PlanShipment' });
+    const item = element('plan', 'core:toolbarItem', { name: 'plan', kind: 'Action', label: 'Add shipment', target: 'PlanShipment', ...actionProperties });
     await act(async () => {
         render(<StageDataProvider routes={routes} locale='en' locales={['en']} screen='Shipments'>
             <StageToolbarItem element={item} slots={{}} />
@@ -64,6 +64,25 @@ describe('a toolbar action that creates an entity beside a list carrying a relat
     it('is enabled without selecting a row', async () => {
         await renderShipments();
         expect((screen.getByRole('button', { name: 'Add shipment' }) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('waits for selection when the creation explicitly targets an item', async () => {
+        await renderShipments({ actionSubject: 'item', subjectInputs: { orderId: { subject: 'item.orderId' } } });
+        expect((screen.getByRole('button', { name: 'Add shipment' }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('preserves an explicit item binding through the creation form', async () => {
+        const fetched = await renderShipments({ actionSubject: 'item', subjectInputs: { orderId: { subject: 'item.orderId' }, carrier: { subject: 'item.consignee' } } });
+        fireEvent.click(screen.getByText('Norsk Fisk'));
+        fireEvent.click(screen.getByRole('button', { name: 'Add shipment' }));
+        const dialog = await screen.findByRole('dialog');
+        expect(within(dialog).queryByLabelText('Order Id', { exact: false })).toBeNull();
+        expect(within(dialog).queryByLabelText('Carrier', { exact: false })).toBeNull();
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Submit' })); });
+
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ orderId: rows[1].orderId, carrier: rows[1].consignee });
     });
 
     it('submits the entered identifier rather than the selected row key', async () => {

@@ -44,7 +44,7 @@ public class when_planning_with_range_admission : given.a_range_model
     }
 
     [Theory]
-    [InlineData(34)]
+    [InlineData(35)]
     public void should_refuse_future_majors(uint major)
     {
         Versions(major, 0, major, 0);

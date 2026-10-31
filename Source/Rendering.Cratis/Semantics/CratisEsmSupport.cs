@@ -11,6 +11,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 internal static class CratisEsmSupport
 {
     internal static EsmSupport Descriptor { get; } = new(
-        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33)],
+        [.. EsmSchemaV30Support.LanguageVersions.Zip(EsmSchemaV30Support.SemanticVersions), (LanguageVersion.V32, SemanticVersion.V32), (LanguageVersion.V33, SemanticVersion.V33), (LanguageVersion.V34, SemanticVersion.V34)],
         new(SemanticVersion.V32, 33));
 }

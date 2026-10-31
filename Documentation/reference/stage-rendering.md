@@ -398,7 +398,7 @@ five today.
 
 ### A newer ESM inside the declared range
 
-The Cratis renderer declares the range `>=32.0 <33`; exact v33.0 is also audited, so v33 minors are refused as future majors. The other exact audited pairs are unchanged. A
+The Cratis renderer declares the range `>=32.0 <33`; exact v33.0 and v34.0 are also audited, so their minors are refused as future majors. ESM v34 `then invokes` specification expectations remain refused per construct with `STAGE-ESM-016`. The other exact audited pairs are unchanged. A
 language/semantic pair that is not audited, matches in major and minor, and lies inside that range
 (for example 32.1) renders as **Degraded** with plan-level `STAGE-DEGRADE-004` evidence in
 `ArtifactRenderPlan.PlanEvidence`, in the default and the strict mode alike (strict promotes the
@@ -406,7 +406,7 @@ warning to an error, as for any degradation, but the plan still publishes). Memb
 Stage version has not audited on selected owners add `STAGE-DEGRADE-001` evidence. A member that
 carries security meaning (policies, authorization, claims and similar masks) is never rendered
 around: the render is refused with `STAGE-ESM-016` naming the member. A future major (33.1 or any later
-version; exact v33.0 is audited),
+version, except the audited exact v34.0 pair),
 an out-of-range pair, a malformed pair and an unknown enumeration value are refused with
 `STAGE-ESM-016`; the runtime and specification executor still support only the exact audited pairs.
 

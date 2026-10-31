@@ -37,7 +37,7 @@ public class and_the_command_returns_a_record : Specification
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _form = new ScreenplaySceneVisitor().Visit(compilation.Value!).Screens.Single(screen => screen.Name == "Overview").Forms.Single();
+        _form = new ScreenplaySceneVisitor().Visit(compilation.Value).Screens.Single(screen => screen.Name == "Overview").Forms.Single();
     }
 
     [Fact] void should_carry_the_used_behavior_as_a_submit_continuation() => _form.OnSubmit.Count.ShouldEqual(1);

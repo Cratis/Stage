@@ -34,17 +34,17 @@ public class when_collecting_screen_inputs : Specification
             """);
         var compilation = new SemanticModelCompiler().Compile("Sample", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var application = compilation.Value!.Model.Application;
+        var application = compilation.Value.Model.Application;
         var module = application.Modules[0];
         var feature = module.Features[0];
         var save = feature.Slices[0];
         var lookup = feature.Slices[1];
         var number = lookup.Queries[1];
-        number = number with { Argument = number.Argument! with { Type = number.Argument!.Type with { Primitive = SemanticPrimitiveType.WholeNumber } } };
+        number = number with { Argument = number.Argument with { Type = number.Argument.Type with { Primitive = SemanticPrimitiveType.WholeNumber } } };
         lookup = lookup with { Queries = [lookup.Queries[0], number, lookup.Queries[2]] };
         feature = feature with { Slices = [save, lookup] };
         var first = lookup.Queries[0];
-        var duplicate = first with { Argument = first.Argument! with { Type = lookup.Queries[1].Argument!.Type } };
+        var duplicate = first with { Argument = first.Argument with { Type = lookup.Queries[1].Argument.Type } };
         var later = lookup with { Queries = [duplicate], Commands = [save.Commands[0] with { Response = null }] };
         application = application with { Modules = [module with { Features = [feature with { Features = [feature with { Slices = [later], Features = [] }] }] }] };
         var scene = JsonNode.Parse("""
@@ -60,18 +60,18 @@ public class when_collecting_screen_inputs : Specification
               {"componentName":"core:data","properties":{"query":"ByText"}},
               {"componentName":7,"properties":{"query":"ByText","by":"ignored"}}
             ]},{"name":7},{"children":[]}]}
-            """)!.AsObject();
+            """).AsObject();
         _contracts = new CommandResponseContracts(application).From(scene, name => name, property => property.Name);
     }
 
     [Fact]
     void should_discover_nested_inputs_and_keep_last_write_in_first_insertion_order() =>
-        Assert.Equal("{\"shared\":{\"kind\":\"number\"},\"second\":{\"kind\":\"string\"}}", _contracts["screenInputs"]!["Details"]!.ToJsonString());
+        Assert.Equal(/*lang=json*/ "{\"shared\":{\"kind\":\"number\"},\"second\":{\"kind\":\"string\"}}", _contracts["screenInputs"]["Details"].ToJsonString());
 
     [Fact]
-    void should_ignore_missing_or_non_string_screen_names() => Assert.Single(_contracts["screenInputs"]!.AsObject());
+    void should_ignore_missing_or_non_string_screen_names() => Assert.Single(_contracts["screenInputs"].AsObject());
 
     [Fact]
     void should_keep_the_first_command_definition() =>
-        Assert.True(JsonNode.DeepEquals(_contracts["commands"]!["Save"], JsonNode.Parse("""{"kind":"value","type":{"kind":"string"}}""")));
+        Assert.True(JsonNode.DeepEquals(_contracts["commands"]["Save"], JsonNode.Parse("""{"kind":"value","type":{"kind":"string"}}""")));
 }

@@ -34,7 +34,7 @@ public class and_the_command_returns_a_scalar : Specification
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _form = new ScreenplaySceneVisitor().Visit(compilation.Value!).Screens.Single(screen => screen.Name == "Overview").Forms.Single();
+        _form = new ScreenplaySceneVisitor().Visit(compilation.Value).Screens.Single(screen => screen.Name == "Overview").Forms.Single();
     }
 
     [Fact] void should_carry_the_submit_action_once() => _form.OnSubmit.Count.ShouldEqual(1);

@@ -23,7 +23,7 @@ public class when_mapping_response_members : Specification
               {"kind":"dataContext","path":"Ordinary"},
               {"path":"MissingKind"},{"kind":"commandResponse"}
             ]}
-            """)!;
+            """);
         ResponseMemberNames.Apply(_document, name =>
         {
             _names.Add(name);

@@ -30,14 +30,14 @@ public class when_loading_a_form_response_continuation : Specification
         _scene = SemanticHostScene.Load(path, compiled_plan.From(Source).Model);
         var form = _scene.Screens.Single(screen => screen.Name == "Overview").SlotContent["forms"]
             .OfType<ExternalComponent>()
-            .Single(component => component.ComponentName == "Stage:commandForm" && (string)component.Properties["command"]! == "RegisterProject");
-        _continuation = ((IReadOnlyList<InteractionAction>)form.Properties["onSubmit"]!).Single();
+            .Single(component => component.ComponentName == "Stage:commandForm" && (string)component.Properties["command"] == "RegisterProject");
+        _continuation = ((IReadOnlyList<InteractionAction>)form.Properties["onSubmit"]).Single();
     }
 
     [Fact] void should_load_the_response_source_from_authored_presentation() => _continuation.Arguments.Single().Value.Kind.ShouldEqual(BindingSourceKind.CommandResponse);
     [Fact] void should_map_the_named_response_to_its_transport_member() => _continuation.Arguments.Single().Value.Path.ShouldEqual("registeredId");
-    [Fact] void should_carry_the_response_type() => _scene.ResponseContracts!["commands"]!["RegisterProject"]!["type"]!["properties"]!["registeredId"]!["kind"]!.GetValue<string>().ShouldEqual("string");
-    [Fact] void should_carry_the_destination_parameter_type() => _scene.ResponseContracts!["screenInputs"]!["Details"]!["projectId"]!["kind"]!.GetValue<string>().ShouldEqual("string");
+    [Fact] void should_carry_the_response_type() => _scene.ResponseContracts["commands"]["RegisterProject"]["type"]["properties"]["registeredId"]["kind"].GetValue<string>().ShouldEqual("string");
+    [Fact] void should_carry_the_destination_parameter_type() => _scene.ResponseContracts["screenInputs"]["Details"]["projectId"]["kind"].GetValue<string>().ShouldEqual("string");
 
     void Destroy() => Directory.Delete(_directory, recursive: true);
 

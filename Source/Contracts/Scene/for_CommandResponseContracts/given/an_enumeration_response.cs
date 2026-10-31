@@ -17,7 +17,7 @@ public class an_enumeration_response : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("responses"), "responses", "Responses.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        Application = compilation.Value!.Model.Application;
+        Application = compilation.Value.Model.Application;
     }
 
     const string Source = """

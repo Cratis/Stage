@@ -13,6 +13,6 @@ public class and_the_generated_transport_uses_numbers : given.an_enumeration_res
 
     void Because() => _contracts = new CommandResponseContracts(Application, numericEnumerations: true).From([], name => name, property => property.Name);
 
-    [Fact] void should_describe_the_response_as_a_number() => _contracts["commands"]!["Register"]!["type"]!["kind"]!.GetValue<string>().ShouldEqual("number");
-    [Fact] void should_describe_the_destination_command_input_as_a_number() => _contracts["commandInputs"]!["UpdateStatus"]!["status"]!["kind"]!.GetValue<string>().ShouldEqual("number");
+    [Fact] void should_describe_the_response_as_a_number() => _contracts["commands"]["Register"]["type"]["kind"].GetValue<string>().ShouldEqual("number");
+    [Fact] void should_describe_the_destination_command_input_as_a_number() => _contracts["commandInputs"]["UpdateStatus"]["status"]["kind"].GetValue<string>().ShouldEqual("number");
 }

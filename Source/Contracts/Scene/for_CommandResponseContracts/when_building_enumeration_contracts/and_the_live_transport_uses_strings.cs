@@ -13,6 +13,6 @@ public class and_the_live_transport_uses_strings : given.an_enumeration_response
 
     void Because() => _contracts = new CommandResponseContracts(Application, numericEnumerations: false).From([], name => name, property => property.Name);
 
-    [Fact] void should_describe_the_response_as_a_string() => _contracts["commands"]!["Register"]!["type"]!["kind"]!.GetValue<string>().ShouldEqual("string");
-    [Fact] void should_describe_the_destination_command_input_as_a_string() => _contracts["commandInputs"]!["UpdateStatus"]!["status"]!["kind"]!.GetValue<string>().ShouldEqual("string");
+    [Fact] void should_describe_the_response_as_a_string() => _contracts["commands"]["Register"]["type"]["kind"].GetValue<string>().ShouldEqual("string");
+    [Fact] void should_describe_the_destination_command_input_as_a_string() => _contracts["commandInputs"]["UpdateStatus"]["status"]["kind"].GetValue<string>().ShouldEqual("string");
 }

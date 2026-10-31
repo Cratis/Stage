@@ -70,9 +70,9 @@ public class an_application_with_policies : Specification
                 .Aggregate((left, right) => new LogicalPolicyRequirementSyntax(left, @operator, right, SourceLocation.Start)),
             SourceLocation.Start);
 
-    protected string Render(AuthorizeSyntax? authorize) =>
+    protected string? Render(AuthorizeSyntax? authorize) =>
         AuthorizationRenderer.Render(authorize, _applicationSet, "Command 'RegisterInvoice'", _diagnostics);
 
-    protected string RenderAll(params AuthorizeSyntax?[] authorizations) =>
+    protected string? RenderAll(params AuthorizeSyntax?[] authorizations) =>
         AuthorizationRenderer.Render(authorizations, _applicationSet, "Read model 'InvoiceSummary'", _diagnostics);
 }

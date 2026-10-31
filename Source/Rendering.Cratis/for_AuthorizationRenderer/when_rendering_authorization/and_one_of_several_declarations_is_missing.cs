@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_AuthorizationRenderer.when_rendering
 
 public class and_one_of_several_declarations_is_missing : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = RenderAll(Authorize("Administrator"), null);
 

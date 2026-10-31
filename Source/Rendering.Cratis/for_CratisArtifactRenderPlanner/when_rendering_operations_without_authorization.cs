@@ -31,8 +31,8 @@ public class when_rendering_operations_without_authorization : Specification
     void Because()
     {
         _plan = invoice_model.Plan(_model);
-        _sources = _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
-            .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan())).ToArray();
+        _sources = [.. _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+            .Select(artifact => Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))];
     }
 
     [Fact] void should_admit_the_operations() => _plan.Success.ShouldBeTrue();

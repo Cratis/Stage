@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_AuthorizationRenderer.when_rendering
 
 public class and_nothing_is_declared : an_application_with_policies
 {
-    string _attribute = null!;
+    string? _attribute;
 
     void Because() => _attribute = Render(null);
 

@@ -18,7 +18,7 @@ public class when_refusing_command_handlers : Specification
     [Theory]
     [InlineData("return new OrderPlaced(context.Identity.Id);", "csharp", "STAGE-ESM-015", false)]
     [InlineData("return new object[] { 42 };", "csharp", "STAGE-ESM-019", false)]
-    [InlineData("return [42]", "python", "STAGE-IMPL-002", false)]
+    [InlineData("return [42]", "python", "STAGE-IMPL-LANGUAGE", false)]
     [InlineData(handler_model.Body, "csharp", "STAGE-IMPL-002", true)]
     void should_refuse_with_the_render_admission_code_and_message_without_emitting(string body, string language, string code, bool pending)
     {

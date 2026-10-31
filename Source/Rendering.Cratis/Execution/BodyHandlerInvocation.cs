@@ -12,8 +12,6 @@ namespace Cratis.Stage.Rendering.Cratis.Execution;
 internal static class BodyHandlerInvocation
 {
     internal const string CommandMember = "Command";
-    const string MethodPrefix = "HandlerBody_";
-    const string ContextPrefix = "HandlerContext_";
 
     /// <summary>Invokes one compiled handler against the command snapshot.</summary>
     /// <param name="assembly">The loaded unit.</param>
@@ -25,10 +23,10 @@ internal static class BodyHandlerInvocation
     {
         var entry = assembly.GetType(unit.EntryType!, throwOnError: true)!;
         var snapshotType = assembly.GetType(unit.WrapperType!, throwOnError: true)!;
-        var contextType = entry.GetNestedType(ContextPrefix + unit.EntryMethod![MethodPrefix.Length..], BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("The handler context type is unavailable.");
-        var method = entry.GetMethod(unit.EntryMethod!, BindingFlags.NonPublic | BindingFlags.Static, [contextType])
+        // The catalog names the handler members, so the context type is the entry point's one nested parameter rather than a name prefix.
+        var method = entry.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).SingleOrDefault(candidate => string.Equals(candidate.Name, unit.EntryMethod, StringComparison.Ordinal) && candidate.GetParameters().Length == 1 && candidate.GetParameters()[0].ParameterType.DeclaringType == entry)
             ?? throw new InvalidOperationException("The handler entry point is unavailable.");
+        var contextType = method.GetParameters()[0].ParameterType;
         var snapshot = BodyValueMaterializer.Wrapper(snapshotType, Members(snapshotType, request, unit), unit);
         return method.Invoke(null, [Activator.CreateInstance(contextType, snapshot)]);
     }

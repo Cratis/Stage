@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 
@@ -82,7 +83,7 @@ internal static class SemanticCompositeKeyAdmission
             return "mappings cannot also set a key part.";
         }
 
-        return slice.Queries.Any(query => query.ReadModel == readModel.Id && query.Delivery == SemanticQueryDelivery.Live && query.Authorization is not null)
+        return slice.Queries.Any(query => query.ReadModel == readModel.Id && query.Delivery == SemanticQueryDelivery.Live && SemanticAnonymousAccess.RequiresCaller(query.Authorization, context.Application.Policies))
             ? "protected live queries over composite keys are not rendered."
             : null;
     }

@@ -259,21 +259,21 @@ internal static class SemanticValidationContextRuntime
             return;
         }
         var implementation = iterator ? $"return global::System.Linq.Enumerable.ToArray({Method(descriptor)}_Core(context));" : code;
-        RenderBoundary(builder, implementation, iterator);
+        RenderBoundary(builder, implementation, iterator, iterator ? null : descriptor.RequirementId);
         builder.EndBlock().BlankLine();
         if (!iterator) return;
         builder.OpenBlock($"static {result} {Method(descriptor)}_Core(global::{context.TypedContextsNamespace}.{Wrapper(descriptor)} context)")
-            .OpenBlock("checked").RawVerbatim(InvariantValidationInterpolation.Render(code)).EndBlock().EndBlock().BlankLine();
+            .OpenBlock("checked").RawVerbatim(InvariantValidationInterpolation.Render(code), descriptor.RequirementId).EndBlock().EndBlock().BlankLine();
     }
 
-    static void RenderBoundary(CSharpCodeBuilder builder, string body, bool iterator)
+    static void RenderBoundary(CSharpCodeBuilder builder, string body, bool iterator, string? requirementId)
     {
         builder.Line("var culture = global::System.Globalization.CultureInfo.CurrentCulture;")
             .Line("var uiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;")
             .OpenBlock("try")
             .Line("global::System.Globalization.CultureInfo.CurrentCulture = global::System.Globalization.CultureInfo.InvariantCulture;")
             .Line("global::System.Globalization.CultureInfo.CurrentUICulture = global::System.Globalization.CultureInfo.InvariantCulture;")
-            .OpenBlock("checked").RawVerbatim(body).EndBlock().EndBlock()
+            .OpenBlock("checked").RawVerbatim(body, requirementId).EndBlock().EndBlock()
             .OpenBlock("catch (global::System.Exception)")
             .Line(iterator ? "return [\"Validation body failed.\"];" : "return false;").EndBlock()
             .OpenBlock("finally")

@@ -29,14 +29,13 @@ internal static class SemanticDependencyReferences
         SemanticConcept:Validations
         SemanticValidationRule:Property Operand
         SemanticCommand:Validations Produces Destination Requirements Authorization Route Reads Guard Refusals Response Handler
-        SemanticCommandHandler:PossibleEvents
-        SemanticOneOfExpression:CollectionProperty
         SemanticPropertyMapping:Source TargetProperty
         SemanticStateChangeDestination:Type Value
         SemanticResolvedExpression:Target
         SemanticRefusalExpression:Type
         SemanticEventContextExpression:Type
         SemanticReadPathExpression:PropertyId
+        SemanticOneOfExpression:CollectionProperty
         SemanticConditionOperand:Property Value
         SemanticRequirement:Condition
         SemanticInvocationRefusal:Produces
@@ -49,6 +48,7 @@ internal static class SemanticDependencyReferences
         """,
         [SemanticDependencyKind.ProducedEvent] = """
         SemanticProducedEvent:EventContract Mappings Destination DestinationType When Condition Route
+        SemanticCommandHandler:PossibleEvents
         """,
         [SemanticDependencyKind.Route] = """
         SemanticCommandRoute:Source Stream StreamId StreamIdParts

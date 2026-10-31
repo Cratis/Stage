@@ -156,7 +156,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene) => CreateProfile(applicationName, options, scene, null, null);
+        SceneApplication? scene) => CreateProfile(applicationName, options, scene, null, null);
 
     /// <summary>
     /// Creates the profile with validated locale resources from companion Screenplay strings files.
@@ -168,12 +168,12 @@ public static partial class CratisRendering
     /// <param name="defaultLocale">The locale required to contain every referenced message key.</param>
     /// <returns>The immutable Cratis render profile.</returns>
     /// <exception cref="InvalidCratisBackendApplicationScaffold">Thrown when the options or strings input is invalid.</exception>
-    /// <exception cref="Contracts.Scene.UnsupportedGuardedScreenAction">Thrown when the Scene contains guarded screen actions.</exception>
-    /// <exception cref="Contracts.Scene.UnsupportedGuardedInteraction">Thrown when the Scene contains guarded interaction alternatives.</exception>
+    /// <exception cref="UnsupportedGuardedScreenAction">Thrown when the Scene contains guarded screen actions.</exception>
+    /// <exception cref="UnsupportedGuardedInteraction">Thrown when the Scene contains guarded interaction alternatives.</exception>
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale) => CreateProfile(applicationName, options, scene, stringsFiles, defaultLocale, null);
 
@@ -197,7 +197,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages) =>
@@ -235,6 +235,36 @@ public static partial class CratisRendering
             profile.RendererVersion,
             input is null ? inputs : inputs.Add(input));
     }
+
+    /// <summary>
+    /// Maps spliced inline authored bodies back to their <c language="text">.play</c> lines with <c language="csharp">#line</c> directives.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="modelRoot">The path from the destination root to the folder holding the <c language="text">.play</c> files, with <c language="text">/</c> separators; empty when they share the destination root.</param>
+    /// <param name="compilation">The compilation whose documents the bodies were authored in.</param>
+    /// <returns>The profile carrying the source line mapping input, replacing any existing one.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Thrown when a path is not a relative path made of plain segments.</exception>
+    public static ArtifactRenderProfile WithSourceLineMapping(ArtifactRenderProfile profile, string modelRoot, SemanticCompilation compilation)
+    {
+        ArgumentNullException.ThrowIfNull(compilation);
+        return WithSourceLineMapping(profile, modelRoot, compilation.Documents.Documents.Select(document => KeyValuePair.Create(document.Id, document.DisplayPath)));
+    }
+
+    /// <summary>
+    /// Maps spliced inline authored bodies back to their <c language="text">.play</c> lines with <c language="csharp">#line</c> directives.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="modelRoot">The path from the destination root to the folder holding the <c language="text">.play</c> files, with <c language="text">/</c> separators; empty when they share the destination root.</param>
+    /// <param name="documents">The document identities with their display paths relative to the model root.</param>
+    /// <returns>The profile carrying the source line mapping input, replacing any existing one.</returns>
+    /// <exception cref="InvalidArtifactRenderContract">Thrown when a path is not a relative path made of plain segments.</exception>
+    public static ArtifactRenderProfile WithSourceLineMapping(ArtifactRenderProfile profile, string modelRoot, IEnumerable<KeyValuePair<DocumentId, string>> documents) =>
+        ArtifactRenderProfile.Create(
+            profile.Target,
+            profile.TargetVersion,
+            profile.Renderer,
+            profile.RendererVersion,
+            [.. profile.Inputs.Where(existing => existing.Name != SourceLineMappingInput.Name), SourceLineMappingInput.Create(modelRoot, documents)]);
 
     /// <summary>
     /// Plans exact Cratis artifacts without file-system, process, network, environment, random, or clock access.
@@ -357,7 +387,7 @@ public static partial class CratisRendering
     public static ArtifactRenderProfile CreateProfile(
         string applicationName,
         CratisRenderingOptions options,
-        Contracts.Scene.SceneApplication? scene,
+        SceneApplication? scene,
         IReadOnlyDictionary<string, string>? stringsFiles,
         string? defaultLocale,
         ApprovedPackageSet? approvedPackages,
@@ -375,12 +405,12 @@ public static partial class CratisRendering
 
         if (scene is not null)
         {
-            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error).ToArray();
+            var errors = scene.ConversionDiagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToArray();
             if (errors.Length > 0)
             {
                 throw new InvalidArtifactRenderContract(string.Join(Environment.NewLine, errors.Select(error => $"{error.Code}: {error.Message}")));
             }
-            Contracts.Scene.SceneRuntimeAdmission.RequireSupported(scene);
+            SceneRuntimeAdmission.RequireSupported(scene);
         }
 
         var request = CratisBackendApplicationScaffoldRequest.Create(

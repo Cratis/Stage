@@ -248,7 +248,7 @@ internal static partial class PureTransitionAdmission
             ? context.Request.TypedContextDescriptors.Where(candidate => candidate.OperationId == readModel.Id)
             : [descriptor];
         string wrapper;
-        using (CodeGeneration.QualifiedSpelling.Begin())
+        using (QualifiedSpelling.Begin())
         {
             wrapper = string.Join('\n', descriptors.Select(candidate => SemanticTypedContextRenderer.Render(candidate, context).Content
                 .Replace($"namespace {context.TypedContextsNamespace};", $"namespace {context.TypedContextsNamespace} {{", StringComparison.Ordinal) + "\n}"));
@@ -273,9 +273,9 @@ internal static partial class PureTransitionAdmission
             "namespace Cratis.Arc.Commands.ModelBound {} namespace Cratis.Arc.Validation {} namespace Cratis.Chronicle.EventSequences {} " +
             "namespace Cratis.Chronicle.Projections.ModelBound {} namespace Cratis.Chronicle.Keys {} " +
             "namespace Cratis.Chronicle.ReadModels { public interface IReadModels {} } " +
-            "namespace System.Reactive.Subjects { public interface ISubject<T> : global::System.IObservable<T>, global::System.IObserver<T> {} } " +
+            "namespace System.Reactive.Subjects { public interface ISubject<T> : global::System.IObservable<T>, global::System.IObserver<T> {} } namespace System.Reactive.Linq {} " +
             string.Join('\n', definitions) + "\n" + tenant + "\n" + wrapper;
-        var builder = new CodeGeneration.CSharpCodeBuilder().Namespace(ns);
+        var builder = new CSharpCodeBuilder().Namespace(ns);
         environment.Configure(builder);
 
         var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(

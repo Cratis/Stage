@@ -30,6 +30,17 @@ public class when_classifying_before_walking : a_range_model
         result.UnknownMembers.ShouldEachConformTo(member => member.SecurityRelevant && !member.Path.Contains("Never disclose", StringComparison.Ordinal));
     }
 
+    [Fact]
+    void should_classify_v31_as_audited_without_walking()
+    {
+        Versions(31, 0, 31, 0);
+        var ledger = new ThrowingLedger();
+        var scope = new SemanticUnknownMemberScope(ImmutableHashSet<SemanticId>.Empty, ImmutableHashSet<SemanticId>.Empty, ImmutableHashSet<string>.Empty);
+        var result = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, _model, ledger, scope);
+        result.Version.ShouldEqual(EsmVersionStanding.Audited);
+        ledger.Calls.ShouldEqual(0);
+    }
+
     sealed class ThrowingLedger : IReadOnlyDictionary<string, SemanticSurfaceDisposition>
     {
         internal int Calls { get; private set; }

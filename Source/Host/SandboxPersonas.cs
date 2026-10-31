@@ -5,6 +5,7 @@ using System.Security.Claims;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Stage.Api;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Microsoft.AspNetCore.Routing;
 
 namespace Cratis.Stage.Host;
@@ -31,7 +32,8 @@ internal sealed class SandboxPersonas
         foreach (var operation in surface.Operations)
         {
             var requirement = requirements.GetValueOrDefault(operation.QualifiedArtifact);
-            var persona = requirement is null ? null : Select(personas, menuPersona, requirement);
+            var persona = requirement is null || SemanticAnonymousAccess.IsAnonymous(requirement, model.Application.Policies)
+                ? null : Select(personas, menuPersona, requirement);
             var principal = persona is null ? _fallback : principals[persona.Name];
             _operations[Key(operation.Method, operation.CanonicalPath)] = principal;
             if (surface.AliasFor(operation.Method, operation.CanonicalPath) is { } alias)

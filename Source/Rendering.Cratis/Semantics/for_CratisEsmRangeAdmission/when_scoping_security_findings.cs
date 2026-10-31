@@ -18,7 +18,7 @@ public class when_scoping_security_findings : given.a_range_model
         Versions(32, 1, 32, 1);
         var captureSlice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
         var specification = captureSlice.Slice.Specifications[0];
-        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations))!.SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
+        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
         var slice = selected ? captureSlice : _context.AllSlices.First(located => located.Slice.Id != captureSlice.Slice.Id);
         var request = _request with { Scope = new(ArtifactRenderScopeKind.Slice, slice.Slice.Id) };
         var verdict = CratisEsmRangeAdmission.Evaluate(request, new(request, new("Contracts", "Contracts")));
@@ -33,11 +33,12 @@ public class when_scoping_security_findings : given.a_range_model
         var application = _model.Application with { Policies = [new("Sensitive policy", new SemanticAnonymousCondition())] };
         SetModel(ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, application));
         Versions(32, 1, 32, 1);
+        typeof(SemanticPolicy).GetProperty(nameof(SemanticPolicy.Condition)).SetValue(_model.Application.Policies.Single(), new an_unknown_security_condition());
         var verdict = CratisEsmRangeAdmission.Evaluate(_request, _context);
         verdict.IsAdmitted.ShouldBeFalse();
         var diagnostic = verdict.Diagnostics.Single(item => item.Code == "STAGE-ESM-016");
         diagnostic.Artifact.ShouldEqual(_model.Application.Id);
-        diagnostic.Message.ShouldContain("SemanticAnonymousCondition.$type");
+        diagnostic.Message.ShouldContain("an_unknown_security_condition.$type");
         diagnostic.Message.ShouldNotContain("Sensitive policy");
     }
 }

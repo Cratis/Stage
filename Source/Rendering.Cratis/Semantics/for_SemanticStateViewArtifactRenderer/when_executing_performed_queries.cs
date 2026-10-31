@@ -25,7 +25,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateViewArtifactR
 public class when_executing_performed_queries
 {
     [Theory]
-    [InlineData("live", "observable")]
+    [InlineData("live", "cannot be observed")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]
@@ -158,17 +158,6 @@ public class when_executing_performed_queries
         Assert.Contains("static class StagePerformer_", rendered, StringComparison.Ordinal);
         Assert.DoesNotContain("StagePerform_", rendered, StringComparison.Ordinal);
         Assert.Contains(".Perform(", rendered, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task should_throw_instead_of_presenting_a_live_performer_as_a_body_owned_stream()
-    {
-        var loaded = await Load("return readModels;", live: true);
-        var method = Method(loaded);
-        Assert.Equal(typeof(System.Reactive.Subjects.ISubject<>), method.ReturnType.GetGenericTypeDefinition());
-        var exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, [.. Dependencies(Substitute.For<IReadModels>()), "Ada"]));
-        var gap = Assert.IsType<NotImplementedException>(exception.InnerException);
-        Assert.Contains("no body-owned stream", gap.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -451,7 +440,7 @@ public class when_executing_performed_queries
             TypedContextDescriptors = loaded.TypedContextDescriptors
         };
 
-    static MethodInfo Method(LoadedSemanticModel loaded)
+    internal static MethodInfo Method(LoadedSemanticModel loaded)
     {
         var plan = new CratisArtifactRenderPlanner().Plan(Request(loaded));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
@@ -489,7 +478,7 @@ public class when_executing_performed_queries
         source.Dispose();
     }
 
-    static object[] Dependencies(IReadModels readModels)
+    internal static object[] Dependencies(IReadModels readModels)
     {
         var clock = Substitute.For<TimeProvider>();
         clock.GetUtcNow().Returns(new DateTimeOffset(2026, 10, 20, 23, 59, 0, TimeSpan.Zero));
@@ -504,7 +493,7 @@ public class when_executing_performed_queries
         return [readModels, manager, tenant, caller];
     }
 
-    static (Array Rows, object Row) Rows(MethodInfo method)
+    internal static (Array Rows, object Row) Rows(MethodInfo method)
     {
         var model = method.DeclaringType;
         var constructor = model.GetConstructors().Single(candidate => candidate.GetParameters().Length == 2);

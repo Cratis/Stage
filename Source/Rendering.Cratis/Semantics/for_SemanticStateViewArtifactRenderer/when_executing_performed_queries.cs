@@ -25,7 +25,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticStateViewArtifactR
 public class when_executing_performed_queries
 {
     [Theory]
-    [InlineData("live", "observable")]
+    [InlineData("live", "cannot be observed")]
     [InlineData("missing", "no resolved body")]
     [InlineData("changed", "SHA-256")]
     [InlineData("hash", "SHA-256")]

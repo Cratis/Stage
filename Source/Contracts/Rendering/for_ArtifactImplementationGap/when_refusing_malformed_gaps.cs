@@ -37,7 +37,7 @@ public class when_refusing_malformed_gaps : given.a_gap
         _defaultHints = Refuse(_gap with { Hints = default });
         _nullHint = Refuse(_gap with { Hints = [null!] });
         _contextVersion = Refuse(_gap with { ContextVersion = 0 });
-        _resultVersion = Refuse(_gap with { ResultVersion = 2 });
+        _resultVersion = Refuse(_gap with { ResultVersion = 0 });
         _emptyStubs = Refuse(_gap with { Stubs = [] });
         _defaultStubs = Refuse(_gap with { Stubs = default });
         _nullStub = Refuse(_gap with { Stubs = [null!] });
@@ -54,7 +54,7 @@ public class when_refusing_malformed_gaps : given.a_gap
     [Fact] void should_refuse_default_hints() => _defaultHints.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_null_hints() => _nullHint.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_unsupported_context_versions() => _contextVersion.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    [Fact] void should_refuse_unsupported_result_versions() => _resultVersion.ShouldBeOfExactType<InvalidArtifactRenderContract>();
+    [Fact] void should_refuse_zero_result_versions() => _resultVersion.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_empty_stubs() => _emptyStubs.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_default_stubs() => _defaultStubs.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_null_stubs() => _nullStub.ShouldBeOfExactType<InvalidArtifactRenderContract>();

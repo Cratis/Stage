@@ -54,16 +54,17 @@ internal static class SemanticVersionFeatureAdmission
         }
 
         return [.. features.Where(feature => !AdmittedCommandHandler(feature, context)).Distinct()
-            .Select(feature => new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, DiagnosticMessage(feature, context), feature.Artifact))
+            .Select(feature => Diagnostic(feature, context))
             .Concat(slices.SelectMany(located => SemanticReactionBodyRendering.ReturnDiagnostics(located, context)))];
     }
 
-    static string DiagnosticMessage(SemanticVersionFeature feature, SemanticApplicationContext context)
+    static ArtifactRenderDiagnostic Diagnostic(SemanticVersionFeature feature, SemanticApplicationContext context)
     {
-        if (feature.Code != SemanticVersionFeatures.PendingCommandHandler) return feature.Message;
-        if (!context.Commands.TryGetValue(feature.Artifact, out var command)) return feature.Message;
-        if (SemanticCommandHandlerAdmission.Classify(command, context.Request) is not { Kind: SemanticCommandHandlerAdmission.HandlerKind.Foreign, Requirement: { } requirement }) return feature.Message;
-        return $"Command '{command.Name}' handler '{requirement.RequirementId}' uses language '{requirement.Language ?? requirement.File}'; Stage renders only C# handler bodies.";
+        var original = new ArtifactRenderDiagnostic(feature.Code, ArtifactRenderDiagnosticSeverity.Error, feature.Message, feature.Artifact);
+        if (feature.Code != SemanticVersionFeatures.PendingCommandHandler) return original;
+        if (!context.Commands.TryGetValue(feature.Artifact, out var command)) return original;
+        if (SemanticCommandHandlerAdmission.Classify(command, context.Request) is not { Kind: SemanticCommandHandlerAdmission.HandlerKind.Foreign, Requirement: { } requirement }) return original;
+        return SemanticImplementationBodySelector.LanguageDiagnostic(requirement, command.Id, $"Command handler for '{command.Name}'") ?? original;
     }
 
     // Render-only: the execution runtime still sees PendingCommandHandler as unsupported.

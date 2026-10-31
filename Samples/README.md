@@ -23,7 +23,7 @@ signatures, configuration, dependency imports, and ownership limits.
 
 ## Billing
 
-Two modules, four features, eight slices, fourteen files.
+Two modules, four features, eight slices, fourteen source files.
 
 ```text
 Billing/
@@ -37,31 +37,47 @@ Billing/
       Invoices.play                the feature
       RegisterInvoice/             StateChange - command, event, constraint, specifications, screen
       IssueInvoice/                StateChange - reads state, requirements, state projection
-      CancelInvoice/               StateChange - authorization, context mapping
+      CancelInvoice/               StateChange - authorization, occurrence-time mapping
       InvoiceList/                 StateView - readmodel, projection, queries, two screens
     Reminders/
-      Reminders.play               Automation - scheduled and event-driven reactions
+      Reminders.play               Automation - an event-driven reaction
   Ledger/
     Ledger.play                    a second module, so cross-module navigation is real
-    Payments/                      inline C# - a handler, a performer, a reducer rule, a validation block
-    Integration/                   Translate - a capture (CDL) over a legacy system
+    Payments/                      payment recording, invoice balance projection, inline C# reducer
+    Integration/                   reserved feature; inbound translation showcase deferred
 ```
 
 The split is deliberate. A slice is a folder, so the events, the command, the read model and the screen that
 belong to one decision sit together — which is the unit people actually change. `Invoicing` is the domain the
-application is about; `Ledger` is what other systems talk to, and it exists so `Invoicing` never has to know
-that a legacy system is still the system of record for payments.
+application is about; `Ledger` records payments and reserves an integration feature for a legacy system.
 
 ### What it covers
 
-**112 of the language's constructs**, verified by a coverage check rather than claimed: every slice type,
-both sub-languages (PDL projections and CDL captures), both arrangement kinds, all ten interaction actions
-reachable from a document, inline C# in each of the four places it is allowed, and the three forms a
-localizable message can take.
+The sample covers state changes, protected decision reads, projections, an inline C# reducer, queries,
+event-driven automation, authorization, validation and localized screens.
+`InvoiceState` is keyed by event source; cancellation removes it, so issuing an unknown or cancelled invoice
+is refused. The payment specification exercises the declarative command and its reducer-built read model.
+Payments record an amount without accepting an outstanding balance or declaring invoice settlement.
+`InvoiceBalanceById` exposes the invoice's outstanding amount, projected from issuance and payments;
+read-side specifications cover partial and full payments. This view is not a protected command read.
 
-Two constructs are deliberately absent: a `file` directive, because it would point at implementation files
-this repository does not carry, and inline `typescript`/`react`/`html`/`sql` blocks, because `csharp` already
-demonstrates the mechanism and four more would be repetition rather than coverage.
+Some language showcases remain follow-up work rather than executable Billing behavior:
+
+- Scheduled reminders: [Stage #343](https://github.com/Cratis/Stage/issues/343). The sample sends a reminder
+  when an invoice is issued; clock triggers cannot supply a per-invoice identity.
+- Inbound integration: the legacy Contracts loader refuses inbound translations with `STAGE-ESM-024`,
+  although the ESM renderer admits the [foreign-event inbox shape](../Documentation/reference/translation-rendering.md).
+  The capture, its source event and its local event are removed; the empty Integration feature remains.
+  API polling, CDL split/translate maps and child captures are also deferred.
+- Audit-identity fixtures, imperative command bodies and live performer bodies: deferred beyond the
+  [specification fixture contract](../Documentation/docker/spec-runner.md). Audit identity fields are not
+  fabricated; Chronicle still records event context. Payments use declarative productions and queries.
+- Identical localization keys are centralized at the root because the strings catalog rejects duplicates.
+  The reducer uses named constructor arguments because generated parameter order is not declaration order.
+
+The unbound `concurrency` block, scalar next-number query/form population, context-sourced minimum filter
+and redundant tenant scope were removed. Tenant isolation and the positive-amount validation rules remain.
+No `file` directive points at absent implementation files, and no extra inline languages repeat the C# example.
 
 ### Running it
 
@@ -69,9 +85,13 @@ demonstrates the mechanism and four more would be repetition rather than coverag
 # Compile and report - anything wrong with the document, with a location
 screenplay Samples/Billing
 
-# Serve it: the modeled backend, and the frontend translated to Scene
-docker run --rm -p 127.0.0.1:9090:9090 -p 127.0.0.1:35000:35000 -v "$PWD/Samples/Billing":/eventmodel:ro cratis/stage:latest
+# Render the application in default mode
+cratis render Samples/Billing --target cratis --name Billing --destination ./Billing -y
 ```
+
+Use the generated application for execution. Stage's legacy eventmodel engine and structural SpecRunner
+refuse Billing's `command reads protected` contract with `STAGE-ESM-044`; they do not preserve its
+protected decision reads.
 
 ### It is kept honest by the build
 

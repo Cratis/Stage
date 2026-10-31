@@ -20,7 +20,7 @@ using Cratis.Stage.Specifications.Types;
 
 namespace Cratis.Stage.Specifications.Comparison;
 
-internal static class SemanticRunProjections
+internal static partial class SemanticRunProjections
 {
     internal static IReadOnlyList<Projected> Execute(
         SemanticExecutionPlan plan,
@@ -96,7 +96,7 @@ internal static class SemanticRunProjections
             if (projection.Scope is { } scope)
             {
                 var appended = context.Facts.Select(fact => fact.EventContract).ToHashSet();
-                foreach (var from in scope.From.Where(from => !SemanticProjectionProducts.IsUnreachable(from, appended)))
+                foreach (var from in scope.From.Where(from => Seeds(context, model.Id).Any(seed => seed.Key is SemanticCompositeValue) || !SemanticProjectionProducts.IsUnreachable(from, appended)))
                 {
                     var @event = plan.Events[from.EventContract];
 
@@ -120,7 +120,7 @@ internal static class SemanticRunProjections
                 foreach (var transition in projection.Transitions)
                 {
                     var @event = plan.Events[transition.EventContract];
-                    var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([((SemanticResolvedExpression)transition.AffectedInstance.Key!).Target]));
+                    var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([((SemanticResolvedExpression)transition.AffectedInstance.Key).Target]));
                     var mappings = transition.Mappings.Select(mapping => new SemanticProjectionMapping([mapping.TargetProperty], SemanticProjectionOperation.Set, mapping.Source switch
                     {
                         SemanticResolvedExpression resolved => new SemanticProjectionEventProperty([resolved.Target]),
@@ -131,16 +131,7 @@ internal static class SemanticRunProjections
                 }
             }
         });
-        foreach (var seed in Seeds(context, model.Id))
-        {
-            var instance = Activator.CreateInstance<TReadModel>();
-            foreach (var value in seed.Values)
-            {
-                var property = typeof(TReadModel).GetProperty(model.Properties.Single(property => property.Id == value.TargetProperty).Name)!;
-                property.SetValue(instance, types.ReadModelValue(value.Value, model.Properties.Single(candidate => candidate.Id == value.TargetProperty).Type));
-            }
-            scenario.CollectReadModelFor(new EventSourceId(((SemanticTextValue)seed.Key).Value), instance);
-        }
+        SeedReadModels(scenario, model, context, types);
         CollectEvents(scenario, projection, context, types);
         var output = new List<Projected>();
         foreach (var (source, instance) in scenario.Instances)
@@ -181,14 +172,7 @@ internal static class SemanticRunProjections
             var projectedKey = projection.Scope?.From.SingleOrDefault(from => from.EventContract == fact.EventContract)?.Key ??
                 projection.Scope?.Removals.SingleOrDefault(removal => removal.EventContract == fact.EventContract)?.Key;
             var transitionKey = projection.Transitions.SingleOrDefault(transition => transition.EventContract == fact.EventContract)?.AffectedInstance.Key;
-            var fixtureKey = transitionKey is SemanticResolvedExpression { Root: SemanticExpressionRootKind.Event, Source: SemanticExpressionSourceKind.Property } resolvedKey
-                ? fact.Values.Single(value => value.TargetProperty == resolvedKey.Target).Value
-                : projectedKey switch
-                {
-                    SemanticProjectionValueKey { Value: SemanticProjectionEventProperty { Path: [var property] } } => fact.Values.Single(value => value.TargetProperty == property).Value,
-                    SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => literal.Value,
-                    _ => destination
-                };
+            var fixtureKey = FixtureKey(projectedKey, transitionKey, fact, destination);
             if (index < context.WorldFixture.GivenEvents.Length && Seeds(context, projection.ReadModel)
                 .Any(seed => SemanticExpectationComparer.AreEqual(seed.Key, fixtureKey)))
             {
@@ -271,9 +255,11 @@ internal static class SemanticRunProjections
         return false;
     }
 
-    static IEnumerable<SemanticSpecificationReadModel> Seeds(SemanticRunContext context, SemanticId model) =>
-        context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model)
-            .GroupBy(seed => SemanticRunContext.Canonical(seed.Key), StringComparer.Ordinal).Select(group => group.Last());
+    static IEnumerable<SemanticSpecificationReadModel> Seeds(SemanticRunContext context, SemanticId model)
+    {
+        var seeds = context.WorldFixture.GivenReadModels.Where(seed => seed.ReadModel == model).ToArray();
+        return seeds.Where((seed, index) => !seeds.Skip(index + 1).Any(later => SemanticExpectationComparer.AreEqual(seed.Key, later.Key)));
+    }
 
     static SemanticProjectionMapping[] FromMappings(SemanticProjectionScope scope, SemanticProjectionFrom from)
     {

@@ -29,7 +29,10 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         Unknown = 4,
         Value = 8,
         NestedCollection = 16,
-        NullItem = 32
+        NullItem = 32,
+        WrappedEvent = 64,
+        Events = Event | WrappedEvent,
+        InvalidEventPayload = 128
     }
 
     enum Position
@@ -42,10 +45,11 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
     internal bool HasValueItems { get; private set; }
     internal bool HasNestedCollections { get; private set; }
     internal bool HasNullItems { get; private set; }
+    internal bool HasInvalidEventPayload { get; private set; }
 
     internal bool IsSeparate(string body)
     {
-        HasValueItems = HasNestedCollections = HasNullItems = false;
+        HasValueItems = HasNestedCollections = HasNullItems = HasInvalidEventPayload = false;
         _body = (BlockSyntax)SyntaxFactory.ParseStatement("{\n" + body + "\n}");
         if (_body.ContainsDiagnostics || _body.ContainsDirectives) return false;
         var shape = _body.DescendantNodes(IsHandler).Select(node => node switch
@@ -57,7 +61,8 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         HasValueItems = shape.HasFlag(Shape.Value);
         HasNestedCollections = shape.HasFlag(Shape.NestedCollection);
         HasNullItems = shape.HasFlag(Shape.NullItem);
-        return shape is Shape.None or Shape.Event or Shape.Command;
+        HasInvalidEventPayload = shape.HasFlag(Shape.InvalidEventPayload);
+        return shape == Shape.Command || (shape & ~Shape.Events) == Shape.None;
     }
 
     static bool IsHandler(SyntaxNode node) => node is not (LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax);
@@ -168,7 +173,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
     Shape Creation(ObjectCreationExpressionSyntax creation, Position position)
     {
         if (IsList(creation.Type)) return ListCreation(creation, position);
-        return position == Position.Spread ? Shape.Unknown : NamedCreation(creation.Type);
+        return position == Position.Spread ? Shape.Unknown : NamedCreation(creation);
     }
 
     Shape ListCreation(ObjectCreationExpressionSyntax creation, Position position)
@@ -177,12 +182,18 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         return creation.ArgumentList is { Arguments.Count: > 0 } ? Shape.Unknown : Combine(creation.Initializer?.Expressions ?? []);
     }
 
-    Shape NamedCreation(TypeSyntax type)
+    Shape NamedCreation(ObjectCreationExpressionSyntax creation)
     {
-        var name = Normalize(type.ToString());
+        var name = Normalize(creation.Type.ToString());
         if (_types.TryGetValue(name, out var shape)) return shape;
-        if (name == "EventForEventSourceId" || name == "Cratis.Chronicle.EventSequences.EventForEventSourceId") return Shape.Event;
+        if (name == "EventForEventSourceId" || name == "Cratis.Chronicle.EventSequences.EventForEventSourceId") return WrappedEvent(creation);
         return Shape.Unknown;
+    }
+
+    Shape WrappedEvent(ObjectCreationExpressionSyntax creation)
+    {
+        var payload = SemanticReactionEventPayload.From(creation);
+        return payload is not null && Expression(payload, Position.Item) == Shape.Event ? Shape.WrappedEvent : Shape.InvalidEventPayload;
     }
 
     Shape Binding(IdentifierNameSyntax identifier, Position position)
@@ -192,7 +203,7 @@ internal sealed class SemanticReactionReturnShape(SemanticEventContract source, 
         if (declarations.Length == 0)
         {
             if (position == Position.Spread) return Shape.Unknown;
-            if (name == "event") return Shape.Event;
+            if (name == "event") return SemanticReactionEventBinding.IsUnmodified(_body) ? Shape.Event : Shape.Unknown;
             if (IsValueBinding(name)) return Shape.Value;
             return Shape.Unknown;
         }

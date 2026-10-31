@@ -161,9 +161,9 @@ internal static class SemanticCommandBodyAdmission
         var tree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview));
         var compilation = SemanticBodyCompilation.Create("CommandBodyProbe", tree);
         var model = compilation.GetSemanticModel(tree);
-        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == SemanticCommandHandlerRendering.Method(command));
+        var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == SemanticCommandHandlerRendering.Method(command, context));
         var unavailable = method.DescendantNodes().OfType<ExpressionSyntax>().Any(expression =>
-            UnavailableAccess(expression, model, SemanticCommandHandlerRendering.ContextType(command)));
+            UnavailableAccess(expression, model, SemanticCommandHandlerRendering.ContextType(command, context)));
         if (unavailable)
         {
             diagnostics.Add(Error("STAGE-ESM-015", "The command handler may access only the immutable Command snapshot; ambient context is unavailable.", command));

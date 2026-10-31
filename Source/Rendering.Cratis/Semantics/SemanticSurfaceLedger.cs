@@ -35,7 +35,7 @@ internal static class SemanticSurfaceLedger
     public static IReadOnlyDictionary<string, SemanticSurfaceDisposition> Entries { get; } = Build();
 
     /// <summary>
-    /// Gets the query shape matrix. Snapshot optional lookups require a key; snapshot and live collections may be keyed or unkeyed.
+    /// Gets the query shape matrix. Snapshot and live optional lookups require an identifier key; snapshot and live collections may be keyed or unkeyed.
     /// Other cardinality/delivery/key combinations fail STAGE-ESM-010 before rendering.
     /// </summary>
     public static IReadOnlyDictionary<(SemanticQueryCardinality Cardinality, SemanticQueryDelivery Delivery, bool Keyed), SemanticSurfaceDisposition> QueryShapes { get; } =
@@ -44,7 +44,7 @@ internal static class SemanticSurfaceLedger
          from keyed in new[] { false, true }
          select (Cardinality: cardinality, Delivery: delivery, Keyed: keyed))
         .ToDictionary(shape => shape, shape =>
-            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery == SemanticQueryDelivery.Snapshot && shape.Keyed) ||
+            (shape.Cardinality == SemanticQueryCardinality.ZeroOrOne && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live && shape.Keyed) ||
             (shape.Cardinality == SemanticQueryCardinality.Many && shape.Delivery is SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live)
                 ? new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rendered)
                 : new SemanticSurfaceDisposition(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-010"));
@@ -136,7 +136,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticCommand", rendered, "Route");
         Add(entries, "SemanticCommand", rejected(SemanticVersionFeatures.PendingCommandHandler), "Handler");
-        Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion");
+        Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion PossibleEvents");
         Add(entries, "SemanticCommand", rendered, "CodeValidations");
         Add(entries, "SemanticCodeValidation", rendered, "RequirementId");
         Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
@@ -175,7 +175,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpression", rendered, "Kind");
         Add(entries, "SemanticExpressionKind", rendered, "Resolved Refusal");
         Add(entries, "SemanticRefusalExpression", rendered, "Member Type");
-        Add(entries, "SemanticExpressionKind", rejected("STAGE-ESM-006"), "Unknown Value EventContext");
+        Add(entries, "SemanticExpressionKind", rejected("STAGE-ESM-006"), "Unknown Value EventContext OneOf");
         Add(entries, "SemanticExpressionRootKind", rendered, "Command Event");
         Add(entries, "SemanticExpressionRootKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");
@@ -312,8 +312,8 @@ internal static class SemanticSurfaceLedger
         // Command-property requirements render as validator rules.
         Add(entries, "SemanticAuthenticatedCondition", rendered, "$type");
 
-        // Public admission remains exact. The prospective range finder treats anonymous access as a security-relevant unknown.
-        Add(entries, "SemanticAnonymousCondition", rejected("STAGE-ESM-016"), "$type");
+        // Whole-policy anonymous access renders AllowAnonymous (STAGE-ESM-060); nested use is refused (STAGE-ESM-015).
+        Add(entries, "SemanticAnonymousCondition", rendered, "$type");
         Add(entries, "SemanticAuthorization", rendered, "$type");
         Add(entries, "SemanticCondition", rendered, "$type");
         Add(entries, "SemanticPolicyCondition", rendered, "$type");
@@ -467,6 +467,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticConditionOperand", reads, "Read");
         Add(entries, "SemanticExpressionKind", reads, "ReadPath");
         Add(entries, "SemanticReadPathExpression", reads, "Read PropertyId");
+        Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
 
         return entries;
     }

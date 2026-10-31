@@ -235,7 +235,7 @@ retried or reported as success: the session faults until it can be reconstructed
 outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
 capabilities retain their conservative safety checks.
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
-refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The legacy engines still refuse the preamble with the same code; without it,
+refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
@@ -317,8 +317,13 @@ history passes the same strict admission checks.
 
 The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
 login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
-`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+`/api/**` requests and the page identity at `/.cratis/me`. `/stage/**` endpoints and the Chronicle Workbench
+do not receive that persona.
 This changes only the Stage host, never rendered applications or their authentication.
+
+The sandbox runs with `ASPNETCORE_ENVIRONMENT=Docker`, not Development. Arc's discovery catalogs require
+authentication and answer `401` to anonymous sandbox requests by design. The persona is not applied to these
+endpoints, and Play does not use them.
 
 Stage selects the default persona once at startup:
 

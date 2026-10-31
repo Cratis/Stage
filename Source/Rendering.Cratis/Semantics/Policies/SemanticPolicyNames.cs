@@ -62,19 +62,20 @@ internal static class SemanticPolicyNames
     /// Gets the protected operations of the slices.
     /// </summary>
     /// <param name="slices">The slices.</param>
+    /// <param name="policies">The application's policies.</param>
     /// <returns>The protected operations, in operation identity order.</returns>
-    public static IReadOnlyList<PolicyOperation> Operations(IEnumerable<LocatedSemanticSlice> slices) =>
+    public static IReadOnlyList<PolicyOperation> Operations(IEnumerable<LocatedSemanticSlice> slices, IEnumerable<SemanticPolicy> policies) =>
     [
-        .. slices.SelectMany(located => located.Slice.Commands.Where(command => command.Authorization is not null)
+        .. slices.SelectMany(located => located.Slice.Commands.Where(command => SemanticAnonymousAccess.RequiresCaller(command.Authorization, policies))
                 .Select(command => new PolicyOperation(command.Id, command.Name, command.Authorization!, located, command, null)))
-            .Concat(slices.SelectMany(located => located.Slice.Queries.Where(query => query.Authorization is not null)
+            .Concat(slices.SelectMany(located => located.Slice.Queries.Where(query => SemanticAnonymousAccess.RequiresCaller(query.Authorization, policies))
                 .Select(query => new PolicyOperation(query.Id, query.Name, query.Authorization!, located, null, query))))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal)
     ];
 
     static IReadOnlyDictionary<SemanticId, PolicyName> Compute(SemanticApplicationContext context)
     {
-        var operations = Operations(context.AllSlices);
+        var operations = Operations(context.AllSlices, context.Application.Policies);
         var bases = operations.ToDictionary(operation => operation.Id, operation => Base(operation.Authorization));
         var signatures = operations.ToDictionary(operation => operation.Id, operation => Signature(context, operation));
         var result = new Dictionary<SemanticId, PolicyName>();

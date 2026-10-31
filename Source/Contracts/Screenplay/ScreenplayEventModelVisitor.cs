@@ -93,7 +93,9 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
     static EventModelConversion Convert(ApplicationSyntax syntax, ConversionDiagnostics? diagnostics)
     {
-        EnsureBehaviorSupported(syntax);
+        // The model records protected command reads; the engines that execute commands refuse them at their own boundary.
+        EnsureBehaviorSupported(syntax with { CommandReadMode = null });
+        var protectedCommandReads = syntax.CommandReadMode is not null;
         new ReactionIdentitySyntaxAdmission().VisitApplication(syntax);
         new EventRouteSyntaxAdmission().VisitApplication(syntax);
         new PublicEventSyntaxAdmission().VisitApplication(syntax);
@@ -123,7 +125,7 @@ public sealed class ScreenplayEventModelVisitor : IApplicationSyntaxVisitor<Even
 
         var collection = new ModuleCollection(collectionId, modelId, collectionModules);
 
-        return new(new EventModel(modelId, modelName, [collection]), diagnostics?.All ?? []);
+        return new(new EventModel(modelId, modelName, [collection]) { ProtectedCommandReads = protectedCommandReads }, diagnostics?.All ?? []);
     }
 
     static Module ConvertModule(

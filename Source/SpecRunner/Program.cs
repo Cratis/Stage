@@ -64,6 +64,7 @@ public static partial class Program
         try
         {
             model = await load(arguments.ModelPath);
+            ProtectedCommandReadsAdmission.EnsureExecutableBy(model, arguments.ModelPath, "structural");
         }
         catch (InvalidEventModel exception)
         {

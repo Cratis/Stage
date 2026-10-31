@@ -45,10 +45,11 @@ public record StageRoutes(
             .Where(located => located.Slice.Command is not null)
             .Select(located => ($"{located.TypeNamespace}.{located.Slice.Command!.Name}", IntentOf(located.Slice.Command.Schema, located.Slice.Command.Identifier, false), "object")));
 
-    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model)
+    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model) => For(routes, model, new SemanticListCreation(model));
+
+    internal static StageRoutes For(StageSceneRoutes routes, ExecutableSemanticModel model, SemanticListCreation creation)
     {
         var diagnostics = new ConversionDiagnostics();
-        var creation = new SemanticListCreation(model);
         var metadata = new List<(string Identity, string Schema, string ResponseKind)>();
         foreach (var located in SemanticModelWalker.Slices(model))
         {

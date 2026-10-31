@@ -27,6 +27,8 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
     string? _failure;
     int _disposed;
 
+    internal int RetainedSlots => _slots.Count;
+
     /// <summary>
     /// Creates a factory and starts warming its compilation in the background.
     /// </summary>
@@ -112,6 +114,7 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
         {
             if (_current is not null) await _current.Retire().ConfigureAwait(false);
             _current = null;
+            _slots.RemoveAll(slot => slot.IsDisposed);
             _failure = Diagnostic(exception.Message);
             _revision = revision;
         }
@@ -123,6 +126,7 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
         var next = failure is null ? new ModelRootBodyExecutionSlot(manifest, _execute(manifest)) : null;
         if (_current is not null) await _current.Retire().ConfigureAwait(false);
         _current = next;
+        _slots.RemoveAll(slot => slot.IsDisposed);
         if (next is not null) _slots.Add(next);
         _failure = failure is null ? null : Diagnostic(failure.DiagnosticMessage ?? "Body compilation failed.");
     }

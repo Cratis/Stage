@@ -21,6 +21,14 @@ internal sealed class ModelRootBodyExecutionSlot(BodyUnitManifest manifest, IBod
         }
     }
 
+    internal bool IsDisposed
+    {
+        get
+        {
+            lock (_gate) return _disposal is { IsCompleted: true };
+        }
+    }
+
     internal ISemanticBodyExecutionProvider Acquire()
     {
         lock (_gate)

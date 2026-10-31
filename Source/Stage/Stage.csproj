@@ -50,6 +50,7 @@
         <Compile Include="../Rendering.Cratis/Semantics/SemanticTranslationSupport.cs" Link="Semantics/Admission/SemanticTranslationSupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticCaptureIdentitySupport.cs" Link="Semantics/Admission/SemanticCaptureIdentitySupport.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/SemanticVersionFeatures.cs" Link="Semantics/Admission/SemanticVersionFeatures.cs" />
+        <Compile Include="../Rendering.Cratis/Semantics/Policies/SemanticAnonymousAccess.cs" Link="Semantics/Admission/SemanticAnonymousAccess.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/EsmVersionRange.cs" Link="Semantics/Admission/EsmVersionRange.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/EsmVersionStanding.cs" Link="Semantics/Admission/EsmVersionStanding.cs" />
         <Compile Include="../Rendering.Cratis/Semantics/EsmSupport.cs" Link="Semantics/Admission/EsmSupport.cs" />

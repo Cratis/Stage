@@ -35,13 +35,15 @@ public partial class when_evaluating_worker_rules : Specification
         Assert.True(result.Outcome == expected, result.Unsupported?.Details ?? string.Join(';', result.Failures));
         workers.Count.ShouldEqual(1);
         await workers.Single().Received(1).EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>());
+        await ((IAsyncDisposable)workers.Single()).DidNotReceive().DisposeAsync();
+        await bodies.DisposeAsync();
         await ((IAsyncDisposable)workers.Single()).Received(1).DisposeAsync();
         facts.ShouldEqual(verdict == "satisfied" ? 1 : 0);
         if (expected == SemanticSpecificationOutcome.Unsupported) result.Unsupported.Details.Contains("STAGE-", StringComparison.Ordinal).ShouldBeTrue();
     }
 
     [Fact]
-    public async Task should_not_share_workers_between_specifications_or_repeat_runs()
+    public async Task should_share_the_application_worker_between_specifications_and_repeat_runs()
     {
         var compilation = Compile();
         var plan = SemanticExecutionPlan.Compile(compilation.Model).Plan;
@@ -49,8 +51,11 @@ public partial class when_evaluating_worker_rules : Specification
         var bodies = Execution(compilation, "satisfied", workers);
         var executor = new SemanticSpecificationExecutor();
         for (var run = 0; run < 2; run++) await executor.Run(plan, new([]), new() { BodyExecution = bodies });
-        workers.Count.ShouldEqual(4);
-        foreach (var worker in workers) await ((IAsyncDisposable)worker).Received(1).DisposeAsync();
+        workers.Count.ShouldEqual(1);
+        await workers.Single().Received(4).EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>());
+        await ((IAsyncDisposable)workers.Single()).DidNotReceive().DisposeAsync();
+        await bodies.DisposeAsync();
+        await ((IAsyncDisposable)workers.Single()).Received(1).DisposeAsync();
     }
 
     static SemanticBodyExecution Execution(LoadedSemanticModel loaded, string verdict, List<IBodyWorkerClient> workers)

@@ -13,9 +13,11 @@ public class when_evaluating_versions : given.a_range_model
 {
     [Theory]
     [InlineData(25)]
+    [InlineData(31)]
     [InlineData(32)]
     public void should_preserve_audited_pairs(int version)
     {
+        if (version == 31) Versions(31, 0, 31, 0);
         if (version == 25) SetModel(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan()));
         var verdict = CratisEsmRangeAdmission.Evaluate(_request, _context);
         verdict.IsAdmitted.ShouldBeTrue();
@@ -42,7 +44,7 @@ public class when_evaluating_versions : given.a_range_model
     [InlineData(33, 1, 33, 1)]
     [InlineData(34, 0, 34, 0)]
     [InlineData(35, 0, 35, 0)]
-    [InlineData(31, 0, 31, 0)]
+    [InlineData(31, 1, 31, 1)]
     [InlineData(32, 0, 32, 1)]
     public void should_refuse_non_admitted_pairs(uint languageMajor, uint languageMinor, uint semanticMajor, uint semanticMinor)
     {

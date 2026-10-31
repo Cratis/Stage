@@ -224,8 +224,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         artifacts.AddRange(shared.Concepts.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         artifacts.AddRange(shared.Types.Select(_ => Artifact(SemanticCommonArtifactRenderer.Render(_, context))));
         artifacts.AddRange(SemanticEventSourceArtifactRenderer.Selected(context, slices).Select(source => Artifact(SemanticEventSourceArtifactRenderer.Render(source, context))));
-        if (slices.Any(slice => slice.Slice.Commands.Any(command => command.Authorization is not null) ||
-            slice.Slice.Queries.Any(query => query.Authorization is not null)))
+        if (SemanticPolicyNames.Operations(slices, context.Application.Policies).Count != 0)
         {
             artifacts.AddRange(SemanticPolicyArtifactRenderer.Render(context, slices).Select(Artifact));
             artifacts.AddRange(SemanticPolicyArtifactRenderer.RenderOpaque(context, slices).Select(Artifact));
@@ -473,9 +472,14 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var required = removals.IsDefault || diagnostics.Exists(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error) ? [] : removals;
 
         // The layout is applied last: the checks above and the renderers work on application-relative paths.
-        var plan = ArtifactRenderPlan.Create(request, [.. unique], [.. diagnostics], gaps, refusals, required);
+        var plan = ArtifactRenderPlan.Create(request, [.. RelocateSourceLines(request.Profile, unique)], [.. diagnostics], gaps, refusals, required);
         return ServiceLayout.Plan(request, plan);
     }
+
+    static IEnumerable<PlannedArtifact> RelocateSourceLines(ArtifactRenderProfile profile, IEnumerable<PlannedArtifact> artifacts) =>
+        SourceLineMappingInput.TryRead(profile, out var mapping) && mapping is not null
+            ? SourceLineDirectives.Relocate(profile, mapping, artifacts)
+            : artifacts;
 
     static SemanticOwnerOmission OmissionFor(OwnerOmissionAttempt? attempt) => attempt?.Omission ?? SemanticOwnerOmission.None;
 

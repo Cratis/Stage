@@ -115,10 +115,8 @@ internal static class SemanticImplementationAdmission
         {
             return new(requirement, null, null, refusal);
         }
-        if (query.Delivery == SemanticQueryDelivery.Live)
-        {
-            return new(requirement, null, "An observable performer has no body-owned stream; live performer bodies are not supported.");
-        }
+        var contractGap = PerformerContractGap(context, query, requirement);
+        if (contractGap is not null) return new(requirement, null, contractGap);
         if (!SemanticImplementationBodySelector.IsTarget(requirement)) return new(requirement, null, "The performer has an unsupported language; only C# bodies can be rendered.");
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         if (!TryGetVerifiedBody(context.Request, requirement.RequirementId, query.Id, diagnostics, out var body) || body is null)
@@ -129,6 +127,23 @@ internal static class SemanticImplementationAdmission
         var analysis = SemanticQueryContextRuntime.Analyze(context, query, requirement, body);
         return new(requirement, body, analysis?.Message);
     }
+
+    static string? PerformerContractGap(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticImplementationRequirement requirement)
+    {
+        var live = query.Delivery == SemanticQueryDelivery.Live;
+        var expectedResult = live ? 2u : 1u;
+        if ((requirement.ContextVersion, requirement.ResultVersion) != (1u, expectedResult))
+        {
+            return $"performer contract version {requirement.ContextVersion}/{requirement.ResultVersion} is not supported; this host renders 1/{expectedResult}";
+        }
+        if (!live) return null;
+        if (IsBuiltReadModel(context, query)) return null;
+        return $"read model '{context.ReadModels[query.ReadModel].Name}' cannot be observed: no projection or reducer builds it";
+    }
+
+    static bool IsBuiltReadModel(SemanticApplicationContext context, SemanticKeyedQuery query) =>
+        context.Projections.Values.Any(projection => projection.ReadModel == query.ReadModel) ||
+        context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel);
 
     static Dictionary<string, SemanticImplementationRequirement> IndexRequirements(ArtifactRenderRequest request, ImmutableArray<ArtifactRenderDiagnostic>.Builder diagnostics)
     {

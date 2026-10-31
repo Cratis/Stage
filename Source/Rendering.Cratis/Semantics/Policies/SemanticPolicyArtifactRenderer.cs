@@ -24,7 +24,7 @@ internal static class SemanticPolicyArtifactRenderer
         // Operations that share a policy share one file. Its bytes depend on the whole application, never on
         // which of its operations are selected, so independent renders of different scopes agree.
         var emitted = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var operation in SemanticPolicyNames.Operations(slices))
+        foreach (var operation in SemanticPolicyNames.Operations(slices, context.Application.Policies))
         {
             var name = names[operation.Id];
             if (!emitted.Add(name.ClassName))

@@ -15,12 +15,12 @@ namespace Cratis.Stage.Host;
 
 internal static class SemanticWorldRebuilder
 {
-    internal static SemanticWorld Create(
-        SemanticExecutionPlan plan,
-        IEnumerable<AppendedEventResponse> events,
-        ulong tail,
-        bool exact = true)
+    internal static SemanticWorld Create(SemanticExecutionPlan plan, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true) =>
+        Create(new SemanticReplayPlan(plan), events, tail, exact);
+
+    internal static SemanticWorld Create(SemanticReplayPlan replay, IEnumerable<AppendedEventResponse> events, ulong tail, bool exact = true)
     {
+        var (plan, bodies) = replay;
         var history = events.OrderBy(@event => @event.Context.SequenceNumber).ToArray();
         if (history.Length == 0 || history[0].Context.SequenceNumber != 0 ||
             history[^1].Context.SequenceNumber != tail ||
@@ -33,7 +33,7 @@ internal static class SemanticWorldRebuilder
         SemanticRebuildConstraints.Check(plan, facts);
         try
         {
-            return Outcome(new SemanticEvaluator().EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
+            return Outcome((bodies is null ? new SemanticEvaluator() : new SemanticEvaluator(bodies, bodies.Bodies)).EstablishWorld(SemanticProjectionAdmission.ForReplay(plan), facts));
         }
         catch (InvalidSemanticContract exception)
         {
@@ -151,7 +151,7 @@ internal static class SemanticWorldRebuilder
         return [.. properties.Select(property => new SemanticPropertyValue(property.Id, PropertyValue(json, property, application)))];
     }
 
-    static SemanticEventRoute? Route(SemanticExecutionPlan plan, Cratis.Chronicle.Contracts.Sequences.EventContext context)
+    static SemanticEventRoute? Route(SemanticExecutionPlan plan, Chronicle.Contracts.Sequences.EventContext context)
     {
         if (context.EventSourceType == EventSourceType.Default.Value &&
             context.EventStreamType == EventStreamType.All.Value && context.EventStreamId == EventStreamId.Default)
@@ -293,7 +293,7 @@ internal static class SemanticWorldRebuilder
         SemanticProducedEvent produced,
         SemanticEventContract contract,
         ImmutableArray<SemanticPropertyValue> values,
-        Cratis.Chronicle.Contracts.Sequences.EventContext context,
+        Chronicle.Contracts.Sequences.EventContext context,
         DateTimeOffset occurred)
     {
         if (!contract.Tags.AddRange(produced.Tags).SequenceEqual(context.Tags))

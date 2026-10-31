@@ -106,7 +106,8 @@ public class when_rendering_query_performers_with_compiler_contexts : given.a_so
         var result = CratisRendering.PlanFrom(loaded, _featureSelection, _planOptions);
         Assert.NotNull(result.Plan);
         result.Plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
-        Assert.Contains(result.Plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006");
+        Assert.Contains(result.Plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-006" && diagnostic.Message.Contains("cannot be observed", StringComparison.Ordinal));
+        Assert.All(result.Plan.ImplementationGaps, gap => gap.ResultVersion.ShouldEqual(2u));
         var content = Content(result);
         content.ShouldContain("throw new NotImplementedException(");
         content.ShouldNotContain(InlineBody);

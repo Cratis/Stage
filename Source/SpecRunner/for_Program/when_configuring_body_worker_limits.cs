@@ -15,7 +15,7 @@ public class when_configuring_body_worker_limits : Specification
     void Because() => _options = Program.ParseBodyWorkerOptions([
         "--model", "source", "--body-worker-path", "worker with spaces.dll", "--body-worker-cache", "cache with spaces", "--body-worker-dotnet", "custom dotnet",
         "--body-worker-timeout-ms", "11", "--body-worker-compile-timeout-ms", "12", "--body-worker-heap-limit-mb", "13",
-        "--body-worker-working-set-limit-mb", "14", "--body-worker-max-response-bytes", "15", "--body-worker-max-stderr-bytes", "16"])!;
+        "--body-worker-working-set-limit-mb", "14", "--body-worker-max-response-bytes", "15", "--body-worker-max-stderr-bytes", "16"]);
 
     [Fact] void should_preserve_the_worker_path() => _options.WorkerPath.ShouldEqual("worker with spaces.dll");
     [Fact] void should_preserve_the_cache_path() => _options.CacheDirectory.ShouldEqual("cache with spaces");

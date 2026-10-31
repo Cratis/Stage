@@ -53,7 +53,7 @@ public class when_evaluating_a_rule : Specification
         await using var provider = new ScreenplayBodyExecutionProvider(Manifest(), worker);
         var result = await provider.EvaluateAsync(body, Context(), CancellationToken.None);
         result.Satisfied.ShouldBeNull();
-        result.Diagnostic!.StartsWith(BodyDiagnostics.WorkerFailed, StringComparison.Ordinal).ShouldBeTrue();
+        result.Diagnostic.StartsWith(BodyDiagnostics.WorkerFailed, StringComparison.Ordinal).ShouldBeTrue();
         await worker.DidNotReceive().EvaluateAsync(Arg.Any<BodyEvaluationRequest>(), Arg.Any<CancellationToken>());
     }
 

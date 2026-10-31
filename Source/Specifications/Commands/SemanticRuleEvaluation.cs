@@ -34,7 +34,7 @@ internal static class SemanticRuleEvaluation
             }
         }
 
-        foreach (var failure in ConceptFailures(command, values, application, run))
+        foreach (var failure in CommandValidationFailures(command, specification, run).Concat(ConceptFailures(command, values, application, run)))
         {
             yield return failure;
         }
@@ -70,7 +70,28 @@ internal static class SemanticRuleEvaluation
             ? bodies.Check(rule, new(value, value, string.Empty, run.Tenant, null, run.AuthoredOccurrence), run.BodyCancellation)
             : SemanticValidationRules.Check(rule, value);
 
+    internal static IEnumerable<SemanticRuleCheck> ConceptChecks(SemanticValidationRule rule, SemanticValue value, SemanticRunContext? run) =>
+        rule.Kind == SemanticValidationRuleKind.CodeValidation
+            ? ValidationChecks(rule, new(value, value, string.Empty, run?.Tenant, null, run?.AuthoredOccurrence), run)
+            : [ConceptCheck(rule, value, run)];
+
     internal static bool Satisfies(SemanticRuleCheck check) => Satisfied(check);
+
+    static IEnumerable<SemanticValidationFailure> CommandValidationFailures(SemanticCommand command, SemanticSpecification specification, SemanticRunContext? run)
+    {
+        var artifact = SemanticValue.Composite(specification.When!.Values);
+        foreach (var validation in command.CodeValidations)
+        {
+            var rule = new SemanticValidationRule(default, SemanticValidationRuleKind.CodeValidation, null, null) { RequirementId = validation.RequirementId };
+            foreach (var check in ValidationChecks(rule, new(artifact, artifact, string.Empty, run?.Tenant, null, run?.AuthoredOccurrence), run))
+            {
+                if (!Satisfied(check)) yield return new(check.Message, check.Rule.Severity);
+            }
+        }
+    }
+
+    static IEnumerable<SemanticRuleCheck> ValidationChecks(SemanticValidationRule rule, SemanticRuleContext context, SemanticRunContext? run) =>
+        run?.BodyRules is { } bodies ? bodies.CheckValidation(rule, context, run.BodyCancellation) : [SemanticValidationRules.Check(rule, context.Value)];
 
     static bool Satisfied(SemanticRuleCheck check) => check.Status switch
     {

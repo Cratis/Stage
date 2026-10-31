@@ -32,7 +32,7 @@ public class when_a_rule_has_worker_admission : Specification
         var entry = Entry(loaded, false) with { DiagnosticCode = "STAGE-ESM-022", DiagnosticMessage = "STAGE-ESM-022: Pure validation was refused." };
         var bodies = SemanticBodyExecution.From(loaded, new(loaded.Plan.Revision.ToString(), [entry]), () => Substitute.For<IBodyWorkerClient>());
         var refusal = SemanticImplementationReach.ForCommand(loaded.Plan, loaded.Plan.Commands.Values.Single(), bodies);
-        refusal!.Details.ShouldEqual(entry.DiagnosticMessage);
+        refusal.Details.ShouldEqual(entry.DiagnosticMessage);
         SemanticImplementationReach.IsBodyRefusal(refusal.Details, bodies).ShouldBeTrue();
     }
 
@@ -48,7 +48,7 @@ public class when_a_rule_has_worker_admission : Specification
     {
         var loaded = await Load(false, false);
         var refusal = SemanticImplementationReach.ForCommand(loaded.Plan, loaded.Plan.Commands.Values.Single());
-        refusal!.Details.StartsWith("STAGE-IMPL-003:", StringComparison.Ordinal).ShouldBeTrue();
+        refusal.Details.StartsWith("STAGE-IMPL-003:", StringComparison.Ordinal).ShouldBeTrue();
     }
 
     static BodyUnitEntry Entry(LoadedSemanticModel loaded, bool admitted)

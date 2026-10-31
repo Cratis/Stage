@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -36,7 +37,7 @@ internal static partial class SemanticSpecificationAdmission
         var expected = specification.ThenQueries[0];
         return ProtectedCollectionRejectionReason(context, specification) is null &&
             context.Queries.TryGetValue(expected.Query, out var query) &&
-            (query.Authorization is null ? specification.GivenCaller is null :
+            (!IsProtected(context, query) ? specification.GivenCaller is null || SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies) :
                 query.Cardinality == SemanticQueryCardinality.Many && specification.GivenCaller is { } caller &&
                 !caller.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) &&
                 HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification)) &&

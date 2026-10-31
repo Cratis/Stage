@@ -58,8 +58,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");
     [Fact] void should_not_camel_case_an_enumeration_name() => Encoding.UTF8.GetString(_bytes).ShouldNotContain("\"kind\":\"doubleClick\"");
     [Fact] void should_plan_the_authored_scene_with_its_guards() => _refusal.ShouldBeNull();
-    [Fact] void should_plan_without_warnings_or_errors() => _plan!.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
-    [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan!.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
+    [Fact] void should_plan_without_warnings_or_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Information).ShouldBeEmpty();
+    [Fact] void should_reassemble_the_canonical_scene_byte_identically() => _plan.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(_bytes);
 
     // Re-frozen for Cratis/Stage#707: the default scaffold is React Aria; only the PrimeReact removal and the Scene 4.80.0 / Components 4.34.0 pins change.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
@@ -96,7 +96,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     {
         var form = ScreenCompositionCorpus.V1.SourceForms.Single(form => form.Name == name);
         var plan = Plan(form.Documents, form.IdentityCatalogBytes.AsSpan(), carryScene: true).Plan;
-        Fragments(plan).ShouldEqual(Fragments(_plan!));
+        Fragments(plan).ShouldEqual(Fragments(_plan));
         plan.Artifacts.Single(artifact => artifact.RelativePath == "scene.json").Bytes.ShouldEqual(Encoding.UTF8.GetBytes(CanonicalSceneJson.Serialize(SceneOf(form.Documents))));
     }
 

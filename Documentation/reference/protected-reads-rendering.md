@@ -32,7 +32,6 @@ namespace ProtectedReads.Storage.Decisions.Use;
 
 [Command]
 [BlockOnValidationSeverity(ValidationResultSeverity.Error)]
-[AllowAnonymous]
 public record Consume(string SourceId, string Id) : ICanProvideEventSourceId
 {
     /// <inheritdoc/>

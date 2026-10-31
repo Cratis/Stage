@@ -284,8 +284,10 @@ that has one.
   captures, non-event triggers, opaque reaction bodies and Translate slices still fail `STAGE-ESM-024`.
   Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
   See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
-- **No authorization is applied to your code.** Endpoints you map are anonymous unless you secure them with ASP.NET
-  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders.
+- **Modeled authorization covers only the artifacts Stage renders.** Endpoints you map follow your ASP.NET Core
+  authorization configuration. Generated commands and queries without an `authorize` clause also follow the host's
+  fallback policy (or allow anonymous access when none is configured). An explicit `require anonymous` policy
+  renders `[AllowAnonymous]` and bypasses that fallback for the modeled operation.
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
   generated middleware. You cannot place middleware before static files or Cratis through this hook.
 - **Registrations can replace Cratis services.** `ConfigureServices` runs after `AddCratis`, and the last

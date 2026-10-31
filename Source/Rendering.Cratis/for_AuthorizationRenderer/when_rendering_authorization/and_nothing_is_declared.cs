@@ -13,6 +13,6 @@ public class and_nothing_is_declared : an_application_with_policies
 
     void Because() => _attribute = Render(null);
 
-    [Fact] void should_state_the_absence_as_anonymous_access() => _attribute.ShouldEqual("AllowAnonymous");
+    [Fact] void should_leave_authorization_to_the_host() => _attribute.ShouldBeNull();
     [Fact] void should_not_report_anything() => _diagnostics.ShouldBeEmpty();
 }

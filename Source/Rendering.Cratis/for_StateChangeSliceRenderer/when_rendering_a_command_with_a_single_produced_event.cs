@@ -24,6 +24,9 @@ public class when_rendering_a_command_with_a_single_produced_event : state_chang
         _file.Content.ShouldContain("namespace CratisApp.Billing.Invoices.RegisterInvoice;");
     [Fact] void should_not_import_common_since_the_concept_is_used_only_by_this_slice() => _file.Content.ShouldNotContain("using CratisApp.Common;");
     [Fact] void should_emit_the_command_attribute() => _file.Content.ShouldContain("[Command]");
+    [Fact] void should_not_emit_an_authorization_attribute_without_a_clause() =>
+        _file.Content.ShouldContain("[Command]\npublic record RegisterInvoice");
+    [Fact] void should_not_import_authorization_without_a_clause() => _file.Content.ShouldNotContain("using Cratis.Arc.Authorization;");
     [Fact] void should_declare_the_command_record() => _file.Content.ShouldContain("public record RegisterInvoice(InvoiceId InvoiceId, string Name)");
     [Fact] void should_not_emit_a_key_attribute_for_a_concept_typed_identifier() => _file.Content.ShouldNotContain("[Key]");
     [Fact] void should_emit_an_expression_bodied_handle_for_a_single_unconditional_event() =>

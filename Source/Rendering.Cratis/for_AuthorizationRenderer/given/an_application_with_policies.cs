@@ -27,6 +27,7 @@ public class an_application_with_policies : Specification
                 new PolicySyntax("Administrator", new RoleConditionSyntax("Administrator", SourceLocation.Start), null, SourceLocation.Start),
                 new PolicySyntax("Auditor", new RoleConditionSyntax("Auditor", SourceLocation.Start), null, SourceLocation.Start),
                 new PolicySyntax("Authenticated", new AuthenticatedConditionSyntax(SourceLocation.Start), null, SourceLocation.Start),
+                new PolicySyntax("Public", new AnonymousConditionSyntax(SourceLocation.Start), null, SourceLocation.Start),
                 new PolicySyntax("Owner", new ClaimConditionSyntax("sub", true, null, SourceLocation.Start), null, SourceLocation.Start),
                 new PolicySyntax(
                     "AdministratorAndAuditor",

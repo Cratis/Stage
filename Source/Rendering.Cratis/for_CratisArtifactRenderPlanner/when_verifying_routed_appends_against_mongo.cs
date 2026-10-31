@@ -218,8 +218,10 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
     [Fact]
     async Task should_wire_the_generated_host_without_a_kernel() => await Verify("should_wire_the_generated_host");
 
+#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     async Task should_append_all_routes_when_configured() => await Verify("should_append_each_route_through_the_generated_host");
+#pragma warning restore CRSPEC0004
 
     async Task Verify(string fact)
     {

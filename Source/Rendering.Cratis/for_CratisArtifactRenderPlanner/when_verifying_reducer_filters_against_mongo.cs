@@ -23,8 +23,10 @@ public class when_verifying_reducer_filters_against_mongo : a_generated_applicat
         return when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(source).GetAwaiter().GetResult());
     }
 
+#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     async Task should_filter_reducer_appends_when_configured()
+#pragma warning restore CRSPEC0004
     {
         try
         {

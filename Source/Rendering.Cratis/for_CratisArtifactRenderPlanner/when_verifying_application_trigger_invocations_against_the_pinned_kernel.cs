@@ -17,8 +17,10 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
     const string InnerTest = "Reactions.KernelProbe.ApplicationTriggerInvocationProbe.should_resume_commands_and_retain_refusals_per_namespace";
     protected override bool DeferPlan => true;
 
+#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     public async Task should_resume_commands_and_retain_refusals_when_configured()
+#pragma warning restore CRSPEC0004
     {
         try
         {

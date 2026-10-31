@@ -21,11 +21,13 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
     [Fact]
     public Task should_compile_min_a3_http_probe_without_a_connection() => Compile("min-a3", "Billing");
 
+#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     public Task should_verify_demo_when_configured() => Execute("demo", "Billing");
 
     [MongoFact]
     public Task should_verify_min_a3_when_configured() => Execute("min-a3", "Billing");
+#pragma warning restore CRSPEC0004
 
     async Task Compile(string sample, string project)
     {

@@ -7,7 +7,9 @@ import { afterEach, chai, describe, it, vi } from 'vitest';
 import { PrimeReactProvider } from '@primereact/core';
 import { registerStageCommands } from '../../src/host/commandRegistration';
 import { stageComponents } from './stageComponents';
-import { StageDataProvider, useStageQuery } from './stageData';
+import { StageDataProvider, useStageData } from './stageData';
+import { StageQueryBindings } from './stageQueryBindings';
+import { StageScreenTables } from './stageScreenTables';
 import { useComponentOutputsPublisher } from './stageComponentOutputs';
 import { element } from './testElements';
 import { registerTestQueries, queryResult } from './testing/queries';
@@ -33,28 +35,43 @@ const routes = {
     },
 };
 const toolbarItem = element('dispatch', 'core:toolbarItem', { name: 'dispatch', kind: 'Action', label: 'Dispatch', target: 'DispatchShipment' });
+const board = element('picking', 'Cratis.Blueprint.Default:kanbanBoard', { cards: { kind: 'queryResult', query: 'PickingQueue', path: '' } });
+const composedScreen = element('picking-screen', 'core:stack', {}, { content: [toolbarItem, board] });
 
 /** Scene's board output boundary: the original query row, or null after clearing selection. */
-function BoardOutputs({ selectedItem }: { selectedItem: Record<string, unknown> | null }) {
-    const publish = useComponentOutputsPublisher();
+function BoardOutputs({ selectedItem, onOutputs, label = 'picking' }: { selectedItem: Record<string, unknown> | null; onOutputs?: ReturnType<typeof useComponentOutputsPublisher>; label?: string }) {
+    const ownPublish = useComponentOutputsPublisher();
+    const publish = onOutputs ?? ownPublish;
     const outputs = useMemo(() => ({ picking: { selectedItem } }), [selectedItem]);
-    const { loading } = useStageQuery({ scope: 'picking', name: 'PickingQueue', route: '/api/picking', list: true });
+    const loading = useStageData().queries['binding:PickingQueue']?.loading ?? true;
     useEffect(() => publish(outputs), [outputs, publish]);
-    return <output aria-label='Board status'>{loading ? 'Loading' : 'Ready'}</output>;
+    useEffect(() => () => publish({}), [publish]);
+    return <output aria-label={`${label} status`}>{loading ? 'Loading' : 'Ready'}</output>;
 }
 
-function view(selectedItem: Record<string, unknown> | null, showBoard = true) {
+function BoardScreen({ selectedItem, showBoard, subject }: { selectedItem: Record<string, unknown> | null; showBoard: boolean; subject?: string }) {
+    const outputs = useComponentOutputsPublisher();
+    return (
+        <StageScreenTables element={composedScreen} outputScope={outputs.scope}>
+            <StageQueryBindings element={composedScreen} />
+            <StageToolbarItem element={{ ...toolbarItem, properties: { ...toolbarItem.properties, actionSubject: subject } }} slots={{}} />
+            {showBoard && <BoardOutputs selectedItem={selectedItem} onOutputs={outputs} />}
+        </StageScreenTables>
+    );
+}
+
+function view(selectedItem: Record<string, unknown> | null, showBoard = true, subject?: string) {
     return (
         <PrimeReactProvider>
             <StageDataProvider routes={routes} locale='en' locales={['en']} screen='PickingQueue'>
-                <StageToolbarItem element={toolbarItem} slots={{}} />
-                {showBoard && <BoardOutputs selectedItem={selectedItem} />}
+                <BoardScreen selectedItem={selectedItem} showBoard={showBoard} subject={subject} />
+                <BoardOutputs label='another-screen' selectedItem={rows[0]} />
             </StageDataProvider>
         </PrimeReactProvider>
     );
 }
 
-async function renderBoard(selectedItem: Record<string, unknown> | null = null) {
+async function renderBoard(selectedItem: Record<string, unknown> | null = null, subject?: string) {
     registerStageCommands(routes);
     registerTestQueries(routes.queries);
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
@@ -62,15 +79,15 @@ async function renderBoard(selectedItem: Record<string, unknown> | null = null) 
         : Promise.resolve({ ok: true, json: async () => queryResult({ data: rows }) }));
     vi.stubGlobal('fetch', fetched);
     globalThis.location.hash = '#/PickingQueue';
-    const rendered = render(view(selectedItem));
-    await waitFor(() => (screen.getByLabelText('Board status').textContent ?? '').should.equal('Ready'));
+    const rendered = render(view(selectedItem, true, subject));
+    await waitFor(() => (screen.getByLabelText('picking status').textContent ?? '').should.equal('Ready'));
     return { rendered, fetched };
 }
 
 const dispatchButton = () => screen.getByRole('button', { name: 'Dispatch' }) as HTMLButtonElement;
 
-async function selectCard(rendered: ReturnType<typeof render>) {
-    rendered.rerender(view(rows[1]));
+async function selectCard(rendered: ReturnType<typeof render>, subject?: string) {
+    rendered.rerender(view(rows[1], true, subject));
     await waitFor(() => dispatchButton().disabled.should.equal(false));
 }
 
@@ -89,9 +106,10 @@ describe('a board toolbar action using Scene selectedItem outputs', () => {
         dispatchButton().title.should.equal('Select a row first');
     });
 
-    it('should enable and submit the selected card identifier', async () => {
-        const { rendered, fetched } = await renderBoard();
-        await selectCard(rendered);
+    it.each([undefined, 'item'])('should gate and submit its own selected card with subject %s', async subject => {
+        const { rendered, fetched } = await renderBoard(null, subject);
+        await waitFor(() => dispatchButton().disabled.should.equal(true));
+        await selectCard(rendered, subject);
 
         fireEvent.click(dispatchButton());
         const dialog = await screen.findByRole('dialog');

@@ -492,7 +492,7 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
     return (
-        <StageScreenTables element={element}>
+        <StageScreenTables element={element} outputScope={publishOutputs.scope}>
             <StageQueryBindings element={element} />
             <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
         </StageScreenTables>

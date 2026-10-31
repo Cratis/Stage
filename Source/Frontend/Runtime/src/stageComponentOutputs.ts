@@ -13,7 +13,7 @@ import { useStageData } from './stageData';
  *
  * @returns The callback to hand the tree's `SceneElementView`.
  */
-export function useComponentOutputsPublisher(): (outputs: Record<string, Record<string, unknown>>) => void {
+export function useComponentOutputsPublisher(): ((outputs: Record<string, Record<string, unknown>>) => void) & { readonly scope: string } {
     const scope = useId();
     const { publishComponentOutputs, withdrawComponentOutputs, selectRow, clearSelection } = useStageData();
     const selections = useRef<Record<string, Record<string, unknown>>>({});
@@ -21,7 +21,7 @@ export function useComponentOutputsPublisher(): (outputs: Record<string, Record<
         withdrawComponentOutputs(scope);
         Object.keys(selections.current).forEach(component => clearSelection(`${scope}:${component}`));
     }, [clearSelection, scope, withdrawComponentOutputs]);
-    return useCallback((outputs: Record<string, Record<string, unknown>>) => {
+    const publish = useCallback((outputs: Record<string, Record<string, unknown>>) => {
         publishComponentOutputs(scope, outputs);
         const next = selectedItemsOf(outputs);
         const components = new Set([...Object.keys(selections.current), ...Object.keys(next)]);
@@ -30,6 +30,7 @@ export function useComponentOutputsPublisher(): (outputs: Record<string, Record<
         }
         selections.current = next;
     }, [publishComponentOutputs, scope, selectRow]);
+    return Object.assign(publish, { scope });
 }
 
 /** Native selectedItem outputs join the same selection state that Stage tables already publish. */

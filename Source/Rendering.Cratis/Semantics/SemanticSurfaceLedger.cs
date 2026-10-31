@@ -136,7 +136,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticCommand", rendered, "Id Name Properties Validations Produces Destination Requirements Authorization");
         Add(entries, "SemanticCommand", rendered, "Route");
         Add(entries, "SemanticCommand", rejected(SemanticVersionFeatures.PendingCommandHandler), "Handler");
-        Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion");
+        Add(entries, "SemanticCommandHandler", rejected(SemanticVersionFeatures.PendingCommandHandler), "RequirementId ResultVersion PossibleEvents");
         Add(entries, "SemanticCommand", rendered, "CodeValidations");
         Add(entries, "SemanticCodeValidation", rendered, "RequirementId");
         Add(entries, "SemanticCommandRoute", rendered, "Source Stream StreamId StreamIdParts");
@@ -175,7 +175,8 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticExpression", rendered, "Kind");
         Add(entries, "SemanticExpressionKind", rendered, "Resolved Refusal");
         Add(entries, "SemanticRefusalExpression", rendered, "Member Type");
-        Add(entries, "SemanticExpressionKind", rejected("STAGE-ESM-006"), "Unknown Value EventContext");
+        Add(entries, "SemanticExpressionKind", rejected("STAGE-ESM-006"), "Unknown Value EventContext OneOf");
+        Add(entries, "SemanticOneOfExpression", rejected("STAGE-ESM-006"), "CollectionProperty");
         Add(entries, "SemanticExpressionRootKind", rendered, "Command Event");
         Add(entries, "SemanticExpressionRootKind", rejected("STAGE-ESM-006"), "Unknown");
         Add(entries, "SemanticExpressionSourceKind", rendered, "Property");

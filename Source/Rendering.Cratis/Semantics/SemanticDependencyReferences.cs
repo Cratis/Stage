@@ -28,7 +28,9 @@ internal static class SemanticDependencyReferences
         [SemanticDependencyKind.Expression] = """
         SemanticConcept:Validations
         SemanticValidationRule:Property Operand
-        SemanticCommand:Validations Produces Destination Requirements Authorization Route Reads Guard Refusals Response
+        SemanticCommand:Validations Produces Destination Requirements Authorization Route Reads Guard Refusals Response Handler
+        SemanticCommandHandler:PossibleEvents
+        SemanticOneOfExpression:CollectionProperty
         SemanticPropertyMapping:Source TargetProperty
         SemanticStateChangeDestination:Type Value
         SemanticResolvedExpression:Target
@@ -126,7 +128,9 @@ internal static class SemanticDependencyReferences
         SemanticConstraintTarget:EventContract Properties
         """,
         [SemanticDependencyKind.TypedContext] = """
-        SemanticTypedContextDescriptor:Members OperationId Types
+        SemanticTypedContextDescriptor:Members OperationId Types Result
+        SemanticHandlerResultDescriptor:Entries
+        SemanticHandlerResultEntry:EventContract Payload DestinationType
         SemanticTypedContextMember:Source Type
         SemanticContextSource:SemanticId
         SemanticContextType:ModelType Shape Properties

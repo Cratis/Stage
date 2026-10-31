@@ -27,7 +27,7 @@ public class when_auditing_the_route_surface : Specification
         // not event routing. Concurrency dimensions describe append scope, not a named route selection.
         // Production streams are traversed as CommandStreamSyntax; observer filters are refused by ReactionIdentitySyntaxAdmission.
         // Every other owner below has explicit route detection in EventRouteSyntaxAdmission.
-        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ObserverFilterSyntax.Stream ProducesSyntax.Stream ScreenNavigateSyntax.Route SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
+        string.Join(' ', actual).ShouldEqual("ApplicationSyntax.EventSources CommandStreamSyntax.Stream CommandStreamSyntax.StreamId CommandStreamSyntax.StreamIdParts CommandSyntax.Stream CommandSyntax.StreamCandidates ConcurrencySyntax.EventStreamId ConcurrencySyntax.EventStreamType EventSourceSyntax.Streams EventStreamSyntax.StreamId EventStreamSyntax.StreamIdParts ObserverFilterSyntax.Stream PossibleEventSyntax.Stream ProducesSyntax.Stream ScreenNavigateSyntax.Route SpecificationEventSyntax.NoStream SpecificationEventSyntax.Stream SpecificationExampleSyntax.NoStream SpecificationExampleSyntax.Stream SpecificationRedeliverySyntax.NoStream SpecificationRedeliverySyntax.Stream SpecificationStreamSyntax.Stream SpecificationStreamSyntax.StreamId SpecificationStreamSyntax.StreamIdParts");
     }
 
     [Fact]
@@ -39,6 +39,7 @@ public class when_auditing_the_route_surface : Specification
         [
             new EventSourceSyntax("Invoice", location),
             new EventStreamSyntax("Changes", location),
+            new PossibleEventSyntax("InvoiceRegistered", null, false, new("Invoice", "Changes", location), [], location),
             new CommandStreamSyntax("Invoice", "Changes", location),
             new CommandSyntax("RegisterInvoice", [], null, [], [], null, location) { StreamCandidates = [new("Invoice", "Changes", location)] },
             new SpecificationEventSyntax("InvoiceRegistered", [], location) { Stream = stream },

@@ -27,8 +27,6 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
     string? _failure;
     int _disposed;
 
-    internal int RetainedSlots => _slots.Count;
-
     /// <summary>
     /// Creates a factory and starts warming its compilation in the background.
     /// </summary>
@@ -52,6 +50,8 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
             finally { _gate.Release(); }
         });
     }
+
+    internal int RetainedSlots => _slots.Count;
 
     /// <inheritdoc/>
     /// <exception cref="ObjectDisposedException">The factory has been disposed.</exception>

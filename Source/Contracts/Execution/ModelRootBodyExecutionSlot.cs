@@ -12,20 +12,20 @@ internal sealed class ModelRootBodyExecutionSlot(BodyUnitManifest manifest, IBod
     bool _retired;
     Task? _disposal;
 
+    internal bool IsDisposed
+    {
+        get
+        {
+            lock (_gate) return _disposal is { IsCompleted: true };
+        }
+    }
+
     public ValueTask DisposeAsync()
     {
         lock (_gate)
         {
             _disposal ??= worker is IAsyncDisposable disposable ? disposable.DisposeAsync().AsTask() : Task.CompletedTask;
             return new(_disposal);
-        }
-    }
-
-    internal bool IsDisposed
-    {
-        get
-        {
-            lock (_gate) return _disposal is { IsCompleted: true };
         }
     }
 

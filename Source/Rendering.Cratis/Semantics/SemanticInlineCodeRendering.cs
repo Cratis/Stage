@@ -22,7 +22,7 @@ internal static class SemanticInlineCodeRendering
 {
     internal static SemanticInlineCodeResult Generation(SemanticConcept concept, SemanticApplicationContext context)
     {
-        var placement = new InlineCodePlacement("generation", concept.Id.ToString(), SemanticGenerationRendering.BodyMethod(concept));
+        var placement = new InlineCodePlacement("generation", concept.Id.ToString(), SemanticGenerationRendering.BodyMethod(concept, context));
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         var site = new SemanticInlineCodeSite(concept.Generation!.RequirementId!, concept.Id, placement);
         if (!SemanticImplementationAdmission.TryGetVerifiedInline(context.Request, site, diagnostics, out var code))
@@ -52,7 +52,7 @@ internal static class SemanticInlineCodeRendering
 
     internal static SemanticInlineCodeResult CommandBody(SemanticCommand command, SemanticApplicationContext context)
     {
-        var placement = new InlineCodePlacement("command", command.Id.ToString(), SemanticCommandHandlerRendering.Method(command));
+        var placement = new InlineCodePlacement("command", command.Id.ToString(), SemanticCommandHandlerRendering.Method(command, context));
         var diagnostics = ImmutableArray.CreateBuilder<ArtifactRenderDiagnostic>();
         var site = new SemanticInlineCodeSite(command.Handler!.RequirementId, command.Id, placement);
         if (!SemanticImplementationAdmission.TryGetVerifiedInline(context.Request, site, diagnostics, out var code))

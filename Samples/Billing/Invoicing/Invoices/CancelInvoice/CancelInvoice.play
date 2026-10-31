@@ -15,11 +15,9 @@ module Invoicing
           for invoiceId
           invoiceId = invoiceId
           reason = reason
-          cancelledBy = $context.identity.userName
           cancelledAt = $context.occurred
 
       event InvoiceCancelled
         invoiceId InvoiceId
         reason String
-        cancelledBy String
         cancelledAt DateTime

@@ -11,7 +11,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_pla
 /// <summary>
 /// Stage#817 renders typed C# inline and file bodies beside productions using the compiler's handler descriptor.
 /// The pinned compiler still needs a synthetic resolved attachment (Screenplay#1068); ambient access and
-/// untyped returns remain refused, and foreign languages retain STAGE-IMPL-002 even in Stub mode.
+/// untyped returns remain refused, and foreign languages receive STAGE-IMPL-LANGUAGE even in Stub mode.
 /// </summary>
 public class with_attached_bodies_beside_productions
 {
@@ -61,8 +61,8 @@ public class with_attached_bodies_beside_productions
     [Theory]
     [InlineData("return new LateFeeApplied(context.Identity.Id);", "csharp", null, "STAGE-ESM-015")]
     [InlineData("return new object[] { 42 };", "csharp", "Handlers/ApplyLateFee.cs", "STAGE-ESM-019")]
-    [InlineData("return [42]", "python", null, "STAGE-IMPL-002")]
-    [InlineData("return [42]", "python", "Handlers/apply_late_fee.py", "STAGE-IMPL-002")]
+    [InlineData("return [42]", "python", null, "STAGE-IMPL-LANGUAGE")]
+    [InlineData("return [42]", "python", "Handlers/apply_late_fee.py", "STAGE-IMPL-LANGUAGE")]
     public void should_refuse_unavailable_untyped_and_foreign_bodies(string body, string language, string? file, string code)
     {
         var request = Request(body, language, file);
@@ -79,7 +79,7 @@ public class with_attached_bodies_beside_productions
                 Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code &&
                     diagnostic.Message.Contains(language, StringComparison.Ordinal) &&
                     diagnostic.Message.Contains(command.Handler!.RequirementId, StringComparison.Ordinal) &&
-                    diagnostic.Message.Contains("only C# handler bodies", StringComparison.Ordinal));
+                    diagnostic.Message.Contains("Add a csharp body to render it with the Cratis target.", StringComparison.Ordinal));
             }
         }
     }

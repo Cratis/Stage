@@ -62,7 +62,10 @@ public class with_filtered_reducer_reach : Specification
                 ((SemanticRejected)result).Category.ShouldEqual(SemanticRejectionCategory.Constraint);
                 ((SemanticRejected)result).Code.ShouldEqual("Once");
             }
-            else ((SemanticUnsupported)result).Capability.ShouldEqual(SemanticExecutionCapability.Projection);
+            else
+            {
+                ((SemanticUnsupported)result).Capability.ShouldEqual(SemanticExecutionCapability.Projection);
+            }
             result.World.Facts.ShouldBeEmpty();
             await ((IAppendSemanticFactsAtTail)appender).DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>(), Arg.Any<ulong>());
         }

@@ -175,6 +175,7 @@ public sealed class CratisFrontendApplicationScaffold
 
         # Node.js
         node_modules/
+        .yarn/
         npm-debug.log*
         yarn-debug.log*
         yarn-error.log*

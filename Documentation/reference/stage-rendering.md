@@ -266,7 +266,7 @@ Nullable keys and optional concept filters with `not empty` rules receive `STAGE
 Arc skips null concept values, while the reference validates nullable concept keys and rejects
 explicitly null filters. An omitted optional filter remains distinct from a supplied null.
 
-A query a `performer` answers is an opaque read: the executable model leaves it out of the slice's queries and carries its shape - the read model, cardinality, delivery, `by` key and filters, and who may call it (`SemanticPerformedQueryShape.Authorization`, Screenplay 4.236) - on the `QueryPerformer` implementation requirement. Stage renders it as the query that shape states: the read model record, the query method with its route, parameters (filters in declaration order, optional ones defaulted) and the `[Authorize]` policy the model names, and a read model such a query returns needs no projection or reducer. When a verified inline `csharp` or file body is attached, Stage embeds it in a compile-checked helper. The body returns a read-model instance (or null) for a single query, or `IEnumerable<ReadModel>` for a collection. `readModels` is the current read-model collection; caller arguments are available both as their camelCase parameter names and as PascalCase properties on `context.Arguments`. The application-local context also supplies `Tenant` (string), `Identity` (`ClaimsPrincipal`), and `ReceivedAt` (`DateTimeOffset` captured by Arc at query receipt). It deliberately has no command causation, `CausedBy`, or event `Occurred` member. Snapshot queries load instances once. The body is synchronous C#, not a pure reducer sandbox. Observable/live performers have no body-owned stream and render as explicit gaps rather than applying a body to read-model emissions. A non-C# body, missing attachment, changed or hash-invalid body, or body compile error also becomes a gap. Both planning and direct shape rendering produce the same compilable method boundary, throwing `NotImplementedException` with `Query '<name>' (requirement <id>) is not runnable: <reason>`. Planning reports one `STAGE-IMPL-006` Warning per such query ("performer rendered as a gap"), preserving the original reason, compiler diagnostic and body source location when available. The generated artifacts remain available.
+A query a `performer` answers is an opaque read: the executable model leaves it out of the slice's queries and carries its shape - the read model, cardinality, delivery, `by` key and filters, and who may call it (`SemanticPerformedQueryShape.Authorization`, Screenplay 4.236) - on the `QueryPerformer` implementation requirement. Stage renders it as the query that shape states: the read model record, the query method with its route, parameters (filters in declaration order, optional ones defaulted) and the `[Authorize]` policy the model names, and a read model such a query returns needs no projection or reducer. When a verified inline `csharp` or file body is attached, Stage embeds it in a compile-checked helper. The body returns a read-model instance (or null) for a single query, or `IEnumerable<ReadModel>` for a collection. `readModels` is the current read-model collection; caller arguments are available both as their camelCase parameter names and as PascalCase properties on `context.Arguments`. The application-local context also supplies `Tenant` (string), `Identity` (`ClaimsPrincipal`), and `ReceivedAt` (`DateTimeOffset` captured by Arc at query receipt). It deliberately has no command causation, `CausedBy`, or event `Occurred` member. Snapshot queries load instances once. The body is synchronous C#, not a pure reducer sandbox. Observable/live performers have no body-owned stream and render as explicit gaps rather than applying a body to read-model emissions. A body in another language now refuses planning with `STAGE-IMPL-LANGUAGE`; it never becomes a gap or stub, even in Stub mode. A missing attachment, changed or hash-invalid body, or body compile error retains its existing diagnostics and gap handling. Both planning and direct shape rendering produce the same compilable method boundary, throwing `NotImplementedException` with `Query '<name>' (requirement <id>) is not runnable: <reason>`. Planning reports one `STAGE-IMPL-006` Warning per such query ("performer rendered as a gap"), preserving the original reason, compiler diagnostic and body source location when available. The generated artifacts remain available.
 
 Each gap has `ArtifactImplementationGapOrigin.Unverified`, an additive public contract member with minor-version intent, the compiler requirement identity, and the generated stub's signature, body locator and unrealized typed-context metadata. `STAGE-NOT-RUNNABLE.md` lists every gap in the plan. Any non-empty `ImplementationGaps` makes `Outcome` `Partial`; `Success` still means no Error diagnostics, so a partial gap plan can be successful without being fully runnable. Verified synchronous bodies remain unchanged, with `Outcome` `Complete` and no marker when no gaps exist. `STAGE-ESM-019`, `STAGE-ESM-020` and `STAGE-IMPL-005` keep their Error meanings for cases that still refuse; they are not reused as warnings. The semantic runtime continues to list the read model but not the opaque query. A policy implemented by code, a composite `by` key, an unresolved argument type, an observable single result or a required argument after an optional one refuse the read model with `STAGE-ESM-007`, naming the query and why. Explicit `scoped to` clauses remain refused by Screenplay (`PLAY0268`); Stage does not silently drop them.
 
@@ -298,8 +298,8 @@ those specification files. Each warning names the specification, the original di
 code and the reason it cannot render. No opt-in is needed, including when
 `CratisPlanOptions.Refusals` is `ArtifactRefusalMode.Refuse`.
 
-Stage never omits commands, events, policies, or other application contracts. Any other
-error still refuses the entire plan, including evolved events (`STAGE-ESM-026`),
+Outside the event-member case below, Stage never omits commands, events, policies, or
+other application contracts. Any other error still refuses the entire plan, including evolved events (`STAGE-ESM-026`),
 implementation-envelope errors, and `STAGE-ESM-024` attached to a reaction, trigger,
 capture, or slice. Specification admission guards, including the constraint-target guard,
 remain unchanged; skipping a specification does not prove that it passes.
@@ -341,6 +341,27 @@ does not change Host or specification-executor admission, and does not add a CLI
 The existing refusal-mode profile input remains accepted and hashed with the profile.
 The output digest adds a `refusals-v1` segment only when `Refusals` is nonempty.
 
+## Render around unsupported event members
+
+In audited ESM versions only, an event-owned unsupported property member (`STAGE-ESM-012`)
+can produce a **Degraded** plan: Stage omits the whole event and owners proven to depend on it, while independent,
+supported slices still render. It emits no stub or artifact sourced from an omitted owner.
+This does not permit rendering around arbitrary command, query, reaction, or shared-type errors.
+
+The dependency proof tolerates unknown variants or unresolved identities only in the root
+event's own property-type subtree at supported traversal locations. Unclassified gaps,
+ambiguous ownership, an authored Scene composition, unrelated errors, migration removals
+affecting an omitted read model, or failure while rendering the remaining owners retain
+the whole-render refusal. Strict mode also refuses the whole render, with no artifacts.
+In newer, unaudited ESM versions, undefined enum values retain the security refusal
+(`STAGE-ESM-016`); the range warning (`STAGE-DEGRADE-004`) does not permit partial rendering.
+Supported models keep their existing output.
+
+The root warning `STAGE-DEGRADE-001` preserves the original `STAGE-ESM-012` message.
+Dependent warnings use `STAGE-DEGRADE-005` and identify their root event or events.
+Upgrade Stage to support the member, or change it to a supported type, to remove the gap.
+See [Render plans](render-plans.md#degraded-owner-omissions) for the omission metadata.
+
 ## Strict plan acceptance
 
 Set `CratisPlanOptions.Strict` for source planning, or `CratisRenderingOptions.Strict` when
@@ -374,8 +395,16 @@ not claim a complete inventory of every public construct kind: reducers and cons
 independent identities in the current semantic model, and policies, guards, validations and
 screens are not yet independently inventoried. It never invents identities for those owners.
 The shared contract supports their kinds for providers with explicit semantic ownership.
-A refused construct currently requires refusal reasons and no degradation entries; independent
-refused and degraded constructs may coexist in one inventory, with refusal taking precedence.
+A refused construct requires refusal reasons and no degradation entries; independent refused and
+degraded constructs may coexist in one inventory, with refusal taking precedence. When supplied
+with graph-proven omission evidence and typed causes, the inventory represents omitted roots and
+dependents as `Degraded` with `GraphProvenOmittedLeaf` gaps, retaining the original warning evidence.
+Only refusals containing `001` or `005` with matching degradation evidence for every refusal code
+receive this omission shape; other degradations retain their throwing-body placeholders.
+Root gaps have no cause references; `005` dependency gaps reference the original root owners and
+codes, deduplicated and sorted by owner and code. Skipped specifications without degradation
+evidence remain `Refused` with their original omission warnings. This inventory support does not
+activate the planner's graph-omission analysis.
 
 The shared `STAGE-DEGRADE-001` through `005` codes describe unknown members, unsupported
 constructs, inline mismatches, a newer ESM inside an explicitly declared supported range, and
@@ -472,7 +501,9 @@ and to `int` for ESM v1–v7. Older models with authored whole-number literals o
 fail admission with `STAGE-ESM-031` rather than generating uncompilable C#.
 
 Stage uses Screenplay 4.247.3 and admits exact ESM v1–v30 and v32 language/semantic pairs, including v11's corrected Double-mode literal lowering, v15's generation strategies with atomic freshness scopes, and v20's rules on generated concepts. V21's `generate pattern` and `generate random` render Fundamentals factories and execute with reference-compatible fixture shapes; dated patterns take their UTC date from the generation context, and random values preserve the full inclusive Int64 range. The specification executor runs pinned String `generate rule` values without invoking their bodies and still checks concept rules; missing pins remain `Unsupported(IdentityAllocation)`. The Host refuses commands that generate rule values with `STAGE-ESM-028`, naming the command, property, concept and rule, by design because the interpreter never runs implementation bodies; unused rule concepts do not block the Host or executor. The semantic renderer emits verified C# rule bodies through `IGeneratableInContext<T>.New(GenerationContext context)`, compile-checked against embedded BCL and pinned Fundamentals metadata references without the pure-body walk. Fundamentals is an embedded build-only reference, not a renderer runtime or package dependency. Missing attachments fail `STAGE-ESM-020`, body SHA-256 mismatches against `ContentHash` fail `STAGE-ESM-056`, body compile errors and warnings fail `STAGE-ESM-019` at the attachment, and shadowing fails `STAGE-ESM-022`. Any concept rule requires a pin for rule generation; concepts with no validation rules may generate unpinned in rendered specifications. The legacy syntax engine still refuses `generate rule` with `STAGE-ESM-028`. `validate checksum luhn`, `mod11` and `mod97` render and execute. The legacy syntax renderer still refuses checksum and unknown validation rule kinds with `STAGE-ESM-042`. Generated values with any unproven rule require pins in rendered specifications; fully proven rules permit unpinned generation. Failing pins retain `STAGE-ESM-011`, and unpinned specifications with unproven rules retain `STAGE-ESM-038`. The generated backend uses Stage's central Arc pin, which rejects generated values failing concept rules of any severity. Runtime generation defects produce exceptions rather than input validation failures. Applications using only implicit UUID generation remain unguarded even at later schema versions. See [Generated values](generated-values-rendering.md) for factory shapes, fixtures and timing limits.
-Mixed version pairs and versions after v33 are refused with `STAGE-ESM-016`. Exact v31 admits anonymous policies as described in [Anonymous authorization](#anonymous-authorization). Exact v33 renders `key <property> is event source` captures, checking the key against the delivered event source and reading only that source's inbox history (see [Capture state](translation-rendering.md)); only the specification executor runs v34 models, and it runs event-source-keyed captures over inbox events (see [A specification runs its own slice only](../docker/spec-runner.md#a-specification-runs-its-own-slice-only)). V32 and v33 preserve declared capture event-source identities for required scalar text, UUID and whole-number keys, including non-enumerated concepts over them. Inconsistent or non-convertible identity types fail with `STAGE-ESM-052`, never an implicit text fallback; see [Typed capture keys](translation-rendering.md#typed-capture-keys-esm-v32). The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer renders `command reads protected`, command `reads`, read-backed requirements and read-path mappings as Arc read protection; see [Protected reads rendering](protected-reads-rendering.md). It still refuses the shapes it cannot preserve with `STAGE-ESM-044`, each naming its reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, and reads combined with generated-value freshness scopes. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for how it commits decisions against outside appends. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v22+ models, the semantic renderer supports `reaction batches atomic` when each generated event handler has at most one direct-production trigger: its returned event collection appends as one batch, and each selected invocation refusal branch returns its own event collection. Multiple same-event production triggers in one reaction retain `STAGE-ESM-043`, naming the unsupported shape. Screenplay rejects routes on direct and refusal-branch productions before Stage admission; Stage retains a defensive `STAGE-ESM-043` guard for routed direct productions. Atomic stream closing has no Screenplay ESM representation yet and is not rendered (Screenplay#770). Other reaction admission limits still apply, including `STAGE-ESM-037` for mixed events and invocations. The legacy syntax renderer still refuses the atomic declaration. The semantic Host and specification executor execute each batch all-or-none. See [Atomic batch rendering](reaction-rendering.md#atomic-batch-rendering) and the executor's [Atomic reaction batches](../docker/spec-runner.md#atomic-reaction-batches). The renderer refuses described command handlers with `STAGE-IMPL-002`, naming the command and RequirementId. No stubs are emitted yet, even in Stub mode.
+Mixed version pairs and versions after v33 are refused with `STAGE-ESM-016`. Exact v31 admits anonymous policies as described in [Anonymous authorization](#anonymous-authorization). Exact v33 renders `key <property> is event source` captures, checking the key against the delivered event source and reading only that source's inbox history (see [Capture state](translation-rendering.md)); only the specification executor runs v34 models, and it runs event-source-keyed captures over inbox events (see [A specification runs its own slice only](../docker/spec-runner.md#a-specification-runs-its-own-slice-only)). V32 and v33 preserve declared capture event-source identities for required scalar text, UUID and whole-number keys, including non-enumerated concepts over them. Inconsistent or non-convertible identity types fail with `STAGE-ESM-052`, never an implicit text fallback; see [Typed capture keys](translation-rendering.md#typed-capture-keys-esm-v32). The semantic Host and specification executor run protected command reads, read-backed requirements and produced-event mappings. The Cratis renderer renders `command reads protected`, command `reads`, read-backed requirements and read-path mappings as Arc read protection; see [Protected reads rendering](protected-reads-rendering.md). It still refuses the shapes it cannot preserve with `STAGE-ESM-044`, each naming its reason: a read path in a `produces when` condition or destination, a read-path mapping to an optional or differently typed event property, and reads combined with generated-value freshness scopes. Non-Error requirements on protected commands, including reaction-invoked commands, remain refused before execution with `STAGE-ESM-045` until Screenplay defines their severity semantics. See the [semantic Host](../docker/index.md#opt-in-to-semantic-execution) for how it commits decisions against outside appends. The legacy renderer, Host and structural specification runner also refuse the preamble with `STAGE-ESM-044`; without it, reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`. ESM v24's `contains`, `not contains`, `starts with` and `ends with` rules execute on the Host and specification executor and render as ordinal UTF-16 string comparisons, without regex or a Screenplay dependency in generated apps. Absence passes; an empty operand satisfies contains/starts-with/ends-with and fails not-contains for every present value. In admitted v22+ models, the semantic renderer supports `reaction batches atomic` when each generated event handler has at most one direct-production trigger: its returned event collection appends as one batch, and each selected invocation refusal branch returns its own event collection. Multiple same-event production triggers in one reaction retain `STAGE-ESM-043`, naming the unsupported shape. Screenplay rejects routes on direct and refusal-branch productions before Stage admission; Stage retains a defensive `STAGE-ESM-043` guard for routed direct productions. Atomic stream closing has no Screenplay ESM representation yet and is not rendered (Screenplay#770). Other reaction admission limits still apply, including `STAGE-ESM-037` for mixed events and invocations. The legacy syntax renderer still refuses the atomic declaration. The semantic Host and specification executor execute each batch all-or-none. See [Atomic batch rendering](reaction-rendering.md#atomic-batch-rendering) and the executor's [Atomic reaction batches](../docker/spec-runner.md#atomic-reaction-batches). The renderer refuses described command handlers without a body with `STAGE-IMPL-002`, naming the command and RequirementId. A resolved handler body in another language instead receives `STAGE-IMPL-LANGUAGE`. No stubs are emitted for either case, even in Stub mode.
+
+`STAGE-IMPL-LANGUAGE` means a member has implementation bodies but none in `csharp` for the Cratis target. It is an Error in both Refuse and Stub modes, with strict mode on or off: no foreign-language fallback or stub is emitted. This applies to command handlers, query performers, reaction effects, reducer transitions, value generation, code validations, rule predicates and policy predicates. The diagnostic names the member, requirement and authored language. Add a `csharp` body to render the member with the Cratis target. Missing or malformed attachments retain their existing diagnostics.
 
 Several same-event production triggers in one atomic reaction stay refused with `STAGE-ESM-043` until Chronicle can return ordered per-trigger append batches from one reactor handler ([Chronicle#5248](https://github.com/Cratis/Chronicle/issues/5248)). A reactor appends what it returns as one batch, so rendering the triggers into one handler would merge their batch boundaries.
 
@@ -494,9 +525,17 @@ execution in the semantic Host or reference specification executor.
 The `stage-spec-run/1` report schema is unchanged, but its capability names now include `ImplementationBody`.
 An older reader rejects that unknown enum name; update report readers before consuming these results.
 
-The semantic Host and specification executor never execute implementation bodies. They report
-`STAGE-IMPL-003` only where a reducer transition, command validation or concept validation body is reached,
-naming its owner and RequirementId. Unrelated commands, queries and specifications remain admitted.
+The semantic Host and specification executor execute admitted C# named Boolean rules on command input
+properties and their concepts through a separate, killable body worker. The worker compiles the renderer's
+own pure-rule wrappers, preserving validation messages and rejecting a command before appending facts when
+a rule is unsatisfied. Timeouts (`STAGE-IMPL-007`), memory breaches (`STAGE-IMPL-008`) and worker failures
+(`STAGE-IMPL-009`) are unsupported execution, not failed validation. See [Body worker configuration](../docker/index.md#run-specifications-in-a-semantic-session)
+for limits and process isolation.
+
+Code-validation blocks, handlers, reducers, policies, reactions and query performers remain unsupported.
+Query-argument concept bodies also remain refused. With the worker disabled, the original
+`STAGE-IMPL-003` validation-body refusal is retained, naming its owner and RequirementId.
+Unrelated commands, queries and specifications remain admitted.
 Command input types and query parameter types reach concept rules transitively through composite types,
 collections and optional values. A reducer is reached by events introduced by a specification or command,
 including reaction cascades, or by an assertion or query on its read model. The reach check conservatively
@@ -720,13 +759,34 @@ still fetch one result and refresh after commands.
 
 Without `observable`, a list query renders as `Task<IEnumerable<ReadModel>>` using
 `GetInstances` and in-memory filtering. Snapshot lookup arguments retain their concept types.
-Live-list companion specifications append fixtures to `EventStoreForTesting` and await
+Live-query companion specifications append fixtures to `EventStoreForTesting` and await
 an emission from the generated query, executing its actual filter expression. Protected
 observable collection-success specifications use Arc's `QueryScenario` with its default Chronicle
 read models. Scoped projections remain refused with `STAGE-ESM-011`; routed replay requires a
 readable generated `Key`, `Subject`, or `Id` on every pinned row. Protected snapshot collection
 success remains refused because Arc 22.87's `GetInstances` does not read scenario-seeded rows.
 Both allowed and denied protected queries run through Arc's authorization pipeline with the fixture caller.
+
+## Declarative observable optional lookups
+
+A declarative `query InvoiceById => observable InvoiceSummary optional` with a `by` argument
+matching the read model's sole identifier renders as `ISubject<InvoiceSummary?>`.
+This keyed optional shape is an exception to the observable single/optional refusal
+in the query-shape matrix above. Stage filters Chronicle's observed collection by
+that identifier and maps each emission to its first matching instance, or `null`
+when none matches. Later updates and transitions back to no match remain observable.
+The adapter subscribes only when its consumer subscribes; disposing the consumer's
+subscription releases the underlying observation. Key arguments retain their concept types.
+
+Non-identifier keys, filtered optional lookups, and required single-result observable
+queries remain refused with `STAGE-ESM-010`. Screenplay rejects an unkeyed optional
+lookup before Stage sees it, because an unkeyed query must return a collection.
+
+This support does not admit observable performer bodies. An observable collection
+performer remains an unverified `STAGE-IMPL-006` gap with a non-runnable stub and
+`STAGE-NOT-RUNNABLE.md`. An observable optional performer is refused, because only
+a collection can be observed through a performer body. Live optional lookup companion specifications use Chronicle's
+real observation and await the first emission rather than substituting a snapshot read.
 
 ## Generated C# query filters
 

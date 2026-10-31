@@ -88,7 +88,7 @@ internal static class SemanticReducerArtifactRenderer
             builder.EndBlock().BlankLine();
             if (self) builder.OpenBlock($"static class {helper}");
             builder.OpenBlock($"{(self ? "internal static" : "static")} {modelType}? {(self ? SelfTransitionMethod : helper)}(global::{context.TypedContextsNamespace}.{wrapper} context)")
-                .RawVerbatim(body!)
+                .RawVerbatim(body!, transition.RequirementId)
                 .EndBlock()
                 .BlankLine();
             if (self) builder.EndBlock().BlankLine();

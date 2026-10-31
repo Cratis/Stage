@@ -235,7 +235,7 @@ retried or reported as success: the session faults until it can be reconstructed
 outside history also faults the session. Legacy custom appenders without fact-reading or guarded-write
 capabilities retain their conservative safety checks.
 The Cratis renderer renders protected reads as Arc read protection (see [Protected reads rendering](../reference/protected-reads-rendering.md)),
-refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The legacy engines still refuse the preamble with the same code; without it,
+refusing only the shapes it cannot preserve with `STAGE-ESM-044`. The Contracts `EventModelLoader` admits the preamble and records it as `EventModel.ProtectedCommandReads`; the legacy syntax renderer, the `eventmodel` Host engine, the structural runner and `StageCommandHandlerProvider` refuse such a model with the same code. Without the preamble,
 command reads still fail binding with `PLAY0271` and the repair diagnostic `PLAY0786`.
 ESM v11 preserves retained exact Double-mode numbers in command decisions, appended payloads and
 read-model state, including ±9007199254740991 and `0.10000000000000002`. Source integers still use
@@ -317,8 +317,13 @@ history passes the same strict admission checks.
 
 The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
 login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
-`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+`/api/**` requests and the page identity at `/.cratis/me`. `/stage/**` endpoints and the Chronicle Workbench
+do not receive that persona.
 This changes only the Stage host, never rendered applications or their authentication.
+
+The sandbox runs with `ASPNETCORE_ENVIRONMENT=Docker`, not Development. Arc's discovery catalogs require
+authentication and answer `401` to anonymous sandbox requests by design. The persona is not applied to these
+endpoints, and Play does not use them.
 
 Stage selects the default persona once at startup:
 
@@ -452,6 +457,60 @@ changing source files after startup requires restarting the host before they can
 host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (default 120, clamped to 1–600
 seconds, including queued time). The same keys can be set in deployment configuration as
 `Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
+
+Named C# rules and C# validation iterators on commands and their input concepts run in a separate body worker.
+The Host compiles admitted units once at startup and shares one execution worker across command commits for
+that loaded application. Specification runs compile once in the runner and share its execution worker across
+specifications. Each commit or specification gets a lightweight provider; releasing it does not kill the worker.
+Unloading the application or exiting the runner disposes the shared worker. Neither process loads the units
+into the Host. The Host forwards its worker settings to SpecRunner, so the same limits apply to both paths.
+
+An admitted validation iterator yields zero messages to accept, or rejection messages in declaration order.
+Messages are limited to 100 per iterator and 1024 characters each; null messages, exceeded bounds and iterator
+failures report a worker failure, not a successful validation. Query-argument code validations, command
+handlers and reducer transitions remain unsupported.
+
+Keep the Host, SpecRunner and BodyWorker from the same Stage build. Worker protocol version 2 rejects older
+workers during the initial handshake, before sending a request.
+
+| Environment variable | Default | Range or resolution |
+| --- | --- | --- |
+| `Stage__BodyWorker__Enabled` | `true` | Set `false` to keep implementation bodies unsupported. |
+| `Stage__BodyWorker__WorkerPath` | `bodyworker/Cratis.Stage.BodyWorker.dll` | Relative to the Host output directory. |
+| `Stage__BodyWorker__CallTimeoutMilliseconds` | `2000` | 50–30000 ms per evaluation. |
+| `Stage__BodyWorker__CompileTimeoutSeconds` | `120` | 5–600 seconds. |
+| `Stage__BodyWorker__MemoryLimitMegabytes` | `256` | 32–4096 MB managed heap; working-set watchdog at twice this value. |
+| `Stage__BodyWorker__CacheDirectory` | `Cratis/Stage/Bodies` beneath your local application-data directory | Relative overrides resolve against the working directory. The cache must be owned by the current user and protected from other users. |
+
+The cache holds executable assemblies, so do not share it between operating-system users. On Unix,
+Stage creates new cache directories with mode `0700` and uses `/usr/bin/stat` (or `/bin/stat`) to check
+ownership. It refuses foreign-owned or group/world-writable caches, symbolic-link cache roots and
+replaceable parent directories; root-owned sticky temporary parents are allowed. Windows checks ownership
+and effective write/delete permissions, including inherited permissions on the cache itself. Inherit-only
+ACEs and CREATOR OWNER / CREATOR GROUP templates do not grant access to the directory being checked.
+An unsafe cache produces an explicit worker failure, not cached execution; Stage does not repair its
+permissions. If local application data is unavailable, the default is a private, user-suffixed directory
+beneath the system temporary directory.
+
+**macOS limitation:** Unix validation checks ownership and POSIX mode bits, not extended ACL grants.
+Mode `0700` alone is not proof of isolation when a named ACL grants another user access. In a hostile
+multi-user environment, use a cache directory and ancestors with no effective extended ACL grants that
+let other users write, delete or replace the cache or its contents; Stage does not verify this condition.
+
+Stage rechecks cache ownership, permissions and ancestors before compilation and every evaluation.
+On Unix, each check starts a metadata process, so short, frequently evaluated bodies incur that overhead.
+These checks are not memoized: permissions or ancestors can change after startup or compilation, and
+reusing an earlier verdict would weaken the execution-time check.
+
+These keys also work as colon-separated deployment configuration, for example `Stage:BodyWorker:Enabled`.
+For a standalone semantic SpecRunner, supply `--body-worker-path` and optionally `--body-worker-cache`,
+`--body-worker-dotnet`, `--body-worker-timeout-ms`, `--body-worker-compile-timeout-ms`,
+`--body-worker-heap-limit-mb`, `--body-worker-working-set-limit-mb`, `--body-worker-max-response-bytes`
+and `--body-worker-max-stderr-bytes`. `BodyWorkerOptions.FromArguments` parses this same argument contract;
+without worker arguments it returns no configuration and body rules remain unsupported.
+A wall-time breach reports `STAGE-IMPL-007`, a memory breach `STAGE-IMPL-008`, and an unavailable or failed
+worker `STAGE-IMPL-009`. Each kills the worker; a later run can start a fresh one and the Host keeps serving.
+The managed heap limit plus working-set watchdog is not an OS memory cap or a hostile-code security boundary.
 
 `GET /stage/semantic/admission` marks
 specifications admitted by that executor as `supported`, and reports the missing capability and details for

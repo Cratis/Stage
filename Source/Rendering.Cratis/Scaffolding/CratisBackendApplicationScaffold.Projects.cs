@@ -53,6 +53,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
+            <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
@@ -108,6 +109,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Chronicle.Testing" />
             <PackageReference Include="Cratis.Specifications" />
             <PackageReference Include="Cratis.Specifications.XUnit" />
+            <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
             <PackageReference Include="Microsoft.NET.Test.Sdk" />
             <PackageReference Include="NSubstitute" />
             <PackageReference Include="xunit" />

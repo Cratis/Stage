@@ -20,6 +20,8 @@ import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './s
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { useScreenRows } from './stageScreenTables';
+import { useInteractionScope } from '@cratis/scene.react';
+import { formContinuation } from './stageFormContinuation';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -64,6 +66,8 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
     const footer = useContext(StageDialogFooterContext);
     const section = useRef<HTMLElement>(null);
     const form = useMemo(() => formProperties(element), [element]);
+    const interactionScope = useInteractionScope();
+    const continuation = formContinuation(element, form, interactionScope);
     const schema = useMemo(() => schemaProperties(element), [element]);
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
@@ -92,7 +96,7 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
         return <UnsupportedForm form={form} messages={[`The modeled command “${form.command}” has no form fields or schema metadata, so Stage will not submit an empty command body.`]} />;
     }
 
-    if (unsupportedSchemaMessages.length > 0) return <UnsupportedForm form={form} messages={unsupportedSchemaMessages} />;
+    if (unsupportedSchemaMessages.length + continuation.messages.length > 0) return <UnsupportedForm form={form} messages={[...unsupportedSchemaMessages, ...continuation.messages]} />;
 
     return (
         <section ref={section} className='stage-command-form' data-command={form.command} data-generation-mode={form.generationMode}>
@@ -108,14 +112,16 @@ export function StageCommandForm({ element }: StageCommandFormProps) {
                 onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
-                onSuccess={() => {
-                    setMessages([]);
+                onSuccess={response => {
                     data.refreshAfterCommand();
+                    continuation.complete(response, findings => {
+                        setMessages(findings);
 
-                    // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
-                    const destination = text(element, 'navigateToScreen');
-                    if (destination) navigateToScreen(destination, {});
-                    closeDialog?.();
+                        // The action's `navigate to` is where the shopper goes once the command succeeded - the basket after adding to it.
+                        const destination = text(element, 'navigateToScreen');
+                        if (destination) navigateToScreen(destination, {});
+                        closeDialog?.();
+                    });
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}

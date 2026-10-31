@@ -11,7 +11,7 @@ public class and_an_explicit_anonymous_declaration_accompanies_a_missing_one : a
 {
     string? _attribute;
 
-    void Because() => _attribute = Render(Authorize("Public"), null);
+    void Because() => _attribute = RenderAll(Authorize("Public"), null);
 
     [Fact] void should_preserve_the_explicit_anonymous_opt_in() => _attribute.ShouldEqual("AllowAnonymous");
 }

@@ -242,6 +242,12 @@ A command handler whose generated Handle method does nothing else with the resul
 
 ## Anonymous authorization
 
+Commands and queries without an `authorize` clause emit no authorization attribute. They follow the host's
+fallback authorization policy; without one, they allow anonymous access. A sibling query's clause does not
+protect a synthesized read-model query. Slice- or module-level clauses covering an operation remain effective.
+To keep an operation open even when the host configures a fallback policy, authorize it with an explicit
+`require anonymous` policy.
+
 A policy whose complete condition is `require anonymous` opts its command or query into
 anonymous access. Both unauthenticated and authenticated callers are allowed. Stage renders
 `[AllowAnonymous]` from `Cratis.Arc.Authorization`, emits no `[Authorize]` on that artifact,
@@ -252,8 +258,7 @@ anonymous mixed with `and`/`or`, or combined authorization references with `STAG
 it does not guess which policy to override. Unknown security members remain fail-closed
 with `STAGE-ESM-016`. The semantic Host and specification executor admit the same anonymous
 shape. Denied expectations for anonymous operations do not pass: an anonymous policy
-cannot justify `then denied` or a denied query. Unannotated behavior and all
-non-anonymous policy emission are unchanged.
+cannot justify `then denied` or a denied query. Non-anonymous policy emission is unchanged.
 
 ## Generated C# query arguments
 

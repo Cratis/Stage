@@ -41,7 +41,7 @@ public class when_rendering_model_bound_projections
                   name = name
         """;
 
-    const string PinnedClassic = "E613F01006DEA29E99A2BD159B73A6952DD1BE4A806989ADE680689E74709195";
+    const string PinnedClassic = "58EA4B059E0EBD54CC7EB1ECCE6F27B2D4F1366E3312CD9EBC875E722165F0B9";
 
     static string Bytes(ArtifactRenderPlan plan) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Code(plan))));
 

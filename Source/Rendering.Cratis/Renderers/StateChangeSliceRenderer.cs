@@ -88,7 +88,11 @@ public class StateChangeSliceRenderer : ISliceRenderer
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
         var authorization = AuthorizationRenderer.Render(command.Authorize, applicationSet, $"Command '{command.Name}'", diagnostics);
 
-        builder.Using("Cratis.Arc.Commands.ModelBound").Using(AuthorizationRenderer.Namespace);
+        builder.Using("Cratis.Arc.Commands.ModelBound");
+        if (authorization is not null)
+        {
+            builder.Using(AuthorizationRenderer.Namespace);
+        }
 
         if (command.Properties.Any(property => property.IsIdentifier && TypeResolver.Resolve(property.Type, applicationSet).Kind != ResolvedTypeKind.Concept))
         {

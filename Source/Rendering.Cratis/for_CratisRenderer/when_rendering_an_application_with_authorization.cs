@@ -39,8 +39,14 @@ public class when_rendering_an_application_with_authorization : an_application_w
         FrameworkNameCatalog.Current.GlobalUsings(GeneratedProjects.Application).ShouldContain("Cratis.Arc.Authorization");
     [Fact] void should_guard_the_command_with_the_roles_it_authorizes() =>
         SliceContent("Register").ShouldContain("[Roles(\"Administrator\", \"Auditor\")]");
-    [Fact] void should_state_that_a_command_without_authorization_is_anonymous() =>
-        SliceContent("Archive").ShouldContain("[AllowAnonymous]");
+    [Fact]
+    void should_leave_a_command_without_authorization_to_the_host()
+    {
+        SliceContent("Archive").ShouldNotContain("[AllowAnonymous]");
+        SliceContent("Archive").ShouldNotContain("[Authorize");
+        SliceContent("Archive").ShouldNotContain("[Roles(");
+        SliceContent("Archive").ShouldNotContain("[Policy(");
+    }
     [Fact] void should_not_union_distinct_query_policies_on_the_read_model() =>
         SliceContent("Summary").ShouldNotContain("[Roles(\"Administrator\", \"Auditor\")]");
     [Fact] void should_guard_all_with_only_its_own_policy() =>

@@ -163,9 +163,9 @@ public class CSharpCodeBuilder
     /// <summary>
     /// Emits an attribute usage at the current indent level.
     /// </summary>
-    /// <param name="attribute">The attribute content, without the surrounding brackets (e.g. <c language="csharp">Command</c>).</param>
+    /// <param name="attribute">The attribute content without brackets, or <see langword="null"/> to emit nothing.</param>
     /// <returns>The builder, for chaining.</returns>
-    public CSharpCodeBuilder Attribute(string attribute) => Line($"[{attribute}]");
+    public CSharpCodeBuilder Attribute(string? attribute) => attribute is null ? this : Line($"[{attribute}]");
 
     /// <summary>
     /// Emits a raw line of source text at the current indent level.

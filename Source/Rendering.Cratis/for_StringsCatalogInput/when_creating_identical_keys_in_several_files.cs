@@ -25,6 +25,6 @@ public class when_creating_identical_keys_in_several_files : Specification
     }
 
     [Fact] void should_accept_the_catalog() => _valid.ShouldBeTrue();
-    [Fact] void should_keep_each_key_once() => _catalog!.Locales["en"].Keys.ShouldContainOnly(["invoice.amount", "invoice.list", "invoice.number"]);
-    [Fact] void should_keep_the_shared_value() => _catalog!.Locales["en"]["invoice.amount"].ShouldEqual("Amount");
+    [Fact] void should_keep_each_key_once() => _catalog.Locales["en"].Keys.ShouldContainOnly(["invoice.amount", "invoice.list", "invoice.number"]);
+    [Fact] void should_keep_the_shared_value() => _catalog.Locales["en"]["invoice.amount"].ShouldEqual("Amount");
 }

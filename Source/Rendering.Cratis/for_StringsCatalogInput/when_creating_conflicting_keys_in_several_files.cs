@@ -21,8 +21,8 @@ public class when_creating_conflicting_keys_in_several_files : Specification
         "en"));
 
     [Fact] void should_reject_the_catalog() => _error.ShouldBeOfExactType<InvalidCratisBackendApplicationScaffold>();
-    [Fact] void should_name_the_key() => _error!.Message.ShouldContain("'invoice.amount'");
-    [Fact] void should_name_the_locale() => _error!.Message.ShouldContain("'en'");
-    [Fact] void should_name_the_first_file() => _error!.Message.ShouldContain("'Invoicing.en.strings'");
-    [Fact] void should_name_the_second_file() => _error!.Message.ShouldContain("'Payments.en.strings'");
+    [Fact] void should_name_the_key() => _error.Message.ShouldContain("'invoice.amount'");
+    [Fact] void should_name_the_locale() => _error.Message.ShouldContain("'en'");
+    [Fact] void should_name_the_first_file() => _error.Message.ShouldContain("'Invoicing.en.strings'");
+    [Fact] void should_name_the_second_file() => _error.Message.ShouldContain("'Payments.en.strings'");
 }

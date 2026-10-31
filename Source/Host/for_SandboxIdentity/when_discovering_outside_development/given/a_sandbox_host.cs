@@ -45,7 +45,7 @@ public class a_sandbox_host : Specification
         _app.MapGet("/other/probe", () => Results.Ok()).RequireAuthorization(policy => policy.RequireRole("Shopper"));
         await _app.StartAsync();
 
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 

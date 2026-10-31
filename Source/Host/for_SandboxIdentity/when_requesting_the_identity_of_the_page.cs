@@ -14,6 +14,6 @@ public class when_requesting_the_identity_of_the_page : given.an_api_pipeline
     [Fact] void should_authenticate_as_the_persona_being_played() => _context.User.IsInRole("Shopper").ShouldBeTrue();
 
     // Arc's `/.cratis/me` answers 401 exactly when the user is not authenticated.
-    [Fact] void should_be_authenticated() => _context.User.Identity!.IsAuthenticated.ShouldBeTrue();
+    [Fact] void should_be_authenticated() => _context.User.Identity.IsAuthenticated.ShouldBeTrue();
     [Fact] void should_use_a_per_request_identity() => _context.User.ShouldNotBeSame(_persona);
 }

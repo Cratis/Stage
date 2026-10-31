@@ -30,5 +30,5 @@ public class and_a_table_column_is_an_enumeration : Specification
     }
 
     [Fact] void should_not_carry_numbers_for_an_implicitly_numbered_enumeration() => _column.Properties.ContainsKey("optionValues").ShouldBeFalse();
-    [Fact] void should_carry_the_members_of_the_columns_read_model_property() => ((IReadOnlyList<string>)_column.Properties["options"]!).ShouldContainOnly("newLead", "inProgress", "won");
+    [Fact] void should_carry_the_members_of_the_columns_read_model_property() => ((IReadOnlyList<string>)_column.Properties["options"]).ShouldContainOnly("newLead", "inProgress", "won");
 }

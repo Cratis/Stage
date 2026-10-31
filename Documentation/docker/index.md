@@ -317,8 +317,13 @@ history passes the same strict admission checks.
 
 The Docker sandbox enables `Stage:Sandbox:Identity` so a browser can exercise role-gated models without a
 login screen. The setting is **off when absent** outside Docker. It supplies a server-selected persona for
-`/api/**` requests only. `/stage/**` endpoints and the Chronicle Workbench do not receive that persona.
+`/api/**` requests and the page identity at `/.cratis/me`. `/stage/**` endpoints and the Chronicle Workbench
+do not receive that persona.
 This changes only the Stage host, never rendered applications or their authentication.
+
+The sandbox runs with `ASPNETCORE_ENVIRONMENT=Docker`, not Development. Arc's discovery catalogs require
+authentication and answer `401` to anonymous sandbox requests by design. The persona is not applied to these
+endpoints, and Play does not use them.
 
 Stage selects the default persona once at startup:
 
@@ -453,10 +458,20 @@ host output, and `Stage__Specifications__TimeoutSeconds` for the run deadline (d
 seconds, including queued time). The same keys can be set in deployment configuration as
 `Stage:Specifications:RunnerPath` and `Stage:Specifications:TimeoutSeconds`.
 
-Named C# rules on command inputs and their concepts run in a separate body worker. The Host compiles the
-admitted units once at startup; specification runs compile once in the runner and use a fresh worker session
-for each specification. Neither process loads the units into the Host. The Host forwards its worker settings
-to SpecRunner, so the same limits apply to live commands and specification runs.
+Named C# rules and C# validation iterators on commands and their input concepts run in a separate body worker.
+The Host compiles admitted units once at startup and shares one execution worker across command commits for
+that loaded application. Specification runs compile once in the runner and share its execution worker across
+specifications. Each commit or specification gets a lightweight provider; releasing it does not kill the worker.
+Unloading the application or exiting the runner disposes the shared worker. Neither process loads the units
+into the Host. The Host forwards its worker settings to SpecRunner, so the same limits apply to both paths.
+
+An admitted validation iterator yields zero messages to accept, or rejection messages in declaration order.
+Messages are limited to 100 per iterator and 1024 characters each; null messages, exceeded bounds and iterator
+failures report a worker failure, not a successful validation. Query-argument code validations, command
+handlers and reducer transitions remain unsupported.
+
+Keep the Host, SpecRunner and BodyWorker from the same Stage build. Worker protocol version 2 rejects older
+workers during the initial handshake, before sending a request.
 
 | Environment variable | Default | Range or resolution |
 | --- | --- | --- |

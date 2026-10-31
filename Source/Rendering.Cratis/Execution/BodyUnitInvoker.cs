@@ -31,7 +31,9 @@ public static class BodyUnitInvoker
         }
         catch (TargetInvocationException exception) when (exception.InnerException is not (OutOfMemoryException or InsufficientExecutionStackException))
         {
-            return new("unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(false)));
+            return unit.Role == nameof(SemanticImplementationRole.RulePredicate)
+                ? new("unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(false)))
+                : Fault("faulted", "Body validation invocation failed.");
         }
         catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or IOException or TypeLoadException or BadImageFormatException or OverflowException or FormatException)
         {
@@ -60,19 +62,28 @@ public static class BodyUnitInvoker
         var assembly = load.LoadFromStream(stream);
         var wrapper = assembly.GetType(unit.WrapperType!, throwOnError: true)!;
         var context = BodyValueMaterializer.Wrapper(wrapper, request, unit);
-        var method = assembly.GetType(unit.EntryType!, throwOnError: true)!.GetMethod(unit.EntryMethod!, BindingFlags.Public | BindingFlags.Static, [wrapper]);
+        var method = assembly.GetType(unit.EntryType!, throwOnError: true)!.GetMethod(unit.EntryMethod!, EntryBinding(unit), [wrapper]);
         if (method is null) return Fault("faulted", "Body entry point is unavailable.");
         return Result(unit, method.Invoke(null, [context]));
     }
 
-    static BodyEvaluation Result(BodyUnitEntry unit, object? result) =>
-        unit.Role == nameof(SemanticImplementationRole.RulePredicate) && result is bool boolean
-            ? new(boolean ? "satisfied" : "unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(boolean)))
-            : Fault("refused", "Only RulePredicate bodies are executed by this slice (Stage#891 slice S1).");
+    static BodyEvaluation Result(BodyUnitEntry unit, object? result) => unit.Role switch
+    {
+        nameof(SemanticImplementationRole.RulePredicate) when result is bool boolean => new(boolean ? "satisfied" : "unsatisfied", SemanticValueWire.Write(SemanticValue.Boolean(boolean))),
+        nameof(SemanticImplementationRole.CommandValidation) or nameof(SemanticImplementationRole.ConceptValidation) => BodyValidationMessages.Read(result),
+        nameof(SemanticImplementationRole.ReducerTransition) => result is null ? new("delete") : new("state", SemanticValueWire.Write(BodyStateWriter.Write(result, unit))),
+        _ => Fault("refused", "This body role is not executed by Stage#891 slice S2.")
+    };
 
     static bool Matches(BodyUnitEntry canonical, BodyUnitEntry unit) =>
         canonical.Admitted && ScalarIdentity(canonical) == ScalarIdentity(unit) &&
-        MapEquals(canonical.PropertyPaths, unit.PropertyPaths) && MapEquals(canonical.PropertyNames, unit.PropertyNames);
+        MapEquals(canonical.PropertyPaths, unit.PropertyPaths) && MapEquals(canonical.PropertyNames, unit.PropertyNames) &&
+        MapEquals(canonical.StateMembers, unit.StateMembers) && MapEquals(canonical.EnumValues, unit.EnumValues);
+
+    // The renderer's reducer helper is private (classic) or internal (self-reducing); every other entry is public.
+    static BindingFlags EntryBinding(BodyUnitEntry unit) => unit.Role == nameof(SemanticImplementationRole.ReducerTransition)
+        ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
+        : BindingFlags.Public | BindingFlags.Static;
 
     static (string, string, string?, string?, string?, string?, string?) ScalarIdentity(BodyUnitEntry unit) =>
         (unit.RequirementId, unit.Role, unit.PeSha256, unit.EntryType, unit.EntryMethod, unit.WrapperType, unit.BodySha256);

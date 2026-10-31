@@ -5,6 +5,11 @@ description: Look up what the corpus conformance spec compares, how to read conf
 
 `Source/Conformance.Specs/for_CanonicalCorpusConformance` runs every vector of the pinned `Cratis.Screenplay.CanonicalCorpus` package through the strict model loader and three surfaces, and compares each result with a checked-in table, `conformance-matrix.json`. The table is the conformance matrix: a vector without a row fails, a row missing a column fails, and a cell that changes fails until you update the table.
 
+`AnonymousPoliciesCorpus.V31` and `EsmGoldenVectors.V31` are supported on all four
+columns. The renderer column includes a Debug C# compilation of the anonymous output
+and its specification sources; it does not substitute for a generated application or
+kernel run.
+
 ## What each column measures
 
 | Column | What runs | Cell is `supported` when |

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -80,7 +81,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
         }
 
         // The caller is denied before the command runs, so no event is appended and no reaction is set off.
-        if (specification.ThenDenied) return command.Authorization is not null;
+        if (specification.ThenDenied) return SemanticAnonymousAccess.RequiresCaller(command.Authorization, context.Application.Policies);
 
         if (specification.ThenErrors.IsEmpty || specification.ThenErrors.Any(error => error.Code is not null || error.Message is null))
         {
@@ -218,7 +219,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
 
     static bool CanReject(SemanticApplicationContext context, SemanticCommand command) =>
         !command.Validations.IsDefaultOrEmpty || !command.Requirements.IsDefaultOrEmpty || !command.Reads.IsDefaultOrEmpty ||
-        command.Route is not null || command.Authorization is not null || command.Properties.Any(property => property.IsGenerated) ||
+        command.Route is not null || SemanticAnonymousAccess.RequiresCaller(command.Authorization, context.Application.Policies) || command.Properties.Any(property => property.IsGenerated) ||
         command.Produces.Any(produced => produced.Route is not null || SemanticSpecificationAdmission.IsReactionConstraintTarget(context, produced.EventContract)) ||
         command.Properties.Any(property => CarriesValidation(context, property.Type, []));
 

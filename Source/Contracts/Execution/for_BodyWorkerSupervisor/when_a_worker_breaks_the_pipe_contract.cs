@@ -11,7 +11,7 @@ namespace Cratis.Stage.Contracts.Execution.for_BodyWorkerSupervisor;
 
 public class when_a_worker_breaks_the_pipe_contract : Specification
 {
-    const string Hello = /*lang=json*/ "{\"kind\":\"hello\",\"protocolVersion\":1,\"workerVersion\":\"fixture\"}";
+    const string Hello = /*lang=json*/ "{\"kind\":\"hello\",\"protocolVersion\":2,\"workerVersion\":\"fixture\"}";
     const string Response = /*lang=json*/ "{\"id\":\"probe\",\"evaluation\":{\"outcome\":\"satisfied\",\"messages\":[]}}";
 
     [Theory]

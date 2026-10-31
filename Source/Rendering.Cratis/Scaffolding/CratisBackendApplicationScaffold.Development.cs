@@ -50,14 +50,14 @@ public sealed partial class CratisBackendApplicationScaffold
 
         - A .NET SDK supporting `{{request.Profile.TargetFramework}}`.
         - Node.js and {{FrontendTool(request)}} for the Vite frontend.
-        - Docker with Docker Compose for the development Chronicle and MongoDB services.
+        - Docker with Docker Compose v2 supporting `--wait` for the development Chronicle and MongoDB services.
 
         ## Run locally
 
         From this directory, start the development services and backend:
 
         ```bash
-        docker compose up -d
+        docker compose up -d --wait
         dotnet run --project {{request.ProjectName}}.csproj
         ```
 

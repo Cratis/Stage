@@ -10,10 +10,10 @@ using Cratis.Screenplay.Semantics.Execution;
 
 namespace Cratis.Stage.Contracts.Execution;
 
-/// <summary>Adapts one Screenplay run to its owned, isolated worker.</summary>
+/// <summary>Adapts one Screenplay run to its isolated worker lease.</summary>
 /// <param name="manifest">The renderer's immutable admission and compilation result.</param>
-/// <param name="worker">The worker owned by this provider/run.</param>
-public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, IBodyWorkerClient worker) : ISemanticBodyExecutionProvider
+/// <param name="worker">The worker handle released by this provider/run.</param>
+public sealed partial class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, IBodyWorkerClient worker) : ISemanticBodyExecutionProvider
 {
     int _disposed;
 
@@ -26,9 +26,24 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
         if (entries.Length != 1) return Unsupported("Body requirement is not uniquely present in the compilation manifest.");
         var entry = entries[0];
         if (!entry.Admitted) return new(null, entry.DiagnosticMessage);
-        if (!Matches(body, entry)) return Unsupported("Body changed since compile.");
+        if (body.Requirement.Role != SemanticImplementationRole.RulePredicate || !Matches(body, entry)) return Unsupported("Body changed since compile.");
         var verdict = await worker.EvaluateAsync(new(entry.RequirementId, Members(context, entry)), cancellationToken).ConfigureAwait(false);
         return Result(verdict);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask<SemanticValidationBodyResult> ValidateAsync(SemanticImplementationBody body, SemanticRuleContext context, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Refusal(body, ValidationRole, "Body changed since compile or is not a validation iterator.") is { } refusal) return SemanticValidationBodyResult.Unsupported(refusal);
+        var entry = manifest.Entries.Single(entry => entry.RequirementId == body.Requirement.RequirementId);
+        var verdict = await worker.ValidateAsync(new(entry.RequirementId, Members(context, entry)), cancellationToken).ConfigureAwait(false);
+        return verdict.Outcome switch
+        {
+            "satisfied" when verdict.Messages.IsDefaultOrEmpty => SemanticValidationBodyResult.Valid(),
+            "unsatisfied" when BodyValidationBounds.Valid(verdict.Messages) => new(verdict.Messages),
+            _ => SemanticValidationBodyResult.Unsupported(verdict.Diagnostic ?? BodyDiagnostics.Format(Code(verdict.Outcome), "Body execution did not produce validation messages."))
+        };
     }
 
     /// <inheritdoc/>
@@ -39,9 +54,11 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
     }
 
     static bool Matches(SemanticImplementationBody body, BodyUnitEntry entry) =>
-        body.Requirement.Role == SemanticImplementationRole.RulePredicate && entry.Role == nameof(SemanticImplementationRole.RulePredicate) &&
+        entry.Role == body.Requirement.Role.ToString() &&
         string.Equals(body.Requirement.ContentHash, entry.BodySha256, StringComparison.OrdinalIgnoreCase) &&
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body.Content))).Equals(entry.BodySha256, StringComparison.OrdinalIgnoreCase);
+
+    static bool ValidationRole(SemanticImplementationRole role) => role is SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
     static ImmutableDictionary<string, System.Text.Json.JsonElement> Members(SemanticRuleContext context, BodyUnitEntry entry) =>
         new Dictionary<string, SemanticValue>(StringComparer.Ordinal)
@@ -67,4 +84,14 @@ public sealed class ScreenplayBodyExecutionProvider(BodyUnitManifest manifest, I
     };
 
     static SemanticBodyExecutionResult Unsupported(string message) => new(null, BodyDiagnostics.Format(BodyDiagnostics.WorkerFailed, message));
+
+    string? Refusal(SemanticImplementationBody body, Func<SemanticImplementationRole, bool> role, string mismatch)
+    {
+        if (Volatile.Read(ref _disposed) != 0) return "Body execution provider is disposed.";
+        var entries = manifest.Entries.Where(entry => entry.RequirementId == body.Requirement.RequirementId).Take(2).ToArray();
+        if (entries.Length != 1) return "Body requirement is not uniquely present in the compilation manifest.";
+        var entry = entries[0];
+        if (!entry.Admitted) return entry.DiagnosticMessage ?? "Body is not admitted.";
+        return role(body.Requirement.Role) && Matches(body, entry) ? null : mismatch;
+    }
 }

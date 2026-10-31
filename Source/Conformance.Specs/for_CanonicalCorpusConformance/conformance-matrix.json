@@ -24,14 +24,9 @@
     },
     "AnonymousPoliciesCorpus.V31": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 },
-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:1044f5e087ce41e758839dcf6cc4a1b0552cc81e8685f4122f565e6f2db674cc", "issue": 635 },
-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:2fce06421cd504038d1092963f9b4427d802f54e8c337ff82c5c64d9635079db", "issue": 635 } ] },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:5ed8a940b4fe852d0d9893670829120c18aeb9ce5032b31ae8b137b6c21dc848", "issue": 635 } ] }
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
     },
     "AtomicReactionBatchesCorpus.Legacy": {
       "loader": { "outcome": "supported" },
@@ -2186,13 +2181,9 @@
     },
     "EsmGoldenVectors.V31": {
       "loader": { "outcome": "supported" },
-      "executor": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 } ] },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 },
-        { "code": "STAGE-ESM-016", "kind": "specification", "artifact": "sem1:1db13c0fcc4ff99c791724e53c87ceb0160d682e21a6051dc0cebdf322629a78", "issue": 635 } ] },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:b3f70f9fe939900e6faeb4c8ae8af3f401d5908a4bb50a6e2c70ae26570ee714", "issue": 635 } ] }
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "supported" },
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V32": {
       "loader": { "outcome": "supported" },

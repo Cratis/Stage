@@ -21,7 +21,7 @@ public class when_admitting_esm_pairs : Specification
         _audited = a_model_at_an_esm_pair.From(32, 0);
         _newer = a_model_at_an_esm_pair.From(32, 1);
         _future = a_model_at_an_esm_pair.From(35, 0);
-        _unaudited = a_model_at_an_esm_pair.From(32, 1, application => application with { Policies = [new("Sensitive policy", new SemanticAnonymousCondition())] });
+        _unaudited = a_model_at_an_esm_pair.From(32, 1, application => application with { Policies = [new("Sensitive policy", new an_unknown_run_security_condition())] });
         _v34 = a_model_at_an_esm_pair.From(34, 0);
     }
 

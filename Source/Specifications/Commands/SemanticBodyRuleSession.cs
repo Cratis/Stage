@@ -42,6 +42,22 @@ internal sealed class SemanticBodyRuleSession : IAsyncDisposable
         }
     }
 
+    internal IEnumerable<SemanticRuleCheck> CheckValidation(SemanticValidationRule rule, SemanticRuleContext context, CancellationToken cancellationToken)
+    {
+        if (rule.RequirementId is null || !_bodies.TryGetValue(rule.RequirementId, out var body)) return [Unsupported(rule, "Validation body is unavailable.")];
+        try
+        {
+            var result = _provider.Value.ValidateAsync(body, context, cancellationToken).AsTask().GetAwaiter().GetResult();
+            if (result.Diagnostic is { } diagnostic) return [Unsupported(rule, diagnostic)];
+            if (result.Messages is not { IsDefault: false } messages || messages.Any(message => message is null)) return [Unsupported(rule, "Validation body returned no answer.")];
+            return messages.Select(message => new SemanticRuleCheck(SemanticRuleStatus.Failed, rule, message));
+        }
+        catch (Exception exception)
+        {
+            return [Unsupported(rule, exception.Message)];
+        }
+    }
+
     static SemanticRuleCheck Unsupported(SemanticValidationRule rule, string message) =>
         new(SemanticRuleStatus.NotEvaluable, rule, BodyDiagnostics.Format(BodyDiagnostics.WorkerFailed, message));
 }

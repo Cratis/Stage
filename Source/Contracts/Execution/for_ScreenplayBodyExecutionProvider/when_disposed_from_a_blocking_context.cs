@@ -14,7 +14,7 @@ public class when_disposed_from_a_blocking_context : Specification
     async Task should_kill_and_reap_an_active_worker_without_capturing_the_blocked_context()
     {
         var root = Path.GetFullPath("../../../../..", AppContext.BaseDirectory);
-        const string script = "printf '%s\\n' '{\"kind\":\"hello\",\"protocolVersion\":1,\"workerVersion\":\"fixture\"}'\nread -r line\nread -r another";
+        const string script = "printf '%s\\n' '{\"kind\":\"hello\",\"protocolVersion\":2,\"workerVersion\":\"fixture\"}'\nread -r line\nread -r another";
         var worker = new BodyWorkerSupervisor(new(string.Empty, Path.Combine(root, ".ai-work", "891", "specs", Guid.NewGuid().ToString("N")))
         {
             Launch = new("/bin/sh", ["-c", script]),
@@ -28,9 +28,9 @@ public class when_disposed_from_a_blocking_context : Specification
         var thread = new Thread(() => DisposeSynchronously(provider, disposed)) { IsBackground = true };
         thread.Start();
         await disposed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        (await pending).Evaluation!.Outcome.ShouldEqual("faulted");
+        (await pending).Evaluation.Outcome.ShouldEqual("faulted");
         worker.ProcessId.ShouldBeNull();
-        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid!.Value));
+        Assert.Throws<ArgumentException>(() => Process.GetProcessById(pid.Value));
         await provider.DisposeAsync();
     }
 

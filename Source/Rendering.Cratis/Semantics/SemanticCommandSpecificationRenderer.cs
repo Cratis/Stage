@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -175,11 +176,11 @@ internal static partial class SemanticCommandSpecificationRenderer
     }
 
     static bool RequiresEstablish(SpecificationScope scope, SemanticGeneratedCommandSpecification generated) =>
-        generated.RequiresEstablish || (scope.ReactionPrelude is not null && scope.Command.Authorization is not null);
+        generated.RequiresEstablish || (scope.ReactionPrelude is not null && SemanticAnonymousAccess.RequiresCaller(scope.Command.Authorization, scope.Context.Application.Policies));
 
     static void RenderPolicyRegistration(SpecificationScope scope)
     {
-        if (scope.Command.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(scope.Command.Authorization, scope.Context.Application.Policies))
         {
             scope.Builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }

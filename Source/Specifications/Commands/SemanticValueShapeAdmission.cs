@@ -52,7 +52,7 @@ internal static class SemanticValueShapeAdmission
         concept.Validations.Any(rule => !SupportedRule(rule, bodies)) ? "A concept validation rule is not admitted." : null;
 
     static bool SupportedRule(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
-        (rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true) ||
+        (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true) ||
         SemanticValidationRules.Check(rule, SemanticValue.Null).Status != SemanticRuleStatus.NotEvaluable;
 
     static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type, string path, HashSet<SemanticId> visited)

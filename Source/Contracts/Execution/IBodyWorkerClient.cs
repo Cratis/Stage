@@ -17,4 +17,18 @@ public interface IBodyWorkerClient
     /// <param name="cancellationToken">The caller's cancellation.</param>
     /// <returns>The bounded evaluation verdict.</returns>
     Task<BodyEvaluation> EvaluateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Executes an admitted validation iterator.</summary>
+    /// <param name="request">The requirement and portable context members.</param>
+    /// <param name="cancellationToken">The caller's cancellation.</param>
+    /// <returns>The bounded validation messages or an explicit refusal.</returns>
+    Task<BodyEvaluation> ValidateAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new BodyEvaluation("refused", Diagnostic: "Code validations are unavailable in this worker client (Stage#891 slice S2)."));
+
+    /// <summary>Executes an admitted reducer transition.</summary>
+    /// <param name="request">The current, event, key, tenant, occurred and sequenceNumber members.</param>
+    /// <param name="cancellationToken">The caller's cancellation.</param>
+    /// <returns>The next state, deletion or an explicit refusal.</returns>
+    Task<BodyEvaluation> ReduceAsync(BodyEvaluationRequest request, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new BodyEvaluation("refused", Diagnostic: BodyDiagnostics.NotExecuted(Cratis.Screenplay.Semantics.SemanticImplementationRole.ReducerTransition)));
 }

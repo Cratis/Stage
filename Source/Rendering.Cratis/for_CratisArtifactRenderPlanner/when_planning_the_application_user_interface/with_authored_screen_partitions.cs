@@ -20,7 +20,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    const string Before = "be45562616a76cdf505eabadd4ea5d14c74413de525cb42591f67cffb7f2d191";
+    // Re-frozen for #120: the scaffold gains the optional Entra ID sign-in files, the Program.cs wiring, the README section and the Identity.Web and Pkcs pins.
+    const string Before = "795d98efc85ff1abcdf957b28b379a5ef8fed5ce07bbf6bd64df2673a29ef16e";
 
     void Because() => _application = AppPlan(_profile);
 

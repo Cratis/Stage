@@ -31,7 +31,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    const string Digest = "af4e730d72e50203a334ff1a193c0db9f688c1f6e3265b30cf70b52f87f26ad5";
+    // Re-frozen for #120: the scaffold gains the optional Entra ID sign-in files, the Program.cs wiring, the README section and the Identity.Web and Pkcs pins.
+    const string Digest = "f96be9b5acf43f6542e1f4dca1492f6bd052119ebafa33d34b5a1707c644a2d3";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -49,12 +50,14 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
+        Directory.Packages.props a2d5b966a54f8f0cdc5bca02ce4145aee11edbc94276ce9473d32a3e17292e02 1531
+        GeneratedAuthentication.cs ed09e251946fc352764a02a5b0ba94af3f465c824458b163fc4dc0fd958d7d29 5225
+        GeneratedAuthenticationPerimeter.cs 81cd5b2cf77e385a07fcd4ff6d413be8e79436b1226242e9aa9ac461d6b6e960 9693
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
-        Program.cs f148d2954e15bdf675f63ed1472c70b1f6396db6a826f7644c4cedad3ca5dd56 847
-        README.md 7217ef0b3fb886c022bd062ad77bbf730a262d0d9c9b05958fe1efcb1c5d9ffd 1819
-        Workspaces.csproj 5558e5543e420ff0a80aeeea75c9a8e1d9e3684847aeba3ff2177f866e5bc7a3 2443
+        Program.cs 600afb759cf4ce58ed674f24e0d025e9590bb41b00ad8a430eb51089416e56d3 971
+        README.md 9e2f0a1990515825e5ff1a2c9e063a87c933c62b2e45938cec8a9dbd87794067 2362
+        Workspaces.csproj 1f189ed065c609676d8e450d3c620ca23b61dc6f9daec0444854e50e1f25b52f 2501
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
         Workspaces/Tracking/AddComment/AddComment.cs 61d1be7adb16c8720965320ec9d5f0a57957a5e2bcfff37557c4343d03a77edb 513
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 7fde109bec5d420e1abc797e0fae200abd0b1e46d85edd6cd976743d9ca4eef5 1442
@@ -80,6 +83,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
 
+    // Re-frozen for #120: the sign-in files, Program.cs, README, Workspaces.csproj and the central pins are new or changed; their legacy-placement spelling moves with them.
     const string QualifiedManifest = """
         .editorconfig 9e7d03793f5503ba48e324c287915ca597ab7d4c68b808c48202ea3c6a6a6c69 689
         .frontend/index.css c43098e7d8431ead00fe49644e97b14cbdb4e97a994850e810acb8a801bc24b2 436
@@ -96,12 +100,14 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
+        Directory.Packages.props a2d5b966a54f8f0cdc5bca02ce4145aee11edbc94276ce9473d32a3e17292e02 1531
+        GeneratedAuthentication.cs ff86455b7f123bb85d611a5fabc40fd3e124ea6e6724ba9cca9d0b730e105ac2 5374
+        GeneratedAuthenticationPerimeter.cs aef7e8ae1697056711fe37948080bbda478ba5bf26cbccdf8614c6578b96041b 9842
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
-        Program.cs e5010616b42fcfa3ebea105bd4f76a12423291f8b29f6ebb0035963b59b160f7 996
-        README.md a23d002789c09cad95255d716870eeb97958bdd578a1ebcce350b945574eb783 1759
+        Program.cs 9cc0490f77be34f1a1a70ad5ead3905876b88438054c842b2e668e56ba9a7003 1120
+        README.md 353485325371b2f09255163a88d3211298a0a2bb62fa29a5a09b181d8eb1689a 2302
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
-        Workspaces.csproj 41af7d8fcdebd9454b740eea141dcdb1c15594e1719b132628ba87dfa440f2d4 1288
+        Workspaces.csproj 3e9c7e0eaf83c373cd882e7e863b94cca6ae43ad94fd320069907aea06175dd6 1346
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
         Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs d6a95f25c93d76ddee8c6b645dd40a42168cd797b7cd63168e7782c9d7613ac9 2508
@@ -184,7 +190,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("e5ad11a2e5e47077333b983b598585449989ac5f559546a507a89d26e088f836"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+            plan.Diagnostics).ShouldEqual("d02fea5af58b9771205365357ee29a00099e26b941ac7c5b0339c75b7f878589"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     }
 
     [Theory]

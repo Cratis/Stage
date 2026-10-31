@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalComponent } from '@cratis/scene.model';
 import { FormGenerationMode, FormWidthUnit } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
-import { StageTable } from './stageComponents';
+import { StageTable, stageComponents } from './stageComponents';
 import { RegisteredAction as StageAction, RegisteredForm as StageCommandForm, registerTestCommand } from './testing/commands';
 import { dataChanged, StageDataProvider, useStageData, useStageQuery } from './stageData';
 import { element } from './testElements';
@@ -1002,5 +1002,35 @@ describe('adjacent command actions', () => {
         </div>);
 
         await waitFor(() => expect(variants()).toEqual(['solid', 'outline', 'solid']));
+    });
+});
+
+describe('adjacent command toolbar items', () => {
+    const ToolbarItem = stageComponents['core:toolbarItem'];
+    const itemOf = (id: string, target: string, extra: Record<string, unknown> = {}) => element(id, 'core:toolbarItem', { name: id, kind: 'Action', label: id, target, ...extra });
+    const variants = () => screen.getAllByRole('button').map(button => button.getAttribute('data-variant'));
+
+    it('should keep the first item primary, make the next secondary and honor an authored emphasis', async () => {
+        registerTestCommand('RegisterOpportunity', '/api/RegisterOpportunity');
+        registerTestCommand('ArchiveOpportunity', '/api/ArchiveOpportunity');
+        registerTestCommand('PromoteOpportunity', '/api/PromoteOpportunity');
+        renderWithoutProvider(<div>
+            <ToolbarItem element={itemOf('a', 'RegisterOpportunity')} slots={{}} />
+            <ToolbarItem element={itemOf('b', 'ArchiveOpportunity')} slots={{}} />
+            <ToolbarItem element={itemOf('c', 'PromoteOpportunity', { emphasis: 'primary' })} slots={{}} />
+        </div>);
+
+        await waitFor(() => expect(variants()).toEqual(['solid', 'outline', 'solid']));
+    });
+
+    it('should render an authored quiet item as quiet, also as the first one', async () => {
+        registerTestCommand('RegisterOpportunity', '/api/RegisterOpportunity');
+        registerTestCommand('ArchiveOpportunity', '/api/ArchiveOpportunity');
+        renderWithoutProvider(<div>
+            <ToolbarItem element={itemOf('a', 'RegisterOpportunity', { emphasis: 'quiet' })} slots={{}} />
+            <ToolbarItem element={itemOf('b', 'ArchiveOpportunity', { emphasis: 'secondary' })} slots={{}} />
+        </div>);
+
+        await waitFor(() => expect(variants()).toEqual(['ghost', 'outline']));
     });
 });

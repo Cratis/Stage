@@ -13,6 +13,12 @@ describe('reading a table cell value', () => {
         expect(readableValue('2026-03-15')).toEqual(new Date(2026, 2, 15).toLocaleDateString());
     });
 
+    it('should read a date in the first century in that century', () => {
+        const expected = new Date(2000, 0, 5);
+        expected.setFullYear(1);
+        expect(readableValue('0001-01-05')).toEqual(expected.toLocaleDateString());
+    });
+
     it('should read an ISO date-time in the locale of the user', () => {
         expect(readableValue('2026-03-15T10:30:00Z')).toEqual(new Date('2026-03-15T10:30:00Z').toLocaleString());
     });

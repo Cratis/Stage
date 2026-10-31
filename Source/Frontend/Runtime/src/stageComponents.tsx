@@ -293,13 +293,20 @@ function askedProperty(field: unknown): string {
     return typeof field.name === 'string' ? field.name : '';
 }
 
+/** Whether an action stands after another one - directly, or as a toolbar item whose wrapper stands after another action's wrapper. */
+function followsEarlierAction(host: HTMLElement | null): boolean {
+    const anchor = host?.parentElement?.classList.contains('stage-toolbar-action') ? host.parentElement : host;
+    const earlier = anchor?.previousElementSibling;
+    return earlier?.classList.contains('stage-action') === true || earlier?.classList.contains('stage-toolbar-action') === true;
+}
+
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
     const [followsAction, setFollowsAction] = useState(false);
     const host = useRef<HTMLDivElement>(null);
-    useLayoutEffect(() => setFollowsAction(host.current?.previousElementSibling?.classList.contains('stage-action') ?? false));
+    useLayoutEffect(() => setFollowsAction(followsEarlierAction(host.current)));
     const close = useCallback(() => {
         setVisible(false);
         setGeneration(current => current + 1);
@@ -418,7 +425,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const awaiting = subject === undefined ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
     const asked = properties.filter(property => !suppliedWithoutAsking(property, parameters) && !carriedByRows(property, subject, selectableRows));
     const askedFields = schema ? { schema, fields: asked.map(property => ({ name: property.name, label: humanize(property.name) })), generationMode: 'manual' } : {};
-    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, emphasis: text(element, 'emphasis'), ...askedFields, ...subjectActionProperties(element, subject) } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

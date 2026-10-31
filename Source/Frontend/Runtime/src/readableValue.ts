@@ -19,7 +19,8 @@ export function readableValue(value: unknown): string | undefined {
 
     const date = isoDate.exec(value);
     if (date) {
-        const parsed = new Date(Number(date[1]), Number(date[2]) - 1, Number(date[3]));
+        const parsed = new Date(2000, Number(date[2]) - 1, Number(date[3]));
+        parsed.setFullYear(Number(date[1]));
         return Number.isNaN(parsed.getTime()) || parsed.getMonth() !== Number(date[2]) - 1 ? undefined : parsed.toLocaleDateString();
     }
 

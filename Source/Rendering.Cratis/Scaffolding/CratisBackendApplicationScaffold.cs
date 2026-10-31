@@ -68,6 +68,13 @@ public sealed partial class CratisBackendApplicationScaffold
             volumes:
               - chronicle-data:/data/db
               - chronicle-config:/data/configdb
+            healthcheck:
+              # The development image uses a self-signed TLS certificate on localhost.
+              test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--insecure", "--http2", "https://localhost:35000/health"]
+              interval: 5s
+              timeout: 5s
+              retries: 30
+              start_period: 10s
 
         volumes:
           chronicle-data:

@@ -170,7 +170,7 @@ internal static partial class SemanticSpecificationAdmission
     static bool ProtectedQuerySourcesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command)
     {
         foreach (var expected in specification.ThenQueries.Where(result =>
-            context.Queries.TryGetValue(result.Query, out var query) && query.Authorization is not null))
+            context.Queries.TryGetValue(result.Query, out var query) && IsProtected(context, query)))
         {
             // Keyed lookups still read only their selected stream; collection scenarios preserve all seeded rows.
             if (context.Queries[expected.Query].Cardinality == SemanticQueryCardinality.Many) continue;
@@ -294,7 +294,7 @@ internal static partial class SemanticSpecificationAdmission
             return "A denied query must be executed through Arc's query pipeline to assert Unauthorized and no returned data; a direct read-model lookup does not evaluate its policy.";
         }
 
-        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && query.Authorization is not null))
+        if (specification.ThenQueries.Any(_ => context.Queries.TryGetValue(_.Query, out var query) && IsProtected(context, query)))
         {
             return "A protected query must run through Arc's query pipeline with the fixture caller; direct invocation bypasses the generated authorization policy.";
         }

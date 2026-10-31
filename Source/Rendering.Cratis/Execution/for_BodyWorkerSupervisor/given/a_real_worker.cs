@@ -31,12 +31,24 @@ internal sealed class a_real_worker : IDisposable
     internal BodyWorkerSupervisor Create(int timeout = 10000) => new(new(WorkerPath, CacheDirectory) { TimeoutMs = timeout, HeapLimitMb = 96 });
 
     // Deliberately bypass model purity ONLY in the stress fixture: production never compiles these bodies.
-    internal BodyUnitEntry StressUnit(string body)
+    internal BodyUnitEntry StressUnit(string body, bool iterator = false, bool reducer = false)
     {
+        var returnType = (reducer, iterator) switch
+        {
+            (true, _) => "object?",
+            (_, true) => "System.Collections.Generic.IEnumerable<string>",
+            _ => "bool"
+        };
+        var role = (reducer, iterator) switch
+        {
+            (true, _) => nameof(SemanticImplementationRole.ReducerTransition),
+            (_, true) => nameof(SemanticImplementationRole.CommandValidation),
+            _ => nameof(SemanticImplementationRole.RulePredicate)
+        };
         var source = $$"""
             namespace Fixtures;
             public record Context(decimal Value);
-            public static class Bodies { public static bool Evaluate(Context context) { {{body}} } }
+            public static class Bodies { public static {{returnType}} Evaluate(Context context) { {{body}} } }
             """;
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source)));
         var compilation = CSharpCompilation.Create($"Stress_{hash}", [CSharpSyntaxTree.ParseText(source)], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -44,7 +56,7 @@ internal sealed class a_real_worker : IDisposable
         var emit = compilation.Emit(stream);
         Assert.True(emit.Success, string.Join("; ", emit.Diagnostics));
         var bytes = stream.ToArray();
-        var entry = new BodyUnitEntry("fixture", nameof(SemanticImplementationRole.RulePredicate), true, UnitHash: hash, PeSha256: Convert.ToHexString(SHA256.HashData(bytes)), EntryType: "Fixtures.Bodies", EntryMethod: "Evaluate", WrapperType: "Fixtures.Context");
+        var entry = new BodyUnitEntry("fixture", role, true, UnitHash: hash, PeSha256: Convert.ToHexString(SHA256.HashData(bytes)), EntryType: "Fixtures.Bodies", EntryMethod: "Evaluate", WrapperType: "Fixtures.Context");
         BodyUnitCache.Write(CacheDirectory, entry, bytes);
         return entry;
     }

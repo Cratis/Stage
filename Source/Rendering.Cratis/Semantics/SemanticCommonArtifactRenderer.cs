@@ -144,7 +144,7 @@ internal static class SemanticCommonArtifactRenderer
         var value = string.Empty;
         if (!declarationOnly)
         {
-            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
+            value = IsGeneratable(concept, context) ? SemanticGenerationRendering.Factory(concept, usesContext ? "context" : null, context, builder) : new SemanticTypeSystem(context, builder).NotSet(concept.Primitive);
         }
         var parameters = usesContext ? $"{builder.Type(new("Cratis.Concepts", "GenerationContext", 0, ReferenceContext.Type))} context" : string.Empty;
         var name = Identifiers.ToPascalCase(concept.Name);

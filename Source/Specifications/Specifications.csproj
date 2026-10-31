@@ -38,6 +38,8 @@
         <PackageReference Include="Cratis.Arc.Testing" />
         <PackageReference Include="Cratis.Arc.Chronicle.Testing" />
         <PackageReference Include="Cratis.Chronicle.Testing" />
+        <!-- The in-process Chronicle kernel needs this version; see Directory.Packages.props. -->
+        <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <PackageReference Include="Cratis.Screenplay.CanonicalCorpus" PrivateAssets="All" />

@@ -43,11 +43,9 @@ internal static class SemanticCommandHandlerAdmission
 
     static Classification ClassifyLanguage(SemanticImplementationRequirement requirement)
     {
-        var language = requirement.Language ?? (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true ? "csharp" : null);
-        if (string.IsNullOrWhiteSpace(language)) return new(HandlerKind.Invalid, requirement, "The resolved handler has no implementation language.");
-
-        var csharp = language == "csharp" && (requirement.File?.EndsWith(".cs", StringComparison.Ordinal) ?? true);
-        return new(csharp ? HandlerKind.CSharp : HandlerKind.Foreign, requirement);
+        var selection = SemanticImplementationBodySelector.Select(requirement);
+        if (selection.Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage) return new(HandlerKind.Invalid, requirement, "The resolved handler has no implementation language.");
+        return new(selection.Outcome == SemanticImplementationBodySelector.SelectionOutcome.Selected ? HandlerKind.CSharp : HandlerKind.Foreign, requirement);
     }
 
     internal sealed record Classification(HandlerKind Kind, SemanticImplementationRequirement? Requirement = null, string? Reason = null);

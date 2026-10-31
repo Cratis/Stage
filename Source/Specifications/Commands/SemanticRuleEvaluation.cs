@@ -15,23 +15,26 @@ internal static class SemanticRuleEvaluation
     internal static IEnumerable<SemanticValidationFailure> Failures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application) =>
         RuleFailures(command, specification, application).Concat(RequirementFailures(command, specification, dateTypes: SemanticDateComparisons.Participants(application, command)));
 
-    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application)
+    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application) =>
+        RuleFailures(command, specification, application, null);
+
+    internal static IEnumerable<SemanticValidationFailure> RuleFailures(SemanticCommand command, SemanticSpecification specification, SemanticApplication application, SemanticRunContext? run)
     {
         var values = specification.When!.Values.ToDictionary(value => value.TargetProperty, value => value.Value);
         var dateTypes = SemanticDateComparisons.Participants(application, command);
         foreach (var rule in command.Validations)
         {
-            // Date comparison rules are chronological and a null value passes; the reference check delegates every other rule.
-            var check = dateTypes.TryGetValue(rule.Property, out var primitive)
+            // Opaque predicates always use their worker, including properties in chronological comparisons.
+            var check = rule.Kind != SemanticValidationRuleKind.RulePredicate && dateTypes.TryGetValue(rule.Property, out var primitive)
                 ? SemanticDateComparisons.Check(rule, values[rule.Property], primitive)
-                : SemanticValidationRules.Check(rule, values[rule.Property]);
+                : CommandCheck(rule, values[rule.Property], run);
             if (!Satisfied(check))
             {
                 yield return new(rule.Message ?? (rule.Kind == SemanticValidationRuleKind.NotEmpty ? "A required value is empty." : check.Message), rule.Severity);
             }
         }
 
-        foreach (var failure in ConceptFailures(command, values, application.Concepts, application.Types))
+        foreach (var failure in CommandValidationFailures(command, specification, run).Concat(ConceptFailures(command, values, application, run)))
         {
             yield return failure;
         }
@@ -62,20 +65,60 @@ internal static class SemanticRuleEvaluation
     internal static string Message(SemanticValidationRule rule, SemanticValue value, string empty) =>
         rule.Kind == SemanticValidationRuleKind.NotEmpty ? rule.Message ?? empty : SemanticValidationRules.Check(rule, value).Message;
 
+    internal static SemanticRuleCheck ConceptCheck(SemanticValidationRule rule, SemanticValue value, SemanticRunContext? run) =>
+        rule.Kind == SemanticValidationRuleKind.RulePredicate && run?.BodyRules is { } bodies
+            ? bodies.Check(rule, new(value, value, string.Empty, run.Tenant, null, run.AuthoredOccurrence), run.BodyCancellation)
+            : SemanticValidationRules.Check(rule, value);
+
+    internal static IEnumerable<SemanticRuleCheck> ConceptChecks(SemanticValidationRule rule, SemanticValue value, SemanticRunContext? run) =>
+        rule.Kind == SemanticValidationRuleKind.CodeValidation
+            ? ValidationChecks(rule, new(value, value, string.Empty, run?.Tenant, null, run?.AuthoredOccurrence), run)
+            : [ConceptCheck(rule, value, run)];
+
+    internal static bool Satisfies(SemanticRuleCheck check) => Satisfied(check);
+
+    static IEnumerable<SemanticValidationFailure> CommandValidationFailures(SemanticCommand command, SemanticSpecification specification, SemanticRunContext? run)
+    {
+        var artifact = SemanticValue.Composite(specification.When!.Values);
+        foreach (var validation in command.CodeValidations)
+        {
+            var rule = new SemanticValidationRule(default, SemanticValidationRuleKind.CodeValidation, null, null) { RequirementId = validation.RequirementId };
+            foreach (var check in ValidationChecks(rule, new(artifact, artifact, string.Empty, run?.Tenant, null, run?.AuthoredOccurrence), run))
+            {
+                if (!Satisfied(check)) yield return new(check.Message, check.Rule.Severity);
+            }
+        }
+    }
+
+    static IEnumerable<SemanticRuleCheck> ValidationChecks(SemanticValidationRule rule, SemanticRuleContext context, SemanticRunContext? run) =>
+        run?.BodyRules is { } bodies ? bodies.CheckValidation(rule, context, run.BodyCancellation) : [SemanticValidationRules.Check(rule, context.Value)];
+
     static bool Satisfied(SemanticRuleCheck check) => check.Status switch
     {
         SemanticRuleStatus.Satisfied => true,
         SemanticRuleStatus.Failed => false,
-        _ => throw new UnsupportedSemanticMapping()
+        _ => throw Unsupported(check)
     };
 
-    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, IEnumerable<SemanticConcept> concepts, IEnumerable<SemanticCompositeType>? composites)
-    {
-        var byId = concepts.ToDictionary(concept => concept.Id);
-        var types = (composites ?? []).ToDictionary(composite => composite.Id);
+    static UnsupportedSemanticMapping Unsupported(SemanticRuleCheck check) =>
+        check.Message.StartsWith("STAGE-", StringComparison.Ordinal) ? new(check.Message) : new();
 
+    static SemanticRuleCheck CommandCheck(SemanticValidationRule rule, SemanticValue value, SemanticRunContext? run)
+    {
+        if (rule.Kind != SemanticValidationRuleKind.RulePredicate || run?.BodyRules is not { } bodies) return SemanticValidationRules.Check(rule, value);
+        var artifact = SemanticValue.Composite(run.Specification.When!.Values);
+        var property = run.Command.Properties.First(member => member.Id == rule.Property).Name;
+        return bodies.Check(rule, new(artifact, value, property, run.Tenant, null, run.AuthoredOccurrence), run.BodyCancellation);
+    }
+
+    static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticCommand command, Dictionary<SemanticId, SemanticValue> values, SemanticApplication application, SemanticRunContext? run)
+    {
+        var byId = application.Concepts.ToDictionary(concept => concept.Id);
+        var types = application.Types.ToDictionary(composite => composite.Id);
         return command.Properties.Where(property => !property.IsGenerated)
-            .SelectMany(property => SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types));
+            .SelectMany(property => run is null
+                ? SemanticConceptValues.Validate(property.Type, values[property.Id], byId, types)
+                : SemanticConceptValues.Validate(property.Type, values[property.Id], run));
     }
 
     static bool Compare(SemanticComparison comparison, IReadOnlyDictionary<SemanticId, SemanticValue> values, IReadOnlyDictionary<string, IReadOnlyDictionary<SemanticId, SemanticValue>>? reads, IReadOnlyDictionary<SemanticId, SemanticPrimitiveType>? dateTypes)

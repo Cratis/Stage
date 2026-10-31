@@ -7,6 +7,7 @@ using System.Text.Json;
 using Cratis.DependencyInjection;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Runtime;
@@ -22,13 +23,16 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
     static readonly TimeSpan _appendTimeout = TimeSpan.FromSeconds(15);
     readonly IAppendSemanticFacts _appender;
     readonly SemaphoreSlim _gate = new(1, 1);
-    readonly SemanticEvaluator _evaluator = new();
+    readonly SemanticEvaluator _evaluator;
+    readonly SemanticBodyExecution? _bodies;
     SemanticWorld _world = SemanticWorld.Empty;
     Func<SemanticWorld>? _worldProvider;
     ulong _knownTail;
 
-    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld? world = null)
+    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, SemanticWorld? world = null, SemanticBodyExecution? bodies = null)
     {
+        _bodies = bodies;
+        _evaluator = bodies is null ? new() : new(bodies, bodies.Bodies);
         Plan = plan;
         _appender = appender;
         _world = world ?? SemanticWorld.Empty;
@@ -37,7 +41,7 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
         _knownTail = _world.Facts.Length == 0 ? ulong.MaxValue : (ulong)_world.Facts.Length - 1;
     }
 
-    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, Func<SemanticWorld> world) : this(plan, appender)
+    internal SemanticRuntime(SemanticExecutionPlan plan, IAppendSemanticFacts appender, Func<SemanticWorld> world, SemanticBodyExecution? bodies = null) : this(plan, appender, bodies: bodies)
     {
         _worldProvider = world;
     }
@@ -51,7 +55,11 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
     internal ISemanticFactReader? FactReader { get; init; }
 
     /// <inheritdoc/>
-    public void Dispose() => _gate.Dispose();
+    public void Dispose()
+    {
+        _bodies?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _gate.Dispose();
+    }
 
     /// <inheritdoc/>
     public async Task<SemanticExecutionResult> Execute(
@@ -179,9 +187,9 @@ internal sealed partial class SemanticRuntime : ISemanticRuntime, ISemanticForei
     {
         var artifact = command?.Id ?? query?.Id;
         var refusal = artifact is { } id ? SemanticPlanAdmission.Check(Plan, id) : null;
-        refusal ??= command is null ? null : SemanticImplementationReach.ForCommand(Plan, command);
+        refusal ??= command is null ? null : SemanticImplementationReach.ForCommand(Plan, command, _bodies);
 
-        return refusal ?? (query is null ? null : SemanticImplementationReach.ForQuery(Plan, query));
+        return refusal ?? (query is null ? null : SemanticImplementationReach.ForQuery(Plan, query, _bodies));
     }
 
     void InitializeWorld()

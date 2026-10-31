@@ -50,7 +50,7 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
                         var handler = store.Reducers.GetHandlerFor<PaymentSummaryReducer>();
                         // ReadModels.Register uses this same naming policy for the collection queried by PaymentById.
                         Assert.Equal(new CamelCaseNamingPolicy().GetReadModelName(typeof(PaymentSummary)), handler.ContainerName.Value);
-                        var appended = await store.EventLog.Append((EventSourceId)key, new PaymentRecorded(key, invoice, new Money(500m), true));
+                        var appended = await store.EventLog.Append((EventSourceId)key, new PaymentRecorded(key, invoice, new Money(500m)));
                         Assert.True(appended.IsSuccess, $"Append failed: {appended}");
                         await store.Reducers.WaitTillReachesEventSequenceNumber<PaymentSummaryReducer>(appended.SequenceNumber, TimeSpan.FromSeconds(60));
                         Assert.Empty(await store.Reducers.GetFailedPartitionsFor<PaymentSummaryReducer>());
@@ -59,7 +59,7 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
                         Assert.Equal(key, fromCollection.PaymentId);
                         Assert.Equal(invoice, fromCollection.InvoiceId);
                         Assert.Equal(new Money(500m), fromCollection.Amount);
-                        var removed = await store.EventLog.Append((EventSourceId)key, new PaymentRecorded(key, invoice, new Money(-1m), true));
+                        var removed = await store.EventLog.Append((EventSourceId)key, new PaymentRecorded(key, invoice, new Money(-1m)));
                         Assert.True(removed.IsSuccess, $"Append failed: {removed}");
                         await store.Reducers.WaitTillReachesEventSequenceNumber<PaymentSummaryReducer>(removed.SequenceNumber, TimeSpan.FromSeconds(60));
                         Assert.Empty(await store.Reducers.GetFailedPartitionsFor<PaymentSummaryReducer>());

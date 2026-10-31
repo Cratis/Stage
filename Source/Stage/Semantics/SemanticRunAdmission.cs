@@ -9,6 +9,7 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 using Cratis.Stage.Specifications.Commands;
 
@@ -61,7 +62,7 @@ public static class SemanticRunAdmission
         return SemanticVersionFeatures.InApplication(application).Except(SemanticVersionFeatures.RoutesInApplication(application))
             .Except(slices.SelectMany(slice => slice.Commands).SelectMany(SemanticVersionFeatures.DescribedHandlersInCommand))
             .Concat(slices.SelectMany(slice => LiveSliceFeatures(slice).Concat(SemanticVersionFeatures.EventReferences(slice, events))))
-            .Distinct().Select(Feature);
+            .Distinct().Select(Feature).Concat(AnonymousFeatures(application));
     }
 
     /// <summary>
@@ -136,7 +137,7 @@ public static class SemanticRunAdmission
     public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticBodyExecution? bodies)
     {
         static SemanticUnsupportedCapability Block(StageExecutionCapability capability, SemanticId id, string details) => new(capability, id.ToString(), details);
-        if (RangeRefusal(plan, specification) is { } rangeRefusal) return rangeRefusal;
+        if (ModelRefusal(plan, specification) is { } modelRefusal) return modelRefusal;
 
         // A specification runs only its own slice (Screenplay decision 0115): admit what that slice runs, not other slices' reactions or captures.
         if (plan.IsolatedSlice is null && plan.SliceOf(specification.Id) is { } owner) plan = plan.IsolatedTo(owner);
@@ -363,6 +364,34 @@ public static class SemanticRunAdmission
         return null;
     }
 
+    static SemanticUnsupportedCapability? ModelRefusal(SemanticExecutionPlan plan, SemanticSpecification specification) =>
+        RangeRefusal(plan, specification) ?? AnonymousAuthorizationRefusal(plan, specification);
+
+    static SemanticUnsupportedCapability? AnonymousAuthorizationRefusal(SemanticExecutionPlan plan, SemanticSpecification specification)
+    {
+        var policies = plan.Model.Application.Policies;
+        var authorizations = specification.ThenQueries.Select(expected => plan.Queries[expected.Query].Authorization)
+            .Prepend(specification.When is { } action ? plan.Commands[action.Command].Authorization : null).ToArray();
+        if (authorizations.Any(authorization => SemanticAnonymousAccess.NestsAnonymous(authorization, policies)))
+        {
+            return new(StageExecutionCapability.PlanIssue, specification.Id.ToString(), "STAGE-ESM-015: Anonymous access must be the whole authorization.");
+        }
+        return specification.ThenDenied && authorizations.Any(authorization => SemanticAnonymousAccess.IsAnonymous(authorization, policies))
+            ? new(StageExecutionCapability.PlanIssue, specification.Id.ToString(), "STAGE-ESM-011: An explicitly anonymous operation cannot satisfy then denied.")
+            : null;
+    }
+
+    static IEnumerable<SemanticAdmissionFeature> AnonymousFeatures(SemanticApplication application) =>
+        SemanticVersionFeatures.Slices(application)
+            .SelectMany(slice => slice.Commands.Select(command => (command.Id, command.Name, command.Authorization, Kind: "command"))
+                .Concat(slice.Queries.Select(query => (query.Id, query.Name, query.Authorization, Kind: "query"))))
+            .Where(operation => SemanticAnonymousAccess.NestsAnonymous(operation.Authorization, application.Policies))
+            .Select(operation => new SemanticAdmissionFeature(
+                operation.Id.ToString(),
+                operation.Kind,
+                nameof(StageExecutionCapability.PlanIssue),
+                $"STAGE-ESM-015: Authorization of '{operation.Name}' combines or nests require anonymous; anonymous access must be the whole authorization."));
+
     static SemanticUnsupportedCapability? RangeRefusal(SemanticExecutionPlan plan, SemanticSpecification specification)
     {
         if (!SupportsRun(plan.Model)) return new(StageExecutionCapability.PlanIssue, plan.Model.Application.Id.ToString(), UnsupportedVersion(plan.Model));
@@ -429,7 +458,7 @@ public static class SemanticRunAdmission
         feature.Slices.Concat(feature.Features.SelectMany(AllSlices));
 
     static bool SupportedRule(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
-        SupportedRule(rule.Kind) || (rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true);
+        SupportedRule(rule.Kind) || (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true);
 
     static bool SupportedRule(SemanticValidationRuleKind kind) => kind is
         SemanticValidationRuleKind.NotEmpty or SemanticValidationRuleKind.Maximum or SemanticValidationRuleKind.Minimum or

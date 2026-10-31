@@ -45,7 +45,7 @@ public class when_verifying_application_trigger_reactions_against_the_pinned_ker
     {
         var model = Semantics.for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(an_application_trigger_reaction.Source);
         var reaction = model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
         RenderApplication(plan);
         AddGeneratedHostSupport("Stage343Host.cs", ApplicationTriggerProbeSource.Host);

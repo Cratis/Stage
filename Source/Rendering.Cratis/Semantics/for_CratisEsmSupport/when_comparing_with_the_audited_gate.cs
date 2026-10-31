@@ -44,6 +44,7 @@ public class when_comparing_with_the_audited_gate : Specification
         (new(28, 0), new(28, 0)),
         (new(29, 0), new(29, 0)),
         (new(30, 0), new(30, 0)),
+        (new(31, 0), new(31, 0)),
         (new(32, 0), new(32, 0)),
         (new(33, 0), new(33, 0)),
         (new(34, 0), new(34, 0))
@@ -76,7 +77,7 @@ public class when_comparing_with_the_audited_gate : Specification
     [Fact] void should_examine_the_full_cartesian_product() => _compared.ShouldEqual(14400);
     [Fact] void should_not_add_unexpected_audits_to_the_descriptor() => CratisEsmSupport.Descriptor.Audited.ToHashSet().SetEquals(ExpectedAudited).ShouldBeTrue();
     [Fact] void should_preserve_the_v32_audit() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V32, SemanticVersion.V32).ShouldEqual(EsmVersionStanding.Audited);
-    [Fact] void should_leave_v31_unaudited() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V31, SemanticVersion.V31).ShouldEqual(EsmVersionStanding.Unadmitted);
+    [Fact] void should_audit_the_exact_v31_pair() => CratisEsmSupport.Descriptor.Classify(LanguageVersion.V31, SemanticVersion.V31).ShouldEqual(EsmVersionStanding.Audited);
     [Fact]
     void should_accept_32_minors_only() => Versions().Where(version => version.Minor > 0).ShouldEachConformTo(version =>
         CratisEsmSupport.Descriptor.Classify(new(version.Major, version.Minor), version) == EsmVersionStanding.NewerWithinRange == (version.Major == 32));

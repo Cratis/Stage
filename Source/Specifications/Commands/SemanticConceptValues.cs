@@ -52,7 +52,7 @@ internal static class SemanticConceptValues
             : [];
 
     static IEnumerable<SemanticValidationFailure> ConceptFailures(SemanticConcept concept, SemanticValue value, SemanticRunContext? run) =>
-        concept.Validations.Select(rule => SemanticRuleEvaluation.ConceptCheck(rule, value, run)).Where(check => !SemanticRuleEvaluation.Satisfies(check))
+        concept.Validations.SelectMany(rule => SemanticRuleEvaluation.ConceptChecks(rule, value, run)).Where(check => !SemanticRuleEvaluation.Satisfies(check))
             .Select(check => new SemanticValidationFailure(check.Rule.Message ?? (check.Rule.Kind == SemanticValidationRuleKind.NotEmpty ? "A required concept value is empty." : check.Message), check.Rule.Severity));
 
     static IEnumerable<SemanticValidationFailure> CompositeFailures(SemanticTypeReference type, SemanticValue value, ConceptContext context) =>

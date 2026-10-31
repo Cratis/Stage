@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -17,9 +18,9 @@ internal static class SemanticAuthorizationAttributes
     /// <param name="command">The admitted command.</param>
     /// <param name="context">The semantic application.</param>
     /// <returns>The attribute name.</returns>
-    public static string For(SemanticCommand command, SemanticApplicationContext context) => command.Authorization is null
+    public static string For(SemanticCommand command, SemanticApplicationContext context) => command.Authorization is null || SemanticAnonymousAccess.IsAnonymous(command.Authorization, context.Application.Policies)
         ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
+        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
 
     /// <summary>
     /// Gets the authorization attribute for an admitted query.
@@ -27,7 +28,7 @@ internal static class SemanticAuthorizationAttributes
     /// <param name="query">The admitted query.</param>
     /// <param name="context">The semantic application.</param>
     /// <returns>The attribute name.</returns>
-    public static string For(SemanticKeyedQuery query, SemanticApplicationContext context) => query.Authorization is null
+    public static string For(SemanticKeyedQuery query, SemanticApplicationContext context) => query.Authorization is null || SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies)
         ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(Policies.SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
+        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
 }

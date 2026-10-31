@@ -210,11 +210,11 @@ public class when_verifying_routed_appends_against_mongo : a_generated_applicati
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("routes"), "routes", "Routes.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Routes", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
 
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Routes", "Routes"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Routes", "Routes"));
     }
 
     [Fact]

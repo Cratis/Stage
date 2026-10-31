@@ -51,7 +51,7 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
         Assert.True(errors.Count == 0, string.Join('\n', errors));
     }
 
-    static global::Cratis.Screenplay.Semantics.ExecutableSemanticModel ProbeModel()
+    static Screenplay.Semantics.ExecutableSemanticModel ProbeModel()
     {
         var source = Semantics.for_SemanticOccurrenceAdmission.when_admitting_application_trigger_reactions.with_productions_and_invocations.MixedSource
             .Replace("      command FinishBatch", "      command FinishBatch\n        authorize CanFinish", StringComparison.Ordinal)
@@ -63,7 +63,7 @@ public class when_verifying_application_trigger_invocations_against_the_pinned_k
     static ArtifactRenderPlan PlanProbe()
     {
         var model = ProbeModel();
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
     }
 
     void InstallProbe()

@@ -2,13 +2,13 @@
 # Regenerate: STAGE_WRITE_FRAMEWORK_NAME_CATALOG=1 dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --filter "FullyQualifiedName~for_FrameworkNameCatalog"
 format	1
 scaffold	3
-pin	Cratis	22.143.0
-pin	Cratis.Arc.Chronicle.Testing	22.143.0
-pin	Cratis.Arc.MongoDB	22.143.0
+pin	Cratis	22.146.0
+pin	Cratis.Arc.Chronicle.Testing	22.146.0
+pin	Cratis.Arc.MongoDB	22.146.0
 pin	Cratis.Chronicle	19.112.1
 pin	Cratis.Chronicle.AspNetCore	19.112.1
 pin	Cratis.Chronicle.Testing	19.112.1
-pin	Cratis.Screenplay.Matching	4.254.0
+pin	Cratis.Screenplay.Matching	4.256.0
 pin	Cratis.Specifications	5.1.0
 pin	Cratis.Specifications.XUnit	5.1.0
 pin	Microsoft.NET.Test.Sdk	18.11.0
@@ -18,18 +18,18 @@ pin	TargetingPackVersion	10.0.12
 pin	xunit	2.9.3
 pin	xunit.runner.visualstudio	4.0.1
 package	AS	Castle.Core	5.2.1
-package	AS	Cratis	22.143.0
-package	AS	Cratis.Arc	22.143.0
-package	AS	Cratis.Arc.Chronicle	22.143.0
-package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.143.0
-package	AS	Cratis.Arc.Chronicle.Testing	22.143.0
-package	AS	Cratis.Arc.Core	22.143.0
-package	AS	Cratis.Arc.Core.CodeAnalysis	22.143.0
-package	AS	Cratis.Arc.MongoDB	22.143.0
-package	AS	Cratis.Arc.ProxyGenerator.Build	22.143.0
-package	AS	Cratis.Arc.Screenplay.Embedded	22.143.0
-package	AS	Cratis.Arc.Swagger	22.143.0
-package	AS	Cratis.Arc.Testing	22.143.0
+package	AS	Cratis	22.146.0
+package	AS	Cratis.Arc	22.146.0
+package	AS	Cratis.Arc.Chronicle	22.146.0
+package	AS	Cratis.Arc.Chronicle.CodeAnalysis	22.146.0
+package	AS	Cratis.Arc.Chronicle.Testing	22.146.0
+package	AS	Cratis.Arc.Core	22.146.0
+package	AS	Cratis.Arc.Core.CodeAnalysis	22.146.0
+package	AS	Cratis.Arc.MongoDB	22.146.0
+package	AS	Cratis.Arc.ProxyGenerator.Build	22.146.0
+package	AS	Cratis.Arc.Screenplay.Embedded	22.146.0
+package	AS	Cratis.Arc.Swagger	22.146.0
+package	AS	Cratis.Arc.Testing	22.146.0
 package	AS	Cratis.Chronicle	19.112.1
 package	AS	Cratis.Chronicle.AspNetCore	19.112.1
 package	AS	Cratis.Chronicle.CodeAnalysis	19.112.1
@@ -42,7 +42,7 @@ package	AS	Cratis.Orleans.Storage	1.32.1
 package	AS	Cratis.Orleans.Storage.MongoDB	1.32.1
 package	AS	Cratis.Screenplay	4.208.0
 package	AS	Cratis.Screenplay.Contexts	4.208.0
-package	AS	Cratis.Screenplay.Matching	4.254.0
+package	AS	Cratis.Screenplay.Matching	4.256.0
 package	AS	Cratis.Specifications	5.1.0
 package	AS	Cratis.Specifications.XUnit	5.1.0
 package	AS	DnsClient	1.8.0
@@ -331,6 +331,7 @@ namespace	AS	Cratis.Arc.Screenplay.Embedded.Hosting
 namespace	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Assets
 namespace	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Board
 namespace	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog
+namespace	AS	Cratis.Arc.Slices
 namespace	AS	Cratis.Arc.Swagger
 namespace	AS	Cratis.Arc.Swagger.ModelBound
 namespace	AS	Cratis.Arc.Tenancy
@@ -2554,6 +2555,10 @@ type	AS	Cratis.Arc.Identity	MicrosoftIdentityPlatformClaims	static
 type	AS	Cratis.Arc.Identity	MicrosoftIdentityPlatformHeaders	static
 type	AS	Cratis.Arc.Identity	MicrosoftIdentityPlatformRequestExtensions	static
 type	AS	Cratis.Arc.Identity	MultipleIdentityDetailsProvidersFound	class
+type	AS	Cratis.Arc.Identity	OnBehalfOfHeaders	static
+type	AS	Cratis.Arc.Identity	OnBehalfOfOptions	class
+type	AS	Cratis.Arc.Identity	OnBehalfOfPrincipalExtensions	static
+type	AS	Cratis.Arc.Identity	OnBehalfOfSigningKey	class
 type	AS	Cratis.Arc.Identity	RequestExtensions	static
 type	AS	Cratis.Arc.Identity	User	class
 type	AS	Cratis.Arc.Introspection	CommandIntrospectionMetadata	class
@@ -2830,6 +2835,12 @@ type	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog	EventModelProject	class
 type	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog	IEventModelResources	interface
 type	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog	InMemoryEventModelResources	class
 type	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog	MalformedEventModelCatalog	class
+type	AS	Cratis.Arc.Slices	FeatureName	class
+type	AS	Cratis.Arc.Slices	ModuleName	class
+type	AS	Cratis.Arc.Slices	SliceLocation	class
+type	AS	Cratis.Arc.Slices	SliceName	class
+type	AS	Cratis.Arc.Slices	SliceNamespaceRootAttribute	attribute
+type	AS	Cratis.Arc.Slices	SliceNamespaceSegmentsToSkipAttribute	attribute
 type	AS	Cratis.Arc.Swagger	CommandResultOperationFilter	class
 type	AS	Cratis.Arc.Swagger	ConceptSchemaFilter	class
 type	AS	Cratis.Arc.Swagger	EnumSchemaFilter	class
@@ -12189,7 +12200,7 @@ extensions	AS	Cratis.Arc.DependencyInjection	AddProtectedDecisionValidator Build
 extensions	AS	Cratis.Arc.EndpointGroups	GetEndpointGroupScope SetEndpointGroupScope
 extensions	AS	Cratis.Arc.Execution	HandleCorrelationId
 extensions	AS	Cratis.Arc.Http	AllowsAnonymous GetEndpointMetadata HandleCorrelationId SetEndpointMetadata SetSseResponseHeaders SetStatusCode
-extensions	AS	Cratis.Arc.Identity	GetClaims GetClaimsRaw GetClientPrincipal IsValidIdentityRequest MapIdentityProviderEndpoint
+extensions	AS	Cratis.Arc.Identity	GetActor GetClaims GetClaimsRaw GetClientPrincipal IsActedOnBehalfOf IsValidIdentityRequest MapIdentityProviderEndpoint
 extensions	AS	Cratis.Arc.Introspection	MapIntrospectionEndpoints
 extensions	AS	Cratis.Arc.MongoDB	AddClassMap AddConventionPackFilter ApplyConventions GetTypeString ToMongoClientSettings UnmapAllMembersExcept WithCamelCaseNamingPolicy WithDatabaseResolver WithNamingPolicy WithServerResolver
 extensions	AS	Cratis.Arc.OpenApi	MapOpenApi
@@ -12333,7 +12344,7 @@ base	AS	Cratis.Arc.ApiEndpointOptions	System.Object	EnableQueryHttpMethod Includ
 base	AS	Cratis.Arc.ArcApplication	System.Object	CreateBuilder Dispose DisposeAsync Options Services StartAsync StopAsync	-
 base	AS	Cratis.Arc.ArcApplicationBuilder	System.Object	Build Configuration ConfigureContainer Environment Logging Metrics Properties Services	-
 base	AS	Cratis.Arc.ArcBuilder	System.Object	AppBuilder Configuration Deconstruct EqualityContract Equals GetHashCode PrintMembers Services ToString Types	-
-base	AS	Cratis.Arc.ArcOptions	System.Object	AddJsonTypeInfoResolver Calendar ConnectionResolution CorrelationId EndpointGroups ExposeExceptionDetails GeneratedApis Hosting IdentityDetailsProvider Introspection JsonSerializerOptions Query QueryHealth Tenancy TrustForwardedIdentityHeaders	-
+base	AS	Cratis.Arc.ArcOptions	System.Object	AddJsonTypeInfoResolver Calendar ConnectionResolution CorrelationId EndpointGroups ExposeExceptionDetails GeneratedApis Hosting IdentityDetailsProvider Introspection JsonSerializerOptions OnBehalfOf Query QueryHealth Tenancy TrustForwardedIdentityHeaders	-
 base	AS	Cratis.Arc.ArcStartupFilter	System.Object	Configure	-
 base	AS	Cratis.Arc.AspNetCore.EndpointGroups.NoPublicListenerForDefaultEndpointGroup	System.Exception	-	-
 base	AS	Cratis.Arc.AspNetCore.Http.AspNetCoreHttpRequestContext	System.Object	AppendCookie BeginSelectedPrincipal ContentType Cookies GetResponseHeader Headers Host IsHttps Items Method Path Query ReadBodyAsJson RemoveCookie RequestAborted RequestServices SetResponseHeader SetStatusCode StatusCode User WebSockets Write WriteBytes WriteResponseAsJson WriteStream	-
@@ -12484,7 +12495,7 @@ base	AS	Cratis.Arc.Commands.AmbiguousReadModelLookup	System.Exception	-	-
 base	AS	Cratis.Arc.Commands.CannotResolveCommandDependency	System.Exception	-	-
 base	AS	Cratis.Arc.Commands.CommandActionFilter	System.Object	OnActionExecutionAsync	-
 base	AS	Cratis.Arc.Commands.CommandCannotBeBothProtectedAndUnprotected	System.Exception	-	-
-base	AS	Cratis.Arc.Commands.CommandContext	System.Object	AllowedSeverity AuthorizedPrincipal CancellationToken Command CorrelationId Deconstruct Dependencies EqualityContract Equals GeneratedValues GetHashCode PrintMembers ReceivedAt Response ServiceProvider ToString Type Values	-
+base	AS	Cratis.Arc.Commands.CommandContext	System.Object	AllowedSeverity AuthorizedPrincipal CancellationToken Command CorrelationId Deconstruct Dependencies EqualityContract Equals GeneratedValues GetHashCode PrintMembers ReceivedAt Response ServiceProvider SliceLocation ToString Type Values	-
 base	AS	Cratis.Arc.Commands.CommandContextIsNotAvailable	System.Exception	-	-
 base	AS	Cratis.Arc.Commands.CommandContextManager	System.Object	Current SetCurrent	-
 base	AS	Cratis.Arc.Commands.CommandContextValues	System.Collections.Generic.Dictionary`2	Empty Merge	-
@@ -12590,6 +12601,8 @@ base	AS	Cratis.Arc.Identity.IdentityProviderResult`1	System.Object	Deconstruct D
 base	AS	Cratis.Arc.Identity.MicrosoftIDentityPlatformAuthHandler	Microsoft.AspNetCore.Authentication.AuthenticationHandler`1	HandleAuthenticateAsync SchemeName	-
 base	AS	Cratis.Arc.Identity.MicrosoftIdentityPlatformAuthenticationHandler	System.Object	HandleAuthentication	-
 base	AS	Cratis.Arc.Identity.MultipleIdentityDetailsProvidersFound	System.Exception	-	-
+base	AS	Cratis.Arc.Identity.OnBehalfOfOptions	System.Object	Audience ClockSkew Enabled Issuer Service SigningKeys	-
+base	AS	Cratis.Arc.Identity.OnBehalfOfSigningKey	System.Object	KeyId PublicKeyPem	-
 base	AS	Cratis.Arc.Identity.User	System.Object	Deconstruct Details EqualityContract Equals GetHashCode MicrosoftIdentity PrintMembers ToString	-
 base	AS	Cratis.Arc.Introspection.CommandIntrospectionMetadata	System.Object	Deconstruct DocumentationSummary EqualityContract Equals GetHashCode Name Namespace PayloadSchema PrintMembers Route ToString Type	-
 base	AS	Cratis.Arc.Introspection.IntrospectionOptions	System.Object	Enabled IdentityDiscovery RequireAuthentication Roles TrustForwardedIdentityHeaders	-
@@ -12696,7 +12709,7 @@ base	AS	Cratis.Arc.Queries.PagingInfo	System.Object	Deconstruct EqualityContract
 base	AS	Cratis.Arc.Queries.QueryActionFilter	System.Object	OnActionExecutionAsync	-
 base	AS	Cratis.Arc.Queries.QueryArguments	System.Collections.Generic.Dictionary`2	Empty	-
 base	AS	Cratis.Arc.Queries.QueryArgumentsModels	System.Object	TryCreateFor	-
-base	AS	Cratis.Arc.Queries.QueryContext	System.Object	Arguments AuthorizedPrincipal CancellationToken CorrelationId Deconstruct Dependencies EqualityContract Equals GetHashCode Name NotSet Paging PrintMembers ReceivedAt ServiceProvider Sorting SubscriptionScope ToString TotalItems	-
+base	AS	Cratis.Arc.Queries.QueryContext	System.Object	Arguments AuthorizedPrincipal CancellationToken CorrelationId Deconstruct Dependencies EqualityContract Equals GetHashCode Name NotSet Paging PrintMembers ReceivedAt ServiceProvider SliceLocation Sorting SubscriptionScope ToString TotalItems	-
 base	AS	Cratis.Arc.Queries.QueryContextManager	System.Object	Current Set	-
 base	AS	Cratis.Arc.Queries.QueryFilters	System.Object	AfterAuthorization Authorize OnPerform	-
 base	AS	Cratis.Arc.Queries.QueryHealthAuthorization	System.Object	GetAuthorizationInfo IsAnonymousAllowed	-
@@ -12768,6 +12781,10 @@ base	AS	Cratis.Arc.Screenplay.Embedded.Hosting.Catalog.MalformedEventModelCatalo
 base	AS	Cratis.Arc.Screenplay.Embedded.Hosting.EventModelViewerOptions	System.Object	Assemblies AuthorizationPolicy Enabled RequireAuthorization	-
 base	AS	Cratis.Arc.Screenplay.Embedded.Hosting.NoAssembliesToServeEventModelsFrom	System.Exception	-	-
 base	AS	Cratis.Arc.ServiceProviderNotConfigured	System.Exception	-	-
+base	AS	Cratis.Arc.Slices.FeatureName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
+base	AS	Cratis.Arc.Slices.ModuleName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
+base	AS	Cratis.Arc.Slices.SliceLocation	System.Object	Deconstruct EqualityContract Equals Feature For GetHashCode Module NotSet PrintMembers Slice ToString	-
+base	AS	Cratis.Arc.Slices.SliceName	Cratis.Concepts.ConceptAs`1	Deconstruct EqualityContract Equals GetHashCode NotSet PrintMembers	-
 base	AS	Cratis.Arc.Swagger.CommandResultOperationFilter	System.Object	Apply	-
 base	AS	Cratis.Arc.Swagger.ConceptSchemaFilter	System.Object	Apply	-
 base	AS	Cratis.Arc.Swagger.EnumSchemaFilter	System.Object	Apply	-

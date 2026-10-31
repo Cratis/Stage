@@ -12,7 +12,7 @@ using Cratis.Stage.Running;
 using Cratis.Stage.Specifications;
 using Cratis.Stage.SpecRunner;
 
-return await Program.Run(args, Console.Out, Console.Error);
+return await Run(args, Console.Out, Console.Error);
 
 /// <summary>
 /// Runs modeled specifications from a Screenplay file or folder.
@@ -123,7 +123,7 @@ public static partial class Program
         try
         {
             var loaded = await SemanticModelLoader.LoadFromPathAsync(arguments.ModelPath, arguments.CatalogPath, arguments.ApplicationName);
-            var bodies = await CompileBodies(loaded, arguments, args);
+            await using var bodies = await CompileBodies(loaded, arguments, args);
             var result = await new SemanticSpecificationExecutor().Run(loaded.Plan, new SemanticSpecificationSelection([.. scopes]), new SemanticSpecificationRunOptions
             {
                 SpecificationOrigins = loaded.SpecificationOrigins,

@@ -34,10 +34,13 @@ public static partial class BodyDiagnostics
     private static partial Regex Paths { get; }
 
     /// <summary>Names the unexecuted body kind and its planned delivery slice.</summary>
+    /// <param name="role">The body role that has no executor yet.</param>
     public static string NotExecuted(SemanticImplementationRole role) =>
         $"{role} is not executed by `cratis run` yet (Stage#891 slice {_slices.GetValueOrDefault(role, "not scheduled")}).";
 
     /// <summary>Formats one sanitized line without file paths or stack frames.</summary>
+    /// <param name="code">The stable diagnostic code.</param>
+    /// <param name="message">The raw message, from which paths and stack frames are removed.</param>
     public static string Format(string code, string message)
     {
         var text = Paths.Replace(message.Replace('\r', ' ').Replace('\n', ' '), "[path]");

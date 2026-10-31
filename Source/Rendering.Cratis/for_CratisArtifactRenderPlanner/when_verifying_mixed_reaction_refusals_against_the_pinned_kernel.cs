@@ -76,7 +76,7 @@ public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : 
         {
             Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [] }] }] }]
         });
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics));
         RenderApplication(plan);
         AddGeneratedHostSupport("Stage342Host.cs", MixedReactionRefusalProbeSource.Host);
@@ -85,7 +85,7 @@ public class when_verifying_mixed_reaction_refusals_against_the_pinned_kernel : 
 
     static Dictionary<string, string[]> ReferenceWorlds(ExecutableSemanticModel model)
     {
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         Assert.Equal(3, plan.Specifications.Count);
         var worlds = new Dictionary<string, string[]>(StringComparer.Ordinal);
         foreach (var specification in plan.Specifications.Values)

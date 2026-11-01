@@ -42,5 +42,5 @@ public class with_a_reachable_translate_projection : Specification
     void Because() => _admission = new(_plan);
 
     [Fact] void should_refuse_the_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");
-    [Fact] void should_preserve_the_translate_slice_diagnostic() => _admission.Entries.Single(entry => entry.Kind == "specification").Details!.ShouldContain("STAGE-ESM-024: Slice 'LegacySync'");
+    [Fact] void should_preserve_the_translate_slice_diagnostic() => _admission.Entries.Single(entry => entry.Kind == "specification").Details.ShouldContain("STAGE-ESM-024: Slice 'LegacySync'");
 }

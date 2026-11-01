@@ -17,24 +17,25 @@ public class when_preserving_inventory_fixture_bytes
 {
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
-        ["append refusal"] = "40162a348403e9d792101c275306a96c2834c709faca90f097769ed5321b9ad7",
-        ["cascade with trigger"] = "81d41901e41755eed0c607edc7177ee69f0ec22cfe494b583318058a612d3dda",
-        ["case table"] = "db27485845dbbc9febff590eddc648c7f78a89772afb1a789fbb61ce18654137",
-        ["composite keys"] = "f49fb3239668178da155939850a1d3140fb030ad8eba5e7a1cfa78d60e8728b0",
-        ["denied query"] = "98c4b61690f46793a8af628b0fb3ee9b52a8baf1583a356f8340763fe928bd4d",
-        ["folder"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
-        ["policy typed contexts"] = "bd03edb6a12d82341eceb3b69fdb3845af3d6cad5bcb641937ef91a4adc6063a",
-        ["query"] = "2b177e776044740057a19ddc3270b94dd9bd7fbc264fbc751160105e7548657f",
-        ["reaction production"] = "6b382ed2e6093546c233a95f1edfc0e53dd55db3b6ec29dc043cdb67ff749efd",
-        ["redelivery"] = "250bea136b3f4dceb4e0378f345d64e6e9f708519ecc5c2b8a5f5e42d4091392",
-        ["reducer typed contexts"] = "32e2f14dca8bb900eddd8a2a2791b5577209f72af09877977b8ac3ef08e4c2bd",
-        ["relocated"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
-        ["reordered"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
-        ["scoped projections"] = "dd1d283e2acd2dd3aaf27c4642045497091d5f7cadaba85c2f246ddc5c2bd485",
-        ["single"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
-        ["strings"] = "02a6a179fd5a7c2b9517be88980f361961ce0729c20b8691197f716dffa779cb",
-        ["translation specification"] = "1de4e0c30247eb94fdbd9c3b1c0fa729fbaed69711275787c9d7855be068496e",
-        ["validation typed contexts"] = "2aac89971f306eda14e3eed70316276b3864bb26812f1027f83f077c4b1504d3",
+        ["append refusal"] = "78d5ec8f1baa63a0fb076de02e7803a1f6d9c991d627195ab4a99c1f26088093",
+        ["cascade with trigger"] = "db07af34da914f3fd58affdc8f0c448a32640aa625fb04fb3daf0c604dd576fb",
+        ["case table"] = "1b3e0ac15a091497e92475c9e64366918cbadd6e47b37e659f50086bd107fdb6",
+        ["composite keys"] = "88a84f3331f47e5ea2929a746db464812408844c0e8e332b8446bcda6cd6d8ce",
+        ["denied query"] = "234a4f071cab2efc4fc50ff737a682dde6998370729c41d16ed842ad927dd46f",
+        ["folder"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
+        ["policy typed contexts"] = "528d6ad89dc14c5e400c2a84db3063c658176fc5d4ed4770ee8e468f8477cb32",
+        ["query"] = "d95ea5d3926ac57dcd4137856efd7e0bab2ecdbfd2f40c8a9f0ef62c327dc916",
+        ["reaction production"] = "ba22da7668d29cf163f92d5cce401b9e84e21fbf571d3d393193b6f8e28c9f34",
+        ["redelivery"] = "26f01a0fa7cb373603ea32a037a28ee47e6b1538e94c54bd2ee7e205b1eac29e",
+        // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
+        ["reducer typed contexts"] = "9fecdbdc423457aa1bc3495099feedbb8b257776bc63201fe414750d26aedefc",
+        ["relocated"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
+        ["reordered"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
+        ["scoped projections"] = "54756415219d57882746c72297b85286dc7b48ffdd40fce14b21597083521c03",
+        ["single"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
+        ["strings"] = "b1c1d6c1d68e790fa8b56f27012883adf758524ef7bc97afe3e4388d8a123b51",
+        ["translation specification"] = "701faa234978ab5b0e8c1dde2f088d32a7ea082e5f2aa22ae1087401b03e9007",
+        ["validation typed contexts"] = "f22a188a7285c06f0c8a1258d17e6c4eba503302b54ef0f53e65753fe9cf83aa",
     };
 
     public static TheoryData<string> Fixtures

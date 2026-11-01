@@ -46,5 +46,10 @@ public class when_refusing_malformed_stubs : given.a_gap
     [Fact] void should_refuse_duplicate_stubs() => _duplicate.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_overlapping_bodies() => _overlapping.ShouldBeOfExactType<InvalidArtifactRenderContract>();
     [Fact] void should_refuse_bodies_shared_by_requirements() => _sharedBody.ShouldBeOfExactType<InvalidArtifactRenderContract>();
-    Exception Refuse(ArtifactImplementationStub stub) => Catch.Exception(() => Digest([_gap with { Stubs = [stub] }]));
+    Exception Refuse(ArtifactImplementationStub stub)
+    {
+        var exception = Catch.Exception(() => Digest([_gap with { Stubs = [stub] }]));
+        exception.ShouldNotBeNull();
+        return exception;
+    }
 }

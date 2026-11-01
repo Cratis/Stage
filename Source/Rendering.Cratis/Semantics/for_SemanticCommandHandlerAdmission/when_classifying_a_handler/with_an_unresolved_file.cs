@@ -14,5 +14,5 @@ public class with_an_unresolved_file : given.a_described_handler
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_not_mistake_the_file_for_a_resolved_body() => _classification.Kind.ShouldEqual(HandlerKind.Invalid);
-    [Fact] void should_explain_the_unresolved_attachment() => _classification.Reason!.ShouldContain("resolved");
+    [Fact] void should_explain_the_unresolved_attachment() => _classification.Reason.ShouldContain("resolved");
 }

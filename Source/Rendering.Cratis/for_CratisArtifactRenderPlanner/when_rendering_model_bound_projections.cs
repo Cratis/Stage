@@ -41,7 +41,7 @@ public class when_rendering_model_bound_projections
                   name = name
         """;
 
-    const string PinnedClassic = "E613F01006DEA29E99A2BD159B73A6952DD1BE4A806989ADE680689E74709195";
+    const string PinnedClassic = "C6C2191FAE8B004ED6895499BE6640E572FF4DE006ABDABCB2DA1ADAD21D0122";
 
     static string Bytes(ArtifactRenderPlan plan) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Code(plan))));
 
@@ -54,10 +54,10 @@ public class when_rendering_model_bound_projections
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model-bound"), "model-bound", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        return new CratisArtifactRenderPlanner().Plan(new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }
 
     internal static string Code(ArtifactRenderPlan plan)
@@ -111,7 +111,7 @@ public class when_rendering_model_bound_projections
             Overrides = System.Collections.Immutable.ImmutableDictionary<SemanticId, ReducerOverride>.Empty.Add(reducer.ReadModel, new("Projects.Projects.Registration.Folded.Fold", "Projects/Registration/Folded/Fold.cs"))
         }));
         Assert.Equal("2", v2.Inputs.Single(input => input.Name == ReducerConventionInput.Name).Version);
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, v2, new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, v2, new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = loaded.ImplementationRequirements,
             ImplementationContents = loaded.ImplementationContents,
@@ -134,19 +134,27 @@ public class when_rendering_model_bound_projections
 
     [Theory]
     [InlineData("remove")]
-    [InlineData("counter")]
     [InlineData("unmapped")]
     public void should_keep_fluent_for_shapes_model_bound_cannot_express(string shape)
     {
         var source = shape switch
         {
             "remove" => Source + "\n        remove with ProjectRemoved",
-            "counter" => Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        visits Decimal?\n      query ProjectById", StringComparison.Ordinal)
-                .Replace("        from ProjectNamed\n          name = name\n", "        from ProjectNamed\n          name = name\n          increment visits\n", StringComparison.Ordinal),
             "unmapped" => Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        label ProjectName?\n      query ProjectById", StringComparison.Ordinal),
             _ => Source + "\n        from ProjectRegistered key projectId\n          name = name"
         };
         var code = Code(Plan(source, true));
         Assert.Contains("IProjectionFor<ProjectSummary>", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void should_express_the_counter_shape_only_from_version_four()
+    {
+        var source = Source.Replace("        name ProjectName\n      query ProjectById", "        name ProjectName\n        visits Decimal?\n      query ProjectById", StringComparison.Ordinal)
+            .Replace("        from ProjectNamed\n          name = name\n", "        from ProjectNamed\n          name = name\n          increment visits\n", StringComparison.Ordinal);
+        Assert.Contains("IProjectionFor<ProjectSummary>", Code(Plan(source, when_rendering_model_bound_running_totals.VersionThree())), StringComparison.Ordinal);
+        var modern = Code(Plan(source, true));
+        Assert.Contains("Increment<ProjectNamed>", modern, StringComparison.Ordinal);
+        Assert.DoesNotContain("IProjectionFor<ProjectSummary>", modern, StringComparison.Ordinal);
     }
 }

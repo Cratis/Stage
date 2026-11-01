@@ -14,7 +14,8 @@ namespace Cratis.Stage.Rendering.Cratis.Authorization;
 /// <para>
 /// A role policy, or an explicit disjunction made entirely from role policies, has the same any-of semantics as
 /// Arc's <c language="csharp">[Roles]</c> attribute and is preserved exactly. Authentication alone renders as <c language="csharp">[Authorize]</c>.
-/// No <c language="csharp">authorize</c> declaration renders as <c language="csharp">[AllowAnonymous]</c>.
+/// No <c language="csharp">authorize</c> declaration emits no attribute, leaving authorization to the host.
+/// An explicit anonymous policy renders as <c language="csharp">[AllowAnonymous]</c>.
 /// </para>
 /// <para>
 /// Conjunctions and requirements involving claims, authored code, missing policies, or unknown policy syntax do
@@ -44,9 +45,9 @@ public static class AuthorizationRenderer
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the policies are resolved against.</param>
     /// <param name="subject">What is being authorized, for diagnostics (for example <c language="csharp">Command 'Invite'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
-    /// <returns>The attribute content, without the surrounding brackets.</returns>
+    /// <returns>The attribute content without brackets, or <see langword="null"/> when no authorization is declared.</returns>
     /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>
-    public static string Render(AuthorizeSyntax? authorize, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics) =>
+    public static string? Render(AuthorizeSyntax? authorize, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics) =>
         Render([authorize], applicationSet, subject, diagnostics);
 
     /// <summary>
@@ -57,10 +58,10 @@ public static class AuthorizationRenderer
     /// <param name="applicationSet">The <see cref="ApplicationSet"/> the policies are resolved against.</param>
     /// <param name="subject">What is being authorized, for diagnostics (for example <c language="csharp">Read model 'Invoice'</c>).</param>
     /// <param name="diagnostics">Collects anything that could not be rendered faithfully.</param>
-    /// <returns>The attribute content, without the surrounding brackets.</returns>
+    /// <returns>The attribute content without brackets, or <see langword="null"/> when a declaration is absent.</returns>
     /// <exception cref="AuthorizationCannotBeRendered">The authorization cannot be represented faithfully.</exception>
     /// <exception cref="UnreachableAuthorizationRendering">An internal authorization outcome is not handled.</exception>
-    public static string Render(
+    public static string? Render(
         IEnumerable<AuthorizeSyntax?> authorizations, ApplicationSet applicationSet, string subject, ICollection<string> diagnostics)
     {
         var outcome = Resolve(authorizations, applicationSet);
@@ -73,6 +74,7 @@ public static class AuthorizationRenderer
 
         return outcome switch
         {
+            HostDefault => null,
             AnonymousAccess => "AllowAnonymous",
             AuthenticatedOnly => "Authorize",
             RoleDisjunction roles =>
@@ -86,11 +88,11 @@ public static class AuthorizationRenderer
         var declared = authorizations.ToArray();
         if (declared.Length == 0)
         {
-            return AnonymousAccess.Instance;
+            return HostDefault.Instance;
         }
 
         return Alternative(declared.Select(authorize =>
-            authorize is null ? AnonymousAccess.Instance : Resolve(authorize.Requirement, applicationSet)));
+            authorize is null ? HostDefault.Instance : Resolve(authorize.Requirement, applicationSet)));
     }
 
     static AuthorizationRendering Resolve(PolicyRequirementSyntax requirement, ApplicationSet applicationSet) =>
@@ -123,6 +125,7 @@ public static class AuthorizationRenderer
 
     static AuthorizationRendering Resolve(string policy, PolicyConditionSyntax? condition) => condition switch
     {
+        AnonymousConditionSyntax => AnonymousAccess.Instance,
         AuthenticatedConditionSyntax => AuthenticatedOnly.Instance,
         RoleConditionSyntax role => new RoleDisjunction([role.Role]),
         LogicalPolicyConditionSyntax { Operator: LogicalOperator.Or } logical => Alternative(
@@ -147,6 +150,11 @@ public static class AuthorizationRenderer
             return AnonymousAccess.Instance;
         }
 
+        if (outcomes.Any(outcome => outcome is HostDefault))
+        {
+            return HostDefault.Instance;
+        }
+
         if (outcomes.Any(outcome => outcome is AuthenticatedOnly))
         {
             return AuthenticatedOnly.Instance;
@@ -165,6 +173,11 @@ public static class AuthorizationRenderer
     };
 
     abstract record AuthorizationRendering;
+
+    sealed record HostDefault : AuthorizationRendering
+    {
+        public static readonly HostDefault Instance = new();
+    }
 
     sealed record AnonymousAccess : AuthorizationRendering
     {

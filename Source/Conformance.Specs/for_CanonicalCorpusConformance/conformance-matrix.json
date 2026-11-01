@@ -2192,8 +2192,7 @@
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:31799d70400a3946e07678be557b1c6789bb1029e8426907fe31a26068dc3918", "issue": 79 },
         { "code": "STAGE-ESM-033", "kind": "capture", "artifact": "sem1:046d5ff6801752fba5b4750524f564034885a2a576809feb02fb911c9389aea9", "issue": 213 },
         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:1a074f48cbb6c4d75e1811aacbce10340f07ba2479a8f60fb0870596bac970ae", "issue": 213 } ] },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-011", "artifact": "sem1:dff39633d79db6a242955ab9b29b2b79b07e913394f3736ea5138e6ffcdafbbe", "issue": 79 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V33": {
       "loader": { "outcome": "supported" },
@@ -2202,16 +2201,14 @@
         { "code": "STAGE-ESM-024", "kind": "slice", "artifact": "sem1:31799d70400a3946e07678be557b1c6789bb1029e8426907fe31a26068dc3918", "issue": 79 },
         { "code": "STAGE-ESM-033", "kind": "capture", "artifact": "sem1:046d5ff6801752fba5b4750524f564034885a2a576809feb02fb911c9389aea9", "issue": 213 },
         { "code": "STAGE-ESM-033", "kind": "event", "artifact": "sem1:1a074f48cbb6c4d75e1811aacbce10340f07ba2479a8f60fb0870596bac970ae", "issue": 213 } ] },
-      "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-011", "artifact": "sem1:450a348c26380bd109150021f55c569605dbaef3cf4c29735bbc8d17391bc396", "issue": 14 } ] }
+      "renderer": { "outcome": "supported" }
     },
     "EsmGoldenVectors.V34": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
-      "host": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] },
+      "host": { "outcome": "supported" },
       "renderer": { "outcome": "refused", "refusals": [
-        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] }
+        { "code": "STAGE-ESM-016", "artifact": "sem1:6f1594c338409b66186f4b9a08ce6f001dbda5fd53850b5a835e25400a612a21", "issue": 907 } ] }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },

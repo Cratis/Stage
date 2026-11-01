@@ -39,7 +39,7 @@ public class when_capturing_foreign_events : given.a_translation_application
 
     [Fact] void should_append_nothing_for_an_unchanged_foreign_record() => _effects.Count.ShouldEqual(2);
     [Fact] void should_derive_the_local_destination_from_the_capture_key_not_the_inbox_stream() => _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First, Second]);
-    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId")!.GetValue(effect.Event)!.ToString()).ShouldEqual([First, Second]);
+    [Fact] void should_copy_the_foreign_payload_into_the_local_fact() => _effects.Select(effect => effect.Event.GetType().GetProperty("OrderId").GetValue(effect.Event).ToString()).ShouldEqual([First, Second]);
     [Fact] void should_read_capture_state_from_the_inbox_it_observes() => _inbox.ReceivedCalls().ShouldNotBeEmpty();
     [Fact] void should_produce_only_local_private_facts() => _effects.ShouldEachConformTo(effect => effect.Event.GetType() == Generated("TrackShipments", "OrderDispatched"));
 
@@ -52,13 +52,15 @@ public class when_capturing_foreign_events : given.a_translation_application
     public async Task should_append_the_capture_effects_to_the_local_log_and_propagate_its_result(bool refused)
     {
         var log = new given.a_keyed_capture_log();
-        _store.EventLog.Returns(log.Log);
+        var store = Substitute.For<IEventStore>();
+        store.EventTypes.GetEventTypeFor(Arg.Any<Type>()).Returns(call => call.Arg<Type>().GetEventType());
+        store.EventLog.Returns(log.Log);
         log.Refusal = refused
             ? AppendManyResult.Failed(CorrelationId.New(), [new AppendError("Refused")])
             : null;
         var context = new ReactorContext(EventContext.Empty, NewReactor(), []);
         var handler = new EventsForEventSourceIdResultHandler();
-        var result = await handler.Handle(context, _store, _effects.ToArray());
+        var result = await handler.Handle(context, store, _effects.ToArray());
         result.IsSuccess.ShouldEqual(!refused);
         log.Attempts.Count.ShouldEqual(1);
         log.Attempts.Single().ShouldEqual(_effects);
@@ -67,10 +69,10 @@ public class when_capturing_foreign_events : given.a_translation_application
     [Fact]
     public async Task should_ignore_inbox_records_after_the_delivered_position_so_replayed_state_is_deterministic()
     {
-        _effects.Clear();
+        var effects = new List<EventForEventSourceId>();
         var reactor = NewReactor();
-        await Invoke(reactor, Dispatched(First), sequenceNumber: 0);
-        _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First]);
+        await Invoke(reactor, Dispatched(First), sequenceNumber: 0, effects);
+        effects.Select(effect => effect.EventSourceId.Value).ShouldEqual([First]);
     }
 
     object NewReactor() => Activator.CreateInstance(Generated("TrackShipments", "ShipmentTracking"), _store)!;
@@ -86,11 +88,11 @@ public class when_capturing_foreign_events : given.a_translation_application
         await Invoke(NewReactor(), source, sequenceNumber);
     }
 
-    async Task Invoke(object reactor, object source, ulong sequenceNumber)
+    async Task Invoke(object reactor, object source, ulong sequenceNumber, List<EventForEventSourceId>? destination = null)
     {
         var context = EventContext.Empty with { SequenceNumber = sequenceNumber };
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched")!.Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)])!;
-        _effects.AddRange(effects.Cast<EventForEventSourceId>());
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnShipmentDispatched").Invoke(reactor, [source, context, ReactorDelivery.For(reactor, context)]);
+        (destination ?? _effects).AddRange(effects.Cast<EventForEventSourceId>());
     }
 }
 #endif

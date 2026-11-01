@@ -6,30 +6,39 @@ import type { ReactNode } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { selectableRowsOf, selectedRowsOf } from './StageCommandForm';
 import { useStageData } from './stageData';
+import { isBoardComponent } from './stageBoardSelection';
 
 /**
- * The table ids of one screen, including tables nested in its slots. An outlet belongs to another screen, so its children are not visited.
+ * The row-source scopes of one screen, including tables and board card queries nested in its slots. An outlet belongs to another screen, so its children are not visited.
  *
  * @param element The composed screen.
- * @returns The distinct table ids, in first-use order, matching the scopes under which tables publish their queries and selections.
+ * @returns The distinct source scopes, in first-use order, matching the queries and components that publish selectable rows.
  */
 export function screenTablesOf(element: SceneElement): string[] {
     const tables = new Set<string>();
     const visit = (node: SceneElement): void => {
         const component = node as ExternalComponent;
         if (component.componentName === 'core:outlet') return;
-        if (component.componentName === 'core:table') tables.add(component.id);
+        rowScopesOf(component).forEach(scope => tables.add(scope));
         for (const children of Object.values(component.slots ?? {})) children.forEach(visit);
     };
     visit(element);
     return [...tables];
 }
 
+function rowScopesOf(component: ExternalComponent): string[] {
+    if (component.componentName === 'core:table') return [component.id];
+    if (!isBoardComponent(component.componentName)) return [];
+    const cards = component.properties.cards as { kind?: string; query?: unknown } | undefined;
+    const query = cards?.kind === 'queryResult' && typeof cards.query === 'string' ? [`binding:${cards.query}`] : [];
+    return [component.id, ...query];
+}
+
 const ScreenTablesContext = createContext<ReadonlySet<string> | undefined>(undefined);
 
-/** Limits action selection and hidden form identifiers to the tables of this screen, independently of other screens on the page. */
-export function StageScreenTables({ element, children }: { element: SceneElement; children: ReactNode }) {
-    const tables = useMemo(() => new Set(screenTablesOf(element)), [element]);
+/** Limits action selection and hidden form identifiers to the tables and boards of this screen, independently of other screens on the page. */
+export function StageScreenTables({ element, outputScope, children }: { element: SceneElement; outputScope?: string; children: ReactNode }) {
+    const tables = useMemo(() => new Set(screenTablesOf(element).flatMap(source => outputScope ? [source, `${outputScope}:${source}`] : [source])), [element, outputScope]);
     return <ScreenTablesContext.Provider value={tables}>{children}</ScreenTablesContext.Provider>;
 }
 
@@ -39,8 +48,8 @@ export function StagePageRows({ children }: { children: ReactNode }) {
 }
 
 /**
- * The rows a person could select and has selected in this screen's tables, each carrying the entity keys the command form recognizes.
- * Queries published for `data:` declarations or `binding:` values and tables on other screens cannot gate an action or fill its identifier.
+ * The rows a person could select and has selected in this screen's tables and boards, each carrying the entity keys the command form recognizes.
+ * Only a board's card query admits a `binding:` source; unrelated bindings, `data:` declarations and other screens cannot gate an action or fill its identifier.
  * Without a screen provider, direct consumers retain the page-wide behavior.
  */
 export function useScreenRows(): { selectableRows: Record<string, unknown>[]; selectedRows: Record<string, unknown>[] } {

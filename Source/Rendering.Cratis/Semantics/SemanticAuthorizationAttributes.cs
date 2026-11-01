@@ -17,18 +17,34 @@ internal static class SemanticAuthorizationAttributes
     /// </summary>
     /// <param name="command">The admitted command.</param>
     /// <param name="context">The semantic application.</param>
-    /// <returns>The attribute name.</returns>
-    public static string For(SemanticCommand command, SemanticApplicationContext context) => command.Authorization is null || SemanticAnonymousAccess.IsAnonymous(command.Authorization, context.Application.Policies)
-        ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
+    /// <returns>The attribute name, or <see langword="null"/> when no authorization is declared.</returns>
+    public static string? For(SemanticCommand command, SemanticApplicationContext context)
+    {
+        if (command.Authorization is null)
+        {
+            return null;
+        }
+
+        return SemanticAnonymousAccess.IsAnonymous(command.Authorization, context.Application.Policies)
+            ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
+            : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, command.Id))})";
+    }
 
     /// <summary>
     /// Gets the authorization attribute for an admitted query.
     /// </summary>
     /// <param name="query">The admitted query.</param>
     /// <param name="context">The semantic application.</param>
-    /// <returns>The attribute name.</returns>
-    public static string For(SemanticKeyedQuery query, SemanticApplicationContext context) => query.Authorization is null || SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies)
-        ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
-        : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
+    /// <returns>The attribute name, or <see langword="null"/> when no authorization is declared.</returns>
+    public static string? For(SemanticKeyedQuery query, SemanticApplicationContext context)
+    {
+        if (query.Authorization is null)
+        {
+            return null;
+        }
+
+        return SemanticAnonymousAccess.IsAnonymous(query.Authorization, context.Application.Policies)
+            ? "global::Cratis.Arc.Authorization.AllowAnonymousAttribute"
+            : $"global::Cratis.Arc.Authorization.AuthorizeAttribute(Policy = {CSharpCodeBuilder.StringLiteral(SemanticPolicyArtifactRenderer.PolicyName(context, query.Id))})";
+    }
 }

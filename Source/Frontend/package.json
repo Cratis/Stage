@@ -15,7 +15,7 @@
     "@cratis/stage.runtime": "*",
     "@cratis/arc": "22.146.0",
     "@cratis/arc.react": "22.146.0",
-    "@cratis/components": "4.34.0",
+    "@cratis/components": "4.38.1",
     "@cratis/fundamentals": "7.27.0",
     "@cratis/scene.blueprint.default": "4.86.0",
     "@cratis/scene.components": "4.86.0",

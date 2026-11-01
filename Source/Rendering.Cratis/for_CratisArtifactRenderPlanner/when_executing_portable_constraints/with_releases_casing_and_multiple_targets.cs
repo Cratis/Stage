@@ -26,7 +26,7 @@ public class with_releases_casing_and_multiple_targets(context fixture) : IClass
     [InlineData("when_ignoring_description_casing")]
     [InlineData("when_imported_value_is_taken")]
     [InlineData("when_reclaim_own_description")]
-    void should_execute_each_history(string name) => fixture.Results.Any(result => result.Name.Contains(name, StringComparison.Ordinal)).ShouldBeTrue();
+    void should_execute_each_history(string name) => fixture.Results.Any(result => result.Matches(className: name, match: GeneratedTestNameMatch.Prefix)).ShouldBeTrue();
 
     public class context : a_generated_invoice_application
     {

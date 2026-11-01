@@ -47,10 +47,9 @@ public class when_comparing_query_validation_rejections(when_comparing_query_val
             Stage = [.. (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results];
             Warnings = BuildWarnings(await Run("query-validation-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("query-validation-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=query-validation.trx", "--results-directory", _evidence.FullName);
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            var results = XDocument.Load(Path.Combine(_evidence.FullName, "query-validation.trx")).Descendants(ns + "UnitTestResult").ToArray();
-            GeneratedOutcomes = [.. results.Select(result => (string)result.Attribute("outcome")!)];
-            GeneratedSpecifications = results.Select(result => ((string)result.Attribute("testName")!).Split(".should_", StringSplitOptions.None)[0]).Distinct().Count();
+            var results = GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "query-validation.trx")));
+            GeneratedOutcomes = [.. results.Select(result => result.Outcome)];
+            GeneratedSpecifications = results.Select(result => result.ClassName).Distinct().Count();
         }
     }
 }

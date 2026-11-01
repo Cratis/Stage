@@ -27,9 +27,9 @@ public class when_executing_generated_multiple_refusal_invocations_after_a_refus
     [Fact] void should_assert_successful_settlement() => fixture.GeneratedSpecification.ShouldContain("void should_settle() => _settled.ShouldBeTrue();");
     [Fact] void should_assert_no_completed_or_followed_facts_are_appended() => fixture.GeneratedSpecification.ShouldContain("void should_append_exactly_the_expected_events() => _facts.Length.ShouldEqual(0);");
     [Fact] void should_execute_two_generated_tests() => fixture.GeneratedResults.Length.ShouldEqual(2);
-    [Fact] void should_execute_the_settlement_and_no_appended_events_assertions() => fixture.GeneratedResults.Select(result => result.Name.Split('.')[^1]).ShouldContainOnly(["should_settle", "should_append_exactly_the_expected_events"]);
+    [Fact] void should_execute_the_settlement_and_no_appended_events_assertions() => fixture.GeneratedResults.Select(result => result.MethodName).ShouldContainOnly(["should_settle", "should_append_exactly_the_expected_events"]);
     [Fact] void should_pass_every_generated_test_without_skipping() => Assert.All(fixture.GeneratedResults, result => Assert.Equal("Passed", result.Outcome));
-    [Fact] void should_pass_the_runtime_assertion_of_no_completed_or_followed_facts() => fixture.GeneratedResults.Single(result => result.Name.EndsWith(".should_append_exactly_the_expected_events", StringComparison.Ordinal)).Outcome.ShouldEqual("Passed");
+    [Fact] void should_pass_the_runtime_assertion_of_no_completed_or_followed_facts() => fixture.GeneratedResults.Single(result => result.Matches(methodName: "should_append_exactly_the_expected_events")).Outcome.ShouldEqual("Passed");
     [Fact] void should_pass_the_first_matching_refusal_branch_on_all_three_paths() => fixture.Outcomes.ShouldContainOnly(["multiple-refusal-after-refusal/Exercising: Reference=Passed, Stage=Passed, Rendered=Passed"]);
     [Fact] void should_preserve_three_way_parity() => ThreeWayOutcomes.Report(fixture, output);
 
@@ -104,17 +104,14 @@ public class when_executing_generated_multiple_refusal_invocations_after_a_refus
         protected override bool RequireStageExecution => true;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("multiple-refusal-after-refusal", a_refusal_model.Compile(ModelSource))];
         public string GeneratedSpecification { get; private set; } = string.Empty;
-        public (string Name, string Outcome)[] GeneratedResults { get; private set; } = [];
+        public GeneratedTestResult[] GeneratedResults { get; private set; } = [];
 
         async Task Because()
         {
             // Verify removes the generated application, but retains its runtime evidence.
             GeneratedSpecification = ReadGeneratedFile(GeneratedFiles("when_exercising.cs").Single());
             await Verify();
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            GeneratedResults = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
-                .Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+            GeneratedResults = [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx")))];
         }
     }
 }

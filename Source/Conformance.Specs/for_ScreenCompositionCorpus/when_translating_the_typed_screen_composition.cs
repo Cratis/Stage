@@ -37,13 +37,13 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
 
     [Fact] void should_pin_the_canonical_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("4f39fe8e050284e6c7b0e6dd098538701f715dd62caa082f80c599a1266ec035");
     [Fact] void should_carry_the_sample_data_pack() => _scene.SampleDataPacks.Single().Id.ShouldEqual("workspace-demo");
-    [Fact] void should_select_the_pack_in_the_profile() => _scene.UiProfiles.Single().SampleData!.ActivePack.ShouldEqual("workspace-demo");
-    [Fact] void should_map_the_shape_to_the_read_model() => _scene.UiProfiles.Single().SampleData!.Mappings.Single().ReadModel.ShouldEqual("WorkItemSummary");
+    [Fact] void should_select_the_pack_in_the_profile() => _scene.UiProfiles.Single().SampleData.ActivePack.ShouldEqual("workspace-demo");
+    [Fact] void should_map_the_shape_to_the_read_model() => _scene.UiProfiles.Single().SampleData.Mappings.Single().ReadModel.ShouldEqual("WorkItemSummary");
     [Fact] void should_pin_the_canonical_scene_length() => _bytes.Length.ShouldEqual(25179);
 
     [Fact] void should_declare_what_each_template_exposes() => _scene.Exposures.Select(exposure => exposure.Owner).ShouldContainOnly(["WorkspaceFeatureShell", "EditWorkItemDialog"]);
-    [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations!.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);
-    [Fact] void should_restrict_the_editable_fields_of_a_collection() => Exposed("WorkspaceFeatureShell", "actions").EditableFields!.ShouldContainOnly(["label", "icon"]);
+    [Fact] void should_expose_a_collection_with_its_operations() => Exposed("WorkspaceFeatureShell", "actions").Operations.ShouldContainOnly([CollectionOperation.Add, CollectionOperation.Remove, CollectionOperation.Reorder, CollectionOperation.EditFields]);
+    [Fact] void should_restrict_the_editable_fields_of_a_collection() => Exposed("WorkspaceFeatureShell", "actions").EditableFields.ShouldContainOnly(["label", "icon"]);
     [Fact] void should_carry_the_exposed_label() => Exposed("WorkspaceFeatureShell", "title").Label.ShouldEqual("Header title");
     [Fact] void should_carry_a_re_exposure() => Exposed("EditWorkItemDialog", "title").ReExposes.ShouldEqual("WorkspaceFeatureShell");
 
@@ -52,9 +52,9 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     [Fact] void should_store_an_item_field_value() => Contribution("actions").Items[0].Values["label"].GetString().ShouldEqual("Export");
 
     [Fact] void should_carry_the_template_display_name() => Shell.DisplayName.ShouldEqual("Workspace feature shell");
-    [Fact] void should_carry_the_template_picker_category() => Shell.Metadata!.Category.ShouldEqual("feature");
-    [Fact] void should_carry_the_template_scopes() => Shell.Metadata!.Scopes!.ShouldContainOnly([TemplateScope.Module, TemplateScope.Feature, TemplateScope.Subfeature, TemplateScope.Slice]);
-    [Fact] void should_carry_the_template_slot_content() => Shell.Content!["header"].Single().Id.ShouldEqual("shell:header");
+    [Fact] void should_carry_the_template_picker_category() => Shell.Metadata.Category.ShouldEqual("feature");
+    [Fact] void should_carry_the_template_scopes() => Shell.Metadata.Scopes.ShouldContainOnly([TemplateScope.Module, TemplateScope.Feature, TemplateScope.Subfeature, TemplateScope.Slice]);
+    [Fact] void should_carry_the_template_slot_content() => Shell.Content["header"].Single().Id.ShouldEqual("shell:header");
 
     [Fact] void should_arrange_a_grid_with_its_tracks() => Grid.Columns.ShouldEqual(2);
     [Fact] void should_weigh_a_grid_inside_its_parent() => Grid.Grow.ShouldEqual(1d);
@@ -64,7 +64,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     [Fact] void should_add_the_screens_own_contributions_after_its_scopes() => _scene.Screens.Single(screen => screen.Name == "WorkItemList").Contributions.Select(contribution => contribution.ContributionPointName).ShouldEqual(["Navigation", "Navigation", "Navigation", "WorkspaceActions", "Navigation"]);
     [Fact] void should_navigate_into_an_outlet() => Destination.Outlet.ShouldEqual("details");
     [Fact] void should_mark_the_destination_as_an_outlet() => Destination.Kind.ShouldEqual(DestinationKind.Outlet);
-    [Fact] void should_bind_the_route_parameter() => Destination.RouteParameterBindings!["workItemId"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
+    [Fact] void should_bind_the_route_parameter() => Destination.RouteParameterBindings["workItemId"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
 
     [Fact] void should_record_where_each_screen_was_declared() => _scene.Screens.All(screen => string.Join('/', screen.Path) == "Workspaces/Tracking").ShouldBeTrue();
     [Fact] void should_carry_the_stable_id_of_a_navigation_entry() => Entry("Work items").Properties["id"].ShouldEqual("nav:work-items");
@@ -80,7 +80,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
     DestinationReference EntryDestination(string label) => (DestinationReference)Entry(label).Properties[SceneElementProperties.Destination]!;
 
     ScreenTemplate Shell => _scene.ScreenTemplates.Single(template => template.Name == "WorkspaceFeatureShell");
-    FlowGrid Grid => All(((FlowArrangement)Shell.Arrangement!).Root).OfType<FlowGrid>().Single();
+    FlowGrid Grid => All(((FlowArrangement)Shell.Arrangement).Root).OfType<FlowGrid>().Single();
     ExposedProperty Exposed(string owner, string path) => _scene.Exposures.Single(exposure => exposure.Owner == owner).Properties.Single(property => property.Path == path);
     InstanceContribution Contribution(string path) => _scene.InstanceContributions.Single(contribution => contribution.Instance == "WorkItemList" && contribution.Path == path);
 
@@ -89,7 +89,7 @@ public class when_translating_the_typed_screen_composition : given.the_planned_s
         .SelectMany(Elements)
         .Select(element => element.Properties.GetValueOrDefault(SceneElementProperties.Destination))
         .OfType<DestinationReference>()
-        .Single(destination => destination.Outlet is not null && destination.RouteParameterBindings!.ContainsKey("workItemId"));
+        .Single(destination => destination.Outlet is not null && destination.RouteParameterBindings.ContainsKey("workItemId"));
 
     static IEnumerable<FlowNode> All(FlowNode node) =>
         node is FlowContainer container ? [node, .. container.Children.SelectMany(All)] : [node];

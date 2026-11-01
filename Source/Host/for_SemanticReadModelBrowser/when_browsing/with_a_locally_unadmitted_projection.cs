@@ -36,7 +36,7 @@ public class with_a_locally_unadmitted_projection : a_browser
     [Fact] void should_keep_supported_models_browsable() => _list.GetProperty("readModels")[1].GetProperty("instances").GetInt32().ShouldEqual(0);
     [Fact] void should_not_present_an_unsupported_model_as_empty() => RefusedModel.GetProperty("instances").ValueKind.ShouldEqual(JsonValueKind.Null);
     [Fact] void should_identify_the_refused_model() => RefusedModel.GetProperty("unsupported").GetProperty("artifact").GetString().ShouldEqual(ModelId.ToString());
-    [Fact] void should_include_the_typed_refusal_in_the_list() => RefusedModel.GetProperty("unsupported").GetProperty("details").GetString()!.ShouldContain("STAGE-PLAN-004:");
+    [Fact] void should_include_the_typed_refusal_in_the_list() => RefusedModel.GetProperty("unsupported").GetProperty("details").GetString().ShouldContain("STAGE-PLAN-004:");
     [Fact] void should_refuse_details() => ((int)_detail.StatusCode).ShouldEqual(501);
     [Fact] void should_return_the_projection_capability() => _detail.Headers.GetValues("Stage-Unsupported-Capability").Single().ShouldEqual("Projection");
     [Fact] void should_return_the_model_identity() => _detail.Headers.GetValues("Stage-Unsupported-Artifact").Single().ShouldEqual(ModelId.ToString());

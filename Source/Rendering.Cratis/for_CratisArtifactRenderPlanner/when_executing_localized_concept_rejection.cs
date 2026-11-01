@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 public class when_executing_localized_concept_rejection(when_executing_localized_concept_rejection.context fixture) : IClassFixture<when_executing_localized_concept_rejection.context>
 {
-    [Fact] void should_pass_generated_concept_key_specification() => fixture.Results.Any(_ => _.Name.Contains("should_report_the_expected_first_error_key", StringComparison.Ordinal) && _.Outcome == "Passed").ShouldBeTrue();
+    [Fact] void should_pass_generated_concept_key_specification() => fixture.Results.Any(_ => _.Matches(methodName: "should_report_the_expected_first_error_key") && _.Outcome == "Passed").ShouldBeTrue();
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
 

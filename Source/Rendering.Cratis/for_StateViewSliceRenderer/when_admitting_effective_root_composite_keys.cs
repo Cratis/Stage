@@ -59,7 +59,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile(Composite.Replace("from OrderCreated", "from OrderCreated key orderNumber, OrderUpdated", StringComparison.Ordinal));
         var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
         failure.EventName.ShouldEqual("OrderUpdated");
-        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key!.Location);
+        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key.Location);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile(Composite + "\nfrom OrderCreated key orderNumber\n  total = total");
         var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
         failure.EventName.ShouldEqual("OrderCreated");
-        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().First().Key!.Location);
+        failure.Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().First().Key.Location);
     }
 
     [Fact]
@@ -94,8 +94,8 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile("from OrderCreated key orderNumber\n  total = total");
         var safe = _slice.Projections.Single();
         Compile(Composite);
-        _slice = _slice with { Projections = [safe, _slice.Projections.Single() with { Name = "Unrendered" }] };
-        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render()));
+        var slice = _slice with { Projections = [safe, _slice.Projections.Single() with { Name = "Unrendered" }] };
+        Assert.IsType<UnsupportedLegacyProjection>(Catch.Exception(() => Render(slice)));
     }
 
     [Fact]
@@ -104,8 +104,8 @@ public class when_admitting_effective_root_composite_keys : Specification
         Compile("from OrderCreated key orderNumber\n  total = total");
         var safe = _slice.Projections.Single();
         Compile(Composite);
-        _slice = _slice with { Projections = [_slice.Projections.Single(), safe with { Name = "Unrendered" }] };
-        Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
+        var slice = _slice with { Projections = [_slice.Projections.Single(), safe with { Name = "Unrendered" }] };
+        Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render(slice)));
     }
 
     [Fact]
@@ -115,9 +115,9 @@ public class when_admitting_effective_root_composite_keys : Specification
         var projection = _slice.Projections.Single();
         var from = projection.Blocks.OfType<FromSyntax>().Single();
         var location = SourceLocation.Start with { Path = "./Models/../Orders.play", Line = 37, Column = 13 };
-        var composite = (CompositeKeySyntax)from.Key! with { Location = location };
-        _slice = _slice with { Projections = [projection with { Name = "orderProjection", ReadModel = "orderView", Blocks = [@from with { Key = composite }] }] };
-        var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render()));
+        var composite = (CompositeKeySyntax)from.Key with { Location = location };
+        var slice = _slice with { Projections = [projection with { Name = "orderProjection", ReadModel = "orderView", Blocks = [@from with { Key = composite }] }] };
+        var failure = Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render(slice)));
         failure.ProjectionName.ShouldEqual("orderProjection");
         failure.ReadModel.ShouldEqual("orderView");
         failure.SlicePath.ShouldEqual("Sales.Orders.Summary");
@@ -129,8 +129,8 @@ public class when_admitting_effective_root_composite_keys : Specification
     public void should_report_the_projection_name_when_the_read_model_name_is_omitted()
     {
         Compile(Composite);
-        _slice = _slice with { Projections = [_slice.Projections.Single() with { ReadModel = null }] };
-        Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render())).ReadModel.ShouldEqual("Order");
+        var slice = _slice with { Projections = [_slice.Projections.Single() with { ReadModel = null }] };
+        Assert.IsType<UnsupportedCompositeProjectionKey>(Catch.Exception(() => Render(slice))).ReadModel.ShouldEqual("Order");
     }
 
     [Fact]
@@ -145,8 +145,8 @@ public class when_admitting_effective_root_composite_keys : Specification
                     filter number String
             """);
         compilation.Success.ShouldBeTrue();
-        _slice = _slice with { Queries = compilation.Value!.Modules.Single().Features.Single().Slices.Single().Queries };
-        Assert.IsType<UnsupportedQueryIntent>(Catch.Exception(() => Render()));
+        var slice = _slice with { Queries = compilation.Value.Modules.Single().Features.Single().Slices.Single().Queries };
+        Assert.IsType<UnsupportedQueryIntent>(Catch.Exception(() => Render(slice)));
     }
 
     [Theory]
@@ -196,5 +196,5 @@ public class when_admitting_effective_root_composite_keys : Specification
         _slice = _context.Slices.Single().Slice;
     }
 
-    RenderedFile Render() => new StateViewSliceRenderer().Render(new LocatedSlice(_slice, ["Sales", "Orders"]), _context, "OrdersApp");
+    RenderedFile Render(SliceSyntax? slice = null) => new StateViewSliceRenderer().Render(new LocatedSlice(slice ?? _slice, ["Sales", "Orders"]), _context, "OrdersApp");
 }

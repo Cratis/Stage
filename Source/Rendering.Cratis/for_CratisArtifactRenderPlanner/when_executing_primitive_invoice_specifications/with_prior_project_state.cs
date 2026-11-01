@@ -15,7 +15,7 @@ public class with_prior_project_state(context fixture) : IClassFixture<context>
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldEqual(string.Empty);
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_pass_generated_specifications() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_run_the_subset_projection_assertion() => fixture.Results.Any(_ => _.Name.EndsWith("should_project_project_id", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_run_the_subset_projection_assertion() => fixture.Results.Any(_ => _.Matches(methodName: "should_project_project_id")).ShouldBeTrue();
 
     public class context : a_generated_invoice_application
     {

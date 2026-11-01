@@ -13,5 +13,5 @@ public class with_a_missing_language : given.a_described_handler
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_classify_as_invalid() => _classification.Kind.ShouldEqual(HandlerKind.Invalid);
-    [Fact] void should_explain_the_missing_language() => _classification.Reason!.ShouldContain("language");
+    [Fact] void should_explain_the_missing_language() => _classification.Reason.ShouldContain("language");
 }

@@ -54,6 +54,15 @@ public class and_the_document_declares_them : Specification
     [Fact] void should_still_give_a_read_model_with_no_declared_query_a_way_in() =>
         Render().ShouldContain("InvoiceSummaryById");
 
+    [Fact] void should_not_emit_anonymous_access_for_a_query_without_a_clause() =>
+        Render(Collection("All")).ShouldNotContain("[AllowAnonymous]");
+
+    [Fact] void should_not_import_authorization_for_a_query_without_a_clause() =>
+        Render(Collection("All")).ShouldNotContain("using Cratis.Arc.Authorization;");
+
+    [Fact] void should_not_add_authorization_to_a_synthesized_pair_without_a_clause() =>
+        Render().ShouldNotContain("[Authorize]");
+
     [Fact] void should_treat_a_performer_backed_query_as_not_fully_rendered() =>
         QueryRenderer.IsFullyRendered(
             Collection("Bespoke") with { Performer = new PerformerSyntax(new FileReferenceSyntax("Q.cs", SourceLocation.Start), null, SourceLocation.Start) })

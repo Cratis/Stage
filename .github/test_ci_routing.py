@@ -21,6 +21,7 @@ WORKFLOW = Path(__file__).with_name("workflows").joinpath("dotnet-build.yml").re
 SECTIONS = re.split(r"^  ([\w-]+):\n", WORKFLOW.split("jobs:\n", 1)[1], flags=re.MULTILINE)
 JOBS = dict(zip(SECTIONS[1::2], SECTIONS[2::2]))
 DRAFT_GATE = "github.event_name != 'pull_request' || github.event.pull_request.draft == false"
+SKIP_GATE = "needs.routing.outputs.skip != 'true'"
 
 
 class RoutingTests(unittest.TestCase):
@@ -232,8 +233,9 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("pull-requests: read", JOBS["routing"])
         self.assertIn("GH_TOKEN: ${{ github.token }}", JOBS["routing"])
         self.assertIn("needs: routing", JOBS["preflight"])
-        for job in ("routing", "preflight", "dotnet-build", "specs"):
-            self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS[job], job)
+        self.assertIn(f"    if: ${{{{ {DRAFT_GATE} }}}}\n", JOBS["routing"])
+        for job in ("preflight", "dotnet-build", "specs"):
+            self.assertIn(f"    if: ${{{{ {SKIP_GATE} && ({DRAFT_GATE}) }}}}\n", JOBS[job], job)
         for lane in ALL - {"live-custom-packages", "live-blueprints"}:
             self.assertIn(f"\n      && needs.routing.outputs.{lane} == 'true'\n", JOBS[lane])
         live = JOBS["live-custom-packages"]
@@ -244,7 +246,7 @@ class RoutingTests(unittest.TestCase):
             self.assertIn(f"id: {step}\n        if: needs.routing.outputs.{lane} == 'true'", live)
             self.assertIn(f"${{{{ steps.{step}.outcome }}}}", live)
         for job in ("build", "routed-checks"):
-            self.assertIn(f"    if: always() && ({DRAFT_GATE})\n", JOBS[job])
+            self.assertIn(f"    if: {SKIP_GATE} && always() && ({DRAFT_GATE})\n", JOBS[job])
         self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["routed-checks"])
         for job in ("routing", "reducer-mongo", "generated-name-matrix", "live-custom-packages",
                     "generated-react", "generated-react-blueprint-templates"):
@@ -253,6 +255,17 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("needs.build.result != 'success' || needs.routed-checks.result != 'success'", JOBS["nightly-red"])
         self.assertEqual(1, WORKFLOW.count("issues: write"))
         self.assertIn("issues: write", JOBS["nightly-red"])
+
+    def test_every_downstream_job_honors_the_scheduled_skip(self):
+        self.assertIn("skip: ${{ steps.already-ran.outputs.skip }}", JOBS["routing"])
+        self.assertIn("actions: read", JOBS["routing"])
+        self.assertIn("uses: Cratis/Workflows/.github/actions/skip-if-already-ran@main", JOBS["routing"])
+        self.assertTrue(JOBS)
+        for job in JOBS:
+            if job != "routing":
+                gate = JOBS[job].split("runs-on:")[0]
+                self.assertIn("routing", gate, job)
+                self.assertIn(SKIP_GATE, gate, job)
 
     def test_every_job_gates_draft_pull_requests_without_skipping_other_events(self):
         self.assertTrue(JOBS)
@@ -264,19 +277,19 @@ class RoutingTests(unittest.TestCase):
         live_packages_gate = f"""    needs: [preflight, routing, dotnet-build, specs]
     # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
     if: >-
-      !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
         # Lanes that reuse the Debug build output cannot run without it, on any trigger.
         gate = f"""    needs: [preflight, routing, dotnet-build, specs]
     # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
     if: >-
-      !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')"""
         standalone_gate = f"""    needs: [preflight, routing, dotnet-build]
     # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
     # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
     if: >-
-      !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
+      {SKIP_GATE} && !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success'"""
         heavy = (ALL - {"live-blueprints"}) | {"generated-react"}
         self.assertEqual(5, len(heavy))

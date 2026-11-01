@@ -607,7 +607,7 @@ internal static class SemanticScopedProjectionSupport
         {
             if (HasCompositeKey())
             {
-                return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle#4265 remains open, so Stage cannot look up those instances by their composite key.";
+                return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Stage#839 and Chronicle#4265 remain open, so Stage cannot look up those instances by their composite key.";
             }
 
             return child && identity is null ? "A child collection needs an identified element." : null;

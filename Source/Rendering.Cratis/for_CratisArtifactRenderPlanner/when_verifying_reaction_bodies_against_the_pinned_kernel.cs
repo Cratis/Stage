@@ -236,10 +236,8 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
     string NamespaceOf(string file) => ReadGeneratedFile(Assert.Single(GeneratedFiles(file)))
         .Split('\n').Single(line => line.StartsWith("namespace ", StringComparison.Ordinal))["namespace ".Length..].TrimEnd(';', '\r');
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     async Task should_settle_native_reaction_bodies_when_configured()
-#pragma warning restore CRSPEC0004
     {
         try
         {

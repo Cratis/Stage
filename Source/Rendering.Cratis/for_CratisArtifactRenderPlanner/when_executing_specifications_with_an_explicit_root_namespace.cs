@@ -19,17 +19,17 @@ public class when_executing_specifications_with_an_explicit_root_namespace(conte
     [Fact] void should_build_the_release_application_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_execute_every_generated_fact() => fixture.Results.Length.ShouldEqual(13);
     [Fact] void should_pass_every_generated_fact() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_execute_only_the_explicit_namespace() => fixture.Results.All(_ => _.Name.StartsWith("Acme.projectAPI.", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_execute_command_acceptance() => fixture.Results.Any(_ => _.Name.EndsWith(".should_succeed", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_execute_command_rejection() => new[] { "should_not_succeed", "should_have_validation_errors", "should_report_the_expected_first_error" }.All(fact => fixture.Results.Any(_ => _.Name.EndsWith($".{fact}", StringComparison.Ordinal))).ShouldBeTrue();
-    [Fact] void should_execute_projection_assertions() => fixture.Results.Any(_ => _.Name.Contains(".should_project_", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_execute_the_query_assertion() => fixture.Results.Any(_ => _.Name.EndsWith(".should_return_the_expected_read_model", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_execute_only_the_explicit_namespace() => fixture.Results.All(_ => _.Matches(className: "Acme.projectAPI.", match: GeneratedTestNameMatch.Prefix)).ShouldBeTrue();
+    [Fact] void should_execute_command_acceptance() => fixture.Results.Any(_ => _.Matches(methodName: "should_succeed")).ShouldBeTrue();
+    [Fact] void should_execute_command_rejection() => new[] { "should_not_succeed", "should_have_validation_errors", "should_report_the_expected_first_error" }.All(fact => fixture.Results.Any(_ => _.Matches(methodName: fact))).ShouldBeTrue();
+    [Fact] void should_execute_projection_assertions() => fixture.Results.Any(_ => _.Matches(methodName: "should_project_", match: GeneratedTestNameMatch.Prefix)).ShouldBeTrue();
+    [Fact] void should_execute_the_query_assertion() => fixture.Results.Any(_ => _.Matches(methodName: "should_return_the_expected_read_model")).ShouldBeTrue();
 
     public class context : a_generated_application
     {
         public string DebugWarnings { get; private set; } = null!;
         public string ReleaseWarnings { get; private set; } = null!;
-        public ImmutableArray<(string Name, string Outcome)> Results { get; private set; }
+        public ImmutableArray<GeneratedTestResult> Results { get; private set; }
 
         async Task Because()
         {
@@ -41,8 +41,7 @@ public class when_executing_specifications_with_an_explicit_root_namespace(conte
                 await Run("debug-test.log", "test", "BackendHost.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=generated.trx", "--results-directory", _evidence.FullName);
                 ReleaseWarnings = BuildWarnings(await Run("release-build.log", "build", "BackendHost.csproj", "-c", "Release", "--nologo"));
                 var results = XDocument.Load(Path.Combine(_evidence.FullName, "generated.trx"));
-                XNamespace testNamespace = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-                Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName")!.Value, _.Attribute("outcome")!.Value))];
+                Results = GeneratedTestResults.Read(results);
             }
             finally
             {

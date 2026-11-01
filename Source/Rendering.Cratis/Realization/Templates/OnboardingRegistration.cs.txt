@@ -38,7 +38,7 @@ public static class Registration
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSingleton<Provisioning>();
         builder.Services.AddTransient<OnboardingEmails>();
-__InvitationPolicies__        builder.Services.AddTransient<IClaimsTransformation, MemberPersonaClaims>();
+__Offering____InvitationPolicies__        builder.Services.AddTransient<IClaimsTransformation, MemberPersonaClaims>();
         builder.AddHerald(herald =>
         {
             herald.TemplatesFolder = Path.Combine(builder.Environment.ContentRootPath, "Emails");

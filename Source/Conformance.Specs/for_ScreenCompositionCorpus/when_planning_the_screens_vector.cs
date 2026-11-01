@@ -185,7 +185,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("611685049d907cd664995422e527bb0b25aaceef7af6aeb5b7abce5c96c049e3"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+            plan.Diagnostics).ShouldEqual("611685049d907cd664995422e527bb0b25aaceef7af6aeb5b7abce5c96c049e3"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and #494 (artifacts without explicit authorization defer to host defaults).
     }
 
     [Theory]

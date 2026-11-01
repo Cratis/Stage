@@ -13,7 +13,7 @@ namespace Cratis.Stage.Rendering.Cratis.Scaffolding;
 
 internal static class CratisScaffoldArtifacts
 {
-    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null)
+    internal static IEnumerable<PlannedArtifact> Render(ArtifactRenderProfile profile, string rootNamespace, ImmutableArray<SemanticId> sources, string? applicationName = null, string? contractsFolder = null)
     {
         var realization = applicationName is null ? null : ApplicationRealizationInput.From(profile);
         var strings = StringsCatalogInput.From(profile);
@@ -28,7 +28,8 @@ internal static class CratisScaffoldArtifacts
             var planned = artifact!.RelativePath == "Program.cs" && strings is not null
                 ? PlannedArtifact.CreateText(artifact.RelativePath, StringsCatalogInput.ConfigureProgram(Encoding.UTF8.GetString(artifact.Bytes.AsSpan()), strings, rootNamespace))
                 : artifact;
-            yield return realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
+            planned = realization is null ? planned : RealizationScaffold.Patch(planned, realization, rootNamespace);
+            yield return contractsFolder is null ? planned : EventContractsScaffold.Patch(planned, contractsFolder);
         }
 
         if (realization is not null)
@@ -37,6 +38,11 @@ internal static class CratisScaffoldArtifacts
             {
                 yield return planned;
             }
+        }
+
+        if (contractsFolder is not null)
+        {
+            yield return EventContractsScaffold.Project(contractsFolder, applicationName!, sources);
         }
 
         if (profile.Inputs.SingleOrDefault(input => input.Name == ReducerConventionInput.Name) is { } convention)

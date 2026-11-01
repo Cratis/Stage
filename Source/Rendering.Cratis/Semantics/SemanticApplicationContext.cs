@@ -25,6 +25,7 @@ internal sealed partial class SemanticApplicationContext
     readonly Lazy<SemanticInlineNames> _inlineNames;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
     Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
+    SemanticEventContracts? _eventContracts;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -39,6 +40,7 @@ internal sealed partial class SemanticApplicationContext
         PerformedQueries = performed.Performed;
         PerformedQueryRejections = performed.Rejections;
         RootNamespace = options.RootNamespace;
+        ContractsFolder = $"{options.ProjectName}.Events.Contracts";
         Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
@@ -98,6 +100,16 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the destination-independent application namespace.
     /// </summary>
     public string RootNamespace { get; }
+
+    /// <summary>
+    /// Gets the folder and project name that carry the application's own public events.
+    /// </summary>
+    internal string ContractsFolder { get; }
+
+    /// <summary>
+    /// Gets the own public events and the declarations they need, which render into the contracts project.
+    /// </summary>
+    internal SemanticEventContracts EventContracts => _eventContracts ??= SemanticEventContracts.From(this);
 
     /// <summary>
     /// Gets the optional validated locale catalog.
@@ -262,6 +274,12 @@ internal sealed partial class SemanticApplicationContext
     /// </summary>
     /// <returns>The builder.</returns>
     internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application) { SourceLines = SourceLines };
+
+    /// <summary>
+    /// Creates a builder for a file of the contracts project, which has no scaffold global usings.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    internal CSharpCodeBuilder ContractsBuilder() => new();
 
     /// <summary>
     /// Creates a builder for a generated specification file.

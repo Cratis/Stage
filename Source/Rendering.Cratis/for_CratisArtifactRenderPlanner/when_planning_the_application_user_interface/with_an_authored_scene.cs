@@ -23,7 +23,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for #497's generated XML documentation and used-only specification imports.
     // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
     // Recomputed for Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins.
-    const string Before = "REGENERATE";
+    const string Before = "774fbf8e71fccc5d00135e1d12e290ec56f9d26d88528b16c451b396a6edebf7";
 
     ArtifactRenderPlan _plan = null!;
 
@@ -31,5 +31,5 @@ public class with_an_authored_scene : a_screen_composition_render
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_compose_the_shared_user_interface() => _plan.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("src/stage.ts");
-    [Fact] void should_plan_the_same_bytes_as_before() => Assert.True(PlanFingerprint.Of(_plan) == Before, $"PIN {PlanFingerprint.Of(_plan)}");
+    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_plan).ShouldEqual(Before);
 }

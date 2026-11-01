@@ -32,7 +32,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for #494: artifacts without explicit authorization defer to host defaults in every pinned view.
-    const string Digest = "REGENERATE";
+    // Recomputed from train 9 execution after combining generated documentation, concepts and shared Common output.
+    const string Digest = "33e14ab50445edb4be88e2f36d471ae4982057f1db516b857bc3ff4dc508e099";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -45,9 +46,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
         .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
         .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
-        Common/CommentId.cs 57e703a97b83c6715cf6bbe082a6987bfecde236fa550cd589f38d4ab1cfda73 382
-        Common/WorkItemId.cs 10002af59d1071f61a44e7d32c6b04abe03ec6cb7cbb96a9c0b65a5844c5bd5e 389
-        Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
+        Common/CommentId.cs b09abdd1ae5570070ca8c6c49323ff1077789fccdbeba5dcdeaf19a68af03103 857
+        Common/WorkItemId.cs d23f662b4e209e76408cce40888ab0c9207d1b4d7814b9257bc199cde5e2bda5 869
+        Common/WorkStatus.cs 39e8088132ed10030ab679cbd735db36c75cd2dfc5c9650596aa9c285458cce3 282
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
@@ -57,26 +58,26 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         README.md 6afd097c34ac79a7e53e5c8da59c3d37d1146fc9703d14cf098fb47af0774e4f 1849
         Workspaces.csproj 5558e5543e420ff0a80aeeea75c9a8e1d9e3684847aeba3ff2177f866e5bc7a3 2443
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
-        Workspaces/Tracking/AddComment/AddComment.cs 61d1be7adb16c8720965320ec9d5f0a57957a5e2bcfff37557c4343d03a77edb 513
-        Workspaces/Tracking/AddComment/when_adding_a_comment.cs 7fde109bec5d420e1abc797e0fae200abd0b1e46d85edd6cd976743d9ca4eef5 1442
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs b43f6729024fb4a0a7bcf3993e70db54dd9292d14815c908ec59ef551224fedc 477
-        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 517855c688172ce7542747386a1035b3e3c0f2606b5f9661a2c48435a44eb966 1309
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 70471d7eddb22194d44c42e69f81cbfd3b70571ce6b69efcb8b5af13dffcb9e0 529
-        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 4a0cc504bb25cf0a05d7cea13c5a849dd67063b677c7af9a646d96a0a337ccc9 1394
-        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 5d7080b6fdd423c625d5b3c122dcf20c6bae565982e63b5b55ebcb37340b39e6 479
-        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 5fa0a9440faf0fa2a32922c3b2e253ff04b0ae697fbde3944240d7aebc759dc4 1381
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs aab31b30fd1319fec7f8874b45da27d31d29e6374cc6d14740a1abb81287ffba 1363
+        Workspaces/Tracking/AddComment/AddComment.cs 2ba2f521a34c14c72c4e7e085fb3515412c693e5a998df66af314de9857d9660 927
+        Workspaces/Tracking/AddComment/when_adding_a_comment.cs 5f692eef442134983246c572182e653f6775912ed3154134f4c62ddd45f9b56b 1525
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 2743c1fbc419e7b51b393f07b0746d944295a3be6fb7820cce3f07ffca83394e 753
+        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 205c40e13b8f4f7d61dc471a2d5e8f5f1f105acf639d530cb0ab9c88bbeb9c1c 1395
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs d0706d380c1fd1c911dcde22da2c7853e21558407c4fc863d8d1a88eb6ef25de 936
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 8392c71d00791fc10124c42d1c44bcf34635f66b4ffaff83d49c811afe98a5f9 1481
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 10a4d2b9438f61118dfae3887526d71222de92305b2c27a1577c7bac8b1b9e96 798
+        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 43091e7c853e227b4dca5bedc51cc1a024164a90cefba751890a65bbf2888470 1468
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 07f116a5a2ff0d765b89a127ff24fe338642ad0f1ce8b3c010d34b612eda80a1 1833
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 24cb3f8a2d89bfe8210cfdde60761cc1837f7255a06ee57e7edf70b9e66128d7 1985
-        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs f694a593f3d9ab31da4e9aac65caedd6bc93cd6412e1c1320dbbf53a6bf463ac 2059
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs 653a33bf48dea8f527591af20db3273ddcfd395d51a04d53d7e17d0420752078 2526
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs a1d3b07ad309cd796f9862a567ac6a5c8127c60cc5083d520c17322f94a716e4 1690
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs e3de173ced957343633e25af2dbf9127e5b376f34723ec7ae363676d129d56c5 2202
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs 92fc288ff1cdf0047247786a2058726e3bb2b9fcfdf3c1d614bf12b5b18bd7b9 2864
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
         package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
-        src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
+        src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
         src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
@@ -92,9 +93,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
         .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
         .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
-        Common/CommentId.cs 71ae1b6c2a3591bfab1150eada7e73ec12fcc07647cb92c57d6198de07338e52 726
-        Common/WorkItemId.cs c41a7000be4fdcd29954dffe48d67ecc2d84751f470850c3e49f750916ffa126 733
-        Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
+        Common/CommentId.cs 2651823873f3fceb34c04b456f3ccf04a4bc5e76381a5f6e38e9893d6af88e5d 1201
+        Common/WorkItemId.cs 6cccba7c19f37effa332a37b720ace84152adc9353f89a6b6e58d9b9815be380 1213
+        Common/WorkStatus.cs 94c14a6093b208dfe5065c1320725638b94db7a004b164fef1cc4765e967f36a 431
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
         Directory.Packages.props 981b9078e283d6348ccd1ee6439d9a16838abdeb538612e218459399de0c1264 1271
@@ -104,26 +105,26 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
         Workspaces.csproj 41af7d8fcdebd9454b740eea141dcdb1c15594e1719b132628ba87dfa440f2d4 1288
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
-        Workspaces/Tracking/AddComment/AddComment.cs e6b1cd4db8918ab4eb9421f51e0c1224213252929dbfe3460a917dea88431c59 1115
-        Workspaces/Tracking/AddComment/when_adding_a_comment.cs d6a95f25c93d76ddee8c6b645dd40a42168cd797b7cd63168e7782c9d7613ac9 2508
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 336c9b53311c6bddde7371b4e2e3018e70aa2b60acf87e614aa9867362d4afd8 1082
-        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 7f1c87b85363001ca03696cb584e04167797de3ced67236dbe012665606b6e2a 2278
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs dcee13484087c939041d761f8a1853d88f9a4100d86b9452cd4eb5d6a65fe4f2 1135
-        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 3f4cbf67bf3fa0eaaaa023ac1e60a81ee2b9e4e9502f96ce943de5e10c1c4f3a 2451
-        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 2bbf45806cd32a070025b607f825f01fa2c60d3ffb70c66baf3313e5602f100b 1033
-        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 979ae38ea8a44bc9553a2100737b17b9ddc3c9e045448c2b30799710b4ead99e 2330
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 65ca5ed242aea42e3c4a06697e4695e414534b1f1e7ae8c6fe544720efb8fa2f 2179
+        Workspaces/Tracking/AddComment/AddComment.cs 3ff99289b290d3aebd072b66ed1cad14642df48b783b530312e842b88ae8c2d0 1487
+        Workspaces/Tracking/AddComment/when_adding_a_comment.cs a7d95a77837912a3396b6a7bacff2d303c8fd6c6e05247386395d80a1580289f 2495
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 96f32188348f6db9472909ba3459710d7a1b185207632f38bb76b3556c9505f2 1316
+        Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 6f836120c90313f466ffc25527e41d21f769d6ac2e181dacc75349b674e06054 2240
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs ebded78ead85dc167bc6c3f0299cd35722c9ff7b3877ef563c7c326f4eab4064 1500
+        Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 9900dd42b7c115af90cb2913dc2cb2cfb4ad4cdaa2282dc265e09f570281f857 2442
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs f18e47b284bf4f8bbb413c6798cd27893b2029e0ba22f576912a7d7a76824e10 1310
+        Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs ba679d4cfc2be46c6ba8d98430ac297c2be60b264cf5340f8b949267e639f455 2293
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 6f556610d4013e5c78d5871767083a1ada53204fe12b7e13719175a195689e0f 2607
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs adb3fd415af6b119c3a2c8a2961c3423bf8b50b71c9b934b52b6cb4a79d6be10 2740
-        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs b20d80c6e2c6ecd7f1ca5fe79745386c2608bddb1acb47ea5c7399bb4905268d 2920
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs 484bd2a7f93b7a1c27899c002b1f887f27f9eb755569f5edf68c8632953255c1 3345
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 1866dab7e0acfd7cdacf8f834b2800a6ab1756357a9bd4f7c022de0ed923754c 2728
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs 75aca71a66d0cec11f78c95dba6d241af52ea49576a4e51826cb03c40242676e 3209
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs 125366e5c93a434eae98b8317ca26319add00f8e45fc59c9655d74142b39a840 3787
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
         package.json 66eb49c0984c0fa1afaea06b248293dd66d3488dd735a66ca41353d24f17a070 1255
         scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
         src/bindings.ts 03e22a6c7526dfaeb680dbb58a79f3e49399c615debcfd8e2eafa86e8e6150bb 2325
-        src/stage-scene.json ebb374ed2550f019cbd51055f7498fdf87e51db7a0d85479f7c65274fce7d55e 3894
+        src/stage-scene.json f295e8fd70f788d651c363b00357f0a678c2fbabcdd10039994fc1fa9697038b 4435
         src/stage.ts 3cb9a0d8518ac80881390dcb5706a82c50a3e75706653e4762735586c0249ebe 1081
         tsconfig.json d52a81eda975fa981b1cda931dfec65026821a2a753f29e643e5247bb0a312bb 47
         """;
@@ -185,7 +186,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("REGENERATE"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and #494 (artifacts without explicit authorization defer to host defaults).
+            plan.Diagnostics).ShouldEqual("7ea0ccd118133b2fceb130899832600d69131221d1115dbc42996435c88bbbfb"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and #494 (artifacts without explicit authorization defer to host defaults).
     }
 
     [Theory]

@@ -23,7 +23,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for #497's generated XML documentation and used-only specification imports.
     // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
     // Recomputed for Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins.
-    const string Before = "REGENERATE";
+    const string Before = "1e4d954ae0b00ab09e4e939d0a2c14ddd5aaa2674d18a02fbf3d16ca86bd1db4";
 
     ArtifactRenderPlan _plan = null!;
 
@@ -31,5 +31,5 @@ public class with_the_default_composition : a_register_project_render_request
 
     [Fact] void should_plan_the_application() => _plan.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeFalse();
     [Fact] void should_compose_the_shared_user_interface() => _plan.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("src/bindings.ts");
-    [Fact] void should_plan_the_same_bytes_as_before() => Assert.True(PlanFingerprint.Of(_plan) == Before, $"PIN {PlanFingerprint.Of(_plan)}");
+    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_plan).ShouldEqual(Before);
 }

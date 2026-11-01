@@ -23,11 +23,11 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for #497's generated XML documentation and used-only specification imports.
     // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
     // Recomputed for Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins.
-    const string Before = "REGENERATE";
+    const string Before = "cecc1dcf10450b595aee10f52774ad483db4932bd08784f55502aa9570a7af8d";
 
     void Because() => _application = AppPlan(_profile);
 
     [Fact] void should_plan_the_application() => _application.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeFalse();
     [Fact] void should_compose_the_shared_user_interface() => _application.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("scene.json");
-    [Fact] void should_plan_the_same_bytes_as_before() => Assert.True(PlanFingerprint.Of(_application) == Before, $"PIN {PlanFingerprint.Of(_application)}");
+    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_application).ShouldEqual(Before);
 }

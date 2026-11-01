@@ -21,8 +21,8 @@ public class when_admitting_v21 : Specification
     public void should_admit_only_released_exact_pairs(int languageMajor, int languageMinor, int semanticMajor, int semanticMinor, bool supported)
     {
         var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(21).Bytes.AsSpan());
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion((uint)languageMajor, (uint)languageMinor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion((uint)semanticMajor, (uint)semanticMinor));
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion((uint)languageMajor, (uint)languageMinor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion((uint)semanticMajor, (uint)semanticMinor));
         SemanticVersionFeatures.Supports(model).ShouldEqual(supported);
     }
 

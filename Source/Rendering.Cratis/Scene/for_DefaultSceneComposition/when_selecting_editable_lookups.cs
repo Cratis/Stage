@@ -64,10 +64,11 @@ public class when_selecting_editable_lookups : a_register_project_render_request
     [Fact] void should_alias_a_query_import_that_has_the_same_export_name_as_a_command() => SceneBindingsRenderer.Render(Context(query: Query with { Name = _registerProject.Commands.Single().Name })).ShouldContain("import { RegisterProject as __sceneQuery0 } from '../Projects/Registration/ProjectLookup';");
     [Fact] void should_import_the_actual_generated_pascal_case_query_export() => SceneBindingsRenderer.Render(Context(query: Query with { Name = "find_project" })).ShouldContain("import { FindProject as __sceneQuery0 }");
     [Fact] void should_register_the_exact_semantic_name_not_the_normalized_export() => SceneBindingsRenderer.Render(Context(query: Query with { Name = "find_project" })).ShouldContain($"registerQueryIdentity(\"find_project\", \"{Query.Id}\", __sceneQuery0);");
-    [Fact] void should_be_independent_of_property_enumeration_order_with_multiple_eligible_fields() => CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(reverse: true, additional: true))!).ShouldEqual(CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(additional: true))!));
+    [Fact] void should_be_independent_of_property_enumeration_order_with_multiple_eligible_fields() => CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(reverse: true, additional: true))).ShouldEqual(CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(Context(additional: true))));
     [Fact] void should_skip_an_unsupported_field_in_favor_of_an_actual_scalar() => Elements(Context(result: Result(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Uuid)), additional: true)).Single(IsLookup).GetProperty("properties").GetProperty("resultField").GetString().ShouldEqual("displayName");
 
-    [Fact] void should_render_both_canonical_command_properties_as_explicit_native_inputs()
+    [Fact]
+    void should_render_both_canonical_command_properties_as_explicit_native_inputs()
     {
         var form = Command(Context()).GetProperty("properties");
         form.GetProperty("command").GetString().ShouldEqual("RegisterProject");
@@ -80,7 +81,8 @@ public class when_selecting_editable_lookups : a_register_project_render_request
         inputs.Single(_ => _.GetProperty("property").GetString() == "projectId").GetProperty("label").GetString().ShouldEqual("Project ID");
     }
 
-    [Fact] void should_show_a_diagnostic_instead_of_a_partial_form_for_an_unsupported_required_property()
+    [Fact]
+    void should_show_a_diagnostic_instead_of_a_partial_form_for_an_unsupported_required_property()
     {
         var element = Command(Context(commandProperties: [.. CommandProperties, CommandProperties[0] with
         {
@@ -93,7 +95,8 @@ public class when_selecting_editable_lookups : a_register_project_render_request
         element.GetProperty("properties").TryGetProperty("inputs", out _).ShouldBeFalse();
     }
 
-    [Fact] void should_reject_proxy_property_collisions_instead_of_binding_two_values_to_one_input()
+    [Fact]
+    void should_reject_proxy_property_collisions_instead_of_binding_two_values_to_one_input()
     {
         var element = Command(Context(commandProperties: [.. CommandProperties, CommandProperties[0] with
         {
@@ -151,7 +154,7 @@ public class when_selecting_editable_lookups : a_register_project_render_request
 
     static JsonElement[] Elements(SemanticApplicationContext context)
     {
-        using var document = JsonDocument.Parse(CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(context)!));
+        using var document = JsonDocument.Parse(CanonicalSceneJson.Serialize(DefaultSceneComposition.Create(context)));
         return [.. document.RootElement.GetProperty("screens")[0].GetProperty("slotContent").GetProperty(DefaultLayout.ContentSlotName).EnumerateArray().Select(_ => _.Clone())];
     }
 }

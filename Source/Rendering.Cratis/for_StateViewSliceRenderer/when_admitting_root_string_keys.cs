@@ -25,7 +25,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
         Compile(Global);
         var projection = _slice.Projections.Single();
         var from = projection.Blocks.OfType<FromSyntax>().Single();
-        var key = (ExpressionKeySyntax)from.Key!;
+        var key = (ExpressionKeySyntax)from.Key;
         var literal = (LiteralExpressionSyntax)key.Expression;
         var location = literal.Location with { Path = "./Models/../Orders.play", Line = 37, Column = 13 };
         _slice = _slice with { Projections = [projection with { Blocks = [@from with { Key = key with { Expression = literal with { Value = value, Location = location } } }] }] };
@@ -59,7 +59,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     public void should_reject_separate_projection_identity()
     {
         Compile(Global, projectionKey: "key number");
-        Reject(UnsupportedRootStringKeyReason.ExplicitIdentity).Location.ShouldEqual(_slice.Projections.Single().Key!.Location);
+        Reject(UnsupportedRootStringKeyReason.ExplicitIdentity).Location.ShouldEqual(_slice.Projections.Single().Key.Location);
     }
 
     [Theory]
@@ -80,7 +80,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     public void should_reject_an_affected_parent()
     {
         Compile(Global.Replace("  total = total", "  parent number\n  total = total", StringComparison.Ordinal));
-        Reject(UnsupportedRootStringKeyReason.RootParent).Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().ParentKey!.Location);
+        Reject(UnsupportedRootStringKeyReason.RootParent).Location.ShouldEqual(_slice.Projections.Single().Blocks.OfType<FromSyntax>().Single().ParentKey.Location);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class when_admitting_root_string_keys : given.a_root_string_key_slice
     public void should_reject_incompatible_owned_identifying_types(string type)
     {
         Compile(Global, "query OrderById => OrderReadModel\n  by lookup " + type);
-        Reject(UnsupportedRootStringKeyReason.IncompatibleByType).Location.ShouldEqual(_slice.Queries.Single().By!.Location);
+        Reject(UnsupportedRootStringKeyReason.IncompatibleByType).Location.ShouldEqual(_slice.Queries.Single().By.Location);
     }
 
     [Fact]

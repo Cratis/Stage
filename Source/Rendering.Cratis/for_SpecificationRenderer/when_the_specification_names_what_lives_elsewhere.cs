@@ -72,11 +72,14 @@ public class when_the_specification_names_what_lives_elsewhere : Specification
     }
 
     [Fact] void should_render_output_that_compiles() => _errors.ShouldBeEmpty();
-    [Fact] void should_import_the_slice_that_declares_the_event() =>
+    [Fact]
+    void should_import_the_slice_that_declares_the_event() =>
         _rendered.Content.ShouldContain("using Acme.Billing.Invoicing.AddLines;");
-    [Fact] void should_name_the_two_facts_apart() =>
+    [Fact]
+    void should_name_the_two_facts_apart() =>
         _rendered.Content.ShouldContain("should_have_appended_invoice_line_added_1()");
-    [Fact] void should_name_the_second_fact_for_its_occurrence() =>
+    [Fact]
+    void should_name_the_second_fact_for_its_occurrence() =>
         _rendered.Content.ShouldContain("should_have_appended_invoice_line_added_2()");
 
     static PropertySyntax Property(string name, string type, bool isIdentifier = false) =>

@@ -30,13 +30,16 @@ public class when_public_translation_contracts_are_only_expected : given.a_trans
 
     void Because() => _plan = Plan(_model, ArtifactRefusalMode.RenderAround);
 
-    [Fact] void should_not_refuse_the_public_contract_for_being_expected_elsewhere() =>
+    [Fact]
+    void should_not_refuse_the_public_contract_for_being_expected_elsewhere() =>
         _plan.Refusals.Any(refusal => refusal.Artifact == _publicContract && refusal.Codes.Contains("STAGE-ESM-032")).ShouldBeFalse();
 
-    [Fact] void should_keep_the_outbox_publisher() =>
+    [Fact]
+    void should_keep_the_outbox_publisher() =>
         _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("OrderShippedPublisher.cs", StringComparison.Ordinal)).ShouldBeTrue();
 
-    [Fact] void should_keep_unrelated_specification_limits_explicit() =>
+    [Fact]
+    void should_keep_unrelated_specification_limits_explicit() =>
         _plan.Refusals.Any(refusal => refusal.Kind == "specification").ShouldBeTrue();
 }
 #endif

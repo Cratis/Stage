@@ -138,7 +138,7 @@ public class when_rendering_refusal_branches : for_SemanticAutomationArtifactRen
             null,
             new Dictionary<string, string> { ["reactions.en.strings"] = "failure = \"Localized prose\"\n" },
             "en");
-        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
         if (localized)
         {
             plan.Artifacts.ShouldBeEmpty();

@@ -81,10 +81,13 @@ internal static class composite_source_models
         var collection = scope.Children.Single();
         var nested = collection.Scope.Nested.Single();
         var contribution = nested.Scope.From.Single();
-        return scope with { Children = [collection with { Scope = collection.Scope with
+        return scope with
+        {
+            Children = [collection with { Scope = collection.Scope with
         {
             Nested = [nested with { Scope = nested.Scope with { From = [contribution with { ParentKey = null }] } }]
-        } }] };
+        } }]
+        };
     });
 
     internal static SemanticId Event(ExecutableSemanticModel model, string name) =>
@@ -97,7 +100,7 @@ internal static class composite_source_models
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
         var projection = slice.Projections.Single();
-        var changed = slice with { Projections = [projection with { Scope = change(projection.Scope!) }] };
+        var changed = slice with { Projections = [projection with { Scope = change(projection.Scope) }] };
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] };
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
     }

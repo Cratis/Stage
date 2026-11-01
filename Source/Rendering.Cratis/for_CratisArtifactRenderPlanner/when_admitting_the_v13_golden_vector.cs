@@ -24,7 +24,7 @@ public class when_admitting_the_v13_golden_vector : Specification
     void Because()
     {
         var profile = CratisRendering.CreateProfile("Golden", new("Golden", "Golden"));
-        _plan = new CratisArtifactRenderPlanner().Plan(new(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
+        _plan = new CratisArtifactRenderPlanner().Plan(new(_model, SemanticExecutionPlan.Compile(_model, []).Plan, profile, new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
     }
 
     [Fact] void should_read_the_full_v13_vector() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V13);

@@ -18,7 +18,8 @@ public class with_two_independent_failures : given.a_command_model
 
     void Because() => Evaluate();
 
-    [Fact] void should_report_both_reasons_and_fixes_in_one_pass() => Messages.ShouldEqual([
+    [Fact]
+    void should_report_both_reasons_and_fixes_in_one_pass() => Messages.ShouldEqual([
         "Command 'IssueInvoice' event 'InvoiceIssued' property 'description' is optional; Cratis events have no optional properties. Make it required (in Studio's model board, tick 'Required' on the property) or remove it.",
         "Command 'IssueInvoice' has no outcome; Stage cannot emit a handler without a produced event or response. Add a produces or returns clause."]);
     [Fact] void should_keep_both_codes_and_command_identities() => _diagnostics.ShouldEachConformTo(diagnostic => diagnostic.Code == "STAGE-ESM-005" && diagnostic.Artifact == _command.Id);

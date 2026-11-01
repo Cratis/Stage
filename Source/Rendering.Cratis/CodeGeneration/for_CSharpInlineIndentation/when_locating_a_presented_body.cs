@@ -15,7 +15,7 @@ public class when_locating_a_presented_body : Specification
     {
         var presented = CSharpInlineIndentation.Present(Body, 3, InlineCodeScope.MemberBody);
         var code = "class A\n{\n    void M()\n    {\n" + presented + "\n    }\n}\n";
-        var location = CSharpInlineIndentation.Locate(code, Body)!;
+        var location = CSharpInlineIndentation.Locate(code, Body);
         location.Start.ShouldEqual(code.IndexOf("            if (x)", StringComparison.Ordinal));
 
         // A code line: the `return` keyword.
@@ -31,7 +31,7 @@ public class when_locating_a_presented_body : Specification
     [Fact]
     void should_find_a_verbatim_fallback_body()
     {
-        var location = CSharpInlineIndentation.Locate("x\n" + Body + "\n", Body)!;
+        var location = CSharpInlineIndentation.Locate("x\n" + Body + "\n", Body);
         location.Start.ShouldEqual(2);
         location.ToBody(5).ShouldEqual(5);
     }
@@ -41,7 +41,7 @@ public class when_locating_a_presented_body : Specification
     {
         var one = CSharpInlineIndentation.Present("a;\nb;", 2, InlineCodeScope.MemberBody);
         var code = one + "\nmid\n" + one + "\n";
-        var second = CSharpInlineIndentation.Locate(code, "a;\nb;", code.IndexOf("mid", StringComparison.Ordinal))!;
+        var second = CSharpInlineIndentation.Locate(code, "a;\nb;", code.IndexOf("mid", StringComparison.Ordinal));
         second.Start.ShouldEqual(code.LastIndexOf(one, StringComparison.Ordinal));
     }
 
@@ -53,7 +53,7 @@ public class when_locating_a_presented_body : Specification
     {
         var presented = CSharpInlineIndentation.Present("a;\nb;", level, InlineCodeScope.MemberBody);
         var code = "x\n" + presented + "\n";
-        var location = CSharpInlineIndentation.Locate(code, "a;\nb;")!;
+        var location = CSharpInlineIndentation.Locate(code, "a;\nb;");
         location.Start.ShouldEqual(2);
         location.ToBody(presented.IndexOf("b;", StringComparison.Ordinal)).ShouldEqual(3);
     }

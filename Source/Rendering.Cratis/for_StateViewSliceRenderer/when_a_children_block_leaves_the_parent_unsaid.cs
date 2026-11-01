@@ -66,7 +66,8 @@ public class when_a_children_block_leaves_the_parent_unsaid : Specification
 
     void Because() => _file = new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp");
 
-    [Fact] void should_report_the_inferred_parent() => _file.Diagnostics.ShouldContain(
+    [Fact]
+    void should_report_the_inferred_parent() => _file.Diagnostics.ShouldContain(
         "The 'from' on 'BasketLineAdded' in children record 'BasketSummaryLines' declares no 'parent' — Chronicle infers the parent " +
         "from an 'Id' property on the read model and otherwise attaches the children on the event source id, so declare " +
         "'parent' to say which property identifies the parent.");

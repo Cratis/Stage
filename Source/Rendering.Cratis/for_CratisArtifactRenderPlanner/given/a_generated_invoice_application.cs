@@ -26,7 +26,7 @@ public abstract class a_generated_invoice_application : a_generated_application
             ReleaseWarnings = BuildWarnings(await Run("release-build.log", "build", "InvoiceApp.csproj", "-c", "Release", "-t:Rebuild", "-warnaserror", "-m:3", "--nologo"));
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "generated.trx"));
             XNamespace testNamespace = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName")!.Value, _.Attribute("outcome")!.Value))];
+            Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName").Value, _.Attribute("outcome").Value))];
         }
         finally
         {

@@ -36,7 +36,7 @@ public class with_a_typed_source_key : given.a_translation_application
     void should_render_a_capture_only_concept_as_an_event_source_identity()
     {
         var identity = _assembly.GetTypes().Single(type => type.Name == "OrderId");
-        identity.BaseType!.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
+        identity.BaseType.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
         var reactor = _sources.Single(source => source.RelativePath.EndsWith("OrderIntake.cs", StringComparison.Ordinal)).Content;
         reactor.ShouldContain("EventForEventSourceId(@event.OrderId,");
         reactor.ShouldNotContain("@event.OrderId.ToString()");
@@ -54,11 +54,11 @@ public class with_a_typed_source_key : given.a_translation_application
         var eventType = _assembly.GetTypes().Single(type => type.Name == "OrderPlaced");
         var keyType = eventType.GetConstructors().Single().GetParameters().Single().ParameterType;
         var id = Guid.Parse("3fa85f64-5717-4562-b3fc-2c963f66afa6");
-        var key = Activator.CreateInstance(keyType, id)!;
-        var fact = Activator.CreateInstance(eventType, key)!;
+        var key = Activator.CreateInstance(keyType, id);
+        var fact = Activator.CreateInstance(eventType, key);
         var context = EventContext.Empty with { SequenceNumber = 3, EventSourceId = id.ToString() };
-        var reactor = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "OrderIntake"), store)!;
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnOrderPlaced")!.Invoke(reactor, [fact, context, ReactorDelivery.For(reactor, context)])!;
+        var reactor = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "OrderIntake"), store);
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnOrderPlaced").Invoke(reactor, [fact, context, ReactorDelivery.For(reactor, context)]);
         effects.Cast<EventForEventSourceId>().Single().EventSourceId.Value.ShouldEqual(id.ToString());
         keyType.Name.ShouldEqual("OrderId");
         await inbox.Received(1).GetFromSequenceNumber(EventSequenceNumber.First, context.EventSourceId, Arg.Any<IEnumerable<EventType>>());

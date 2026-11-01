@@ -31,7 +31,8 @@ public class when_the_path_is_out_of_the_handler_s_reach : Specification
     [Fact] void should_render_an_event_context_read_as_a_missing_value() => _eventContext.ShouldEqual("default!");
     [Fact] void should_render_an_event_source_id_read_as_a_missing_value() => _eventSourceId.ShouldEqual("default!");
     [Fact] void should_report_every_one_of_them() => _diagnostics.Count.ShouldEqual(3);
-    [Fact] void should_say_which_command_could_not_reach_it() =>
+    [Fact]
+    void should_say_which_command_could_not_reach_it() =>
         _diagnostics.ShouldContain("Command 'RegisterInvoice' reads '$context.weather.today', which the rendered handler cannot reach — the language names no such value; rendered as a missing value.");
     [Fact] void should_ask_for_no_collaborator_it_cannot_use() => _access.Collaborators.ShouldBeEmpty();
 }

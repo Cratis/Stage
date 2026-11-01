@@ -28,15 +28,19 @@ public class and_nothing_in_the_slice_can_carry_it : Specification
     static readonly ConstraintSyntax _namingAnotherProperty = new UniquePropertyConstraintSyntax("Missing", "amount", "InvoiceRegistered", SourceLocation.Start);
     static readonly ConstraintSyntax _namingAnotherEventWholly = new UniqueEventConstraintSyntax("Elsewhere", "PaymentReceived", SourceLocation.Start);
 
-    [Fact] void should_not_render_a_constraint_backed_by_a_file() =>
+    [Fact]
+    void should_not_render_a_constraint_backed_by_a_file() =>
         ConstraintRenderer.IsRendered(_backedByAFile, [_event]).ShouldBeFalse();
 
-    [Fact] void should_not_render_one_naming_an_event_the_slice_does_not_declare() =>
+    [Fact]
+    void should_not_render_one_naming_an_event_the_slice_does_not_declare() =>
         ConstraintRenderer.IsRendered(_namingAnotherEvent, [_event]).ShouldBeFalse();
 
-    [Fact] void should_not_render_one_naming_a_property_the_event_does_not_declare() =>
+    [Fact]
+    void should_not_render_one_naming_a_property_the_event_does_not_declare() =>
         ConstraintRenderer.IsRendered(_namingAnotherProperty, [_event]).ShouldBeFalse();
 
-    [Fact] void should_not_render_a_whole_event_constraint_for_an_event_the_slice_does_not_declare() =>
+    [Fact]
+    void should_not_render_a_whole_event_constraint_for_an_event_the_slice_does_not_declare() =>
         ConstraintRenderer.IsRendered(_namingAnotherEventWholly, [_event]).ShouldBeFalse();
 }

@@ -152,7 +152,7 @@ public class when_creating_the_current_frontend_scaffold : a_current_frontend_sc
         using var document = PackageJson();
         var versions = document.RootElement.GetProperty("dependencies").EnumerateObject()
             .Concat(document.RootElement.GetProperty("devDependencies").EnumerateObject())
-            .Select(property => property.Value.GetString()!);
+            .Select(property => property.Value.GetString());
         return versions.Any(version =>
             version.Contains('*', StringComparison.Ordinal) ||
             version.Contains('^', StringComparison.Ordinal) ||

@@ -23,7 +23,7 @@ public class when_indexing_an_event_with_generations : Specification
                   event InvoiceRegistered generation 2
                     newValue String
             """,
-            "invoice.play").Value!;
+            "invoice.play").Value;
 
         var failure = Catch.Exception(() => _ = new ApplicationSet([syntax]));
 

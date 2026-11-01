@@ -21,7 +21,7 @@ public class when_planning_protected_command_reads : Specification
 
     void Establish() => _model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
 
-    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("ProtectedReads", "ProtectedReads"));
+    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("ProtectedReads", "ProtectedReads"));
 
     [Fact] void should_report_no_diagnostics() => string.Join('\n', _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")).ShouldEqual(string.Empty);
     [Fact] void should_plan_successfully() => _plan.Success.ShouldBeTrue();

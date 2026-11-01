@@ -536,6 +536,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string FrontendTsConfig() =>
+        //lang=json
         """
         {
             "compilerOptions": {
@@ -581,6 +582,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string NodeTsConfig() =>
+        //lang=json
         """
         {
             "compilerOptions": {
@@ -597,6 +599,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string RootTsConfig() =>
+        //lang=json
         """
         {
             "extends": "./.frontend/tsconfig.json"

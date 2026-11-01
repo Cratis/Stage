@@ -39,10 +39,10 @@ public class when_executing_reducer_fact_specifications : a_generated_applicatio
             Assert.NotEmpty(results);
             foreach (var name in new[] { "when_score_shows", "when_score_accumulates", "when_score_after_append" })
             {
-                var assertions = results.Where(result => result.Attribute("testName")!.Value.Contains(name, StringComparison.Ordinal)).ToArray();
+                var assertions = results.Where(result => result.Attribute("testName").Value.Contains(name, StringComparison.Ordinal)).ToArray();
                 Assert.NotEmpty(assertions);
-                if (wrongBody) Assert.Contains(assertions, result => result.Attribute("outcome")!.Value == "Failed");
-                else Assert.All(assertions, result => Assert.Equal("Passed", result.Attribute("outcome")!.Value));
+                if (wrongBody) Assert.Contains(assertions, result => result.Attribute("outcome").Value == "Failed");
+                else Assert.All(assertions, result => Assert.Equal("Passed", result.Attribute("outcome").Value));
             }
         }
         finally

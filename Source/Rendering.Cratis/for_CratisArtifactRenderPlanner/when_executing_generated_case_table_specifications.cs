@@ -27,7 +27,7 @@ public class when_executing_generated_case_table_specifications(when_executing_g
             Test = await Run("case-table-test.log", "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--filter", "FullyQualifiedName~when_registering_", "--logger", "trx;LogFileName=cases.trx", "--results-directory", _evidence.FullName);
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "cases.trx"));
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Cases = [.. results.Descendants(ns + "TestMethod").Select(method => (string)method.Attribute("className")!).Distinct(StringComparer.Ordinal).Select(name => name.Split('.')[^1])];
+            Cases = [.. results.Descendants(ns + "TestMethod").Select(method => (string)method.Attribute("className")).Distinct(StringComparer.Ordinal).Select(name => name.Split('.')[^1])];
         }
 
         public string Build { get; private set; } = null!;

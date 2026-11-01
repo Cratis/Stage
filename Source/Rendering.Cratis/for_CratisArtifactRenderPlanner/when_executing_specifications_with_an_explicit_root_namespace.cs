@@ -42,7 +42,7 @@ public class when_executing_specifications_with_an_explicit_root_namespace(conte
                 ReleaseWarnings = BuildWarnings(await Run("release-build.log", "build", "BackendHost.csproj", "-c", "Release", "--nologo"));
                 var results = XDocument.Load(Path.Combine(_evidence.FullName, "generated.trx"));
                 XNamespace testNamespace = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-                Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName")!.Value, _.Attribute("outcome")!.Value))];
+                Results = [.. results.Descendants(testNamespace + "UnitTestResult").Select(_ => (_.Attribute("testName").Value, _.Attribute("outcome").Value))];
             }
             finally
             {

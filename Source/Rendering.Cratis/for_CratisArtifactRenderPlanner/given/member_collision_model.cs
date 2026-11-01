@@ -50,10 +50,10 @@ internal static class member_collision_model
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("collision"), "collision", "Collision.play", source);
         var compilation = new SemanticModelCompiler().Compile("Payments", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join("; ", execution.Issues));
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Payments", "Payments"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Payments", "Payments"));
     }
 
     internal static RenderedFile[] Files(ArtifactRenderPlan plan) => [.. plan.Artifacts

@@ -130,7 +130,7 @@ public class when_retaining_inline_input_provenance : Specification
         return json.RootElement.GetProperty("inlineCodeFingerprint").GetString()!;
     }
 
-    static ArtifactRenderReportContext ReportContext(ArtifactRenderPlan plan) => new(plan.InputVersions!, new([plan.InputVersions!]), []);
+    static ArtifactRenderReportContext ReportContext(ArtifactRenderPlan plan) => new(plan.InputVersions, new([plan.InputVersions]), []);
 
     static string[] Generated(ArtifactRenderPlan plan) => [.. plan.Artifacts.Where(artifact => !artifact.RelativePath.EndsWith(".stage/completeness.json", StringComparison.Ordinal))
         .Select(artifact => artifact.RelativePath + ":" + artifact.Sha256)];
@@ -178,7 +178,7 @@ public class when_retaining_inline_input_provenance : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("source"), "source", "source.play", source);
         var compilation = new SemanticModelCompiler().Compile("Shop", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var compiled = compilation.Value!;
+        var compiled = compilation.Value;
         var requirements = compilation.ImplementationRequirements.Select(requirement => requirement with
         {
             ContentHash = seed.ImplementationRequirements.Single().ContentHash,
@@ -186,7 +186,7 @@ public class when_retaining_inline_input_provenance : Specification
         }).ToImmutableArray();
         return new(
             compiled.Model,
-            SemanticExecutionPlan.Compile(compiled.Model).Plan!,
+            SemanticExecutionPlan.Compile(compiled.Model).Plan,
             CratisRendering.CreateProfile("Shop", new("Shop", "Shop")),
             new(ArtifactRenderScopeKind.Application, compiled.Model.Application.Id))
         {

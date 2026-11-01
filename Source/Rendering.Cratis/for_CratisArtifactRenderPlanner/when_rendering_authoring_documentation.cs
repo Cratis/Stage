@@ -134,7 +134,7 @@ public class when_rendering_authoring_documentation : Specification
         var compilation = Compile(source);
         var withoutSyntax = CratisRendering.Plan(
             compilation.Model,
-            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan,
             new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id),
             new("Projects", "Projects"));
         Assert.Equal(withoutSyntax.Artifacts.Select(artifact => artifact.Sha256), Plan(compilation).Artifacts.Select(artifact => artifact.Sha256));
@@ -153,7 +153,7 @@ public class when_rendering_authoring_documentation : Specification
             [.. profile.Inputs.Where(input => input != metadata), ArtifactRenderInput.Create(metadata.Name, "999", metadata.Bytes)]);
         var plan = new CratisArtifactRenderPlanner().Plan(new(
             _compilation.Model,
-            SemanticExecutionPlan.Compile(_compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(_compilation.Model).Plan,
             changed,
             new(ArtifactRenderScopeKind.Application, _compilation.Model.Application.Id)));
         plan.Success.ShouldBeFalse();
@@ -176,7 +176,7 @@ public class when_rendering_authoring_documentation : Specification
             compilation);
         return new CratisArtifactRenderPlanner().Plan(new(
             compilation.Model,
-            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan,
             profile,
             new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id)));
     }

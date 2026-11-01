@@ -25,7 +25,7 @@ public class when_refusing_protected_command_reads : a_multi_slice_application
                       produces Completed
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _application = compilation.Value!;
+        _application = compilation.Value;
     }
 
     [Theory]

@@ -27,7 +27,7 @@ public class with_a_protected_identity_use : Specification
         };
 
         // Model a producer bypassing upstream validation, as in the existing protected-identity specs.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_model, application);
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_model, application);
     }
 
     void Because() => _plan = invoice_model.Plan(_model);

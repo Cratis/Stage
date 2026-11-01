@@ -15,7 +15,7 @@ public class when_configuring_request_localization : Specification
     {
         var input = StringsCatalogInput.Create(new Dictionary<string, string> { ["invoices.en.strings"] = "invoice.key = \"Value\"\n" }, "en");
         StringsCatalogInput.TryRead(input, out var catalog);
-        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog!, "Invoices");
+        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog, "Invoices");
     }
 
     [Fact] void should_keep_formatting_invariant() => _program.ShouldContain("SupportedCultures = [CultureInfo.InvariantCulture]");

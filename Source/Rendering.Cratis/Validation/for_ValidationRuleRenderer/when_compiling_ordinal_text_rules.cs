@@ -43,15 +43,15 @@ public class when_compiling_ordinal_text_rules : Specification
                 }
                 """;
             var assembly = RenderedOutput.Load([new("Probe.cs", code)]);
-            var probe = assembly.GetType("Probe")!;
+            var probe = assembly.GetType("Probe");
             foreach (var input in new[] { "ABC", "abc", "xABCx", "ABCx", "xABC", "", null, ".*", "AB\0C", "ABC\n", "İ", "i", "é", "e\u0301" })
             {
                 var expected = SemanticValidationRules.Check(rule, input is null ? SemanticValue.Null : SemanticValue.Text(input)).Status == SemanticRuleStatus.Satisfied;
-                var instance = Activator.CreateInstance(probe, [input])!;
-                var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance)!;
+                var instance = Activator.CreateInstance(probe, [input]);
+                var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance);
                 foreach (var name in new[] { "SyntaxValidator", "SemanticValidator" })
                 {
-                    var validator = (IValidator)Activator.CreateInstance(assembly.GetType(name)!)!;
+                    var validator = (IValidator)Activator.CreateInstance(assembly.GetType(name));
                     validator.Validate(context).IsValid.ShouldEqual(expected);
                 }
             }

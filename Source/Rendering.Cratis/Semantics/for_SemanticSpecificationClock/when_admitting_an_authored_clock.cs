@@ -16,7 +16,8 @@ public class when_admitting_an_authored_clock : Specification
     void Establish() => _specification = invoice_model.Compile(a_clock_model.Source).Application.Modules.Single().Features.Single().Slices.Single().Specifications.Single();
 
     [Fact] void should_admit_a_v6_command_clock() => SemanticVersionFeatures.InSpecification(_specification).ShouldBeEmpty();
-    [Fact] void should_render_the_authored_utc_instant_first()
+    [Fact]
+    void should_render_the_authored_utc_instant_first()
     {
         var plan = invoice_model.Plan(invoice_model.Compile(a_clock_model.Source));
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(value => value.Message)));

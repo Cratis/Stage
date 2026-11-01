@@ -45,15 +45,17 @@ public class with_strict_acceptance : given.a_release_baseline_request
     [Fact] void should_preserve_additional_scopes() => Assert.Equal(_original.AdditionalScopes, _rebuilt.AdditionalScopes);
     [Fact] void should_preserve_versions() => Assert.Equal(_original.InputVersions, _rebuilt.InputVersions);
     [Fact] void should_keep_added_warnings() => Assert.All(_warnings, warning => Assert.Contains(warning, _rebuilt.Diagnostics));
-    [Fact] void should_match_an_equivalent_reconstructed_digest()
+    [Fact]
+    void should_match_an_equivalent_reconstructed_digest()
     {
         var original = _original.WithAcceptance(_original.Degradations);
         var expected = ArtifactRenderPlan.Create(_request, original.Artifacts, [.. original.Diagnostics, .. _warnings], original.ImplementationGaps, original.Refusals, original.RequiredRemovals)
-            .WithInventory(original.Inventory!).WithAcceptance(original.Degradations, strict: true);
+            .WithInventory(original.Inventory).WithAcceptance(original.Degradations, strict: true);
         Assert.Equal(expected.Digest, _rebuilt.Digest);
     }
 
-    [Fact] void should_drop_removals_for_a_genuine_generation_error()
+    [Fact]
+    void should_drop_removals_for_a_genuine_generation_error()
     {
         var error = new ArtifactRenderDiagnostic("STAGE-ESM-021", ArtifactRenderDiagnosticSeverity.Error, "Invalid typed context.", _request.Model.Application.Id);
         var rebuilt = CratisPlanDiagnosticReconstruction.Append(_request, _rebuilt, [error]);
@@ -62,7 +64,8 @@ public class with_strict_acceptance : given.a_release_baseline_request
         Assert.Contains(error, rebuilt.WithAcceptance(rebuilt.Degradations).Diagnostics);
     }
 
-    [Fact] void should_restore_source_information_and_warnings_without_losing_acceptance()
+    [Fact]
+    void should_restore_source_information_and_warnings_without_losing_acceptance()
     {
         var source = new ArtifactRenderDiagnostic("PLAY0270", ArtifactRenderDiagnosticSeverity.Information, "metadata.play(1,1): Model information.", default);
         var warning = source with { Severity = ArtifactRenderDiagnosticSeverity.Warning, Message = "metadata.play(2,1): Model warning." };

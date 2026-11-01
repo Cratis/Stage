@@ -12,7 +12,7 @@ public class with_multiple_scopes : given.a_policy_plan
 {
     void Establish()
     {
-        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue"), PlanSelectionEntry.Slice("Billing", "Invoicing", "Lookup")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices")).Plan!;
+        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue"), PlanSelectionEntry.Slice("Billing", "Invoicing", "Lookup")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices")).Plan;
         _existing["GeneratedPolicies/Policies.cs"] = LegacyPolicies;
     }
 

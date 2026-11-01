@@ -42,6 +42,6 @@ public class when_requiring_constraint_generation_fixtures : Specification
     static ArtifactRenderPlan Plan(string source)
     {
         var model = invoice_model.Compile(source);
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Invites", "Invites"));
     }
 }

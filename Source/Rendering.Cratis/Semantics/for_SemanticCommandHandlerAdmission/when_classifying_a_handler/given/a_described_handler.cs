@@ -27,10 +27,10 @@ public class a_described_handler : Specification
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(vector.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         _command = model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).SelectMany(slice => slice.Commands).Single(command => command.Handler is not null);
         _requirement = compilation.ImplementationRequirements.Single();
-        _request = new(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(vector.ApplicationName, new("Described", "Described")), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        _request = new(model, SemanticExecutionPlan.Compile(model, []).Plan, CratisRendering.CreateProfile(vector.ApplicationName, new("Described", "Described")), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = [_requirement]
         };

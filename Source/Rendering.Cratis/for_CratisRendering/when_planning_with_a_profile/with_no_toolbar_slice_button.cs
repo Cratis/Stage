@@ -21,7 +21,7 @@ public class with_no_toolbar_slice_button : given.a_profile_source_plan
 
     void Establish() => PlanFull();
 
-    void Because() => _runtime = JsonNode.Parse(Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == StageSceneDocument.RelativePath).Bytes.AsSpan()))!.AsObject();
+    void Because() => _runtime = JsonNode.Parse(Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == StageSceneDocument.RelativePath).Bytes.AsSpan())).AsObject();
 
     [Fact] void should_carry_no_command_schemas() => _runtime.ContainsKey("commandSchemas").ShouldBeFalse();
     [Fact] void should_carry_no_structure() => _runtime.ContainsKey("structure").ShouldBeFalse();

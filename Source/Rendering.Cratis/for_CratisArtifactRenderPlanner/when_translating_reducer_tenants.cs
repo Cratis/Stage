@@ -20,9 +20,9 @@ public class when_translating_reducer_tenants : given.a_generated_tenant_reducer
     void Because()
     {
         if (!_plan.Success) return;
-        var translate = _assembly.GetType("Projects.TypedContexts.ReducerContextValues")!.GetMethod("Tenant", BindingFlags.Public | BindingFlags.Static)!;
+        var translate = _assembly.GetType("Projects.TypedContexts.ReducerContextValues").GetMethod("Tenant", BindingFlags.Public | BindingFlags.Static);
         var names = new[] { EventStoreNamespaceName.Default.Value, EventStoreNamespaceName.NotSet.Value, "North", "default", "10000000-0000-0000-0000-000000000000" };
-        _values = names.ToDictionary(name => name, name => Value(translate.Invoke(null, [new EventStoreNamespaceName(name)])!));
+        _values = names.ToDictionary(name => name, name => Value(translate.Invoke(null, [new EventStoreNamespaceName(name)])));
         _observed = names.ToDictionary(name => name, Apply);
         var collisions = new[] { string.Empty, "00000000-0000-0000-0000-000000000000", "{00000000-0000-0000-0000-000000000000}", "00000000000000000000000000000000" };
         _collisions = [.. collisions.Select(name => Catch.Exception(() => translate.Invoke(null, [new EventStoreNamespaceName(name)])))];

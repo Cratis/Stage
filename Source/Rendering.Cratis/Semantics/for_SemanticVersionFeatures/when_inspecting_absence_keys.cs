@@ -17,7 +17,8 @@ public class when_inspecting_absence_keys : Specification
         .Features.Single().Slices[0].Specifications.Single();
 
     [Fact] void should_admit_scalar_absence() => SemanticVersionFeatures.InSpecification(_specification).ShouldBeEmpty();
-    [Fact] void should_refuse_non_scalar_absence_on_its_specification()
+    [Fact]
+    void should_refuse_non_scalar_absence_on_its_specification()
     {
         var specification = _specification with
         {

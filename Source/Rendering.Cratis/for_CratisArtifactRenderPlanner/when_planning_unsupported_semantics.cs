@@ -46,8 +46,8 @@ public class when_planning_unsupported_semantics : a_register_project_render_req
         var compilation = new SemanticModelCompiler().Compile(
             "Projects",
             SemanticDocumentSet.Create([document], catalog));
-        var model = compilation.Value!.Model;
-        var executionPlan = SemanticExecutionPlan.Compile(model).Plan!;
+        var model = compilation.Value.Model;
+        var executionPlan = SemanticExecutionPlan.Compile(model).Plan;
         var request = new ArtifactRenderRequest(
             model,
             executionPlan,

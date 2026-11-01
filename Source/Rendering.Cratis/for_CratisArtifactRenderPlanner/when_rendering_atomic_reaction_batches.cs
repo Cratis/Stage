@@ -25,15 +25,15 @@ public class when_rendering_atomic_reaction_batches : given.an_atomic_reaction
         Plan();
         Assert.True(_plan.Success, string.Join(';', _plan.Diagnostics));
         var assembly = RenderedOutput.Load(Files(_plan));
-        var type = assembly.GetType("Reactions.Work.Processing.FollowUp.Worker")!;
-        _reactor = Activator.CreateInstance(type)!;
-        var started = Activator.CreateInstance(assembly.GetType("Reactions.Work.Processing.FollowUp.Started")!, "one");
-        _effects = [.. ((IEnumerable<object>)type.GetMethod("Started")!.Invoke(_reactor, [started, EventContext.EmptyWithEventSourceId("trigger")])!).Cast<EventForEventSourceId>()];
+        var type = assembly.GetType("Reactions.Work.Processing.FollowUp.Worker");
+        _reactor = Activator.CreateInstance(type);
+        var started = Activator.CreateInstance(assembly.GetType("Reactions.Work.Processing.FollowUp.Started"), "one");
+        _effects = [.. ((IEnumerable<object>)type.GetMethod("Started").Invoke(_reactor, [started, EventContext.EmptyWithEventSourceId("trigger")])).Cast<EventForEventSourceId>()];
     }
 
     [Fact] void should_return_every_direct_production_in_order() => _effects.Select(effect => effect.Event.GetType().Name).ShouldEqual(["Recorded", "Audited"]);
     [Fact] void should_preserve_each_destination() => _effects.Select(effect => effect.EventSourceId.Value).ShouldEqual(["one", "audit"]);
-    [Fact] void should_preserve_each_payload() => _effects.Select(effect => effect.Event.GetType().GetProperty("Note")!.GetValue(effect.Event)).ShouldEqual(["one", "one"]);
+    [Fact] void should_preserve_each_payload() => _effects.Select(effect => effect.Event.GetType().GetProperty("Note").GetValue(effect.Event)).ShouldEqual(["one", "one"]);
     [Fact] void should_keep_productions_unrouted() => _effects.ShouldEachConformTo(effect => effect.EventSourceType == EventSourceType.Default && effect.EventStreamType == EventStreamType.All && effect.EventStreamId == EventStreamId.Default);
 
     [Theory]
@@ -75,8 +75,8 @@ public class when_rendering_atomic_reaction_batches : given.an_atomic_reaction
     public void should_skip_the_complete_batch_for_a_false_guard()
     {
         var type = _reactor.GetType();
-        var started = Activator.CreateInstance(type.Assembly.GetType("Reactions.Work.Processing.FollowUp.Started")!, string.Empty);
-        var effects = (IEnumerable<object>)type.GetMethod("Started")!.Invoke(_reactor, [started, EventContext.EmptyWithEventSourceId("trigger")])!;
+        var started = Activator.CreateInstance(type.Assembly.GetType("Reactions.Work.Processing.FollowUp.Started"), string.Empty);
+        var effects = (IEnumerable<object>)type.GetMethod("Started").Invoke(_reactor, [started, EventContext.EmptyWithEventSourceId("trigger")]);
         effects.ShouldBeEmpty();
     }
 }

@@ -31,7 +31,7 @@ public class when_rendering_event_reactions : Specification
         _model = model;
     }
 
-    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Reactions", "Reactions"));
+    void Because() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Reactions", "Reactions"));
 
     [Fact] void should_admit_event_reactions() => _plan.Success.ShouldBeTrue();
     [Fact] void should_emit_the_reactor() => _plan.Artifacts.Any(artifact => artifact.RelativePath.EndsWith("/ReminderScheduler.cs", StringComparison.Ordinal)).ShouldBeTrue();

@@ -54,8 +54,8 @@ public class with_integer_endpoint_fixtures : Specification
         // independently without widening that admission contract.
         appendPlan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).Select(diagnostic => diagnostic.Code).ShouldContainOnly(["STAGE-ESM-011"]);
         var options = new CratisRenderingOptions("Routed", "Routed");
-        var request = new ArtifactRenderRequest(changed, SemanticExecutionPlan.Compile(changed).Plan!, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, changed.Application.Id));
-        _rendered.Add((SemanticSpecificationRouteRendering.Arguments(append.WhenAppended!.Route!, new(request, options)), identity));
+        var request = new ArtifactRenderRequest(changed, SemanticExecutionPlan.Compile(changed).Plan, CratisRendering.CreateProfile("Routed", options), new(ArtifactRenderScopeKind.Application, changed.Application.Id));
+        _rendered.Add((SemanticSpecificationRouteRendering.Arguments(append.WhenAppended.Route, new(request, options)), identity));
     }
 
     [Fact] void should_preserve_exact_endpoint_bytes_in_given_append_and_then_routes() => _rendered.TrueForAll(rendered => rendered.Code.Contains($"\"{rendered.Identity}\"", StringComparison.Ordinal)).ShouldBeTrue();

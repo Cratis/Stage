@@ -63,7 +63,7 @@ public class and_the_vector_is_rejected : Specification
             foreach (var document in vector.SourceForm.Documents)
             {
                 var path = Path.Combine(root, document.DisplayPath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 await File.WriteAllBytesAsync(path, [.. document.Bytes]);
             }
 

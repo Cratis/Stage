@@ -32,6 +32,6 @@ public class when_a_file_handler_is_not_the_first_command : a_file_handler_slice
         rejection.CommandName.ShouldEqual("ProcessBatch");
         rejection.FullSlicePath.ShouldEqual("Billing.Invoices.Process");
         rejection.CommandSourceLocation.ShouldEqual(_command.Location);
-        Assert.Same(_command.Handler!.File, rejection.File);
+        Assert.Same(_command.Handler.File, rejection.File);
     }
 }

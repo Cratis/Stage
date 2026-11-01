@@ -21,7 +21,7 @@ public class with_a_source_key : given.a_captured_delivery
         _history.Add(Fact(1, "unrelated", source: "another"));
         var effects = await Effects(Fact(2, source: "parcel"));
         effects.ShouldBeEmpty();
-        var expectedTypes = new[] { _history[0].Content.GetType().GetEventType(), _assembly.GetType("Contracts.Shipping.Tracking.Receive.Labelled", true)!.GetEventType() };
+        var expectedTypes = new[] { _history[0].Content.GetType().GetEventType(), _assembly.GetType("Contracts.Shipping.Tracking.Receive.Labelled", true).GetEventType() };
         await _inbox.Received(1).GetFromSequenceNumber(
             EventSequenceNumber.First,
             new EventSourceId("parcel"),

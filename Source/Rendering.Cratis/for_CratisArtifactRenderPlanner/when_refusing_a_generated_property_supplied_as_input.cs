@@ -33,7 +33,7 @@ public class when_refusing_a_generated_property_supplied_as_input : Specificatio
 
     [Fact] void should_expect_the_compiler_diagnostic() => _vector.Diagnostics.Single().Code.ShouldEqual("PLAY0485");
     [Fact] void should_refuse_the_model_before_planning() => _error.ShouldBeOfExactType<InvalidSemanticModel>();
-    [Fact] void should_report_the_generated_input() => _error!.Message.Contains(_vector.Diagnostics.Single().Message, StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_report_the_generated_input() => _error.Message.Contains(_vector.Diagnostics.Single().Message, StringComparison.Ordinal).ShouldBeTrue();
 
     void Destroy() => Directory.Delete(_folder, recursive: true);
 }

@@ -16,7 +16,8 @@ public class and_a_role_is_mixed_with_an_unsupported_policy : an_application_wit
     void Because() => _error = Catch.Exception(() => Render(Authorize("Administrator", "Owner")));
 
     [Fact] void should_block_the_artifact() => _error.ShouldBeOfExactType<AuthorizationCannotBeRendered>();
-    [Fact] void should_report_that_the_portable_policy_backend_is_required() =>
+    [Fact]
+    void should_report_that_the_portable_policy_backend_is_required() =>
         _error.Message.ShouldEqual(
             "STAGE-AUTH-001: Command 'RegisterInvoice' references policy 'Owner', which requires the claim 'sub'. The artifact was not rendered because " +
             "faithful authorization requires the future Screenplay-owned portable policy backend.");

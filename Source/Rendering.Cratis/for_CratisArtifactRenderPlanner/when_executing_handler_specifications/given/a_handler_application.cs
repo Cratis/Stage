@@ -24,7 +24,7 @@ public abstract class a_handler_application : a_generated_application
             Warnings = BuildWarnings(await Run("debug-build.log", "build", "HandlerApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("debug-test.log", allowFailedTests, "test", "HandlerApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=handler.trx", "--results-directory", _evidence.FullName);
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "handler.trx")).Descendants(ns + "UnitTestResult").Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+            Results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "handler.trx")).Descendants(ns + "UnitTestResult").Select(result => (result.Attribute("testName").Value, result.Attribute("outcome").Value))];
         }
         finally
         {

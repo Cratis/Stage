@@ -91,7 +91,7 @@ sealed record ScaffoldedProject(
     static string RealPath(string path)
     {
         var full = Path.GetFullPath(path);
-        var current = Path.GetPathRoot(full)!;
+        var current = Path.GetPathRoot(full);
         foreach (var segment in full[current.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
         {
             current = Path.Combine(current, segment);

@@ -45,25 +45,31 @@ public class when_rendering_the_paths_a_command_can_reach : Specification
     [Fact] void should_render_the_tenant_as_its_value() => _tenant.ShouldEqual("(tenants.Current.IsDefault ? PortableTenantValues.Default : PortableTenantValues.Translate(tenants.Current.Value, global::Cratis.Arc.Tenancy.TenantId.Default.Value, global::Cratis.Arc.Tenancy.TenantId.NotSet.Value))");
     [Fact] void should_render_the_identity_id_as_the_subject() => _identityId.ShouldEqual("identities.GetCurrent().Subject");
     [Fact] void should_render_the_identity_name() => _identityName.ShouldEqual("identities.GetCurrent().Name");
-    [Fact] void should_render_whether_the_caller_is_authenticated() =>
+    [Fact]
+    void should_render_whether_the_caller_is_authenticated() =>
         _isAuthenticated.ShouldEqual("principals.Current?.Identity?.IsAuthenticated == true");
-    [Fact] void should_render_a_claim_by_name() =>
+    [Fact]
+    void should_render_a_claim_by_name() =>
         _claim.ShouldEqual("principals.Current?.FindFirst(\"department\")?.Value ?? string.Empty");
-    [Fact] void should_render_the_roles_the_caller_holds() =>
+    [Fact]
+    void should_render_the_roles_the_caller_holds() =>
         _roles.ShouldEqual("(principals.Current?.FindAll(ClaimTypes.Role) ?? []).Select(claim => claim.Value)");
 
     // The language says Identity.Id and CausedBy.Subject are the same value seen from the decision and the audit
     // side, so they resolve to one expression rather than to two collaborators that could disagree.
     [Fact] void should_render_the_causing_subject_as_the_same_value_as_the_identity_id() => _causedBySubject.ShouldEqual(_identityId);
 
-    [Fact] void should_render_the_causation_type_as_its_value() =>
+    [Fact]
+    void should_render_the_causation_type_as_its_value() =>
         _causationType.ShouldEqual("causations.GetCurrentChain()[^1].Type.Value");
     [Fact] void should_render_a_command_property_as_the_command_s_own() => _commandProperty.ShouldEqual("InvoiceNumber");
     [Fact] void should_report_nothing_as_unreachable() => _diagnostics.ShouldBeEmpty();
     [Fact] void should_ask_for_each_collaborator_once() => _access.Collaborators.Count.ShouldEqual(5);
-    [Fact] void should_name_the_identity_provider_in_full_because_the_short_name_is_ambiguous() =>
+    [Fact]
+    void should_name_the_identity_provider_in_full_because_the_short_name_is_ambiguous() =>
         _access.Collaborators.ShouldContain(HandlerCollaborator.Identities);
-    [Fact] void should_import_what_the_rendered_expressions_need() =>
+    [Fact]
+    void should_import_what_the_rendered_expressions_need() =>
         _access.Namespaces.ShouldContainOnly(["Cratis.Arc.Authorization", "Cratis.Arc.Tenancy", "Cratis.Chronicle.Auditing", "System.Security.Claims"]);
 
     static ContextExpressionSyntax Context(string path) => new(path, SourceLocation.Start);

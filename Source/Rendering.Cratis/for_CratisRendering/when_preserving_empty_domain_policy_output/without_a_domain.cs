@@ -105,15 +105,15 @@ public class without_a_domain : given.a_domain_policy_plan
         var registration = new CratisBackendApplicationScaffold()
             .Create(CratisBackendApplicationScaffoldRequest.Create(_options.ApplicationName, _options.ProjectName, _options.RootNamespace))
             .Select(input => CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact) ? artifact : null)
-            .Single(artifact => artifact?.RelativePath == "GeneratedPolicyRegistration.cs")!;
+            .Single(artifact => artifact?.RelativePath == "GeneratedPolicyRegistration.cs");
         var assembly = RenderedOutput.Load(files.Append(new RenderedFile(registration.RelativePath, Encoding.UTF8.GetString(registration.Bytes.AsSpan()))));
         AssertReducerBinding(assembly);
-        var policyContext = assembly.GetType("Invoices.TypedContexts.PolicyContextValues", throwOnError: true)!;
-        var from = policyContext.GetMethod("From", BindingFlags.Public | BindingFlags.Static)!;
+        var policyContext = assembly.GetType("Invoices.TypedContexts.PolicyContextValues", throwOnError: true);
+        var from = policyContext.GetMethod("From", BindingFlags.Public | BindingFlags.Static);
         Assert.Equal(typeof(System.Security.Claims.ClaimsPrincipal), Assert.Single(from.GetParameters()).ParameterType);
-        var identity = assembly.GetType("Invoices.TypedContexts.Identity", throwOnError: true)!;
-        Assert.Equal(typeof(ImmutableArray<>), identity.GetProperty("Roles")!.PropertyType.GetGenericTypeDefinition());
-        var claims = identity.GetProperty("Claims")!.PropertyType;
+        var identity = assembly.GetType("Invoices.TypedContexts.Identity", throwOnError: true);
+        Assert.Equal(typeof(ImmutableArray<>), identity.GetProperty("Roles").PropertyType.GetGenericTypeDefinition());
+        var claims = identity.GetProperty("Claims").PropertyType;
         Assert.Equal(typeof(ImmutableArray<>), claims.GetGenericTypeDefinition());
         Assert.Equal(assembly.GetType("Invoices.TypedContexts.Claim", throwOnError: true), Assert.Single(claims.GetGenericArguments()));
     }
@@ -199,7 +199,7 @@ public class without_a_domain : given.a_domain_policy_plan
 
     void AssertReducerBinding(Assembly assembly)
     {
-        var fold = assembly.GetType("Invoices.Orders.Ordering.Totals.Fold", throwOnError: true)!;
+        var fold = assembly.GetType("Invoices.Orders.Ordering.Totals.Fold", throwOnError: true);
         var transition = Assert.Single(fold.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).Where(method => method.Name.StartsWith("Transition_", StringComparison.Ordinal)));
         var wrapper = Assert.Single(transition.GetParameters()).ParameterType;
         Assert.Equal("Invoices.TypedContexts", wrapper.Namespace);
@@ -209,8 +209,8 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Contains($"new {wrapper.Name}(", text, StringComparison.Ordinal);
         Assert.Contains($"{wrapper.Name} context)", text, StringComparison.Ordinal);
         Assert.DoesNotContain($"global::Invoices.TypedContexts.{wrapper.Name}", text, StringComparison.Ordinal);
-        var observed = assembly.GetType("Invoices.Orders.Ordering.PlaceOrder.OrderPlaced", throwOnError: true)!;
-        Assert.Equal(observed, wrapper.GetProperty("Event")!.PropertyType);
+        var observed = assembly.GetType("Invoices.Orders.Ordering.PlaceOrder.OrderPlaced", throwOnError: true);
+        Assert.Equal(observed, wrapper.GetProperty("Event").PropertyType);
     }
 
     string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());

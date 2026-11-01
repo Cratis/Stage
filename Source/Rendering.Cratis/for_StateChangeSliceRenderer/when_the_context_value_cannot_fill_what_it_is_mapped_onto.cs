@@ -58,7 +58,8 @@ public class when_the_context_value_cannot_fill_what_it_is_mapped_onto : Specifi
 
     [Fact] void should_render_the_mapping_as_a_missing_value() => _file.Content.ShouldContain("public InvoiceRegistered Handle() => new(InvoiceNumber, default!);");
     [Fact] void should_not_ask_for_a_collaborator_it_does_not_use() => _file.Content.ShouldNotContain("ITenantIdAccessor");
-    [Fact] void should_say_what_the_document_asked_for_and_what_it_declared() =>
+    [Fact]
+    void should_say_what_the_document_asked_for_and_what_it_declared() =>
         _file.Diagnostics.ShouldContain(
             "'registeredFor' is mapped from '$context.tenant', a string the runtime supplies, which the event declares as 'TenantId' — a Guid — rendered as a missing value.");
 }

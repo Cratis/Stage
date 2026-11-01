@@ -82,8 +82,8 @@ public class when_executing_validated_query_keys(when_executing_validated_query_
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "query-keys.trx"));
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             CompanionOutcomes = [.. results.Descendants(ns + "UnitTestResult")
-                .Where(result => ((string)result.Attribute("testName")!).Contains("_is_queried", StringComparison.Ordinal))
-                .Select(result => (string)result.Attribute("outcome")!)];
+                .Where(result => ((string)result.Attribute("testName")).Contains("_is_queried", StringComparison.Ordinal))
+                .Select(result => (string)result.Attribute("outcome"))];
         }
     }
 }

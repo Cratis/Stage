@@ -27,6 +27,6 @@ public class when_writing_a_path_that_escapes_with_parent_segments : Specificati
     [Fact] void should_refuse_the_path() => _error.ShouldBeOfExactType<GeneratedPathOutsideOutputRoot>();
     [Fact] void should_not_write_outside_the_root() => File.Exists(Path.Combine(_temporary.FullName, "escaped.cs")).ShouldBeFalse();
     [Fact] void should_not_create_the_output_root() => Directory.Exists(_target.FullName).ShouldBeFalse();
-    [Fact] void should_name_the_relative_path() => _error!.Message.ShouldContain("../escaped.cs");
-    [Fact] void should_name_the_output_root() => _error!.Message.ShouldContain(_target.FullName);
+    [Fact] void should_name_the_relative_path() => _error.Message.ShouldContain("../escaped.cs");
+    [Fact] void should_name_the_output_root() => _error.Message.ShouldContain(_target.FullName);
 }

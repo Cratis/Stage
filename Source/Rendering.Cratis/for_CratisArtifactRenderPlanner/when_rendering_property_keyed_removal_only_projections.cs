@@ -70,14 +70,16 @@ public class when_rendering_property_keyed_removal_only_projections : Specificat
     [Fact] void should_compile_without_warnings() => string.Join(Environment.NewLine, RenderedOutput.Warnings(_files)).ShouldEqual(string.Empty);
     [Fact] async Task should_replace_history_with_seeds_then_remove_only_the_action_key() => await Run(_files);
 
-    [Fact] async Task should_also_allow_an_unsourced_property_keyed_append()
+    [Fact]
+    async Task should_also_allow_an_unsourced_property_keyed_append()
     {
         var plan = invoice_model.Plan(invoice_model.Compile(Source.Replace("        when append InvoiceRemoved\n          for \"unrelated\"", "        when append InvoiceRemoved", StringComparison.Ordinal)));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         await Run(when_rendering_read_model_absence.Files(plan));
     }
 
-    [Fact] async Task should_fail_when_the_action_removes_the_wrong_key()
+    [Fact]
+    async Task should_fail_when_the_action_removes_the_wrong_key()
     {
         var source = Source.Replace("        when append InvoiceRemoved\n          for \"unrelated\"\n          invoiceId = \"first\"", "        when append InvoiceRemoved\n          for \"unrelated\"\n          invoiceId = \"second\"", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));

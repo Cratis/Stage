@@ -36,18 +36,18 @@ public class with_native_bodies : a_generated_application
     {
         var results = Results("native.trx");
         Assert.NotEmpty(results);
-        Assert.All(results, result => Assert.Equal("Passed", result.Attribute("outcome")!.Value));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("high_score", StringComparison.Ordinal));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("low_score", StringComparison.Ordinal));
-        Assert.Contains(results, result => result.Attribute("testName")!.Value.Contains("file_highlight", StringComparison.Ordinal));
+        Assert.All(results, result => Assert.Equal("Passed", result.Attribute("outcome").Value));
+        Assert.Contains(results, result => result.Attribute("testName").Value.Contains("high_score", StringComparison.Ordinal));
+        Assert.Contains(results, result => result.Attribute("testName").Value.Contains("low_score", StringComparison.Ordinal));
+        Assert.Contains(results, result => result.Attribute("testName").Value.Contains("file_highlight", StringComparison.Ordinal));
     }
 
     [Fact]
     void should_fail_the_unchanged_payload_expectation_for_a_mutated_body()
     {
         _mutation.ShouldContain("Failed!");
-        Assert.Contains(Results("mutant.trx"), result => result.Attribute("outcome")!.Value == "Failed" &&
-            result.Attribute("testName")!.Value.EndsWith("should_produce_event_1_with_score", StringComparison.Ordinal));
+        Assert.Contains(Results("mutant.trx"), result => result.Attribute("outcome").Value == "Failed" &&
+            result.Attribute("testName").Value.EndsWith("should_produce_event_1_with_score", StringComparison.Ordinal));
     }
 
     XElement[] Results(string file)

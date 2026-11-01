@@ -12,6 +12,7 @@ public class when_rendering_a_multi_slice_application : a_multi_slice_applicatio
     async Task Because() => await _renderer.Render([_application], _targetDirectory, _output, _error);
 
     [Fact] void should_render_declarations_to_check() => _codeOutput.Files.Count.ShouldBeGreaterThan(0);
-    [Fact] void should_inventory_every_emitted_declaration() =>
+    [Fact]
+    void should_inventory_every_emitted_declaration() =>
         InventoryAssertions.Missing(_codeOutput.Files, new([_application]), "CratisRendererSpec").ShouldBeEmpty();
 }

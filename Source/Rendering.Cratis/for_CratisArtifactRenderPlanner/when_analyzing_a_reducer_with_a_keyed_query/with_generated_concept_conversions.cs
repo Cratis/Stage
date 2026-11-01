@@ -124,7 +124,7 @@ public class with_generated_concept_conversions
         var compilation = RenderedOutput.CreateCompilation(files).AddSyntaxTrees(CSharpSyntaxTree.ParseText(
             $"namespace {peerNamespace} {{ public record {name}(string Value) {{ public static implicit operator {name}(string value) => new(value); }} }}"));
         Assert.DoesNotContain(compilation.GetDiagnostics(), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var peer = compilation.GetTypeByMetadataName($"{peerNamespace}.{name}")!;
+        var peer = compilation.GetTypeByMetadataName($"{peerNamespace}.{name}");
         var method = Assert.Single(peer.GetMembers("op_Implicit").OfType<IMethodSymbol>());
         Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, PureTransitionAdmission.GeneratedConceptSymbols(context, compilation)));
         var verdict = PureTransitionAdmission.AnalyzeRendered(compilation, path, loaded.TypedContextDescriptors.Single(), context);
@@ -142,7 +142,7 @@ public class with_generated_concept_conversions
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var compilation = RenderedOutput.CreateCompilation(Files(plan));
         var trusted = PureTransitionAdmission.GeneratedConceptSymbols(context, compilation);
-        var operators = trusted.Keys.SelectMany(concept => concept.BaseType!.GetMembers().OfType<IMethodSymbol>())
+        var operators = trusted.Keys.SelectMany(concept => concept.BaseType.GetMembers().OfType<IMethodSymbol>())
             .Where(method => method.MethodKind == MethodKind.Conversion).ToArray();
         Assert.NotEmpty(operators);
         Assert.All(operators, method => Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, trusted)));
@@ -178,7 +178,7 @@ public class with_generated_concept_conversions
             : file);
         var compilation = RenderedOutput.CreateCompilation(files);
         Assert.DoesNotContain(compilation.GetDiagnostics(), diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
-        var target = compilation.GetTypeByMetadataName("Projects.Common.StockQuantity")!;
+        var target = compilation.GetTypeByMetadataName("Projects.Common.StockQuantity");
         var method = Assert.Single(target.GetMembers("op_Implicit").OfType<IMethodSymbol>().Where(candidate => candidate.Parameters[0].Type.Name == "Quantity"));
         Assert.False(PureTransitionAdmission.IsGeneratedConceptConversion(method, PureTransitionAdmission.GeneratedConceptSymbols(context, compilation)));
         var rendered = PureTransitionAdmission.AnalyzeRendered(compilation, path, loaded.TypedContextDescriptors.Single(), context);

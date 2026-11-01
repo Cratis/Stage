@@ -27,7 +27,7 @@ public class and_the_mapping_is_a_plain_property : Specification
     [Fact] void should_name_both_omitted_values() => _warning.Message.ShouldContain("$eventContext.occurred");
     [Fact] void should_name_the_correlation_value() => _warning.Message.ShouldContain("$eventContext.correlationId");
     [Fact] void should_record_the_degradation_with_a_remedy_citing_the_issue() => _plan.Degradations.Single().Remedy.ShouldContain("Stage#876");
-    [Fact] void should_mark_the_read_model_degraded_in_the_inventory() => _plan.Inventory!.Constructs.Single(_ => _.Identity == _warning.Artifact).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
+    [Fact] void should_mark_the_read_model_degraded_in_the_inventory() => _plan.Inventory.Constructs.Single(_ => _.Identity == _warning.Artifact).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
     [Fact] void should_comment_the_omitted_occurrence() => Source(_plan).ShouldContain("// STAGE-DEGRADE-002: $eventContext.occurred mapping omitted (Stage#876)");
     [Fact] void should_comment_the_omitted_correlation() => Source(_plan).ShouldContain("// STAGE-DEGRADE-002: $eventContext.correlationId mapping omitted (Stage#876)");
     [Fact] void should_still_render_the_literal_mapping() => Source(_plan).ShouldContain("\"global\"");

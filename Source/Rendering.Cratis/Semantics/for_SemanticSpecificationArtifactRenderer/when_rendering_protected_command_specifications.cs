@@ -18,7 +18,7 @@ public class when_rendering_protected_command_specifications : Specification
     void Because()
     {
         var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedReads", "ProtectedReads"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedReads", "ProtectedReads"));
     }
 
     [Fact] void should_seed_prior_facts_through_the_scenario_given() => Source("when_missing_after_removal").ShouldContain("_scenario.Given.ForEventSource(_sourceId).Events(");

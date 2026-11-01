@@ -38,7 +38,7 @@ public class when_rendering_v32_whole_number_concept_capture_identities : given.
         });
         Render();
         var identity = _assembly.GetTypes().Single(type => type.Name == "OrderId");
-        identity.BaseType!.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
+        identity.BaseType.GetGenericTypeDefinition().ShouldEqual(typeof(EventSourceId<>));
         new[] { typeof(int), typeof(long) }.ShouldContain(identity.BaseType.GetGenericArguments().Single());
         var reactor = Reactor();
         reactor.ShouldContain("EventForEventSourceId(@event.OrderId,");

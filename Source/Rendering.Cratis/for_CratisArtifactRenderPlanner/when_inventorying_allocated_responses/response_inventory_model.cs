@@ -47,7 +47,7 @@ internal static class response_inventory_model
 
     internal static ArtifactRenderRequest Request(ExecutableSemanticModel model, ArtifactRenderScope? scope = null) => new(
         model,
-        SemanticExecutionPlan.Compile(model).Plan!,
+        SemanticExecutionPlan.Compile(model).Plan,
         CratisRendering.CreateProfile(model.Application.Name, Options),
         scope ?? new(ArtifactRenderScopeKind.Application, model.Application.Id));
 

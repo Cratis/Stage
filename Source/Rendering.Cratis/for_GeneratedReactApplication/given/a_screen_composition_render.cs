@@ -44,10 +44,10 @@ public class a_screen_composition_render : Specification
             SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(_model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _executionPlan = execution.Plan!;
+        _executionPlan = execution.Plan;
         _scene = SceneFor(Folder.Documents);
         _options = new(_model.Application.Name, _model.Application.Name);
     }
@@ -68,7 +68,7 @@ public class a_screen_composition_render : Specification
         foreach (var artifact in plan.Artifacts)
         {
             var path = Path.Combine(directory, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllBytes(path, [.. artifact.Bytes]);
         }
     }
@@ -126,13 +126,13 @@ public class a_screen_composition_render : Specification
             foreach (var document in documents)
             {
                 var path = Path.Combine(root, document.DisplayPath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, document.Text);
             }
 
             var compilation = new PlayFileCompiler().CompileFolder(root).Result;
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+            return new ScreenplaySceneVisitor().Visit(compilation.Value);
         }
         finally
         {

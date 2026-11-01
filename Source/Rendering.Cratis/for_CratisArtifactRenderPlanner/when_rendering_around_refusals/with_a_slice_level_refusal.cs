@@ -16,7 +16,7 @@ public class with_a_slice_level_refusal : given.a_refused_specification
         var model = an_automation.Compile("module Work\n  feature Processing\n    slice Automation FollowUp\n      event Completed\n      reaction Worker\n        when Startup\n          produces Completed\n            for \"work\"\n");
         _request = OptIn(new(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("Reactions", "Reactions")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }

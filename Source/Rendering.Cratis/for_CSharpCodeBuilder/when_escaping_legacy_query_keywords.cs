@@ -25,7 +25,8 @@ public class when_escaping_legacy_query_keywords : Specification
             new("event", new("String", false, false, location), location),
             [],
             null,
-            location) with { IsObservable = observable };
+            location) with
+        { IsObservable = observable };
         var builder = new CSharpCodeBuilder();
         QueryRenderer.Render(builder, "Summary", "string", "event", [query], new ApplicationSet([]), []);
         var source = builder.ToString();

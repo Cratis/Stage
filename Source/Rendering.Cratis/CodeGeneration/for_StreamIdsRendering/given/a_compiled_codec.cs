@@ -15,9 +15,9 @@ public class a_compiled_codec : Specification
 
     void Establish()
     {
-        _codec = RenderedOutput.Load([StreamIdsRendering.Render("Codec")]).GetType("Codec.GeneratedEventSources.StreamIds")!;
+        _codec = RenderedOutput.Load([StreamIdsRendering.Render("Codec")]).GetType("Codec.GeneratedEventSources.StreamIds");
         var assembly = typeof(a_compiled_codec).Assembly;
-        using var stream = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames().Single(name => name.EndsWith("stream-id-codec.json", StringComparison.Ordinal)))!;
+        using var stream = assembly.GetManifestResourceStream(assembly.GetManifestResourceNames().Single(name => name.EndsWith("stream-id-codec.json", StringComparison.Ordinal)));
         _vectors = JsonDocument.Parse(stream);
     }
 

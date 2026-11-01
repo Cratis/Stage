@@ -25,10 +25,10 @@ public class when_rendering_every_literals : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("every"), "every", "Every.play", every_literal_projection.Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(_model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _execution = execution.Plan!;
+        _execution = execution.Plan;
     }
 
     void Because()
@@ -104,10 +104,10 @@ public class when_rendering_every_literals : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("every-level"), "every-level", "Every.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 }
 #endif

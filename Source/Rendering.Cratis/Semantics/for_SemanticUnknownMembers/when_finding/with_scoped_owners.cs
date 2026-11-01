@@ -48,7 +48,7 @@ public class with_scoped_owners : a_populated_model
     {
         _known.Remove("SemanticCommand.Reads");
         var slice = SemanticVersionFeatures.Slices(_model.Application).Single(slice => slice.Commands.Any(command => command.Id == _readingCommand.Id));
-        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Commands))!.SetValue(slice, ImmutableArray.Create(_readingCommand, _readingCommand));
+        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Commands)).SetValue(slice, ImmutableArray.Create(_readingCommand, _readingCommand));
         var scope = Scope([_readingCommand.Id], []);
         var found = SemanticUnknownMembers.Find(_model, _known, scope);
         found.Count(member => member.Owner == _readingCommand.Id).ShouldEqual(2);

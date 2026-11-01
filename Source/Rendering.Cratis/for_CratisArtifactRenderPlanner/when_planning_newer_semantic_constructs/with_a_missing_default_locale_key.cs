@@ -25,7 +25,7 @@ public class with_a_missing_default_locale_key : given.an_invoice_model
             "en");
         _plan = new CratisArtifactRenderPlanner().Plan(new(
             _model,
-            SemanticExecutionPlan.Compile(_model).Plan!,
+            SemanticExecutionPlan.Compile(_model).Plan,
             profile,
             new(ArtifactRenderScopeKind.Application, _model.Application.Id)));
     }

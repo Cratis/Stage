@@ -25,6 +25,7 @@ public class when_the_failure_marker_path_already_exists : Specification
     void Destroy() => _target.Delete(recursive: true);
 
     [Fact] void should_not_claim_to_have_created_the_marker() => _written.ShouldBeFalse();
-    [Fact] void should_not_overwrite_the_existing_file() =>
+    [Fact]
+    void should_not_overwrite_the_existing_file() =>
         File.ReadAllText(Path.Combine(_target.FullName, RenderFailureMarker.RelativePath)).ShouldEqual(ExistingContent);
 }

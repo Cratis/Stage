@@ -38,5 +38,5 @@ public class when_rendering_composite_read_model_keys : Specification
             diagnostic.Artifact == artifact && diagnostic.Message.Contains($"'{name}'", StringComparison.Ordinal));
 
     ArtifactRenderPlan Plan(ArtifactRenderScope scope) =>
-        CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan!, scope, new("Payments", "Payments"));
+        CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model, []).Plan, scope, new("Payments", "Payments"));
 }

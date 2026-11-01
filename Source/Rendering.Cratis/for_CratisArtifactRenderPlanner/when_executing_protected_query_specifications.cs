@@ -72,10 +72,10 @@ public class when_executing_protected_query_specifications : a_generated_applica
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("queries"), "queries", "Queries.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         return plan;
     }
@@ -92,7 +92,8 @@ public class when_executing_protected_query_specifications : a_generated_applica
         _results = await Run("query-tests.log", "test", "-c", "Debug", "--no-build");
     }
 
-    [Fact] void should_build_and_pass_allowed_and_denied_query_specifications()
+    [Fact]
+    void should_build_and_pass_allowed_and_denied_query_specifications()
     {
         BuildWarnings(_debug).ShouldEqual(string.Empty);
         BuildWarnings(_release).ShouldEqual(string.Empty);

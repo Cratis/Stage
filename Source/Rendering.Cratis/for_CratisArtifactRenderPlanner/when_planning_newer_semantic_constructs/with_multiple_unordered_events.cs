@@ -16,7 +16,8 @@ public class with_multiple_unordered_events : Specification
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(with_unordered_events.Source));
 
     [Fact] void should_admit_reversed_event_expectations() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_render_a_consuming_multiset_matcher() => System.Text.Encoding.UTF8.GetString(
+    [Fact]
+    void should_render_a_consuming_multiset_matcher() => System.Text.Encoding.UTF8.GetString(
         _plan.Artifacts.Single(_ => _.RelativePath.Contains("/when_issuing", StringComparison.Ordinal)).Bytes.AsSpan())
         .ShouldContain("remaining.RemoveAt(match1)");
 }

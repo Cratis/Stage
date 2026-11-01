@@ -20,7 +20,8 @@ public class and_two_policies_are_required_at_once : an_application_with_policie
     void Because() => _error = Catch.Exception(() => Render(AuthorizeAll("Administrator", "Auditor")));
 
     [Fact] void should_block_the_artifact() => _error.ShouldBeOfExactType<AuthorizationCannotBeRendered>();
-    [Fact] void should_report_that_the_portable_policy_backend_is_required() =>
+    [Fact]
+    void should_report_that_the_portable_policy_backend_is_required() =>
         _error.Message.ShouldEqual(
             "STAGE-AUTH-001: Command 'RegisterInvoice' declares a conjunction, which Arc's role attribute would weaken to a disjunction. " +
             "The artifact was not rendered because faithful authorization requires the future Screenplay-owned portable policy backend.");

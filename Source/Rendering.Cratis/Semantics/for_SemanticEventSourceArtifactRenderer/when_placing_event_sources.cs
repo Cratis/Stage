@@ -31,7 +31,7 @@ public class when_placing_event_sources : Specification
         var model = invoice_model.Compile(when_planning_event_source_routes.Source.Replace("module Banking", declarations, StringComparison.Ordinal).Replace("stream Transactions", "stream Statements\n    streamId Year\n  stream Transactions", StringComparison.Ordinal));
         var options = new CratisPlanOptions("InvoiceModel", "Banking", "Banking") { Domain = "Sales/Retail" };
         _scaffold = CratisRendering.PlanScaffold(options with { Domain = string.Empty });
-        _plan = CratisRendering.PlanFrom(new LoadedSemanticModel(model, SemanticExecutionPlan.Compile(model).Plan!), new([PlanSelectionEntry.Slice("Banking", "Deposits", "Deposit")]), options);
+        _plan = CratisRendering.PlanFrom(new LoadedSemanticModel(model, SemanticExecutionPlan.Compile(model).Plan), new([PlanSelectionEntry.Slice("Banking", "Deposits", "Deposit")]), options);
     }
 
     [Fact] void should_admit_the_source_based_plan() => _plan.Success.ShouldBeTrue();

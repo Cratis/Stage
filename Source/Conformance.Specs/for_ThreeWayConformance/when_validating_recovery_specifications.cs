@@ -17,7 +17,7 @@ public class when_validating_recovery_specifications : a_recovery_plan
     [InlineData(-1)]
     [InlineData(1)]
     public void should_refuse_an_out_of_range_given_position(int index) =>
-        Catch.Exception(() => WithSpecification(_model, _specification with { WhenRedelivered = _specification.WhenRedelivered! with { Given = index } })).ShouldBeOfExactType<InvalidSemanticContract>();
+        Catch.Exception(() => WithSpecification(_model, _specification with { WhenRedelivered = _specification.WhenRedelivered with { Given = index } })).ShouldBeOfExactType<InvalidSemanticContract>();
 
     [Fact] void should_refuse_a_reaction_that_does_not_observe_the_given() => Catch.Exception(() => WithSpecification(_model, _specification with { WhenRedelivered = new(_plan.Reactions.Single(reaction => reaction.Name == "Finisher").Id, 0) })).ShouldBeOfExactType<InvalidSemanticContract>();
     [Fact] void should_refuse_no_events_alongside_event_expectations() => Catch.Exception(() => WithSpecification(_model, _specification with { ThenNoEvents = true })).ShouldBeOfExactType<InvalidSemanticContract>();

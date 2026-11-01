@@ -17,7 +17,7 @@ internal static class named_value_command_cases
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("named-values"), "named-values", "NamedValues.play", source);
         var compilation = new SemanticModelCompiler().Compile("NamedValues", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
 
         // Authored fixtures refuse explicit null. Pin absence through the optional typed ESM contract.
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
@@ -29,7 +29,7 @@ internal static class named_value_command_cases
                     Slices = [.. feature.Slices.Select(slice => slice with
                     {
                         Specifications = [.. slice.Specifications.Select(specification => specification.Name.EndsWith("Absent", StringComparison.Ordinal)
-                            ? specification with { When = specification.When! with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
+                            ? specification with { When = specification.When with { Values = [.. specification.When.Values.Select(value => slice.Commands.Single().Properties.Single(property => property.Id == value.TargetProperty).Name == "value" ? value with { Value = SemanticValue.Null } : value)] } }
                             : specification)]
                     })]
                 })]

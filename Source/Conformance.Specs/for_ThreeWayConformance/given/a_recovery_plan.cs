@@ -76,14 +76,14 @@ public abstract class a_recovery_plan : Specification
                     when redelivered Approved to Claimer
                     then no events
             """);
-        _plan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(_model).Plan;
         _specification = _plan.Specifications.Values.Single(specification => specification.Name == "RedeliveryCascade");
     }
 
     protected void Select(SemanticSpecification specification)
     {
         _model = WithSpecification(_model, specification);
-        _plan = SemanticExecutionPlan.Compile(_model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(_model).Plan;
         _specification = specification;
     }
 
@@ -100,7 +100,7 @@ public abstract class a_recovery_plan : Specification
         _stage.ExecutionKind.ShouldEqual(_reference.Execution.Kind.ToString());
         if (_reference.Execution is SemanticAccepted accepted)
         {
-            Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), _stage.Trace!.Facts.Select(fact => fact.EventContract));
+            Assert.Equal(accepted.Facts.Select(fact => fact.EventContract.ToString()), _stage.Trace.Facts.Select(fact => fact.EventContract));
             Assert.Equal(accepted.Facts.Select(fact => fact.Route), _stage.Trace.Facts.Select(fact => fact.Route));
         }
     }
@@ -127,7 +127,7 @@ public abstract class a_recovery_plan : Specification
         var compilation = new SemanticModelCompiler().Compile("Recovery", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
 
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 }
 #endif

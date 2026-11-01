@@ -30,7 +30,7 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
         {
             var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan());
 
-            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedCommandReadRaces", "ProtectedCommandReadRaces"));
+            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedCommandReadRaces", "ProtectedCommandReadRaces"));
         }
 
         async Task Because()
@@ -46,9 +46,9 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "races.trx")).Descendants(ns + "UnitTestResult").ToArray();
             foreach (var name in protected_read_race_probes.InvocationVectors)
             {
-                var facts = results.Where(result => result.Attribute("testName")!.Value.Contains($".when_{name.Replace('-', '_')}.", StringComparison.Ordinal)).ToArray();
+                var facts = results.Where(result => result.Attribute("testName").Value.Contains($".when_{name.Replace('-', '_')}.", StringComparison.Ordinal)).ToArray();
                 facts.ShouldNotBeEmpty();
-                facts.ShouldEachConformTo(fact => fact.Attribute("outcome")!.Value == "Passed");
+                facts.ShouldEachConformTo(fact => fact.Attribute("outcome").Value == "Passed");
                 Executed++;
             }
         }

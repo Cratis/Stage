@@ -18,7 +18,7 @@ public class when_comparing_with_the_renderers_enumeration_naming : Specificatio
     {
         var destination = new DestinationReference(Kind: DestinationKind.Dialog, Dialog: "EditDialog");
         _served = JsonSerializer.Serialize(destination, StageSceneJson.Options);
-        _planned = System.Text.Json.Nodes.JsonNode.Parse(CanonicalSceneJson.ToNode(destination)!.ToJsonString())!.ToJsonString();
+        _planned = System.Text.Json.Nodes.JsonNode.Parse(CanonicalSceneJson.ToNode(destination).ToJsonString()).ToJsonString();
     }
 
     [Fact] void should_spell_the_pascal_cased_enumerations_as_the_renderer_does() => StageSceneJson.PascalCasedEnumerations.Order(StringComparer.Ordinal).ShouldEqual(SceneEnumerationNaming.PascalCased.Order(StringComparer.Ordinal));

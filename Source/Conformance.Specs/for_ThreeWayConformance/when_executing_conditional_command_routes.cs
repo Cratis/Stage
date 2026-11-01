@@ -26,7 +26,7 @@ public class when_executing_conditional_command_routes : a_generated_application
             await Run("conditional-route-test.log", "test", "Routed.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=conditional-route.trx", "--results-directory", _evidence.FullName);
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             _results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "conditional-route.trx")).Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+                .Select(result => (result.Attribute("testName").Value, result.Attribute("outcome").Value))];
         }
         finally
         {

@@ -15,7 +15,7 @@ public class when_verifying_reaction_filters_in_generated_scenarios : a_generate
     {
         var model = an_observer_filter_model.Create();
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ObserverFilters", "ObserverFilters"));
     }
 
     [Fact]

@@ -101,7 +101,7 @@ public class when_comparing_protected_reads_with_concept_keys(when_comparing_pro
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("ReadsWithConceptKeys", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

@@ -46,7 +46,7 @@ public class when_denying_protected_observable_list_queries(when_denying_protect
         }
 
         static string[] Outcomes(IEnumerable<XElement> results, string name) =>
-            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Select(result => (string)result.Attribute("outcome")!)];
+            [.. results.Where(result => ((string)result.Attribute("testName")).Contains(name, StringComparison.Ordinal)).Select(result => (string)result.Attribute("outcome"))];
 
         static string Source => "policy Clerks\n  require authenticated\n" + a_query_filter_model.Source
             .Replace("query AllInvoices => observable InvoiceSummary[]\n", "query AllInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal)

@@ -25,7 +25,7 @@ public class when_binding_rendered_common_short_names : Specification
     {
         var model = a_generation_model.Model();
         var options = new CratisRenderingOptions("GenerationApp", "GenerationApp");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("GenerationApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("GenerationApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, options);
         _rendered = [.. model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, _context))];
         _qualified = [.. model.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, _context, qualified: true))];
@@ -77,7 +77,7 @@ public class when_binding_rendered_common_short_names : Specification
                   event Recorded
             """);
         var options = new CratisRenderingOptions("GenerationApp", "GenerationApp");
-        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(model).Plan;
         var request = new ArtifactRenderRequest(model, execution, CratisRendering.CreateProfile("GenerationApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var applicationContext = new SemanticApplicationContext(request, options);
         var moduleContext = new SemanticApplicationContext(request with { Scope = new(ArtifactRenderScopeKind.Module, model.Application.Modules[0].Id) }, options);

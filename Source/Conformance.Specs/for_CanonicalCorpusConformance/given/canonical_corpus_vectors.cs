@@ -49,7 +49,7 @@ public static class canonical_corpus_vectors
         vectors.AddRange(EsmGoldenVectors.Versions.Select(version => Golden($"{nameof(EsmGoldenVectors)}.V{version}", EsmGoldenVectors.Get(version))));
         vectors.AddRange(typeof(EsmGoldenVectors).GetProperties(PublicStatic)
             .Where(property => property.PropertyType == typeof(EsmGoldenVector))
-            .Select(property => Golden($"{nameof(EsmGoldenVectors)}.{property.Name}", (EsmGoldenVector)property.GetValue(null)!)));
+            .Select(property => Golden($"{nameof(EsmGoldenVectors)}.{property.Name}", (EsmGoldenVector)property.GetValue(null))));
         return vectors;
     }
 

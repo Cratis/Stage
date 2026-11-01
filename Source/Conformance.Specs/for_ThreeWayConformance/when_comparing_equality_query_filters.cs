@@ -54,7 +54,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 GivenEvents = [],
                 GivenReadModels = [.. specification.GivenEvents.Select(fact => new SemanticSpecificationReadModel(
                     readModel.Id,
-                    fact.EventSource!.Value,
+                    fact.EventSource.Value,
                     [.. fact.Values.Select(value => new SemanticPropertyValue(readModel.Properties.Single(property => property.Name == ReadModelPropertyName(value.TargetProperty)).Id, value.Value))]))]
             }).ToArray();
             var application = model.Application with
@@ -62,7 +62,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [.. seeded] } : value)] }] }]
             };
             var candidate = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
-            var plan = SemanticExecutionPlan.Compile(candidate).Plan!;
+            var plan = SemanticExecutionPlan.Compile(candidate).Plan;
             ReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[0].Id).Passed;
             WrongReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[1].Id).Passed;
             OptionalPropertyReferencePassed = new SemanticSpecificationRunner().Run(plan, seeded[2].Id).Passed;
@@ -73,7 +73,7 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [.. seeded], Projections = [] } : value)] }] }]
             };
             var stageModel = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, stageApplication);
-            var stagePlan = SemanticExecutionPlan.Compile(stageModel).Plan!;
+            var stagePlan = SemanticExecutionPlan.Compile(stageModel).Plan;
             StageResults = [.. (await new SemanticSpecificationExecutor().Run(stagePlan, new([.. seeded.Select(specification => specification.Id)]), new())).Results];
             AddGeneratedSpecification("QueryFilters.cs", a_query_filter_model.OptionalPropertyProbe);
             Warnings = BuildWarnings(await Run("query-filters-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
@@ -88,10 +88,10 @@ public class when_comparing_equality_query_filters(when_comparing_equality_query
 
             string Outcome(string name)
             {
-                var selected = results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).ToArray();
+                var selected = results.Where(result => ((string)result.Attribute("testName")).Contains(name, StringComparison.Ordinal)).ToArray();
                 selected.ShouldNotBeEmpty();
 
-                return selected.All(result => (string)result.Attribute("outcome")! == "Passed") ? "Passed" : "Failed";
+                return selected.All(result => (string)result.Attribute("outcome") == "Passed") ? "Passed" : "Failed";
             }
 
             string ReadModelPropertyName(SemanticId propertyId)

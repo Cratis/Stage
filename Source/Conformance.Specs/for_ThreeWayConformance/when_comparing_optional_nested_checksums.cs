@@ -23,7 +23,7 @@ public class when_comparing_optional_nested_checksums : Specification
     async Task Because()
     {
         var model = nested_checksum_cases.Compile(true);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         _reference = [.. plan.Specifications.Keys.Select(id => new SemanticSpecificationRunner().Run(plan, id))];
         _stage = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
         _rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("NestedChecksums", "NestedChecksums"));

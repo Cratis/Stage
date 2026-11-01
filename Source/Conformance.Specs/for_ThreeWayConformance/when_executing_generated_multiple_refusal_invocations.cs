@@ -67,7 +67,7 @@ public class when_executing_generated_multiple_refusal_invocations(when_executin
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             GeneratedResults = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
                 .Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+                .Select(result => (result.Attribute("testName").Value, result.Attribute("outcome").Value))];
         }
     }
 }

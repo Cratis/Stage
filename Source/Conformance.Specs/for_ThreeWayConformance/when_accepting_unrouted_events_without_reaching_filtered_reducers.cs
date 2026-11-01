@@ -28,7 +28,7 @@ public class when_accepting_unrouted_events_without_reaching_filtered_reducers
         """;
         var source = when_rendering_reducer_observer_filters.Source(filter).Replace("    slice StateView Totals", specification + "\n    slice StateView Totals", StringComparison.Ordinal);
         var loaded = await when_rendering_a_pure_reducer.Load(source);
-        var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(loaded.Model).Plan;
         var rendered = when_rendering_a_pure_reducer.Plan(loaded);
         Assert.True(rendered.Success, string.Join(Environment.NewLine, rendered.Diagnostics));
         Assert.Empty(SemanticRunAdmission.ModelFeatures(loaded.Model));

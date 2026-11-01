@@ -93,7 +93,7 @@ public class when_comparing_uuid_read_path_equality(when_comparing_uuid_read_pat
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
             var compilation = new SemanticModelCompiler().Compile("UuidReadPaths", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return compilation.Value!.Model;
+            return compilation.Value.Model;
         }
     }
 }

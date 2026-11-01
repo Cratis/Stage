@@ -88,7 +88,7 @@ public class when_executing_a_generated_refusal_without_decision_reads(when_exec
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             GeneratedResults = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
                 .Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+                .Select(result => (result.Attribute("testName").Value, result.Attribute("outcome").Value))];
         }
     }
 }

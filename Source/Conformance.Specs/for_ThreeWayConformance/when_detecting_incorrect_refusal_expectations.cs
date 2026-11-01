@@ -35,8 +35,8 @@ public class when_detecting_incorrect_refusal_expectations(when_detecting_incorr
             await Verify();
             XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             FailedAssertions = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
-                .Descendants(ns + "UnitTestResult").Where(result => result.Attribute("outcome")!.Value == "Failed")
-                .Select(result => result.Attribute("testName")!.Value.Split('.')[^1])];
+                .Descendants(ns + "UnitTestResult").Where(result => result.Attribute("outcome").Value == "Failed")
+                .Select(result => result.Attribute("testName").Value.Split('.')[^1])];
         }
     }
 }

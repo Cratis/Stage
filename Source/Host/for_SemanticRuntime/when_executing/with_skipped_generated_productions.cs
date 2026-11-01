@@ -23,7 +23,7 @@ public class with_skipped_generated_productions : Specification
 
     void Establish()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedValuesCorpus.V15.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedValuesCorpus.V15.EsmBytes.AsSpan())).Plan;
         _appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)_appender).Tail().Returns(ulong.MaxValue);
         _admission = new(plan);
@@ -40,7 +40,7 @@ public class with_skipped_generated_productions : Specification
     void Destroy() => ((IDisposable)_runtime).Dispose();
 
     [Fact] void should_admit_all_canonical_specifications() => _admission.Entries.Where(entry => entry.Kind == "specification").Select(entry => entry.Status).Distinct().ShouldContainOnly("supported");
-    [Fact] void should_return_the_generated_receipt() => ((SemanticTextValue)((SemanticScalarExecutionResponse)_result.Response!).Value).Value.Length.ShouldEqual(21);
+    [Fact] void should_return_the_generated_receipt() => ((SemanticTextValue)((SemanticScalarExecutionResponse)_result.Response).Value).Value.Length.ShouldEqual(21);
     [Fact] void should_produce_no_facts() => _result.Facts.ShouldBeEmpty();
     [Fact] void should_not_append() => _appender.DidNotReceiveWithAnyArgs().Append(default!, default!);
 }

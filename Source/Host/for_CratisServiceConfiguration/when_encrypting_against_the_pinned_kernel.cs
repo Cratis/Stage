@@ -226,7 +226,7 @@ public class when_encrypting_against_the_pinned_kernel
     static void AssertCiphertext(JsonElement actual, JsonElement expected)
     {
         Assert.Equal(JsonValueKind.String, actual.ValueKind);
-        Assert.NotEmpty(actual.GetString()!);
+        Assert.NotEmpty(actual.GetString());
         Assert.NotEqual(expected.ToString(), actual.GetString());
     }
 
@@ -244,7 +244,7 @@ public class when_encrypting_against_the_pinned_kernel
     {
         var start = new ProcessStartInfo("docker") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        using var process = Process.Start(start)!;
+        using var process = Process.Start(start);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         try
         {

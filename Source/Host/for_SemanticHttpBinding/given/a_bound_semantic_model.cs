@@ -26,14 +26,14 @@ public class a_bound_semantic_model : a_routed_model
         {
             throw new Exception(string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
         }
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         _facts = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)_facts).Tail().Returns(ulong.MaxValue);
         if (!plan.Success)
         {
             throw new Exception(string.Join("; ", plan.Issues.Select(issue => issue.Details)));
         }
-        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan!, _facts);
+        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan, _facts);
     }
 
     const string Source = """

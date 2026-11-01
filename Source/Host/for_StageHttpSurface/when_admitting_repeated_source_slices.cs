@@ -28,6 +28,6 @@ public class when_admitting_repeated_source_slices : Specification
     void Because() => _failure = Catch.Exception(() => StageHttpSurface.Create(_model));
 
     [Fact] void should_reject_the_shared_generated_type_before_mapping() => _failure.ShouldBeOfExactType<AmbiguousStageHttpSurface>();
-    [Fact] void should_name_the_authored_slice() => _failure!.Message.ShouldContain("ServiceApartmentUnitTakenOutOf");
-    [Fact] void should_name_the_conflicting_route() => ((AmbiguousStageHttpSurface)_failure!).Path.ShouldEqual("/api/apartment-complexes/maintenance/service-apartment-unit-taken-out-of/service-apartment-unit-taken-out-of");
+    [Fact] void should_name_the_authored_slice() => _failure.Message.ShouldContain("ServiceApartmentUnitTakenOutOf");
+    [Fact] void should_name_the_conflicting_route() => ((AmbiguousStageHttpSurface)_failure).Path.ShouldEqual("/api/apartment-complexes/maintenance/service-apartment-unit-taken-out-of/service-apartment-unit-taken-out-of");
 }

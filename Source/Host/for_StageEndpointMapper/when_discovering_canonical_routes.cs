@@ -42,7 +42,7 @@ public class when_discovering_canonical_routes : given.a_routed_model
 
     bool IsCanonical(string method, string path) => Endpoints().Any(endpoint =>
         endpoint.RoutePattern.RawText == path &&
-        endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods.Contains(method) &&
+        endpoint.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Contains(method) &&
         !Name(endpoint).EndsWith(".StageLegacy", StringComparison.Ordinal));
 
     bool AliasCopiesMetadata(RouteEndpoint alias)
@@ -52,7 +52,7 @@ public class when_discovering_canonical_routes : given.a_routed_model
         return alias.Metadata.GetMetadata<IAcceptsMetadata>()?.RequestType == canonical.Metadata.GetMetadata<IAcceptsMetadata>()?.RequestType &&
             alias.Metadata.GetMetadata<IProducesResponseTypeMetadata>()?.Type == canonical.Metadata.GetMetadata<IProducesResponseTypeMetadata>()?.Type &&
             (alias.Metadata.GetMetadata<IAllowAnonymous>() is not null) == (canonical.Metadata.GetMetadata<IAllowAnonymous>() is not null) &&
-            alias.Metadata.GetMetadata<ITagsMetadata>()!.Tags.SequenceEqual(canonical.Metadata.GetMetadata<ITagsMetadata>()!.Tags);
+            alias.Metadata.GetMetadata<ITagsMetadata>().Tags.SequenceEqual(canonical.Metadata.GetMetadata<ITagsMetadata>().Tags);
     }
 
     [Fact] void should_share_the_effective_options_instance_with_introspection() => ReferenceEquals(_app.Services.GetRequiredService<IOptions<ApiEndpointOptions>>().Value, _app.Services.GetRequiredService<IOptions<ArcOptions>>().Value.GeneratedApis).ShouldBeTrue();
@@ -66,5 +66,5 @@ public class when_discovering_canonical_routes : given.a_routed_model
     [Fact] void should_have_compatibility_aliases_to_inspect() => _aliases.ShouldNotBeEmpty();
     [Fact] void should_exclude_every_alias_from_api_description() => _aliases.All(endpoint => endpoint.Metadata.GetMetadata<IExcludeFromDescriptionMetadata>()?.ExcludeFromDescription == true).ShouldBeTrue();
     [Fact] void should_copy_alias_body_response_authorization_and_tag_metadata() => _aliases.All(AliasCopiesMetadata).ShouldBeTrue();
-    [Fact] void should_preserve_arcs_hidden_query_transport_metadata() => Endpoints().Where(endpoint => endpoint.Metadata.GetMetadata<IHttpMethodMetadata>()!.HttpMethods.Contains("QUERY")).All(endpoint => endpoint.Metadata.GetMetadata<IExcludeFromDescriptionMetadata>()?.ExcludeFromDescription == true).ShouldBeTrue();
+    [Fact] void should_preserve_arcs_hidden_query_transport_metadata() => Endpoints().Where(endpoint => endpoint.Metadata.GetMetadata<IHttpMethodMetadata>().HttpMethods.Contains("QUERY")).All(endpoint => endpoint.Metadata.GetMetadata<IExcludeFromDescriptionMetadata>()?.ExcludeFromDescription == true).ShouldBeTrue();
 }

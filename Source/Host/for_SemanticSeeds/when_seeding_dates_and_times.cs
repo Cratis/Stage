@@ -60,7 +60,7 @@ public class when_seeding_dates_and_times : Specification
                   unitCost   = 12.5
             """);
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-        _seeds = SemanticSeeds.Admit(SemanticSeeds.Create(result.Value!.Seeds, plan), plan);
+        _seeds = SemanticSeeds.Admit(SemanticSeeds.Create(result.Value.Seeds, plan), plan);
     }
 
     [Fact] void should_not_report_anything() => _seeds.Diagnostics.ShouldBeEmpty();

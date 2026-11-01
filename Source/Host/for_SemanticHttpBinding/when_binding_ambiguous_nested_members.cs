@@ -27,7 +27,7 @@ public class when_binding_ambiguous_nested_members : Specification
                     details Details
                     returns details
             """);
-        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""{"details":{"child":{"label":"one","Label":"two"}}}""")!;
+        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>("""{"details":{"child":{"label":"one","Label":"two"}}}""");
         _error = Catch.Exception(() => SemanticJsonValues.Bind(plan.Commands.Values.Single().Properties, payload, plan.Model));
     }
 

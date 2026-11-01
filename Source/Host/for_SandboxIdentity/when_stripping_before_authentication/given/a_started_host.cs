@@ -35,7 +35,7 @@ public class a_started_host : Specification
         });
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 

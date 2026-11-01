@@ -12,7 +12,7 @@ public class the_docker_defaults : Specification
 
     void Because()
     {
-        var configuration = new ConfigurationBuilder().SetBasePath(Path.GetDirectoryName(typeof(SandboxIdentityOptions).Assembly.Location)!)
+        var configuration = new ConfigurationBuilder().SetBasePath(Path.GetDirectoryName(typeof(SandboxIdentityOptions).Assembly.Location))
             .AddJsonFile("appsettings.Docker.json").Build();
         var services = new ServiceCollection();
         SandboxIdentityOptions.Configure(services, configuration);

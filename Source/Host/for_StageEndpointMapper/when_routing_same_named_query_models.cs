@@ -34,7 +34,7 @@ public class when_routing_same_named_query_models : given.a_routed_model
                     var root = document.RootElement;
                     Assert.True(root.TryGetProperty("data", out var data), $"Successful query omitted data: {response.Body}");
                     var instance = data.ValueKind == JsonValueKind.Array ? data.EnumerateArray().Single() : data;
-                    var expectedOwner = (slice == "current-orders" ? current : archived).ReadModel!.Id.ToString();
+                    var expectedOwner = (slice == "current-orders" ? current : archived).ReadModel.Id.ToString();
                     _correctlyScoped.Add(root.GetProperty("isAuthorized").GetBoolean() && instance.GetProperty("owner").GetString() == expectedOwner);
                 }
             }

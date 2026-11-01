@@ -17,5 +17,5 @@ public class when_no_persona_exists : given.an_api_pipeline
 
     Task Because() => Execute();
 
-    [Fact] void should_discard_the_incoming_identity() => _context.User.Identity!.IsAuthenticated.ShouldBeFalse();
+    [Fact] void should_discard_the_incoming_identity() => _context.User.Identity.IsAuthenticated.ShouldBeFalse();
 }

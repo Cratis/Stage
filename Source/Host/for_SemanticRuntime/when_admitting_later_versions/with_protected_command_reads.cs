@@ -16,10 +16,10 @@ public class with_protected_command_reads : Specification
     void Because()
     {
         var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan());
-        _admission = new(SemanticExecutionPlan.Compile(model, []).Plan!);
+        _admission = new(SemanticExecutionPlan.Compile(model, []).Plan);
     }
 
     [Fact] void should_admit_the_application_boundary() => _admission.Blocking.ShouldBeEmpty();
     [Fact] void should_admit_every_protected_read_command() => _admission.Entries.ShouldNotContain(entry => entry.Kind == "command" && entry.Status != "supported");
-    [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
+    [Fact] void should_admit_the_version() => _admission.Blocking.ShouldNotContain(entry => entry.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
 }

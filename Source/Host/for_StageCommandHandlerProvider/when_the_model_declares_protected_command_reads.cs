@@ -23,7 +23,7 @@ public class when_the_model_declares_protected_command_reads : Specification
     }
 
     [Fact] void should_refuse_the_protected_model() => _protected.ShouldBeOfExactType<InvalidEventModel>();
-    [Fact] void should_name_the_refusal_code() => _protected!.Message.ShouldContain("STAGE-ESM-044:");
+    [Fact] void should_name_the_refusal_code() => _protected.Message.ShouldContain("STAGE-ESM-044:");
     [Fact] void should_serve_an_unprotected_model() => _unprotected.ShouldBeNull();
 
     static StageCommandHandlerProvider Create(EventModel model) => new(

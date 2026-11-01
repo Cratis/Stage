@@ -20,7 +20,7 @@ public class with_invalid_concept_arguments : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(QueryValidationCorpus.V18.EsmBytes.AsSpan())).Plan;
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
         _runtime = SemanticRuntimeHosting.Create(_plan, appender);

@@ -54,7 +54,7 @@ public class a_persisted_reaction_world : a_routed_runtime
     {
         var accepted = (SemanticAccepted)await Execute();
         _live = accepted.World;
-        _history = [.. _append!.Events.Select((@event, index) => new AppendedEventResponse
+        _history = [.. _append.Events.Select((@event, index) => new AppendedEventResponse
         {
             Context = new()
             {

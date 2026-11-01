@@ -48,7 +48,7 @@ public class with_generated_values_and_a_response : Specification
 
     void Destroy() => ((IDisposable)_runtime).Dispose();
 
-    [Fact] void should_generate_a_nonempty_uuid() => Guid.Parse(((SemanticTextValue)((SemanticScalarExecutionResponse)_result.Response!).Value).Value).ShouldNotEqual(Guid.Empty);
-    [Fact] void should_append_on_the_returned_identifier() => _result.Facts.Single().Destination.ShouldEqual(((SemanticScalarExecutionResponse)_result.Response!).Value);
-    [Fact] void should_map_the_generated_value_into_the_event() => _result.Facts.Single().Values.Select(value => value.Value).ShouldContain(((SemanticScalarExecutionResponse)_result.Response!).Value);
+    [Fact] void should_generate_a_nonempty_uuid() => Guid.Parse(((SemanticTextValue)((SemanticScalarExecutionResponse)_result.Response).Value).Value).ShouldNotEqual(Guid.Empty);
+    [Fact] void should_append_on_the_returned_identifier() => _result.Facts.Single().Destination.ShouldEqual(((SemanticScalarExecutionResponse)_result.Response).Value);
+    [Fact] void should_map_the_generated_value_into_the_event() => _result.Facts.Single().Values.Select(value => value.Value).ShouldContain(((SemanticScalarExecutionResponse)_result.Response).Value);
 }

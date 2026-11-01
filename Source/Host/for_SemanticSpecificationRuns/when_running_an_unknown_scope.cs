@@ -16,6 +16,6 @@ public class when_running_an_unknown_scope : a_specification_endpoint
 
     [Fact] void should_return_ok() => _status.ShouldEqual(StatusCodes.Status200OK);
     [Fact] void should_return_unsupported() => Report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_identify_the_specification_capability() => Report.Results.Single().Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Specification);
-    [Fact] void should_preserve_the_unknown_scope() => Report.Results.Single().Unsupported!.Construct.ShouldEqual(Scope);
+    [Fact] void should_identify_the_specification_capability() => Report.Results.Single().Unsupported.Capability.ShouldEqual(StageExecutionCapability.Specification);
+    [Fact] void should_preserve_the_unknown_scope() => Report.Results.Single().Unsupported.Construct.ShouldEqual(Scope);
 }

@@ -18,7 +18,7 @@ public class when_policies_include_an_audit_subject : given.a_persona_model
           policy IsShopper
         """);
 
-    void Because() => _identity = new StageIdentity(new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = _principal! } }).Current();
+    void Because() => _identity = new StageIdentity(new HttpContextAccessor { HttpContext = new DefaultHttpContext { User = _principal } }).Current();
 
     [Fact] void should_keep_the_stable_audit_subject() => _identity["subject"].ShouldEqual("persona:Shopper");
 }

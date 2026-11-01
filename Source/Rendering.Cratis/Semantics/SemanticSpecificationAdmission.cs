@@ -32,9 +32,8 @@ internal static partial class SemanticSpecificationAdmission
     {
         foreach (var specification in SemanticOpaqueBodyDependencies.WithoutUncontrolledClockSpecifications(SemanticCommandBodyAdmission.WithoutBodySpecifications(WithoutReactionCascades(context, slice, diagnostics), context, diagnostics), context, diagnostics))
         {
-            if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
+            if (TryRefuseUnboundEventMetadata(context, specification, diagnostics))
             {
-                diagnostics.Add(RefusalDiagnostic(context, specification, SourcelessGivenReason));
                 continue;
             }
             if (TryValidateProjectedFacts(context, specification, diagnostics))
@@ -68,6 +67,33 @@ internal static partial class SemanticSpecificationAdmission
 
     internal static bool TriggerValuesMatch(SemanticApplicationContext context, SemanticSpecification specification, SemanticCommand command) =>
         CommandValuesMatch(context, specification, command);
+
+    static bool TryRefuseUnboundEventMetadata(SemanticApplicationContext context, SemanticSpecification specification, ICollection<ArtifactRenderDiagnostic> diagnostics)
+    {
+        if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))
+        {
+            diagnostics.Add(RefusalDiagnostic(context, specification, SourcelessGivenReason));
+            return true;
+        }
+        if (AssertsUncontrolledProjectionContext(context, specification))
+        {
+            diagnostics.Add(RefusalDiagnostic(context, specification, "Projected event-context occurrence, correlation and sequence expectations require explicitly bound event metadata."));
+            return true;
+        }
+
+        return false;
+    }
+
+    static bool AssertsUncontrolledProjectionContext(SemanticApplicationContext context, SemanticSpecification specification) =>
+        specification.ThenReadModels.Concat(specification.ThenQueries.SelectMany(expected => expected.Results)).Any(expected =>
+            context.Projections.Values.Any(projection => projection.ReadModel == expected.ReadModel && projection.Scope is { } scope &&
+                UncontrolledMappings(scope).Any(mapping => expected.Values.Any(value => mapping.Target.Contains(value.TargetProperty)))));
+
+    static IEnumerable<SemanticProjectionMapping> UncontrolledMappings(SemanticProjectionScope scope) =>
+        scope.From.SelectMany(from => from.Mappings).Concat(scope.Every?.Mappings ?? [])
+            .Concat(scope.Joins.SelectMany(join => join.Mappings))
+            .Where(mapping => mapping.Source is SemanticProjectionEventContextValue value &&
+                (value.Path == "occurred" || value.Path == "correlationId" || value.Path == "sequenceNumber"));
 
     static bool TryValidateProjectedFacts(
         SemanticApplicationContext context,

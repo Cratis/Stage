@@ -231,6 +231,7 @@ internal static class SemanticScopedProjectionRenderer
 
             var expression = mapping.Operation switch
             {
+                SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionEventContextValue value => $"Set(model => model.{target}).ToEventContextProperty(c => c.{SemanticScopedProjectionSupport.EventContextProperty(value)})",
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionEventSourceIdentity => $"Set(model => model.{target}).ToEventSourceId()",
                 SemanticProjectionOperation.Set when mapping.Source is SemanticProjectionLiteral literal => $"Set(model => model.{target}).ToValue({Literal(literal, mapping.Target, targets, context)})",
                 SemanticProjectionOperation.Set => $"Set(model => model.{target}).To({source})",
@@ -311,7 +312,12 @@ internal static class SemanticScopedProjectionRenderer
             foreach (var mapping in mappings)
             {
                 var target = Path(mapping.Target, properties, context);
-                var value = mapping.Source is SemanticProjectionLiteral literal ? NativeToValue(literal, mapping.Target, properties, context) : "ToEventSourceId()";
+                var value = mapping.Source switch
+                {
+                    SemanticProjectionLiteral literal => NativeToValue(literal, mapping.Target, properties, context),
+                    SemanticProjectionEventContextValue contextValue => $"ToEventContextProperty(c => c.{SemanticScopedProjectionSupport.EventContextProperty(contextValue)})",
+                    _ => "ToEventSourceId()"
+                };
                 code.Line($"every.Set(model => model.{target}).{value};");
             }
 

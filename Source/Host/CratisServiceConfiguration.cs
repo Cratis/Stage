@@ -8,6 +8,7 @@ using Cratis.Chronicle.Connections;
 using Cratis.Json;
 using Cratis.OpenTelemetry;
 using Cratis.Serialization;
+using Cratis.Stage.Host.Published;
 
 namespace Cratis.Stage.Host;
 
@@ -26,8 +27,14 @@ public static class CratisServiceConfiguration
     public static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier) =>
         builder.AddStageCratis(eventStore, programIdentifier, StageHttpRouteOptions.FromConfiguration(builder.Configuration));
 
-    internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions)
+    internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions, PublishedOptions? published = null)
     {
+        if (published is not null)
+        {
+            // The sign-in proxy in front of the host sets the principal headers; Arc reads them only when told to trust them.
+            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["Cratis:Arc:TrustForwardedIdentityHeaders"] = "true" });
+        }
+
         builder.AddCratis(
             options =>
             {
@@ -62,8 +69,7 @@ public static class CratisServiceConfiguration
                 //
                 // Applied to whatever address is already configured rather than restating it, so pointing a Stage
                 // at a different kernel through cratis-stage.json keeps working.
-                options.ConnectionString = new ChronicleConnectionStringBuilder(options.ConnectionString.ToString())
-                    .WithoutAuthentication()
+                options.ConnectionString = ConnectionFor(new ChronicleConnectionStringBuilder(options.ConnectionString.ToString()), published)
                     .ToConnectionString();
 
                 // Give the Chronicle client's initial handshake more headroom than the 5 second default — the
@@ -76,11 +82,34 @@ public static class CratisServiceConfiguration
             },
             configureChronicleBuilder: chronicleBuilder => chronicleBuilder.WithCamelCaseNamingPolicy());
 
-        SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+        if (published is null)
+        {
+            SandboxIdentityOptions.Configure(builder.Services, builder.Configuration);
+        }
+        else
+        {
+            // Personas are a play-session device. A published application only ever sees the real principal.
+            builder.Services.AddSingleton(new SandboxIdentityOptions(false));
+        }
+
         StageHttpRouteOptions.AlignIntrospection(builder.Services);
 
         builder.AddCratisOpenTelemetry();
 
         return builder;
+    }
+
+    static ChronicleConnectionStringBuilder ConnectionFor(ChronicleConnectionStringBuilder connection, PublishedOptions? published)
+    {
+        if (published is null)
+        {
+            return connection.WithoutAuthentication();
+        }
+
+        // A published kernel runs with authentication on. Without configured credentials the client presents the kernel's
+        // built-in client, which is only acceptable because the kernel is reachable from this pod alone.
+        return published.HasChronicleCredentials
+            ? connection.WithCredentials(published.ChronicleClientId!, published.ChronicleClientSecret!)
+            : connection.WithDevelopmentCredentials();
     }
 }

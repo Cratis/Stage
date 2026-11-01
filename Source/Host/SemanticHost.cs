@@ -10,6 +10,7 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Host.Published;
 using Cratis.Stage.Host.Workbench;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
@@ -20,7 +21,7 @@ namespace Cratis.Stage.Host;
 
 internal static class SemanticHost
 {
-    internal static async Task Run(string[] args, string modelPath)
+    internal static async Task Run(string[] args, string modelPath, PublishedPackage? package = null, PublishedOptions? published = null)
     {
         var issues = new List<StageUnsupportedIssue>();
         var notes = new List<SemanticModelLoadDiagnostic>();
@@ -40,20 +41,30 @@ internal static class SemanticHost
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
         var admission = CreateAdmission(loaded, bodies, issues);
         var surface = loaded is not null && issues.Count == 0 ? StageHttpSurface.Create(loaded.Model, routeOptions) : null;
-        builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions);
+        builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions, published);
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {
             SemanticRuntimeHosting.Add(builder.Services, loaded!.Plan, WorldProvider(() => world), bodies);
             builder.Services.AddSingleton(bodySettings);
             builder.Services.AddSingleton<ISemanticFactReader, SemanticFactReader>();
-            builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
-            builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
-            builder.Services.AddWorkbenchProxy();
-            builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+            if (published is null)
+            {
+                builder.Services.AddSingleton<ISpecificationRunProcess, SpecificationRunProcess>();
+                builder.Services.AddSingleton(SemanticSpecificationProcessOptions.FromConfiguration(builder.Configuration));
+                builder.Services.AddWorkbenchProxy();
+                builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+            }
+        }
+
+        var extensions = SelectExtensions(published, package);
+        var hostContext = published is null ? null : new PublishedHostContext(builder, published, package!.Manifest, eventStore);
+        foreach (var extension in extensions)
+        {
+            extension.ConfigureServices(hostContext!);
         }
 
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -61,18 +72,32 @@ internal static class SemanticHost
             options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedPrefix;
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
+            foreach (var network in published?.Networks() ?? [])
+            {
+                options.KnownIPNetworks.Add(new System.Net.IPNetwork(network.Prefix, network.Length));
+            }
         });
         var app = builder.Build();
+        if (published is not null)
+        {
+            // Before anything can serve or authenticate: tooling paths answer 404, and only the sign-in proxy's principal counts.
+            app.UseToolingRefusal();
+            app.UseTrustedProxyPrincipalGuard(published.Networks());
+        }
+
         app.UseSandboxIdentityHeaders();
         app.UseForwardedHeaders();
         app.UseDefaultFiles();
         app.UseStaticFiles(StageStaticFileOptions.Create());
         app.UseRouting();
         app.UseCratisChronicle();
-        StagePackageEndpoints.Map(app);
-        app.MapPost("/stage/load", () => Results.Conflict());
-        app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
-        MapReadModelBrowserPage(app);
+        if (published is null)
+        {
+            StagePackageEndpoints.Map(app);
+            app.MapPost("/stage/load", () => Results.Conflict());
+            app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+            MapReadModelBrowserPage(app);
+        }
         foreach (var entry in admission?.Entries.Where(entry => entry.Status == "renderedAround") ?? [])
         {
             StageLog.RenderedAround(app.Logger, entry.Kind, entry.Artifact, entry.Details!);
@@ -80,6 +105,11 @@ internal static class SemanticHost
         if (scene is not null && loaded is not null)
         {
             MapSceneEndpoints(app, scene, modelPath, loaded.Model);
+        }
+
+        if (surface is null && published is not null)
+        {
+            throw new PublishedModeRefused([.. issues.Select(issue => $"{issue.Capability} {issue.Artifact}: {issue.Details}").DefaultIfEmpty("The model could not be loaded.")]);
         }
 
         if (surface is null)
@@ -91,20 +121,45 @@ internal static class SemanticHost
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
-        SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
-        SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
+        if (published is null)
+        {
+            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
+        }
+        else
+        {
+            ModelReferencesEndpoint.Map(app, package!.Manifest);
+        }
+
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
         app.MapControllers();
         StageEndpointMapper.Map(app, surface);
-        app.UseSandboxIdentity(modelPath, loaded.Model, surface);
+        if (published is null)
+        {
+            app.UseSandboxIdentity(modelPath, loaded.Model, surface);
+        }
+
         app.UseCratisArc();
-        app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
-        app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
+        if (published is null)
+        {
+            app.MapOpenApi();
+            app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
+            app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
+        }
+
+        foreach (var extension in extensions)
+        {
+            extension.MapEndpoints(app, hostContext!);
+        }
 
         app.MapFallbackToFile("index.html");
+        if (published is not null)
+        {
+            PublishedSurface.EnsureNoTooling(app);
+        }
+
         await app.StartAsync();
         try
         {
@@ -253,6 +308,10 @@ internal static class SemanticHost
 
         return Results.Json(new CommandResult { ExceptionMessages = issues.Select(entry => $"Unsupported({entry.Capability}) {entry.Artifact}: {entry.Details}") }, statusCode: StatusCodes.Status501NotImplemented);
     }
+
+    static IReadOnlyList<IPublishedHostExtension> SelectExtensions(PublishedOptions? published, PublishedPackage? package) => published is null
+        ? []
+        : PublishedHostExtensions.Select(PublishedHostExtensions.Registered, PublishedHostExtensions.NotesEnabled(published, package!.Manifest));
 
     static SemanticRuntimeAdmission? CreateAdmission(LoadedSemanticModel? loaded, SemanticBodyExecution? bodies, List<StageUnsupportedIssue> issues)
     {

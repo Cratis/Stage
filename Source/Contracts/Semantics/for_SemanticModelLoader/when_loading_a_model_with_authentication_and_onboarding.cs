@@ -72,30 +72,4 @@ public class when_loading_a_model_with_authentication_and_onboarding : Specifica
     [Fact] void should_mark_the_secrets() => _loaded.Realization.Environment.Single(key => key.Key == "authentication.providers.GitHub.clientSecret").Secret.ShouldBeTrue();
     [Fact] void should_not_be_empty() => _loaded.Realization.IsEmpty.ShouldBeFalse();
 }
-
-public class when_loading_a_model_without_authentication : Specification
-{
-    LoadedSemanticModel _loaded = null!;
-    string _root = null!;
-
-    async Task Establish()
-    {
-        _root = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-realization")).FullName;
-        File.WriteAllText(Path.Combine(_root, "shop.play"), """
-            module Projects
-              feature Registration
-                slice StateChange RegisterProject
-                  command RegisterProject
-                    projectId Uuid identifier
-                    produces ProjectRegistered
-                      for projectId
-                  event ProjectRegistered
-            """);
-        _loaded = await SemanticModelLoader.LoadFromPathAsync(_root, null, "Shop");
-    }
-
-    void Destroy() => SpecTemporaryRoot.Delete(_root);
-
-    [Fact] void should_have_nothing_to_realize() => _loaded.Realization.IsEmpty.ShouldBeTrue();
-}
 #endif

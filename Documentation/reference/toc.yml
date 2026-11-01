@@ -2,6 +2,8 @@
   href: projects.md
 - name: URLs of a running Stage
   href: urls.md
+- name: Published applications and export
+  href: published-applications.md
 - name: Scene UI render plans
   href: render-plans.md
 - name: Concept compliance rendering

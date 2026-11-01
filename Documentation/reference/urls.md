@@ -17,6 +17,23 @@ That engine is deprecated, logs one warning at startup, and will be removed in S
 
 Nothing needs to be discovered by hand — start at the Scalar reference and click.
 
+> **Two modes.** Everything on this page describes the **sandbox** (the default). A host started in
+> [published mode](published-applications.md) serves only the frontend, the model's `/api` operations, Arc's
+> `/.cratis/*` operations and a handful of `/stage/*` documents; every route in the table below answers `404`
+> there, and the tooling routes are not mapped at all.
+
+| Route                                                         | Sandbox | Published                                         |
+| ------------------------------------------------------------- | ------- | ------------------------------------------------- |
+| Frontend and `/api/...` model operations                      | yes     | yes                                               |
+| `/.cratis/*` Arc operations                                   | yes     | yes                                               |
+| `/stage/status`, `/stage/scene`, `/stage/routes`, `/stage/locales`, `/stage/strings/{locale}` | yes | yes                       |
+| `/stage/model-references`                                     | no      | yes                                               |
+| `/scalar`, `/openapi`                                         | yes     | not mapped                                        |
+| `/workbench`                                                  | yes     | not mapped                                        |
+| `/read-models`, `/stage/read-models`                          | yes     | not mapped                                        |
+| `/stage/load`, `/stage/semantic/*` (admission, specification runs) | yes | not mapped                                      |
+| `/stage/packages`                                             | yes     | not mapped                                        |
+
 ## Start here
 
 | URL                                     | What it is                                                                                                                                                |

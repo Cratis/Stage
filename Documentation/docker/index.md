@@ -11,6 +11,8 @@ deliberate — a play session is meant to be started, poked at, and thrown away.
 docker run --rm -p 9090:9090 -p 35000:35000 -v "$PWD":/eventmodel:ro cratis/stage:latest
 ```
 
+> **Published applications.** The sandbox below is for playing with a model. To run an application for real users, export a versioned package and start the image in published mode: persistent storage, sign-in by a trusted proxy, and none of the tooling surfaces. See [Published applications and export](../reference/published-applications.md).
+
 ## What is inside
 
 The image is built **on top of the Chronicle kernel image** (`cratis/chronicle`), so the event store and the

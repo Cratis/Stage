@@ -90,28 +90,32 @@ internal static partial class SemanticCratisAdmission
 
     static void ValidateCommandProductions(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
     {
-        foreach (var produced in command.Produces.Where(produced => HasUnallocatedDestination(command, produced)))
+        foreach (var produced in command.Produces.Where(produced => HasUnallocatedDestination(context, command, produced)))
         {
             var eventName = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Name : produced.EventContract.ToString();
             diagnostics.Add(Error(UnallocatedDestination, $"Produced event '{eventName}' of command '{command.Name}' has no destination: the model names no event source, and Stage does not yet render event-source identity allocation (Stage#629).", command.Id));
         }
 
-        if (command.Produces.Any(produced => !HasUnallocatedDestination(command, produced) && !HasRenderableProductionShape(produced, command, context)))
+        if (command.Produces.Any(produced => !HasUnallocatedDestination(context, command, produced) && !HasRenderableProductionShape(produced, command, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
 
-    static bool HasUnallocatedDestination(SemanticCommand command, SemanticProducedEvent produced) =>
-        command.Handler is null && SemanticDestinations.Of(command, produced) is null;
+    static bool HasUnallocatedDestination(SemanticApplicationContext context, SemanticCommand command, SemanticProducedEvent produced) =>
+        !HandlerOwnsProduction(context, command) && SemanticDestinations.Of(command, produced) is null;
 
-    // A described handler supplies payload and destination; STAGE-IMPL-002 refuses the command until #316 renders handlers. Revisit these checks then.
+    // Only a handler refused with STAGE-IMPL-002 (pending, or resolved in a language other than C#) owns the production; that refusal replaces these checks.
+    // A resolved C# handler returns payloads only, so its destination and mappings are validated like any other production.
+    static bool HandlerOwnsProduction(SemanticApplicationContext context, SemanticCommand command) =>
+        SemanticCommandHandlerAdmission.Classify(command, context.Request).Kind is SemanticCommandHandlerAdmission.HandlerKind.Pending or SemanticCommandHandlerAdmission.HandlerKind.Foreign;
+
     static bool HasRenderableProductionShape(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
         context.Events.TryGetValue(produced.EventContract, out var @event) && produced.Condition is null &&
         HasRenderableProductionCondition(produced, command, context) &&
         @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() == @event.Tags.Length + produced.Tags.Length &&
         @event.Properties.All(property => TypeExists(context, property.Type, @event.Id) && !property.Type.IsOptional) &&
-        (command.Handler is not null || HasRenderableDestinationAndMappings(produced, command, @event));
+        (HandlerOwnsProduction(context, command) || HasRenderableDestinationAndMappings(produced, command, @event));
 
     static bool HasRenderableDestinationAndMappings(SemanticProducedEvent produced, SemanticCommand command, SemanticEventContract @event) =>
         IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) &&

@@ -27,7 +27,7 @@ public class when_refusing_operation_constructs : Specification
     {
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var application = parsed.Value!;
+        var application = parsed.Value;
         AssertRefusal(Catch.Exception(() => new OperationSyntaxAdmission().VisitApplication(application)), construct);
         AssertRefusal(Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(application)), construct);
     }

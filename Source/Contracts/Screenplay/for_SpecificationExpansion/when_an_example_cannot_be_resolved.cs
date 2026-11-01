@@ -21,11 +21,11 @@ public class when_an_example_cannot_be_resolved : Specification
                 name = "project"
               specification RegisteringAProject
                 when Input
-        """).Value!;
+        """).Value;
 
     void Because() => _error = Catch.Exception(() => SpecificationExpansion.Expand(_application));
 
     [Fact] void should_fail_with_a_typed_diagnostic() => _error.ShouldBeOfExactType<InvalidEventModel>();
-    [Fact] void should_preserve_the_compiler_diagnostic_code() => _error!.Message.ShouldContain("PLAY0520");
-    [Fact] void should_name_the_unresolved_declaration() => _error!.Message.ShouldContain("MissingCommand");
+    [Fact] void should_preserve_the_compiler_diagnostic_code() => _error.Message.ShouldContain("PLAY0520");
+    [Fact] void should_name_the_unresolved_declaration() => _error.Message.ShouldContain("MissingCommand");
 }

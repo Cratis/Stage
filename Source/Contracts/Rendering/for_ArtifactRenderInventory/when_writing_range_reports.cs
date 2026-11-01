@@ -49,7 +49,7 @@ public class when_writing_range_reports : given.an_inventory
         using var plain = JsonDocument.Parse(ArtifactRenderReports.Create(_plan, _context).Completeness.Bytes.AsMemory());
         using var ranged = JsonDocument.Parse(ArtifactRenderReports.Create(_withEvidence, _ranged).Completeness.Bytes.AsMemory());
         ranged.RootElement.GetProperty("inventory").GetRawText().ShouldEqual(plain.RootElement.GetProperty("inventory").GetRawText());
-        _withEvidence.Inventory!.Constructs.SelectMany(construct => construct.Degradations).Any(gap => gap.Evidence == _evidence).ShouldBeFalse();
+        _withEvidence.Inventory.Constructs.SelectMany(construct => construct.Degradations).Any(gap => gap.Evidence == _evidence).ShouldBeFalse();
     }
 
     [Fact]

@@ -13,7 +13,7 @@ public class when_matching_the_nonempty_json_golden : given.an_inventory
     void should_pin_every_json_byte_with_unicode_and_two_hop_causes()
     {
         var root = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(root.FullName, "Stage.slnx"))) root = root.Parent!;
+        while (!File.Exists(Path.Combine(root.FullName, "Stage.slnx"))) root = root.Parent;
         var path = Path.Combine(root.FullName, "Source", "Contracts", "Rendering", "for_ArtifactRenderInventory", "completeness.golden.json");
         var expected = File.ReadAllText(path, Encoding.UTF8).Replace("$SCOPE$", _request.Scope.Artifact.ToString(), StringComparison.Ordinal);
         Assert.Equal(Encoding.UTF8.GetBytes(expected), ArtifactRenderReports.Create(_plan, _context).Completeness.Bytes.ToArray());

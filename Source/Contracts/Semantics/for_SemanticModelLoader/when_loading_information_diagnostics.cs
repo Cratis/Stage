@@ -19,7 +19,7 @@ public class when_loading_information_diagnostics : given.a_source_with_notes
     [Fact] void should_preserve_information_severity() => _result.Notes.All(note => note.Severity == DiagnosticSeverity.Information).ShouldBeTrue();
     [Fact] void should_preserve_codes() => _result.Notes.All(note => note.Code == "PLAY0270").ShouldBeTrue();
     [Fact] void should_preserve_messages() => _result.Notes.All(note => note.Message.Length > 0).ShouldBeTrue();
-    [Fact] void should_preserve_relative_locations() => _result.Notes.All(note => note.Source!.StartsWith("nested/source.play(", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_keep_notes_on_the_loaded_model() => _result.Loaded!.Notes.SequenceEqual(_result.Notes).ShouldBeTrue();
+    [Fact] void should_preserve_relative_locations() => _result.Notes.All(note => note.Source.StartsWith("nested/source.play(", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_keep_notes_on_the_loaded_model() => _result.Loaded.Notes.SequenceEqual(_result.Notes).ShouldBeTrue();
 }
 #endif

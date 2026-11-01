@@ -53,8 +53,8 @@ public class and_the_template_fits_a_slot : Specification
     [Fact] void should_carry_the_slot_it_fits_into() => _result.FitsSlot.ShouldEqual("content");
     [Fact] void should_carry_the_slots_it_offers() => _result.Slots.Select(slot => slot.Name).ShouldEqual(["sidebar", "main"]);
     [Fact] void should_use_a_flow_arrangement() => _result.Arrangement.ShouldBeOfExactType<FlowArrangement>();
-    [Fact] void should_carry_the_size_class_override() => ((FlowArrangement)_result.Arrangement!).Overrides.Count.ShouldEqual(1);
-    [Fact] void should_carry_the_overrides_width_size_class() => ((FlowArrangement)_result.Arrangement!).Overrides[0].Width.ShouldEqual(Cratis.Scene.Model.SizeClasses.WidthSizeClass.Compact);
-    [Fact] void should_leave_the_overrides_height_size_class_unset() => ((FlowArrangement)_result.Arrangement!).Overrides[0].Height.ShouldBeNull();
+    [Fact] void should_carry_the_size_class_override() => ((FlowArrangement)_result.Arrangement).Overrides.Count.ShouldEqual(1);
+    [Fact] void should_carry_the_overrides_width_size_class() => ((FlowArrangement)_result.Arrangement).Overrides[0].Width.ShouldEqual(Cratis.Scene.Model.SizeClasses.WidthSizeClass.Compact);
+    [Fact] void should_leave_the_overrides_height_size_class_unset() => ((FlowArrangement)_result.Arrangement).Overrides[0].Height.ShouldBeNull();
     [Fact] void should_provide_no_content_of_its_own() => _result.Content.ShouldBeNull();
 }

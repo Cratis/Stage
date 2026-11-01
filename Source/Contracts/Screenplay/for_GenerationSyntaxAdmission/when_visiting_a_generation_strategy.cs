@@ -20,11 +20,11 @@ public class when_visiting_a_generation_strategy : Specification
     {
         var parsed = new ScreenplayCompiler().Parse($"concept Identity : {primitive}\n  generate {strategy}\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
         parsed.Success.ShouldBeTrue();
-        var error = Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value!));
+        var error = Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value));
         error.ShouldBeOfExactType<UnsupportedGenerationStrategy>();
         error.Message.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal).ShouldBeTrue();
         ((UnsupportedGenerationStrategy)error).Location.Line.ShouldEqual(1);
-        Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!)).ShouldBeOfExactType<UnsupportedGenerationStrategy>();
+        Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value)).ShouldBeOfExactType<UnsupportedGenerationStrategy>();
     }
 
     [Theory]
@@ -34,7 +34,7 @@ public class when_visiting_a_generation_strategy : Specification
     {
         var parsed = new ScreenplayCompiler().Parse($"concept Identity : Uuid\n  validate\n    not empty\nmodule Work\n  feature Creation\n    slice StateChange Start\n      command Create\n        id Identity {modifier}\n        returns id");
         parsed.Success.ShouldBeTrue();
-        var error = Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value!));
+        var error = Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value));
         if (refused) error.ShouldBeOfExactType<UnsupportedGenerationStrategy>();
         else error.ShouldBeNull();
     }
@@ -44,6 +44,6 @@ public class when_visiting_a_generation_strategy : Specification
     {
         var parsed = new ScreenplayCompiler().Parse("concept Identity : Uuid\nmodule Work\n  feature Creation\n    slice StateChange Start\n      event Started");
         parsed.Success.ShouldBeTrue();
-        Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value!)).ShouldBeNull();
+        Catch.Exception(() => new GenerationSyntaxAdmission().VisitApplication(parsed.Value)).ShouldBeNull();
     }
 }

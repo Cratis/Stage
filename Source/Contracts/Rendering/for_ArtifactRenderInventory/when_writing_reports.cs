@@ -104,7 +104,7 @@ public class when_writing_reports : given.an_inventory
     {
         var direct = _leaf with { Degradations = [_leaf.Degradations.Single() with { Roots = [new(_root.Identity, "STAGE-DEGRADE-002")] }] };
         var plan = Plan(ArtifactRenderInventory.Create([_root, _middle, direct, _rendered]));
-        plan.Inventory!.Score.ShouldEqual(_inventory.Score);
+        plan.Inventory.Score.ShouldEqual(_inventory.Score);
         plan.Diagnostics.SequenceEqual(_plan.Diagnostics).ShouldBeTrue();
         plan.Inventory.Digest.ShouldNotEqual(_inventory.Digest);
         plan.Digest.ShouldNotEqual(_plan.Digest);
@@ -124,8 +124,8 @@ public class when_writing_reports : given.an_inventory
         var reversedRoot = root with { Degradations = [.. root.Degradations.Reverse()] };
         var reversedMiddle = middle with { Degradations = [middle.Degradations.Single() with { Roots = [.. middle.Degradations.Single().Roots.Reverse()] }] };
         var second = Plan(ArtifactRenderInventory.Create([_rendered, _leaf, reversedMiddle, reversedRoot]));
-        first.Inventory!.Score.Counts.Total.ShouldEqual(4);
-        first.Inventory.Digest.ShouldEqual(second.Inventory!.Digest);
+        first.Inventory.Score.Counts.Total.ShouldEqual(4);
+        first.Inventory.Digest.ShouldEqual(second.Inventory.Digest);
         first.Digest.ShouldEqual(second.Digest);
         var expected = ArtifactRenderReports.Create(first, _context);
         var actual = ArtifactRenderReports.Create(second, _context);

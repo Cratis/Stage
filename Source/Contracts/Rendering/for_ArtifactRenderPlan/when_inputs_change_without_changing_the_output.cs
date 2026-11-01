@@ -17,8 +17,8 @@ public class when_inputs_change_without_changing_the_output : given.an_artifact_
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("source"), "source", "source.play", "concept Unused : String");
-        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value!.Model;
-        var request = _request with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan!, Scope = new(ArtifactRenderScopeKind.Application, model.Application.Id) };
+        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value.Model;
+        var request = _request with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan, Scope = new(ArtifactRenderScopeKind.Application, model.Application.Id) };
         _changed = ArtifactRenderPlan.Create(request, [PlannedArtifact.CreateText("same.cs", "same")], []);
     }
     [Fact] void should_change_the_semantic_revision() => _changed.SemanticRevision.ShouldNotEqual(_original.SemanticRevision);

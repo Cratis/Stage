@@ -47,7 +47,7 @@ public class when_loading_a_by_parameter_query : Specification
     void Because()
     {
         var model = EventModelLoader.LoadFromSource(Source);
-        _readModel = model.Collections.Single().Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "WorkItemComments").ReadModel!;
+        _readModel = model.Collections.Single().Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "WorkItemComments").ReadModel;
     }
 
     [Fact] void should_carry_every_query_over_the_read_model() => _readModel.Queries.Select(query => query.Name).ShouldContainOnly(["AllComments", "CommentsForWorkItem"]);

@@ -187,23 +187,6 @@ public class CratisRenderer : IRenderer
         }
     }
 
-    // The legacy writer renders the configuration a runtime starts AuthProxy with. Making the application trust the identity AuthProxy forwards
-    // changes its scaffold, which only the artifact renderer (`cratis render`) does.
-    async Task RenderRuntimeConfiguration(ApplicationSet applicationSet, DirectoryInfo targetDirectory, TextWriter output, TextWriter error, List<Exception> failures)
-    {
-        var application = applicationSet.Applications.FirstOrDefault(candidate => candidate.Authentication?.Providers.Any() == true);
-        if (application is null)
-        {
-            return;
-        }
-
-        var realization = ApplicationRealization.From(application, EnvironmentRequirements.For(application), new Dictionary<string, string>(), null);
-        foreach (var (path, content) in RuntimeConfigurationFiles.Render(realization, Identifiers.ToPascalCase(targetDirectory.Name)))
-        {
-            await WriteFile(new RenderedFile(path, content), targetDirectory, output, error, failures);
-        }
-    }
-
     static async Task RecordFailure(string operation, Exception exception, TextWriter error, List<Exception> failures)
     {
         failures.Add(exception);
@@ -294,6 +277,23 @@ public class CratisRenderer : IRenderer
         await ReportUnrenderableReferences(applicationSet, error);
         await ReportUnrenderedDeclarations(applicationSet, error);
         await Complete(targetDirectory, output, error, failures);
+    }
+
+    // The legacy writer renders the configuration a runtime starts AuthProxy with. Making the application trust the identity AuthProxy forwards
+    // changes its scaffold, which only the artifact renderer (`cratis render`) does.
+    async Task RenderRuntimeConfiguration(ApplicationSet applicationSet, DirectoryInfo targetDirectory, TextWriter output, TextWriter error, List<Exception> failures)
+    {
+        var application = applicationSet.Applications.FirstOrDefault(candidate => candidate.Authentication?.Providers.Any() == true);
+        if (application is null)
+        {
+            return;
+        }
+
+        var realization = ApplicationRealization.From(application, EnvironmentRequirements.For(application), new Dictionary<string, string>(), null);
+        foreach (var (path, content) in RuntimeConfigurationFiles.Render(realization, Identifiers.ToPascalCase(targetDirectory.Name)))
+        {
+            await WriteFile(new RenderedFile(path, content), targetDirectory, output, error, failures);
+        }
     }
 
     async Task RenderLocated(

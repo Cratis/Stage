@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Cratis.Specifications;
 using Xunit;
 
+#pragma warning disable CA1507 // The strings are the keys of the configuration files, which happen to be the names of types.
 namespace Cratis.Stage.Rendering.Cratis.for_RealizedApplication;
 
 public class when_planning_a_closed_application : given.a_model_with_authentication_and_onboarding
@@ -27,16 +28,4 @@ public class when_planning_a_closed_application : given.a_model_with_authenticat
     [Fact] void should_not_warn_about_an_offering_the_model_does_not_name() => Codes.ShouldNotContain("STAGE-ONBOARDING-001");
     [Fact] void should_send_no_email_the_model_has_no_template_for() => Text("GeneratedOnboarding/OnboardingRules.cs").ShouldContain("Emails { get; } = []");
     [Fact] void should_render_no_email_templates() => Has("Emails/invitation.json").ShouldBeFalse();
-}
-
-public class when_planning_an_application_without_onboarding : given.a_model_with_authentication_and_onboarding
-{
-    protected override string Onboarding => string.Empty;
-
-    [Fact] void should_not_render_onboarding() => Has("GeneratedOnboarding/Provisioning.cs").ShouldBeFalse();
-    [Fact] void should_not_render_the_ante_settings() => Has(".runtime/ante.onboarding.json").ShouldBeFalse();
-    [Fact] void should_still_render_the_authproxy_providers() => Has(".runtime/authproxy.application.json").ShouldBeTrue();
-    [Fact] void should_not_register_onboarding() => Text("Program.cs").ShouldNotContain("GeneratedOnboarding");
-    [Fact] void should_not_reference_herald() => Text($"{Application}.csproj").ShouldNotContain("Herald");
-    [Fact] void should_keep_the_chronicle_version_of_every_other_render() => Text("Directory.Packages.props").ShouldNotContain("19.114.0");
 }

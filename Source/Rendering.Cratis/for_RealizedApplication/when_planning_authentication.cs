@@ -6,6 +6,7 @@ using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Xunit;
 
+#pragma warning disable CA1507 // The strings are the keys of the configuration files, which happen to be the names of types.
 namespace Cratis.Stage.Rendering.Cratis.for_RealizedApplication;
 
 public class when_planning_authentication : given.a_model_with_authentication_and_onboarding

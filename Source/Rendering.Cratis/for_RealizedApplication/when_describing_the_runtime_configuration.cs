@@ -32,9 +32,9 @@ public class when_describing_the_runtime_configuration : Specification
     [Fact] void should_not_invent_terms_and_privacy_paths() => (_ante["Legal"] as JsonObject)!.ContainsKey("TermsAndConditions").ShouldBeFalse();
     [Fact] void should_name_the_host_store_after_the_application() => _ante["HostStore"]!.GetValue<string>().ShouldEqual("Shop");
     [Fact] void should_report_a_number_of_legal_documents_ante_does_not_present() =>
-        RealizationDiagnostics.For(new(ImmutableArray<RealizedProvider>.Empty, [], _onboarding, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ONBOARDING-004");
+        RealizationDiagnostics.For(new([], [], _onboarding, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ONBOARDING-004");
     [Fact] void should_report_an_invitation_nobody_may_send() =>
-        RealizationDiagnostics.For(new(ImmutableArray<RealizedProvider>.Empty, [], _onboarding with { Invitations = [new("member", [], ["Member"])] }, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ONBOARDING-006");
+        RealizationDiagnostics.For(new([], [], _onboarding with { Invitations = [new("member", [], ["Member"])] }, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ONBOARDING-006");
     [Fact] void should_report_a_provider_authproxy_has_no_kind_for() =>
         RealizationDiagnostics.For(new([new("Okta", "Okta")], [], null, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-AUTH-001");
     [Fact] void should_report_a_persona_it_cannot_reduce_to_roles() =>

@@ -22,7 +22,7 @@ public class when_running_numbered_enumeration_specifications : Specification
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         compilation.Success.ShouldBeTrue();
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value!.Model))).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value.Model))).Plan;
     }
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());

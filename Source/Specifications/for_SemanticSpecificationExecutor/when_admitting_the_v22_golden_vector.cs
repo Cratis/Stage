@@ -14,7 +14,7 @@ public class when_admitting_the_v22_golden_vector : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(22).Bytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(22).Bytes.AsSpan()), []).Plan;
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
 
     [Fact] void should_read_the_full_v22_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V22);
@@ -23,5 +23,5 @@ public class when_admitting_the_v22_golden_vector : Specification
 
     // Atomic batches are admitted; the vector's application trigger (STAGE-ESM-024) still blocks execution.
     [Fact] void should_refuse_instead_of_executing() => _report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_name_the_remaining_trigger_blocker() => _report.Results.ShouldEachConformTo(result => result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal));
+    [Fact] void should_name_the_remaining_trigger_blocker() => _report.Results.ShouldEachConformTo(result => result.Unsupported.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal));
 }

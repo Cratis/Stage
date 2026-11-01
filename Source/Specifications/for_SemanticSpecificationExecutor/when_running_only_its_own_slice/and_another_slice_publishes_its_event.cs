@@ -12,7 +12,7 @@ public class and_another_slice_publishes_its_event : given.an_invoicing_applicat
     Task Because() => Run("Registering");
 
     [Fact] void should_pass() => Assert.True(_result.Outcome == SemanticSpecificationOutcome.Passed, string.Join(';', _result.Failures));
-    [Fact] void should_not_run_the_other_slices_publication() => _result.Trace!.Facts.ShouldNotContain(fact => fact.EventContract == Event("InvoicePublished"));
+    [Fact] void should_not_run_the_other_slices_publication() => _result.Trace.Facts.ShouldNotContain(fact => fact.EventContract == Event("InvoicePublished"));
     [Fact] void should_append_only_its_own_fact() => _worldFacts.ShouldEqual(1);
 
     string Event(string name) => _plan.Events.Values.Single(@event => @event.Name == name).Id.ToString();

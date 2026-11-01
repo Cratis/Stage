@@ -48,17 +48,17 @@ public class when_running_routed_source_keyed_captures : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "model.play", Model);
         var compiled = new SemanticModelCompiler().Compile("RoutedCapture", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var model = compiled.Value!.Model;
+        var model = compiled.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
         var specification = slice.Specifications.Single();
         specification = specification with
         {
-            WhenAppended = specification.WhenAppended! with { EventSource = source is null ? null : new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), SemanticValue.Text(source)) }
+            WhenAppended = specification.WhenAppended with { EventSource = source is null ? null : new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), SemanticValue.Text(source)) }
         };
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Specifications = [specification] }] }] }] };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
         var expected = new SemanticSpecificationRunner().Run(plan, specification.Id);
         var record = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         if (source == "order-1")
@@ -70,7 +70,7 @@ public class when_running_routed_source_keyed_captures : Specification
         {
             var rejected = Assert.IsType<SemanticRejected>(expected.Execution);
             rejected.Category.ShouldEqual(SemanticRejectionCategory.Contract);
-            record.Trace!.Rejection.ShouldEqual(rejected.Details);
+            record.Trace.Rejection.ShouldEqual(rejected.Details);
             record.Trace.Facts.ShouldBeEmpty();
         }
     }

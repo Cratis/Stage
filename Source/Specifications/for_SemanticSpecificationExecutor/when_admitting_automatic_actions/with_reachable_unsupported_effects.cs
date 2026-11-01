@@ -44,10 +44,10 @@ public class with_reachable_unsupported_effects : when_settling_reactions.given.
             }
         };
         application = application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_plan.Model.LanguageVersion, _plan.Model.SemanticVersion, application)).Plan;
         var refusal = SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single());
         refusal.ShouldNotBeNull();
-        refusal!.Capability.ShouldEqual(body == "command" ? StageExecutionCapability.Command : StageExecutionCapability.Projection);
+        refusal.Capability.ShouldEqual(body == "command" ? StageExecutionCapability.Command : StageExecutionCapability.Projection);
         if (body != "projection") refusal.Details.ShouldContain("STAGE-IMPL-003:");
     }
 }

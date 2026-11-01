@@ -16,7 +16,7 @@ public class when_admitting_the_v13_golden_vector : Specification
 
     void Establish()
     {
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(13).Bytes.AsSpan()), []).Plan!;
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(13).Bytes.AsSpan()), []).Plan;
     }
 
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());

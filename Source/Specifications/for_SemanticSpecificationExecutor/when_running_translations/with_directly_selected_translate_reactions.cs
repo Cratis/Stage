@@ -28,7 +28,7 @@ public class with_directly_selected_translate_reactions : when_settling_reaction
     {
         var result = await Run("redelivery", "then Completed\n  for \"one\"");
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+        result.Unsupported.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
     }
 
     async Task<SemanticSpecificationRunRecord> Run(string action, string expectation)
@@ -58,10 +58,14 @@ public class with_directly_selected_translate_reactions : when_settling_reaction
             Id = SemanticId.Parse("sem1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
             Name = "Translated",
             Kind = SemanticSliceKind.Translate,
-            Commands = [], Events = [], ReadModels = [], Projections = [], Specifications = []
+            Commands = [],
+            Events = [],
+            ReadModels = [],
+            Projections = [],
+            Specifications = []
         };
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Reactions = [] }, translated] }] }] };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
         return (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
     }
 }

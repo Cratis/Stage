@@ -13,6 +13,6 @@ public class and_a_later_production_rejects : given.an_observed_reaction_plan
     Task Because() => ExecuteObserved();
 
     [Fact] void should_reject_as_the_reference_does() => AssertMatchesReference();
-    [Fact] void should_preserve_the_constraint_name() => _result.Trace!.RejectionCode.ShouldEqual("Once");
+    [Fact] void should_preserve_the_constraint_name() => _result.Trace.RejectionCode.ShouldEqual("Once");
     [Fact] void should_append_none_of_the_batch() => _worldFacts.ShouldEqual(1);
 }

@@ -8,7 +8,7 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor.when_run
 
 public abstract class an_orphan_child_projection : Specification
 {
-        protected abstract string RootOperation { get; }
+    protected abstract string RootOperation { get; }
 
     protected abstract string ChildOperation { get; }
 

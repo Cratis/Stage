@@ -32,7 +32,7 @@ public class with_inexact_projection_shapes : a_command_only_plan
             new(AffectedInstanceCardinality.One, key),
             [new(identity.Id, key), new(name.Id, new SemanticResolvedExpression(SemanticExpressionRootKind.Event, SemanticExpressionSourceKind.Property, eventName.Id))]);
         var flat = projection with { Scope = null, Transitions = [transition] };
-        var source = fact.EventSource ?? new SemanticEventSourceIdentity(identity.Type, _original.When!.Values.Single(value => value.TargetProperty == _originalModel.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).SelectMany(slice => slice.Commands).Single().Properties.Single(property => property.Name == identity.Name).Id).Value);
+        var source = fact.EventSource ?? new SemanticEventSourceIdentity(identity.Type, _original.When.Values.Single(value => value.TargetProperty == _originalModel.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).SelectMany(slice => slice.Commands).Single().Properties.Single(property => property.Name == identity.Name).Id).Value);
         var append = _original with { When = null, WhenAppended = new(fact.EventContract, fact.Values) { EventSource = source }, ThenEvents = [] };
         var flatAppend = append with
         {
@@ -88,10 +88,16 @@ public class with_inexact_projection_shapes : a_command_only_plan
         {
             Values = [.. _original.ThenReadModels.Single().Values.Select(value => value.TargetProperty == name.Id ? value with { Value = source.Value } : value)]
         };
-        var sourceMapped = scoped with { Scope = scoped.Scope with { From = [root with
+        var sourceMapped = scoped with
+        {
+            Scope = scoped.Scope with
+            {
+                From = [root with
         {
             Mappings = [new([name.Id], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)]
-        }] } };
+        }]
+            }
+        };
         await Check(
             "event source into constrained concept",
             _original with { ThenReadModels = [], ThenQueries = [] },
@@ -152,7 +158,7 @@ public class with_inexact_projection_shapes : a_command_only_plan
                 ReadModels = [.. slice.ReadModels.Select(candidate =>
                 {
                     if (candidate.Id != projection.ReadModel || (!enumeratedName && readModel is null)) return candidate;
-                    if (!enumeratedName) return readModel!;
+                    if (!enumeratedName) return readModel;
                     return candidate with
                     {
                         Properties = [.. candidate.Properties.Select(property => property.IsIdentifier ? property : property with
@@ -166,7 +172,8 @@ public class with_inexact_projection_shapes : a_command_only_plan
                 Queries = numericSource ? [.. slice.Queries.Select(query => query with { Argument = query.Argument with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) } })] : slice.Queries,
                 Specifications = [.. slice.Specifications.Where(candidate => (!numericSource && !dateTimeSource && !enumeratedName) || candidate.Id == specification.Id).Select(candidate => candidate.Id == specification.Id ? specification : candidate)]
             })] })]
-        })] };
+        })]
+        };
         var compilation = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(_originalModel.LanguageVersion, _originalModel.SemanticVersion, changed));
         if (compilation.Plan is null)
         {
@@ -204,7 +211,7 @@ public class with_inexact_projection_shapes : a_command_only_plan
         {
             return [.. slice.Commands.Select(command => command with
             {
-                Properties = [.. command.Properties.Select(property => property.Name == eventContract!.Properties[0].Name ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.DateTime) } : property)],
+                Properties = [.. command.Properties.Select(property => property.Name == eventContract.Properties[0].Name ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.DateTime) } : property)],
                 Validations = []
             })];
         }

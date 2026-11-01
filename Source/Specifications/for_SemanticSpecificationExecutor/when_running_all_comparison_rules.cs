@@ -50,7 +50,7 @@ public class when_running_all_comparison_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("Comparisons", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         foreach (var specification in plan.Specifications.Values)
         {
             SemanticRunAdmission.Check(plan, specification).ShouldBeNull();

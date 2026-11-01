@@ -10,6 +10,6 @@ public class with_a_reaction_only_literal_projection : given.a_projected_reactio
     void Establish() => CompileProjected(expected: "then Followed\n  item = \"one\"", shape: "literal");
     Task Because() => Execute();
     [Fact] void should_refuse_the_shape_before_replay() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_identify_the_projection_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_identify_the_projection_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
     [Fact] void should_preserve_the_reference_supported_outcome() => _reference.Passed.ShouldBeTrue();
 }

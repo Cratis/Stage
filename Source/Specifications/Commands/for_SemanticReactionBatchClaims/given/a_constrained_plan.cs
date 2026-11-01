@@ -34,7 +34,7 @@ public class a_constrained_plan : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("claims"), "claims", "Claims.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Claims", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     internal SemanticConstraintEvaluator.Fact Changed(string owner, string value)

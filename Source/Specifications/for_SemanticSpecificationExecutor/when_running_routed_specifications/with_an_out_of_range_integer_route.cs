@@ -24,13 +24,13 @@ public class with_an_out_of_range_integer_route : a_routed_plan
         var period = _command.Properties.Single(property => property.Name == "period");
         await Run(With(_specification with
         {
-            When = _specification.When! with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Number(9007199254740992m) } : value)] },
+            When = _specification.When with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Number(9007199254740992m) } : value)] },
             ThenEvents = [],
             ThenErrors = [new(null, SemanticStreamIdFormatter.FailureMessage(StreamIdFormatFailure.OutOfRange))]
         }));
     }
 
     [Fact] void should_match_the_reference_contract_rejection() => AssertParity(true);
-    [Fact] void should_reject_before_appending_any_fact() => _result.Trace!.Facts.ShouldBeEmpty();
+    [Fact] void should_reject_before_appending_any_fact() => _result.Trace.Facts.ShouldBeEmpty();
     [Fact] void should_have_a_contract_rejection_in_the_reference() => ((SemanticRejected)_reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Contract);
 }

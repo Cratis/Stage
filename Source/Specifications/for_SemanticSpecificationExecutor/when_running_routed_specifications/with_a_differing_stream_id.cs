@@ -11,7 +11,7 @@ public class with_a_differing_stream_id : a_routed_plan
     async Task Because()
     {
         var expected = _specification.ThenEvents[0];
-        await Run(With(_specification with { ThenEvents = [expected with { Route = expected.Route! with { StreamId = SemanticValue.Text("2026-11") } }] }));
+        await Run(With(_specification with { ThenEvents = [expected with { Route = expected.Route with { StreamId = SemanticValue.Text("2026-11") } }] }));
     }
 
     [Fact] void should_fail_like_the_reference() => AssertParity(false);

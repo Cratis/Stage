@@ -18,12 +18,12 @@ public class with_an_unallocated_destination_and_an_expected_rejection : a_comma
 
     async Task Because()
     {
-        var command = _plan.Commands[_specification.When!.Command];
+        var command = _plan.Commands[_specification.When.Command];
         var unallocated = command with { Destination = null, Produces = [.. command.Produces.Select(produced => produced with { Destination = null })] };
         var rejection = _specification with { ThenEvents = [], ThenErrors = [new(null, "Project name is required")] };
         _report = await new SemanticSpecificationExecutor().Run(WithBehavior(rejection, unallocated), new([rejection.Id]), new());
     }
 
     [Fact] void should_not_claim_success_or_failure() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_name_identity_allocation() => _report.Results.Single().Unsupported!.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);
+    [Fact] void should_name_identity_allocation() => _report.Results.Single().Unsupported.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);
 }

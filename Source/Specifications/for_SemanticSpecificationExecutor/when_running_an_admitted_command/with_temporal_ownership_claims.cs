@@ -72,7 +72,7 @@ public class with_temporal_ownership_claims : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("temporal"), "temporal", "Temporal.play", source.ToString());
         var compiled = new SemanticModelCompiler().Compile("TemporalOwnership", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Location}: {diagnostic.Message}")));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
     }
 
     async Task Because()

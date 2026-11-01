@@ -16,7 +16,7 @@ public class when_running_conditional_generated_productions : Specification
 
     async Task Because()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedValuesCorpus.V15.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(GeneratedValuesCorpus.V15.EsmBytes.AsSpan())).Plan;
         _report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
     }
 

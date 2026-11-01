@@ -49,9 +49,11 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_declare_the_default_offering_the_model_names() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain(".DefaultOffering(\"Starter\")");
     [Fact] void should_declare_a_product_that_is_the_same_for_every_render() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain($".Product(Guid.Parse(\"{Realization.RealizationArtifacts.ProductId(Application)}\"))");
     [Fact] void should_add_box_office_and_its_offering() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain("builder.AddBoxOffice();");
-    [Fact] void should_start_the_tenant_on_the_default_offering_after_creating_it() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("$\"{kind}:{source}\");\n        await offering.Start(tenant);");
+    [Fact] void should_start_the_tenant_from_a_reactor_on_the_provisioned_tenant() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("Task Provisioned(OnboardingTenantProvisioned @event) => offering.Start(@event.TenantName)");
+    [Fact] void should_not_start_the_tenant_while_provisioning_it() => Text("GeneratedOnboarding/Provisioning.cs").ShouldNotContain("offering");
     [Fact] void should_start_the_tenant_by_its_namespace_name() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("offering.StartTenant(tenant, OrganizationFor(tenant))");
-    [Fact] void should_not_fail_provisioning_for_an_offer_the_operator_has_not_published() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared");
+    [Fact] void should_let_a_missing_offer_fail_the_start_so_chronicle_retries_it() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("DefaultOfferingNotPublished or DefaultOfferingNotDeclared or TenantNotStarted)");
+    [Fact] void should_log_the_reason_before_rethrowing() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("NotStarted(logger, tenant, exception.Message);\n            throw;");
     [Fact] void should_not_emit_the_retired_offering_not_rendered_diagnostic() => Codes.ShouldNotContain("STAGE-ONBOARDING-001");
     [Fact] void should_say_what_the_operator_must_publish() => Codes.ShouldContain("STAGE-ONBOARDING-008");
     [Fact] void should_say_a_tenant_invitation_has_no_command() => Codes.ShouldContain("STAGE-ONBOARDING-002");

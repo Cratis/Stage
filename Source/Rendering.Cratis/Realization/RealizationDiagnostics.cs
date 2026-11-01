@@ -56,7 +56,7 @@ internal static class RealizationDiagnostics
             yield return new(
                 OfferingNeedsOperator,
                 ArtifactRenderDiagnosticSeverity.Information,
-                $"Offering '{onboarding.Offering}' is started for every new tenant through Box Office. Its operator (event store 'Direct' unless the host configures another) must publish an offer named '{onboarding.Offering}' in its catalog; a tenant provisioned before it arrives is not started on it until its outcome is delivered again. The rendered application does not define the BoxOffice.ManageSeats and BoxOffice.ManageCompute authorization policies, so the seat and compute commands of Box Office are not available until it does.",
+                $"Offering '{onboarding.Offering}' is started for every new tenant through Box Office. Its operator (event store 'Direct' unless the host configures another) must publish an offer named '{onboarding.Offering}' in its catalog; a tenant is started on it as soon as the offer is published, because Chronicle retries the start until then. The rendered application does not define the BoxOffice.ManageSeats and BoxOffice.ManageCompute authorization policies, so the seat and compute commands of Box Office are not available until it does.",
                 application);
         }
 

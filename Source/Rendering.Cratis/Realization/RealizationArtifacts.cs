@@ -129,21 +129,12 @@ internal static class RealizationArtifacts
                 ("__AuthorizationUsing__", invitations ? "using Cratis.Arc.Authorization;\n" : string.Empty),
                 ("__InvitationPolicies__", invitations ? "        builder.Services.AddArcAuthorizationPolicy<InviteMemberPolicy>(OnboardingPolicies.InviteMember);\n" : string.Empty)),
             sources);
-        yield return Source(
-            $"{OnboardingFolder}/Provisioning.cs",
-            RealizationTemplates.Read(
-                "Provisioning",
-                rootNamespace,
-                ("__OfferingDocumentation__", offering ? "/// <param name=\"offering\">Starts a new tenant on the default offering.</param>\n" : string.Empty),
-                ("__OfferingParameter__", offering ? ", TenantOffering offering" : string.Empty),
-                ("__OfferingStart__", offering ? "        await offering.Start(tenant);\n" : string.Empty)),
-            sources);
         if (offering)
         {
             yield return Source($"{OnboardingFolder}/OnboardingOffering.cs", RealizationTemplates.Read("OnboardingOffering", rootNamespace), sources);
         }
 
-        foreach (var template in new[] { "OnboardingEnvironment", "OnboardingEvents", "MemberPersonaClaims", "OnboardingEmails", "AnteOutcomes" })
+        foreach (var template in new[] { "OnboardingEnvironment", "OnboardingEvents", "MemberPersonaClaims", "Provisioning", "OnboardingEmails", "AnteOutcomes" })
         {
             yield return Source($"{OnboardingFolder}/{template}.cs", RealizationTemplates.Read(template, rootNamespace), sources);
         }

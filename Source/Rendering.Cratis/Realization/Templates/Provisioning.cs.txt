@@ -15,7 +15,7 @@ namespace __Root__.GeneratedOnboarding;
 /// <param name="client">The Chronicle client.</param>
 /// <param name="configuration">The application configuration.</param>
 /// <param name="logger">The logger.</param>
-__OfferingDocumentation__public partial class Provisioning(IChronicleClient client, IConfiguration configuration, ILogger<Provisioning> logger__OfferingParameter__)
+public partial class Provisioning(IChronicleClient client, IConfiguration configuration, ILogger<Provisioning> logger)
 {
     /// <summary>
     /// Gets the personas a member holds in a tenant.
@@ -122,7 +122,7 @@ __OfferingDocumentation__public partial class Provisioning(IChronicleClient clie
         var store = await client.GetEventStore(StoreName(configuration), tenant);
         await AppendOnce(store, tenant, new OnboardingTenantProvisioned(tenant), $"tenant:{tenant}");
         await AppendOnce(store, owner.Key, new OnboardingMemberProvisioned(owner.Provider, owner.Subject, personas), $"{kind}:{source}");
-__OfferingStart__    }
+    }
 
     async Task AppendOnce(IEventStore store, string eventSourceId, object @event, string key)
     {

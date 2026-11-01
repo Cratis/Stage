@@ -21,7 +21,7 @@ The files below are added to the application, in the namespace `<Root>.Generated
 | `OnboardingEvents.cs` | The application's own events: tenant provisioned, member provisioned, legal terms accepted, email queued. |
 | `OnboardingRegistration.cs` | Registers Herald, Box Office when there is an offering, the reactor, the services and the policy. |
 | `OnboardingEnvironment.cs` | Reads the environment values. |
-| `OnboardingOffering.cs` | Starts a new tenant on the default offering through Box Office. Only rendered when the model names an `offering`. |
+| `OnboardingOffering.cs` | A reactor that starts a new tenant on the default offering through Box Office. Only rendered when the model names an `offering`. |
 | `Emails/` | The templates and images of the model, laid out the way Herald reads them. |
 | `.runtime/ante.onboarding.json` | The settings of Ante, in the shape of its `Ante:Onboarding` contract. |
 
@@ -73,8 +73,8 @@ builder.Services.AddBoxOfficeOffering(offering => offering
 ```
 
 - **Product.** The product id is a GUID derived from the application name, so every render of the same application declares the same product. No module is declared: the modules of a Screenplay model are not Box Office modules, so nothing is gated. Declare modules in code if the product sells them.
-- **Starting a tenant.** After `Provisioning` creates a tenant, from an accepted tenant invitation or a completed registration, it calls `TenantOffering.Start`, which calls `IDefaultOffering.StartTenant(tenant, organization)`. The tenant id is the name of the tenant's Chronicle namespace, which is what Box Office expects. The organization id is a GUID derived from the application and tenant name, because a self-service product has no operator-assigned organization; the same tenant is always the same organization. `StartTenant` is idempotent, so a delivery that arrives again starts nothing twice.
-- **Catalog not there yet.** The operator publishes its catalog after the application starts. When `StartTenant` throws `DefaultOfferingNotPublished` (or `DefaultOfferingNotDeclared`) the error is logged and provisioning goes on: a missing offer does not stop a person getting into their tenant. That tenant is started on the offering the next time its outcome is delivered, for example after replaying the observer. Any other failure, such as `TenantNotStarted`, fails the delivery so it is retried.
+- **Starting a tenant.** `TenantOfferingStarter` is a reactor on `OnboardingTenantProvisioned`, which provisioning appends in the tenant's namespace. It calls `TenantOffering.Start`, which calls `IDefaultOffering.StartTenant(tenant, organization)`. The tenant id is the name of the tenant's Chronicle namespace, which is what Box Office expects. The organization id is a GUID derived from the application and tenant name, because a self-service product has no operator-assigned organization; the same tenant is always the same organization. `StartTenant` is idempotent, so retries and replays start nothing twice.
+- **Catalog not there yet.** The operator publishes its catalog after the application starts. Provisioning and the welcome email do not wait for the offer. When `StartTenant` throws `DefaultOfferingNotPublished`, `DefaultOfferingNotDeclared` or `TenantNotStarted`, the reason is logged as a warning and the exception propagates, so Chronicle retries that partition until the operator has published the offer. A tenant is started on its offering as soon as the offer is published.
 - **Operator.** `AddBoxOffice` uses its defaults, so the application honors the operator event store `Direct`. Configure `OperatorStores` in code to use another one.
 - **Policies.** Box Office's `BoxOffice.ManageSeats` and `BoxOffice.ManageCompute` authorization policies are not rendered, so its seat and compute commands are unavailable until the host defines them.
 
@@ -95,6 +95,6 @@ Codes are permanent. `STAGE-ONBOARDING-001` (the offering is not rendered) and `
 | `STAGE-ONBOARDING-004` | The model does not list exactly two legal documents. |
 | `STAGE-ONBOARDING-005` | An email template could not be read from the model root. |
 | `STAGE-ONBOARDING-006` | An invitation to join a tenant names no inviting persona. |
-| `STAGE-ONBOARDING-008` | Information: the offering is started through Box Office, so the operator must publish an offer with that name and the host defines the Box Office policies. |
+| `STAGE-ONBOARDING-008` | Information: the offering is started through Box Office, so the operator must publish an offer with that name (tenants are started as soon as it is) and the host defines the Box Office policies. |
 | `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
 | `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |

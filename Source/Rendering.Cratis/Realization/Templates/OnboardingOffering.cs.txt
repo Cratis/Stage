@@ -23,8 +23,8 @@ public partial class TenantOffering(IDefaultOffering offering, ILogger<TenantOff
         new Guid(SHA256.HashData(Encoding.UTF8.GetBytes($"{ApplicationName.Value}/organization/{tenant}")).AsSpan(0, 16));
 
     /// <summary>
-    /// Starts a tenant on the default offering. The operator publishes its catalog after the application starts, so an offer that is not
-    /// there yet is reported and does not fail the provisioning of the tenant.
+    /// Starts a tenant on the default offering. A failure is logged and then thrown, so Chronicle retries the delivery until the
+    /// operator has published the offer. Starting a tenant is idempotent, so retries and replays start it once.
     /// </summary>
     /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
     /// <returns>A task.</returns>
@@ -35,15 +35,31 @@ public partial class TenantOffering(IDefaultOffering offering, ILogger<TenantOff
             var start = await offering.StartTenant(tenant, OrganizationFor(tenant));
             TenantStarted(logger, tenant, start.ToString());
         }
-        catch (Exception exception) when (exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared)
+        catch (Exception exception) when (exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared or TenantNotStarted)
         {
-            OfferingUnavailable(logger, exception, tenant);
+            NotStarted(logger, tenant, exception.Message);
+            throw;
         }
     }
 
     [LoggerMessage(LogLevel.Information, "Tenant {Tenant} on the default offering: {Start}")]
     static partial void TenantStarted(ILogger logger, string tenant, string start);
 
-    [LoggerMessage(LogLevel.Error, "Tenant {Tenant} was provisioned but not started on the default offering. Publish the offer from the operator's catalog; it is started when the tenant's outcome is delivered again")]
-    static partial void OfferingUnavailable(ILogger logger, Exception exception, string tenant);
+    [LoggerMessage(LogLevel.Warning, "Tenant {Tenant} was not started on the default offering ({Reason}); it is tried again until the operator has published the offer")]
+    static partial void NotStarted(ILogger logger, string tenant, string reason);
+}
+
+/// <summary>
+/// Starts every tenant that was provisioned on the default offering. It runs apart from provisioning, so a missing offer neither
+/// blocks the tenant nor its welcome, and Chronicle retries it until the operator has published the offer.
+/// </summary>
+/// <param name="offering">Starts a tenant on the default offering.</param>
+public class TenantOfferingStarter(TenantOffering offering) : IReactor
+{
+    /// <summary>
+    /// Starts the tenant on the default offering.
+    /// </summary>
+    /// <param name="event">The tenant that was provisioned.</param>
+    /// <returns>A task.</returns>
+    public Task Provisioned(OnboardingTenantProvisioned @event) => offering.Start(@event.TenantName);
 }

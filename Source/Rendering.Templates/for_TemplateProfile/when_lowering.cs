@@ -29,11 +29,11 @@ public class when_lowering : for_TemplatePreparer.given.a_kit
     {
         var preparation = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language());
         preparation.Diagnostics.ShouldBeEmpty();
-        using var plan = preparation.Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = preparation.Templates.BeginPlan(TemplateBudget.Default);
         using var json = JsonDocument.Parse("{\"model\":{\"expression\":{\"$kind\":\"comparison\",\"operator\":\"" + parent + "\",\"left\":{\"$kind\":\"logical\",\"operator\":\"" + child + "\",\"left\":{\"$kind\":\"value\",\"literal\":{\"$kind\":\"number\",\"value\":1}},\"right\":{\"$kind\":\"value\",\"literal\":{\"$kind\":\"number\",\"value\":2}}},\"right\":{\"$kind\":\"value\",\"literal\":{\"$kind\":\"number\",\"value\":3}}}}}");
         var result = plan.Render("main.scriban", json.RootElement);
         result.Refusal.ShouldBeNull();
-        ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual(expected);
+        ((TemplateTextSegment)result.Output.Segments[0]).Text.ShouldEqual(expected);
     }
 
     [Theory]
@@ -42,11 +42,11 @@ public class when_lowering : for_TemplatePreparer.given.a_kit
     [InlineData("or", "and", "1 || 2 && 3")]
     public void should_preserve_the_right_operand_tree(string parent, string child, string expected)
     {
-        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var json = JsonDocument.Parse("""{"model":{"expression":{"$kind":"logical","operator":"PARENT","left":{"$kind":"value","literal":{"$kind":"number","value":1}},"right":{"$kind":"logical","operator":"CHILD","left":{"$kind":"value","literal":{"$kind":"number","value":2}},"right":{"$kind":"value","literal":{"$kind":"number","value":3}}}}}}""".Replace("PARENT", parent, StringComparison.Ordinal).Replace("CHILD", child, StringComparison.Ordinal));
         var result = plan.Render("main.scriban", json.RootElement);
         result.Refusal.ShouldBeNull();
-        ((TemplateTextSegment)result.Output!.Segments[0]).Text.ShouldEqual(expected);
+        ((TemplateTextSegment)result.Output.Segments[0]).Text.ShouldEqual(expected);
     }
 
     [Theory]
@@ -57,27 +57,27 @@ public class when_lowering : for_TemplatePreparer.given.a_kit
     [InlineData("{\"$kind\":\"null\"}", "nil")]
     public void should_delegate_scalar_value_spelling(string literal, string expected)
     {
-        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var json = JsonDocument.Parse("{\"model\":{\"expression\":{\"$kind\":\"value\",\"literal\":" + literal + "}}}");
-        ((TemplateTextSegment)plan.Render("main.scriban", json.RootElement).Output!.Segments[0]).Text.ShouldEqual(expected);
+        ((TemplateTextSegment)plan.Render("main.scriban", json.RootElement).Output.Segments[0]).Text.ShouldEqual(expected);
     }
 
     [Fact]
     public void should_preserve_structured_leaf_output()
     {
-        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var json = JsonDocument.Parse("""{"model":{"expression":{"$kind":"resolved","identifier":"Customer"}}}""");
-        plan.Render("main.scriban", json.RootElement).Output!.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
+        plan.Render("main.scriban", json.RootElement).Output.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
     }
 
     [Fact]
     public void should_degrade_unsupported_semantics_without_refusing()
     {
-        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates!.BeginPlan(TemplateBudget.Default);
+        using var plan = TemplateProfile.Prepare(WithOperators(Kit("{{ expr.lower model.expression 'operators' 'leaf' 'throwing_operation_body' }}")), new given.a_language()).Templates.BeginPlan(TemplateBudget.Default);
         using var json = JsonDocument.Parse("""{"model":{"expression":{"$kind":"call"}}}""");
         var result = plan.Render("main.scriban", json.RootElement);
         result.Refusal.ShouldBeNull();
-        result.Output!.Gaps[0].Role.ShouldEqual(GapRole.ThrowingOperationBody);
+        result.Output.Gaps[0].Role.ShouldEqual(GapRole.ThrowingOperationBody);
         ((TemplateTextSegment)result.Output.Segments[0]).Text.ShouldEqual("FAIL[ThrowingOperationBody:STAGE-DEGRADE-001]");
     }
 }

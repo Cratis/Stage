@@ -38,7 +38,7 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
 
     async Task Install(string sample, string project, [CallerFilePath] string source = "")
     {
-        var root = Path.Combine(Path.GetDirectoryName(source)!, "inline-code-runtime", sample);
+        var root = Path.Combine(Path.GetDirectoryName(source), "inline-code-runtime", sample);
         var loaded = await SemanticModelLoader.LoadFromPathAsync(root, null, project);
         var profile = CratisRendering.CreateProfile(project, new(project, project) { Strict = true });
         var request = new ArtifactRenderRequest(loaded.Model, loaded.Plan, profile, new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
@@ -107,7 +107,7 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
         {
             File.WriteAllText(Path.Combine(_evidence.FullName, "inline-http-requests.json"), ReadGeneratedFile(Assert.Single(counts)));
         }
-        var destination = Directory.CreateDirectory(Path.Combine(_evidence.Parent!.FullName, "inline-code", sample, _evidence.Name));
+        var destination = Directory.CreateDirectory(Path.Combine(_evidence.Parent.FullName, "inline-code", sample, _evidence.Name));
         foreach (var file in _evidence.GetFiles()) file.CopyTo(Path.Combine(destination.FullName, file.Name));
     }
 

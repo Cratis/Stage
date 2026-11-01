@@ -20,8 +20,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    // Re-frozen for #120: the scaffold gains the optional Entra ID sign-in files, the Program.cs wiring, the README section and the Identity.Web and Pkcs pins.
-    const string Before = "6d8bc5a94332d461000ddc97ffcd2d2c5b21f68e87f2aadd92e27ab6ac8c6c1c";
+    const string Before = "ce120ec31bae5d1eb4e75fae7b9850f6409e3e70c5df9de4f9f5f91b6d0bfea1";
 
     ArtifactRenderPlan _plan = null!;
 

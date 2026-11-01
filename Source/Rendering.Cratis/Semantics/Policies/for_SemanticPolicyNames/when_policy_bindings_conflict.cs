@@ -22,7 +22,7 @@ public class when_policy_bindings_conflict : given.a_policy_application
     {
         _model = CompileModel();
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        _context = new(new(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
+        _context = new(new(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
     }
 
     void Because()
@@ -31,7 +31,7 @@ public class when_policy_bindings_conflict : given.a_policy_application
         _conflicts = SemanticPolicyNames.Conflicts(_context);
     }
 
-    [Fact] void should_name_every_protected_operation_without_throwing() => _names.Keys.ShouldContainOnly(SemanticPolicyNames.Operations(_context.AllSlices).Select(operation => operation.Id));
+    [Fact] void should_name_every_protected_operation_without_throwing() => _names.Keys.ShouldContainOnly(SemanticPolicyNames.Operations(_context.AllSlices, _context.Application.Policies).Select(operation => operation.Id));
     [Fact] void should_keep_the_deterministic_qualified_name() => _names[CommandId("IssueInvoice")].ClassName.ShouldEqual("OwnerForBillingInvoicingIssueInvoiceIssueInvoiceCommandPolicy");
     [Fact] void should_keep_the_same_name_in_a_fresh_context() => ClassOf("IssueInvoice").ShouldEqual(_names[CommandId("IssueInvoice")].ClassName);
     [Fact] void should_identify_both_conflicting_operations() => _conflicts.Single().Operations.ShouldContainOnly([CommandId("IssueInvoice"), CommandId("Block4")]);

@@ -48,6 +48,8 @@ public class CSharpCodeBuilder
     {
     }
 
+    internal IReadOnlyDictionary<string, InlineSourceLine>? SourceLines { get; init; }
+
     internal IReadOnlyCollection<string> UsingNamespaces => _usings;
 
     /// <summary>
@@ -314,9 +316,12 @@ public class CSharpCodeBuilder
             .Replace('\u0085', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n')
             .Split('\n').Select(line => line.TrimEnd())).TrimEnd();
 
+    internal CSharpCodeBuilder RawVerbatim(string text, string? requirementId) =>
+        Authored(text, true, requirementId is null ? null : SourceLines?.GetValueOrDefault(requirementId));
+
     internal CSharpCodeBuilder Inline(InlineCode code, InlineCodePlacement placement, bool verbatim = true, Action<InlineCodeDiagnostic>? reportDegradation = null)
     {
-        var issued = _inline.Issue(code, placement, _indent, verbatim);
+        var issued = _inline.Issue(code, placement, new(_indent, verbatim, SourceLines?.GetValueOrDefault(code.RequirementId)));
         foreach (var diagnostic in issued.Diagnostics)
         {
             if (diagnostic.Code == "STAGE-DEGRADE-003" && reportDegradation is not null) reportDegradation(diagnostic);
@@ -363,7 +368,7 @@ public class CSharpCodeBuilder
         return splice.Text;
     }
 
-    CSharpCodeBuilder Authored(string text, bool verbatim)
+    CSharpCodeBuilder Authored(string text, bool verbatim, InlineSourceLine? source = null)
     {
         // Legacy callers supply strings, not compiler identities or original disk bytes.
         var id = $"builder-{_inline.Slots.Count}";
@@ -373,7 +378,7 @@ public class CSharpCodeBuilder
         _inlineDiagnostics.AddRange(verified.Diagnostics);
         if (verified.Value is not { } code) return this;
         var options = new InlineCodePresentationOptions(_indent, verbatim, CSharpBodyContainment.ScopeAtEnd(_body));
-        var issued = _inline.IssueLegacy(code, options);
+        var issued = _inline.IssueLegacy(code, options, source);
         _inlineDiagnostics.AddRange(issued.Diagnostics);
         if (issued.Token is not null) _body.Append(issued.Token);
         return this;

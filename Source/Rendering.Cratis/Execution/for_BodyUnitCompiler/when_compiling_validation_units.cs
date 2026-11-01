@@ -26,7 +26,7 @@ public class when_compiling_validation_units : Specification
         emissions.ShouldEqual(1);
         cached.PeSha256.ShouldEqual(entry.PeSha256);
         cached.UnitHash.ShouldEqual(entry.UnitHash);
-        var corrupt = BodyUnitCache.PePath(directory, entry.UnitHash!);
+        var corrupt = BodyUnitCache.PePath(directory, entry.UnitHash);
         File.WriteAllText(corrupt, "not an assembly");
         BodyUnitCache.Verify(directory, entry).ShouldBeFalse();
         BodyUnitCompiler.Compile(loaded, directory, () => emissions++).Entries.Single().PeSha256.ShouldEqual(entry.PeSha256);

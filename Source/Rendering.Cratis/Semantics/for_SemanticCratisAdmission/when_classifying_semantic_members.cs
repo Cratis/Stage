@@ -51,10 +51,11 @@ public class when_classifying_semantic_members
 
     // Mapping expressions support resolved properties and protected read paths; specification values are rendered separately.
     // Refusal values exist only in reaction refusal-branch mappings, which the reactor renderer realizes.
+    // One-of selections (Screenplay 4.256) are rejected with STAGE-ESM-006, as the surface ledger records.
     [Fact]
     public void should_classify_every_mapping_expression_kind() => AssertCoverage(
         [SemanticExpressionKind.Resolved, SemanticExpressionKind.ReadPath],
-        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext, SemanticExpressionKind.Refusal]);
+        [SemanticExpressionKind.Unknown, SemanticExpressionKind.Value, SemanticExpressionKind.EventContext, SemanticExpressionKind.Refusal, SemanticExpressionKind.OneOf]);
 
     // Admission accepts null only for optional values and arrays only for collections of scalars.
     // The type emitter can construct composites, but specification admission still rejects them.

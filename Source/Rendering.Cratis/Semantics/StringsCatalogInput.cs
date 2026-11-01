@@ -38,6 +38,7 @@ internal static class StringsCatalogInput
         }
 
         var locales = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
+        var origins = new Dictionary<(string Locale, string Key), string>();
         foreach (var (path, content) in files.OrderBy(_ => _.Key, StringComparer.Ordinal))
         {
             var file = Path.GetFileName(path);
@@ -70,11 +71,23 @@ internal static class StringsCatalogInput
             {
                 foreach (var entry in StringsFile.Parse(content).Entries)
                 {
-                    if (entry.Value.Any(character => char.IsControl(character) || char.IsSurrogate(character)) ||
-                        !entries.TryAdd(entry.Key, entry.Value))
+                    if (entry.Value.Any(character => char.IsControl(character) || char.IsSurrogate(character)))
                     {
                         throw Invalid();
                     }
+
+                    if (entries.TryGetValue(entry.Key, out var existing))
+                    {
+                        if (!string.Equals(existing, entry.Value, StringComparison.Ordinal))
+                        {
+                            throw ConflictingKey(locale, entry.Key, origins[(locale, entry.Key)], path);
+                        }
+
+                        continue;
+                    }
+
+                    entries.Add(entry.Key, entry.Value);
+                    origins.Add((locale, entry.Key), path);
                 }
             }
             catch (InvalidStringsLine)
@@ -230,7 +243,10 @@ internal static class StringsCatalogInput
 
     static string SpellProgramType(string rootNamespace, string name, string scope) => rootNamespace.Split('.')[0] == name ? $"global::{scope}.{name}" : name;
 
-    static InvalidCratisBackendApplicationScaffold Invalid() => new("The strings catalog must contain well-formed .strings files and a declared default locale without duplicate keys.");
+    static InvalidCratisBackendApplicationScaffold Invalid() => new("The strings catalog must contain well-formed .strings files and a declared default locale without conflicting keys.");
+
+    static InvalidCratisBackendApplicationScaffold ConflictingKey(string locale, string key, string first, string second) =>
+        new($"The strings key '{key}' for locale '{locale}' has different values in '{first}' and '{second}'. Give it one value, or move it to a single .strings file.");
 
     internal sealed record Catalog(string DefaultLocale, SortedDictionary<string, SortedDictionary<string, string>> Locales)
     {

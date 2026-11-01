@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
@@ -189,13 +190,13 @@ internal static class GeneratedTypeNames
             foreach (var name in Names("GeneratedAuthentication", type, application.Id, "Generated")) yield return name;
         }
 
-        if (selectedSlices.Any(located => located.Slice.Commands.Any(command => command.Authorization is not null) ||
-            located.Slice.Queries.Any(query => query.Authorization is not null)))
+        if (selectedSlices.Any(located => located.Slice.Commands.Any(command => SemanticAnonymousAccess.RequiresCaller(command.Authorization, application.Policies)) ||
+            located.Slice.Queries.Any(query => SemanticAnonymousAccess.RequiresCaller(query.Authorization, application.Policies))))
         {
             foreach (var name in Names("GeneratedPolicies", "PolicyValues", application.Id, "Generated")) yield return name;
             var declared = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var operation in selectedSlices.SelectMany(located => located.Slice.Commands.Where(command => command.Authorization is not null).Select(command => command.Id)
-                .Concat(located.Slice.Queries.Where(query => query.Authorization is not null).Select(query => query.Id))))
+            foreach (var operation in selectedSlices.SelectMany(located => located.Slice.Commands.Where(command => SemanticAnonymousAccess.RequiresCaller(command.Authorization, application.Policies)).Select(command => command.Id)
+                .Concat(located.Slice.Queries.Where(query => SemanticAnonymousAccess.RequiresCaller(query.Authorization, application.Policies)).Select(query => query.Id))))
             {
                 if (policyClassName is null || !declared.Add(policyClassName(operation))) continue;
                 foreach (var name in Names(policiesNamespace, policyClassName(operation), operation, "Generated", generated: true)) yield return name;

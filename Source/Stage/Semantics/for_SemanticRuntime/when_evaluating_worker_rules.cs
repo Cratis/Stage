@@ -79,8 +79,8 @@ public class when_evaluating_worker_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("rules"), "rules", "Rules.play", source);
         var result = new SemanticModelCompiler().Compile("Rules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(result.Success, string.Join(';', result.Diagnostics));
-        var model = result.Value!.Model;
-        return new(model, SemanticExecutionPlan.Compile(model).Plan!)
+        var model = result.Value.Model;
+        return new(model, SemanticExecutionPlan.Compile(model).Plan)
         {
             ImplementationRequirements = result.ImplementationRequirements,
             ImplementationContents = SemanticImplementationBodies.Resolve(result.Value.Documents, result.ImplementationRequirements)

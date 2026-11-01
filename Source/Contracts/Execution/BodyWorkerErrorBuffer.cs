@@ -6,6 +6,7 @@ using System.Text;
 namespace Cratis.Stage.Contracts.Execution;
 
 /// <summary>Retains bounded diagnostic text while the child error stream continues draining.</summary>
+/// <param name="maximumBytes">The maximum number of UTF-8 bytes retained.</param>
 internal sealed class BodyWorkerErrorBuffer(int maximumBytes)
 {
     readonly StringBuilder _text = new();

@@ -33,6 +33,16 @@ Every file is optional. Without them, the application builds and runs as rendere
   that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
   before rendering React. An application rendered before these hooks existed has neither; render it again first.
 
+Before starting the backend, start the rendered development services with Docker Compose v2 supporting `--wait`:
+
+```bash
+docker compose up -d --wait
+```
+
+The generated compose file checks Chronicle's TLS `/health` endpoint on port 35000. The command waits for
+Chronicle to become healthy before returning, so the backend does not try to connect while the kernel is still
+starting. Follow the generated README's `dotnet run` step after this command completes.
+
 The rendered `Program.cs` provides the hooks:
 
 ```csharp title="Program.cs (managed)"
@@ -206,6 +216,39 @@ in a secret store or environment variables, not in files under `Customizations/`
 The host's own sign-in settings use the same mechanism. See
 [Sign in with Microsoft Entra ID](sign-in-with-entra-id.md) for the `Cratis:Authentication` keys.
 
+## Behind an authenticating proxy
+
+Generated applications register Arc's Microsoft Identity Platform header authentication scheme. Forwarded
+`x-ms-client-principal*` headers are ignored by default. To accept identity from an authenticating proxy, opt in
+with the environment variable `Cratis__Arc__TrustForwardedIdentityHeaders=true`, or configure Arc through the
+existing services hook:
+
+```csharp title="Customizations/Program.cs"
+using Cratis.Arc;
+
+public partial class Program
+{
+    static partial void ConfigureServices(WebApplicationBuilder builder)
+    {
+        builder.Services.Configure<ArcOptions>(options => options.TrustForwardedIdentityHeaders = true);
+    }
+}
+```
+
+Keep this hook in the global namespace and do not edit the managed `appsettings.json`. Without a trusted
+identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers.
+
+:::danger
+These are ordinary request headers: anyone can forge them. Enable this option only when every request passes
+through a trusted authenticating proxy that strips incoming identity headers and sets its own, and the backend
+cannot be reached directly. Examples include Azure App Service authentication and Cratis AuthProxy.
+:::
+
+Outside the Development environment, Arc's discovery endpoints (`/.cratis/commands`, `/.cratis/queries`,
+`/.cratis/users`, `/.cratis/tenants` and `/.cratis/identity-details/schema`) also require an authenticated caller.
+The generated frontend does not use these discovery catalogs. The Docker sandbox keeps this secure default;
+its persona is not a proxy identity and does not authenticate discovery requests.
+
 ## Add project and package references
 
 The rendered project file imports `Customizations/Dependencies.props` when it exists. Use it to move adapters into
@@ -298,7 +341,8 @@ that has one.
   ASP.NET Core authorization yourself. Modeled authorization covers only the artifacts Stage renders. When you turn on
   [Entra ID sign-in](sign-in-with-entra-id.md), the perimeter covers your endpoints too: every route except `GET` and
   `HEAD` on `/healthz` requires sign-in, whatever your endpoint declares. It decides who is signed in; it does not add
-  authorization policies to your code.
+  authorization policies to your code. For forwarded identity, see
+  [Behind an authenticating proxy](#behind-an-authenticating-proxy).
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
   generated middleware. You cannot place middleware before static files or Cratis through this hook. With Entra ID
   sign-in enabled, the authentication perimeter runs right after `Build`, before static files, `UseCratis` and your

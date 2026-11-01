@@ -58,7 +58,15 @@ internal static class BodyValueMaterializer
     static object Text(SemanticTextValue text, Type type, BodyUnitEntry unit)
     {
         if (_textReaders.TryGetValue(type, out var parse)) return parse(text.Value);
-        return type.IsEnum ? Enum.Parse(type, text.Value, ignoreCase: false) : Concept(text, type, unit);
+        return type.IsEnum ? EnumMember(text, type, unit) : Concept(text, type, unit);
+    }
+
+    // A reducer unit maps authored enum values to their rendered members; other units parse the member name.
+    static object EnumMember(SemanticTextValue text, Type type, BodyUnitEntry unit)
+    {
+        var prefix = type.FullName + ".";
+        var member = unit.EnumValues.FirstOrDefault(pair => pair.Key.StartsWith(prefix, StringComparison.Ordinal) && pair.Value == text.Value).Key;
+        return Enum.Parse(type, member is null ? text.Value : member[prefix.Length..], ignoreCase: false);
     }
 
     static object Number(decimal number, Type type)

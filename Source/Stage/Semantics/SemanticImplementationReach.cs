@@ -48,8 +48,8 @@ internal static class SemanticImplementationReach
         return ForSpecification(plan, specification, bodies);
     }
 
-    internal static SemanticUnsupportedCapability? ForQuery(SemanticExecutionPlan plan, SemanticKeyedQuery query) =>
-        First(plan, new([], [query.Id], null), (reducer, _) => reducer.ReadModel == query.ReadModel);
+    internal static SemanticUnsupportedCapability? ForQuery(SemanticExecutionPlan plan, SemanticKeyedQuery query, SemanticBodyExecution? bodies = null) =>
+        First(plan, new([], [query.Id], bodies), (reducer, _) => reducer.ReadModel == query.ReadModel);
 
     internal static SemanticUnsupportedCapability? ForFact(SemanticExecutionPlan plan, SemanticId @event, SemanticEventRoute? route, SemanticBodyExecution? bodies = null) =>
         First(
@@ -89,7 +89,7 @@ internal static class SemanticImplementationReach
         foreach (var concept in plan.Model.Application.Concepts.Where(concept => concepts.Contains(concept.Id)))
         {
             var execution = queriedConcepts.Contains(concept.Id) ? null : bodies;
-            if (ConceptRefusals(concept, execution).FirstOrDefault() is { } refusal) return refusal;
+            if (ConceptRefusals(concept, execution, queriedConcepts.Contains(concept.Id)).FirstOrDefault() is { } refusal) return refusal;
         }
 
         return SliceRefusal(slices, selection, reaches);
@@ -98,15 +98,31 @@ internal static class SemanticImplementationReach
     // Concepts precede module contents in the model. Within modules, keep slice and declaration order.
     static SemanticUnsupportedCapability? SliceRefusal(IEnumerable<SemanticSlice> slices, SemanticImplementationSelection selection, Func<SemanticReducer, SemanticReducerTransition, bool> reaches) =>
         slices.Select(slice => slice.Commands.Where(command => selection.Commands.Contains(command.Id))
-            .Select(command => CommandRefusal(command, selection.Bodies)).FirstOrDefault(refusal => refusal is not null) ?? ReducerRefusal(slice, reaches))
+            .Select(command => CommandRefusal(command, selection.Bodies)).FirstOrDefault(refusal => refusal is not null) ?? ReducerRefusal(slices, slice, reaches, selection.Bodies))
             .FirstOrDefault(refusal => refusal is not null);
 
-    static SemanticUnsupportedCapability? ReducerRefusal(SemanticSlice slice, Func<SemanticReducer, SemanticReducerTransition, bool> reaches) =>
-        slice.Reducers.Select(reducer => ReducerRefusal(reducer, reducer.Transitions.FirstOrDefault(transition => reaches(reducer, transition))))
-            .FirstOrDefault(refusal => refusal is not null);
+    static SemanticUnsupportedCapability? ReducerRefusal(IEnumerable<SemanticSlice> slices, SemanticSlice slice, Func<SemanticReducer, SemanticReducerTransition, bool> reaches, SemanticBodyExecution? bodies) =>
+        slice.Reducers.Where(reducer => reducer.Transitions.Any(transition => reaches(reducer, transition)))
+            .Select(reducer => ReducerRefusal(slices, reducer, bodies)).FirstOrDefault(refusal => refusal is not null);
 
-    static SemanticUnsupportedCapability? ReducerRefusal(SemanticReducer reducer, SemanticReducerTransition? transition) => transition is null ? null :
+    // A reached reducer folds every one of its transitions, so each must be admitted, and only the shapes
+    // Screenplay's reducer execution supports are admitted at all.
+    static SemanticUnsupportedCapability? ReducerRefusal(IEnumerable<SemanticSlice> slices, SemanticReducer reducer, SemanticBodyExecution? bodies)
+    {
+        var pending = reducer.Transitions.FirstOrDefault(transition => bodies?.IsAdmitted(transition.RequirementId) != true);
+        if (bodies is null && pending is not null) return TransitionRefusal(reducer, pending);
+        if (reducer.Target != SemanticProjectionTargetKind.ReadModel)
+            return ShapeRefusal(reducer, "publishes its state as an event; event-target reducers are");
+        if (slices.SelectMany(slice => slice.Projections).Any(projection => projection.ReadModel == reducer.ReadModel))
+            return ShapeRefusal(reducer, "builds a read model that also has a projection; mixed projection and reducer read models are");
+        return pending is null ? null : RuleRefusal(TransitionRefusal(reducer, pending), pending.RequirementId, bodies);
+    }
+
+    static SemanticUnsupportedCapability TransitionRefusal(SemanticReducer reducer, SemanticReducerTransition transition) =>
         Refusal(StageExecutionCapability.Projection, reducer.ReadModel, SemanticImplementationRole.ReducerTransition, $"Reducer '{reducer.Name}' transition '{transition.RequirementId}'");
+
+    static SemanticUnsupportedCapability ShapeRefusal(SemanticReducer reducer, string shape) =>
+        new(StageExecutionCapability.Projection, reducer.ReadModel.ToString(), $"{Code}: Reducer '{reducer.Name}' {shape} not executed by `cratis run` yet (Stage#891, not scheduled).");
 
     static HashSet<SemanticId> Concepts(SemanticApplicationContext context, IEnumerable<SemanticTypeReference> types) =>
         [.. types.SelectMany(type => SemanticValueShapeAdmission.Closure(context, type))
@@ -114,19 +130,27 @@ internal static class SemanticImplementationReach
 
     static bool IncludeProperty(SemanticProperty property, SemanticBodyExecution? bodies) => bodies is null || !property.IsGenerated;
 
-    static IEnumerable<SemanticUnsupportedCapability> ConceptRefusals(SemanticConcept concept, SemanticBodyExecution? bodies) =>
+    static IEnumerable<SemanticUnsupportedCapability> ConceptRefusals(SemanticConcept concept, SemanticBodyExecution? bodies, bool queryArguments = false) =>
         concept.Validations.Where(rule => Opaque(rule.Kind) && !Admitted(rule, bodies))
-            .Select(rule => RuleRefusal(Refusal(StageExecutionCapability.Command, concept.Id, ConceptRole(rule), $"Concept '{concept.Name}' validation '{rule.RequirementId}'"), rule.RequirementId, bodies));
+            .Select(rule => ConceptRuleRefusal(concept, rule, bodies, queryArguments));
+
+    static SemanticUnsupportedCapability ConceptRuleRefusal(SemanticConcept concept, SemanticValidationRule rule, SemanticBodyExecution? bodies, bool queryArguments)
+    {
+        var refusal = Refusal(StageExecutionCapability.Command, concept.Id, ConceptRole(rule), $"Concept '{concept.Name}' validation '{rule.RequirementId}'");
+        return queryArguments && rule.Kind == SemanticValidationRuleKind.CodeValidation
+            ? refusal with { Details = "Code validations on query arguments are not executed by `cratis run` yet (Stage#891, not scheduled)." }
+            : RuleRefusal(refusal, rule.RequirementId, bodies);
+    }
 
     static bool Admitted(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
-        rule.Kind == SemanticValidationRuleKind.RulePredicate && bodies?.IsAdmitted(rule.RequirementId) == true;
+        rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true;
 
     static bool AdmittedCommandRule(SemanticCommand command, SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
         !command.Properties.Any(property => property.Id == rule.Property && property.IsGenerated) && Admitted(rule, bodies);
 
     static SemanticUnsupportedCapability? CommandRefusal(SemanticCommand command, SemanticBodyExecution? bodies)
     {
-        var requirement = command.CodeValidations.Select(validation => validation.RequirementId)
+        var requirement = command.CodeValidations.Where(validation => bodies?.IsAdmitted(validation.RequirementId) != true).Select(validation => validation.RequirementId)
             .Concat(command.Validations.Where(rule => Opaque(rule.Kind) && !AdmittedCommandRule(command, rule, bodies)).Select(rule => rule.RequirementId)).FirstOrDefault();
         return requirement is null ? null : RuleRefusal(Refusal(StageExecutionCapability.Command, command.Id, CommandRole(command), $"Command '{command.Name}' validation '{requirement}'"), requirement, bodies);
     }

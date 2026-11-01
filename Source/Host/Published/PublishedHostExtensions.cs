@@ -46,7 +46,7 @@ internal static class PublishedHostExtensions
 {
     internal const string Notes = "Notes";
 
-    static readonly List<IPublishedHostExtension> _registered = [];
+    static readonly List<IPublishedHostExtension> _registered = [new NotesPublishedExtension()];
 
     internal static IReadOnlyList<IPublishedHostExtension> Registered => _registered;
 

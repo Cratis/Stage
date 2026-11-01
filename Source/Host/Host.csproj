@@ -31,6 +31,7 @@
         -->
         <PackageReference Include="Cratis.Chronicle" />
         <PackageReference Include="Cratis.Chronicle.AspNetCore" />
+        <PackageReference Include="Cratis.Showrunner.Notes" />
         <PackageReference Include="Scalar.AspNetCore" />
         <PackageReference Include="Yarp.ReverseProxy" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

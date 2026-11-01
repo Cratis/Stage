@@ -128,7 +128,7 @@ internal static class SemanticHost
         }
         else
         {
-            ModelReferencesEndpoint.Map(app, package!.Manifest);
+            ModelReferencesEndpoint.Map(app, package!.Manifest, PublishedHostExtensions.NotesEnabled(published!, package.Manifest));
         }
 
         UseReadinessGate(app, () => world, issues);

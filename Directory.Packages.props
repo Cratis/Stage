@@ -7,15 +7,16 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
-    <PackageVersion Include="Cratis" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Fundamentals" Version="7.27.0" />
-    <PackageVersion Include="Cratis.Arc" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.146.0" />
-    <PackageVersion Include="Cratis.Arc.Testing" Version="22.146.0" />
+    <PackageVersion Include="Cratis" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Fundamentals" Version="7.27.1" />
+    <PackageVersion Include="Cratis.Arc" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.Chronicle.Testing" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.MongoDB" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.Screenplay" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.Swagger" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Arc.Testing" Version="22.155.0" />
+    <PackageVersion Include="Cratis.Showrunner.Notes" Version="99.0.0-local" />
     <!--
         The Chronicle client packages are pinned here AND referenced directly from Stage and Host - central package
         management only pins what a project references directly, so a version that arrives transitively through the

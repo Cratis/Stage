@@ -94,7 +94,7 @@ public class when_starting_with_the_shared_executor : Specification
     [Fact] void should_keep_the_host_ready_after_a_run() => _stageStatus.State.ShouldEqual("ready");
     [Fact] void should_run_the_specification_in_the_child() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_have_no_kernel_or_testing_dependencies() => _dependencies.Where(name => new[] { "Cratis.Chronicle.Core", "Cratis.Chronicle.Grpc" }.Contains(name, StringComparer.Ordinal) || name.Contains(".Testing", StringComparison.Ordinal)).ShouldBeEmpty();
-    [Fact] void should_discover_only_stage_command_handlers() => _handlers.Where(name => !new[] { "Cratis.Stage", "Cratis.Stage.Host", "Stage.Generated" }.Contains(name, StringComparer.Ordinal)).ShouldBeEmpty();
+    [Fact] void should_discover_only_stage_and_notes_command_handlers() => _handlers.Where(name => !new[] { "Cratis.Stage", "Cratis.Stage.Host", "Stage.Generated", "Cratis.Showrunner.Notes" }.Contains(name, StringComparer.Ordinal)).ShouldBeEmpty();
 
     async Task Destroy()
     {

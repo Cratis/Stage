@@ -140,6 +140,12 @@ Optional keys:
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `Stage:Published:Chronicle:ClientId`, `…ClientSecret` (or `…ClientSecretFile`) | Credentials the host presents to its Chronicle kernel. Both or neither. |
 | `Stage:Published:Notes:Enabled`               | Hosts the Notes backend. Defaults to the manifest's `notesEnabled`.                                      |
+| `Notes:ApplicationName`, `Notes:PublicationId` | Required when Notes is enabled. The name the receiving side sees on every note, and the publication the application runs as. |
+| `Notes:Transport`                             | `SameKernel` (default) or `Http`. With `Http`, also `Notes:CollectorUrl`, `Notes:CollectorTokenFile` (or `Notes:CollectorToken`) and `Notes:CollectorTenantId`. |
+
+The `Notes` section is the `NotesOptions` of the Showrunner Notes backend, so every option it documents can be set from the
+environment, for example `Notes__Transport=Http`. The host refuses to start, naming what is missing, when Notes is enabled and
+the options are incomplete. The browser gets the feedback button and the slice markers only when Notes is enabled.
 
 The package must also be intact (digest matches), require this runtime version and declare an authentication
 requirement. Anything else exits with code `78` and a message on standard error.

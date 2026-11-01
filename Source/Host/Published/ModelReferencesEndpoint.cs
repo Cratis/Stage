@@ -7,7 +7,7 @@ using Cratis.Stage.Publishing;
 namespace Cratis.Stage.Host.Published;
 
 /// <summary>
-/// Serves the model reference map to the frontend, so feedback can carry the identifiers of the elements it is about.
+/// Serves the model reference map to the frontend, so feedback can carry the identifiers of the elements it is about, and says whether the Notes backend is hosted.
 /// </summary>
 internal static class ModelReferencesEndpoint
 {
@@ -16,19 +16,20 @@ internal static class ModelReferencesEndpoint
     /// </summary>
     internal const string Route = "/stage/model-references";
 
-    internal static object Document(PackageManifest manifest) => new
+    internal static object Document(PackageManifest manifest, bool notesEnabled) => new
     {
         applicationName = manifest.ApplicationName,
         publishedName = manifest.PublishedName,
         applicationVersion = manifest.ApplicationVersion,
         publicationId = manifest.PublicationId,
-        references = manifest.ModelReferences
+        references = manifest.ModelReferences,
+        notesEnabled
     };
 
-    internal static void Map(WebApplication app, PackageManifest manifest) =>
+    internal static void Map(WebApplication app, PackageManifest manifest, bool notesEnabled) =>
         app.MapGet(Route, (HttpContext context) =>
         {
             context.Response.Headers.CacheControl = "no-store";
-            return Results.Json(Document(manifest), StageJson.Options);
+            return Results.Json(Document(manifest, notesEnabled), StageJson.Options);
         });
 }

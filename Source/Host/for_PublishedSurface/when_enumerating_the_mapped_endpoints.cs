@@ -23,7 +23,7 @@ public class when_enumerating_the_mapped_endpoints
 
         // What the published host maps itself. Tooling is mapped nowhere; this is the same set SemanticHost maps when published.
         SemanticHost.MapStatus(app, () => new StageStatus("ready", null, null));
-        ModelReferencesEndpoint.Map(app, _manifest);
+        ModelReferencesEndpoint.Map(app, _manifest, false);
         app.MapGet("/api/orders", () => "ok");
         extra?.Invoke(app);
         app.MapFallback(() => Results.Text("page"));

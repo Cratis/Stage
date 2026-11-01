@@ -33,7 +33,8 @@ internal abstract record SceneGuardConversion
     {
         internal override GuardCondition ToCondition() => new ComparisonGuardCondition(
             SceneGuards.SubjectReferenceFor(Path),
-            Enum.TryParse<GuardOperator>(Operation, out var operation) ? operation : (GuardOperator)(-1),
+            Enum.TryParse<GuardOperator>(Operation, out var operation) && (operation != GuardOperator.Contains || Value is string)
+                ? operation : (GuardOperator)(-1),
             UnsupportedExpression is { } kind ? new { unsupported = kind } : Value,
             Enumeration);
 

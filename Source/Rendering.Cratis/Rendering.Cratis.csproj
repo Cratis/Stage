@@ -100,6 +100,10 @@
         <EmbeddedResource Include="Naming/Imports/FrameworkNames.catalog" LogicalName="Cratis.Stage.Rendering.Cratis.Naming.Imports.FrameworkNames.catalog" />
     </ItemGroup>
     <ItemGroup>
+        <!-- The source of the files an application rendered with authentication or onboarding gets. -->
+        <EmbeddedResource Include="Realization/Templates/*.txt" LogicalName="Cratis.Stage.Rendering.Cratis.Realization.%(Filename)%(Extension)" WithCulture="false" />
+    </ItemGroup>
+    <ItemGroup>
         <!-- One tenant translation implementation serves the Stage runtime and generated providers. -->
         <EmbeddedResource Include="../Stage/Runtime/PortableTenantValues.cs" LogicalName="PortableTenantValues.cs" />
         <EmbeddedResource Include="../Stage/Runtime/AmbiguousTenant.cs" LogicalName="AmbiguousTenant.cs" />
@@ -141,6 +145,9 @@
             <_ScaffoldPackage Include="xunit.runner.visualstudio" Constant="XunitRunner" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'xunit.runner.visualstudio')->Metadata('Version'))" />
             <_ScaffoldPackage Include="@cratis/stage.runtime" Constant="StageRuntime" PinVersion="$(Version)" />
             <_ScaffoldPackage Include="Aspire.Hosting.AppHost" Constant="AspireAppHost" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Aspire.Hosting.AppHost')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Ante.Contracts" Constant="AnteContracts" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Ante.Contracts')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Showrunner.Herald" Constant="Herald" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.Herald')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Chronicle.ForAnte" Constant="AnteChronicle" PinVersion="$(AnteContractsChronicleVersion)" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

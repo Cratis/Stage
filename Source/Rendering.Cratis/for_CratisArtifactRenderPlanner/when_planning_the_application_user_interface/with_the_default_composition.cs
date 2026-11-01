@@ -21,7 +21,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
-    const string Before = "6962807e9e2014379c636c9807e16a80b4ad98272ee861534ac0a0559e754427";
+    // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
+    const string Before = "e8e0ed90849a3232a53c0eeb6bd07728da344521c85b3e60151f6c7f2576e0d6";
 
     ArtifactRenderPlan _plan = null!;
 

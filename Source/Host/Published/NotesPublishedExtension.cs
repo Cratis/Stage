@@ -24,14 +24,16 @@ internal sealed class NotesPublishedExtension : IPublishedHostExtension
             throw new PublishedModeRefused(problems);
         }
 
+        // Registered before Notes' own workers so the event types are known to the store by the time they need them.
+        context.Builder.Services.AddHostedService<NotesChronicleRegistration>();
         context.Builder.AddNotes(notes => Bind(context.Builder.Configuration, notes));
     }
 
     /// <inheritdoc/>
     public void MapEndpoints(WebApplication app, PublishedHostContext context)
     {
-        // Notes' commands and queries are served by Arc's discovery of the referenced assembly. Registering its events, reactors and
-        // read models with Chronicle depends on the client's artifact discovery, which Stage's own registration currently turns off.
+        // Notes' commands and queries are served by Arc's discovery of the referenced assembly. Its events, reactors and read models
+        // are registered with Chronicle by NotesChronicleRegistration, not by the client's own discovery, which Stage turns off.
         // The collecting endpoints belong to the receiving side and are not mapped here.
     }
 

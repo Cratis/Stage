@@ -80,7 +80,18 @@ public static class CratisServiceConfiguration
                 // seed it here so read models containing polymorphic types round-trip.
                 options.JsonSerializerOptions.Converters.Add(new DerivedTypeJsonConverterFactory(DerivedTypes.Instance));
             },
-            configureChronicleBuilder: chronicleBuilder => chronicleBuilder.WithCamelCaseNamingPolicy());
+            configureChronicleBuilder: chronicleBuilder =>
+            {
+                chronicleBuilder.WithCamelCaseNamingPolicy();
+
+                // Nothing discovers on its own here (see AutoDiscoverAndRegister above), but when the published host
+                // registers the Notes artifacts it is this provider the client discovers them from. Scoping it to the
+                // Notes assemblies keeps the rest of the process out of Chronicle.
+                if (published is not null)
+                {
+                    chronicleBuilder.WithArtifactsProvider(NotesChronicleArtifacts.CreateProvider());
+                }
+            });
 
         if (published is null)
         {

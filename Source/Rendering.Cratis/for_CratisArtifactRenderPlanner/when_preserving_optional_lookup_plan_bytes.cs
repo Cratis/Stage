@@ -37,7 +37,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
     // Re-frozen for #660: the only artifact-byte delta in all four views is CratisReadProtection=On in Directory.Build.props.
     // Re-frozen for #741 (.gitignore gains .yarn/) and #874 (Debug Chronicle.Testing telemetry dependency).
     // The attribution spec below restores both prior full-plan digests without changing any model or emitted C#.
-    // Re-frozen for #494: artifacts without explicit authorization defer to host defaults in every pinned view.
+    // Re-frozen for #494 (artifacts without explicit authorization defer to host defaults in every pinned view) and Scene 4.86.0.
     [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(QualifiedCommonOutput.Restore(_plan, () => invoice_model.Plan(_model)))).ShouldEqual("c73d37143c553e84c656bb3d4f2a46e36b73e4eeee87efa85918256a44b6f7d5");
 
     // Re-frozen for #424: generated C# uses short type names and using directives; the qualified restore above still matches.

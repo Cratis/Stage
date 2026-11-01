@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -11,6 +12,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+// Each fact installs and compiles a different application, so it requires an independent workspace and artifact hashes.
+[PerFactSpecificationLifecycle]
 public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_application
 {
     protected override bool DeferPlan => true;

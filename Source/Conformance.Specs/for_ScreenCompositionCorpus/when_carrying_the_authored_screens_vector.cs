@@ -49,6 +49,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
+    // Re-frozen for Scene 4.86.0: the guarded Details and List fragments each gain 14 bytes.
     [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ab84b541d8c0e601987b690a079acc823ecd40329838ca5848567e1e674c9503");
     [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24309);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
@@ -66,7 +67,8 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for #494: artifacts without explicit authorization defer to host defaults in both pinned views.
+    // Re-frozen for #494 (artifacts without explicit authorization defer to host defaults in both pinned views)
+    // and Scene 4.86.0 (only the authored Scene bytes change).
     [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("9c59eac824c132fb4e0121fa36aa500732d1d756148610ded2d19d171f21c69c");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
@@ -74,6 +76,7 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+    // Re-frozen for #494 (host-default authorization) and Scene 4.86.0 (authored Scene bytes).
     [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("03bf087d9fb44f69c7285b373012042f356fad618047fbf5b5ba49d226e37445");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270

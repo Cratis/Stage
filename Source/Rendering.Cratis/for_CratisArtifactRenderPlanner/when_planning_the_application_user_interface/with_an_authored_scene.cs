@@ -23,7 +23,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0 and Screenplay 4.259.0: native guarded-action serialization and restored guard/message bridges.
-    const string Before = "3fcb8e5918ef2e47b1522006d61a113fd75251e29c017bc60b2663b8252753cd";
+    const string Before = "d54aad9c0e5682a94b15ae6b9c2fc4c5ea1aea5c39df84f2b172de186b4bdcd0";
 
     ArtifactRenderPlan _plan = null!;
 

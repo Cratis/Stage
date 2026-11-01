@@ -4,6 +4,11 @@
 
 set -e
 
+# A published application is started by its own script: persistent storage, authentication and no tooling surfaces.
+if [ "${Stage__Mode:-}" = "Published" ] || [ "${1:-}" = "--published" ]; then
+    exec /bin/bash "$(dirname "${BASH_SOURCE[0]}")/entrypoint-published.sh" "$@"
+fi
+
 # A warm container intentionally starts without a model. Cold starts validate only the selected input
 # before either process starts; implementation-file references remain symbolic.
 input="${1:-/eventmodel}"

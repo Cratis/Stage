@@ -26,11 +26,21 @@ trap cleanup EXIT
 
 docker run --detach --name "$container" --publish "127.0.0.1:$port:9090" --volume "$here/model:/eventmodel:ro" "$image" >/dev/null \
     || { echo "could not run: the Stage image $image did not start"; exit 2; }
+ready=false
+deadline=$((SECONDS + 180))
 for _ in $(seq 1 90); do
-    curl --silent --fail --output /dev/null "http://127.0.0.1:$port/stage/status" && break
-    sleep 2
+    remaining=$((deadline - SECONDS))
+    (( remaining > 0 )) || break
+    state=$(curl --silent --fail --max-time "$((remaining < 2 ? remaining : 2))" "http://127.0.0.1:$port/stage/status" | node -pe 'try { JSON.parse(require("fs").readFileSync(0, "utf8")).state || "" } catch { "" }')
+    case "$state" in
+        ready) ready=true; break ;;
+        unsupported) docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage reported unsupported"; exit 2 ;;
+    esac
+    remaining=$((deadline - SECONDS))
+    (( remaining > 0 )) || break
+    sleep "$((remaining < 2 ? remaining : 2))"
 done
-curl --silent --fail --output /dev/null "http://127.0.0.1:$port/stage/status" || { docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage did not become ready"; exit 2; }
+$ready || { docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage did not become ready"; exit 2; }
 
 NODE_PATH="$here/../generated-react-browser/node_modules${NODE_PATH:+:$NODE_PATH}" \
 STAGE_LIVE_URL="http://127.0.0.1:$port" STAGE_LIVE_RESULT="$results/live-navigation.json" STAGE_LIVE_SCREENSHOTS="$results" \

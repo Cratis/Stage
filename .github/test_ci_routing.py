@@ -256,22 +256,37 @@ class RoutingTests(unittest.TestCase):
 
     def test_every_job_gates_draft_pull_requests_without_skipping_other_events(self):
         self.assertTrue(JOBS)
+        # nightly-red is not a pull request job: it only runs on schedule or the manual alert dry run.
         for job, definition in JOBS.items():
+            if job == "nightly-red":
+                continue
             with self.subTest(job=job):
                 self.assertIn(DRAFT_GATE, definition)
 
-    def test_pull_requests_start_heavy_lanes_only_after_build_and_specs(self):
-        live_packages_gate = f"""    needs: [preflight, routing, dotnet-build, specs]
-    # Pull requests start heavy lanes only after build and specs pass; nightly/manual runs keep full coverage.
+    def test_nightly_alert_runs_only_on_red_schedule_or_manual_dry_run(self):
+        job = JOBS["nightly-red"]
+        condition = """    if: >-
+      always() && ((github.event_name == 'schedule' && (needs.build.result != 'success' || needs.routed-checks.result != 'success'))
+      || (github.event_name == 'workflow_dispatch' && inputs.test-nightly-alert))
+"""
+        self.assertIn(condition, job)
+        self.assertNotIn("pull_request", job)
+        self.assertTrue(job.startswith("    needs: [build, routed-checks]\n"))
+        self.assertIn("test-nightly-alert:", WORKFLOW.split("jobs:\n", 1)[0])
+        self.assertIn("NIGHTLY_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}", job)
+
+    def test_heavy_lanes_need_the_build_but_run_in_parallel_with_specs(self):
+        live_packages_gate = f"""    needs: [preflight, routing, dotnet-build]
+    # Pull requests start heavy lanes after the build passes, in parallel with the spec shards; nightly/manual runs keep full coverage.
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && (github.event_name != 'pull_request' || (needs.dotnet-build.result == 'success' && needs.specs.result == 'success'))"""
+      && (github.event_name != 'pull_request' || needs.dotnet-build.result == 'success')"""
         # Lanes that reuse the Debug build output cannot run without it, on any trigger.
-        gate = f"""    needs: [preflight, routing, dotnet-build, specs]
-    # Lanes reuse the Debug build output, so they need a passing build; pull requests also wait for specs.
+        gate = f"""    needs: [preflight, routing, dotnet-build]
+    # Lanes reuse the Debug build output, so they need a passing build; they run in parallel with the spec shards.
     if: >-
       !cancelled() && ({DRAFT_GATE}) && needs.preflight.result == 'success' && needs.routing.result == 'success'
-      && needs.dotnet-build.result == 'success' && (github.event_name != 'pull_request' || needs.specs.result == 'success')"""
+      && needs.dotnet-build.result == 'success'"""
         standalone_gate = f"""    needs: [preflight, routing, dotnet-build]
     # Unlike the other heavy lanes, this one starts as soon as the build passes, next to the spec shards: it is
     # part of the required `build` aggregate, so waiting for the shards first put both on the critical path.
@@ -284,6 +299,12 @@ class RoutingTests(unittest.TestCase):
         self.assertTrue(JOBS["live-custom-packages"].startswith(live_packages_gate), "live-custom-packages")
         for job in heavy - {"live-custom-packages"}:
             self.assertTrue(JOBS[job].startswith(gate), job)
+        for job in heavy:
+            self.assertNotIn("specs", JOBS[job].split("runs-on:")[0].replace("spec shards", ""), job)
+        # Coverage is unchanged: the aggregates still require the spec shards and every routed lane.
+        self.assertIn("specs", JOBS["build"].splitlines()[0])
+        self.assertIn("SPECS_RESULT\" = success", JOBS["build"])
+        self.assertTrue(JOBS["routed-checks"].startswith("    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]\n"))
         self.assertTrue(JOBS["generated-react"].startswith(gate + "\n    runs-on:"), "generated-react")
         self.assertTrue(
             JOBS["standalone-generated-application"].startswith(standalone_gate + "\n    runs-on:"),
@@ -386,6 +407,21 @@ class NightlyTests(unittest.TestCase):
             self.assertEqual(("issue", "create"), calls[-1].args[:2])
             if not labels:
                 self.assertEqual(("label", "create", "ci-nightly-red"), calls[-2].args[:3])
+
+    def test_missing_label_with_empty_gh_output_is_created(self):
+        # gh prints nothing (not []) for an empty `label list --json`; json.loads("") broke the alert (#632).
+        calls = self.report([json.dumps({"workflow_runs": []}), "[]", "", "", ""])
+        self.assertEqual(5, len(calls))
+        self.assertEqual(("label", "create", "ci-nightly-red"), calls[-2].args[:3])
+        self.assertEqual(("issue", "create"), calls[-1].args[:2])
+
+    def test_dry_run_reads_but_never_writes(self):
+        with patch.dict(os.environ, NIGHTLY_DRY_RUN="true"), contextlib.redirect_stdout(io.StringIO()) as output:
+            calls = self.report([json.dumps({"workflow_runs": []}), ""])
+        self.assertEqual(2, len(calls))
+        self.assertEqual({"api", "issue"}, {call.args[0] for call in calls})
+        self.assertNotIn("create", {call.args[1] for call in calls})
+        self.assertIn("Dry run", output.getvalue())
 
     def test_api_failure_propagates_without_retry_or_issue_mutation(self):
         with self.assertRaises(RuntimeError):

@@ -267,8 +267,7 @@ jobs:
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
   reducer-mongo:
     needs: [preflight, routing, dotnet-build]
-    # Lanes reuse the Debug build output, so they need a passing build; they run in parallel with the spec shards
-    # (the build aggregate still requires every shard) for the fastest pull request feedback.
+    # Lanes reuse the Debug build output, so they need a passing build; they run in parallel with the spec shards.
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success'

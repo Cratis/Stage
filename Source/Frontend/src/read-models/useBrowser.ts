@@ -44,12 +44,14 @@ export function useBrowser() {
     useEffect(() => {
         const controller = new AbortController();
         const load = async () => {
+            let readModels: Summary[] | undefined;
             try {
                 const list = await read<{ readModels: Summary[] }>(endpoints.readModels, controller.signal, false);
+                readModels = list.readModels;
                 const detail = selectedId ? await read<Detail>(endpoints.readModel(selectedId), controller.signal, true) : undefined;
                 if (!controller.signal.aborted) setState({ loading: false, readModels: list.readModels, detail });
             } catch (error) {
-                if (!controller.signal.aborted) setState({ loading: false, message: error instanceof Error ? error.message : 'Could not read the session\'s read models.' });
+                if (!controller.signal.aborted) setState({ loading: false, readModels, message: error instanceof Error ? error.message : 'Could not read the session\'s read models.' });
             }
         };
         void load();

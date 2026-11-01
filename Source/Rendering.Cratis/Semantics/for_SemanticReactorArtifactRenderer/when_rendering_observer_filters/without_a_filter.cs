@@ -9,6 +9,6 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactorArtifactRen
 public class without_a_filter : for_SemanticReactionSpecificationRenderer.given.a_reaction_specification
 {
     void Because() => _source = SemanticReactorArtifactRenderer.Render(_located, _located.Slice.Reactions.Single(), _context).Content;
-    [Fact] void should_not_emit_source_metadata() => _source.ShouldNotContain("EventSourceTypeAttribute");
-    [Fact] void should_not_emit_a_typed_filter() => _source.ShouldNotContain("FromEventSourceAttribute");
+    [Fact] void should_not_emit_source_metadata() => _source.ShouldNotContain("[EventSourceType");
+    [Fact] void should_not_emit_a_typed_filter() => _source.ShouldNotContain("[FromEventSource");
 }

@@ -29,7 +29,7 @@ public class when_rejecting_a_collection_query_comparison : Specification
 
     [Fact] void should_not_use_reference_equality_for_the_query_result() => _supported.ShouldBeFalse();
 
-    [Fact] void should_reject_a_modeled_collection_query_result_without_emitting_artifacts()
+    [Fact] void should_omit_a_modeled_collection_query_result()
     {
         var source = RegisterProjectCorpus.LegacyV1.SourceForms.Single(form => form.Name == "single").Documents.Single().Text
             .Replace("        name ProjectName\n        validate", "        name ProjectName\n        labels String[]\n        validate", StringComparison.Ordinal)
@@ -40,8 +40,8 @@ public class when_rejecting_a_collection_query_comparison : Specification
                 ? $"{line}\n{new string(' ', line.Length - line.TrimStart().Length)}labels = {(line.Contains('"') ? "[\"a\"]" : "labels")}" : line));
         source = source.Replace("          name = \"\"\n", "          name = \"\"\n          labels = [\"a\"]\n", StringComparison.Ordinal);
         var plan = invoice_model.Plan(invoice_model.Compile(source));
-        plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).Select(diagnostic => diagnostic.Code)
+        plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).Select(diagnostic => diagnostic.Code)
             .ShouldContainOnly(["STAGE-ESM-011"]);
-        plan.Artifacts.ShouldBeEmpty();
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
     }
 }

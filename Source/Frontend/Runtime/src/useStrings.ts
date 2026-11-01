@@ -38,6 +38,7 @@ export function useStrings(): Strings {
         const abort = new AbortController();
         source.locales(abort.signal)
             .then(available => {
+                if (abort.signal.aborted) return;
                 setLocales(available);
                 setLocale(current => current || available[0] || '');
             })
@@ -49,8 +50,9 @@ export function useStrings(): Strings {
         if (!locale) return;
         const abort = new AbortController();
         source.strings(locale, abort.signal)
-            .then(setDictionary)
-            .catch(() => setDictionary({}));
+            .then(loaded => { if (!abort.signal.aborted) setDictionary(loaded); })
+            // A request cancelled because the locale changed again is not a failure: only the current one may empty the dictionary.
+            .catch(() => { if (!abort.signal.aborted) setDictionary({}); });
         return () => abort.abort();
     }, [locale, source]);
 

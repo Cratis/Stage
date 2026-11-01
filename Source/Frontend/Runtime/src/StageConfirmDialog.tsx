@@ -11,6 +11,7 @@ import { useStageData } from './stageData';
 import { navigateToScreen } from './stageNavigation';
 import { stageConfirmDialogComponent } from './stageDialogScreens';
 import type { StageDecision } from './stageDialogScreens';
+import { StagePageRows } from './stageScreenTables';
 
 interface StageConfirmDialogProps {
     element: ExternalComponent;
@@ -51,7 +52,7 @@ export function StageConfirmDialog({ element }: StageConfirmDialogProps) {
                     </button>
                 ))}
             </div>
-            {decision && <StageCommandForm key={decision.command} element={formOf(decision, routes?.commandSchemas?.[decision.command] ?? '', parameters, selectedRows)} />}
+            {decision && <StagePageRows><StageCommandForm key={decision.command} element={formOf(decision, routes?.commandSchemas?.[decision.command] ?? '', parameters, selectedRows)} /></StagePageRows>}
             <footer className='scene-slice-dialog-footer'>
                 <button type='button' className='scene-slice-dialog-cancel stage-confirm-dialog__cancel' onClick={() => leave(decisions, home)}>Cancel</button>
             </footer>

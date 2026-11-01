@@ -17,4 +17,10 @@ internal sealed record SemanticActualRun(
     IReadOnlyList<SemanticSpecificationEvent> Facts,
     IReadOnlyList<SemanticValue> Destinations,
     SemanticExecutionPlan? Plan = null,
-    int? ActionFacts = null);
+    int? ActionFacts = null)
+{
+    /// <summary>
+    /// Gets every invocation the specification's slice's reactions made, in invocation order.
+    /// </summary>
+    internal IReadOnlyList<SemanticRecordedInvocation> Invocations { get; init; } = [];
+}

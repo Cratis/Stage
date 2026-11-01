@@ -7,6 +7,7 @@ using Cratis.Stage.Rendering.Cratis.Authorization;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 using Cratis.Stage.Rendering.Cratis.Types;
 using Cratis.Stage.Rendering.Cratis.Validation;
 
@@ -20,6 +21,14 @@ namespace Cratis.Stage.Rendering.Cratis.Renderers;
 /// </summary>
 public class StateChangeSliceRenderer : ISliceRenderer
 {
+    static readonly Dictionary<string, string> _inlineReturnContracts = new(StringComparer.Ordinal)
+    {
+        ["void"] = "void",
+        ["IEnumerable<object>"] = "IEnumerable<object>",
+        ["EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId",
+        ["Cratis.Chronicle.EventSequences.EventForEventSourceId"] = "global::Cratis.Chronicle.EventSequences.EventForEventSourceId"
+    };
+
     /// <inheritdoc/>
     public RenderedFile Render(LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
     {
@@ -44,14 +53,14 @@ public class StateChangeSliceRenderer : ISliceRenderer
 
         var diagnostics = new List<string>();
         var ownNamespace = SliceNaming.Namespace(rootNamespace, slice.FullPath);
-        var builder = new CSharpCodeBuilder().Namespace(ownNamespace);
+        var builder = new CSharpCodeBuilder(GeneratedProjects.Application, LegacyGeneratedTypes.For(applicationSet, rootNamespace), false).Namespace(ownNamespace);
 
         UnrenderedConstructs.Report(builder, slice.Slice, RenderedConstructs.Command, diagnostics);
 
         var command = slice.Slice.Commands.FirstOrDefault();
         if (command is not null)
         {
-            RenderCommand(builder, command, applicationSet, diagnostics, rootNamespace);
+            RenderCommand(builder, command, slice, applicationSet, diagnostics, rootNamespace);
         }
 
         foreach (var @event in slice.Slice.Events)
@@ -73,7 +82,7 @@ public class StateChangeSliceRenderer : ISliceRenderer
             .Concat(EventRenderer.ReferencedNames(slice.Events))
             .Concat(slice.Commands.SelectMany(command => command.Produces).Select(produces => produces.Event));
 
-    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderCommand(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         var typeName = Identifiers.ToPascalCase(command.Name);
         var parameters = string.Join(", ", command.Properties.Select(property => RenderParameter(property, command.Name, applicationSet, diagnostics)));
@@ -89,18 +98,32 @@ public class StateChangeSliceRenderer : ISliceRenderer
         builder.BlankLine().Documentation(command.Description, command.Documentation).Attribute("Command").Attribute(authorization).OpenBlock($"public record {typeName}({parameters})");
 
         CommandValidatorRenderer.Render(builder, command, typeName, applicationSet, diagnostics);
-        RenderHandle(builder, command, applicationSet, diagnostics, rootNamespace);
+        RenderHandle(builder, command, slice, applicationSet, diagnostics, rootNamespace);
 
         builder.EndBlock();
     }
 
-    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
+    static void RenderHandle(CSharpCodeBuilder builder, CommandSyntax command, LocatedSlice slice, ApplicationSet applicationSet, ICollection<string> diagnostics, string rootNamespace)
     {
         if (command.Handler?.Code is not null)
         {
+            var inferred = InlineHandlerReturnType.Infer(command.Handler.Code.Code);
+            var returnType = ResolveInlineReturnType(inferred, slice, applicationSet, rootNamespace);
+            if (returnType is not null && !_inlineReturnContracts.ContainsKey(inferred) && !inferred.Contains('.') && !inferred.Contains("::", StringComparison.Ordinal))
+            {
+                builder.BindInlineReturnType(returnType);
+            }
+            if (returnType is null)
+            {
+                diagnostics.Add(
+                    $"Warning: Command '{command.Name}' handler's return type was inferred from unverified type '{inferred}'. " +
+                    "If it is a collection that does not implement IEnumerable<object>, its events are not appended; return the events as IEnumerable<object> or a single event.");
+                returnType = inferred;
+            }
+
             builder.Using("Cratis.Arc.Commands")
                 .BlankLine()
-                .OpenBlock($"public {InlineHandlerReturnType.Infer(command.Handler.Code.Code)} Handle(CommandContext context)")
+                .OpenBlock($"public {returnType} Handle(CommandContext context)")
                 .Raw(command.Handler.Code.Code)
                 .EndBlock();
             return;
@@ -164,6 +187,27 @@ public class StateChangeSliceRenderer : ISliceRenderer
         }
 
         builder.Line("return events;").EndBlock();
+    }
+
+    static string? ResolveInlineReturnType(string inferred, LocatedSlice slice, ApplicationSet applicationSet, string rootNamespace)
+    {
+        var name = inferred.StartsWith("global::", StringComparison.Ordinal) ? inferred[8..] : inferred;
+        var matches = applicationSet.Slices.Append(slice)
+            .SelectMany(declaration => declaration.Slice.Events.Select(@event => (
+                Short: Identifiers.ToPascalCase(@event.Name),
+                Qualified: $"{SliceNaming.Namespace(rootNamespace, declaration.FullPath)}.{Identifiers.ToPascalCase(@event.Name)}")))
+            .Where(candidate => string.Equals(name, candidate.Short, StringComparison.Ordinal) || string.Equals(name, candidate.Qualified, StringComparison.Ordinal))
+            .Select(candidate => candidate.Qualified).Distinct(StringComparer.Ordinal).Take(2).ToArray();
+        if (matches.Length > 0 && _inlineReturnContracts.ContainsKey(name))
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between a modeled event type and a framework contract.");
+        }
+        if (_inlineReturnContracts.TryGetValue(name, out var contract)) return contract;
+        if (matches.Length > 1)
+        {
+            throw new CSharpImportRejected($"The inferred generated return type '{inferred}' is ambiguous between modeled event types.");
+        }
+        return matches.Length == 1 ? $"global::{matches[0]}" : null;
     }
 
     static string WrappedEvent(string eventName, string arguments, string destination) =>
@@ -251,7 +295,106 @@ public class StateChangeSliceRenderer : ISliceRenderer
             return "default!";
         }
 
-        return ExpressionRenderer.Render(mapping.Source, context);
+        var source = MappedCommandProperty(mapping.Source, command, applicationSet);
+        var converted = ConvertCommandProperty(ExpressionRenderer.Render(mapping.Source, context), source?.Type, declared?.Type, applicationSet);
+        return ReportCommandPropertyConversion(converted, mapping, diagnostics);
+    }
+
+    static string ReportCommandPropertyConversion((string Value, string? Diagnostic) converted, PropertyMappingSyntax mapping, ICollection<string> diagnostics)
+    {
+        if (converted.Diagnostic is not null)
+        {
+            diagnostics.Add($"'{mapping.Property}' is mapped from '{((PathExpressionSyntax)mapping.Source).Path}', {converted.Diagnostic} — rendered as a missing value.");
+        }
+
+        return converted.Value;
+    }
+
+    static (string Value, string? Diagnostic) ConvertCommandProperty(string value, TypeRefSyntax? source, TypeRefSyntax? target, ApplicationSet applicationSet)
+    {
+        if (source is null || target is null)
+        {
+            return (value, null);
+        }
+
+        if (IsPrimitiveMapping(source, target, applicationSet))
+        {
+            return (value, null);
+        }
+
+        var sourcePrimitive = UnderlyingType(source, applicationSet);
+        var targetPrimitive = UnderlyingType(target, applicationSet);
+        if (sourcePrimitive is null || targetPrimitive is null)
+        {
+            return (value, null);
+        }
+
+        if (!CanImplicitlyConvertPrimitive(sourcePrimitive, targetPrimitive))
+        {
+            return ("default!", $"declared as '{source.Name}' — a {sourcePrimitive}, which the event declares as '{target.Name}' — a {targetPrimitive}");
+        }
+
+        return (ConvertCompatibleConcept(value, source, target, applicationSet), null);
+    }
+
+    // Int to Decimal is the only numeric widening among TypeResolver's supported primitives.
+    static bool CanImplicitlyConvertPrimitive(string source, string target) =>
+        source == target || (source, target) is ("int", "decimal");
+
+    static bool IsPrimitiveMapping(TypeRefSyntax source, TypeRefSyntax target, ApplicationSet applicationSet) =>
+        TypeResolver.Resolve(source, applicationSet).Kind == ResolvedTypeKind.Primitive &&
+        TypeResolver.Resolve(target, applicationSet).Kind == ResolvedTypeKind.Primitive;
+
+    static string ConvertCompatibleConcept(string value, TypeRefSyntax source, TypeRefSyntax target, ApplicationSet applicationSet)
+    {
+        if (source.Name == target.Name)
+        {
+            return value;
+        }
+
+        if (TypeResolver.Resolve(source, applicationSet) is not { Kind: ResolvedTypeKind.Concept, IsCollection: false, IsOptional: false })
+        {
+            return value;
+        }
+
+        if (TypeResolver.Resolve(target, applicationSet) is not { Kind: ResolvedTypeKind.Concept, IsCollection: false } resolvedTarget)
+        {
+            return value;
+        }
+
+        return $"new {resolvedTarget.ClrTypeName}({value}.Value)";
+    }
+
+    static PropertySyntax? MappedCommandProperty(ExpressionSyntax expression, CommandSyntax command, ApplicationSet applicationSet)
+    {
+        if (expression is not PathExpressionSyntax path)
+        {
+            return null;
+        }
+
+        var segments = path.Path.Split('.');
+        var property = CommandProperty(segments[0], command);
+        foreach (var segment in segments.Skip(1))
+        {
+            property = CompositeProperty(property, segment, applicationSet);
+        }
+
+        return property;
+    }
+
+    static PropertySyntax? CompositeProperty(PropertySyntax? property, string name, ApplicationSet applicationSet)
+    {
+        if (property?.Type is not { IsCollection: false, IsOptional: false } type)
+        {
+            return null;
+        }
+
+        if (!applicationSet.Types.TryGetValue(type.Name, out var composite))
+        {
+            return null;
+        }
+
+        return composite.Properties.FirstOrDefault(candidate => string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

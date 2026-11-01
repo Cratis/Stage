@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
 namespace Cratis.Stage.Specifications.Commands;
@@ -16,39 +17,43 @@ internal static class SemanticValueShapeAdmission
 {
     const string UnresolvedType = "The value has an unresolved type.";
 
-    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type) =>
-        Refusal(context, type, validateConceptRules: true);
+    internal static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type, SemanticBodyExecution? bodies = null) =>
+        Refusal(context, type, validateConceptRules: true, bodies);
 
     // Events are already facts: their payload shape must resolve, but command-time concept rules do not run.
     internal static string? PayloadRefusal(SemanticApplicationContext context, SemanticTypeReference type) =>
-        Refusal(context, type, validateConceptRules: false);
+        Refusal(context, type, validateConceptRules: false, bodies: null);
 
     internal static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type) =>
         Closure(context, type, string.Empty, []);
 
-    static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type, bool validateConceptRules) =>
-        Closure(context, type).Select(member => TypeRefusal(context, member.Type, validateConceptRules)).FirstOrDefault(refusal => refusal is not null);
+    static string? Refusal(SemanticApplicationContext context, SemanticTypeReference type, bool validateConceptRules, SemanticBodyExecution? bodies) =>
+        Closure(context, type).Select(member => TypeRefusal(context, member.Type, validateConceptRules, bodies)).FirstOrDefault(refusal => refusal is not null);
 
-    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type, bool validateConceptRules) => type.Kind switch
+    static string? TypeRefusal(SemanticApplicationContext context, SemanticTypeReference type, bool validateConceptRules, SemanticBodyExecution? bodies) => type.Kind switch
     {
         SemanticTypeReferenceKind.Primitive => PrimitiveRefusal(type.Primitive),
         SemanticTypeReferenceKind.CompositeType => context.Types.ContainsKey(type.Target) ? null : UnresolvedType,
-        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target, validateConceptRules),
+        SemanticTypeReferenceKind.Concept => ConceptRefusal(context, type.Target, validateConceptRules, bodies),
         _ => UnresolvedType
     };
 
     static string? PrimitiveRefusal(SemanticPrimitiveType primitive) =>
         primitive != SemanticPrimitiveType.Unknown && Enum.IsDefined(primitive) ? null : UnresolvedType;
 
-    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id, bool validateConceptRules)
+    static string? ConceptRefusal(SemanticApplicationContext context, SemanticId id, bool validateConceptRules, SemanticBodyExecution? bodies)
     {
         if (!context.Concepts.TryGetValue(id, out var concept)) return UnresolvedType;
 
-        return PrimitiveRefusal(concept.Primitive) ?? (validateConceptRules ? ConceptRuleRefusal(concept) : null);
+        return PrimitiveRefusal(concept.Primitive) ?? (validateConceptRules ? ConceptRuleRefusal(concept, bodies) : null);
     }
 
-    static string? ConceptRuleRefusal(SemanticConcept concept) =>
-        concept.Validations.Any(rule => SemanticValidationRules.Check(rule, SemanticValue.Null).Status == SemanticRuleStatus.NotEvaluable) ? "A concept validation rule is not admitted." : null;
+    static string? ConceptRuleRefusal(SemanticConcept concept, SemanticBodyExecution? bodies) =>
+        concept.Validations.Any(rule => !SupportedRule(rule, bodies)) ? "A concept validation rule is not admitted." : null;
+
+    static bool SupportedRule(SemanticValidationRule rule, SemanticBodyExecution? bodies) =>
+        (rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation && bodies?.IsAdmitted(rule.RequirementId) == true) ||
+        SemanticValidationRules.Check(rule, SemanticValue.Null).Status != SemanticRuleStatus.NotEvaluable;
 
     static IEnumerable<(string Path, SemanticTypeReference Type)> Closure(SemanticApplicationContext context, SemanticTypeReference type, string path, HashSet<SemanticId> visited)
     {

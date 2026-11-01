@@ -46,7 +46,7 @@ static class QualifiedOutputProof
         var all = given.Select((file, index) => given.Take(index).Any(earlier => earlier.RelativePath == file.RelativePath)
             ? file with { RelativePath = $"duplicate{index}~/{file.RelativePath}" }
             : file).ToArray();
-        var original = Compile(all);
+        var original = Compile(all, legacyImports: true);
         var failures = new List<string>();
         var applicationTypes = Declarations(original.Application).ToHashSet();
         if (inventory is not null)
@@ -85,10 +85,11 @@ static class QualifiedOutputProof
     /// <param name="qualified">The pre-short-name output.</param>
     /// <param name="rendered">The real short-name output.</param>
     /// <param name="allowShortFailure">Whether a hostile addition may make only the short version fail compilation.</param>
+    /// <param name="legacyImports">Whether the oracle uses the global imports from before GlobalUsings.cs was added.</param>
     /// <returns>The proof outcome.</returns>
-    internal static QualifiedOutputResult VerifyRendered(IReadOnlyList<RenderedFile> qualified, IReadOnlyList<RenderedFile> rendered, bool allowShortFailure = false)
+    internal static QualifiedOutputResult VerifyRendered(IReadOnlyList<RenderedFile> qualified, IReadOnlyList<RenderedFile> rendered, bool allowShortFailure = false, bool legacyImports = false)
     {
-        var original = Compile(qualified);
+        var original = Compile(qualified, legacyImports);
         var actual = Compile(rendered);
         var failures = new List<string>();
         var shortSpellings = 0;
@@ -140,17 +141,17 @@ static class QualifiedOutputProof
         return failures;
     }
 
-    static (CSharpCompilation Application, CSharpCompilation Specifications) Compile(IReadOnlyList<RenderedFile> files)
+    internal static (CSharpCompilation Application, CSharpCompilation Specifications) Compile(IReadOnlyList<RenderedFile> files, bool legacyImports = false)
     {
         var application = CSharpCompilation.Create(
             $"RenderedApplication_{Guid.NewGuid():N}",
-            [GlobalUsings(GeneratedProjects.Application), Parse("Specifications.g.cs", "[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(\"RenderedSpecifications\")]"),
+            [GlobalUsings(GeneratedProjects.Application, legacyImports), Parse("Specifications.g.cs", "[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(\"RenderedSpecifications\")]"),
                 .. files.Where(file => !IsSpecification(file)).Select(file => Parse(file.RelativePath, file.Content))],
             _references.Value.Application,
             _options);
         var specifications = CSharpCompilation.Create(
             "RenderedSpecifications",
-            [GlobalUsings(GeneratedProjects.Specifications), .. files.Where(IsSpecification).Select(file => Parse(file.RelativePath, file.Content))],
+            [GlobalUsings(GeneratedProjects.Specifications, legacyImports), .. files.Where(IsSpecification).Select(file => Parse(file.RelativePath, file.Content))],
             [.. _references.Value.Specifications, application.ToMetadataReference()],
             _options);
         return (application, specifications);
@@ -160,10 +161,11 @@ static class QualifiedOutputProof
     /// Requires an independently rendered proof fixture to compile, not merely to reproduce the same errors.
     /// </summary>
     /// <param name="files">The rendered sources.</param>
+    /// <param name="legacyImports">Whether to omit the scaffold-owned GlobalUsings.cs imports.</param>
     /// <returns>The compilation errors from both scaffold projects.</returns>
-    internal static IReadOnlyList<string> CompilationErrors(IReadOnlyList<RenderedFile> files)
+    internal static IReadOnlyList<string> CompilationErrors(IReadOnlyList<RenderedFile> files, bool legacyImports = false)
     {
-        var compiled = Compile(files);
+        var compiled = Compile(files, legacyImports);
         return [.. new[] { compiled.Application, compiled.Specifications }.SelectMany(compilation => compilation.GetDiagnostics())
             .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.ToString())];
     }
@@ -178,9 +180,13 @@ static class QualifiedOutputProof
     static SyntaxTree Parse(string path, string content) => CSharpSyntaxTree.ParseText(SourceText.From(content), _parseOptions, path);
 
     // The complete scaffold reference set resolves every implicit and package global namespace.
-    static SyntaxTree GlobalUsings(GeneratedProjects project) => Parse(
+    static SyntaxTree GlobalUsings(GeneratedProjects project, bool legacyImports) => Parse(
         $"GlobalUsings.{project}.g.cs",
-        string.Concat(FrameworkNameCatalog.Current.GlobalUsings(project).Select(@namespace => $"global using {@namespace};\n")));
+        string.Concat(FrameworkNameCatalog.Current.Content.Usings
+            .Where(@using => @using.Kind == CatalogUsingKind.Namespace && (@using.Projects & project) != GeneratedProjects.None &&
+                (!legacyImports || @using.Source != "compile:GlobalUsings.cs"))
+            .Select(@using => @using.Target).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
+            .Select(@namespace => $"global using {@namespace};\n")));
 
     static string Errors(CSharpCompilation compilation, SyntaxTree tree) => string.Join(", ", compilation.GetSemanticModel(tree).GetDiagnostics()
         .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).Select(diagnostic => diagnostic.Id).Order(StringComparer.Ordinal));

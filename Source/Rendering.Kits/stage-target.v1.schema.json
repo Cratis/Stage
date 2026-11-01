@@ -1,0 +1,169 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]\u002B)(\\.[0-9A-Za-z-]\u002B)*)?$"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "languagePacks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*@(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]\u002B)(\\.[0-9A-Za-z-]\u002B)*)?$"
+      }
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*/v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "forEach": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "when": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "template",
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "partials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "template": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "template"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9]*(-[A-Z0-9]\u002B)\u002B$"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "apiVersion",
+    "target",
+    "languagePacks",
+    "requires",
+    "outputs",
+    "partials",
+    "tables",
+    "assets",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cratis.io/schemas/stage-target.v1.schema.json",
+  "title": "Stage target kit v1",
+  "$comment": "Copyright (c) Cratis. All rights reserved. Licensed under the MIT license. See LICENSE file in the project root for full license information."
+}

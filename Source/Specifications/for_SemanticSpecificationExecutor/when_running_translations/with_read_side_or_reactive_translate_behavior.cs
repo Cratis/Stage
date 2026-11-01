@@ -83,7 +83,9 @@ public class with_read_side_or_reactive_translate_behavior
         var plan = SemanticExecutionPlan.Compile(model).Plan!;
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
 
-        var unsupported = reachable || (kind == "reaction" && withinTranslate);
+        // Screenplay decision 0115: another slice's reaction does not run for this specification, so only the Translate slice's own
+        // specification reaches its reaction; read-model projections and reducers still build what any specification reads.
+        var unsupported = kind == "reaction" ? withinTranslate : reachable;
         result.Outcome.ShouldEqual(unsupported ? SemanticSpecificationOutcome.Unsupported : SemanticSpecificationOutcome.Passed);
         if (unsupported) result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
         else result.Unsupported.ShouldBeNull();

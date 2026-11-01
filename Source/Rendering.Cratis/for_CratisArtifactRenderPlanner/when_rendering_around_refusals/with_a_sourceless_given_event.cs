@@ -19,7 +19,7 @@ public class with_a_sourceless_given_event : given.a_refused_specification
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_render_a_partial_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_render_a_complete_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
     [Fact] void should_list_the_sourceless_refusal() => _plan.Refusals.ShouldContain(refusal => refusal.Artifact == _refused && refusal.Codes.Contains("STAGE-ESM-051"));
     [Fact] void should_omit_the_refused_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_refused);
 }

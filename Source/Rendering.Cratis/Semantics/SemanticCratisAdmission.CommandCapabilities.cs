@@ -51,7 +51,7 @@ internal static partial class SemanticCratisAdmission
         {
             foreach (var property in @event.Properties)
             {
-                if (!TypeExists(context, property.Type))
+                if (!TypeExists(context, property.Type, @event.Id))
                 {
                     diagnostics.Add(CommandCapability(command, $"event '{@event.Name}' property '{property.Name}' has an unresolved type; Stage cannot emit its C# type. Declare a supported primitive, concept, or composite type."));
                 }
@@ -151,10 +151,41 @@ internal static partial class SemanticCratisAdmission
             // A protected command's requirements are guards in Handle, which runs after Arc's graph validation: request concepts fail first, then the reads, then the requirements.
             if (!command.Reads.IsEmpty) continue;
 
-            foreach (var property in command.Properties.Where(property => !property.IsGenerated && HasValidatedConcept(context, property.Type, [])))
+            var refusals = command.Properties.Where(property => !property.IsGenerated && HasValidatedConcept(context, property.Type, []))
+                .Select(property => (Property: property, Reason: CanInlineConceptRules(context, command, property, out var reason) ? string.Empty : reason))
+                .Where(candidate => candidate.Reason.Length > 0);
+            foreach (var (property, reason) in refusals)
             {
-                diagnostics.Add(CommandCapability(command, $"{label} is combined with validated concept property '{property.Name}'; Arc graph validation and command guards cannot preserve the reference evaluator's failure order. Model equivalent rules at one validation level, or keep this combination unsupported (Cratis/Stage#409)."));
+                diagnostics.Add(CommandCapability(command, $"{label} is combined with validated concept property '{property.Name}'; {reason} Model equivalent rules at one validation level, or keep this combination unsupported (Cratis/Stage#840)."));
             }
+        }
+    }
+
+    static bool CanInlineConceptRules(SemanticApplicationContext context, SemanticCommand command, SemanticProperty property, out string reason)
+    {
+        if (property.Type.Kind != SemanticTypeReferenceKind.Concept)
+        {
+            reason = "Arc validates concepts nested in composite properties after the command validator, so command rules, concept rules and requirements cannot keep the reference order.";
+        }
+        else if (property.Type.IsCollection)
+        {
+            reason = "concept collections cannot inline their element rules at the command validation level.";
+        }
+        else
+        {
+            reason = ScalarConceptReason(context.Concepts[property.Type.Target]);
+        }
+
+        return reason.Length == 0;
+
+        string ScalarConceptReason(SemanticConcept concept)
+        {
+            if (!concept.Values.IsEmpty) return "named-value concepts cannot inline their rules at the command validation level.";
+            if (concept.Primitive is SemanticPrimitiveType.Date or SemanticPrimitiveType.DateTime) return "date and date-time concepts cannot inline their rules at the command validation level.";
+            if (concept.Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.Checksum || !SemanticValidationRendering.CanRender(rule, context))) return "the concept rules cannot all be rendered at the command validation level.";
+            if (!command.CodeValidations.IsEmpty) return "the command's code validations have no portable order relative to concept rules.";
+            if (property.Type.IsOptional && !HasNullPassingScalarConcept(context, property.Type)) return "the optional concept's rules do not pass absence at the command validation level.";
+            return string.Empty;
         }
     }
 

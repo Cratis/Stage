@@ -21,8 +21,7 @@ internal static partial class SemanticCratisAdmission
         if ((slice.ReadModels.Length == 0 && slice.Reducers.IsEmpty) ||
             slice.Projections.Any(projection => !slice.ReadModels.Any(model => model.Id == projection.ReadModel)) ||
             slice.Reducers.Any(reducer => !slice.ReadModels.Any(model => model.Id == reducer.ReadModel)) ||
-            slice.ReadModels.Any(model => !context.PerformedQueryRejections.ContainsKey(model.Id) && slice.Projections.Count(_ => _.ReadModel == model.Id) +
-                slice.Reducers.Count(_ => _.ReadModel == model.Id) != ExpectedBuilders(context, slice, model)))
+            slice.ReadModels.Any(model => !context.PerformedQueryRejections.ContainsKey(model.Id) && BuilderCount(slice, model) != ExpectedBuilders(context, slice, model) && !IsBuilderless(context, slice, model)))
         {
             diagnostics.Add(Error("STAGE-ESM-007", $"State-view slice '{slice.Name}' needs exactly one projection for each read model.", slice.Id));
             return;
@@ -34,6 +33,11 @@ internal static partial class SemanticCratisAdmission
             {
                 diagnostics.Add(Error("STAGE-ESM-007", performedRejection, readModel.Id));
                 continue;
+            }
+
+            if (IsBuilderless(context, slice, readModel))
+            {
+                DegradeBuilderless(context, readModel, diagnostics);
             }
 
             var projection = slice.Projections.SingleOrDefault(_ => _.ReadModel == readModel.Id);
@@ -140,9 +144,27 @@ internal static partial class SemanticCratisAdmission
 
             if (!QueryFiltersAreRenderable(context, query, readModel, diagnostics))
             {
-                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot lookup by identifier nor a collection query the renderer can preserve.", query.Id));
+                diagnostics.Add(Error("STAGE-ESM-010", $"Query '{query.Name}' is neither an optional snapshot or live lookup by identifier nor a collection query the renderer can preserve.", query.Id));
             }
         }
+    }
+
+    static int BuilderCount(SemanticSlice slice, SemanticReadModel model) =>
+        slice.Projections.Count(_ => _.ReadModel == model.Id) + slice.Reducers.Count(_ => _.ReadModel == model.Id);
+
+    // A read model nothing builds and no performer answers renders as an empty read model: its queries keep their authorization and return nothing.
+    static bool IsBuilderless(SemanticApplicationContext context, SemanticSlice slice, SemanticReadModel model) =>
+        BuilderCount(slice, model) == 0 && ExpectedBuilders(context, slice, model) == 1;
+
+    static void DegradeBuilderless(SemanticApplicationContext context, SemanticReadModel readModel, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var warning = new ArtifactRenderDiagnostic(
+            ArtifactRenderDegradationCodes.UnsupportedConstruct,
+            ArtifactRenderDiagnosticSeverity.Warning,
+            $"State-view read model '{readModel.Name}' has no projection or reducer; it is rendered as an empty read model.",
+            readModel.Id);
+        diagnostics.Add(warning);
+        context.Degradations.Add(new(warning, $"Add a projection or reducer for '{readModel.Name}' so the generated read model is populated."));
     }
 
     // A read model is built by exactly one projection or reducer, or - when a performer answers a query for it - by that performer alone.
@@ -196,7 +218,7 @@ internal static partial class SemanticCratisAdmission
             return false;
         }
 
-        if (IsSnapshotLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
+        if (IsOptionalLookup(context, query, readModel)) return query.Filters.IsDefaultOrEmpty;
         if (!IsCollection(context, query, readModel)) return false;
 
         var optionalSeen = false;
@@ -218,11 +240,11 @@ internal static partial class SemanticCratisAdmission
         type is { IsOptional: true, Kind: SemanticTypeReferenceKind.Concept } &&
         context.Concepts[type.Target].Validations.Any(rule => rule.Kind == SemanticValidationRuleKind.NotEmpty);
 
-    static bool IsSnapshotLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
+    static bool IsOptionalLookup(SemanticApplicationContext context, SemanticKeyedQuery query, SemanticReadModel? readModel)
     {
         var identifiers = readModel?.Properties.Where(property => property.IsIdentifier).ToArray() ?? [];
 
-        return query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot, Argument: { } argument } &&
+        return query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot or SemanticQueryDelivery.Live, Argument: { } argument } &&
             identifiers is [var identifier] && query.KeyProperty == identifier.Id && TypeExists(context, argument.Type);
     }
 

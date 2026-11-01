@@ -87,7 +87,7 @@ describe('when the session holds an identity', () => {
         view();
 
         fireEvent.change(screen.getByLabelText('Product'), { target: { value: 'ACM-1000' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Add' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => (submitted(fetched) !== undefined).should.equal(true));
         (submitted(fetched) ?? {}).should.include({ basketId: 'b1', sku: 'ACM-1000' });

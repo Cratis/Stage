@@ -37,7 +37,7 @@ public static class ConceptRenderer
     /// <returns>The <see cref="RenderedFile"/>.</returns>
     /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace) =>
-        Render(concept, applicationSet, rootNamespace, false);
+        Render(concept, applicationSet, rootNamespace, true);
 
     /// <summary>
     /// Renders a concept honoring its secret encryption scope, with optional compliance details and secret reasons.
@@ -45,7 +45,7 @@ public static class ConceptRenderer
     /// <param name="concept">The concept to render.</param>
     /// <param name="applicationSet">The surrounding declarations and placements.</param>
     /// <param name="rootNamespace">The target application's root namespace.</param>
-    /// <param name="complianceDetails">Whether to emit registration-changing protection details; defaults to off through the original overload.</param>
+    /// <param name="complianceDetails">Whether to emit protection details; defaults to on through the original overload.</param>
     /// <returns>The generated concept file.</returns>
     /// <exception cref="UnsupportedValidationRule">A validation rule cannot be rendered.</exception>
     public static RenderedFile Render(ConceptSyntax concept, ApplicationSet applicationSet, string rootNamespace, bool complianceDetails)
@@ -125,7 +125,7 @@ public static class ConceptRenderer
         }
 
         var validatorName = $"{typeName}Validator";
-        var ruleMethods = new List<(string Name, string Code)>();
+        var ruleMethods = new List<(string Name, CodeBlockSyntax Code)>();
 
         builder.BlankLine()
             .Summary($"Validates {typeName}.")
@@ -144,20 +144,20 @@ public static class ConceptRenderer
             codeBlockIndex++;
             var methodName = codeBlockIndex == 1 ? "IsValid" : $"IsValid{codeBlockIndex}";
             builder.Line($"RuleFor(_ => _.Value).Must({methodName});");
-            ruleMethods.Add((methodName, codeBlock.Code.Code));
+            ruleMethods.Add((methodName, codeBlock.Code));
         }
 
         builder.EndBlock();
 
         foreach (var method in ruleMethods)
         {
-            builder.BlankLine().OpenBlock($"static bool {method.Name}({clrType} Value)").Raw(method.Code).EndBlock();
+            builder.BlankLine().OpenBlock($"static bool {method.Name}({clrType} Value)").Validation(method.Code, typeName, method.Name).EndBlock();
         }
 
         builder.EndBlock();
     }
 
-    static void RenderRule(CSharpCodeBuilder builder, ValidationRuleSyntax rule, List<(string Name, string Code)> ruleMethods, bool subjectIsText)
+    static void RenderRule(CSharpCodeBuilder builder, ValidationRuleSyntax rule, List<(string Name, CodeBlockSyntax Code)> ruleMethods, bool subjectIsText)
     {
         ValidationRuleRenderer.EnsureSupported(rule);
 
@@ -177,12 +177,12 @@ public static class ConceptRenderer
         builder.Line($"RuleFor(_ => _.Value){call}{ValidationRuleRenderer.RenderMessage(rule)};");
     }
 
-    static string RenderCustomRule(ValidationRuleSyntax rule, List<(string Name, string Code)> ruleMethods)
+    static string RenderCustomRule(ValidationRuleSyntax rule, List<(string Name, CodeBlockSyntax Code)> ruleMethods)
     {
         // ValidationRuleSyntax carries no distinct name for a declared `rule <Name>` — only Property/Rule/Value/Message
         // survive parsing — so the generated predicate method is synthesized rather than reproducing the authored name.
         var methodName = ruleMethods.Count == 0 ? "SatisfyCustomRule" : $"SatisfyCustomRule{ruleMethods.Count + 1}";
-        ruleMethods.Add((methodName, rule.Code!.Code));
+        ruleMethods.Add((methodName, rule.Code!));
         return $".Must({methodName})";
     }
 

@@ -18,8 +18,8 @@ public class when_rendering_the_screen_composition_backend_specifications : a_sc
 
     void Because() => _plan = Plan();
 
-    [Fact] void should_render_an_enum_concept_value_as_its_member() => Text(_plan, "Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs").ShouldContain("global::Workspaces.Common.WorkStatus.Closed");
-    [Fact] void should_not_construct_an_enum_concept() => Text(_plan, "Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs").ShouldNotContain("new global::Workspaces.Common.WorkStatus(");
+    [Fact] void should_render_an_enum_concept_value_as_its_member() => Text(_plan, "Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs").ShouldContain("WorkStatus.Closed");
+    [Fact] void should_not_construct_an_enum_concept() => Text(_plan, "Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs").ShouldNotContain("new WorkStatus(");
     [Fact] void should_declare_only_the_collection_result_for_a_list_query() => Text(_plan, ListSpecification).ShouldNotContain("? _result;");
     [Fact] void should_declare_the_collection_result_for_a_list_query() => Text(_plan, ListSpecification).ShouldContain("_results = [];");
     [Fact] void should_declare_only_the_single_result_for_a_single_query() => Text(_plan, SingleSpecification).ShouldNotContain("_results");

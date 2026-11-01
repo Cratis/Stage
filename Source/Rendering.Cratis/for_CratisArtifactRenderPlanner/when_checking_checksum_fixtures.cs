@@ -34,10 +34,11 @@ public class when_checking_checksum_fixtures
                     then returns "{{pin}}"
             """);
         var plan = invoice_model.Plan(model);
-        plan.Success.ShouldEqual(valid);
+        plan.Success.ShouldBeTrue();
+        plan.Refusals.IsEmpty.ShouldEqual(valid);
         if (!valid)
         {
-            plan.Artifacts.ShouldBeEmpty();
+            plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(plan.Refusals.Single().Artifact);
             plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("fails concept 'Reference' rules", StringComparison.Ordinal));
         }
     }

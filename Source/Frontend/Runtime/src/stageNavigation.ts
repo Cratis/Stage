@@ -40,9 +40,35 @@ export function screenHashWith(screen: string, parameters: Record<string, string
  */
 export function navigateToScreen(screen: string, parameters: Record<string, string> = {}) {
     if (!globalThis.location) return;
+    if (routing === 'path') {
+        const address = screenPathWith(screen, parameters);
+        if (`${globalThis.location.pathname}${globalThis.location.search}` === address) return;
+        globalThis.history.pushState(null, '', address);
+        // Pushing an entry raises no event; the navigation host listens for `popstate`, so it is told the address changed.
+        globalThis.dispatchEvent(new PopStateEvent('popstate'));
+        return;
+    }
+
     const hash = screenHashWith(screen, parameters);
     if (globalThis.location.hash === hash) return;
     globalThis.location.hash = hash;
+}
+
+/** How the address says which screen is open: in the URL fragment (`#/Screen`), or as the path (`/Screen`). */
+export type StageRouting = 'hash' | 'path';
+
+let routing: StageRouting = 'hash';
+
+/** Chooses how {@link navigateToScreen} writes the address; the application sets it to match the history it runs with. */
+export function useStageRouting(mode: StageRouting) {
+    routing = mode;
+}
+
+/** The path addressing a screen with the given parameters, from the root of the host (`/WorkItemDetails?workItemId=...`). */
+export function screenPathWith(screen: string, parameters: Record<string, string> = {}): string {
+    const query = new URLSearchParams(Object.entries(parameters).filter(([, value]) => value !== ''));
+    const serialized = query.toString();
+    return serialized ? `/${encodeURIComponent(screen)}?${serialized}` : `/${encodeURIComponent(screen)}`;
 }
 
 /**

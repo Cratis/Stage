@@ -21,8 +21,8 @@ public class with_an_esm_v8_model : Specification
     [Fact] void should_admit_the_model() => _plan.Success.ShouldBeTrue();
     [Fact] void should_widen_the_concept() => Text("/Quantity.cs").ShouldContain("Quantity(long Value) : ConceptAs<long>");
     [Fact] void should_use_a_long_sentinel() => Text("/Quantity.cs").ShouldContain("NotSet = new(0L)");
-    [Fact] void should_widen_the_command_property() => Text("/Record.cs").ShouldContain("record RecordStock(global::Invoices.Common.StockId Id, global::Invoices.Common.Quantity Quantity, long Count)");
-    [Fact] void should_widen_the_event_property() => Text("/Record.cs").ShouldContain("record StockRecorded(global::Invoices.Common.Quantity Quantity, long Count)");
+    [Fact] void should_widen_the_command_property() => Text("/Record.cs").ShouldContain("record RecordStock(StockId Id, Quantity Quantity, long Count)");
+    [Fact] void should_widen_the_event_property() => Text("/Record.cs").ShouldContain("record StockRecorded(Quantity Quantity, long Count)");
     [Fact] void should_widen_the_read_model_property() => Text("/Stocks.cs").ShouldContain("long Count");
     [Fact] void should_preserve_the_positive_literal() => Assert.True(Text("/when_recording_positive.cs").Contains("900719925474099L", StringComparison.Ordinal), Text("/when_recording_positive.cs"));
     [Fact] void should_preserve_the_negative_literal() => Assert.True(Text("/when_recording_negative.cs").Contains("-900719925474099L", StringComparison.Ordinal), Text("/when_recording_negative.cs"));

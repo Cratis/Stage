@@ -21,8 +21,12 @@ internal sealed record SemanticReactionSpecification(SemanticReaction Reaction, 
         return new(given.EventContract, given.Values) { EventSource = given.EventSource, Route = given.Route };
     }
 
-    internal static IEnumerable<SemanticReactionSpecification> Candidates(SemanticApplicationContext context, SemanticSpecificationAppend append) =>
-        SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions)
+    // A specification runs only its own slice's reactions (Screenplay decision 0115). A redelivery names its reaction explicitly,
+    // and is delivered to that reaction wherever it is declared, as the reference executor does.
+    internal static IEnumerable<SemanticReactionSpecification> Candidates(SemanticApplicationContext context, SemanticSpecification specification, SemanticSpecificationAppend append) =>
+        (specification.WhenRedelivered is { } redelivery
+            ? SemanticVersionFeatures.Slices(context.Application).SelectMany(slice => slice.Reactions.IsDefault ? [] : slice.Reactions).Where(reaction => reaction.Id == redelivery.Reaction)
+            : SemanticSpecificationAdmission.RunningReactions(context, specification))
             .SelectMany(reaction => reaction.Triggers.Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == append.EventContract)
                 .Select(trigger => new SemanticReactionSpecification(reaction, trigger, SemanticObserverFilterMatching.Matches(reaction.From, append.Route, context) && (trigger.Where is null || Matches(trigger.Where, append)))));
 

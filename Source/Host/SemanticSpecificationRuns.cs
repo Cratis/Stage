@@ -47,13 +47,13 @@ internal static class SemanticSpecificationRuns
             var output = Path.Combine(directory, "results.json");
             var start = new ProcessStartInfo("dotnet")
             {
-                UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
-                WorkingDirectory = directory, CreateNoWindow = true
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = directory,
+                CreateNoWindow = true
             };
-            foreach (var argument in new[] { Path.GetFullPath(options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(modelPath), "--output", output })
-            {
-                start.ArgumentList.Add(argument);
-            }
+            SemanticBodyWorkerHosting.AddRunnerArguments(start, [Path.GetFullPath(options.RunnerPath), "--engine", "semantic", "--model", Path.GetFullPath(modelPath), "--output", output, "--application", plan.Model.Application.Name], options.BodyWorker);
             foreach (var scope in scopes)
             {
                 start.ArgumentList.Add("--scope");

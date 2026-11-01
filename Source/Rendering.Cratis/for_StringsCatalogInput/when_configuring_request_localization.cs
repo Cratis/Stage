@@ -15,9 +15,13 @@ public class when_configuring_request_localization : Specification
     {
         var input = StringsCatalogInput.Create(new Dictionary<string, string> { ["invoices.en.strings"] = "invoice.key = \"Value\"\n" }, "en");
         StringsCatalogInput.TryRead(input, out var catalog);
-        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog!);
+        _program = StringsCatalogInput.ConfigureProgram("app.UseCratis();", catalog!, "Invoices");
     }
 
-    [Fact] void should_keep_formatting_invariant() => _program.Contains("SupportedCultures = [global::System.Globalization.CultureInfo.InvariantCulture]", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_set_only_the_default_ui_culture() => _program.Contains("RequestCulture(global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.CultureInfo.GetCultureInfo(\"en\"))", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_keep_formatting_invariant() => _program.ShouldContain("SupportedCultures = [CultureInfo.InvariantCulture]");
+    [Fact] void should_set_only_the_default_ui_culture() => _program.ShouldContain("new RequestCulture(CultureInfo.InvariantCulture, CultureInfo.GetCultureInfo(\"en\"))");
+    [Fact] void should_use_the_implicitly_imported_options_type() => _program.ShouldContain("app.UseRequestLocalization(new RequestLocalizationOptions");
+    [Fact] void should_spell_no_type_with_global() => _program.ShouldNotContain("global::");
+    [Fact] void should_import_the_localization_namespaces() => _program.StartsWith("using Microsoft.AspNetCore.Localization;\nusing System.Globalization;\n\n", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_not_import_the_builder_namespace() => _program.ShouldNotContain("using Microsoft.AspNetCore.Builder;");
 }

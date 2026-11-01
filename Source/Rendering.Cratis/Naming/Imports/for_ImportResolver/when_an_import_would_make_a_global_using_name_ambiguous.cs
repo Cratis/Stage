@@ -16,4 +16,5 @@ public class when_an_import_would_make_a_global_using_name_ambiguous : given.a_f
 
     [Fact] void should_bind_before_the_global_using() => _result.Spell(_identities).ShouldEqual("IIdentityProvider");
     [Fact] void should_import_inside_the_namespace() => _result.Usings.ShouldContain("Cratis.Chronicle.Identities");
+    [Fact] void should_not_root_the_import_whose_prefix_binds_globally() => _result.Inner("Cratis.Chronicle.Identities").ShouldEqual("Cratis.Chronicle.Identities");
 }

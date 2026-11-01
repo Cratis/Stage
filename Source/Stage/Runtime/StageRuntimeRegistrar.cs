@@ -34,6 +34,7 @@ public static class StageRuntimeRegistrar
     {
         // Pure model validation must fault the task before DI resolution or any remote write. Connection failures
         // retain the existing logging behavior; an invalid local definition is not a recoverable connection failure.
+        ProtectedCommandReadsAdmission.EnsureExecutableBy(model, model.Name, "eventmodel");
         var eventTypes = StageChronicleDefinitions.BuildEventTypes(model);
         string logSequence = EventSequenceId.Log;
         var (readModels, projections) = StageChronicleDefinitions.Build(model, logSequence);

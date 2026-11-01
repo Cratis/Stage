@@ -68,7 +68,7 @@ describe('the task dialog of a toolbar slice button', () => {
         const method = field('method')?.querySelector('select');
         expect(method).not.toBeNull();
         expect(Array.from(method!.options).map(option => option.text.trim()).filter(text => text.length > 0)).toEqual(['Standard', 'Express']);
-        fireEvent.click(screen.getByRole('button', { name: 'Execute CheckOut' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         // The method is required and has not been chosen, so nothing is submitted yet.
         expect((await screen.findAllByText(/method is required/i)).length).toBeGreaterThan(0);
@@ -97,7 +97,7 @@ describe('the task dialog of a toolbar slice button', () => {
         fireEvent.change(screen.getByLabelText('Product id'), { target: { value: 'p1' } });
         const packaging = document.querySelector('.stage-command-form__field[data-field="packaging"] select') as HTMLSelectElement;
         fireEvent.change(packaging, { target: { value: [...packaging.options].find(option => option.text === 'Box')?.value } });
-        fireEvent.click(screen.getByRole('button', { name: 'Execute AddToBasket' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => expect(submitted(fetched, '/api/basket/add')).toBeDefined());
         const created = globalThis.localStorage.getItem('stage.session.BasketId');

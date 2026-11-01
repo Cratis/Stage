@@ -11,5 +11,5 @@ public class with_roles : for_SemanticAutomationArtifactRenderer.given.an_automa
     string _source = string.Empty;
     void Establish() => SetContext(Compile(Source.Replace("      reaction CompletePositive", "      reaction CompletePositive\n        runs as system role \"Worker\" and role \"Automation\"", StringComparison.Ordinal)));
     void Because() => _source = SemanticReactorArtifactRenderer.Render(_located, _located.Slice.Reactions.Single(reaction => reaction.Name == "CompletePositive"), _context).Content;
-    [Fact] void should_preserve_the_canonical_role_order() => _source.ShouldContain("[global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute(\"Automation\", \"Worker\")]");
+    [Fact] void should_preserve_the_canonical_role_order() => _source.ShouldContain("[ExecuteCommandsAsSystem(\"Automation\", \"Worker\")]");
 }

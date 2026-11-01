@@ -19,7 +19,7 @@ class Entrypoint(unittest.TestCase):
     def setUp(self):
         self.workspace = tempfile.TemporaryDirectory(prefix="stage-entrypoint-")
         self.addCleanup(self.workspace.cleanup)
-        self.root = Path(self.workspace.name)
+        self.root = Path(self.workspace.name).resolve()
         for directory in ("app", "stage", "bin", "model"):
             (self.root / directory).mkdir()
         self.receipt = self.root / "host.jsonl"

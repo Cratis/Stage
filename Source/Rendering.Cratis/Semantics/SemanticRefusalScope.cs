@@ -8,6 +8,26 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 static class SemanticRefusalScope
 {
+    public static ImmutableArray<ArtifactRenderRefusal> Degrade(SemanticApplicationContext context, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        var refusals = Classify(context, diagnostics);
+        if (refusals.IsEmpty) return refusals;
+
+        for (var index = 0; index < diagnostics.Count; index++)
+        {
+            var diagnostic = diagnostics[index];
+            if (diagnostic.Severity != ArtifactRenderDiagnosticSeverity.Error) continue;
+            if (!refusals.Any(refusal => refusal.Artifact == diagnostic.Artifact && refusal.Codes.Contains(diagnostic.Code))) continue;
+
+            diagnostics[index] = diagnostic with
+            {
+                Severity = ArtifactRenderDiagnosticSeverity.Warning,
+                Message = $"Skipped specification '{context.Specifications[diagnostic.Artifact].Name}' ({diagnostic.Code}): {diagnostic.Message}"
+            };
+        }
+        return refusals;
+    }
+
     public static ImmutableArray<ArtifactRenderRefusal> Classify(
         SemanticApplicationContext context,
         IEnumerable<ArtifactRenderDiagnostic> diagnostics)

@@ -34,9 +34,10 @@ public class when_comparing_v14_query_filter_corpora : Specification
         }
 
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V14", "V14"));
-        rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-007");
+        rendered.Degradations.ShouldContain(degradation => degradation.Diagnostic.Code == ArtifactRenderDegradationCodes.UnsupportedConstruct);
+        rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-007");
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
+        rendered.Success.ShouldBeTrue();
+        rendered.Artifacts.IsEmpty.ShouldBeFalse();
     }
 }

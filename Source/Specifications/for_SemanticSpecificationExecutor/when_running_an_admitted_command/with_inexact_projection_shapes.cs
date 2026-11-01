@@ -64,7 +64,7 @@ public class with_inexact_projection_shapes : a_command_only_plan
             append with { ThenReadModels = [], ThenQueries = [new(_original.ThenQueries.Single().Query, _original.ThenQueries.Single().Key, [])] },
             scoped with { Scope = scoped.Scope with { From = [root with { Mappings = [] }] } },
             false,
-            SemanticSpecificationOutcome.Unsupported,
+            SemanticSpecificationOutcome.Failed,
             model with { Properties = [identity] });
         var numeric = SemanticValue.Number(42);
         var numericModel = model with { Properties = [.. model.Properties.Select(property => property.Id == identity.Id ? property with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text) } : property)] };
@@ -110,7 +110,7 @@ public class with_inexact_projection_shapes : a_command_only_plan
 
     [Fact] void should_reject_flat_transitions_without_an_identifier_mapping() => Verify("flat identifier omitted");
     [Fact] void should_reject_flat_transitions_without_a_required_scalar_mapping() => Verify("flat scalar omitted");
-    [Fact] void should_reject_identifier_only_mapping_free_scopes() => Verify("identifier-only empty from");
+    [Fact] void should_run_identifier_only_mapping_free_scopes_with_reference_parity() => Verify("identifier-only empty from");
     [Fact] void should_reject_number_sources_for_text_identifiers() => Verify("numeric source / text identifier");
     [Fact] void should_reject_multiple_projections_for_one_read_model() => Verify("multiple projections");
     [Fact] void should_reject_event_source_mappings_into_constrained_concepts() => Verify("event source into constrained concept");
@@ -175,11 +175,18 @@ public class with_inexact_projection_shapes : a_command_only_plan
         }
         var reference = new SemanticSpecificationRunner().Run(compilation.Plan, specification.Id);
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compilation.Plan, new([specification.Id]), new())).Results);
-        if (reference.Passed != referencePasses || stage.Outcome != stageOutcome || stage.Unsupported?.Capability != StageExecutionCapability.Projection ||
+        if (reference.Passed != referencePasses || stage.Outcome != stageOutcome || stage.Unsupported?.Capability != ExpectedCapability(reference, stageOutcome) ||
             (rejectionContains is not null && stage.Unsupported?.Details.Contains(rejectionContains, StringComparison.Ordinal) != true))
         {
             _failures.Add($"{caseName}: reference {reference.Passed}/{reference.Execution.Kind} {string.Join("; ", reference.Failures)}; Stage {stage.Outcome}/{stage.Unsupported?.Capability}/{stage.Unsupported?.Details} {string.Join("; ", stage.Failures)}");
         }
+    }
+
+    static StageExecutionCapability? ExpectedCapability(SemanticSpecificationRun reference, SemanticSpecificationOutcome stageOutcome)
+    {
+        if (stageOutcome == SemanticSpecificationOutcome.Unsupported) return StageExecutionCapability.Projection;
+        reference.Execution.Kind.ShouldEqual(SemanticExecutionOutcomeKind.Accepted);
+        return null;
     }
 
     static System.Collections.Immutable.ImmutableArray<SemanticCommand> Commands(SemanticSlice slice, SemanticEventContract? eventContract, bool numericSource, bool dateTimeSource)

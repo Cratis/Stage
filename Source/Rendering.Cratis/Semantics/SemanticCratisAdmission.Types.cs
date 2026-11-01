@@ -32,11 +32,10 @@ internal static partial class SemanticCratisAdmission
                 ValidateRuleBody(context, rule, concept.Id, null, diagnostics);
             }
 
-            if (concept.Primitive == SemanticPrimitiveType.Unknown ||
-                (concept.Values.Length > 0 && (concept.Primitive != SemanticPrimitiveType.Text || !concept.Validations.IsEmpty)) ||
-                !concept.Validations.All(rule => rule.Kind is SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation || SemanticValidationRendering.CanRender(rule, context)))
+            var reason = ConceptRefusalReason(context, concept);
+            if (reason is not null)
             {
-                diagnostics.Add(Error("STAGE-ESM-002", $"Concept '{concept.Name}' uses unsupported values or validation.", concept.Id));
+                diagnostics.Add(Error("STAGE-ESM-002", reason, concept.Id));
             }
         }
 
@@ -54,6 +53,19 @@ internal static partial class SemanticCratisAdmission
         }
     }
 
+    static string? ConceptRefusalReason(SemanticApplicationContext context, SemanticConcept concept)
+    {
+        var unsupportedRule = concept.Validations.FirstOrDefault(rule => rule.Kind is not (SemanticValidationRuleKind.RulePredicate or SemanticValidationRuleKind.CodeValidation) && !SemanticValidationRendering.CanRender(rule, context));
+        return concept switch
+        {
+            { Primitive: SemanticPrimitiveType.Unknown } => $"Concept '{concept.Name}' has an unknown primitive.",
+            { Values.Length: > 0, Primitive: not SemanticPrimitiveType.Text } => $"Concept '{concept.Name}' declares values on a {concept.Primitive} concept; only text concepts render as enumerations.",
+            { Values.Length: > 0, Validations.IsEmpty: false } => $"Concept '{concept.Name}' combines enumerated values with validation '{concept.Validations[0].Name ?? concept.Validations[0].Kind.ToString()}'; Stage renders enumerated values as a C# enum, which carries no concept validator, so these rules would be lost (Cratis/Stage#514).",
+            _ when unsupportedRule is not null => $"Concept '{concept.Name}' has validation '{unsupportedRule.Name ?? unsupportedRule.Kind.ToString()}' that Stage cannot render.",
+            _ => null
+        };
+    }
+
     static void ValidateGenerationBody(SemanticApplicationContext context, SemanticConcept concept, List<ArtifactRenderDiagnostic> diagnostics)
     {
         if (!SemanticGenerationRendering.IsRule(concept.Generation)) return;
@@ -68,10 +80,15 @@ internal static partial class SemanticCratisAdmission
         var requirement = context.Request.ImplementationRequirements.Single(candidate => candidate.RequirementId == generation.RequirementId);
         if (requirement.Role != SemanticImplementationRole.ValueGeneration || requirement.ContextVersion != 1 || requirement.ResultVersion != 1 ||
             requirement.RequiredCapability != "provider-defined" ||
-            !((requirement.Language == "csharp" && requirement.File is null) ||
-                (requirement.Language is null && requirement.File?.EndsWith(".cs", StringComparison.Ordinal) == true)))
+            SemanticImplementationBodySelector.Select(requirement).Outcome == SemanticImplementationBodySelector.SelectionOutcome.UndeterminedLanguage)
         {
             diagnostics.Add(Error("STAGE-ESM-019", $"Concept '{concept.Name}' has an unsupported generation envelope or language.", concept.Id));
+            return;
+        }
+
+        if (SemanticImplementationBodySelector.LanguageDiagnostic(requirement, concept.Id, $"Value generation for '{concept.Name}'") is { } language)
+        {
+            diagnostics.Add(language);
             return;
         }
 

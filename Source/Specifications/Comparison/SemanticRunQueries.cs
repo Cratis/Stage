@@ -16,7 +16,9 @@ internal static class SemanticRunQueries
         var query = plan.Queries[assertion.Query];
 
         return [.. projected.Where(row => row.ReadModel == query.ReadModel &&
-            (query.KeyProperty is null || Matches(row, query.KeyProperty.Value, assertion.Key)) &&
+            (!query.KeyParts.IsDefaultOrEmpty && query.KeyParts.Length > 1
+                ? SemanticExpectationComparer.AreEqual(row.Key, assertion.Key)
+                : query.KeyProperty is null || Matches(row, query.KeyProperty.Value, assertion.Key)) &&
             assertion.Filters.All(filter => Matches(row, query.Filters.Single(candidate => candidate.Id == filter.Filter).Property, filter.Value)))];
     }
 

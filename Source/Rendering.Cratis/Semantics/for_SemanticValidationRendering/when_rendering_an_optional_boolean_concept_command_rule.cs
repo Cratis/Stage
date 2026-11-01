@@ -24,5 +24,5 @@ public class when_rendering_an_optional_boolean_concept_command_rule : Specifica
 
     [Fact] void should_select_the_nullable_concept_property_without_implicit_unwrapping() => _builder.ToString().ShouldContain("RuleFor<global::Inputs.Common.Flag?>(_ => _.Value)");
     [Fact] void should_compare_the_unwrapped_boolean_and_accept_absence() => _builder.ToString().ShouldContain("value is null || global::System.Object.Equals(value.Value, false)");
-    [Fact] void should_not_compare_the_concept_object_to_a_boolean() => _builder.ToString().ShouldNotContain("Object.Equals(value, false)");
+    [Fact] void should_not_compare_the_concept_object_to_a_boolean() => _builder.ToString().ShouldNotContain("object.Equals(value, false)");
 }

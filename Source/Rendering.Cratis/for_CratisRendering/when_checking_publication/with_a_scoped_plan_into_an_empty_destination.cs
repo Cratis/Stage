@@ -11,6 +11,6 @@ public class with_a_scoped_plan_into_an_empty_destination : given.a_policy_plan
 {
     void Because() => _check = CratisRendering.CheckPublication(_plan, Read);
     [Fact] void should_be_compatible() => _check.ShouldBeOfExactType<CratisPublicationCheck.Compatible>();
-    [Fact] void should_read_only_the_overwritten_event_and_aggregate_paths() => _readPaths.ShouldContainOnly(_plan.Artifacts.Where(artifact => Text(artifact).Contains("EventTypeAttribute", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath).Concat(["GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs"]));
+    [Fact] void should_read_only_the_overwritten_event_and_aggregate_paths() => _readPaths.ShouldContainOnly(_plan.Artifacts.Where(artifact => Text(artifact).Contains("[EventType", StringComparison.Ordinal)).Select(artifact => artifact.RelativePath).Concat(["GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies.cs", "TypedContexts/PolicyContext.cs"]));
 }
 #endif

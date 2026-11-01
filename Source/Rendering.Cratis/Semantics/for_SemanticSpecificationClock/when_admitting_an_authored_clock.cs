@@ -21,7 +21,7 @@ public class when_admitting_an_authored_clock : Specification
         var plan = invoice_model.Plan(invoice_model.Compile(a_clock_model.Source));
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(value => value.Message)));
         var code = System.Text.Encoding.UTF8.GetString(plan.Artifacts.Single(value => value.RelativePath.EndsWith("when_at_the_authored_instant.cs", StringComparison.Ordinal)).Bytes.AsSpan());
-        code.ShouldContain("void Establish()\n    {\n        _scenario.Clock(new global::System.DateTimeOffset(639397512001230000L, global::System.TimeSpan.Zero));");
+        code.ShouldContain("void Establish()\n    {\n        _scenario.Clock(new DateTimeOffset(639397512001230000L, TimeSpan.Zero));");
     }
     [Theory]
     [InlineData("2027-03-04T10:00:00.1230001Z")]

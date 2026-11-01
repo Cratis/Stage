@@ -33,7 +33,7 @@ public class when_rendering_translation_specifications : given.a_translation_spe
     }
 
     [Fact]
-    void should_preserve_an_explicit_refusal_for_cascaded_outcomes()
+    void should_omit_a_specification_with_cascaded_outcomes()
     {
         var changed = Transform(_model, slice => slice.Name == "PublishOrderShipped" ? slice with
         {
@@ -43,12 +43,12 @@ public class when_rendering_translation_specifications : given.a_translation_spe
             })]
         } : slice);
         var plan = Plan(changed);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011").ShouldBeTrue();
+        AssertOmittedSpecification(changed, plan);
+        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning).ShouldBeTrue();
     }
 
     [Fact]
-    void should_reject_history_that_would_require_settling_the_translation()
+    void should_omit_a_specification_whose_history_requires_settling_the_translation()
     {
         var changed = Transform(_model, slice => slice.Name == "PublishOrderShipped" ? slice with
         {
@@ -61,8 +61,17 @@ public class when_rendering_translation_specifications : given.a_translation_spe
             })]
         } : slice);
         var plan = Plan(changed);
-        plan.Success.ShouldBeFalse();
-        plan.Diagnostics.Any(diagnostic => diagnostic.Message.Contains("given history must contain", StringComparison.Ordinal)).ShouldBeTrue();
+        AssertOmittedSpecification(changed, plan);
+        plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning && diagnostic.Message.Contains("given history must contain", StringComparison.Ordinal)).ShouldBeTrue();
+    }
+
+    static void AssertOmittedSpecification(ExecutableSemanticModel model, ArtifactRenderPlan plan)
+    {
+        var specification = model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "PublishOrderShipped").Specifications.Single();
+        plan.Success.ShouldBeTrue();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        plan.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
     }
 }
 #endif

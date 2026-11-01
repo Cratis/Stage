@@ -30,7 +30,7 @@ internal sealed record SemanticReducerBindingEnvironment(string[] Imports, Gener
         }
         else
         {
-            if (located.Slice.Kind == SemanticSliceKind.Automation)
+            if (located.Slice.Kind is SemanticSliceKind.Automation or SemanticSliceKind.StateChange)
             {
                 SemanticStateChangeArtifactRenderer.Configure(builder, located, context);
             }

@@ -27,6 +27,7 @@ public class when_refusing_composite_key_parts
         { nameof(OptionalPart), "required, single, non-date" },
         { nameof(CollectionPart), "required, single, non-date" },
         { nameof(DateTimePart), "required, single, non-date" },
+        { nameof(OptionalDecimalPart), "required, single, non-date" },
         { nameof(NonPrimitivePart), "required, single, non-date" },
         { nameof(Every), "only from and remove-with" },
         { nameof(Joins), "only from and remove-with" },
@@ -59,6 +60,7 @@ public class when_refusing_composite_key_parts
             nameof(OptionalPart) => (WithKeyType(model, type => type with { IsOptional = true }), projection, slice),
             nameof(CollectionPart) => (WithKeyType(model, type => type with { IsCollection = true }), projection, slice),
             nameof(DateTimePart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = SemanticPrimitiveType.DateTime }), projection, slice),
+            nameof(OptionalDecimalPart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = SemanticPrimitiveType.DecimalNumber, IsOptional = true }), projection, slice),
             nameof(NonPrimitivePart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.CompositeType }), projection, slice),
             nameof(Every) => (model, WithScope(projection!, scope => scope with { Every = Placeholder<SemanticProjectionEvery>() }), slice),
             nameof(Joins) => (model, WithScope(projection!, scope => scope with { Joins = [Placeholder<SemanticProjectionJoin>()] }), slice),
@@ -97,6 +99,7 @@ public class when_refusing_composite_key_parts
     const string OptionalPart = nameof(OptionalPart);
     const string CollectionPart = nameof(CollectionPart);
     const string DateTimePart = nameof(DateTimePart);
+    const string OptionalDecimalPart = nameof(OptionalDecimalPart);
     const string NonPrimitivePart = nameof(NonPrimitivePart);
     const string Every = nameof(Every);
     const string Joins = nameof(Joins);

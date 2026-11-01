@@ -11,10 +11,10 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticConditionRendering
 public class when_rendering_named_value_requirements
 {
     [Theory]
-    [InlineData("value == inReview", "global::System.Object.Equals(command.Value, global::Invoices.Common.Status.InReview)")]
-    [InlineData("value != \"draft\"", "!global::System.Object.Equals(command.Value, global::Invoices.Common.Status.Draft)")]
-    [InlineData("value == other", "global::System.Object.Equals(command.Value, command.Other)")]
-    [InlineData("value != other", "!global::System.Object.Equals(command.Value, command.Other)")]
+    [InlineData("value == inReview", "object.Equals(command.Value, Status.InReview)")]
+    [InlineData("value != \"draft\"", "!object.Equals(command.Value, Status.Draft)")]
+    [InlineData("value == other", "object.Equals(command.Value, command.Other)")]
+    [InlineData("value != other", "!object.Equals(command.Value, command.Other)")]
     [InlineData("value == inReview and value != draft", "&&")]
     [InlineData("value == inReview or value != draft", "||")]
     public void should_compare_enum_members_and_same_concept_properties(string condition, string expected)

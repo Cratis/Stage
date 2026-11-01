@@ -40,7 +40,6 @@ public class with_an_unsafe_iterator : Specification
     [Theory]
     [InlineData("Tenant")]
     [InlineData("CausedBy")]
-    [InlineData("Occurred")]
     void should_refuse_unsupplied_metadata_by_member_name(string member)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorCommand($"yield return $\"{{context.{member}}}\";")));

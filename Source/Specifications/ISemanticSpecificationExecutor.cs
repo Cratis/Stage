@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Syntax.Specifications;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 
 namespace Cratis.Stage.Specifications;
@@ -56,6 +57,9 @@ public sealed record SemanticSpecificationSelection(ImmutableArray<SemanticId> S
 /// </summary>
 public sealed record SemanticSpecificationRunOptions
 {
+    /// <summary>Gets the source-bound, renderer-admitted rule body execution for this sandbox.</summary>
+    public SemanticBodyExecution? BodyExecution { get; init; }
+
     /// <summary>
     /// Gets the source-bound origins used to describe case failures.
     /// </summary>

@@ -40,14 +40,22 @@ internal static class SemanticValidationRendering
         SemanticValidationRuleKind.Contains or SemanticValidationRuleKind.NotContains or SemanticValidationRuleKind.StartsWith or SemanticValidationRuleKind.EndsWith) ||
         !text.Value.Any(_ => _ is '{' or '}')));
 
-    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null, CSharpCodeBuilder? typeBuilder = null, string? generatedMember = null)
+    internal static void Render(CSharpCodeBuilder builder, SemanticValidationRule rule, string property, SemanticPrimitiveType primitive, bool collection, bool concept, bool wrapped = false, bool optional = false, string? rootNamespace = null, ConceptRendering? conceptRendering = null, CSharpCodeBuilder? typeBuilder = null, string? generatedMember = null, bool conceptMessage = false)
     {
+        if (conceptMessage && rule.Message is null)
+        {
+            rule = rule with { Message = DefaultMessage(rule, primitive, true) };
+        }
+
         var value = concept ? "_.Value" : $"_.{generatedMember ?? Identifiers.ToPascalCase(property)}";
         conceptRendering ??= new();
         var ruleFor = conceptRendering.RuleFor;
-        var validation = rule.Kind == SemanticValidationRuleKind.Matches
-            ? PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value)
-            : $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})";
+        var validation = rule.Kind switch
+        {
+            SemanticValidationRuleKind.NotEmpty when conceptRendering.RendersNotEmpty(primitive, collection, optional) => ".NotEmpty()",
+            SemanticValidationRuleKind.Matches => PortableMatchRendering.ValidatorCall(((SemanticTextValue)rule.Operand!).Value),
+            _ => $".Must(value => {conceptRendering.Predicate(rule, primitive, collection, wrapped, optional, typeBuilder)})"
+        };
         var message = rule.Message ?? DefaultMessage(rule, primitive, concept);
         var severitySuffix = SeveritySuffix(rule.Severity, typeBuilder);
         if (message.StartsWith("$strings.", StringComparison.Ordinal))
@@ -196,6 +204,9 @@ internal static class SemanticValidationRendering
     {
         // Select FluentValidation's property overload: Arc's concept overload replaces absence with default(T).
         internal string RuleFor => OptionalType is null ? "RuleFor" : $"RuleFor<{OptionalType}>";
+
+        internal bool RendersNotEmpty(SemanticPrimitiveType primitive, bool collection, bool optional) =>
+            primitive == SemanticPrimitiveType.Text && !collection && !optional && OptionalType is null;
 
         internal string Predicate(SemanticValidationRule rule, SemanticPrimitiveType primitive, bool collection, bool wrapped, bool optional, CSharpCodeBuilder? builder) =>
             EnumOperand is null

@@ -18,5 +18,5 @@ public class when_two_imported_namespaces_declare_the_same_name : given.a_framew
     [Fact] void should_import_the_namespace_an_unambiguous_name_needs() => string.Join(' ', _result.Usings).ShouldEqual("Cratis.Chronicle.Identities");
     [Fact] void should_spell_the_unambiguous_name_short() => _result.Spell(_identity).ShouldEqual("Identity");
     [Fact] void should_spell_the_name_in_the_retained_import_short() => _result.Spell(_identities).ShouldEqual("IIdentityProvider");
-    [Fact] void should_qualify_the_other_ambiguous_name() => _result.Spell(_arc).ShouldEqual("global::Cratis.Arc.Identity.IIdentityProvider");
+    [Fact] void should_qualify_the_other_ambiguous_name() => _result.Spell(_arc).ShouldEqual("StageImport0::IIdentityProvider");
 }

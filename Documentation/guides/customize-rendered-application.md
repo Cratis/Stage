@@ -33,6 +33,16 @@ Every file is optional. Without them, the application builds and runs as rendere
   that `.frontend/main.tsx` discovers `Customizations/styles.css` with `import.meta.glob` and awaits its loader
   before rendering React. An application rendered before these hooks existed has neither; render it again first.
 
+Before starting the backend, start the rendered development services with Docker Compose v2 supporting `--wait`:
+
+```bash
+docker compose up -d --wait
+```
+
+The generated compose file checks Chronicle's TLS `/health` endpoint on port 35000. The command waits for
+Chronicle to become healthy before returning, so the backend does not try to connect while the kernel is still
+starting. Follow the generated README's `dotnet run` step after this command completes.
+
 The rendered `Program.cs` provides the hooks:
 
 ```csharp title="Program.cs (managed)"
@@ -174,9 +184,11 @@ path that cannot collide with a route Arc generates from your model.
 
 ## Keep custom types out of generated namespaces
 
-Put adapter types in your own namespace, such as `Customizations`, not in a namespace Stage generates (including `<RootNamespace>.Common` and slice namespaces). The global partial `Program` hook above is the supported exception. Remove obsolete generated declarations through your publisher's managed-file cleanup rather than leaving stale siblings in those namespaces.
+Put adapter types in your own namespace, such as `Customizations`, not in the global namespace or a namespace Stage generates (including `<RootNamespace>`, `<RootNamespace>.Common` and slice namespaces). The global partial `Program` hook above is the supported exception. Remove obsolete generated declarations through your publisher's managed-file cleanup rather than leaving stale siblings in those namespaces.
 
-Generated `Common/` files use short names with globally rooted imports inside their file-scoped namespace (for example, `using global::Cratis.Concepts;`), retaining fully qualified type references when binding is uncertain. The rooted imports cannot be redirected by customization namespaces such as `<RootNamespace>.Cratis` or `<RootNamespace>.System`. Stage plans only from its request and its framework catalog; it does not scan `Customizations/` or packages added through `Dependencies.props`. Adding a type to a generated namespace can silently change a short name's binding. A package that adds a colliding type to an imported namespace can instead cause an ambiguity error when you build; resolve the dependency conflict rather than editing managed code.
+Generated C# files read like hand-written code: types are written by their short names, with ordinary `using` directives above the file-scoped namespace, sorted ordinally. A namespace the project's global usings already import gets no directive. A name that would be ambiguous above the namespace, such as a concept named like a framework type, is imported with a directive inside the file-scoped namespace instead. Stage keeps a fully qualified `global::` name only where it cannot prove that the short name binds to the same type, for example when two imported namespaces declare the same name. Stage decides this from the whole application's generated declarations and its framework catalog. It does not scan `Customizations/` or packages added through `Dependencies.props`.
+
+Short names are why custom types must stay out of generated namespaces. C# looks up a short name in the file's own namespace and every enclosing namespace, out to the global namespace, before it looks at any `using` directive, and a `global using` alias wins over the directives too. A hand-written type named like a framework type in the global namespace, in `<RootNamespace>` or in `<RootNamespace>.Common`, or an alias such as `global using Checksum = ...`, would silently take over the generated reference. A type in your own namespace, such as `Customizations`, encloses no generated file and cannot do that. A package that adds a colliding type to an imported namespace, or a `global using` of a namespace you add, instead causes an ambiguity error when you build; resolve the dependency conflict rather than editing managed code.
 
 Also review extension methods when adding dependencies. A new extension method in an imported namespace can change overload resolution in generated code, even without a type-name collision. Build and run the application's specifications after changing custom dependencies.
 
@@ -193,6 +205,39 @@ dotnet run
 End the base address with `/` so the relative `rates/...` request keeps the `/v1/` segment. With the validation
 above, the host refuses to start when the setting is missing instead of failing on the first request. Keep secrets
 in a secret store or environment variables, not in files under `Customizations/`.
+
+## Behind an authenticating proxy
+
+Generated applications register Arc's Microsoft Identity Platform header authentication scheme. Forwarded
+`x-ms-client-principal*` headers are ignored by default. To accept identity from an authenticating proxy, opt in
+with the environment variable `Cratis__Arc__TrustForwardedIdentityHeaders=true`, or configure Arc through the
+existing services hook:
+
+```csharp title="Customizations/Program.cs"
+using Cratis.Arc;
+
+public partial class Program
+{
+    static partial void ConfigureServices(WebApplicationBuilder builder)
+    {
+        builder.Services.Configure<ArcOptions>(options => options.TrustForwardedIdentityHeaders = true);
+    }
+}
+```
+
+Keep this hook in the global namespace and do not edit the managed `appsettings.json`. Without a trusted
+identity, `/.cratis/me` returns 401 and protected commands and queries reject anonymous callers.
+
+:::danger
+These are ordinary request headers: anyone can forge them. Enable this option only when every request passes
+through a trusted authenticating proxy that strips incoming identity headers and sets its own, and the backend
+cannot be reached directly. Examples include Azure App Service authentication and Cratis AuthProxy.
+:::
+
+Outside the Development environment, Arc's discovery endpoints (`/.cratis/commands`, `/.cratis/queries`,
+`/.cratis/users`, `/.cratis/tenants` and `/.cratis/identity-details/schema`) also require an authenticated caller.
+The generated frontend does not use these discovery catalogs. The Docker sandbox keeps this secure default;
+its persona is not a proxy identity and does not authenticate discovery requests.
 
 ## Add project and package references
 
@@ -227,8 +272,8 @@ fails restore under central package management. Older inline-spec scaffolds that
 management still require `Version` instead; check your existing `Directory.Packages.props` before adding a package.
 
 The import is the last element of the web project body: a property you set in this file replaces the generated
-value, so set only what you mean to change. The separate specs project references the host and inherits its
-additional dependencies transitively; the import is not applied to the specs project a second time.
+value, so set only what you mean to change. Specifications compile into the same project in Debug,
+so they see these dependencies too.
 
 ## Restyle the frontend
 
@@ -283,7 +328,8 @@ that has one.
   Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
   See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
 - **No authorization is applied to your code.** Endpoints you map are anonymous unless you secure them with ASP.NET
-  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders.
+  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders. For forwarded
+  identity, see [Behind an authenticating proxy](#behind-an-authenticating-proxy).
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
   generated middleware. You cannot place middleware before static files or Cratis through this hook.
 - **Registrations can replace Cratis services.** `ConfigureServices` runs after `AddCratis`, and the last

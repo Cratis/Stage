@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -37,6 +38,18 @@ internal static class SemanticPolicyNames
         _cache.GetValue(context, Compute);
 
     /// <summary>
+    /// Gets policy bindings whose generated names collide and must be refused by admission.
+    /// </summary>
+    /// <param name="context">The semantic application.</param>
+    /// <returns>The conflicts in generated class-name order of discovery.</returns>
+    public static ImmutableArray<ConflictingPolicyBindings> Conflicts(SemanticApplicationContext context) =>
+    [
+        .. For(context).Values.GroupBy(name => name.ClassName, StringComparer.Ordinal)
+            .Where(group => group.Select(name => name.Sources).Distinct().Count() > 1)
+            .Select(group => new ConflictingPolicyBindings([.. group.SelectMany(name => name.Sources).Distinct()], group.First().Name))
+    ];
+
+    /// <summary>
     /// Gets the policy name Arc knows an operation's policy by, including the domain placement.
     /// </summary>
     /// <param name="context">The semantic application.</param>
@@ -49,19 +62,20 @@ internal static class SemanticPolicyNames
     /// Gets the protected operations of the slices.
     /// </summary>
     /// <param name="slices">The slices.</param>
+    /// <param name="policies">The application's policies.</param>
     /// <returns>The protected operations, in operation identity order.</returns>
-    public static IReadOnlyList<PolicyOperation> Operations(IEnumerable<LocatedSemanticSlice> slices) =>
+    public static IReadOnlyList<PolicyOperation> Operations(IEnumerable<LocatedSemanticSlice> slices, IEnumerable<SemanticPolicy> policies) =>
     [
-        .. slices.SelectMany(located => located.Slice.Commands.Where(command => command.Authorization is not null)
+        .. slices.SelectMany(located => located.Slice.Commands.Where(command => SemanticAnonymousAccess.RequiresCaller(command.Authorization, policies))
                 .Select(command => new PolicyOperation(command.Id, command.Name, command.Authorization!, located, command, null)))
-            .Concat(slices.SelectMany(located => located.Slice.Queries.Where(query => query.Authorization is not null)
+            .Concat(slices.SelectMany(located => located.Slice.Queries.Where(query => SemanticAnonymousAccess.RequiresCaller(query.Authorization, policies))
                 .Select(query => new PolicyOperation(query.Id, query.Name, query.Authorization!, located, null, query))))
             .OrderBy(operation => operation.Id.ToString(), StringComparer.Ordinal)
     ];
 
     static IReadOnlyDictionary<SemanticId, PolicyName> Compute(SemanticApplicationContext context)
     {
-        var operations = Operations(context.AllSlices);
+        var operations = Operations(context.AllSlices, context.Application.Policies);
         var bases = operations.ToDictionary(operation => operation.Id, operation => Base(operation.Authorization));
         var signatures = operations.ToDictionary(operation => operation.Id, operation => Signature(context, operation));
         var result = new Dictionary<SemanticId, PolicyName>();
@@ -106,21 +120,9 @@ internal static class SemanticPolicyNames
             result[operation.Id] = new($"{name}Policy", name, [operation.Id]);
         }
 
-        EnsureDistinct(result);
+        // Keep naming total even when qualification is exhausted. Admission reports these collisions before
+        // artifacts can be returned, while generated-type and typed-context lookups can still use the map.
         return result;
-    }
-
-    // Operations that do not share a policy must never share a class: a shared class would silently enforce one
-    // operation's authorization on the other.
-    static void EnsureDistinct(Dictionary<SemanticId, PolicyName> names)
-    {
-        var conflict = names.Values
-            .GroupBy(name => name.ClassName, StringComparer.Ordinal)
-            .FirstOrDefault(group => group.Select(name => name.Sources).Distinct().Count() > 1);
-        if (conflict is not null)
-        {
-            throw new InvalidOperationException($"Operations {string.Join(", ", conflict.SelectMany(name => name.Sources).Distinct())} bind the policy '{conflict.First().Name}' differently and cannot be given distinct policy class names.");
-        }
     }
 
     // Levels 1 to the feature count add outer features, the next adds the module, the next the slice, and the last

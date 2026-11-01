@@ -15,6 +15,17 @@ The Host uses the semantic engine by default. Pass `--engine=eventmodel` to the 
 `Stage__Runtime__Engine=eventmodel` to keep the deprecated legacy engine. It logs one warning at startup and
 will be removed in Stage v6. The SpecRunner retains `structural` as its default.
 
+## Body worker process
+
+`Cratis.Stage.BodyWorker` is Stage's separate .NET process for compiled rule units. The
+`BodyWorker` project builds it; Host publishes it into a `bodyworker/` subdirectory.
+Its `--role compile` process emits admitted units, while `--role execute` evaluates them
+through versioned stdin/stdout messages. Neither role opens a network listener.
+
+The worker isolates accidental loops, crashes and excessive allocation in trusted local
+model code. The execute role has a managed heap limit plus a working-set watchdog; this
+is not an OS memory cap or a security boundary for hostile multi-tenant code.
+
 ## What Stage does with the folder
 
 1. **Discovers** every `.play` file beneath the folder, recursively — the glob is `**/*.play`, so nesting is

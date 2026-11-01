@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    static bool Allowed(ISymbol symbol, Compilation compilation, string rootNamespace, out string entry)
+    static bool Allowed(ISymbol symbol, Compilation compilation, PureTransitionAnalysisContext analysis, out string entry)
     {
         entry = string.Empty;
         if (symbol is IMethodSymbol { MethodKind: MethodKind.BuiltinOperator } builtin)
@@ -23,14 +23,15 @@ internal static partial class PureTransitionAdmission
 
         // Anonymous records can carry randomized string hashes; no synthesized method is trusted.
         var type = symbol.ContainingType;
-        return type is not null && !IsUnadmittable(symbol, type) && AllowedMember(symbol, compilation, rootNamespace, out entry);
+        return type is not null && !IsUnadmittable(symbol, type) && AllowedMember(symbol, compilation, analysis, out entry);
     }
 
-    static bool AllowedMember(ISymbol symbol, Compilation compilation, string rootNamespace, out string entry)
+    static bool AllowedMember(ISymbol symbol, Compilation compilation, PureTransitionAnalysisContext analysis, out string entry)
     {
         var type = symbol.ContainingType;
+        var rootNamespace = analysis.RootNamespace;
         entry = string.Empty;
-        if (IsConceptValueMember(symbol, type, compilation))
+        if (IsGeneratedConceptConversion(symbol, analysis.GeneratedConcepts) || IsConceptValueMember(symbol, type, compilation))
         {
             entry = "generated";
             return true;
@@ -131,11 +132,20 @@ internal static partial class PureTransitionAdmission
         }
 
         entry = "primitive";
-        return symbol is IMethodSymbol { Parameters.Length: 1 } method &&
+        return IsDigitMember(symbol) || IsInvariantNumericFormatting(symbol);
+    }
+
+    static bool IsDigitMember(ISymbol symbol) => symbol is IMethodSymbol
+    {
+        ContainingType.SpecialType: SpecialType.System_Char,
+        Parameters: [{ Type.SpecialType: SpecialType.System_Char }]
+    } method && method.Name == "IsDigit";
+
+    static bool IsInvariantNumericFormatting(ISymbol symbol) =>
+        symbol is IMethodSymbol { Parameters.Length: 1 } method &&
             method.Name == "ToString" &&
             method.Parameters[0].Type.Name == "IFormatProvider" &&
             method.Parameters[0].Type.ContainingNamespace.ToDisplayString() == "System";
-    }
 
     static bool AllowedStringMember(ISymbol symbol) => symbol switch
     {
@@ -147,6 +157,7 @@ internal static partial class PureTransitionAdmission
 
     static bool AllowedStringMethod(IMethodSymbol method) =>
         IsSubstring(method) || IsTextConcat(method) || IsOrdinalComparison(method) ||
+        (method.Name == "Contains" && method.Parameters is [{ Type.SpecialType: SpecialType.System_String or SpecialType.System_Char }]) ||
         NameIs(method.Name, "IsNullOrEmpty", "op_Equality", "op_Inequality");
 
     static bool IsSubstring(IMethodSymbol method) =>
@@ -172,6 +183,12 @@ internal static partial class PureTransitionAdmission
             return SafeValueType(type.TypeArguments[0]) && NameIs(name, "HasValue", "Value", "GetValueOrDefault", ".ctor");
         }
 
+        if (full == "global::System.Guid")
+        {
+            entry = "guid";
+            return symbol is IMethodSymbol { IsStatic: true } && AuditedMemberSignatures.Contains(AuditedSignature(symbol));
+        }
+
         if (full == "global::System.Math")
         {
             entry = "math";
@@ -195,7 +212,7 @@ internal static partial class PureTransitionAdmission
         entry = "string";
         if (full == "global::System.StringComparison")
         {
-            return symbol is IFieldSymbol && name == "Ordinal";
+            return symbol is IFieldSymbol && NameIs(name, "Ordinal", "OrdinalIgnoreCase");
         }
 
         if (full == "global::System.Globalization.CultureInfo")
@@ -278,9 +295,16 @@ internal static partial class PureTransitionAdmission
     static bool AllowedTime(ISymbol symbol) => symbol switch
     {
         IPropertySymbol => NameIs(symbol.Name, "Year", "Month", "Day", "Hour", "Minute", "Second", "Ticks"),
-        IMethodSymbol method => IsTimeOperator(method) || IsTimeAdd(method),
+        IFieldSymbol { IsStatic: true, IsReadOnly: true } => symbol.Name == "Zero" && symbol.ContainingType.ToDisplayString() == "System.TimeSpan",
+        IMethodSymbol method => IsTimeOperator(method) || IsTimeAdd(method) || IsExplicitTimeConstructor(method),
         _ => false
     };
+
+    static bool IsExplicitTimeConstructor(IMethodSymbol method) =>
+        method is { MethodKind: MethodKind.Constructor, Parameters.Length: 7 } &&
+        method.ContainingType.ToDisplayString() == "System.DateTimeOffset" &&
+        method.Parameters.Take(6).All(parameter => parameter.Type.SpecialType == SpecialType.System_Int32) &&
+        method.Parameters[6].Type.ToDisplayString() == "System.TimeSpan";
 
     static bool IsTimeOperator(IMethodSymbol method) =>
         NameIs(method.Name, "op_Equality", "op_Inequality", "op_LessThan", "op_LessThanOrEqual", "op_GreaterThan", "op_GreaterThanOrEqual", "op_Addition", "op_Subtraction") &&

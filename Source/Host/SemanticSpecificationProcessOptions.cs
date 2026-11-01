@@ -5,7 +5,12 @@ namespace Cratis.Stage.Host;
 
 internal sealed record SemanticSpecificationProcessOptions(string RunnerPath, TimeSpan Timeout)
 {
+    internal SemanticBodyWorkerOptions? BodyWorker { get; init; }
+
     internal static SemanticSpecificationProcessOptions FromConfiguration(IConfiguration configuration) => new(
         configuration["Stage:Specifications:RunnerPath"] ?? Path.Combine(AppContext.BaseDirectory, "specrunner", "Cratis.Stage.SpecRunner.dll"),
-        TimeSpan.FromSeconds(Math.Clamp(configuration.GetValue("Stage:Specifications:TimeoutSeconds", 120), 1, 600)));
+        TimeSpan.FromSeconds(Math.Clamp(configuration.GetValue("Stage:Specifications:TimeoutSeconds", 120), 1, 600)))
+    {
+        BodyWorker = SemanticBodyWorkerOptions.From(configuration)
+    };
 }

@@ -120,6 +120,19 @@ existing digests. `CratisPlanResult` exposes the same outcome and refusals.
 See [Render around refused specifications](stage-rendering.md#render-around-refused-specifications)
 for the exact opt-in and refusal boundary.
 
+## Degraded owner omissions
+
+When Stage renders around an unsupported event member in an audited ESM version,
+`Outcome` is `Degraded`, not `Complete`. `Refusals` identifies the root event (`STAGE-DEGRADE-001`) and every omitted
+dependent (`STAGE-DEGRADE-005`). No emitted artifact's `Sources` includes an omitted owner.
+Selected omitted constructs appear in the semantic inventory as `GraphProvenOmittedLeaf`
+placeholders, with dependent entries linked to their root events. Report format version 1
+is unchanged. These placeholders describe missing code; they are not generated stubs.
+
+Strict mode retains the original whole-render refusal and emits no artifacts. See
+[Rendering around unsupported event members](stage-rendering.md#render-around-unsupported-event-members)
+for eligibility and remedies.
+
 ## Specification case tables
 
 The Cratis artifact render plan emits one specification class per named case in a Screenplay
@@ -236,7 +249,7 @@ The Cratis renderer records the following identities in `Sources`. The plan norm
 | Operation policy and policy-context wrapper/body | Protected command or query identity. |
 | Shared policy registrations and policy-context runtime/bodies | Application identity. |
 | `<slice-folder>/Screens.scene.json` | Declaring slice identity only, when the profile carries screen partitions. Bound commands or queries do not change the owner. |
-| `scene.json`, `src/bindings.ts`, `src/stage-scene.json`, `src/stage.ts` | Application identity only, for both authored and default Scene composition; emitted only at application scope. |
+| `scene.json`, `src/bindings.ts`, `src/stage-scene.json`, `src/stage.ts` | Application identity only, for both authored and default Scene composition; emitted at application scope, and by a scoped plan whose profile carries the user interface input. |
 | Scaffold | Empty, except application locale inputs, which name the application. |
 
 `Sources` preserves provenance, not exclusive folder ownership. A reducer observes event declarations from other slices without becoming those slices' reducer. Consumers selecting slice-owned business files should use the explicit declaring slice where provided and model mapping for artifacts such as reactors. App-scope Scene files remain application-sourced: select the declaring slice's `Screens.scene.json` for its screen code instead of presenting the whole application UI.
@@ -249,7 +262,7 @@ Call `CratisRendering.WithScreenPartitions(profile, compilation)` with the compi
 
 Each declaring slice gets `<slice-folder>/Screens.scene.json` containing a `screens` array. Screen keys, component IDs, forms and bindings remain in the records. Templates, shared shell data and inherited module/feature contributions remain app-scoped; fragments are Scene code, not standalone applications or React components. The application Scene is assembled from those same partitioned records, with inherited contributions restored, and retains its canonical bytes.
 
-`CratisRendering.PlanFrom(loaded, selection, options)` emits the selected slices' fragments with the same bytes as an application-scope plan. A feature selection produces the union, including nested features. Scoped plans omit all four Scene aggregates rather than publish a partial application; `STAGE-SCREEN-006` explains that application scope is required to publish shared UI. A slice without an authored screen receives `STAGE-SCREEN-005` when partitions are carried: Stage emits no slice-owned default fragment and never attributes synthetic application UI to that slice.
+`CratisRendering.PlanFrom(loaded, selection, options)` emits the selected slices' fragments with the same bytes as an application-scope plan. A feature selection produces the union, including nested features. By default, scoped plans omit all four Scene aggregates rather than publish a partial application; `STAGE-SCREEN-006` explains that application scope, or the user interface option, is required to publish shared UI. A scoped plan whose profile carries the `cratis-render:user-interface` input (set through [`CratisPlanOptions.UserInterface`](./plan-from-sources.md#user-interface-option)) emits the four aggregates composed over the slices that input names plus its own selection: only those slices' screens, commands and queries are composed, bound and imported, so the bindings never import a proxy whose slice has not been generated. With every slice present, the aggregates are byte-identical to the application-scope ones. A profile that also carries the `cratis-render:user-interface-domains` input (set through [`CratisPlanOptions.UserInterfaceDomains`](./plan-from-sources.md#an-application-generated-one-domain-at-a-time)) adds the slices generated under the application's other domains and imports each of their proxies from that domain's folder; the input is admitted only alongside `cratis-render:user-interface`. An input naming an identity that is not a slice of the model is refused with `STAGE-SCREEN-007`. A slice without an authored screen receives `STAGE-SCREEN-005` when partitions are carried: Stage emits no slice-owned default fragment and never attributes synthetic application UI to that slice.
 
 Admission refuses unsupported-version, stale, malformed, duplicate or unresolved partitions, missing screen coverage and disagreements with either the carried Scene or the compilation's translated screen records, without partial artifacts. Naming another existing slice as owner is refused even when it belongs to the same feature. Screen partitions add managed paths and therefore change artifact lists and output digests; rename/removal uses the normal publication ownership and drift checks.
 

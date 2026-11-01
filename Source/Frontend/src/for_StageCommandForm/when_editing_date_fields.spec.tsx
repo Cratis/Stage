@@ -62,7 +62,7 @@ describe('when editing date-only command fields', () => {
         screen.getByRole('spinbutton', { name: /year/i }).textContent!.should.equal('2020');
         screen.getByRole('spinbutton', { name: /month/i }).textContent!.should.equal('1');
         screen.getByRole('spinbutton', { name: /day/i }).textContent!.should.equal('1');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: '2020-01-01' }));
     });
@@ -79,7 +79,7 @@ describe('when editing date-only command fields', () => {
         day.textContent!.should.equal('2');
         fireEvent.keyDown(day, { key: 'ArrowDown' });
         day.textContent!.should.equal('1');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: '2020-01-01' }));
     });
@@ -92,7 +92,7 @@ describe('when editing date-only command fields', () => {
         const day = screen.getByRole('spinbutton', { name: /day/i });
         fireEvent.keyDown(day, { key: 'ArrowDown' });
         day.textContent!.should.equal('1');
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: '2020-01-01' }));
     });
@@ -107,7 +107,7 @@ describe('when editing date-only command fields', () => {
             const digits = segment.textContent!.length;
             for (let digit = 0; digit < digits; digit++) fireEvent.keyDown(segment, { key: 'Backspace' });
         }
-        fireEvent.click(screen.getByRole('button', { name: 'Execute Birth date' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => submitted(fetched).should.deep.equal({ birthDate: null }));
     });

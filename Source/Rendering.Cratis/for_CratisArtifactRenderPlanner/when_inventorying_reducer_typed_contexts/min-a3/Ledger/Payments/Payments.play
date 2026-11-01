@@ -1,0 +1,84 @@
+module Ledger
+
+  feature Payments
+    description "Money arriving, and what it settles"
+
+    slice StateChange RecordPayment
+
+      command RecordPayment
+        paymentId PaymentId identifier
+        invoiceId InvoiceId
+        amount Money
+        validate
+          ```csharp
+          if (context.Artifact.Amount.Value <= 0)
+          {
+              yield return "A payment has to be for something";
+          }
+          ```
+        produces PaymentRecorded
+          for paymentId
+          paymentId = paymentId
+          invoiceId = invoiceId
+          amount = amount
+          settlesInvoice = false
+        handler
+          ```csharp
+          // A handler is the escape hatch for a decision the declarative form cannot express.
+          // Everything else in this sample is declarative, precisely so this one stands out.
+          var command = context.Command;
+          var settles = command.Amount.Value >= 1000;
+          return new PaymentRecorded(command.PaymentId, command.InvoiceId, command.Amount, settles);
+          ```
+
+      event PaymentRecorded
+        paymentId PaymentId
+        invoiceId InvoiceId
+        amount Money
+        settlesInvoice Bool
+
+      constraint OnePaymentPerAttempt
+        unique event PaymentRecorded
+
+    slice StateView PaymentList
+
+      readmodel PaymentSummary
+        paymentId PaymentId
+        invoiceId InvoiceId
+        amount Money
+
+      reducer PaymentSummaryReducer => PaymentSummary
+        on PaymentRecorded
+          ```csharp
+          return new PaymentSummary(PaymentId: context.Event.PaymentId, InvoiceId: context.Event.InvoiceId, Amount: context.Event.Amount);
+          ```
+
+      query PaymentById => PaymentSummary?
+        by paymentId PaymentId
+
+      query Payments => observable PaymentSummary[]
+        performer
+          ```csharp
+          // A performer answers the query when the read model alone cannot.
+          return payments.OrderByDescending(_ => _.Amount);
+          ```
+
+      query PaymentsForInvoice => PaymentSummary[]
+        by invoiceId InvoiceId
+
+      screen PaymentList
+        title $strings.payment.listTitle
+        data PaymentSummary[] via query Payments
+        table PaymentSummary
+          column paymentId label $strings.payment.reference
+          column amount label $strings.invoice.amount
+
+      specification RecordingAPaymentShowsUpInTheList
+        given readmodel PaymentSummary
+          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
+        then readmodel PaymentSummary
+          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500

@@ -31,7 +31,7 @@ static class CatalogScaffold
     /// Scaffolds, restores and builds the application and reads both projects.
     /// </summary>
     /// <param name="directory">The empty directory to scaffold into.</param>
-    /// <returns>The application project and the specifications project.</returns>
+    /// <returns>The application project as application files and as specification files see it.</returns>
     public static async Task<(ScaffoldedProject Application, ScaffoldedProject Specifications)> Restore(DirectoryInfo directory)
     {
         var request = CratisBackendApplicationScaffoldRequest.Create(ProjectName, ProjectName, ProjectName, CratisBackendApplicationScaffoldProfile.Current);
@@ -58,11 +58,12 @@ static class CatalogScaffold
             """);
         await Run(directory.FullName, "restore", $"{ProjectName}.slnx");
         await Run(directory.FullName, "build", $"{ProjectName}.slnx", "--no-restore", "-p:EmitCompilerGeneratedFiles=true", $"-p:CompilerGeneratedFilesOutputPath={GeneratedSources}");
-        var specifications = Path.Combine(directory.FullName, $"{ProjectName}.Specs");
 
+        // Specifications compile into the application in Debug, so application and specification files see the same
+        // names there: both are read from the Debug application project. Release only removes names, never adds one.
         return (
             await Read(GeneratedProjects.Application, directory.FullName, $"{ProjectName}.csproj"),
-            await Read(GeneratedProjects.Specifications, specifications, $"{ProjectName}.Specs.csproj"));
+            await Read(GeneratedProjects.Specifications, directory.FullName, $"{ProjectName}.csproj"));
     }
 
     static async Task<ScaffoldedProject> Read(GeneratedProjects project, string directory, string file)

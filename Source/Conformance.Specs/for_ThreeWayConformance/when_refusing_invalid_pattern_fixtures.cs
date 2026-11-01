@@ -21,7 +21,7 @@ public class when_refusing_invalid_pattern_fixtures : Specification
     [InlineData("WrongUtcDate")]
     [InlineData("RepeatedDateMismatch")]
     [InlineData("AuthoredChecksumArithmetic")]
-    public async Task should_agree_on_rejection_and_refuse_rendering_the_invalid_pin(string name)
+    public async Task should_agree_on_rejection_and_omit_the_invalid_pin_specification(string name)
     {
         var original = SemanticModelSerializer.Deserialize(GenerationFixturesCorpus.V21.EsmBytes.AsSpan());
         var module = original.Application.Modules.Single();
@@ -50,8 +50,13 @@ public class when_refusing_invalid_pattern_fixtures : Specification
         reference.Execution.ShouldBeOfExactType<SemanticRejected>();
         stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
-        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011");
-        rendered.Artifacts.ShouldBeEmpty();
+        rendered.Success.ShouldBeTrue();
+        rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Artifacts.ShouldNotBeEmpty();
+        rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
+        rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011").Message.ShouldContain($"Skipped specification '{specification.Name}' (STAGE-ESM-011)");
     }
 }
 #endif

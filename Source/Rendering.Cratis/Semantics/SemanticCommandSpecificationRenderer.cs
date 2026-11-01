@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Specifications;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
@@ -27,9 +28,9 @@ internal static partial class SemanticCommandSpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var generated = new SemanticGeneratedCommandSpecification(specification, command, types, context);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var ownNamespace = $"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}";
-        var builder = new CSharpCodeBuilder()
+        var builder = context.SpecificationBuilder()
             .Namespace(ownNamespace)
             .Using("Cratis.Arc.Commands")
             .Using("Cratis.Arc.Testing.Commands")
@@ -61,10 +62,10 @@ internal static partial class SemanticCommandSpecificationRenderer
         // Decided from the rendered content rather than predicted, the same way the non-semantic renderer
         // does it: only a value that renders as a culture-invariant parse needs the namespace, and emitting
         // it regardless leaves a using nobody uses in every generated specification.
-        var content = types.SpecificationContent(builder.ToString());
+        var content = types.SpecificationContent(builder);
         if (SpecificationValues.NeedsGlobalization(content))
         {
-            content = types.SpecificationContent(builder.Using("System.Globalization").ToString());
+            content = types.SpecificationContent(builder.Using("System.Globalization"));
         }
 
         return new(path, content);
@@ -108,7 +109,8 @@ internal static partial class SemanticCommandSpecificationRenderer
 
     static bool SeedsEventLog(SemanticSpecification specification, SemanticCommand command, SemanticApplicationContext context)
     {
-        // A protected command's scenario runs its own decision store, where EventScenario is unavailable: only routed facts seed through the log.
+        // Arc selects decision mode per assembly, not only for commands with reads.
+        // Preserve the reads path: routed facts use the log; other facts use the scenario's own Given.
         if (!command.Reads.IsDefaultOrEmpty) return specification.GivenEvents.Any(given => given.Route is not null);
 
         var constrainedEvents = context.Constraints.Select(_ => _.Constraint)
@@ -174,11 +176,11 @@ internal static partial class SemanticCommandSpecificationRenderer
     }
 
     static bool RequiresEstablish(SpecificationScope scope, SemanticGeneratedCommandSpecification generated) =>
-        generated.RequiresEstablish || (scope.ReactionPrelude is not null && scope.Command.Authorization is not null);
+        generated.RequiresEstablish || (scope.ReactionPrelude is not null && SemanticAnonymousAccess.RequiresCaller(scope.Command.Authorization, scope.Context.Application.Policies));
 
     static void RenderPolicyRegistration(SpecificationScope scope)
     {
-        if (scope.Command.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(scope.Command.Authorization, scope.Context.Application.Policies))
         {
             scope.Builder.Line($"global::{scope.Context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }
@@ -190,16 +192,15 @@ internal static partial class SemanticCommandSpecificationRenderer
         var context = scope.Context;
         var types = scope.Types;
         var @event = context.Events[given.EventContract];
-        var source = given.EventSource!;
-        if (SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type) ||
-            PropertyValuesNeedCommon(@event.Properties, given.Values))
+        var source = given.EventSource;
+        if (SourceNeedsCommon(source) || PropertyValuesNeedCommon(@event.Properties, given.Values))
         {
             builder.Using(context.CommonNamespace);
         }
 
         var eventArguments = @event.Properties.Select(property =>
             types.Value(given.Values.Single(_ => _.TargetProperty == property.Id).Value, property.Type));
-        var eventSource = types.EventSourceExpression(types.Value(source.Value, source.Type), source.Type);
+        var eventSource = SemanticSpecificationEventSources.Expression(context, types, given);
         var eventValue = $"new {types.EventType(@event)}({string.Join(", ", eventArguments)})";
         if (given.Route is { } route)
         {
@@ -207,11 +208,14 @@ internal static partial class SemanticCommandSpecificationRenderer
             return;
         }
 
-        // Decision mode (protected reads) seeds through the scenario's own given, which feeds the store the reads observe.
+        // EventScenario is unavailable in decision mode, which Arc now selects per assembly; the checked log append works in both modes.
         builder.Line(scope.SeedInLog && scope.Command.Reads.IsDefaultOrEmpty
-            ? $"await _scenario.EventScenario.Given.ForEventSource({eventSource}).Events({eventValue});"
+            ? $"(await _scenario.EventLog.Append({eventSource}, {eventValue})).IsSuccess.ShouldBeTrue();"
             : $"_scenario.Given.ForEventSource({eventSource}).Events({eventValue});");
     }
+
+    static bool SourceNeedsCommon(SemanticEventSourceIdentity? source) =>
+        source is not null && SemanticTypeSystem.ValueNeedsCommon(source.Value, source.Type);
 
     static void RenderBecause(SpecificationScope scope)
     {

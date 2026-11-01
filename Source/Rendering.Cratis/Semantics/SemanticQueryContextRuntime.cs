@@ -29,13 +29,23 @@ internal static class SemanticQueryContextRuntime
         string body)
     {
         var arguments = Arguments(query).ToArray();
-        var invocation = $"StagePerform_{method}(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
+        if (query.Delivery == SemanticQueryDelivery.Live)
+        {
+            builder.OpenBlock($"public static {returnType} {method}({Parameters(query, types)})")
+                .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);")
+                .Line($"var __stageReadModels = new StagePerformer_{method}.LiveReadModels<{model}>(__stageReadModelStore.Observe<{model}>());")
+                .Line($"return StagePerformer_{method}.ToSubject(StagePerformer_{method}.Perform(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))}));")
+                .EndBlock().BlankLine();
+            RenderBody(builder, query, model, method, types, body, requirement.RequirementId);
+            return;
+        }
+        var invocation = $"StagePerformer_{method}.Perform(__stageReadModels, __stageContext{string.Concat(arguments.Select(argument => $", {Name(argument)}"))})";
         builder.OpenBlock($"public static async {returnType} {method}({Parameters(query, types)})")
             .Line($"var __stageContext = new StageQueryContext_{method}(new StageQueryArguments_{method}({string.Join(", ", arguments.Select(Name))}), __stageTenantAccessor.Current.Value, __stageQueryContexts.Current.AuthorizedPrincipal ?? __stagePrincipalAccessor.Current ?? new global::System.Security.Claims.ClaimsPrincipal(), __stageQueryContexts.Current.ReceivedAt);")
             .Line($"var __stageReadModels = await __stageReadModelStore.GetInstances<{model}>();")
             .Line($"return {invocation};")
             .EndBlock().BlankLine();
-        RenderBody(builder, query, model, method, types, requirement, body);
+        RenderBody(builder, query, model, method, types, body, requirement.RequirementId);
     }
 
     internal static void RenderGap(CSharpCodeBuilder builder, SemanticKeyedQuery query, SemanticApplicationContext context, SemanticImplementationAdmission.PerformerAdmission admission)
@@ -80,7 +90,7 @@ internal static class SemanticQueryContextRuntime
             new(body.OpenBraceToken.Span.End, body.CloseBraceToken.SpanStart - body.OpenBraceToken.Span.End),
             typedContext,
             []);
-        return new(ArtifactImplementationGapOrigin.Unverified, requirement.RequirementId, query.Id.ToString(), SemanticImplementationRole.QueryPerformer, [reason], 1, 1, [stub]);
+        return new(ArtifactImplementationGapOrigin.Unverified, requirement.RequirementId, query.Id.ToString(), SemanticImplementationRole.QueryPerformer, [reason], requirement.ContextVersion, requirement.ResultVersion, [stub]);
     }
 
     internal static string ReturnType(SemanticKeyedQuery query, string model) => query switch
@@ -111,7 +121,7 @@ internal static class SemanticQueryContextRuntime
         var builder = new CSharpCodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path)).Using(context.CommonNamespace);
         var declaration = SemanticStateViewArtifactRenderer.ModelDeclaration(model, types, [query], context.Reducers.Any(reducer => reducer.ReadModel == model.Id));
         builder.OpenBlock(declaration.Replace("[global::Cratis.Chronicle.Keys.KeyAttribute] ", string.Empty, StringComparison.Ordinal));
-        RenderBody(builder, query, modelName, context.MemberNames.Query(query), types, requirement, body);
+        RenderBody(builder, query, modelName, context.MemberNames.Query(query), types, body, requirement.RequirementId);
         builder.EndBlock();
         var code = builder.ToString();
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
@@ -120,31 +130,44 @@ internal static class SemanticQueryContextRuntime
         MetadataReference[] references;
         try
         {
-            references = [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference];
+            references = AnalysisReferences(query);
         }
         catch (InvalidOperationException exception)
         {
             return Error(exception.Message);
         }
 
+        // Match the SDK's default NoWarn (1701;1702) for older framework assembly references.
         var compilation = CSharpCompilation.Create(
             "QueryPerformerAnalysis",
-            [CSharpSyntaxTree.ParseText(ImplicitUsings, options), .. declarations.Select(declaration => CSharpSyntaxTree.ParseText(declaration, options)), tree],
+            [CSharpSyntaxTree.ParseText(AnalysisUsings(query), options), .. declarations.Select(declaration => CSharpSyntaxTree.ParseText(declaration, options)), tree],
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable)
+                .WithSpecificDiagnosticOptions(
+                [
+                    new KeyValuePair<string, ReportDiagnostic>("CS1701", ReportDiagnostic.Suppress),
+                    new KeyValuePair<string, ReportDiagnostic>("CS1702", ReportDiagnostic.Suppress)
+                ]));
         var diagnostics = compilation.GetDiagnostics();
         var error = diagnostics.FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error) ??
             diagnostics.FirstOrDefault(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning && !diagnostic.IsSuppressed);
         if (error is null) return null;
 
-        var offset = code.IndexOf(body, StringComparison.Ordinal);
-        var bodyOffset = Math.Clamp(error.Location.SourceSpan.Start - offset, 0, Math.Max(0, body.Length - 1));
+        var location = CSharpInlineIndentation.Locate(code, body);
+        var bodyOffset = location is null ? 0 : Math.Clamp(location.ToBody(error.Location.SourceSpan.Start - location.Start), 0, Math.Max(0, body.Length - 1));
         return new(
             "STAGE-IMPL-005",
             ArtifactRenderDiagnosticSeverity.Error,
             $"Query performer requirement '{requirement.RequirementId}' at {PureTransitionAdmission.SourceLocation(requirement, body, bodyOffset)}: {error.Id}: {error.GetMessage(CultureInfo.InvariantCulture)}",
             query.Id);
     }
+
+    static string AnalysisUsings(SemanticKeyedQuery query) => ImplicitUsings +
+        (query.Delivery == SemanticQueryDelivery.Live ? "global using System.Reactive.Linq;\n" : string.Empty);
+
+    static MetadataReference[] AnalysisReferences(SemanticKeyedQuery query) =>
+        [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference,
+            .. query.Delivery == SemanticQueryDelivery.Live ? new MetadataReference[] { SemanticGenerationBodyAdmission.ReactiveReference } : []];
 
     static string Parameters(SemanticKeyedQuery query, SemanticTypeSystem types)
     {
@@ -158,17 +181,38 @@ internal static class SemanticQueryContextRuntime
         return string.Join(", ", dependencies.Concat(Arguments(query).Select(argument => Parameter(argument, types, optionalDefault: true))));
     }
 
-    static void RenderBody(CSharpCodeBuilder builder, SemanticKeyedQuery query, string model, string method, SemanticTypeSystem types, SemanticImplementationRequirement requirement, string body)
+    static void RenderBody(CSharpCodeBuilder builder, SemanticKeyedQuery query, string model, string method, SemanticTypeSystem types, string body, string requirementId)
     {
         RenderContextDeclarations(builder, query, method, types);
+        if (query.Delivery == SemanticQueryDelivery.Live)
+        {
+            var collection = $"global::System.Collections.Generic.IEnumerable<{model}>";
+            var observable = $"global::System.IObservable<{collection}>";
+            var liveParameters = Arguments(query).Select(argument => Parameter(argument, types));
+            builder.OpenBlock($"static class StagePerformer_{method}")
+                .OpenBlock("internal sealed class LiveReadModels<T>(global::System.IObservable<global::System.Collections.Generic.IEnumerable<T>> source) : global::System.IObservable<global::System.Collections.Generic.IEnumerable<T>>")
+                .Line("public global::System.IDisposable Subscribe(global::System.IObserver<global::System.Collections.Generic.IEnumerable<T>> observer) => source.Subscribe(observer);")
+                .EndBlock().BlankLine()
+                .OpenBlock($"public static {observable} Perform(LiveReadModels<{model}> readModels, StageQueryContext_{method} context{string.Concat(liveParameters.Select(parameter => $", {parameter}"))})")
+                .RawVerbatim(body)
+                .EndBlock().BlankLine()
+                .OpenBlock($"public static global::System.Reactive.Subjects.ISubject<{collection}> ToSubject({observable} body)")
+                .Line($"var relay = new global::System.Reactive.Subjects.Subject<{collection}>();")
+                .Line($"var observable = global::System.Reactive.Linq.Observable.Create<{collection}>(observer => new global::System.Reactive.Disposables.CompositeDisposable(relay.Subscribe(observer), body.Subscribe(relay)));")
+                .Line($"return global::System.Reactive.Subjects.Subject.Create<{collection}>(relay, observable);")
+                .EndBlock()
+                .EndBlock();
+            return;
+        }
         var parameters = Arguments(query).Select(argument => Parameter(argument, types));
         var result = query.Cardinality == SemanticQueryCardinality.Many ? $"global::System.Collections.Generic.IEnumerable<{model}>" : $"{model}?";
-        builder.OpenBlock($"static {result} StagePerform_{method}(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})");
-        var line = requirement.File is null && !requirement.BodyLines.IsDefaultOrEmpty ? requirement.BodyLines[0].Line : 1;
-        var source = requirement.File ?? requirement.Source.Span.Document.ToString();
-        builder.Line($"#line {line} {CSharpCodeBuilder.StringLiteral(source)}")
-            .RawVerbatim(body)
-            .Line("#line default")
+
+        // The performer lives in a type of its own: a non-public static method on the read model that returns read models is what Arc's analyzer
+        // takes for a query that was forgotten to be made public (ARC0029).
+        builder.OpenBlock($"static class StagePerformer_{method}")
+            .OpenBlock($"public static {result} Perform(global::System.Collections.Generic.IEnumerable<{model}> readModels, StageQueryContext_{method} context{string.Concat(parameters.Select(parameter => $", {parameter}"))})")
+            .RawVerbatim(body, requirementId)
+            .EndBlock()
             .EndBlock();
     }
 
@@ -186,7 +230,7 @@ internal static class SemanticQueryContextRuntime
             $"namespace {context.CommonNamespace} {{ internal class StageQueryMarker {{ }} }}",
             "namespace Cratis.Chronicle.Events { public record EventSourceId<T>(T TypedValue) : global::Cratis.Concepts.ConceptAs<T>(TypedValue) where T : global::System.IComparable { public static implicit operator T(EventSourceId<T> value) => value.TypedValue; } }"
         };
-        declarations.AddRange(context.Application.Concepts.Select(concept => SemanticCommonArtifactRenderer.Render(concept, context, qualified: true, declarationOnly: true).Content));
+        declarations.AddRange(SemanticBodyDeclarations.RealConcepts(context));
 
         foreach (var readModel in context.ReadModels.Values.Where(SemanticVersionFeatures.HasCompositeKey))
         {

@@ -5,7 +5,8 @@ description: The supported inbox capture and public-event outbox publication sub
 
 Stage renders supported `Translate` slices as Chronicle reactors. Inbound translation turns foreign
 facts into local private facts; outbound translation publishes a public contract to the outbox.
-This describes generated applications, not the live semantic sandbox or the specification executor.
+This primarily describes generated applications. The semantic-run subsection below describes the
+specification executor's corresponding foreign-capture subset.
 
 ## Contracts and routing
 
@@ -34,7 +35,7 @@ as a whole; Stage does not emit only its top-level appends.
 
 ### Typed capture keys (ESM v32)
 
-Stage admits the exact language/semantic v32 pair from Screenplay 4.241.0; v31 remains unaudited.
+Stage admits the exact language/semantic v32 pair from Screenplay 4.247.3; v31 remains unaudited.
 A v32 capture preserves the key's declared event-source type rather than treating it as text.
 Required scalar `Text`, `Uuid` and `WholeNumber` keys, and non-enumerated concepts over those
 primitives, render when every source contract has the same key type and every append declares that
@@ -47,6 +48,28 @@ Stage will not convert a typed v32 key to text to make an inferred text append f
 text-key translations retain their behavior. The specification executor retains the same typed
 identity in captured facts and typed givens; the live host still refuses foreign inbox contracts
 with `STAGE-ESM-033` rather than claiming transport support.
+
+### Semantic runs with source-keyed foreign captures (ESM v33)
+
+The specification executor admits `key ... is event source` for otherwise supported captures whose
+source contracts are all foreign. For unrouted given events and `when append` fixtures without a
+source, it takes the scalar key as the foreign source: text is preserved, and numeric keys use
+invariant text. Captured local facts retain the key's declared identity type. An explicit source
+must match the key's invariant text exactly, with ordinal comparison; a mismatch is a contract
+rejection before capture state changes or local effects are appended. Missing and null keys retain
+the reference contract rejection.
+
+An explicit fixture route disables source inference, not delivery validation. Both given history
+and the delivered event are checked against their actual source. Capture history stays independent
+per key, and identical redelivery produces no additional local fact.
+
+Inbox deliveries already carry an explicit text source; they are never inferred from their payload.
+In-process inbox/runtime specs cover matching sources, mismatch rejection and identical redelivery.
+Subscription transport, checkpoint and service-level differential proofs still require CI; these
+fixture and runtime checks do not establish them. The model validator rejects local-event
+source-keyed captures before Stage admission.
+Existing translation-shape and origin refusals remain in force. This is not admission of every v33
+construct.
 
 ### Capture state
 
@@ -71,8 +94,16 @@ eventually consistent with the reactor that reads it, so a delivery can observe 
 yet seen the previous record, and replay rebuilds it independently of the reactor. Chronicle's client
 capture builder reads external systems, not inbox events, so it does not fit an events source.
 
-The cost is one inbox read per delivery that grows with the inbox length. The reactor remains
-`[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
+Without `key is event source`, the cost is one inbox read per delivery that grows with the inbox
+length: matching keys may occur in different foreign streams. With this marker (ESM v33), the reactor
+first checks that the key's invariant text equals the delivered event source, using an ordinal
+comparison. An empty or mismatched key is rejected before inbox access or effects. It then reads only
+that source and the captured event types, so history cost grows with that source's history rather
+than the whole inbox. Both paths retain key matching and the strict sequence cutoff. A foreign
+partition's latest snapshot is unsafe: it can include changes after the delivered position and
+would change the state seen by retries or redeliveries.
+
+The reactor remains `[OnceOnly]`, so a full observer replay does not re-append. Each local effect carries a Chronicle
 idempotency key derived from the reactor delivery, capture id and modeled append position. Retrying
 that delivery after a partial append, a lost acknowledgment or an append followed by a lost checkpoint
 uses the same keys: already-appended effects succeed without appending duplicates. Different effects

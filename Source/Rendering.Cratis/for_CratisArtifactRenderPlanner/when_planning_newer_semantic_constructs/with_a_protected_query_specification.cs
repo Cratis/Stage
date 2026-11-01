@@ -20,7 +20,7 @@ public class with_a_protected_query_specification : Specification
         _plan = invoice_model.Plan(invoice_model.Compile(source));
     }
 
-    [Fact] void should_reject_other_event_sources_in_the_fixture() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_preserve_the_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_report_specification_admission() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011").ShouldBeTrue();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

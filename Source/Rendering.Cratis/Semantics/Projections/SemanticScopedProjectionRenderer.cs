@@ -110,29 +110,7 @@ internal static class SemanticScopedProjectionRenderer
             code.EndBlock().Line(");");
         }
 
-        if (scope.Every is { } every && every.Mappings.Any(mapping => mapping.Source is not SemanticProjectionLiteral))
-        {
-            code.OpenBlock($"{receiver}.{(every.SubscribesToAllEvents ? "FromAll" : "FromEvery")}(every =>");
-            if (!every.IncludeChildren)
-            {
-                code.Line("every.ExcludeChildProjections();");
-            }
-
-            // FromAll creates instances for event sources no from block keys, so it must establish the
-            // identifier itself, as each from block does; the reference fills it from the instance key.
-            if (every.SubscribesToAllEvents && rootIdentifier is { } identifier && !every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
-            {
-                code.Line($"every.Set(model => model.{Identifiers.ToPascalCase(identifier.Name)}).ToEventSourceId();");
-            }
-
-            foreach (var mapping in every.Mappings.Where(mapping => mapping.Source is not SemanticProjectionLiteral))
-            {
-                var target = Path(mapping.Target, properties, context);
-                code.Line($"every.Set(model => model.{target}).ToEventSourceId();");
-            }
-
-            code.EndBlock().Line(");");
-        }
+        new EveryRenderer(code, context, properties).Render(scope, receiver, rootIdentifier);
 
         foreach (var removal in scope.Removals)
         {
@@ -179,10 +157,15 @@ internal static class SemanticScopedProjectionRenderer
         }
     }
 
-    // IAllSetBuilder has no ToValue (Chronicle#4663). At admitted join-free levels the kernel
-    // applies every after from mappings, not removals. Only an exact colliding Set is replaced.
+    // Native every/all must preserve original from targets: Chronicle uses them to select join backfills.
+    // At join-free levels, lowering instead replaces exact colliding Sets so every wins after from mappings.
     static IEnumerable<SemanticProjectionMapping> WithEveryLiterals(IEnumerable<SemanticProjectionMapping> mappings, SemanticProjectionScope scope)
     {
+        if (SemanticScopedProjectionSupport.RendersEveryLiteralsNatively(scope))
+        {
+            return mappings;
+        }
+
         var literals = scope.Every?.Mappings.Where(mapping => mapping.Source is SemanticProjectionLiteral).ToArray() ?? [];
         return mappings.Where(mapping => !literals.Any(literal => literal.Target.SequenceEqual(mapping.Target))).Concat(literals);
     }
@@ -262,7 +245,24 @@ internal static class SemanticScopedProjectionRenderer
         }
     }
 
-    static string Literal(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    // IAllSetBuilder.ToValue infers its type from the argument and is not checked against the property,
+    // so a null literal needs the property type spelled out.
+    static string NativeToValue(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
+    {
+        var value = Literal(literal, path, properties, context);
+        if (literal.Value is not SemanticNullValue)
+        {
+            return $"ToValue({value})";
+        }
+
+        var type = new SemanticTypeSystem(context).Type(TargetProperty(path, properties, context).Type with { IsOptional = true });
+        return $"ToValue<{type}>({value})";
+    }
+
+    static string Literal(SemanticProjectionLiteral literal, System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context) =>
+        new SemanticTypeSystem(context).Value(literal.Value, TargetProperty(path, properties, context).Type);
+
+    static SemanticProperty TargetProperty(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
     {
         SemanticProperty? target = null;
         foreach (var id in path)
@@ -272,7 +272,7 @@ internal static class SemanticScopedProjectionRenderer
                 ? composite.Properties : [];
         }
 
-        return new SemanticTypeSystem(context).Value(literal.Value, target!.Type);
+        return target!;
     }
 
     static string Path(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> properties, SemanticApplicationContext context)
@@ -288,6 +288,49 @@ internal static class SemanticScopedProjectionRenderer
         }
 
         return string.Join('.', segments);
+    }
+
+    sealed class EveryRenderer(CSharpCodeBuilder code, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties)
+    {
+        public void Render(SemanticProjectionScope scope, string receiver, SemanticProperty? rootIdentifier)
+        {
+            SemanticProjectionMapping[] mappings = [.. SemanticScopedProjectionSupport.NativeEveryMappings(scope)];
+            if (mappings.Length == 0)
+            {
+                return;
+            }
+
+            var every = scope.Every!;
+            code.OpenBlock($"{receiver}.{(every.SubscribesToAllEvents ? "FromAll" : "FromEvery")}(every =>");
+            if (!every.IncludeChildren)
+            {
+                code.Line("every.ExcludeChildProjections();");
+            }
+
+            EstablishAllIdentifier(every, rootIdentifier);
+            foreach (var mapping in mappings)
+            {
+                var target = Path(mapping.Target, properties, context);
+                var value = mapping.Source is SemanticProjectionLiteral literal ? NativeToValue(literal, mapping.Target, properties, context) : "ToEventSourceId()";
+                code.Line($"every.Set(model => model.{target}).{value};");
+            }
+
+            code.EndBlock().Line(");");
+        }
+
+        void EstablishAllIdentifier(SemanticProjectionEvery every, SemanticProperty? identifier)
+        {
+            if (!every.SubscribesToAllEvents || identifier is null)
+            {
+                return;
+            }
+
+            // FromAll creates instances even when no from block establishes their identifier.
+            if (!every.Mappings.Any(mapping => mapping.Target.Contains(identifier.Id)))
+            {
+                code.Line($"every.Set(model => model.{Identifiers.ToPascalCase(identifier.Name)}).ToEventSourceId();");
+            }
+        }
     }
 
     sealed record CompositeKey(string TypeName, IReadOnlyList<SemanticProperty> Parts);

@@ -21,11 +21,10 @@ internal static partial class SemanticSpecificationAdmission
     static bool EventMatches(SemanticApplicationContext context, SemanticSpecificationEvent expected) =>
         context.Events.TryGetValue(expected.EventContract, out var @event) && ValuesMatch(expected.Values, @event.Properties);
 
-    // The reference evaluator puts an unqualified given fact on the Null destination. A command scenario
-    // cannot seed that destination without changing its identity, so only explicitly sourced facts are admitted.
     static bool HasRenderableGivenEvents(SemanticApplicationContext context, SemanticSpecification specification) =>
-        specification.GivenEvents.All(given => given.EventSource is { } source &&
-            IsScalar(source.Value) && IsLosslessEventSource(context, source.Type) && EventMatches(context, given));
+        specification.GivenEvents.All(given => (given.EventSource is { } source
+            ? IsScalar(source.Value) && IsLosslessEventSource(context, source.Type)
+            : !SemanticSpecificationEventSources.RequiresSource(context, given.EventContract, given.Route is not null)) && EventMatches(context, given));
 
     static bool GivenKeysMatchProjectedProperties(SemanticApplicationContext context, SemanticSpecification specification) =>
         specification.GivenEvents.All(given => context.Projections.Values

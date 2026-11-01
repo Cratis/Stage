@@ -10,28 +10,94 @@ module Ledger
         invoiceId InvoiceId
         amount Money
         validate
-          ```csharp
-          if (command.Amount <= 0)
-          {
-              yield return "A payment has to be for something";
-          }
-          ```
-        handler
-          ```csharp
-          // A handler is the escape hatch for a decision the declarative form cannot express.
-          // Everything else in this sample is declarative, precisely so this one stands out.
-          var settles = command.Amount >= state.Outstanding;
-          yield return new PaymentRecorded(command.PaymentId, command.InvoiceId, command.Amount, settles);
-          ```
+          amount > 0 message "A payment has to be for something"
+        produces PaymentRecorded
+          for paymentId
+          paymentId = paymentId
+          invoiceId = invoiceId
+          amount = amount
+
+      specification RecordingAPaymentShowsUpInTheList
+        when RecordPayment
+          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
+        then PaymentRecorded
+          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
+        then readmodel PaymentSummary
+          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
 
       event PaymentRecorded
         paymentId PaymentId
         invoiceId InvoiceId
         amount Money
-        settlesInvoice Bool
 
       constraint OnePaymentPerAttempt
         unique event PaymentRecorded
+
+    slice StateView InvoiceBalance
+
+      readmodel InvoiceBalance
+        id InvoiceId key
+        outstanding Money
+
+      projection InvoiceBalanceProjection => InvoiceBalance
+        from InvoiceIssued
+          outstanding = amount
+        from PaymentRecorded key invoiceId
+          subtract outstanding by amount
+        remove with InvoiceCancelled
+
+      query InvoiceBalanceById => InvoiceBalance?
+        by id InvoiceId
+
+      specification APartialPaymentLeavesTheRestOutstanding
+        given InvoiceRegistered
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          customerName = "Acme"
+          amount = 500
+        given InvoiceIssued
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          issuedOn = "2026-01-15"
+          amount = 500
+        given PaymentRecorded
+          for "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          paymentId = "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 200
+        then readmodel InvoiceBalance
+          id = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          outstanding = 300
+
+      specification AFullPaymentLeavesNothingOutstanding
+        given InvoiceRegistered
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceNumber = "INV-000123"
+          customerId = "1f0c2d3e-4b5a-6789-abcd-ef0123456789"
+          customerName = "Acme"
+          amount = 500
+        given InvoiceIssued
+          for "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          issuedOn = "2026-01-15"
+          amount = 500
+        given PaymentRecorded
+          for "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          paymentId = "4c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
+          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          amount = 500
+        then readmodel InvoiceBalance
+          id = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
+          outstanding = 0
 
     slice StateView PaymentList
 
@@ -43,22 +109,16 @@ module Ledger
       reducer PaymentSummaryReducer => PaymentSummary
         on PaymentRecorded
           ```csharp
-          return new PaymentSummary(context.Event.PaymentId, context.Event.InvoiceId, context.Event.Amount);
+          return new PaymentSummary(PaymentId: context.Event.PaymentId, InvoiceId: context.Event.InvoiceId, Amount: context.Event.Amount);
           ```
 
       query PaymentById => PaymentSummary?
         by paymentId PaymentId
 
       query Payments => observable PaymentSummary[]
-        performer
-          ```csharp
-          // A performer answers the query when the read model alone cannot.
-          return payments.OrderByDescending(_ => _.Amount);
-          ```
 
       query PaymentsForInvoice => PaymentSummary[]
         by invoiceId InvoiceId
-        filter amount Money from $context.arguments.minimumAmount
 
       screen PaymentList
         title $strings.payment.listTitle
@@ -67,11 +127,3 @@ module Ledger
           column paymentId label $strings.payment.reference
           column amount label $strings.invoice.amount
 
-      specification RecordingAPaymentShowsUpInTheList
-        given readmodel PaymentSummary
-          paymentId = "5c2a1b3d-4e5f-6071-8293-a4b5c6d7e8f9"
-          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
-          amount = 500
-        then readmodel PaymentSummary
-          invoiceId = "8f14e45f-ceea-467a-9c2b-1b7f2ec2a1c1"
-          amount = 500

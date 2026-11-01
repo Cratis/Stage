@@ -33,6 +33,8 @@ public static partial class SemanticModelLoader
         var loaded = new LoadedSemanticModel(model, plan.Plan!)
         {
             SpecificationOrigins = compiled.Value!.SpecificationOrigins,
+            SemanticIdentities = compiled.Value.Documents.IdentityCatalog.Semantics,
+            IdentityCatalog = compiled.Value.Documents.IdentityCatalog,
             ImplementationRequirements = compiled.ImplementationRequirements,
             TypedContextDescriptors = compiled.TypedContextDescriptors,
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),

@@ -44,8 +44,8 @@ public class when_rendering_every_literals : Specification
     [Fact] void should_replace_the_colliding_set() => _code.ShouldNotContain("from.Set(model => model.Label).ToValue(\"local\")");
     [Fact] void should_keep_context_independent_every_mappings() => _code.ShouldContain("every.Set(model => model.LastSeen).ToEventSourceId()");
     [Fact] void should_not_call_the_missing_all_set_to_value() => _code.ShouldNotContain("every.Set(model => model.Label)");
-    [Fact] void should_apply_literals_at_the_nested_level() => _code.ShouldContain("from.Set(model => model.Name).ToValue(new global::Projects.Common.ProjectName(\"nested\"))");
-    [Fact] void should_apply_literals_at_the_child_level() => _code.ShouldContain("from.Set(model => model.Name).ToValue(new global::Projects.Common.ProjectName(\"child\"))");
+    [Fact] void should_apply_literals_at_the_nested_level() => _code.ShouldContain("from.Set(model => model.Name).ToValue(new ProjectName(\"nested\"))");
+    [Fact] void should_apply_literals_at_the_child_level() => _code.ShouldContain("from.Set(model => model.Name).ToValue(new ProjectName(\"child\"))");
 
     [Fact]
     void should_allow_literals_at_join_free_child_and_nested_levels_below_a_root_join()

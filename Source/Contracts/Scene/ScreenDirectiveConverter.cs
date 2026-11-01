@@ -123,7 +123,7 @@ public static class ScreenDirectiveConverter
                 ["navigateToScreen"] = action.Navigate?.Screen,
                 ["navigateByParameter"] = action.Navigate?.By,
                 [SceneElementProperties.Destination] = action.Navigate is null ? null : CompositionConverter.Destination(action.Navigate),
-            }),
+            }.WithSubject(action.Subject, action.Inputs)),
             ScreenplaySyntax.ScreenGuardedActionSyntax action => ConvertGuardedAction(action, id, scope),
             ScreenplaySyntax.ScreenSectionSyntax section => ConvertSection(section, id, scope),
             ScreenplaySyntax.ScreenNavigateSyntax navigate => SceneElementFactory.Component(id, "core:navigate", new Dictionary<string, object?>
@@ -168,7 +168,7 @@ public static class ScreenDirectiveConverter
                 ["parameters"] = item.Parameters.ToDictionary(parameter => parameter.Name, parameter => ScreenplayRichSyntax.Binding(parameter.Binding), StringComparer.Ordinal),
                 [SceneElementProperties.Destination] = ToolbarDestination(item),
                 ["presentation"] = item.Presentation.ToDictionary(presentation => presentation.Name, presentation => presentation.Value, StringComparer.Ordinal),
-            }.WithConfirm(item.Confirm))).ToList();
+            }.WithConfirm(item.Confirm).WithSubject(item.Subject, []))).ToList();
 
         // A button invokes a State Change slice: Scene's toolbar button is a core:toolbarItem of kind Action with a slice and an
         // emphasis, read back by the engine's ToolbarButtons.FromItem. The slice is written as the qualified id the structure knows.
@@ -194,6 +194,25 @@ public static class ScreenDirectiveConverter
         if (confirm is not null)
         {
             properties["confirm"] = confirm;
+        }
+
+        return properties;
+    }
+
+    // The explicit subject of an action (Screenplay decision 0110) is carried as Stage-local scene properties until Scene ships a typed
+    // ActionSubject. Nothing is written for an omitted subject, so every existing Scene stays byte-identical.
+    static Dictionary<string, object?> WithSubject(this Dictionary<string, object?> properties, ScreenplaySyntax.ScreenActionSubjectKind? subject, IEnumerable<ScreenplaySyntax.InteractionArgumentSyntax> inputs)
+    {
+        if (subject is null)
+        {
+            return properties;
+        }
+
+        properties["actionSubject"] = subject.Value.ToString().ToLowerInvariant();
+        var arguments = ConvertArguments(inputs);
+        if (arguments.Count > 0)
+        {
+            properties["subjectInputs"] = arguments;
         }
 
         return properties;

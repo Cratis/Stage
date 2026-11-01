@@ -20,8 +20,8 @@ internal static partial class SemanticTranslationSpecificationRenderer
         var capture = SemanticTranslationSpecificationAdmission.Capture(located.Slice, specification.WhenAppended!);
         var publication = SemanticTranslationSpecificationAdmission.Publication(located.Slice, specification.WhenAppended!);
         var reactor = $"global::{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{Identifiers.ToPascalCase(capture?.Name ?? publication!.Name)}";
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("NSubstitute")
             .Using("Cratis.Chronicle.Events").Using("System.Linq");
         context.Docs(specification.Id).Render(builder)
@@ -39,7 +39,7 @@ internal static partial class SemanticTranslationSpecificationRenderer
         RenderAct(builder, specification, context, types, publication);
         RenderAssertions(builder, specification, context, types, publication is not null);
         builder.EndBlock();
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static void RenderSetup(CSharpCodeBuilder builder, SemanticSpecification specification, SemanticApplicationContext context, SemanticTypeSystem types, string reactor)

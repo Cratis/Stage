@@ -274,7 +274,7 @@ public class when_verifying_implementation_attachments : Specification
         var requirement = _loaded.ImplementationRequirements.Single();
         var plan = Render(_loaded.ImplementationContents.SetItem(requirement.RequirementId, "return true;"));
         plan.Artifacts.ShouldBeEmpty();
-        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-020").Message.ShouldContain(requirement.RequirementId);
+        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-056").Message.ShouldContain(requirement.RequirementId);
     }
 
     [Fact]
@@ -353,7 +353,7 @@ public class when_verifying_implementation_attachments : Specification
         await File.WriteAllTextAsync(Path.Combine(_folder, "Rules", "Positive.cs"), "return false;");
         var reloaded = await SemanticModelLoader.LoadFromPathAsync(_folder, null, "Orders");
         Render(loaded, reloaded.ImplementationContents).Diagnostics.ShouldContain(diagnostic =>
-            diagnostic.Code == "STAGE-ESM-020" && diagnostic.Message.Contains(requirement.RequirementId, StringComparison.Ordinal));
+            diagnostic.Code == "STAGE-ESM-056" && diagnostic.Message.Contains(requirement.RequirementId, StringComparison.Ordinal));
     }
 
     [Fact]

@@ -24,7 +24,7 @@ public class with_an_unauthenticated_caller_fixture : given.a_refused_specificat
 
     void Because() => _plan = _planner.Plan(_request);
 
-    [Fact] void should_render_a_partial_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
+    [Fact] void should_render_a_complete_plan() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
     [Fact] void should_list_the_guest_fixture() => _plan.Refusals.Single().Artifact.ShouldEqual(_refused);
     [Fact] void should_omit_the_guest_fixture() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_refused);
     [Fact] void should_keep_authorization_in_the_application() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.Contains("GeneratedPolicies", StringComparison.Ordinal));

@@ -18,6 +18,11 @@ internal sealed class FrameworkNameCatalog
     /// </summary>
     public const string ResourceName = "Cratis.Stage.Rendering.Cratis.Naming.Imports.FrameworkNames.catalog";
 
+    /// <summary>
+    /// The source the catalog records for the global usings of the scaffold-owned GlobalUsings.cs.
+    /// </summary>
+    public const string ScaffoldGlobalUsingsSource = "compile:GlobalUsings.cs";
+
     static readonly Lazy<FrameworkNameCatalog> _current = new(() => new(FrameworkNameCatalogText.Read(ReadResource())));
 
     readonly Dictionary<string, GeneratedProjects> _namespaces = new(StringComparer.Ordinal);
@@ -68,6 +73,18 @@ internal sealed class FrameworkNameCatalog
     public IReadOnlyList<string> GlobalUsings(GeneratedProjects project) =>
     [
         .. Content.Usings.Where(@using => @using.Kind == CatalogUsingKind.Namespace && Sees(@using.Projects, project))
+            .Select(@using => @using.Target).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
+    ];
+
+    /// <summary>
+    /// Gets the namespaces the scaffold-owned GlobalUsings.cs imports in a project. They are part of <see cref="GlobalUsings"/>,
+    /// but a destination that does not hold the scaffold file does not have them.
+    /// </summary>
+    /// <param name="project">The project.</param>
+    /// <returns>The imported namespaces, sorted ordinally.</returns>
+    public IReadOnlyList<string> ScaffoldGlobalUsings(GeneratedProjects project) =>
+    [
+        .. Content.Usings.Where(@using => @using.Kind == CatalogUsingKind.Namespace && @using.Source == ScaffoldGlobalUsingsSource && Sees(@using.Projects, project))
             .Select(@using => @using.Target).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)
     ];
 

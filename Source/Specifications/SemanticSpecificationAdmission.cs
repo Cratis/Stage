@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Specifications.Semantic;
 using Cratis.Stage.Semantics;
 
@@ -19,6 +20,13 @@ public static class SemanticSpecificationAdmission
     /// <param name="plan">The executable semantic plan.</param>
     /// <param name="specification">The specification to check.</param>
     /// <returns>The typed refusal, or null when execution is admitted.</returns>
-    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification) =>
-        SemanticRunAdmission.Check(plan, specification);
+    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification) => Check(plan, specification, null);
+
+    /// <summary>Checks a specification with renderer-admitted named rule execution.</summary>
+    /// <param name="plan">The executable semantic plan.</param>
+    /// <param name="specification">The specification to check.</param>
+    /// <param name="bodies">The optional compiled bodies.</param>
+    /// <returns>The first typed refusal, or null.</returns>
+    public static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticSpecification specification, SemanticBodyExecution? bodies) =>
+        SemanticRunAdmission.Check(plan, specification, bodies);
 }

@@ -82,7 +82,10 @@ public class when_refusing_unrenderable_decision_reads
         });
         var plan = CratisRendering.Plan(renamed, SemanticExecutionPlan.Compile(renamed).Plan!, new(ArtifactRenderScopeKind.Application, renamed.Application.Id), new("InvoiceApp", "Invoices"));
 
-        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" && diagnostic.Message.Contains("whose key property is 'currentId'", StringComparison.Ordinal));
+        plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" &&
+            diagnostic.Message.Contains("whose key property is 'currentId'", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("read model '", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("KeyConversion", StringComparison.Ordinal));
     }
 
     [Fact]

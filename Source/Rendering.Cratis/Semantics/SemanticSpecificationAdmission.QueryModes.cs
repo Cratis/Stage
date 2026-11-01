@@ -19,13 +19,13 @@ internal static partial class SemanticSpecificationAdmission
         specification.ThenErrors.Length <= 1 && !specification.ThenDenied &&
         specification.ThenErrors.All(error => error.Code is null && SemanticValidationRendering.CanResolve(error.Message, context)) &&
         context.Queries.TryGetValue(expected.Query, out var query) &&
-        (query.Authorization is null || specification.GivenCaller is not null) &&
+        (!IsProtected(context, query) || specification.GivenCaller is not null) &&
         !context.Reducers.Any(reducer => reducer.ReadModel == query.ReadModel) &&
         (specification.GivenCaller is null or { Authenticated: true } or { Roles.IsEmpty: true, Claims.IsEmpty: true }) &&
         specification.GivenCaller?.Claims.Any(claim => SemanticCratisAdmission.IsRoleClaim(claim.Type)) != true;
 
     static bool HasRenderableQueryExpectations(SemanticApplicationContext context, SemanticSpecification specification) =>
-        !DependsOnOpaquePolicy(context, specification) &&
+        OpaquePolicyRejectionReason(context, specification) is null &&
         ProtectedCollectionRejectionReason(context, specification) is null && QueryArgumentsHaveCompleteValues(context, specification);
 
     static bool QueryArgumentsHaveCompleteValues(SemanticApplicationContext context, SemanticSpecification specification) =>
@@ -57,17 +57,15 @@ internal static partial class SemanticSpecificationAdmission
             (CanProjectQueryOnly(specification, context) && QueryMatches(context, specification.ThenQueries[0])));
 
     static bool HasProtectedQueryWithRenderableKey(SemanticSpecificationQueryResult expected, SemanticApplicationContext context) =>
-        context.Queries.TryGetValue(expected.Query, out var query) && query.Authorization is not null &&
+        context.Queries.TryGetValue(expected.Query, out var query) && IsProtected(context, query) &&
         (query.Argument is null || IsScalar(expected.Key));
 
     static bool TryGetSeedableQuery(SemanticSpecificationQueryResult expected, SemanticApplicationContext context, out SemanticKeyedQuery query) =>
-        context.Queries.TryGetValue(expected.Query, out query!) && query.Authorization is null &&
+        context.Queries.TryGetValue(expected.Query, out query!) && !IsProtected(context, query) &&
         query is { Cardinality: SemanticQueryCardinality.ZeroOrOne, Delivery: SemanticQueryDelivery.Snapshot };
 
     static string? AuthorizationRejectionReason(SemanticApplicationContext context, SemanticSpecification specification) =>
-        DependsOnOpaquePolicy(context, specification)
-            ? "The operation's authorization depends on an opaque csharp/file policy, which the reference evaluator cannot decide (Unsupported)."
-            : ProtectedCollectionRejectionReason(context, specification);
+        OpaquePolicyRejectionReason(context, specification) ?? ProtectedCollectionRejectionReason(context, specification);
 
     static string? ProtectedCollectionRejectionReason(SemanticApplicationContext context, SemanticSpecification specification)
     {
@@ -75,7 +73,7 @@ internal static partial class SemanticSpecificationAdmission
         foreach (var expected in specification.ThenQueries.Where(expected => !expected.Results.IsEmpty))
         {
             if (!context.Queries.TryGetValue(expected.Query, out var query) ||
-                query.Authorization is null || query.Cardinality != SemanticQueryCardinality.Many)
+                !IsProtected(context, query) || query.Cardinality != SemanticQueryCardinality.Many)
             {
                 continue;
             }

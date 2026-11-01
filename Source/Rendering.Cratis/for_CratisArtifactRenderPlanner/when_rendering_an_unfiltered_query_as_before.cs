@@ -13,7 +13,7 @@ public class when_rendering_an_unfiltered_query_as_before : Specification
     byte[] _actual = [];
     byte[] _expected = [];
 
-    void Establish() => _expected = Encoding.UTF8.GetBytes("    public static async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<InvoiceSummary>> AllInvoices(global::Cratis.Chronicle.ReadModels.IReadModels readModels) => await readModels.GetInstances<InvoiceSummary>();\n");
+    void Establish() => _expected = Encoding.UTF8.GetBytes("    public static async Task<IEnumerable<InvoiceSummary>> AllInvoices(IReadModels readModels) => await readModels.GetInstances<InvoiceSummary>();\n");
 
     void Because()
     {

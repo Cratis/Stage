@@ -10,9 +10,9 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticTranslationSpecificationAdmission
 {
-    static string? EffectRejection(SemanticApplicationContext context, SemanticId input, IEnumerable<SemanticId> outputs)
+    static string? EffectRejection(SemanticApplicationContext context, SemanticSlice slice, SemanticId input, IEnumerable<SemanticId> outputs)
     {
-        var sources = EffectSources(context).ToArray();
+        var sources = EffectSources(slice).ToArray();
         if (sources.Count(source => source == input) != 1)
             return "direct handler scenarios do not settle event fan-out across captures, publications, or reactions.";
         if (outputs.Any(output => sources.Contains(output)))
@@ -22,9 +22,11 @@ internal static partial class SemanticTranslationSpecificationAdmission
         return null;
     }
 
-    static IEnumerable<SemanticId> EffectSources(SemanticApplicationContext context) => context.AllSlices.SelectMany(located =>
-        located.Slice.Captures.Where(capture => capture.EventsSource is not null).SelectMany(capture => capture.EventsSource!.Events)
-            .Concat(located.Slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event)
+    // A specification runs only its own slice's captures, publications and reactions (Screenplay decision 0115), so another
+    // slice observing the same event neither fans the run out nor continues its cascade.
+    static IEnumerable<SemanticId> EffectSources(SemanticSlice slice) =>
+        slice.Captures.Where(capture => capture.EventsSource is not null).SelectMany(capture => capture.EventsSource!.Events)
+            .Concat(slice.Projections.Where(projection => projection.Target == SemanticProjectionTargetKind.Event)
                 .SelectMany(projection => projection.Scope?.From.Select(source => source.EventContract) ?? []))
-            .Concat(located.Slice.Reactions.SelectMany(reaction => reaction.Triggers.Select(trigger => trigger.Source))));
+            .Concat((slice.Reactions.IsDefault ? [] : slice.Reactions).SelectMany(reaction => reaction.Triggers.Select(trigger => trigger.Source)));
 }

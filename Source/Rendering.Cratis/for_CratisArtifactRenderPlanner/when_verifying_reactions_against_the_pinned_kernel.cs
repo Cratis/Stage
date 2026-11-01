@@ -239,7 +239,7 @@ public class when_verifying_reactions_against_the_pinned_kernel : a_generated_ap
             """;
         var model = an_automation.Compile(source);
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Reactions", "Reactions"));
     }
 
     [Fact]

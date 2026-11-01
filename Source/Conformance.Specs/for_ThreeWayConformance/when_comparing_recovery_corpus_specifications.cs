@@ -47,10 +47,15 @@ public class when_comparing_recovery_corpus_specifications : Specification
             // Every member runs on the reference and has a tested executor outcome and render refusal.
             var selected = a_recovery_plan.WithSpecification(model, specification);
             var rendered = CratisRendering.Plan(selected, SemanticExecutionPlan.Compile(selected).Plan!, new(ArtifactRenderScopeKind.Application, selected.Application.Id), new("Recovery", "Recovery"));
-            rendered.Success.ShouldBeFalse();
-            rendered.Artifacts.ShouldBeEmpty();
-            var refusal = rendered.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Artifact == specification.Id);
-            refusal.Message.ShouldContain(specification.WhenRedelivered is not null ? "given events cannot be represented faithfully" : "no-observer");
+            rendered.Success.ShouldBeTrue();
+            rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+            rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+            rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+            var hasObservableSourcelessGiven = sourcelessGivens.Contains(specification.Name);
+            var code = hasObservableSourcelessGiven ? "STAGE-ESM-051" : "STAGE-ESM-011";
+            var refusal = rendered.Diagnostics.Single(diagnostic => diagnostic.Code == code && diagnostic.Artifact == specification.Id);
+            refusal.Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
+            refusal.Message.ShouldContain(hasObservableSourcelessGiven ? "given event 'Approved' has no event source" : "no-observer");
         }
     }
 

@@ -1,0 +1,90 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+#if DEBUG
+using System.Globalization;
+using System.Text.Json;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Specifications;
+using Cratis.Stage.Conformance.Specs.for_ThreeWayConformance.given;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
+using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
+
+public class when_comparing_requirements_with_validated_concepts(when_comparing_requirements_with_validated_concepts.context fixture, ITestOutputHelper output) : IClassFixture<when_comparing_requirements_with_validated_concepts.context>
+{
+    [Fact] void should_cover_competing_rules_concepts_requirements_and_optional_inputs() => fixture.Outcomes.Length.ShouldEqual(9);
+    [Fact] void should_match_all_three_executions() => ThreeWayOutcomes.Report(fixture, output);
+    [Fact] void should_pass_every_rendered_specification() => fixture.Outcomes.All(outcome => outcome.EndsWith("Reference=Passed, Stage=Passed, Rendered=Passed", StringComparison.Ordinal)).ShouldBeTrue();
+
+    public class context : a_three_way_application
+    {
+        protected override string ApplicationName => "RequirementConceptOrder";
+        protected override string ProjectFile => "RequirementConceptOrder.csproj";
+        protected override bool RequireStageExecution => true;
+        protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("typed", requirement_concept_order_cases.Compile())];
+
+        async Task Because()
+        {
+            var plan = SemanticExecutionPlan.Compile(requirement_concept_order_cases.Compile()).Plan!;
+            var probes = plan.Specifications.Values.Select(specification =>
+            {
+                var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
+                Assert.True(reference.Passed, string.Join(';', reference.Failures));
+                var failures = reference.Execution is SemanticRejected rejected
+                    ? rejected.ValidationFailures.Select(failure => new[] { failure.Message, failure.Severity.ToString() }).ToArray()
+                    : [];
+                var command = plan.Commands[specification.When!.Command];
+                var inputs = command.Properties.Select(property => specification.When.Values.Single(value => value.TargetProperty == property.Id).Value switch
+                {
+                    SemanticNumberValue number => number.Value.ToString(CultureInfo.InvariantCulture),
+                    SemanticTextValue text => text.Value,
+                    _ => null
+                }).ToArray();
+                return $$"""
+                    {
+                        var commandType = typeof(RequirementConceptOrder.Common.Label).Assembly.GetTypes().Single(type => type.Name == {{JsonSerializer.Serialize(command.Name)}});
+                        var constructor = commandType.GetConstructors().Single();
+                        string?[] inputs = {{JsonSerializer.Serialize(inputs)}};
+                        var arguments = constructor.GetParameters().Select((parameter, index) =>
+                        {
+                            var input = inputs[index];
+                            if (parameter.ParameterType == typeof(string) || input is null) return (object?)input;
+                            var valueConstructor = parameter.ParameterType.GetConstructors().Single(candidate => candidate.GetParameters().Length == 1);
+                            return valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, CultureInfo.InvariantCulture)]);
+                        }).ToArray();
+                        using var scenario = new CommandScenario<object>().UseDecisionReads();
+                        var result = await scenario.Execute(constructor.Invoke(arguments));
+                        Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
+                        var expected = JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;
+                        Assert.Equal(expected.Select(pair => (pair[0], pair[1])), result.ValidationResults.Select(failure => (failure.Message, failure.Severity.ToString())));
+                    }
+                    """;
+            });
+            AddGeneratedSpecification("OrderedConceptFailures.cs", $$"""
+                #if DEBUG
+                using System.Globalization;
+                using System.Text.Json;
+                using Cratis.Arc.Chronicle.Testing.Commands;
+                using Cratis.Arc.Testing.Commands;
+                using Xunit;
+                namespace RequirementConceptOrder.ValidationParity;
+                public class OrderedConceptFailures
+                {
+                    [Fact]
+                    public async Task should_match_reference_messages_severities_and_order()
+                    {
+                        {{string.Join('\n', probes)}}
+                    }
+                }
+                #endif
+                """);
+            await Verify();
+        }
+    }
+}
+#endif

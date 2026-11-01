@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cratis.io/stage/operators/v1",
+  "title": "Stage operators/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operators"],
+  "properties": {
+    "operators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator", "position", "token", "precedence", "associativity"],
+        "properties": {
+          "operator": { "type": "string", "minLength": 1 },
+          "position": { "enum": ["unary", "binary"] },
+          "token": { "type": "string", "minLength": 1 },
+          "precedence": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "associativity": { "enum": ["left", "right", "none"] }
+        }
+      }
+    }
+  }
+}

@@ -32,7 +32,12 @@ internal static class AuthoringMetadataInput
                 document.StableKey,
                 PortablePlayPath.Parse(document.DisplayPath),
                 Encoding.UTF8.GetBytes(document.Text)))],
-            documents.IdentityCatalog);
+            documents.IdentityCatalog,
+
+            // File-included bodies (handler file ...) bind from the attachment contents; without them the
+            // rebuilt model differs from the compilation being rendered.
+            documents.AttachmentContents,
+            []);
         var index = WorkspaceSyntaxIndex.Create(workspace);
         if (index.Diagnostics.Any(diagnostic => diagnostic.Severity == Screenplay.Diagnostics.DiagnosticSeverity.Error) ||
             workspace.Compilation.Value?.Model.Revision != compilation.Model.Revision)

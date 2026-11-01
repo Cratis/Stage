@@ -49,7 +49,7 @@ public class when_planning_with_an_explicit_root_namespace : a_register_project_
     [Fact] void should_repeat_exact_artifacts() => _repeated.Artifacts.Zip(_plan.Artifacts).All(_ => _.First.RelativePath == _.Second.RelativePath && _.First.Sha256 == _.Second.Sha256 && _.First.Bytes.SequenceEqual(_.Second.Bytes)).ShouldBeTrue();
     [Fact] void should_repeat_the_artifact_count() => _repeated.Artifacts.Length.ShouldEqual(_plan.Artifacts.Length);
 
-    static bool IsSemanticSource(PlannedArtifact artifact) => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs";
+    static bool IsSemanticSource(PlannedArtifact artifact) => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath is not ("Program.cs" or "GlobalUsings.cs");
     bool MatchesApplication(PlannedArtifact artifact) => artifact.Bytes.SequenceEqual(_plan.Artifacts.Single(_ => _.RelativePath == artifact.RelativePath).Bytes);
 }
 #endif

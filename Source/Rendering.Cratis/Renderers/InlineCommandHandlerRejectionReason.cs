@@ -37,4 +37,9 @@ public enum InlineCommandHandlerRejectionReason
     /// Symbol analysis could not be completed.
     /// </summary>
     AnalysisFailure,
+
+    /// <summary>
+    /// The body mixes bare returns with returns that supply a value.
+    /// </summary>
+    MixedReturns,
 }

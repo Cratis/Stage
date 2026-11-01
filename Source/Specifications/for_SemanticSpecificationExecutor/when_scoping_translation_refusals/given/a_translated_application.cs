@@ -56,7 +56,8 @@ public class a_translated_application : Specification
             };
         }
         var translatedReactions = Scenario == "translated-reaction" ? slice.Reactions : [];
-        slice = slice with { Specifications = Scenario == "translate" ? [] : [specification], Reactions = Scenario == "translated-reaction" ? [] : slice.Reactions };
+        var published = string.Equals(Scenario, "translate", StringComparison.Ordinal) || string.Equals(Scenario, "own-command", StringComparison.Ordinal);
+        slice = slice with { Specifications = published ? [] : [specification], Reactions = Scenario == "translated-reaction" ? [] : slice.Reactions };
         work = work with { Features = [work.Features.Single() with { Slices = [slice] }] };
         var original = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
         var module = original.Application.Modules.Single();
@@ -66,7 +67,7 @@ public class a_translated_application : Specification
         var eventId = slice.Events.Single(@event => @event.Name == eventName).Id;
         publisher = publisher with
         {
-            Specifications = Scenario == "translate" ? [specification] : [],
+            Specifications = published ? [specification] : [],
             Reactions = translatedReactions,
             Projections = Scenario == "unrelated" || Scenario == "translate" || Scenario == "translated-reaction" ? publisher.Projections :
                 [.. publisher.Projections.Select(projection => projection with

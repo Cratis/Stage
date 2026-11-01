@@ -55,7 +55,7 @@ public class with_offsetless_datetime_inputs : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var compilation = new SemanticModelCompiler().Compile("DateInputs", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var command = plan.Commands.Values.Single();
         var inputs = new Dictionary<string, string>(StringComparer.Ordinal) { ["id"] = "window", ["from"] = scenario == 1 ? missing : valid, ["to"] = scenario == 1 ? valid : missing };
         var request = SemanticExecutionRequest.Create(command.Id, [.. command.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(inputs[property.Name])))], []);
@@ -73,7 +73,7 @@ public class with_offsetless_datetime_inputs : Specification
             reference.Details.ShouldEqual("DateTime command property 'to' requires an explicit offset or Z.");
             var unsupported = Assert.IsType<SemanticUnsupported>(execution);
             unsupported.Capability.ShouldEqual(SemanticExecutionCapability.Command);
-            unsupported.Details.ShouldEqual($"STAGE-IMPL-003: Command 'Keep' validation '{command.CodeValidations.Single().RequirementId}' is an implementation body; Stage does not execute implementation bodies without a target.");
+            unsupported.Details.ShouldEqual($"STAGE-IMPL-003: Command 'Keep' validation '{command.CodeValidations.Single().RequirementId}' is an implementation body; CommandValidation is not executed by `cratis run` yet (Stage#891 slice S2).");
             unsupported.World.Facts.ShouldBeEmpty();
             await appender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
             return;

@@ -16,7 +16,7 @@ internal static class SemanticPlanAdmission
 
     internal static SemanticUnsupportedCapability? Check(SemanticExecutionPlan plan, SemanticId artifact)
     {
-        var compilation = _compilations.GetValue(plan, static plan => SemanticExecutionPlan.Compile(plan.Model, []));
+        var compilation = Compilation(plan);
         var issues = compilation.Issues.Concat(compilation.UnselectedIssues).ToArray();
         var issue = issues.FirstOrDefault(issue => issue.Artifact == artifact);
         var capability = plan.Commands.ContainsKey(artifact) ? StageExecutionCapability.Command : StageExecutionCapability.Projection;
@@ -28,6 +28,11 @@ internal static class SemanticPlanAdmission
         }
         issue ??= issues.FirstOrDefault(issue => plan.Projections.TryGetValue(issue.Artifact, out var projection) && projection.ReadModel == readModel);
 
-        return issue is null ? null : new(capability, artifact.ToString(), $"STAGE-PLAN-004: {issue.Artifact}: {issue.Details}");
+        return issue is null
+            ? SemanticProjectionAdmission.CheckProductions(plan, artifact)
+            : new(capability, artifact.ToString(), $"STAGE-PLAN-004: {issue.Artifact}: {issue.Details}");
     }
+
+    internal static SemanticExecutionPlanCompilation Compilation(SemanticExecutionPlan plan) =>
+        _compilations.GetValue(plan, static plan => SemanticExecutionPlan.Compile(plan.Model, []));
 }

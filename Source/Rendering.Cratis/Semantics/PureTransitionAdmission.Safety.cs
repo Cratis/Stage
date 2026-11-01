@@ -61,8 +61,19 @@ internal static partial class PureTransitionAdmission
     static bool IsTimeType(ITypeSymbol? type) =>
         NameIs(type?.ToDisplayString() ?? string.Empty, "System.DateTimeOffset", "System.TimeSpan");
 
-    static bool SafeConversion(IConversionOperation operation) =>
-        operation.OperatorMethod is null && (IsNullConstant(operation) || IsSafeTypedConversion(operation));
+    static bool SafeConversion(IConversionOperation operation, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted)
+    {
+        if (operation.OperatorMethod is { } method)
+        {
+            return !IsNullConstant(operation) && IsGeneratedConceptConversion(method, trusted);
+        }
+
+        if (IsNullConstant(operation) && IsTrustedConceptTarget(operation.Type, trusted)) return false;
+        return IsNullConstant(operation) || IsSafeTypedConversion(operation);
+    }
+
+    static bool IsTrustedConceptTarget(ITypeSymbol? type, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
+        type is INamedTypeSymbol target && trusted.ContainsKey(target);
 
     static bool IsNullConstant(IConversionOperation operation) =>
         operation.Operand.ConstantValue.HasValue && operation.Operand.ConstantValue.Value is null;

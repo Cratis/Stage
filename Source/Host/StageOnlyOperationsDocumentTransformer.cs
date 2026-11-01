@@ -8,12 +8,14 @@ namespace Cratis.Stage.Host;
 
 /// <summary>
 /// Removes the framework infrastructure operations (identity, development, introspection and query
-/// transport — all served under the <c language="csharp">/.cratis</c> route) from the generated OpenAPI document so the
-/// Scalar reference only shows the operations that belong to the event model being played.
+/// transport — all served under the <c language="csharp">/.cratis</c> route) and Stage's own host endpoints (status,
+/// scene, routes, strings, read-model browser, packages, specification runs — under <c language="csharp">/stage</c> —
+/// and the Chronicle Workbench proxy under <c language="csharp">/workbench</c>) from the generated OpenAPI document so
+/// the Scalar reference only shows the operations that belong to the event model being played.
 /// </summary>
 public class StageOnlyOperationsDocumentTransformer : IOpenApiDocumentTransformer
 {
-    const string FrameworkPathPrefix = "/.cratis";
+    static readonly string[] _internalPathPrefixes = ["/.cratis", "/stage", "/workbench"];
 
     /// <summary>
     /// Transforms the document by stripping the framework infrastructure paths.
@@ -30,7 +32,7 @@ public class StageOnlyOperationsDocumentTransformer : IOpenApiDocumentTransforme
         }
 
         var frameworkPaths = document.Paths.Keys
-            .Where(path => path.StartsWith(FrameworkPathPrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(IsInternal)
             .ToArray();
 
         foreach (var path in frameworkPaths)
@@ -61,4 +63,9 @@ public class StageOnlyOperationsDocumentTransformer : IOpenApiDocumentTransforme
 
         return Task.CompletedTask;
     }
+
+    // Matches whole path segments, so a modeled route such as /stagehands is never mistaken for /stage.
+    static bool IsInternal(string path) => _internalPathPrefixes.Any(prefix =>
+        path.Equals(prefix, StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith($"{prefix}/", StringComparison.OrdinalIgnoreCase));
 }

@@ -20,5 +20,5 @@ public class with_a_missing_scoped_event : Specification
     }
 
     [Fact] void should_reject_incomplete_production_replay() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-011");
-    [Fact] void should_emit_no_partial_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

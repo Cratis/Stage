@@ -22,7 +22,9 @@ internal static partial class SemanticReactionSpecificationRenderer
         }
         if (!selected.Trigger.Invokes.IsEmpty)
         {
-            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude);
+            // Screenplay decision 0115: a command another slice owns is decided, so its refusal still fails, but its facts are not asserted.
+            var decidedOnly = SemanticSpecificationAdmission.InvokesForeignCommand(context, specification, selected);
+            return SemanticCommandSpecificationRenderer.Render(selected.Lower(specification, context), context, prelude with { DecidedOnly = decidedOnly });
         }
 
         return RenderProductions(specification, context, prelude);
@@ -84,7 +86,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         var @event = context.Events[append.EventContract];
         var arguments = @event.Properties.Select(property => types.Value(append.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
         var source = append.EventSource is { } identity
-            ? types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type) : "\"when-append\"";
+            ? types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type) : CSharpCodeBuilder.StringLiteral(SemanticSpecificationEventSources.Placeholder);
         if (append.EventSource is null)
         {
             builder.Line("// The model has no append source; this reaction never uses the trigger destination.");
@@ -100,8 +102,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             var contract = context.Events[given.EventContract];
             var arguments = contract.Properties.Select(property => types.Value(given.Values.Single(value => value.TargetProperty == property.Id).Value, property.Type));
-            var identity = given.EventSource!;
-            var source = types.EventSourceExpression(types.Value(identity.Value, identity.Type), identity.Type);
+            var source = SemanticSpecificationEventSources.Expression(context, types, given);
             builder.Line($"var occurrence{index} = await _reactor.Given.ForEventSource({source}){SemanticSpecificationRouteRendering.Seed(given.Route, context, types)}.History(new {types.EventType(contract)}({string.Join(", ", arguments)}));");
         }
         builder.Line($"await _reactor.Redeliver(occurrence{specification.WhenRedelivered!.Given});");
@@ -110,9 +111,9 @@ internal static partial class SemanticReactionSpecificationRenderer
     static RenderedFile RenderProductions(SemanticSpecification specification, SemanticApplicationContext context, SemanticReactionSpecificationPrelude prelude)
     {
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}";
+        var behavior = SemanticSpecificationClassNames.Behavior(specification);
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Xunit");
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable");
@@ -123,7 +124,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         RenderProductionExpectations(builder, specification, prelude, context, types);
         builder.BlankLine().ExpressionMember("public void Dispose()", "_reactor.Dispose()").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static string ValuePredicate(SemanticProperty property, SemanticValue value, ValueScope scope)
@@ -158,4 +159,10 @@ internal static partial class SemanticReactionSpecificationRenderer
 /// <param name="Selection">The statically selected reaction.</param>
 /// <param name="Append">The modeled input fixture.</param>
 /// <param name="Redelivery">The original specification when delivering recorded history.</param>
-internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null);
+internal sealed record SemanticReactionSpecificationPrelude(SemanticReactionSpecification Selection, SemanticSpecificationAppend Append, SemanticSpecification? Redelivery = null)
+{
+    /// <summary>
+    /// Gets a value indicating whether the invoked command belongs to another slice, so it is decided but its facts are not asserted.
+    /// </summary>
+    public bool DecidedOnly { get; init; }
+}

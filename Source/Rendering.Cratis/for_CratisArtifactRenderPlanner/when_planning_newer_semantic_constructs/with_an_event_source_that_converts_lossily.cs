@@ -15,7 +15,7 @@ public class with_an_event_source_that_converts_lossily : given.an_invoice_model
         "then InvoiceIssued\n          for \"2026-01-01T00:00:00.1000000+00:00\"\n          description = \"First payload\"",
         StringComparison.Ordinal));
 
-    [Fact] void should_not_plan_the_application() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_the_unrendered_semantic() => ErrorCodes.ShouldContain("STAGE-ESM-011");
-    [Fact] void should_not_plan_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_report_the_unrendered_semantic() => _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-011");
+    [Fact] void should_omit_the_unsupported_specifications() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).Intersect(_plan.Refusals.Select(refusal => refusal.Artifact)).ShouldBeEmpty();
 }

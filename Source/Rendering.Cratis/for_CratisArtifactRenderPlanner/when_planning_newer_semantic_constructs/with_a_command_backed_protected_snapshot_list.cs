@@ -14,7 +14,7 @@ public class with_a_command_backed_protected_snapshot_list : Specification
 
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(a_protected_collection_model.CommandSnapshot));
 
-    [Fact] void should_refuse_the_command_backed_snapshot_success() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_render_the_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_report_the_collection_store_gap() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("GetInstances", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

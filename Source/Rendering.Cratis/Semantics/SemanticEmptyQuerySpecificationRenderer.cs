@@ -4,6 +4,7 @@
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -19,8 +20,8 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var modelName = types.SliceType(readModel.Id, readModel.Name);
         var located = context.DeclaringSlice(specification.Id);
-        var behavior = $"when_{Identifiers.ToSnakeCase(specification.Name)}_is_queried";
-        var builder = new CSharpCodeBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
+        var behavior = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: false);
+        var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit");
         context.Docs(specification.Id).Render(builder)
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
@@ -46,7 +47,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
             builder.Line($"_principal = new global::System.Security.Claims.ClaimsPrincipal(new global::System.Security.Claims.ClaimsIdentity([{string.Join(", ", claims)}], {(caller.Authenticated ? "\"Screenplay\"" : "null")}));")
                 .Line("_scenario.Services.AddSingleton<global::Cratis.Arc.Authorization.ICurrentPrincipalAccessor>(_principalAccessor);");
         }
-        if (query.Authorization is not null)
+        if (SemanticAnonymousAccess.RequiresCaller(query.Authorization, context.Application.Policies))
         {
             builder.Line($"global::{context.RootNamespace}.GeneratedPolicies.Registration.Register(_scenario.Services);");
         }
@@ -82,7 +83,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         }
         builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
 
-        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder.ToString()));
+        return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }
 
     static string Argument(string name, string value) => $"[{CSharpCodeBuilder.StringLiteral(Identifiers.ToCamelCase(name))}] = {value}";

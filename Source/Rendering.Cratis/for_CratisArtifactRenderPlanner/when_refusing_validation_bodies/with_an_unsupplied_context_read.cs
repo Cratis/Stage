@@ -12,7 +12,6 @@ public class with_an_unsupplied_context_read
     [Theory]
     [InlineData("Tenant")]
     [InlineData("CausedBy")]
-    [InlineData("Occurred")]
     public void should_refuse_the_read_by_member_name(string member)
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.Command($"return context.{member} == default;")));

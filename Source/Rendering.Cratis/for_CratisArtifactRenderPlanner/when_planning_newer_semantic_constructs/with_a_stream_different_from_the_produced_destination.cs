@@ -22,5 +22,5 @@ public class with_a_stream_different_from_the_produced_destination : Specificati
     }
 
     [Fact] void should_reject_an_unreproducible_event_stream() => _plan.Diagnostics.Select(_ => _.Code).ShouldContain("STAGE-ESM-011");
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

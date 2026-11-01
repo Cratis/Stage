@@ -14,5 +14,5 @@ public class and_nothing_has_its_short_name : given.a_framework_catalog
     void Because() => _result = ImportResolver.Resolve(Request(_key), _catalog);
 
     [Fact] void should_drop_the_attribute_suffix() => _result.Spell(_key).ShouldEqual("Key");
-    [Fact] void should_import_its_namespace() => string.Join(' ', _result.Usings).ShouldEqual("Cratis.Chronicle.Keys");
+    [Fact] void should_import_its_namespace() => string.Join(' ', _result.TopLevelUsings).ShouldEqual("Cratis.Chronicle.Keys");
 }

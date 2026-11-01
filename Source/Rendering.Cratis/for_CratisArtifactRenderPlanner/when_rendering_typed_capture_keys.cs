@@ -43,7 +43,7 @@ public class when_rendering_typed_capture_keys : given.a_translation_application
     [Theory]
     [InlineData(SemanticPrimitiveType.Text, "@event.OrderId")]
     [InlineData(SemanticPrimitiveType.Uuid, "@event.OrderId")]
-    [InlineData(SemanticPrimitiveType.WholeNumber, "new global::Cratis.Chronicle.Events.EventSourceId((@event.OrderId).ToString())")]
+    [InlineData(SemanticPrimitiveType.WholeNumber, "new EventSourceId((@event.OrderId).ToString())")]
     public void should_compile_supported_primitive_identities(SemanticPrimitiveType primitive, string expression)
     {
         var key = SemanticTypeReference.ForPrimitive(primitive);

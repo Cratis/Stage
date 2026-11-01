@@ -25,6 +25,7 @@ public class when_comparing_composite_event_payloads(when_comparing_composite_ev
         protected override bool RequireStageExecution => true;
 
         // Keep unobserved appends and reordered expectations in the executor specs: the renderer refuses them.
+        // The reaction and the command it invokes share one slice, since a specification keeps only its own slice's facts (Screenplay decision 0115).
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("typed", when_running_composite_event_values.Compile(when_comparing_composite_event_payloads.Source).Model)];
         Task Because() => Verify();
     }
@@ -37,7 +38,7 @@ public class when_comparing_composite_event_payloads(when_comparing_composite_ev
           child Child
         module Facts
           feature Recording
-            slice StateChange Record
+            slice Automation Record
               command RecordDetails
                 id String identifier
                 details Details
@@ -67,7 +68,6 @@ public class when_comparing_composite_event_payloads(when_comparing_composite_ev
                   details = {"label":"nested","child":{"count":7}}
                 then DetailsRecorded
                   details = {"label":"nested","child":{"count":7}}
-            slice Automation Forward
               event DetailsRequested
                 details Details
               reaction ForwardDetails

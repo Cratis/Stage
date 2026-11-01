@@ -42,5 +42,13 @@ public class with_combined_scaffold_and_localized_slice : given.a_profile_source
     [Fact] void should_match_every_full_render_artifact_byte() => _combined.All(artifact => _full.Artifacts.Single(full => full.RelativePath == artifact.RelativePath).Bytes.SequenceEqual(artifact.Bytes)).ShouldBeTrue();
     [Fact] void should_supply_the_strings_runtime() => _scaffold.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("GeneratedStrings.cs");
     [Fact] void should_configure_program_localization() => Encoding.UTF8.GetString(_scaffold.Artifacts.Single(artifact => artifact.RelativePath == "Program.cs").Bytes.AsSpan()).ShouldContain("app.UseRequestLocalization");
+    [Fact]
+    void should_spell_program_localization_with_short_names()
+    {
+        var program = Encoding.UTF8.GetString(_scaffold.Artifacts.Single(artifact => artifact.RelativePath == "Program.cs").Bytes.AsSpan());
+        program.ShouldNotContain("global::");
+        program.ShouldContain("using System.Globalization;");
+    }
+
     [Fact] void should_compile_the_combined_backend() => string.Join(Environment.NewLine, _errors).ShouldEqual(string.Empty);
 }

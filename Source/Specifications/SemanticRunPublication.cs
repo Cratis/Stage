@@ -20,7 +20,7 @@ internal sealed class SemanticRunPublication(SemanticExecutionPlan plan, Semanti
         var start = _next;
         var end = context.Facts.Count;
         _next = end;
-        foreach (var projection in plan.Projections.Values.Where(projection => SemanticTranslationSupport.Projection(projection, plan.Events)).OrderBy(projection => projection.Id.ToString(), StringComparer.Ordinal))
+        foreach (var projection in plan.Projections.Values.Where(projection => SemanticTranslationSupport.Projection(projection, plan.Events) && plan.Runs(projection.Id)).OrderBy(projection => projection.Id.ToString(), StringComparer.Ordinal))
         {
             var target = plan.Events[projection.ReadModel];
             var states = new Dictionary<SemanticValue, Dictionary<SemanticId, SemanticValue>>();

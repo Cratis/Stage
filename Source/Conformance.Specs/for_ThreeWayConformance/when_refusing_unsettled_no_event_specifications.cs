@@ -19,7 +19,7 @@ public class when_refusing_unsettled_no_event_specifications : Specification
     [InlineData("cascade", "deeper reaction cascades")]
     [InlineData("command", "do not settle reactions")]
     [InlineData("invocation", "production-only")]
-    public void should_refuse_without_partial_artifacts(string form, string reason)
+    public void should_omit_the_unsettled_specification_without_refusing_the_application(string form, string reason)
     {
         var observed = form == "no-observer" ? "Finished" : "Started";
         var effect = form == "invocation" ? "invokes Complete\n            id = id" : "produces Followed\n            for id\n            id = id";
@@ -71,9 +71,13 @@ public class when_refusing_unsettled_no_event_specifications : Specification
                     then no events
             """);
         var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Recovery", "Recovery"));
-        plan.Success.ShouldBeFalse();
-        plan.Artifacts.ShouldBeEmpty();
+        var specification = model.Application.Modules.Single().Features.Single().Slices.Single().Specifications.Single();
+        plan.Success.ShouldBeTrue();
+        plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        plan.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
         plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal)).ShouldBeTrue();
+        plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-011").Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Warning);
     }
 }
 #endif

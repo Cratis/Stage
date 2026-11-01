@@ -20,7 +20,7 @@ public class with_non_error_severities : Specification
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         var assembly = opaque_policy_model.Compile(plan);
         validation_body_model.Validate(assembly, "PlaceOrder", 1m).Errors.Single().Severity.ShouldEqual(expected);
-        plan.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("BlockOnValidationSeverityAttribute(global::Cratis.Arc.Validation.ValidationResultSeverity.Information)", StringComparison.Ordinal));
+        plan.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains("BlockOnValidationSeverity(ValidationResultSeverity.Information)", StringComparison.Ordinal));
     }
 }
 #endif

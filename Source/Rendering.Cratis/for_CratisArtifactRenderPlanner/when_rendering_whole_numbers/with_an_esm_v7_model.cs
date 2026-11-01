@@ -21,8 +21,8 @@ public class with_an_esm_v7_model : Specification
     [Fact] void should_admit_the_int_boundary() => _plan.Success.ShouldBeTrue();
     [Fact] void should_keep_the_concept_int32() => Text("/Quantity.cs").ShouldContain("Quantity(int Value) : ConceptAs<int>");
     [Fact] void should_keep_the_sentinel_unchanged() => Text("/Quantity.cs").ShouldContain("NotSet = new(0)");
-    [Fact] void should_keep_the_command_property_int32() => Text("/Record.cs").ShouldContain("record RecordStock(global::Invoices.Common.StockId Id, global::Invoices.Common.Quantity Quantity, int Count)");
-    [Fact] void should_keep_the_event_property_int32() => Text("/Record.cs").ShouldContain("record StockRecorded(global::Invoices.Common.Quantity Quantity, int Count)");
+    [Fact] void should_keep_the_command_property_int32() => Text("/Record.cs").ShouldContain("record RecordStock(StockId Id, Quantity Quantity, int Count)");
+    [Fact] void should_keep_the_event_property_int32() => Text("/Record.cs").ShouldContain("record StockRecorded(Quantity Quantity, int Count)");
     [Fact] void should_keep_the_read_model_property_int32() => Text("/Stocks.cs").ShouldContain("int Count");
     [Fact] void should_keep_the_literal_unchanged() => Text("/when_recording_positive.cs").ShouldNotContain("2147483647L");
 }

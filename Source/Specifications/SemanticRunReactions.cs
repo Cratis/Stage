@@ -22,14 +22,18 @@ internal sealed class SemanticRunReactions(
     readonly Dictionary<(SemanticId Command, SemanticId Property), Queue<SemanticValue>> _pinned = PinnedValues(context.Specification);
     readonly SemanticRunCaptures _captures = new(plan, context);
     readonly SemanticRunPublication _publication = new(plan, context, historyCount);
+    readonly List<SemanticRecordedInvocation> _invocations = [];
     int _nextFact = historyCount;
     bool _capturesSeeded;
+
+    // Every invocation the running reactions made, in order, whether or not the command accepted it or the slice owns it.
+    internal IReadOnlyList<SemanticRecordedInvocation> Invocations => _invocations;
 
     internal static SemanticRunReactionFailure FactLimit() =>
         SemanticRunReactionFailure.Unsupported($"The scenario appends more than {MaximumFacts} facts; its reactions do not settle.");
 
     internal static SemanticRunReactionFailure? ContextGuard(SemanticReaction reaction, SemanticProducedEvent produced, DateTimeOffset? occurred) =>
-        occurred is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression)
+        occurred is null && produced.Mappings.Any(mapping => mapping.Source is SemanticEventContextExpression { Value: not SemanticEventContextValueKind.EventSourceIdentity })
             ? SemanticRunReactionFailure.Reject($"Reaction '{reaction.Name}' uses $context, which needs the scenario's 'given clock'.")
             : null;
 
@@ -60,7 +64,7 @@ internal sealed class SemanticRunReactions(
     internal async Task<SemanticRunReactionFailure?> Fire(SemanticSpecificationTrigger fired, CancellationToken cancellationToken)
     {
         var cause = new SemanticReactionCause(null, SemanticValue.Null, fired.Values.ToDictionary(value => value.TargetProperty, value => value.Value), context.AuthoredOccurrence);
-        foreach (var reaction in plan.Reactions)
+        foreach (var reaction in plan.RunningReactions)
         {
             foreach (var trigger in reaction.Triggers.Where(trigger => trigger.Kind == fired.Kind && trigger.Source == fired.Trigger))
             {
@@ -75,7 +79,7 @@ internal sealed class SemanticRunReactions(
 
     internal async Task<SemanticRunReactionFailure?> Advance(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
     {
-        if (!SemanticRunClock.TryFindDue(plan.Reactions, from, to, out var due))
+        if (!SemanticRunClock.TryFindDue(plan.RunningReactions, from, to, out var due))
         {
             return SemanticRunReactionFailure.Unsupported($"Advancing the clock makes more than {SemanticRunClock.MaximumOccurrences} occurrences due.");
         }
@@ -94,7 +98,9 @@ internal sealed class SemanticRunReactions(
         cancellationToken.ThrowIfCancellationRequested();
         var fact = context.Facts[givenIndex];
         var cause = new SemanticReactionCause(fact, context.Destinations[givenIndex], fact.Values.ToDictionary(value => value.TargetProperty, value => value.Value), context.AuthoredOccurrence);
-        foreach (var (selected, trigger) in Triggered(fact).Where(candidate => candidate.Reaction.Id == reaction))
+
+        // Redelivery names its reaction explicitly, as the reference does.
+        foreach (var (selected, trigger) in Triggered(plan.Reactions, fact).Where(candidate => candidate.Reaction.Id == reaction))
         {
             if (await Fire(selected, trigger, cause, cancellationToken) is { } failure) return failure;
         }
@@ -119,7 +125,7 @@ internal sealed class SemanticRunReactions(
     {
         var fact = context.Facts[index];
         var cause = new SemanticReactionCause(fact, context.Destinations[index], fact.Values.ToDictionary(value => value.TargetProperty, value => value.Value), context.Occurrences[index]);
-        foreach (var (reaction, trigger) in Triggered(fact))
+        foreach (var (reaction, trigger) in Triggered(plan.RunningReactions, fact))
         {
             if (await Fire(reaction, trigger, cause, cancellationToken) is { } failure) return failure;
         }
@@ -127,23 +133,17 @@ internal sealed class SemanticRunReactions(
         return null;
     }
 
-    IEnumerable<(SemanticReaction Reaction, SemanticReactionTrigger Trigger)> Triggered(SemanticSpecificationEvent fact)
+    IEnumerable<(SemanticReaction Reaction, SemanticReactionTrigger Trigger)> Triggered(IEnumerable<SemanticReaction> reactions, SemanticSpecificationEvent fact)
     {
         var route = SemanticRunRoutes.Format(plan, fact.Route);
 
-        return plan.Reactions.Where(reaction => MatchesFilter(reaction.From, route)).SelectMany(reaction => reaction.Triggers
+        return reactions.Where(reaction => MatchesFilter(reaction.From, route)).SelectMany(reaction => reaction.Triggers
             .Where(trigger => trigger.Kind == SemanticReactionTriggerKind.Event && trigger.Source == fact.EventContract)
             .Select(trigger => (reaction, trigger)));
     }
 
-    bool MatchesFilter(SemanticObserverFilter? filter, SemanticEventRoute? route)
-    {
-        if (filter is null) return true;
-        if (route is null) return false;
-        var source = plan.Model.Application.EventSources.Single(source => source.Id == filter.Source);
-
-        return source.SourceKind == route.SourceKind && (filter.Stream is null || source.Streams.Single(stream => stream.Id == filter.Stream.Value).StreamKind == route.StreamKind);
-    }
+    bool MatchesFilter(SemanticObserverFilter? filter, SemanticEventRoute? route) =>
+        SemanticObserverFilters.Matches(plan.Model.Application, filter, route);
 
     async Task<SemanticRunReactionFailure?> Fire(SemanticReaction reaction, SemanticReactionTrigger trigger, SemanticReactionCause cause, CancellationToken cancellationToken)
     {
@@ -163,7 +163,9 @@ internal sealed class SemanticRunReactions(
         if (await ProduceAll(reaction, trigger.Produces, cause, cancellationToken) is { } produceFailure) return produceFailure;
         foreach (var invocation in trigger.Invokes)
         {
-            var outcome = await invoke(Invocation(reaction, invocation, cause), !invocation.OnRefused.IsEmpty);
+            var invoked = Invocation(reaction, invocation, cause);
+            var outcome = await invoke(invoked, !invocation.OnRefused.IsEmpty);
+            _invocations.Add(new(invocation.Command, invoked.When!.Values, outcome.Failure is null));
             if (outcome.Failure is null)
             {
                 if (await _publication.PublishPending(cancellationToken) is { } publicationFailure) return publicationFailure;
@@ -213,7 +215,7 @@ internal sealed class SemanticRunReactions(
         }
         foreach (var (fact, _) in candidates)
         {
-            if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+            if (SemanticRunAdmission.CheckProjectionFact(plan, fact, SemanticRunRoutes.Format(plan, fact.Route)) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
         }
         foreach (var fact in candidates.Select(candidate => context.Prepare(candidate.Fact, candidate.Destination, cause.Occurred)).ToArray())
         {
@@ -227,13 +229,13 @@ internal sealed class SemanticRunReactions(
     {
         if (cause.Fact is null && produced.Destination is null) throw new InvalidSemanticContract($"Reaction '{reaction.Name}' must say with 'for' which event source it appends to, unless an event sets it off.");
         var contract = plan.Events[produced.EventContract];
-        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, cause.Occurred))).ToArray();
+        var mapped = produced.Mappings.Select(mapping => new SemanticPropertyValue(mapping.TargetProperty, SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, refusal, cause.Occurred, cause.Destination))).ToArray();
         foreach (var value in mapped)
         {
             var property = contract.Properties.Single(property => property.Id == value.TargetProperty);
             SemanticRunReactionExpressions.Validate(plan, value.Value, property.Type, $"event property '{property.Name}'");
         }
-        var destination = produced.Destination is null ? cause.Destination : SemanticRunReactionExpressions.Evaluate(produced.Destination, cause.Values);
+        var destination = produced.Destination is null ? cause.Destination : SemanticRunReactionExpressions.Evaluate(produced.Destination, cause.Values, eventSource: cause.Destination);
         if (produced.Destination is not null) SemanticRunReactionExpressions.Validate(plan, destination, produced.DestinationType!, "reaction event source");
 
         return (new SemanticSpecificationEvent(contract.Id, [.. mapped])
@@ -250,7 +252,7 @@ internal sealed class SemanticRunReactions(
         {
             return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
         }
-        if (SemanticRunAdmission.CheckProjectionFact(plan, fact) is { } blocker)
+        if (SemanticRunAdmission.CheckProjectionFact(plan, fact, SemanticRunRoutes.Format(plan, fact.Route)) is { } blocker)
         {
             return SemanticRunReactionFailure.Refused(blocker);
         }
@@ -265,7 +267,7 @@ internal sealed class SemanticRunReactions(
         var mappings = invocation.Mappings.ToDictionary(mapping => mapping.TargetProperty);
         var inputs = command.Properties.Where(property => !property.IsGenerated).Select(property => new SemanticPropertyValue(
             property.Id,
-            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, occurred: cause.Occurred) : SemanticValue.Null));
+            mappings.TryGetValue(property.Id, out var mapping) ? SemanticRunReactionExpressions.Evaluate(mapping.Source, cause.Values, occurred: cause.Occurred, eventSource: cause.Destination) : SemanticValue.Null));
 
         var generated = command.Properties.Where(property => property.IsGenerated && _pinned.TryGetValue((command.Id, property.Id), out var queue) && queue.Count > 0)
             .Select(property => new SemanticPropertyValue(property.Id, _pinned[(command.Id, property.Id)].Dequeue()));

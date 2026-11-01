@@ -3,6 +3,7 @@
 
 #if DEBUG
 using Cratis.Specifications;
+using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Xunit;
 
@@ -42,9 +43,12 @@ public class when_refusing_generated_occurrence_specifications : Specification
             """;
         var model = invoice_model.Compile(source + "\n      specification Exercising\n" + Indent(clock + action, 8) + "\n" + Indent("then Noted\n  for \"one\"\n  notedAt = \"2027-03-04T08:00:00.1230000Z\"", 8));
         var rendered = invoice_model.Plan(model);
-        rendered.Success.ShouldBeFalse();
-        rendered.Artifacts.ShouldBeEmpty();
-        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code);
+        var specification = model.Application.Modules.Single().Features.Single().Slices.Single().Specifications.Single();
+        rendered.Success.ShouldBeTrue();
+        rendered.Outcome.ShouldEqual(ArtifactRenderOutcome.Complete);
+        rendered.Refusals.Single().Artifact.ShouldEqual(specification.Id);
+        rendered.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(specification.Id);
+        rendered.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code && diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Warning);
 
         var backend = invoice_model.Compile(source);
         var backendRendering = invoice_model.Plan(backend);

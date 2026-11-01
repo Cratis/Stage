@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text;
+using System.Xml.Linq;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
@@ -28,7 +29,8 @@ public class when_planning_protected_command_reads : Specification
     [Fact] void should_admit_the_version() => _plan.Diagnostics.ShouldNotContain(diagnostic => diagnostic.Code == "STAGE-ESM-016");
     [Fact] void should_examine_read_commands() => ReadCommands().Count().ShouldEqual(3);
     [Fact] void should_render_the_use_slice() => Source("Use").ShouldNotBeEmpty();
-    [Fact] void should_protect_every_command_that_reads() => Source("Use").Split("ReadProtectionAttribute(", StringSplitOptions.None).Length.ShouldEqual(4);
+    [Fact] void should_not_emit_per_command_protection() => Source("Use").ShouldNotContain("ReadProtection");
+    [Fact] void should_enable_project_read_protection() => XDocument.Parse(Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath == "Directory.Build.props").Bytes.AsSpan())).Descendants("CratisReadProtection").Single().Value.ShouldEqual("On");
     [Fact] void should_emit_the_admission_specification() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith("GeneratedCommands/when_admitting_protected_reads.cs", StringComparison.Ordinal));
 
     string Source(string slice) => string.Concat(_plan.Artifacts.Where(artifact => artifact.RelativePath.Contains($"/{slice}.cs", StringComparison.Ordinal)).Select(artifact => Encoding.UTF8.GetString([.. artifact.Bytes])));

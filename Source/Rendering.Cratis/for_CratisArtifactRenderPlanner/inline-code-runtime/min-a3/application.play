@@ -1,0 +1,7 @@
+domain Cratis.Samples.Billing
+
+concept PaymentId : Uuid
+
+concept InvoiceId : Uuid
+
+concept Money : Decimal

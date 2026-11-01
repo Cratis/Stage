@@ -1,6 +1,8 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Stage.Contracts.Rendering;
+
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
 /// <summary>
@@ -119,6 +121,12 @@ internal static class GeneratedPascalCase
         if (result.Length == 0)
         {
             return "Item";
+        }
+
+        if (char.GetUnicodeCategory(result[0]) is System.Globalization.UnicodeCategory.NonSpacingMark or
+            System.Globalization.UnicodeCategory.SpacingCombiningMark or System.Globalization.UnicodeCategory.EnclosingMark)
+        {
+            throw new InvalidGeneratedIdentifier(name);
         }
 
         return char.IsDigit(result[0]) ? $"_{result}" : result;

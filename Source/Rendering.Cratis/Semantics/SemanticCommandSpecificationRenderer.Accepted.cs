@@ -25,6 +25,12 @@ internal static partial class SemanticCommandSpecificationRenderer
         }
 
         builder.Line("[global::Xunit.FactAttribute] void should_succeed() => _result.ShouldBeSuccessful();");
+        if (scope.ReactionPrelude is { DecidedOnly: true })
+        {
+            // The invoked command belongs to another slice: it is decided here, and its own slice's specifications state its facts.
+            return;
+        }
+
         RenderAppendedCount(scope);
 
         if (ExpectsAnyOrder(scope))

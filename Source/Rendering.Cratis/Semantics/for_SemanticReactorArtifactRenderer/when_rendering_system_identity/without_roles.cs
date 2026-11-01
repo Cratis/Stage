@@ -11,5 +11,5 @@ public class without_roles : for_SemanticAutomationArtifactRenderer.given.an_aut
     string _source = string.Empty;
     void Establish() => SetContext(Compile(Source.Replace("      reaction Acknowledge", "      reaction Acknowledge\n        runs as system", StringComparison.Ordinal)));
     void Because() => _source = SemanticReactorArtifactRenderer.Render(_located, _located.Slice.Reactions.Single(reaction => reaction.Name == "Acknowledge"), _context).Content;
-    [Fact] void should_render_the_identity_even_without_invocations() => _source.ShouldContain("[global::Cratis.Arc.Chronicle.Reactors.ExecuteCommandsAsSystemAttribute]");
+    [Fact] void should_render_the_identity_even_without_invocations() => _source.ShouldContain("[ExecuteCommandsAsSystem]");
 }

@@ -24,5 +24,5 @@ public class with_no_route_in_a_v8_model : given.a_routed_command
     void Because() => Plan();
 
     [Fact] void should_keep_v7_command_bytes() => _plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Deposit.cs", StringComparison.Ordinal)).Bytes.SequenceEqual(_legacy.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Deposit.cs", StringComparison.Ordinal)).Bytes).ShouldBeTrue();
-    [Fact] void should_not_add_a_route_attribute() => _code.Contains("EventSourceAttribute<", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_not_add_a_route_attribute() => _code.Contains("[EventSource<", StringComparison.Ordinal).ShouldBeFalse();
 }

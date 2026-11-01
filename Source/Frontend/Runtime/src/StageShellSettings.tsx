@@ -2,8 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { useEffect, useRef } from 'react';
-import { useLayoutConfig } from '@cratis/scene.blueprint.default';
+import { ColorScheme, defaultBlueprintThemes, useLayoutConfig } from '@cratis/scene.blueprint.default';
 import type { StageShellSettings } from './stageShell';
+import { readThemeChoice } from './stageThemeChoice';
 
 /** The query that says the operating system prefers a dark scheme. */
 export const prefersDarkQuery = '(prefers-color-scheme: dark)';
@@ -30,6 +31,14 @@ export function StageShellSettingsApplier({ settings, onSystemSchemeChange }: { 
         const { setMode, setMenuTheme, setColorScheme, setThemeName } = configuration.current;
         if (mode !== undefined) setMode(mode);
         if (menuTheme !== undefined) setMenuTheme(menuTheme);
+        // What the user chose with the toggle outranks what the profile starts in, so a refresh keeps it.
+        const chosen = defaultBlueprintThemes.find(theme => theme.name === readThemeChoice());
+        if (chosen) {
+            setThemeName(chosen.name);
+            setColorScheme(chosen.isDark ? ColorScheme.Dark : ColorScheme.Light);
+            return;
+        }
+
         if (colorScheme !== undefined) setColorScheme(colorScheme);
         if (themeName !== undefined) setThemeName(themeName);
     }, [mode, menuTheme, colorScheme, themeName]);

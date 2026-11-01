@@ -62,11 +62,13 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
         Refuses("append-time constraints");
     }
 
+    // A specification runs only its own slice (Screenplay decision 0115): another slice's publication of the output does not run.
     [Fact]
-    void should_not_ignore_a_publication_triggered_by_the_output()
+    void should_not_settle_another_slices_publication_of_the_output()
     {
         Prepare(Source + "\n" + Publication);
-        Refuses("cascade");
+        _plan = Plan(_model);
+        Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
     }
 
     [Fact]
@@ -83,7 +85,8 @@ public class when_refusing_unsettled_translation_specifications : given.a_transl
     void Refuses(string reason)
     {
         _plan = Plan(_model);
-        _plan.Success.ShouldBeFalse();
+        _plan.Success.ShouldBeTrue();
+        _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
         _plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains(reason, StringComparison.Ordinal));
     }
 }

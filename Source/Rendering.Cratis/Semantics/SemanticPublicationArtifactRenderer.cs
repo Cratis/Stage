@@ -17,7 +17,7 @@ internal static class SemanticPublicationArtifactRenderer
         var types = new SemanticTypeSystem(context);
         var target = context.Events[projection.ReadModel];
         var name = Identifiers.ToPascalCase(projection.Name);
-        var builder = new CSharpCodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(projection.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(projection.Id.ToString())})")
             .OpenBlock($"public class {name}(global::Cratis.Chronicle.IEventStore eventStore) : global::Cratis.Chronicle.Reactors.IReactor");

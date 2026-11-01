@@ -23,8 +23,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
             foreach (var capture in Matching(context.Facts[index]))
             {
                 var record = EventRecord(context.Facts[index]);
-                var key = EventKey(capture, context.Facts[index], record);
-                if (key is not (SemanticTextValue or SemanticNumberValue)) return UnsupportedKey(capture);
+                if (ReadForeignKey(capture, index, record, out var key) is { } keyFailure) return keyFailure;
                 _records[(capture.Id, key)] = Overlay(_records.GetValueOrDefault((capture.Id, key)), record);
             }
         }
@@ -37,8 +36,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         foreach (var capture in Matching(fact))
         {
             var incoming = EventRecord(fact);
-            var key = EventKey(capture, fact, incoming);
-            if (key is not (SemanticTextValue or SemanticNumberValue)) return UnsupportedKey(capture);
+            if (ReadForeignKey(capture, index, incoming, out var key) is { } keyFailure) return keyFailure;
             var previous = _records.GetValueOrDefault((capture.Id, key));
             var current = Overlay(previous, incoming);
             if (previous is not null && SameState(previous, current)) continue;
@@ -117,7 +115,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         return new([.. fields.Values]);
     }
     IEnumerable<SemanticCapture> Matching(SemanticSpecificationEvent fact) =>
-        plan.Captures.Values.Where(capture => SemanticTranslationSupport.Capture(capture, plan.Events) && capture.EventsSource!.Events.Contains(fact.EventContract))
+        plan.RunningCaptures.Where(capture => SemanticTranslationSupport.Capture(capture, plan.Events) && capture.EventsSource!.Events.Contains(fact.EventContract))
             .OrderBy(capture => capture.Id.ToString(), StringComparer.Ordinal);
 
     SemanticCaptureRecord EventRecord(SemanticSpecificationEvent fact)
@@ -125,6 +123,22 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
         var contract = plan.Events[fact.EventContract];
         var names = plan.Model.Application.Types.SelectMany(type => type.Properties).ToDictionary(property => property.Id, property => property.Name);
         return new([.. fact.Values.Select(value => EventField(contract.Properties.Single(property => property.Id == value.TargetProperty).Name, value.Value, names))]);
+    }
+
+    SemanticRunReactionFailure? ReadForeignKey(SemanticCapture capture, int index, SemanticCaptureRecord record, out SemanticValue key)
+    {
+        var fact = context.Facts[index];
+        try
+        {
+            key = EventKey(capture, fact, record);
+            if (SemanticCaptureSources.Mismatch(capture, plan.Events[fact.EventContract].Name, context.Destinations[index], key) is { } mismatch) return SemanticRunReactionFailure.Reject(mismatch);
+            return key is SemanticTextValue or SemanticNumberValue ? null : UnsupportedKey(capture);
+        }
+        catch (InvalidSemanticContract exception) when (capture.EventsSource is { KeyIsEventSource: true })
+        {
+            key = SemanticValue.Null;
+            return SemanticRunReactionFailure.Reject(exception.Message);
+        }
     }
 
     SemanticValue EventKey(SemanticCapture capture, SemanticSpecificationEvent fact, SemanticCaptureRecord record)
@@ -160,7 +174,7 @@ internal sealed partial class SemanticRunCaptures(SemanticExecutionPlan plan, Se
             {
                 return SemanticRunReactionFailure.Reject(SemanticConstraintEvaluator.Message(violation), violation.Name);
             }
-            if (SemanticRunAdmission.CheckProjectionFact(plan, produced) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
+            if (SemanticRunAdmission.CheckProjectionFact(plan, produced, SemanticRunRoutes.Format(plan, produced.Route)) is { } blocker) return SemanticRunReactionFailure.Refused(blocker);
             if (context.Facts.Count - _historyCount >= SemanticRunReactions.MaximumFacts) return SemanticRunReactions.FactLimit();
             await context.Append(produced, key, context.Occurrences[index], cancellationToken);
             if (await settle(cancellationToken) is { } failure) return failure;

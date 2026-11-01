@@ -16,7 +16,6 @@ public class with_only_optional_properties_and_a_mapping_free_from_block : given
 
     async Task Because() => _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([_specification.Id]), new())).Results);
 
-    [Fact] void should_be_unsupported() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_explain_that_no_instance_materializes() => _result.Unsupported!.Details.ShouldContain("does not materialize a Chronicle read model");
-    [Fact] void should_still_pass_in_the_reference() => new SemanticSpecificationRunner().Run(_plan, _specification.Id).Passed.ShouldBeTrue();
+    [Fact] void should_pass() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
+    [Fact] void should_agree_with_the_reference() => new SemanticSpecificationRunner().Run(_plan, _specification.Id).Passed.ShouldBeTrue();
 }

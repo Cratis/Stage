@@ -37,7 +37,8 @@ public class when_recording_reducer_slice_sources : Specification
     [Fact] void should_admit_the_reducer() => _first.Success.ShouldBeTrue();
     [Fact] void should_preserve_the_read_model_and_input_events_alongside_the_declaring_slice() => _reducer.Sources.ShouldEqual(new[] { _declaring.ReadModels.Single().Id, _input.Events.Single().Id, _declaring.Id }.OrderBy(id => id.ToString(), StringComparer.Ordinal));
     [Fact] void should_not_name_the_input_events_slice_as_an_owner() => _reducer.Sources.ShouldNotContain(_input.Id);
-    [Fact] void should_preserve_the_previous_artifact_hash() => _reducer.Sha256.ShouldEqual("c7418e2f6622e9bc6c04928cda1004d2cee67ef0e381bc4fd48d2ce5c3cd9e55");
+    // Re-frozen for Cratis/Stage#848: the authored body line is indented eight spaces to its block (proof: .ai-work/848/digest-proof.md).
+    [Fact] void should_preserve_the_import_resolved_artifact_hash() => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(given.LegacyLicenseHeader.Restore(_reducer.RelativePath, System.Text.Encoding.UTF8.GetString(_reducer.Bytes.AsSpan()))))).ShouldEqual("d8c8f82463f0f124728e96542a12f3666072a1c1ffb7f0279490d17a09bc9dbe");
     [Fact] void should_repeat_the_same_sources() => _second.Artifacts.Single(artifact => artifact.RelativePath == _reducer.RelativePath).Sources.AsEnumerable().ShouldEqual(_reducer.Sources.AsEnumerable());
     [Fact] void should_repeat_the_same_plan_digest() => _second.Digest.ShouldEqual(_first.Digest);
 }

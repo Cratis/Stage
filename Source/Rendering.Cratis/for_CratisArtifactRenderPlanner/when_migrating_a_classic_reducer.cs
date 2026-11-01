@@ -37,8 +37,8 @@ public class when_migrating_a_classic_reducer
         Assert.Equal(ObserverId, evidence.ObserverId);
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == FoldPath);
         var model = Text(plan.Artifacts.Single(artifact => artifact.RelativePath == "Orders/Ordering/Totals/Totals.cs"));
-        Assert.Contains($"[global::Cratis.Chronicle.Reducers.ReducerAttribute(\"{ObserverId}\")]", model, StringComparison.Ordinal);
-        Assert.Contains("public static global::Projects.Orders.Ordering.Totals.Total? Reduce(", model, StringComparison.Ordinal);
+        Assert.Contains($"[Reducer(\"{ObserverId}\")]", model, StringComparison.Ordinal);
+        Assert.Contains("public static Total? Reduce(", model, StringComparison.Ordinal);
         Assert.DoesNotContain("IReducerFor", model, StringComparison.Ordinal);
         var removal = Assert.Single(plan.RequiredRemovals);
         Assert.Equal((FoldPath, evidence.Sha256, ReadModel(loaded, "Total")), (removal.RelativePath, removal.ExpectedSha256, removal.Model));
@@ -66,7 +66,7 @@ public class when_migrating_a_classic_reducer
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         Assert.DoesNotContain(plan.Artifacts, artifact => artifact.RelativePath == FoldPath);
         var tally = Text(plan.Artifacts.Single(artifact => artifact.RelativePath == "Orders/Ordering/Totals/Tally.cs"));
-        Assert.Contains("global::Cratis.Chronicle.Reducers.IReducerFor<global::Projects.Orders.Ordering.Totals.Count>", tally, StringComparison.Ordinal);
+        Assert.Contains("IReducerFor<Count>", tally, StringComparison.Ordinal);
         Assert.Single(plan.RequiredRemovals);
         Assert.Empty(RenderedOutput.Errors(when_selecting_self_reducing_rendering.Files(plan)));
     }

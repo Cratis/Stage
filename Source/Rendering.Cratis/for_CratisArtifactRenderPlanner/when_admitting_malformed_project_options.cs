@@ -34,9 +34,9 @@ public class when_admitting_malformed_project_options : a_register_project_rende
             ReplaceProject(ArtifactRenderInput.Create("cratis-scaffold:text:Folder/BackendHost.csproj", project.Version, project.Bytes)),
             ReplaceProject(ArtifactRenderInput.Create("cratis-scaffold:text:OtherHost.csproj", project.Version, project.Bytes)),
             WithInputs([.. profile.Inputs, ArtifactRenderInput.Create("cratis-scaffold:text:OtherHost.csproj", project.Version, project.Bytes)]),
-            WithInputs([.. profile.Inputs.Where(_ => _.Name != "cratis-scaffold:text:BackendHost.Specs/BackendHost.Specs.csproj")]),
+            WithInputs([.. profile.Inputs.Where(_ => _.Name != "cratis-scaffold:text:BackendHost.slnx")]),
             WithInputs([.. profile.Inputs, ArtifactRenderInput.Create("cratis-scaffold:text:Extra/Extra.csproj", project.Version, project.Bytes)]),
-            WithInputs([.. profile.Inputs.Select(_ => _.Name == "cratis-scaffold:text:BackendHost.Specs/BackendHost.Specs.csproj"
+            WithInputs([.. profile.Inputs.Select(_ => _.Name == "cratis-scaffold:text:BackendHost.slnx"
                 ? ArtifactRenderInput.Create(_.Name, _.Version, [.. Encoding.UTF8.GetBytes("<Project />\n")]) : _)])
         ];
 

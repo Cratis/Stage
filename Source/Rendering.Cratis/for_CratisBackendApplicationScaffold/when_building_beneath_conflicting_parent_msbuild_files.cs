@@ -96,11 +96,12 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
             var editorConfigPath = Path.Combine(_application.FullName, ".editorconfig");
             File.WriteAllText(editorConfigPath, File.ReadAllText(editorConfigPath).Replace("[*.cs]", methodNaming, StringComparison.Ordinal));
             File.WriteAllText(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void ValidName() { } }");
-            File.WriteAllText(Path.Combine(_application.FullName, "SmokeApp.Specs", "when_probing.cs"), """
+            Directory.CreateDirectory(Path.Combine(_application.FullName, "Probes"));
+            File.WriteAllText(Path.Combine(_application.FullName, "Probes", "when_probing.cs"), """
                 using Cratis.Specifications;
                 using Xunit;
 
-                namespace SmokeApp.Specs;
+                namespace SmokeApp.Probes;
 
                 public class when_probing : Specification
                 {
@@ -111,10 +112,12 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
 
         async Task Because()
         {
-            Debug = await Run("test", "SmokeApp.Specs/SmokeApp.Specs.csproj", "-c", "Debug", "--nologo");
+            Debug = await Run("test", "SmokeApp.csproj", "-c", "Debug", "--nologo");
             Release = await Run("build", "SmokeApp.slnx", "-c", "Release", "--nologo");
             await File.WriteAllTextAsync(Path.Combine(_application.FullName, "AnalyzerProbe.cs"), "namespace SmokeApp; public class AnalyzerProbe { public void invalidName() { } }");
-            OwnRules = await Run("build", "SmokeApp.csproj", "-c", "Debug", "--no-restore", "--nologo");
+
+            // Debug references the test packages a Release restore leaves out, so this build restores again.
+            OwnRules = await Run("build", "SmokeApp.csproj", "-c", "Debug", "--nologo");
         }
 
         void Destroy()

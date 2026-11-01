@@ -1,6 +1,6 @@
 ---
 title: Concept compliance rendering
-description: Concept protection in ESM v13 generated applications, protected identity refusals, and opt-in syntax-renderer compliance details.
+description: Concept protection in ESM v13 generated applications, protected identity refusals, and default-on syntax-renderer compliance details.
 ---
 
 <!-- Copyright (c) Cratis. All rights reserved. -->
@@ -14,18 +14,19 @@ encryption without erasure.
 ## Executable semantic models
 
 Stage admits exact ESM v1–v16 language/semantic pairs from Screenplay 4.154.0. The semantic planner maps
-`SemanticConcept.Compliance` using fully qualified attribute names:
+`SemanticConcept.Compliance` to these attributes, written by their short names with the `using` directives they need
+(`Cratis.Chronicle.Compliance.GDPR`, `Cratis.Chronicle.ProtectedValues`, `Cratis.Arc.Chronicle.Commands`):
 
 | Concept classification | Generated attributes |
 | --- | --- |
-| `pii` or `personal` | `[global::Cratis.Chronicle.Compliance.GDPR.PIIAttribute]` |
-| `secret`, unspecified or subject scope | `[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute]` + `[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]` |
-| `secret scope namespace` or `global` | `[global::Cratis.Chronicle.ProtectedValues.EncryptedAttribute(global::Cratis.Chronicle.ProtectedValues.EncryptionScope.Namespace)]` (or `.Global`) + `[global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]` |
+| `pii` or `personal` | `[PII]` |
+| `secret`, unspecified or subject scope | `[Encrypted]` + `[NotAudited]` |
+| `secret scope namespace` or `global` | `[Encrypted(EncryptionScope.Namespace)]` (or `.Global`) + `[NotAudited]` |
 | `pii secret` | `[PII]` only; personal classification takes precedence. |
 
 The semantic path never emits `[ComplianceDetails]`. GDPR special-category and criminal qualifiers
 are carried by ESM v13 but do not change the generated attribute. Reasons are authoring metadata,
-not ESM members. Opt-in details remain a syntax-renderer feature ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
+not ESM members. Compliance details are a syntax-renderer feature, on by default there ([Stage #259](https://github.com/Cratis/Stage/issues/259)).
 Unmarked models retain their earlier ESM version and byte-identical artifacts.
 
 The semantic renderer and Host admit text and non-text `secret` concepts: `Int`, `Decimal`,
@@ -35,7 +36,7 @@ protection only.
 
 On the semantic path, each command input that transitively contains any compliance-marked concept
 (`pii`, `secret`, or both) also gets
-`[property: global::Cratis.Arc.Chronicle.Commands.NotAuditedAttribute]`. This uniform rule includes
+`[property: NotAudited]`. This uniform rule includes
 scalar inputs, optional inputs, collections, and nested composites. Arc omits the entire input from
 causation, including its unprotected members; unrelated inputs remain auditable. The concept-level
 attributes remain in place, and they protect different things: `[Encrypted]` protects the value in stored
@@ -76,22 +77,24 @@ encrypt them. Passing reference or Stage specifications proves modeled outcomes,
 
 The syntax renderer always honors Screenplay secret encryption scope in generated C# attributes. Namespace and global secrets emit `[Encrypted(EncryptionScope.Namespace)]` and `[Encrypted(EncryptionScope.Global)]` even with details disabled. An unspecified or subject scope keeps the bare `[Encrypted]` output when details are disabled. Personal data remains `[PII]`, including `pii secret` concepts whose secret scope is ignored.
 
-The `complianceDetails` render option is **off by default** and gates only personal-data qualifiers/reasons and secret reason text. Other than namespace/global secret scope, models keep byte-identical concept output with the option off.
+The `complianceDetails` render option is **on by default** and gates personal-data qualifiers/reasons and secret reason text. Opt out with `complianceDetails: false`; other than namespace/global secret scope, models then keep byte-identical concept output without details.
+
+Generated details require Chronicle 19.90.1 or later, which excludes compliance details text from the event-schema compatibility comparison ([Chronicle #4660](https://github.com/Cratis/Chronicle/issues/4660)). Changing details text no longer forces a new event generation; changing a secret scope still does.
 
 ## Option
 
-| Entry point | Enable details |
+| Entry point | Opt out of details |
 | --- | --- |
-| Default syntax renderer | `CratisRenderer.CreateDefault(complianceDetails: true)` |
-| Syntax renderer with supplied collaborators | Set `ComplianceDetails = true` in the renderer's object initializer. |
-| Direct concept rendering | `ConceptRenderer.Render(concept, applicationSet, rootNamespace, complianceDetails: true)` |
+| Default syntax renderer | `CratisRenderer.CreateDefault(complianceDetails: false)` |
+| Syntax renderer with supplied collaborators | Set `ComplianceDetails = false` in the renderer's object initializer. |
+| Direct concept rendering | `ConceptRenderer.Render(concept, applicationSet, rootNamespace, complianceDetails: false)` |
 
-The existing factory and three-argument concept-rendering overload leave the option off. The option is an API choice, not a Screenplay declaration or a CLI flag.
+The parameterless factory, the default property value and the three-argument concept-rendering overload leave the option on. The option is an API choice, not a Screenplay declaration or a CLI flag.
 
 The semantic artifact planner has no corresponding details option. Its ESM v13 protection mapping
 above is unconditional; details never bypass protected identity admission.
 
-## Attributes with the option enabled
+## Attributes with the option enabled (default)
 
 | Screenplay concept | Generated attributes |
 | --- | --- |
@@ -109,7 +112,7 @@ Personal-data text joins these parts with one space, in order:
 
 Reasons are escaped as C# string literals, including quotes, backslashes, line breaks and Unicode line separators. These notes do not establish lawful processing, retention or a processing purpose.
 
-`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.59.6), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
+`ComplianceDetailsAttribute(string details)` lives in `Cratis.Chronicle.Compliance`; `[PII]` remains in `Cratis.Chronicle.Compliance.GDPR`. In the pinned Chronicle client (19.99.1), `EncryptedAttribute` takes optional `EncryptionScope scope` and `string details`. Scope members are `Subject`, `Namespace` and `Global`. With details disabled, namespace/global secrets pass only the scope argument, using the constructor's default empty details string. With details enabled, a reason without a scope emits `EncryptionScope.Subject` explicitly because there is no reason-only positional overload; this preserves Chronicle's default. A scope without a reason emits an empty details string.
 
 ## Existing event generations
 
@@ -121,6 +124,4 @@ Chronicle compares compliance and security metadata during event-type registrati
 
 Earlier Stage output with details disabled incorrectly used subject scope for namespace/global secrets. Re-rendering those concepts now corrects their scope. If events were already persisted using that output, introduce a new generation and migration rather than changing the stored generation in place.
 
-Enabling details can also change registration metadata even when the payload shape is unchanged. The pinned Chronicle kernel rejects details-only changes to existing generations in production; add new generations and migrations before enabling the option for those events.
-
-The option should become the default once [Chronicle #4660](https://github.com/Cratis/Chronicle/issues/4660) settles details-only registration compatibility. Until then, leaving it off omits details text, not encryption scope.
+Details text is excluded from Chronicle's compatibility comparison from 19.90.1, so adding or editing it does not require a new generation. Scope changes (`EncryptionScope`) are still compared and still require a new generation and migration. Use `complianceDetails: false` if you must target a Chronicle older than 19.90.1.

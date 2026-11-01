@@ -10,7 +10,7 @@ using Cratis.Stage.Rendering.Cratis.Naming.Imports;
 namespace Cratis.Stage.Rendering.Cratis.Renderers;
 
 /// <summary>
-/// Maps concept protection markers, keeping registration-changing details opt-in.
+/// Maps concept protection markers, with compliance details enabled by default.
 /// </summary>
 internal static class ConceptComplianceRendering
 {

@@ -22,7 +22,7 @@ internal static class SemanticCaptureArtifactRenderer
         var plan = context.CaptureMembers(capture);
         var name = plan.TypeName;
         var sources = capture.EventsSource!.Events.Select(id => context.Events[id]).ToArray();
-        var builder = new CSharpCodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
+        var builder = context.CodeBuilder().Using("System.Linq").Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
         context.Docs(capture.Id).Render(builder)
             .Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(sources[0].Origin!)})")
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(capture.Id.ToString())})")
@@ -35,7 +35,7 @@ internal static class SemanticCaptureArtifactRenderer
                 .OpenBlock($"public async global::System.Threading.Tasks.Task<{result}> {plan.Handler(source.Id)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context, global::Cratis.Chronicle.Reactors.ReactorDelivery delivery)")
                 .Line("var effects = new global::System.Collections.Generic.List<object>();")
                 .Line($"var observed = {plan["Observe"]}(@event)!;")
-                .Line($"var previous = await {plan["Previous"]}(observed, context.SequenceNumber);")
+                .Line($"var previous = await {plan["Previous"]}(observed, context);")
                 .Line($"var current = {plan["Overlay"]}(previous, observed);")
                 .Line($"if (previous is not null && {plan["SameState"]}(previous, current)) return effects;");
             for (var index = 0; index < capture.Appends.Length; index++)
@@ -58,7 +58,7 @@ internal static class SemanticCaptureArtifactRenderer
             return;
         }
         var key = source.Properties.Single(property => property.Name == capture.Key);
-        var identityType = context.Request.Model.SemanticVersion == SemanticVersion.V32 ? append.EventSourceType : key.Type;
+        var identityType = SemanticCaptureIdentitySupport.UsesTypedIdentity(context.Request.Model.SemanticVersion) ? append.EventSourceType : key.Type;
         var destination = types.EventSourceExpression($"@event.{Identifiers.ToPascalCase(key.Name)}", identityType);
         var guard = SemanticCaptureStateRendering.Condition(append.When, context.CaptureMembers(capture));
         if (guard is not null) builder.OpenBlock($"if ({guard})");

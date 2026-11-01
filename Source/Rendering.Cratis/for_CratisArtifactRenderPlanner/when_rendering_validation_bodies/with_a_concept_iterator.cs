@@ -16,8 +16,8 @@ public class with_a_concept_iterator : Specification
     void Because()
     {
         var plan = opaque_policy_model.Plan(validation_body_model.Load(validation_body_model.IteratorConcept("""
-            if (context.Value.Value <= 0 && context.IsWholeArtifact) yield return "Positive amount required";
-            if (context.Artifact.Value < 0) yield return "Negative amount";
+            if (context.Value <= 0 && context.IsWholeArtifact) yield return "Positive amount required";
+            if (context.Artifact < 0) yield return "Negative amount";
             """)));
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         _assembly = opaque_policy_model.Compile(plan);

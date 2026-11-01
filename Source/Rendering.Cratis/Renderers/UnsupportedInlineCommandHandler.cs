@@ -21,7 +21,10 @@ public class UnsupportedInlineCommandHandler(
     Exception? innerException = null)
     : Exception(
         $"{DiagnosticCode}: Command '{commandName}' in slice '{fullSlicePath}' at {location.Path}({location.Line},{location.Column}) " +
-        $"has an unsupported inline handler: {reason}. Only C# bodies proven independent of the generated context parameter can be rendered.",
+        $"has an unsupported inline handler: {reason}. " +
+        (reason == InlineCommandHandlerRejectionReason.MixedReturns
+            ? "The handler mixes 'return;' with returning a value. Return a value or nothing on every path."
+            : "Only C# bodies proven independent of the generated context parameter can be rendered."),
         innerException)
 {
     /// <summary>

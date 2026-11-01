@@ -53,4 +53,11 @@ internal sealed record ImportRequest(
     /// reference fully qualified and gains no import.
     /// </summary>
     public bool HasUnknownScope { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the file is rendered for an application whose scaffold-owned GlobalUsings.cs is part of
+    /// the render. When <see langword="false"/> the destination may lack that file or have edited it, so the file also imports
+    /// every scaffold global namespace it relies on; the output then compiles with and without the file.
+    /// </summary>
+    public bool HasScaffoldGlobalUsings { get; init; } = true;
 }

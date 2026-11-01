@@ -86,7 +86,10 @@ public class when_generating_packaged_vectors
         for (var index = 0; index < descriptors.Length; index++)
         {
             var descriptor = compilation.TypedContextDescriptors[index];
-            var generated = SemanticTypedContextRenderer.Render(descriptor, context).Content;
+
+            // The vector pins each member's type, so the file is compared in its fully qualified spelling.
+            string generated;
+            using (QualifiedSpelling.Begin()) generated = SemanticTypedContextRenderer.Render(descriptor, context).Content;
             Assert.DoesNotContain("dynamic", generated, StringComparison.Ordinal);
             var members = descriptors[index].GetProperty("members").EnumerateArray().ToArray();
             Assert.Equal(members.Length, descriptor.Members.Length);
@@ -151,7 +154,8 @@ public class when_generating_packaged_vectors
             """);
         Assert.True(compilation.Success);
         var descriptor = compilation.TypedContextDescriptors.Single(item => item.Role == SemanticImplementationRole.RulePredicate);
-        var source = SemanticTypedContextRenderer.Render(descriptor, Context(compilation.Value!.Model)).Content;
+        string source;
+        using (QualifiedSpelling.Begin()) source = SemanticTypedContextRenderer.Render(descriptor, Context(compilation.Value!.Model)).Content;
         Assert.Contains("string? Value", source, StringComparison.Ordinal);
         Assert.Contains(".Deposit Artifact", source, StringComparison.Ordinal);
         Assert.DoesNotContain(".Deposit? Artifact", source, StringComparison.Ordinal);

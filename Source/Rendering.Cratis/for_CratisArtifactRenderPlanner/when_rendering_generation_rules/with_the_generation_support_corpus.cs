@@ -34,10 +34,10 @@ public class with_the_generation_support_corpus : Specification
                 document.Text)).ToArray();
             var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-            var model = compiled.Value!.Model;
+            var model = compiled.Value.Model;
             Assert.Equal(corpus.SemanticRevision, model.Revision);
             Assert.Equal([.. corpus.EsmBytes], SemanticModelSerializer.Serialize(model));
-            var loaded = new LoadedSemanticModel(model, SemanticExecutionPlan.Compile(model).Plan!)
+            var loaded = new LoadedSemanticModel(model, SemanticExecutionPlan.Compile(model).Plan)
             {
                 ImplementationRequirements = compiled.ImplementationRequirements,
                 ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value.Documents, compiled.ImplementationRequirements),
@@ -52,7 +52,7 @@ public class with_the_generation_support_corpus : Specification
 
     [Fact] void should_admit_every_source_form_with_its_envelope() => _plans.ShouldEachConformTo(plan => plan.Success);
     [Fact] void should_render_all_four_source_forms() => _plans.Count.ShouldEqual(4);
-    [Fact] void should_not_emit_a_factory_for_the_unused_rule_concept() => _plans.ShouldEachConformTo(plan => !Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == "Common/TenantOrderId.cs").Bytes.AsSpan()).Contains("Generate_", StringComparison.Ordinal));
+    [Fact] void should_not_emit_a_factory_for_the_unused_rule_concept() => _plans.ShouldEachConformTo(plan => !Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == "Common/TenantOrderId.cs").Bytes.AsSpan()).Contains("GenerateTenantOrderId", StringComparison.Ordinal));
     [Fact] void should_carry_a_non_empty_body() => _bodies.ShouldEachConformTo(item => Lines(item.Body).Any());
     [Fact] void should_compile_every_rendered_form() => _plans.ForEach(plan => RenderedOutput.Errors(opaque_policy_model.Files(plan)).ShouldBeEmpty());
 

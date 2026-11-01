@@ -21,8 +21,8 @@ public class when_comparing_query_validation_rejections(when_comparing_query_val
     [Fact] void should_match_the_reference_expectations() => fixture.Reference.All(result => result.Passed).ShouldBeTrue();
     [Fact] void should_execute_six_stage_specifications() => fixture.Stage.Length.ShouldEqual(6);
     [Fact] void should_match_the_stage_expectations() => fixture.Stage.All(result => result.Outcome == SemanticSpecificationOutcome.Passed).ShouldBeTrue();
-    [Fact] void should_refuse_the_projectionless_corpus_as_an_application() => fixture.CorpusRendering.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-007");
-    [Fact] void should_not_emit_partial_corpus_artifacts() => fixture.CorpusRendering.Artifacts.ShouldBeEmpty();
+    [Fact] void should_degrade_the_projectionless_corpus_as_an_application() => fixture.CorpusRendering.Degradations.ShouldContain(degradation => degradation.Diagnostic.Code == ArtifactRenderDegradationCodes.UnsupportedConstruct);
+    [Fact] void should_emit_the_degraded_corpus_application() => fixture.CorpusRendering.Success.ShouldBeTrue();
     [Fact] void should_build_without_warnings() => fixture.Warnings.ShouldEqual(string.Empty);
     [Fact] void should_execute_all_six_generated_query_specifications() => fixture.GeneratedSpecifications.ShouldEqual(6);
     [Fact] void should_pass_every_generated_assertion() => fixture.GeneratedOutcomes.All(outcome => outcome == "Passed").ShouldBeTrue();

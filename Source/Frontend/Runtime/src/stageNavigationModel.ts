@@ -3,6 +3,7 @@
 
 import type { ApplicationStructure, NavigationModel, Screen } from '@cratis/scene.model';
 import type { EffectiveNavItem } from '@cratis/scene.engine';
+import { resolveStringsValue } from '@cratis/scene.engine';
 import type { SceneNavigationModel } from '@cratis/scene.react';
 
 /** Whether the model declares navigation regions of its own - the application's or a module's. */
@@ -44,12 +45,29 @@ export function stageModuleOf(screens: Screen[]): (screen: string | undefined) =
 export function stageNavigationModel(
     scene: { screens: Screen[]; navigation?: NavigationModel; structure?: ApplicationStructure },
     isVisible?: (item: EffectiveNavItem) => boolean,
+    dictionary?: Record<string, string>,
 ): SceneNavigationModel {
+    const navigation = scene.navigation ?? { application: { regions: [] }, modules: [] };
     return {
         structure: scene.structure ?? { modules: [] },
-        navigation: scene.navigation ?? { application: { regions: [] }, modules: [] },
+        navigation: dictionary ? withStringsResolved(navigation, dictionary) : navigation,
         screenFor: stageScreenFor(scene.screens),
         moduleOf: stageModuleOf(scene.screens),
         ...(isVisible ? { isVisible } : {}),
     };
+}
+
+/**
+ * The navigation with every `$strings.<key>` reference - an item's title, a group's label - replaced by the active locale's text.
+ * Screens are resolved when they are composed; navigation is read from the model by Scene's regions, so it is resolved here. A key the
+ * dictionary lacks stays as written, so a missing translation is seen rather than blank.
+ */
+export function withStringsResolved<T>(value: T, dictionary: Record<string, string>): T {
+    if (typeof value === 'string') return resolveStringsValue(value, dictionary) as T;
+    if (Array.isArray(value)) return value.map(entry => withStringsResolved(entry, dictionary)) as T;
+    if (value !== null && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, withStringsResolved(entry, dictionary)])) as T;
+    }
+
+    return value;
 }

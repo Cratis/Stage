@@ -14,7 +14,7 @@ public class with_an_unkeyed_protected_routed_live_list : Specification
 
     void Because() => _plan = invoice_model.Plan(invoice_model.Compile(a_protected_collection_model.Routed));
 
-    [Fact] void should_refuse_unobservable_pinned_rows() => _plan.Success.ShouldBeFalse();
+    [Fact] void should_preserve_the_application() => _plan.Success.ShouldBeTrue();
     [Fact] void should_report_the_readable_key_gap() => _plan.Diagnostics.Any(diagnostic => diagnostic.Code == "STAGE-ESM-011" && diagnostic.Message.Contains("readable Key, Subject or Id", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_emit_no_artifacts() => _plan.Artifacts.ShouldBeEmpty();
+    [Fact] void should_omit_the_unsupported_specification() => _plan.Artifacts.SelectMany(artifact => artifact.Sources).ShouldNotContain(_plan.Refusals.Single().Artifact);
 }

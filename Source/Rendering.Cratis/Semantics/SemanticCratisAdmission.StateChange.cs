@@ -77,6 +77,8 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
+        SemanticCommandBodyAdmission.Verify(command, context, diagnostics);
+
         if (CommandResultError(command) is { } resultError)
         {
             diagnostics.Add(resultError);
@@ -108,17 +110,12 @@ internal static partial class SemanticCratisAdmission
         context.Events.TryGetValue(produced.EventContract, out var @event) && produced.Condition is null &&
         HasRenderableProductionCondition(produced, command, context) &&
         @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() == @event.Tags.Length + produced.Tags.Length &&
-        @event.Properties.All(property => TypeExists(context, property.Type) && !property.Type.IsOptional) &&
+        @event.Properties.All(property => TypeExists(context, property.Type, @event.Id) && !property.Type.IsOptional) &&
         (command.Handler is not null || HasRenderableDestinationAndMappings(produced, command, @event));
 
     static bool HasRenderableDestinationAndMappings(SemanticProducedEvent produced, SemanticCommand command, SemanticEventContract @event) =>
         IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) &&
-        produced.Mappings.Length == @event.Properties.Length &&
-        @event.Properties.All(property => produced.Mappings.Any(mapping => mapping.TargetProperty == property.Id &&
-            (IsProperty(mapping.Source, SemanticExpressionRootKind.Command, command.Properties.Select(_ => _.Id)) ||
-             (mapping.Source is SemanticEventContextExpression { Value: SemanticEventContextValueKind.Occurred } occurrence && occurrence.Type == property.Type) ||
-             mapping.Source is SemanticValueExpression ||
-             mapping.Source is SemanticReadPathExpression)));
+        !InvalidPayloadMappings(command, produced, @event);
 
     // ESM v30 lets a production address any required, non-collection scalar command property as its event source, not only the identifier.
     static IEnumerable<SemanticId> EventSourceProperties(SemanticCommand command) =>

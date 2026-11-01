@@ -1,5 +1,1 @@
-invoice.number   = "Invoice #"
-invoice.customer = "Customer"
-invoice.amount   = "Amount"
-
 navigation.invoices = "Invoices"

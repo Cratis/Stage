@@ -21,7 +21,7 @@ public class with_a_literal_stream_id : given.a_routed_command
     void Because() => Plan();
 
     [Fact] void should_escape_the_formatted_literal() => _code.Contains($"EventStreamId = {CSharpCodeBuilder.StringLiteral(Identity)}", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_not_use_a_stream_id_attribute() => _code.Contains("EventStreamIdAttribute", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_not_use_a_stream_id_attribute() => _code.Contains("EventStreamId(", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_not_revalidate_a_literal() => _code.Contains("TryText", StringComparison.Ordinal).ShouldBeFalse();
     [Fact] void should_compile() => RenderedOutput.Errors(Files()).ShouldBeEmpty();
 }

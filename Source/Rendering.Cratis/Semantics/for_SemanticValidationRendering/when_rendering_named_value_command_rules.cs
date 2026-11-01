@@ -34,8 +34,8 @@ public class when_rendering_named_value_command_rules
         var plan = invoice_model.Plan(model);
         plan.Success.ShouldBeTrue();
         var code = Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Check.cs", StringComparison.Ordinal)).Bytes.AsSpan());
-        code.ShouldContain($"Must(value => {(optional.Length > 0 ? "value is null || " : string.Empty)}value {comparison} global::Invoices.Common.Status.InReview)");
+        code.ShouldContain($"Must(value => {(optional.Length > 0 ? "value is null || " : string.Empty)}value {comparison} Status.InReview)");
         code.ShouldNotContain("value.Value");
-        code.ShouldNotContain("Object.Equals(value, \"inReview\")");
+        code.ShouldNotContain("object.Equals(value, \"inReview\")");
     }
 }

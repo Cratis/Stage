@@ -1,0 +1,433 @@
+{
+  "schemaVersion": "stage-render-completeness/v1",
+  "scoreVersion": "stage-render-completeness-score/v1",
+  "inputLanguageVersion": "1.0",
+  "inputSemanticVersion": "1.0",
+  "provider": {
+    "target": "cratis",
+    "targetVersion": "1",
+    "renderer": "Cratis.Stage.Rendering.Cratis",
+    "rendererVersion": "1"
+  },
+  "support": {
+    "version": "stage-render-audited-support/v1",
+    "policy": "AuditedOnly",
+    "auditedPairs": [
+      {
+        "languageVersion": "1.0",
+        "semanticVersion": "1.0"
+      }
+    ]
+  },
+  "packs": [
+    {
+      "name": "Example.Pack",
+      "version": "1.2.3"
+    }
+  ],
+  "scopes": [
+    {
+      "kind": "Application",
+      "identity": "$SCOPE$"
+    }
+  ],
+  "outcome": "Degraded",
+  "strict": false,
+  "success": true,
+  "canPublishArtifacts": true,
+  "inventory": {
+    "version": "stage-render-inventory/v1",
+    "score": {
+      "rendered": 1,
+      "degraded": 3,
+      "refused": 0,
+      "total": 4,
+      "earnedWeight": 3,
+      "totalWeight": 14,
+      "basisPoints": 2142
+    },
+    "kinds": {
+      "Capture": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Command": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 1,
+          "refused": 0,
+          "total": 1,
+          "earnedWeight": 0,
+          "totalWeight": 5,
+          "basisPoints": 0
+        }
+      },
+      "CompositeType": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Concept": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Constraint": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Event": {
+        "weight": 3,
+        "score": {
+          "rendered": 1,
+          "degraded": 0,
+          "refused": 0,
+          "total": 1,
+          "earnedWeight": 3,
+          "totalWeight": 3,
+          "basisPoints": 10000
+        }
+      },
+      "Guard": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Operation": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Policy": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Projection": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Query": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 1,
+          "refused": 0,
+          "total": 1,
+          "earnedWeight": 0,
+          "totalWeight": 3,
+          "basisPoints": 0
+        }
+      },
+      "Reaction": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "ReadModel": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 1,
+          "refused": 0,
+          "total": 1,
+          "earnedWeight": 0,
+          "totalWeight": 3,
+          "basisPoints": 0
+        }
+      },
+      "Reducer": {
+        "weight": 3,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Screen": {
+        "weight": 1,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Specification": {
+        "weight": 1,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Unknown": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      },
+      "Validation": {
+        "weight": 5,
+        "score": {
+          "rendered": 0,
+          "degraded": 0,
+          "refused": 0,
+          "total": 0,
+          "earnedWeight": 0,
+          "totalWeight": 0,
+          "basisPoints": null
+        }
+      }
+    },
+    "constructs": [
+      {
+        "identity": "sem1:0000000000000000000000000000000000000000000000000000000000000001",
+        "kind": "Command",
+        "semanticLocator": {
+          "kind": "Concept",
+          "parts": [
+            {
+              "kind": "Application",
+              "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+            },
+            {
+              "kind": "Declaration",
+              "key": "Owner1"
+            }
+          ]
+        },
+        "modelPath": "model/orders.play",
+        "outcome": "Degraded",
+        "degradations": [
+          {
+            "code": "STAGE-DEGRADE-002",
+            "placeholderKind": "ThrowingOperationBody",
+            "intent": "Café é requirement",
+            "semanticLocator": {
+              "kind": "Concept",
+              "parts": [
+                {
+                  "kind": "Application",
+                  "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+                },
+                {
+                  "kind": "Declaration",
+                  "key": "Owner1"
+                }
+              ]
+            },
+            "modelPath": "model/orders.play",
+            "message": "Café é requirement",
+            "remedy": "Implement and verify.",
+            "roots": []
+          }
+        ],
+        "refusalReasons": []
+      },
+      {
+        "identity": "sem1:0000000000000000000000000000000000000000000000000000000000000002",
+        "kind": "Query",
+        "semanticLocator": {
+          "kind": "Concept",
+          "parts": [
+            {
+              "kind": "Application",
+              "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+            },
+            {
+              "kind": "Declaration",
+              "key": "Owner2"
+            }
+          ]
+        },
+        "modelPath": "model/orders.play",
+        "outcome": "Degraded",
+        "degradations": [
+          {
+            "code": "STAGE-DEGRADE-005",
+            "placeholderKind": "ThrowingOperationBody",
+            "intent": "Café é requirement",
+            "semanticLocator": {
+              "kind": "Concept",
+              "parts": [
+                {
+                  "kind": "Application",
+                  "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+                },
+                {
+                  "kind": "Declaration",
+                  "key": "Owner2"
+                }
+              ]
+            },
+            "modelPath": "model/orders.play",
+            "message": "Café é requirement",
+            "remedy": "Implement and verify.",
+            "roots": [
+              {
+                "owner": "sem1:0000000000000000000000000000000000000000000000000000000000000001",
+                "code": "STAGE-DEGRADE-002"
+              }
+            ]
+          }
+        ],
+        "refusalReasons": []
+      },
+      {
+        "identity": "sem1:0000000000000000000000000000000000000000000000000000000000000003",
+        "kind": "ReadModel",
+        "semanticLocator": {
+          "kind": "Concept",
+          "parts": [
+            {
+              "kind": "Application",
+              "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+            },
+            {
+              "kind": "Declaration",
+              "key": "Owner3"
+            }
+          ]
+        },
+        "modelPath": "model/orders.play",
+        "outcome": "Degraded",
+        "degradations": [
+          {
+            "code": "STAGE-DEGRADE-005",
+            "placeholderKind": "ThrowingOperationBody",
+            "intent": "Café é requirement",
+            "semanticLocator": {
+              "kind": "Concept",
+              "parts": [
+                {
+                  "kind": "Application",
+                  "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+                },
+                {
+                  "kind": "Declaration",
+                  "key": "Owner3"
+                }
+              ]
+            },
+            "modelPath": "model/orders.play",
+            "message": "Café é requirement",
+            "remedy": "Implement and verify.",
+            "roots": [
+              {
+                "owner": "sem1:0000000000000000000000000000000000000000000000000000000000000002",
+                "code": "STAGE-DEGRADE-005"
+              }
+            ]
+          }
+        ],
+        "refusalReasons": []
+      },
+      {
+        "identity": "sem1:0000000000000000000000000000000000000000000000000000000000000004",
+        "kind": "Event",
+        "semanticLocator": {
+          "kind": "Concept",
+          "parts": [
+            {
+              "kind": "Application",
+              "key": "app1:20ccb167f2400bc55fae1597b1a0f4d19b40841f513bd013a7fa815e9e7f2994"
+            },
+            {
+              "kind": "Declaration",
+              "key": "Owner4"
+            }
+          ]
+        },
+        "modelPath": "model/orders.play",
+        "outcome": "Rendered",
+        "degradations": [],
+        "refusalReasons": []
+      }
+    ]
+  }
+}

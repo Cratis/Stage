@@ -13,6 +13,6 @@ public class with_an_authorized_command : given.an_invoice_model
         .Replace("when IssueInvoice\n", Caller, StringComparison.Ordinal));
 
     [Fact] void should_plan_the_application() => _plan.Success.ShouldBeTrue();
-    [Fact] void should_register_the_arc_policy_for_the_scenario() => Artifact("when_issuing_first_invoice.cs").ShouldContain("GeneratedPolicies.Registration.Register(_scenario.Services)");
+    [Fact] void should_register_the_arc_policy_for_the_scenario() => Artifact("when_issuing_first_invoice.cs").ShouldContain("Registration.Register(_scenario.Services);");
     [Fact] void should_execute_as_the_declared_caller() => Artifact("when_issuing_first_invoice.cs").ShouldContain("principalOverride.BeginScope(principal)");
 }

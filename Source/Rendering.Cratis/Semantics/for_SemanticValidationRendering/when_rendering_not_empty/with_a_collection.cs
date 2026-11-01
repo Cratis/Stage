@@ -22,6 +22,7 @@ public class with_a_collection : Specification
 
     void Because() => SemanticValidationRendering.Render(_builder, _rule, "names", SemanticPrimitiveType.Text, collection: true, concept: false);
 
-    [Fact] void should_require_at_least_one_element() => _builder.ToString().ShouldContain("value is { Count: > 0 }");
+    [Fact] void should_require_at_least_one_element() => _builder.ToString().ShouldContain("RuleFor(_ => _.Names).Must(value => value is { Count: > 0 }).WithMessage(\"A required value is empty.\");");
+    [Fact] void should_not_render_the_builtin_not_empty_validator() => _builder.ToString().ShouldNotContain(".NotEmpty()");
     [Fact] void should_not_apply_text_whitespace_semantics_to_elements() => _builder.ToString().ShouldNotContain("IsNullOrWhiteSpace");
 }

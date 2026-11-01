@@ -37,6 +37,7 @@ public sealed class UiSyntaxAdmission : ScreenplaySyntaxWalker
     /// <inheritdoc/>
     public override void VisitNode(SyntaxNode node)
     {
+        new Screenplay.ActionSubjectSyntaxAdmission().VisitNode(node);
         var member = node switch
         {
             DialogTemplateSyntax dialog when dialog.Outlets.Any() => "DialogTemplateSyntax.Outlets",

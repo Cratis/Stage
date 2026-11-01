@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal sealed class SemanticCaptureMemberPlan
 {
-    static readonly string[] _roles = ["Previous", "Observe", "Overlay", "SameState", "Changed", "Text", "ConceptValue", "Field", "Same", "MissingCaptureField", "EmptyCaptureKey"];
+    static readonly string[] _roles = ["Previous", "Observe", "Overlay", "SameState", "Changed", "Text", "ConceptValue", "Field", "Same", "MissingCaptureField", "EmptyCaptureKey", "CaptureKeyIsNotTheEventSource"];
     readonly ImmutableDictionary<string, string> _members;
     readonly ImmutableDictionary<SemanticId, string> _handlers;
 

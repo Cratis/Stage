@@ -115,7 +115,7 @@ internal static class RenderedOutput
         // DEBUG has to be defined or a rendered specification compiles to nothing: the whole file sits inside
         // '#if DEBUG', and a parse without the symbol drops it silently — the assertion would then pass on an
         // empty compilation unit and prove nothing about the spec it was written for.
-        var trees = files.Select(file => CSharpSyntaxTree.ParseText(file.Content, _parseOptions, path: file.RelativePath));
+        var trees = files.Where(file => file.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(file => CSharpSyntaxTree.ParseText(file.Content, _parseOptions, path: file.RelativePath));
 
         return _template.WithAssemblyName($"RenderedApplication_{Guid.NewGuid():N}").AddSyntaxTrees(trees);
     }

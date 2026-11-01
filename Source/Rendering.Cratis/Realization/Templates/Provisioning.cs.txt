@@ -1,0 +1,169 @@
+using Ante.Contracts.Invitations;
+using Ante.Contracts.Legal;
+using Ante.Contracts.Organization;
+using Cratis.Chronicle.EventSequences;
+
+using __Root__.GeneratedAuthentication;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Provisions the application's own model from the outcomes Ante published. An outcome is evidence that a person
+/// completed something in Ante, not that anything exists here, so every step is recorded once per outcome: a delivery that
+/// arrives again provisions nothing twice.
+/// </summary>
+/// <param name="client">The Chronicle client.</param>
+/// <param name="configuration">The application configuration.</param>
+/// <param name="logger">The logger.</param>
+public partial class Provisioning(IChronicleClient client, IConfiguration configuration, ILogger<Provisioning> logger)
+{
+    /// <summary>
+    /// Gets the personas a member holds in a tenant.
+    /// </summary>
+    /// <param name="client">The Chronicle client.</param>
+    /// <param name="configuration">The application configuration.</param>
+    /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
+    /// <param name="member">The member.</param>
+    /// <returns>The names of the personas the member was granted.</returns>
+    public static async Task<IReadOnlyList<string>> PersonasOf(IChronicleClient client, IConfiguration configuration, string tenant, MemberIdentity member)
+    {
+        var store = await client.GetEventStore(StoreName(configuration), tenant);
+        var provisioned = await store.GetEventSequence(EventSequenceId.Log)
+            .GetForEventSourceIdAndEventTypes(member.Key, [typeof(OnboardingMemberProvisioned).GetEventType()]);
+
+        return [.. provisioned.Select(appended => appended.Content).OfType<OnboardingMemberProvisioned>().SelectMany(granted => granted.Personas).Distinct(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// Gets the name of the application's Chronicle event store.
+    /// </summary>
+    /// <param name="configuration">The application configuration.</param>
+    /// <returns>The name of the event store.</returns>
+    public static string StoreName(IConfiguration configuration) => configuration["Cratis:Chronicle:EventStore"] is { Length: > 0 } name ? name : ApplicationName.Value;
+
+    /// <summary>
+    /// Creates the tenant of an accepted tenant invitation and records its first member.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="accepted">The outcome.</param>
+    /// <returns>A task.</returns>
+    public Task TenantInvitationAccepted(string invitation, InvitationToCreateTenantAccepted accepted) =>
+        CreateTenant(
+            invitation,
+            nameof(InvitationToCreateTenantAccepted),
+            accepted.TenantName.Value,
+            new(accepted.IdentityProvider.Value, accepted.IdentityProviderSubject),
+            Granted(accepted.Roles.Select(role => role.Value), OnboardingRules.TenantPersonas, invitation));
+
+    /// <summary>
+    /// Creates the tenant of a completed self-service registration and records its first member.
+    /// </summary>
+    /// <param name="registration">The registration id.</param>
+    /// <param name="completed">The outcome.</param>
+    /// <returns>A task.</returns>
+    public Task RegistrationCompleted(string registration, OrganizationRegistrationCompleted completed) =>
+        CreateTenant(
+            registration,
+            nameof(OrganizationRegistrationCompleted),
+            completed.TenantName.Value,
+            new(completed.IdentityProvider.Value, completed.Subject),
+            OnboardingRules.SignupPersona.Length == 0 ? [] : [OnboardingRules.SignupPersona]);
+
+    /// <summary>
+    /// Records a member who joined an existing tenant with the personas the invitation granted.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="accepted">The outcome.</param>
+    /// <returns>A task.</returns>
+    public async Task MemberInvitationAccepted(string invitation, InvitationToJoinTenantAccepted accepted)
+    {
+        var member = new MemberIdentity(accepted.IdentityProvider.Value, accepted.IdentityProviderSubject);
+        var store = await client.GetEventStore(StoreName(configuration), accepted.TenantName.Value);
+        await AppendOnce(
+            store,
+            member.Key,
+            new OnboardingMemberProvisioned(member.Provider, member.Subject, Granted(accepted.Roles.Select(role => role.Value), OnboardingRules.MemberGrantable, invitation)),
+            $"{nameof(InvitationToJoinTenantAccepted)}:{invitation}");
+    }
+
+    /// <summary>
+    /// Records that a member accepted a version of the legal terms.
+    /// </summary>
+    /// <param name="accepted">The outcome.</param>
+    /// <returns>A task.</returns>
+    public async Task LegalTerms(string source, LegalTermsAccepted accepted)
+    {
+        var member = new MemberIdentity(accepted.IdentityProvider.Value, accepted.IdentityProviderSubject);
+        var store = await client.GetEventStore(StoreName(configuration), accepted.TenantName.Value);
+        await AppendOnce(
+            store,
+            member.Key,
+            new OnboardingLegalTermsAccepted(member.Provider, member.Subject, accepted.Version.Value),
+            $"{nameof(LegalTermsAccepted)}:{source}:{accepted.Version.Value}");
+    }
+
+    /// <summary>
+    /// Records that Ante rejected an invitation the application published, so an administrator can see and correct it.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="rejected">The rejection.</param>
+    /// <returns>A task.</returns>
+    public async Task InvitationRejected(string invitation, InvitationRejected rejected)
+    {
+        InvitationWasRejected(logger, invitation, rejected.Reason.ToString());
+
+        // Ante observes the application's outbox in its fixed namespace, so invitations and their records live in the default namespace.
+        var store = await client.GetEventStore(StoreName(configuration), EventStoreNamespaceName.Default);
+        await AppendOnce(store, invitation, new OnboardingInvitationRejected(rejected.Reason.ToString()), $"{nameof(InvitationRejected)}:{invitation}");
+    }
+
+    async Task CreateTenant(string source, string kind, string tenant, MemberIdentity owner, IReadOnlyList<string> personas)
+    {
+        var store = await client.GetEventStore(StoreName(configuration), tenant);
+        await AppendOnce(store, tenant, new OnboardingTenantProvisioned(tenant), $"tenant:{tenant}");
+        await AppendOnce(store, owner.Key, new OnboardingMemberProvisioned(owner.Provider, owner.Subject, personas), $"{kind}:{source}");
+    }
+
+    async Task AppendOnce(IEventStore store, string eventSourceId, object @event, string key)
+    {
+        var result = await store.GetEventSequence(EventSequenceId.Log).AppendOnce(eventSourceId, @event, new IdempotencyKey(key));
+        if (!result.IsSuccess)
+        {
+            throw new ProvisioningFailed(@event.GetType().Name, key);
+        }
+
+        if (result.WasAlreadyAppended)
+        {
+            ProvisioningAlreadyDone(logger, @event.GetType().Name, key);
+        }
+    }
+
+    // An invitation can only give personas the model lets that kind of invitation give; Ante enforces the same list, this is the second line.
+    IReadOnlyList<string> Granted(IEnumerable<string> requested, IReadOnlyList<string> allowed, string invitation)
+    {
+        var roles = requested.Distinct(StringComparer.Ordinal).ToArray();
+        var refused = roles.Where(role => !allowed.Contains(role, StringComparer.Ordinal)).ToArray();
+        if (refused.Length > 0)
+        {
+            PersonaNotGranted(logger, invitation, string.Join(", ", refused));
+        }
+
+        return [.. roles.Except(refused, StringComparer.Ordinal)];
+    }
+
+    [LoggerMessage(LogLevel.Warning, "Ante rejected invitation {Invitation} ({Reason}); correct the invitation where it came from")]
+    static partial void InvitationWasRejected(ILogger logger, string invitation, string reason);
+
+    [LoggerMessage(LogLevel.Information, "{Event} for {Key} was provisioned before")]
+    static partial void ProvisioningAlreadyDone(ILogger logger, string @event, string key);
+
+    [LoggerMessage(LogLevel.Warning, "Invitation {Invitation} asked to grant personas the model does not allow ({Personas}); they were not granted")]
+    static partial void PersonaNotGranted(ILogger logger, string invitation, string personas);
+}
+
+/// <summary>
+/// The exception that is thrown when provisioning cannot append what an outcome asks for.
+/// </summary>
+/// <param name="eventName">The event that could not be appended.</param>
+/// <param name="key">The idempotency key of the append.</param>
+public class ProvisioningFailed(string eventName, string key) : Exception($"Could not append {eventName} for '{key}'.");

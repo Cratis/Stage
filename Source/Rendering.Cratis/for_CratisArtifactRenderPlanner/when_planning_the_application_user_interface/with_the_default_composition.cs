@@ -25,6 +25,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Components 4.37.0 and Scene 4.86.0 (the scaffold now emits those npm pins);
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
+    // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     const string Before = "a413f5d2c2adaf9d560eff5eb19a9421469bb94dedc6e448b92b900c66bb8ae7";
 
     ArtifactRenderPlan _plan = null!;

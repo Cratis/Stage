@@ -1,0 +1,33 @@
+using System.Security.Claims;
+
+namespace __Root__.GeneratedAuthentication;
+
+/// <summary>
+/// Identifies a person by the identity provider they sign in with and their subject there.
+/// </summary>
+/// <param name="Provider">The identity provider.</param>
+/// <param name="Subject">The subject at that identity provider.</param>
+public sealed record MemberIdentity(string Provider, string Subject)
+{
+    /// <summary>
+    /// Gets the event source id the member is recorded under. The provider is compared ignoring case.
+    /// </summary>
+    public string Key => $"{Provider.ToLowerInvariant()}:{Subject}";
+
+    /// <summary>
+    /// Reads the identity of a signed-in caller from the claims AuthProxy forwarded: the canonical provider key and subject when it
+    /// sent them, otherwise the provider Arc recorded and the subject of the sign-in.
+    /// </summary>
+    /// <param name="principal">The caller.</param>
+    /// <returns>The identity, or null when the caller has no subject.</returns>
+    public static MemberIdentity? From(ClaimsPrincipal principal)
+    {
+        var provider = principal.FindFirst("urn:cratis:identity:provider-key")?.Value ??
+            principal.FindFirst("urn:cratis:arc:identity:provider")?.Value ?? string.Empty;
+        var subject = principal.FindFirst("urn:cratis:identity:subject")?.Value ??
+            principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+            principal.FindFirst("sub")?.Value ?? string.Empty;
+
+        return subject.Length == 0 ? null : new(provider, subject);
+    }
+}

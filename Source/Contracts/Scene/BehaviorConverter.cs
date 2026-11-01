@@ -49,7 +49,17 @@ public static class BehaviorConverter
     /// <param name="path">The owning attachment path.</param>
     /// <returns>The behavior with supported bindings and actions.</returns>
     public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path) =>
-        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path))], behavior.Order);
+        Convert(behavior, enumerationOf, diagnostics, path, null);
+
+    /// <summary>Converts a behavior using declared guard field types.</summary>
+    /// <param name="behavior">The behavior to convert.</param>
+    /// <param name="enumerationOf">The guard enumeration resolver.</param>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="path">The attachment path.</param>
+    /// <param name="isStringField">The known string field resolver.</param>
+    /// <returns>The converted behavior.</returns>
+    public static SceneModel.Behavior Convert(ScreenplaySyntax.BehaviorSyntax behavior, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField) =>
+        new(behavior.Name, [.. behavior.Bindings.SelectMany(binding => ConvertBinding(binding, enumerationOf, diagnostics, path, isStringField))], behavior.Order);
 
     /// <summary>
     /// Converts a sequence of <see cref="ScreenplaySyntax.BehaviorSyntax"/> into Scene behaviors.
@@ -99,7 +109,7 @@ public static class BehaviorConverter
     }
 
     // Scene owns ordered first-match selection for guarded interaction alternatives.
-    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path)
+    static IEnumerable<SceneModel.InteractionBinding> ConvertBinding(ScreenplaySyntax.InteractionBindingSyntax binding, Func<string, IReadOnlyList<string>?>? enumerationOf, ConversionDiagnostics? diagnostics, string path, Func<string, bool>? isStringField)
     {
         var trigger = ConvertTrigger(binding.Trigger, diagnostics, path);
         if (trigger is null) yield break;
@@ -117,7 +127,7 @@ public static class BehaviorConverter
             trigger,
             [],
             Alternatives: [.. alternatives.Select(alternative => new SceneModel.InteractionAlternative(
-                SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf),
+                SceneGuards.ConvertToCondition(alternative.Condition, enumerationOf, isStringField),
                 [.. alternative.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]))],
             Otherwise: binding.Otherwise is null ? null : [.. binding.Otherwise.Actions.Select(action => InteractionActionConverter.Convert(action, diagnostics, path)).OfType<SceneModel.InteractionAction>()]);
     }

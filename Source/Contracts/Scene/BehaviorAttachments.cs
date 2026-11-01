@@ -103,7 +103,28 @@ public static class BehaviorAttachments
         string subject,
         ICollection<RenderFinding> findings,
         Func<string, IReadOnlyList<string>?>? enumerationOf,
-        ConversionDiagnostics? diagnostics)
+        ConversionDiagnostics? diagnostics) =>
+        Convert(inline, used, declared, subject, findings, enumerationOf, diagnostics, null);
+
+    /// <summary>Resolves attached behaviors with known guard field types.</summary>
+    /// <param name="inline">The inline behaviors.</param>
+    /// <param name="used">The behavior references.</param>
+    /// <param name="declared">The declared behaviors.</param>
+    /// <param name="subject">The attachment path.</param>
+    /// <param name="findings">The unresolved-reference findings.</param>
+    /// <param name="enumerationOf">The guard enumeration resolver.</param>
+    /// <param name="diagnostics">The conversion diagnostics.</param>
+    /// <param name="isStringField">The known string field resolver.</param>
+    /// <returns>The attached behaviors.</returns>
+    public static IReadOnlyList<SceneModel.Behavior> Convert(
+        IEnumerable<ScreenplaySyntax.BehaviorSyntax> inline,
+        IEnumerable<ScreenplaySyntax.UsesBehaviorSyntax> used,
+        IReadOnlyDictionary<string, ScreenplaySyntax.BehaviorSyntax> declared,
+        string subject,
+        ICollection<RenderFinding> findings,
+        Func<string, IReadOnlyList<string>?>? enumerationOf,
+        ConversionDiagnostics? diagnostics,
+        Func<string, bool>? isStringField)
     {
         var attached = new List<(SourceLocation Location, ScreenplaySyntax.BehaviorSyntax Behavior)>();
 
@@ -131,7 +152,7 @@ public static class BehaviorAttachments
             .. attached
                 .OrderBy(entry => entry.Location.Line)
                 .ThenBy(entry => entry.Location.Column)
-                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf, diagnostics, subject))
+                .Select(entry => BehaviorConverter.Convert(entry.Behavior, enumerationOf, diagnostics, subject, isStringField))
         ];
     }
 }

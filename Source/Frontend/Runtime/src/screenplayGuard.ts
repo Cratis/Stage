@@ -1,8 +1,14 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-import { resolveSubjectReference } from '@cratis/scene.engine';
-import { GuardOperator, type InteractionBinding } from '@cratis/scene.model';
+import { resolveSubjectReference, runBindings } from '@cratis/scene.engine';
+import { GuardOperator } from '@cratis/scene.model';
+
+/** Runs every Stage-owned interaction through Screenplay admission before native Scene selection. */
+export function runScreenplayBindings(...[bindings, dispatcher, context]: Parameters<typeof runBindings>): ReturnType<typeof runBindings> {
+    const item = context.subject?.() ?? context.resolve({ path: 'item' });
+    return runBindings(bindings.map(candidate => ({ ...candidate, binding: screenplayGuardBinding(candidate.binding, item) })), dispatcher, context);
+}
 
 /** Restricts native Scene guards to Screenplay's string-only contains contract before branch selection. */
 export function screenplayGuard<Condition>(condition: Condition, item: unknown): Condition {
@@ -27,10 +33,8 @@ export function screenplayGuardAlternatives(alternatives: unknown, item: unknown
 }
 
 /** Restricts a binding without changing its native Scene sequencing or fallback actions. */
-export function screenplayGuardBinding(binding: InteractionBinding, item: unknown): InteractionBinding {
-    return { ...binding, alternatives: binding.alternatives?.map(alternative => ({
-        ...alternative, condition: screenplayGuard(alternative.condition, item),
-    })) };
+export function screenplayGuardBinding<Binding extends { alternatives?: unknown }>(binding: Binding, item: unknown): Binding {
+    return { ...binding, alternatives: screenplayGuardAlternatives(binding.alternatives, item) };
 }
 
 function subjectValue(reference: unknown, item: unknown): unknown {

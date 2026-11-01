@@ -144,6 +144,9 @@ dotnet_diagnostic.IDE0055.severity = none
 csharp_indent_braces = false
 
 [{**/*.Specs/**/*.cs,**/for_*/*.cs,Integration/**/*.cs,**/when_*/*.cs,**/given/*.cs}]
+# Spec fixtures intentionally use suppressions and JSON-shaped strings.
+dotnet_diagnostic.IDE0370.severity = silent
+dotnet_diagnostic.JSON002.severity = silent
 # Resharper specific
 resharper_inconsistent_naming_highlighting = none
 resharper_check_namespace_highlighting = none

@@ -19,7 +19,7 @@ public sealed class SchemaSynthesizer(IReadOnlyDictionary<string, ConceptSyntax>
     /// <summary>
     /// The empty object schema used for a command's state schema (Screenplay has no state schema concept).
     /// </summary>
-    public const string EmptyObjectSchema = """{"type":"object","properties":{}}""";
+    public const string EmptyObjectSchema = /*lang=json*/ """{"type":"object","properties":{}}""";
 
     /// <summary>
     /// The schema keyword naming the concept a property is typed as.

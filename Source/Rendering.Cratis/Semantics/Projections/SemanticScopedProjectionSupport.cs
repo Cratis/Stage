@@ -752,12 +752,14 @@ internal static class SemanticScopedProjectionSupport
             foreach (var id in path)
             {
                 var property = root.SingleOrDefault(candidate => candidate.Id == id);
-                names.Add(property?.Name ?? id.ToString());
+                names.Add(NameOf(property, id));
                 root = property is null ? [] : ChildProperties(property, context);
             }
 
             return string.Join('.', names);
         }
+
+        static string NameOf(SemanticProperty? property, SemanticId id) => property?.Name ?? id.ToString();
 
         string MappingReason(SemanticProjectionMapping mapping, SemanticEventContract @event)
         {

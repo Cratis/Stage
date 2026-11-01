@@ -68,21 +68,21 @@ export function stageShellSettings(profile: UiProfile | undefined, shell: Effect
 function applyShellOption(settings: StageShellSettings, shellName: string, name: string, value: unknown): string | undefined {
     if (!knownShellOptions.includes(name)) return `The shell '${shellName}' has no option '${name}'; the options it understands are ${knownShellOptions.join(', ')}.`;
 
-    if (name === 'navigationMode') {
-        const mode = layoutModes.find(candidate => candidate === value);
-        if (mode) settings.mode = mode;
-        else return `Option 'navigationMode' is '${String(value)}'; expected one of ${layoutModes.join(', ')}.`;
-    } else if (name === 'menuTheme') {
-        const menuTheme = menuThemes.find(candidate => candidate === value);
-        if (menuTheme) settings.menuTheme = menuTheme;
-        else return `Option 'menuTheme' is '${String(value)}'; expected one of ${menuThemes.join(', ')}.`;
-    } else if (typeof value === 'boolean') {
-        if (name === 'showFooter') settings.showFooter = value;
-        else settings.showThemeSwitcher = value;
-    } else {
-        return `Option '${name}' is '${String(value)}'; expected true or false.`;
-    }
+    if (name === 'navigationMode') return chooseOption(name, value, layoutModes, mode => { settings.mode = mode; });
+    if (name === 'menuTheme') return chooseOption(name, value, menuThemes, menuTheme => { settings.menuTheme = menuTheme; });
+    if (typeof value !== 'boolean') return `Option '${name}' is '${String(value)}'; expected true or false.`;
 
+    if (name === 'showFooter') settings.showFooter = value;
+    else settings.showThemeSwitcher = value;
+    return undefined;
+}
+
+/** Applies the choice the option's value names; the problem it states when the value is none of the choices. */
+function chooseOption<T>(name: string, value: unknown, choices: readonly T[], apply: (choice: T) => void): string | undefined {
+    const choice = choices.find(candidate => candidate === value);
+    if (!choice) return `Option '${name}' is '${String(value)}'; expected one of ${choices.join(', ')}.`;
+
+    apply(choice);
     return undefined;
 }
 

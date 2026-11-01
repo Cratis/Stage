@@ -18,7 +18,7 @@ public class when_admitting_v33 : Specification
     [InlineData(32, 33, 0, false)]
     [InlineData(33, 32, 0, false)]
     [InlineData(33, 33, 1, false)]
-    [InlineData(35, 35, 0, false)]
+    [InlineData(34, 34, 1, false)]
     public void should_admit_only_the_audited_exact_pair(int languageMajor, int semanticMajor, int minor, bool supported)
     {
         var model = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(33).Bytes.AsSpan());

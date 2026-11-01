@@ -44,9 +44,7 @@ public sealed class SceneRuntimeAdmission : ScreenplaySyntaxWalker
                 _issues.Add(new(UnsupportedGuardedScreenAction.DiagnosticCode, action.Label, action.Location, new UnsupportedGuardedScreenAction(action.Label, action.Location).Message));
                 break;
 
-            // The Stage runtime evaluates guards that compare a field of the subject with a literal (SceneGuards).
-            // Anything else stays refused here, with the diagnostic, rather than reaching a runtime that would have
-            // to guess.
+            // Scene's published engine decides which guard forms it can evaluate. Other forms remain refused.
             case InteractionBindingSyntax binding when (binding.Alternatives.Any() || binding.Otherwise is not null) && !binding.Alternatives.All(alternative => SceneGuards.CanEvaluate(alternative.Condition)):
                 var interaction = binding.Trigger.ToString();
                 _issues.Add(new(UnsupportedGuardedInteraction.DiagnosticCode, interaction, binding.Location, new UnsupportedGuardedInteraction(interaction, binding.Location).Message));

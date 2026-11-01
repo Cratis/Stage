@@ -60,7 +60,7 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_carry_the_close_guard() => GuardedActions().Single().GetProperty("properties").GetProperty("alternatives")[0].GetProperty("condition").GetProperty("right").GetString().ShouldEqual("open");
     [Fact] void should_give_the_close_guard_a_single_item_to_evaluate() => Elements(Screens().Single(_ => _.GetProperty("name").GetString() == "WorkItemDetails"))
         .Any(_ => _.GetProperty("componentName").GetString() == "core:data" && !_.GetProperty("properties").GetProperty("isCollection").GetBoolean()).ShouldBeTrue();
-    [Fact] void should_carry_the_guarded_double_click_as_its_branches() => Text(_first, "src/stage-scene.json").ShouldContain("\"path\":\"$guard\"");
+    [Fact] void should_carry_the_guarded_double_click_as_its_branches() => Text(_first, "src/stage-scene.json").ShouldContain("\"subject\":\"item.status\"");
     [Fact] void should_not_carry_a_timestamp() => HasTimestamp(_allText).ShouldBeFalse();
     [Fact] void should_check_the_guids_the_corpus_specifications_declare() => Guids(_allText).ShouldContain("3fa85f64-5717-4562-b3fc-2c963f66afa6");
     [Fact] void should_not_carry_a_guid_the_corpus_does_not_declare() => UndeclaredGuids().ShouldBeEmpty();
@@ -81,7 +81,7 @@ public class when_planning_the_screen_composition_application : a_screen_composi
         .Distinct(StringComparer.Ordinal)];
 
     JsonElement[] GuardedActions() => [.. Elements(_document.RootElement).Where(_ =>
-        _.GetProperty("componentName").GetString() == "core:action" && _.GetProperty("properties").TryGetProperty("alternatives", out _))];
+        _.GetProperty("componentName").GetString() == "core:guarded-action" && _.GetProperty("properties").TryGetProperty("alternatives", out _))];
 
     JsonElement[] CommandElements() => [.. Elements(_document.RootElement).Where(_ =>
         new[] { "core:action", "Stage:commandForm" }.Contains(_.GetProperty("componentName").GetString(), StringComparer.Ordinal) &&

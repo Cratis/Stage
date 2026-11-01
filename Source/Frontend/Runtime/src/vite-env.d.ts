@@ -21,3 +21,4 @@ declare module '@cratis/components/CommandForm/styles';
 declare module '@cratis/components/Dropdown/styles';
 declare module '@cratis/components/Common/styles';
 declare module '@cratis/components/Display/styles';
+declare module '@cratis/showrunner.notes.react/styles';

@@ -5,6 +5,7 @@ import { createContext, createElement, useContext, type ReactNode } from 'react'
 import type { StringsDictionary } from '@cratis/scene.engine';
 import type { StageRoutes } from './stageRoutes';
 import type { StageSceneApplication } from './App';
+import type { StageNotesState } from './stageNotes';
 
 /** The content supplied by the host of a Stage application. */
 export interface StageSource {
@@ -12,6 +13,9 @@ export interface StageSource {
     routes(signal: AbortSignal): Promise<StageRoutes | undefined>;
     locales(signal: AbortSignal): Promise<string[]>;
     strings(locale: string, signal: AbortSignal): Promise<StringsDictionary>;
+
+    /** What the host says about feedback: whether Notes is served, and the model references. A source with nothing to say omits it. */
+    notes?(signal: AbortSignal): Promise<StageNotesState>;
 }
 
 /** What a generated application already holds when it is built. */

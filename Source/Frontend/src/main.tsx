@@ -5,6 +5,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CratisComponentsProvider } from '@cratis/components';
 import { Arc } from '@cratis/arc.react';
+import { notesDialogHeaderActions } from '@cratis/showrunner.notes.react';
 import { cratisComponentsRuntimePackage } from '@cratis/scene.components/runtime';
 import { App, StageSourceProvider, hostedBasePath, type StageRoutes } from '@cratis/stage.runtime';
 import { StagePackagesFailed, loadStagePackages } from './stagePackages';
@@ -56,7 +57,7 @@ async function start() {
         {isBrowserPath(window.location.pathname) ? (
             <CratisComponentsProvider><Browser /></CratisComponentsProvider>
         ) : (
-            <CratisComponentsProvider>
+            <CratisComponentsProvider dialogHeaderActions={notesDialogHeaderActions}>
                 {/*
                   The runtime entry of the Cratis components package - its components, descriptors and manifest,
                   without designers, property editors or design-time actions - is what a scene naming
@@ -67,7 +68,7 @@ async function start() {
                   Arc's own requests - its identity at /.cratis/me among them - use its API base path. Under a
                   reverse proxy prefix (Studio's Play at /api/play/{id}/) an empty one would reach the proxy's root.
                 */}
-                <Arc queryDirectMode apiBasePath={hostedBasePath()}>
+                <Arc queryDirectMode sliceMarkers apiBasePath={hostedBasePath()}>
                     <StageSourceProvider source={source}>
                         <App components={{ ...approved.components, ...cratisComponentsRuntimePackage.components }} packageCatalog={approved.catalog} screenTemplates={approved.screenTemplates} dialogTemplates={approved.dialogTemplates} routing={hostedBasePath() === '' ? 'path' : 'hash'} />
                     </StageSourceProvider>

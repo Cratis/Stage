@@ -11,6 +11,7 @@ import { Button } from '@cratis/components/Common';
 import { Dialog } from '@cratis/components/Dialogs';
 import { Message } from '@cratis/components/Display';
 import { useStageData, useStageQuery } from './stageData';
+import { DialogSlice } from './stageStructure';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
 import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
@@ -321,6 +322,13 @@ function StageCommandDialog({ element, label }: { element: ExternalComponent; la
  * address or the session already supplies it; the form then submits what was not asked by the same rule.
  */
 export function StageSliceDialog(props: Partial<RegisteredProps>) {
+    const element = props.element ?? syntheticElement('slice-dialog', {});
+    const navigation = useOptionalSceneNavigation();
+    const opened = sliceDialogParameters(navigation?.currentDialogParameters);
+    return <DialogSlice slice={text(element, 'slice') || opened?.slice || text(element, 'command') || opened?.command}><StageSliceDialogContent {...props} /></DialogSlice>;
+}
+
+function StageSliceDialogContent(props: Partial<RegisteredProps>) {
     const element = props.element ?? syntheticElement('slice-dialog', {});
     const navigation = useOptionalSceneNavigation();
     const { routes, parameters } = useStageData();

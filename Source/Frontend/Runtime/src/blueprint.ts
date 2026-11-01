@@ -25,6 +25,9 @@ export const stageLocaleComponent = 'Stage:locale';
 /** The qualified name Stage registers its light/dark toggle under. */
 export const stageThemeToggleComponent = 'Stage:themeToggle';
 
+/** The name the feedback button in the topbar is registered under. */
+export const stageNotesComponent = 'Stage:notes';
+
 /** The package a host renders with when the profile lists no component library: the Cratis component library, built on React Aria. */
 export const stageBaselinePackage = 'Cratis.Components';
 
@@ -158,7 +161,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const menu = authored.length > 0
         ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
-    const end: SceneElement[] = [];
+    const end: SceneElement[] = [externalComponent('topbar-notes', stageNotesComponent, {})];
     if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
     end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
     const regionNavigation = { regionNavigation: regions };

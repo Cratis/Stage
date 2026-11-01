@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { describe, expect, it, vi } from 'vitest';
-import { fetchModelReferences, modelReferenceFor, type StageModelReferences } from '../modelReferences';
+import { fetchModelReferences, modelReferenceFor, modelReferenceMap, type StageModelReferences } from '../modelReferences';
 
 const document: StageModelReferences = {
     applicationName: 'Shop',
@@ -32,5 +32,12 @@ describe('when reading the model references', () => {
     it('finds nothing for an element the source model did not name', () => {
         expect(modelReferenceFor(document, 'module', 'Shop')).toBeUndefined();
         expect(modelReferenceFor(undefined, 'module', 'Shop')).toBeUndefined();
+    });
+});
+
+describe('when building the model reference map', () => {
+    it('maps each qualified name to the id the source model gave it', () => {
+        expect(modelReferenceMap(document)).toEqual({ 'Shop.Orders.PlaceOrder': 'studio-slice-9' });
+        expect(modelReferenceMap(undefined)).toEqual({});
     });
 });

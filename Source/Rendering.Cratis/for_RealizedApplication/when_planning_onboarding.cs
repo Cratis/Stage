@@ -33,7 +33,7 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
         Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("EventStoreNamespaceName.Default");
     [Fact] void should_publish_an_invitation_once() => Text("GeneratedOnboarding/InvitationPublisher.cs").ShouldContain("new IdempotencyKey($\"invitation:{context.EventSourceId}\")");
     [Fact] void should_protect_the_address_of_the_invitee_in_the_event_log() => Text("GeneratedOnboarding/OnboardingEvents.cs").ShouldContain("[property: PII] string Email");
-    [Fact] void should_observe_the_six_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "LegalTermsAccepted" }
+    [Fact] void should_observe_the_seven_outcomes_of_ante() => new[] { "InvitationTokenIssued", "InvitationRejected", "InvitationToJoinTenantAccepted", "InvitationToCreateTenantAccepted", "OrganizationRegistrationCompleted", "OrganizationRegistrationDeclined", "LegalTermsAccepted" }
         .Where(outcome => !Text("GeneratedOnboarding/AnteOutcomes.cs").Contains($"({outcome} @event", StringComparison.Ordinal)).ShouldBeEmpty();
     [Fact] void should_provision_each_outcome_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("AppendOnce(eventSourceId, @event, new IdempotencyKey(key))");
     [Fact] void should_send_the_invitation_through_herald_with_the_link_on_the_public_origin() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("/invite/{issued.Token}");
@@ -51,5 +51,11 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_record_a_rejected_invitation_for_an_administrator() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("provisioning.InvitationRejected(context.EventSourceId.Value, @event)");
     [Fact] void should_record_a_rejected_invitation_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("new OnboardingInvitationRejected(rejected.Reason.ToString()), $\"{nameof(InvitationRejected)}:{invitation}\"");
     [Fact] void should_not_email_the_invitee_of_a_rejected_invitation() => Text("GeneratedOnboarding/OnboardingEmails.cs").Contains("InvitationRejected", StringComparison.Ordinal).ShouldBeFalse();
-    [Fact] void should_say_the_declined_email_is_not_sent_yet() => Codes.ShouldContain("STAGE-ONBOARDING-007");
+    [Fact] void should_send_the_declined_email_when_ante_publishes_a_declined_sign_up() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("emails.SignupDeclined(context.EventSourceId.Value, @event)");
+    [Fact] void should_send_the_declined_email_with_the_message_of_the_reviewer() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("[\"decline.message\"] = declined.Message.Value");
+    [Fact] void should_send_the_declined_email_to_the_address_of_the_sign_up_when_there_is_one() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("declined.Email.Value.Length == 0");
+    [Fact] void should_send_the_declined_email_through_the_herald_kind_once_per_registration() => Text("GeneratedOnboarding/OnboardingEmails.cs").ShouldContain("Send(\"signup-declined\", registration, declined.Email.Value");
+    [Fact] void should_declare_the_values_of_the_declined_email() => Text("Emails/signup-declined.json").ShouldContain("decline.message");
+    [Fact] void should_not_emit_the_retired_declined_not_sent_diagnostic() => Codes.ShouldNotContain("STAGE-ONBOARDING-007");
+    [Fact] void should_not_turn_on_sign_up_review() => Text(".runtime/ante.onboarding.json").ShouldNotContain("Review");
 }

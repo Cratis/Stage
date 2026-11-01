@@ -37,8 +37,8 @@ public class when_building_the_application : given.a_model_with_authentication_a
 
     [Fact] void should_build_in_debug_without_warnings() => Failures(_debug).ShouldEqual(string.Empty);
     [Fact] void should_build_in_release_without_warnings() => Failures(_release).ShouldEqual(string.Empty);
-    [Fact] void should_pin_the_chronicle_client_ante_needs() => File.ReadAllText(Path.Combine(_application, "Directory.Packages.props")).ShouldContain("Cratis.Chronicle\" Version=\"19.114.0\"");
-    [Fact] void should_run_the_matching_chronicle_kernel_locally() => File.ReadAllText(Path.Combine(_application, "docker-compose.yml")).ShouldContain("cratis/chronicle:19.114.0-development");
+    [Fact] void should_pin_the_chronicle_client_ante_needs() => File.ReadAllText(Path.Combine(_application, "Directory.Packages.props")).ShouldContain("Cratis.Chronicle\" Version=\"19.115.2\"");
+    [Fact] void should_run_the_matching_chronicle_kernel_locally() => File.ReadAllText(Path.Combine(_application, "docker-compose.yml")).ShouldContain("cratis/chronicle:19.115.2-development");
     [Fact] void should_copy_the_email_templates_beside_the_application() => File.ReadAllText(Path.Combine(_application, $"{Application}.csproj")).ShouldContain("Emails/**");
 
     static string Failures(ProcessResult result) => result.ExitCode == 0 && !result.Output.Contains("warning ", StringComparison.Ordinal) ? string.Empty : result.Output;

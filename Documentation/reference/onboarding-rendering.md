@@ -11,9 +11,9 @@ The files below are added to the application, in the namespace `<Root>.Generated
 
 | File | What it does |
 | --- | --- |
-| `AnteOutcomes.cs` | A reactor on `InvitationTokenIssued`, `InvitationRejected`, `InvitationToJoinTenantAccepted`, `InvitationToCreateTenantAccepted`, `OrganizationRegistrationCompleted` and `LegalTermsAccepted` from the Ante store `Ante`. |
+| `AnteOutcomes.cs` | A reactor on `InvitationTokenIssued`, `InvitationRejected`, `InvitationToJoinTenantAccepted`, `InvitationToCreateTenantAccepted`, `OrganizationRegistrationCompleted`, `OrganizationRegistrationDeclined` and `LegalTermsAccepted` from the Ante store `Ante`. |
 | `Provisioning.cs` | Creates the tenant and records members, once per outcome. |
-| `OnboardingEmails.cs` | Sends the invitation and welcome emails. |
+| `OnboardingEmails.cs` | Sends the invitation, welcome and sign-up declined emails. |
 | `OnboardingInvitations.cs` | The command that invites a member, and the policy that lets the personas `invite member … by` send it. Only rendered when the model names inviters. |
 | `InvitationPublisher.cs` | A reactor that appends the invitation to the application's outbox for Ante, once per invitation. |
 | `MemberPersonaClaims.cs` | Gives a signed-in member the roles and claims of the personas they hold in the tenant AuthProxy resolved. |
@@ -56,7 +56,9 @@ The language is the default locale of the model's strings, otherwise `en`. Heral
 
 The invitation link is `/invite/{token}` on the public origin of AuthProxy, read from `Cratis:Application:PublicBaseUrl`. The sender and the mail server come from the environment keys `onboarding.email.sender` and `onboarding.email.server.host`, `.port`, `.username` and `.password`; the password is a secret. When `CRATIS_MAIL_PICKUP_FOLDER` is set, Herald writes `.eml` files there instead of sending.
 
-Each kind is sent once per invitation or registration, Herald records what it queued, and a marker records the request. An invitation whose token has an unknown or past expiry is not announced. The sign-up declined email is rendered but not sent: it is for a sign-up a person reviewed and declined, and Ante does not publish that outcome yet, so the render reports `STAGE-ONBOARDING-007`. An invitation Ante rejects, because it asks for a persona or an invitation type the model does not allow, is a mistake in the invitation rather than a decision about the person. The application records it as `OnboardingInvitationRejected` on the invitation in the default namespace and logs a warning for an administrator; the invitee is not emailed.
+Each kind is sent once per invitation or registration, Herald records what it queued, and a marker records the request. An invitation whose token has an unknown or past expiry is not announced. The sign-up declined email is sent when Ante publishes `OrganizationRegistrationDeclined` (Ante 1.6.0): to the address of the sign-up, with the reviewer's message as `decline.message`, once per registration. A sign-up without an address is not answered.
+
+Ante publishes that outcome only when sign-up review is on (`Ante:Registration:Review`). The Screenplay model has no syntax for review yet, so a rendered application leaves it off and `.runtime/ante.onboarding.json` does not mention it. A host that turns it on gets `OrganizationRegistrationAwaitingReview` in its inbox and has to decide, by appending `OrganizationRegistrationApproved` or `OrganizationRegistrationDeclineRequested(Message)` to its outbox under the registration id. Rendering those commands is not done. An invitation Ante rejects, because it asks for a persona or an invitation type the model does not allow, is a mistake in the invitation rather than a decision about the person. The application records it as `OnboardingInvitationRejected` on the invitation in the default namespace and logs a warning for an administrator; the invitee is not emailed.
 
 ## What is not rendered
 
@@ -64,6 +66,8 @@ Each kind is sent once per invitation or registration, Herald records what it qu
 - **Legal documents** stay with Ante. The settings name them by their path in the model; the runtime mounts them. Ante presents two documents, terms first and privacy second; another count is reported as `STAGE-ONBOARDING-004`.
 
 ## Diagnostics
+
+Codes are permanent. `STAGE-ONBOARDING-007` (the declined email is rendered but not sent) is retired because the email is now sent; the number is not reused.
 
 | Code | Meaning |
 | --- | --- |
@@ -73,6 +77,5 @@ Each kind is sent once per invitation or registration, Herald records what it qu
 | `STAGE-ONBOARDING-004` | The model does not list exactly two legal documents. |
 | `STAGE-ONBOARDING-005` | An email template could not be read from the model root. |
 | `STAGE-ONBOARDING-006` | An invitation to join a tenant names no inviting persona. |
-| `STAGE-ONBOARDING-007` | The model declares a `signupDeclined` template; it is rendered but not sent until Ante publishes a declined sign-up. |
 | `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
 | `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |

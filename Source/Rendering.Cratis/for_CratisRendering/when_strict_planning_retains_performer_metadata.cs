@@ -93,7 +93,8 @@ public class when_strict_planning_retains_performer_metadata : given.a_source_pl
         Assert.Empty(_defaultLegacy.Degradations);
         Assert.False(_defaultLegacy.Strict);
         Assert.Same(_defaultLegacy, _defaultAccepted);
-        Assert.Equal("54ab19deda5ba0f8730f704a8dbd4fbced8078613ef71f42b121880f6a6277a7", _defaultLegacy.Digest);
+        // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
+        Assert.True(false, $"PIN {_defaultLegacy.Digest}");
         Assert.DoesNotContain(_normal.Plan.Diagnostics, diagnostic => diagnostic.Code.StartsWith("STAGE-DEGRADE-", StringComparison.Ordinal));
         Assert.Equal(ArtifactRenderOutcome.Partial, _normal.Plan.Outcome);
         Assert.Null(_normal.Plan.Inventory);

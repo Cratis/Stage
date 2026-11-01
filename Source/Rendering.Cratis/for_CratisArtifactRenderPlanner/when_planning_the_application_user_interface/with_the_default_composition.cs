@@ -21,7 +21,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for #497's generated XML documentation and used-only specification imports.
-    const string Before = "1e4d954ae0b00ab09e4e939d0a2c14ddd5aaa2674d18a02fbf3d16ca86bd1db4";
+    // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
+    const string Before = "REGENERATE";
 
     ArtifactRenderPlan _plan = null!;
 
@@ -29,5 +30,5 @@ public class with_the_default_composition : a_register_project_render_request
 
     [Fact] void should_plan_the_application() => _plan.Diagnostics.Any(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeFalse();
     [Fact] void should_compose_the_shared_user_interface() => _plan.Artifacts.Select(artifact => artifact.RelativePath).ShouldContain("src/bindings.ts");
-    [Fact] void should_plan_the_same_bytes_as_before() => PlanFingerprint.Of(_plan).ShouldEqual(Before);
+    [Fact] void should_plan_the_same_bytes_as_before() => Assert.True(PlanFingerprint.Of(_plan) == Before, $"PIN {PlanFingerprint.Of(_plan)}");
 }

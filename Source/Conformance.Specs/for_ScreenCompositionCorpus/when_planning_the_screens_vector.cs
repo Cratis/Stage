@@ -31,7 +31,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    const string Digest = "1e2808a118ef8cab6c0b99f04562f1ab25bae8875fd1670209b2c7e12d073b78";
+    // Re-frozen for #494: artifacts without explicit authorization defer to host defaults in every pinned view.
+    const string Digest = "REGENERATE";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -184,7 +185,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("e310af3cdc45605c912f7f1979f8584d5dc0baed2b37128bc5545b15816eb2ab"); // Re-frozen for #741: only .gitignore gains the .yarn/ line.
+            plan.Diagnostics).ShouldEqual("REGENERATE"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and #494 (artifacts without explicit authorization defer to host defaults).
     }
 
     [Theory]

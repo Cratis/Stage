@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, should, vi } from 'vitest';
 import { createBrowserDispatcher, SceneElementView } from '@cratis/scene.react';
 import { PrimeReactProvider } from '@primereact/core';
 import { stageApplicationRegistry } from './App';
@@ -52,6 +52,24 @@ describe('a guarded action rendered through Scene and Stage', () => {
             validationErrors: [],
             exceptionMessages: ['The modeled command “UnregisteredGuardedCommand” is not registered by this Stage.'],
         });
+    });
+
+    it('should show the command failure messages in Scene’s alert without an interaction scope', async () => {
+        registerTestQueries(routes.queries);
+        registerTestCommand('SendInvoice', routes.commands.SendInvoice, { invoiceId: { type: 'string' } });
+        vi.stubGlobal('fetch', vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve({ ok: true,
+            json: async () => init?.method === 'POST'
+                ? commandResult({ isSuccess: false, hasExceptions: true, exceptionMessages: ['The invoice is locked.'] })
+                : queryResult({ data: { id: 'invoice-1', status: 'draft' } }),
+        } as Response)));
+        render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene /></StageDataProvider></PrimeReactProvider>);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Process' }));
+
+        const alert = await screen.findByRole('alert');
+        should();
+        alert.textContent!.should.contain('The invoice is locked.');
+        alert.textContent!.should.not.contain('The command did not succeed.');
     });
 
     it.each([['draft', '/api/send'], ['sent', '/api/reopen']])('executes exactly the selected command for %s', async (status, commandRoute) => {

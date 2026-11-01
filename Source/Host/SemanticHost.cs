@@ -67,6 +67,12 @@ internal static class SemanticHost
             extension.ConfigureServices(hostContext!);
         }
 
+        // Arc discovers every referenced assembly, so Notes' routes would otherwise exist unconfigured wherever Notes is not enabled.
+        if (extensions.All(extension => extension.Name != PublishedHostExtensions.Notes))
+        {
+            builder.Services.ExcludeFromArc(NotesChronicleArtifacts.Assemblies);
+        }
+
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
         {
             options.ForwardedHeaders = ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedPrefix;

@@ -50,6 +50,7 @@ public class when_preserving_state_view_bytes : given.an_automation
                 /// <param name="readModels">The read-model store.</param>
                 /// <param name="id">The id to query.</param>
                 /// <returns>The matching read-model result.</returns>
+                [AllowAnonymous]
                 public static async Task<Summary?> ById(IReadModels readModels, EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
             }
             """ + Environment.NewLine;

@@ -31,9 +31,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for #494 (artifacts without explicit authorization defer to host defaults in every pinned view) and Scene 4.86.0.
+    // Re-frozen for Scene 4.86.0.
     // Recomputed from train 9 execution after combining generated documentation, concepts and shared Common output.
-    const string Digest = "33e14ab50445edb4be88e2f36d471ae4982057f1db516b857bc3ff4dc508e099";
+    const string Digest = "2ed9bf698c79108775c314473cfc315476c9adfad58b6e98d2172a07efc9cfca";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -58,19 +58,19 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         README.md 6afd097c34ac79a7e53e5c8da59c3d37d1146fc9703d14cf098fb47af0774e4f 1849
         Workspaces.csproj 5558e5543e420ff0a80aeeea75c9a8e1d9e3684847aeba3ff2177f866e5bc7a3 2443
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
-        Workspaces/Tracking/AddComment/AddComment.cs 2ba2f521a34c14c72c4e7e085fb3515412c693e5a998df66af314de9857d9660 927
+        Workspaces/Tracking/AddComment/AddComment.cs 8ca9724697e5cbf55e8c5245c666a43d94e1a63eb322b36651e6d9500ce89c67 944
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs 5f692eef442134983246c572182e653f6775912ed3154134f4c62ddd45f9b56b 1525
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 2743c1fbc419e7b51b393f07b0746d944295a3be6fb7820cce3f07ffca83394e 753
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 61d4446ebddd0af9c79cdd5d266dcb420e1d70466af983ff293686fe8aa331ce 770
         Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 205c40e13b8f4f7d61dc471a2d5e8f5f1f105acf639d530cb0ab9c88bbeb9c1c 1395
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs d0706d380c1fd1c911dcde22da2c7853e21558407c4fc863d8d1a88eb6ef25de 936
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs d1ff5b12eaafe22990c09cbf64218f9f5b1c22985b92784326aed0dc826b5539 953
         Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 8392c71d00791fc10124c42d1c44bcf34635f66b4ffaff83d49c811afe98a5f9 1481
-        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 10a4d2b9438f61118dfae3887526d71222de92305b2c27a1577c7bac8b1b9e96 798
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs a9d87ce6caa9d2b2118e903f5c1499fde1d881a94edd00cae4f68bdd4b2bdfc1 815
         Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs 43091e7c853e227b4dca5bedc51cc1a024164a90cefba751890a65bbf2888470 1468
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 07f116a5a2ff0d765b89a127ff24fe338642ad0f1ce8b3c010d34b612eda80a1 1833
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 90c5a76ec9ba0b444f17811a6b4b518dac813f7f34396b758ca6d613e495526d 1854
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs 24cb3f8a2d89bfe8210cfdde60761cc1837f7255a06ee57e7edf70b9e66128d7 1985
-        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs 653a33bf48dea8f527591af20db3273ddcfd395d51a04d53d7e17d0420752078 2526
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs 3089ef23281101382686daa8971fdf67d89beb24afd824881250e4cddd73e682 2547
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs a1d3b07ad309cd796f9862a567ac6a5c8127c60cc5083d520c17322f94a716e4 1690
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs 92fc288ff1cdf0047247786a2058726e3bb2b9fcfdf3c1d614bf12b5b18bd7b9 2864
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs af2715d313231d906a2868cd91fff091846f24626141e57b2c1744d3e83230f9 2906
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs d8b0763763dd34ab7dc7433ffc16d6597e3987ef673c412616ff92c7fcc172da 1521
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
@@ -105,19 +105,19 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
         Workspaces.csproj 41af7d8fcdebd9454b740eea141dcdb1c15594e1719b132628ba87dfa440f2d4 1288
         Workspaces.slnx 650516e95954eebf4339f821450c06276740585167423ff70481565a1a03dda5 124
-        Workspaces/Tracking/AddComment/AddComment.cs 3ff99289b290d3aebd072b66ed1cad14642df48b783b530312e842b88ae8c2d0 1487
+        Workspaces/Tracking/AddComment/AddComment.cs 51ca54f7865f5b7f6b5e9a389cd862bdacfb1498ef2a55f1984712a86457253b 1546
         Workspaces/Tracking/AddComment/when_adding_a_comment.cs a7d95a77837912a3396b6a7bacff2d303c8fd6c6e05247386395d80a1580289f 2495
-        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 96f32188348f6db9472909ba3459710d7a1b185207632f38bb76b3556c9505f2 1316
+        Workspaces/Tracking/CloseWorkItem/CloseWorkItem.cs 56504a610b2631425abfc441d54abe14b4db4bd5629fd9b65df6a6f37e259c2c 1375
         Workspaces/Tracking/CloseWorkItem/when_closing_a_work_item.cs 6f836120c90313f466ffc25527e41d21f769d6ac2e181dacc75349b674e06054 2240
-        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs ebded78ead85dc167bc6c3f0299cd35722c9ff7b3877ef563c7c326f4eab4064 1500
+        Workspaces/Tracking/CreateWorkItem/CreateWorkItem.cs 74df6b7cb0351a33ff1f8f8c798b548bac44c545a163159530cfda8201ab06e1 1559
         Workspaces/Tracking/CreateWorkItem/when_creating_a_work_item.cs 9900dd42b7c115af90cb2913dc2cb2cfb4ad4cdaa2282dc265e09f570281f857 2442
-        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs f18e47b284bf4f8bbb413c6798cd27893b2029e0ba22f576912a7d7a76824e10 1310
+        Workspaces/Tracking/RenameWorkItem/RenameWorkItem.cs 28fcd4158cf671444296f00d8fc554c9ea9f3fbebec26ba1fe82e18a316e0960 1369
         Workspaces/Tracking/RenameWorkItem/when_renaming_a_work_item.cs ba679d4cfc2be46c6ba8d98430ac297c2be60b264cf5340f8b949267e639f455 2293
-        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs 6f556610d4013e5c78d5871767083a1ada53204fe12b7e13719175a195689e0f 2607
+        Workspaces/Tracking/WorkItemComments/WorkItemComments.cs ce3a4c47e03d3e2989c503427d993214189ed7945a24155fdf0728639b2e117d 2670
         Workspaces/Tracking/WorkItemComments/when_showing_comments_for_a_work_item_is_queried.cs adb3fd415af6b119c3a2c8a2961c3423bf8b50b71c9b934b52b6cb4a79d6be10 2740
-        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs 484bd2a7f93b7a1c27899c002b1f887f27f9eb755569f5edf68c8632953255c1 3345
+        Workspaces/Tracking/WorkItemDetails/WorkItemDetails.cs ed0c18b8f25fc25669c259a557dfdce80c003a3b545fd4d9504d49f5fc551bc3 3408
         Workspaces/Tracking/WorkItemDetails/when_showing_renamed_details_is_queried.cs 1866dab7e0acfd7cdacf8f834b2800a6ab1756357a9bd4f7c022de0ed923754c 2728
-        Workspaces/Tracking/WorkItemList/WorkItemList.cs 125366e5c93a434eae98b8317ca26319add00f8e45fc59c9655d74142b39a840 3787
+        Workspaces/Tracking/WorkItemList/WorkItemList.cs e60af8c7b014748fcb338b83048fd52a157228e7234a8d61c6674f75594d2500 3913
         Workspaces/Tracking/WorkItemList/when_listing_created_work_items_is_queried.cs 85c389d9b510cfbb130f4937d6468023e0331db217f6a91b9e6c8980916110c7 2493
         appsettings.json 43edcdf830ab948374c5c6ca2a700b2eed65134267d1830119cb803620cfd9cf 442
         docker-compose.yml a92e4b00e441d43ea07066f158322c0d02a7e1cc1f2c5853b3547b21567fba4a 559
@@ -186,7 +186,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("7ea0ccd118133b2fceb130899832600d69131221d1115dbc42996435c88bbbfb"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), #494 (host-default authorization) and Scene 4.86.0.
+            plan.Diagnostics).ShouldEqual("092979d8d620784a0b760153395899af607d324b947268e3947cbd132a25f2c3"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and Scene 4.86.0.
     }
 
     [Theory]

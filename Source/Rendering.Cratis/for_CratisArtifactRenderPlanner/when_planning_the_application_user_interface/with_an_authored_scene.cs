@@ -21,12 +21,11 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Re-frozen for #497's generated XML documentation and used-only specification imports;
-    // #494 (artifacts without explicit authorization defer to host defaults);
     // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
     // Components 4.37.0 and Scene 4.86.0 (npm pins and changed authored Scene output);
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
-    const string Before = "aa63a6530f844cbbfa74be9c2b87ee6d202cc8a141c5bd46811c101ef24f99ee";
+    const string Before = "b663f19496e8b85e26ef6ab59c216c15889824851a0d9461f31b02338ed73cb1";
 
     ArtifactRenderPlan _plan = null!;
 

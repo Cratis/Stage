@@ -67,17 +67,16 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for #494 (artifacts without explicit authorization defer to host defaults in both pinned views)
-    // and merged Scene 4.86.0 / Screenplay 4.258.0 output.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("9c59eac824c132fb4e0121fa36aa500732d1d756148610ded2d19d171f21c69c");
+    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("df64eed37a91635d1e22f13ad97d4d3099d5ee77421c036150275f55bbf8dd8d");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
-    // Re-frozen for #494 (host-default authorization) and merged Scene 4.86.0 / Screenplay 4.258.0 output.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("03bf087d9fb44f69c7285b373012042f356fad618047fbf5b5ba49d226e37445");
+    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("777a6cc79d2808f94a0fd4972c288a9b88fcb13cda0da11cd12216ca07c58d1f");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 536a72745002460a699cdb87ea8e6638ac38d4867978a3cce2cebcf24a5f1811 9963

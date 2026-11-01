@@ -17,25 +17,24 @@ public class when_preserving_inventory_fixture_bytes
 {
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
-        ["append refusal"] = "78d5ec8f1baa63a0fb076de02e7803a1f6d9c991d627195ab4a99c1f26088093",
-        ["cascade with trigger"] = "db07af34da914f3fd58affdc8f0c448a32640aa625fb04fb3daf0c604dd576fb",
-        ["case table"] = "1b3e0ac15a091497e92475c9e64366918cbadd6e47b37e659f50086bd107fdb6",
+        ["append refusal"] = "ca05bd7f92862865653a4eafb6925d30688dbb5a90eeefc58e19241bc5a4132b",
+        ["cascade with trigger"] = "dcce516c779c267bd7460ed86edaf9ada801279815bdf5e382de7aaabf7d8a24",
+        ["case table"] = "a85856d208d532f7f0fea951da4abc42cb88f27a27ccdea54491a04e59749905",
         ["composite keys"] = "88a84f3331f47e5ea2929a746db464812408844c0e8e332b8446bcda6cd6d8ce",
-        ["denied query"] = "234a4f071cab2efc4fc50ff737a682dde6998370729c41d16ed842ad927dd46f",
-        ["folder"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
+        ["denied query"] = "ce5e38a76b521a1d24cd3aa5a0d33a59641e147c7a8c24081ba09fd953331525",
+        ["folder"] = "fbfe7a7f05c3d0cc0dd77ab03a35d56d7cec961a2f2847e3995db9d650c86f82",
         ["policy typed contexts"] = "528d6ad89dc14c5e400c2a84db3063c658176fc5d4ed4770ee8e468f8477cb32",
-        ["query"] = "d95ea5d3926ac57dcd4137856efd7e0bab2ecdbfd2f40c8a9f0ef62c327dc916",
+        ["query"] = "79c15419ef98eec781f2b09c0863fb7f301ea12a83cbbcd0856a98133d74465c",
         ["reaction production"] = "ba22da7668d29cf163f92d5cce401b9e84e21fbf571d3d393193b6f8e28c9f34",
-        ["redelivery"] = "26f01a0fa7cb373603ea32a037a28ee47e6b1538e94c54bd2ee7e205b1eac29e",
-        // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
-        ["reducer typed contexts"] = "9fecdbdc423457aa1bc3495099feedbb8b257776bc63201fe414750d26aedefc",
-        ["relocated"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
-        ["reordered"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
-        ["scoped projections"] = "54756415219d57882746c72297b85286dc7b48ffdd40fce14b21597083521c03",
-        ["single"] = "a78b6abdac06c81869bd9bfa69b8ee797f648f70776d02b05d0623ec133ef03f",
-        ["strings"] = "b1c1d6c1d68e790fa8b56f27012883adf758524ef7bc97afe3e4388d8a123b51",
-        ["translation specification"] = "701faa234978ab5b0e8c1dde2f088d32a7ea082e5f2aa22ae1087401b03e9007",
-        ["validation typed contexts"] = "f22a188a7285c06f0c8a1258d17e6c4eba503302b54ef0f53e65753fe9cf83aa",
+        ["redelivery"] = "ee02a89cd112c05f82772781e72814b6fae42121088db179ac0c513b92786446",
+        ["reducer typed contexts"] = "a0cd06b4ee60105295befd8570cc54c4c87ccb6a5032abc9280d6698619a781e",
+        ["relocated"] = "fbfe7a7f05c3d0cc0dd77ab03a35d56d7cec961a2f2847e3995db9d650c86f82",
+        ["reordered"] = "fbfe7a7f05c3d0cc0dd77ab03a35d56d7cec961a2f2847e3995db9d650c86f82",
+        ["scoped projections"] = "c18ad8b3e0701e970e64fdc75a681499c2c994267f4afadc9cc574d4a212d5cb",
+        ["single"] = "fbfe7a7f05c3d0cc0dd77ab03a35d56d7cec961a2f2847e3995db9d650c86f82",
+        ["strings"] = "b42e9904b27dd4276dd2330e8ba620056ba95d286b1a07087c9ef0d1a72d39c4",
+        ["translation specification"] = "99d1840443a3aa73f096c9c46ff3c2b8528348504064645fa61f3ae7b2c73889",
+        ["validation typed contexts"] = "1b607de6fc9af9fe526e33a023ac46d34fa9935b9984d7749f6c2826e40e2b76",
     };
 
     public static TheoryData<string> Fixtures

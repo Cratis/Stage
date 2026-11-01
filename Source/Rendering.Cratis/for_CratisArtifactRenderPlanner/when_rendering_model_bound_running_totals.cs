@@ -126,9 +126,9 @@ public class when_rendering_model_bound_running_totals
         """;
 
     // Re-frozen from train 9 execution after combining generated documentation, concepts and shared Common output.
-    const string FlatVersionThree = "279B82B5DB855622AF06A6F579461DCCEA8546CDE7275D236DFAAA782235AC27";
-    const string RunningTotalsVersionThree = "E123F8C475E43B81F0CA41DA5DE40F7E5C91DAE109941D115CD7C2586F683774";
-    const string RunningTotalsClassic = "E123F8C475E43B81F0CA41DA5DE40F7E5C91DAE109941D115CD7C2586F683774";
+    const string FlatVersionThree = "DAF094A1C17783C132B9E44011D39E4E9ED7901FE346D1C065B75457079CAFF4";
+    const string RunningTotalsVersionThree = "2DC00066DA4B0058FAF2414ACC94417FBC727085C913B5627F78A5185C682A99";
+    const string RunningTotalsClassic = "2DC00066DA4B0058FAF2414ACC94417FBC727085C913B5627F78A5185C682A99";
 
     internal static ArtifactRenderProfile VersionThree() =>
         CratisRendering.WithReducerConvention(

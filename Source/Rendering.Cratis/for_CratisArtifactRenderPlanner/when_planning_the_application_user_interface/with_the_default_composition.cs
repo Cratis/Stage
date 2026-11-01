@@ -25,7 +25,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
     // Components 4.37.0 and Scene 4.86.0 (the scaffold now emits those npm pins);
     // Components 4.38.1 (only the npm package pin changes).
-    const string Before = "1e4d954ae0b00ab09e4e939d0a2c14ddd5aaa2674d18a02fbf3d16ca86bd1db4";
+    // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
+    const string Before = "a1b8812c23a6d46dd8d829a81f156d3a0d0b1eb3b1b621824ff89d40d45219c2";
 
     ArtifactRenderPlan _plan = null!;
 

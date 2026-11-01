@@ -26,6 +26,17 @@ public class when_auditing_reference_classifications : for_SemanticSurfaceLedger
         _unexplained = [.. members.Where(member => SemanticDependencySurface.Classify(member) is { Kind: null, NonReferenceReason: null or "" })];
     }
 
+    [Theory]
+    [InlineData("SemanticCommand.Handler")]
+    [InlineData("SemanticCommandHandler.PossibleEvents")]
+    [InlineData("SemanticOneOfExpression.CollectionProperty")]
+    [InlineData("SemanticTypedContextDescriptor.Result")]
+    [InlineData("SemanticHandlerResultDescriptor.Entries")]
+    [InlineData("SemanticHandlerResultEntry.EventContract")]
+    [InlineData("SemanticHandlerResultEntry.Payload")]
+    [InlineData("SemanticHandlerResultEntry.DestinationType")]
+    void should_classify_handler_result_references(string member) => SemanticDependencySurface.Classify(member)!.Kind.ShouldNotBeNull();
+
     [Fact] void should_classify_every_reference_carrying_surface_member() => Assert.True(_unclassified.Length == 0, string.Join(Environment.NewLine, _unclassified));
     [Fact] void should_explain_members_without_owner_references() => _unexplained.ShouldBeEmpty();
     [Fact] void should_not_classify_an_unrecognized_reference_member() => SemanticDependencySurface.Classify("SemanticCommand.FutureReadModel").ShouldBeNull();

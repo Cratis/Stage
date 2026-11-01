@@ -25,7 +25,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
     // Components 4.37.0 and Scene 4.86.0 (npm pins and changed authored Scene output);
     // Components 4.38.1 (only the npm package pin changes).
-    const string Before = "774fbf8e71fccc5d00135e1d12e290ec56f9d26d88528b16c451b396a6edebf7";
+    // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
+    const string Before = "aa63a6530f844cbbfa74be9c2b87ee6d202cc8a141c5bd46811c101ef24f99ee";
 
     ArtifactRenderPlan _plan = null!;
 

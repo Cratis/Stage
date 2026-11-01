@@ -29,6 +29,8 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Chronicle", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.AspNetCore", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
                 ("Cratis.Chronicle.Testing", profile.CratisChroniclePackageVersion, previous ? "19.55.2" : "19.71.0"),
+                ("Cratis.Orleans", ScaffoldPackageVersions.Orleans, "1.33.0"),
+                ("Cratis.Orleans.Chronicle", ScaffoldPackageVersions.OrleansChronicle, "1.33.0"),
                 ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
                 ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
                 ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),

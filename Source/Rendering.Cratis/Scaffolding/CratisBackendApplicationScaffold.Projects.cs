@@ -51,6 +51,8 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Chronicle" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.AspNetCore" Version="{{profile.CratisChroniclePackageVersion}}" />
             <PackageVersion Include="Cratis.Chronicle.Testing" Version="{{profile.CratisChroniclePackageVersion}}" />
+            <PackageVersion Include="Cratis.Orleans" Version="{{ScaffoldPackageVersions.Orleans}}" />
+            <PackageVersion Include="Cratis.Orleans.Chronicle" Version="{{ScaffoldPackageVersions.OrleansChronicle}}" />
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
@@ -103,6 +105,8 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
+            <PackageReference Include="Cratis.Orleans" />
+            <PackageReference Include="Cratis.Orleans.Chronicle" />
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

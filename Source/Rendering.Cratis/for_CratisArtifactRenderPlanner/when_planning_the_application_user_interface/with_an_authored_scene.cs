@@ -22,7 +22,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "3fcb8e5918ef2e47b1522006d61a113fd75251e29c017bc60b2663b8252753cd";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.0 and moves to Chronicle 19.115.2.
+    const string Before = "72c216729bef2102ac35f4d3bcd1319bdf9c44bbe16ee5153eb6f67342ba4254";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -682,6 +682,20 @@ it is qualified only as far as needed to resolve the collision. A scoped render 
 `GlobalUsings.cs` is owned by Stage, like `Program.cs`, and is regenerated on every application render, so
 edits to it are overwritten. Put application-specific global usings in a separate file, for example `Usings.cs`.
 
+## Generated application silo
+
+A rendered application hosts an Orleans silo through `Cratis.Orleans`, so durable state machines and workflows have
+grains to run on. `Program.cs` calls `AddCratisOrleans` with the local configuration (localhost clustering and
+in-memory grain storage) and the workflow engine turned on, then `AddEventSourcedStateMachines()` and
+`AddEventSourcedWorkflows()`. `Directory.Packages.props` pins `Cratis.Orleans` and `Cratis.Orleans.Chronicle` to the
+versions Stage itself uses, and the project references them.
+
+The local configuration needs nothing beyond what `docker-compose.yml` already starts, but jobs and workflow runs
+live in the application's memory and do not survive a restart. MongoDB-backed grain storage needs the separate
+`Cratis.Orleans.Storage.MongoDB` package and `AddCratisOrleansMongoDBJobsStorage`; add that in `Program.cs` when runs
+must be durable. The silo listens on the Orleans default ports on localhost, so two rendered applications cannot run
+on the same machine at once without changing them.
+
 ## Generated C# member names
 
 Stage appends `_` only when a command input property's generated name collides with its

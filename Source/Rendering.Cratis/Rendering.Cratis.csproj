@@ -148,6 +148,8 @@
             <_ScaffoldPackage Include="Cratis.Ante.Contracts" Constant="AnteContracts" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Ante.Contracts')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Showrunner.Herald" Constant="Herald" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Showrunner.Herald')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle.ForAnte" Constant="AnteChronicle" PinVersion="$(AnteContractsChronicleVersion)" />
+            <_ScaffoldPackage Include="Cratis.Orleans" Constant="Orleans" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Orleans')->Metadata('Version'))" />
+            <_ScaffoldPackage Include="Cratis.Orleans.Chronicle" Constant="OrleansChronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Orleans.Chronicle')->Metadata('Version'))" />
             <_ScaffoldPackage Include="Cratis.Chronicle" Constant="Chronicle" PinVersion="@(PackageVersion->WithMetadataValue('Identity', 'Cratis.Chronicle')->Metadata('Version'))" />
         </ItemGroup>
         <Error Code="STAGE-MISSING-SCAFFOLD-PIN" Condition="'%(_ScaffoldPackage.PinVersion)' == ''"

@@ -23,7 +23,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 4.258.0 and Arc 22.146.0 from the merged scaffold.
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "04c37fa4dc79ab6eb67b7a763b4341e4861c2d45e661094d6b37d414dd901950";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.0 and moves to Chronicle 19.115.2.
+    const string Before = "57b18b53347b6a1aab08438522bb7c441c9100dd40ee46cecda97f25cfdb447b";
 
     void Because() => _application = AppPlan(_profile);
 

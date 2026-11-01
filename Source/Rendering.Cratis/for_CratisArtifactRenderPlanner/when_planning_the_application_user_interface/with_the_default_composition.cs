@@ -22,7 +22,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "e8e0ed90849a3232a53c0eeb6bd07728da344521c85b3e60151f6c7f2576e0d6";
+    // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.0 and moves to Chronicle 19.115.2.
+    const string Before = "6aa7e31b1cf5c60662835df5b6448926650e820888af43fb70464e4822b58c79";
 
     ArtifactRenderPlan _plan = null!;
 

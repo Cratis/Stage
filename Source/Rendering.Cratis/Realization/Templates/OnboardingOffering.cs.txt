@@ -1,0 +1,65 @@
+using System.Security.Cryptography;
+using System.Text;
+using Cratis.Showrunner.BoxOffice.Contracts;
+using Cratis.Showrunner.BoxOffice.Offering.Starting;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Starts a tenant on the default offering the application declared to Box Office. Starting a tenant is idempotent, so a provisioning
+/// that is delivered again does not start it twice.
+/// </summary>
+/// <param name="offering">Box Office's default offering.</param>
+/// <param name="logger">The logger.</param>
+public partial class TenantOffering(IDefaultOffering offering, ILogger<TenantOffering> logger)
+{
+    /// <summary>
+    /// Gets the organization a tenant belongs to. A self-service product has no operator-assigned organization, so it is derived from
+    /// the tenant: the same tenant is always the same organization.
+    /// </summary>
+    /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
+    /// <returns>The organization.</returns>
+    public static OrganizationId OrganizationFor(string tenant) =>
+        new Guid(SHA256.HashData(Encoding.UTF8.GetBytes($"{ApplicationName.Value}/organization/{tenant}")).AsSpan(0, 16));
+
+    /// <summary>
+    /// Starts a tenant on the default offering. A failure is logged and then thrown, so Chronicle retries the delivery until the
+    /// operator has published the offer. Starting a tenant is idempotent, so retries and replays start it once.
+    /// </summary>
+    /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
+    /// <returns>A task.</returns>
+    public async Task Start(string tenant)
+    {
+        try
+        {
+            var start = await offering.StartTenant(tenant, OrganizationFor(tenant));
+            TenantStarted(logger, tenant, start.ToString());
+        }
+        catch (Exception exception) when (exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared or TenantNotStarted)
+        {
+            NotStarted(logger, tenant, exception.Message);
+            throw;
+        }
+    }
+
+    [LoggerMessage(LogLevel.Information, "Tenant {Tenant} on the default offering: {Start}")]
+    static partial void TenantStarted(ILogger logger, string tenant, string start);
+
+    [LoggerMessage(LogLevel.Warning, "Tenant {Tenant} was not started on the default offering ({Reason}); it is tried again until the operator has published the offer")]
+    static partial void NotStarted(ILogger logger, string tenant, string reason);
+}
+
+/// <summary>
+/// Starts every tenant that was provisioned on the default offering. It runs apart from provisioning, so a missing offer neither
+/// blocks the tenant nor its welcome, and Chronicle retries it until the operator has published the offer.
+/// </summary>
+/// <param name="offering">Starts a tenant on the default offering.</param>
+public class TenantOfferingStarter(TenantOffering offering) : IReactor
+{
+    /// <summary>
+    /// Starts the tenant on the default offering.
+    /// </summary>
+    /// <param name="event">The tenant that was provisioned.</param>
+    /// <returns>A task.</returns>
+    public Task Provisioned(OnboardingTenantProvisioned @event) => offering.Start(@event.TenantName);
+}

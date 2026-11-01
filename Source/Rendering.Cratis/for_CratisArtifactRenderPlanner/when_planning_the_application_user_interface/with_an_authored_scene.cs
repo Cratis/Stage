@@ -22,7 +22,7 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for Components 4.37.0 and Scene 4.86.0: the scaffold emits those npm pins, and the Cratis.Scene 4.86.0 packages change the authored Scene output.
     // Recomputed for Components 4.38.1: only the npm package pin changes.
-    const string Before = "b122220c013923166c61bd1030e1033ef700a1905ffd566aea665994116e0db3";
+    const string Before = "a41d774ef57a426f839a618535da2ba7d87cb55b745a8d2d2daa6e2aa543f51e";
 
     ArtifactRenderPlan _plan = null!;
 

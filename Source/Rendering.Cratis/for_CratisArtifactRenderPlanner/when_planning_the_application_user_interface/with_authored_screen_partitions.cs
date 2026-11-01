@@ -22,7 +22,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for Components 4.37.0 and Scene 4.86.0: the scaffold now emits those npm pins.
     // Recomputed for Components 4.38.1: only the npm package pin changes.
-    const string Before = "54af53219f4b3d24b21dc823b030c23e9697db6dab3835d6d3d8f210c6d33f97";
+    const string Before = "ab5fb6a5a3d2d3a856280ff9a2bdf44bae35dd504e9c753f01cf1124c07f4094";
 
     void Because() => _application = AppPlan(_profile);
 

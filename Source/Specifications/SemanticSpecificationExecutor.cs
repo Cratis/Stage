@@ -475,7 +475,7 @@ public sealed partial class SemanticSpecificationExecutor : ISemanticSpecificati
         // Expected rejection/denial is settled without projection replay, even when the command accepts.
         if (!specification.ThenErrors.IsEmpty || specification.ThenDenied) return ([], null, []);
         var projected = SemanticRunProjections.Execute(context.Plan, specification, context, runtimeTypes, defaults);
-        var blocker = SemanticRunAdmission.CheckProjectionWorld(context.Plan, projected.Select(row => row.ReadModel));
+        var blocker = SemanticRunAdmission.CheckProjectionWorld(context.Plan, projected.Select(row => row.ReadModel), context.BodyExecution);
         var failures = SemanticExpectationComparer.CompareProjections(specification, projected, context.Plan)
             .Concat(SemanticExpectationComparer.CompareResponse(specification.ThenReturns, context.Response));
         return (projected, blocker, failures);

@@ -9,10 +9,18 @@ namespace Cratis.Stage.Contracts.Execution;
 public static class BodyWorkerPipe
 {
     /// <summary>Reads a bounded response, rejecting EOF, truncation and oversized lines.</summary>
+    /// <param name="reader">The reader to read from.</param>
+    /// <param name="maxBytes">The maximum UTF-8 byte length of the line.</param>
+    /// <param name="cancellationToken">The token that cancels the read.</param>
+    /// <exception cref="IOException">The stream ended, the line was truncated, or it exceeded the limit.</exception>
     public static async Task<string> ReadLineAsync(TextReader reader, int maxBytes, CancellationToken cancellationToken) =>
         await TryReadLineAsync(reader, maxBytes, cancellationToken).ConfigureAwait(false) ?? throw new IOException("Worker exited before completing its response.");
 
     /// <summary>Reads one UTF-8-size-bounded line, returning null only for clean EOF.</summary>
+    /// <param name="reader">The reader to read from.</param>
+    /// <param name="maxBytes">The maximum UTF-8 byte length of the line.</param>
+    /// <param name="cancellationToken">The token that cancels the read.</param>
+    /// <exception cref="IOException">The line was truncated or exceeded the limit.</exception>
     public static async Task<string?> TryReadLineAsync(TextReader reader, int maxBytes, CancellationToken cancellationToken)
     {
         var buffer = new char[1];

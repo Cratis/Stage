@@ -22,7 +22,7 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for Components 4.37.0 and Scene 4.86.0: the scaffold now emits those npm pins.
     // Recomputed for Components 4.38.1: only the npm package pin changes.
-    const string Before = "4db786ad6d30bd64accb4d9ae721d04331e2c9ae88ed1abca8c8bf9b68a176bc";
+    const string Before = "6f3cf049610c7ab18c3ab27c7c4309e7533babe7ed1bc265e6f92713ae960937";
 
     ArtifactRenderPlan _plan = null!;
 

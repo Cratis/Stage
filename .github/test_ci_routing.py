@@ -61,19 +61,18 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("generated-react", self.select("Verification/generated-react-browser/run.sh"))
         self.assertNotIn("standalone-generated-application", self.select("Verification/generated-react-browser/run.sh"))
 
-    def test_outputs_include_each_lane_and_only_full_routes_expose_the_checked_out_sha(self):
-        sha = "a" * 40
+    def test_outputs_include_each_lane_without_a_tested_merge_sha_claim(self):
         for selected in (ALL, set(), {"generated-react"}):
             output = mock_open()
             with patch.dict(os.environ, GITHUB_OUTPUT="unused"), patch("builtins.open", output), \
-                    patch("subprocess.check_output", return_value=sha + "\n") as git, \
+                    patch("subprocess.check_output") as git, \
                     contextlib.redirect_stdout(io.StringIO()):
                 CI["write_routes"](selected)
             written = "".join(call.args[0] for call in output().write.call_args_list)
             for lane in ALL:
                 self.assertIn(f"{lane}={str(lane in selected).lower()}\n", written)
-            self.assertEqual(selected == ALL, f"full-sha={sha}\n" in written)
-            self.assertEqual(int(selected == ALL), git.call_count)
+            self.assertNotIn("full-sha=", written)
+            git.assert_not_called()
 
     def test_docs_select_no_optional_lanes(self):
         self.assertEqual(set(), self.select("Documentation/guide.md", "README.md"))
@@ -272,7 +271,9 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("types: [opened, synchronize, reopened, ready_for_review]", triggers)
         self.assertNotIn("labeled", triggers)
         self.assertIn("group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}", triggers)
-        self.assertIn("cancel-in-progress: true", triggers)
+        release_dispatch = "vars.STAGE_ROUTE_ALWAYS_ON_LANES == 'true' && github.event_name == 'workflow_dispatch' && inputs.force-full"
+        self.assertIn(f"cancel-in-progress: ${{{{ !({release_dispatch}) }}}}", triggers)
+        self.assertIn(release_dispatch + " && format('-release-{0}', github.run_id) || ''", triggers)
         usage = 'add ci:full, then push or use "Re-run all jobs" on the dotnet-build workflow'
         self.assertIn(usage, triggers)
         self.assertIn(usage, CI["__doc__"])
@@ -469,7 +470,8 @@ class PublishGateTests(unittest.TestCase):
 
     def run_record(self):
         return dict(id=42, run_attempt=1, event="workflow_dispatch", head_sha=self.sha, head_branch="main",
-                    status="completed", conclusion="success", html_url="https://github.com/Cratis/Stage/actions/runs/42")
+                    path=".github/workflows/dotnet-build.yml", status="completed", conclusion="success",
+                    html_url="https://github.com/Cratis/Stage/actions/runs/42")
 
     def jobs(self):
         jobs = [{"name": name, "conclusion": "success", "steps": []}
@@ -477,15 +479,15 @@ class PublishGateTests(unittest.TestCase):
         for job in jobs:
             if job["name"] == "live-custom-packages":
                 job["steps"] = [{"name": name, "conclusion": "success"} for name in CI["LIVE_STEPS"]]
-            elif job["name"] == "routing":
-                job["steps"] = [{"name": f"Full routing for {self.sha}", "conclusion": "success"}]
         return jobs
 
     def test_full_proof_requires_exact_revision_and_every_lane_and_live_probe(self):
         run, jobs = self.run_record(), self.jobs()
-        self.assertTrue(CI["full_run_succeeded"](run, self.sha, jobs))
-        for key, value in (("head_sha", "b" * 40), ("event", "push"), ("conclusion", "failure"),
-                           ("conclusion", "cancelled"), ("status", "in_progress")):
+        for event in ("push", "schedule", "workflow_dispatch"):
+            self.assertTrue(CI["full_run_succeeded"]({**run, "event": event}, self.sha, jobs))
+        for key, value in (("head_sha", "b" * 40), ("event", "pull_request"), ("event", "pull_request_target"),
+                           ("head_branch", "feature"), ("path", ".github/workflows/fake.yml"), ("path", None),
+                           ("conclusion", "failure"), ("conclusion", "cancelled"), ("status", "in_progress")):
             with self.subTest(key=key, value=value):
                 self.assertFalse(CI["full_run_succeeded"]({**run, key: value}, self.sha, jobs))
         for index, job in enumerate(jobs):
@@ -501,13 +503,13 @@ class PublishGateTests(unittest.TestCase):
             next(step for step in live["steps"] if step["name"] == name)["conclusion"] = "skipped"
             self.assertFalse(CI["full_run_succeeded"](run, self.sha, changed))
 
-    def test_full_pr_proof_uses_tested_merge_sha_not_api_source_head(self):
-        run = {**self.run_record(), "event": "pull_request", "head_sha": "b" * 40}
-        self.assertTrue(CI["full_run_succeeded"](run, self.sha, self.jobs()))
-        for name, result in ((f"Full routing for {'b' * 40}", "success"), (f"Full routing for {self.sha}", "skipped")):
-            jobs = self.jobs()
-            next(job for job in jobs if job["name"] == "routing")["steps"] = [{"name": name, "conclusion": result}]
-            self.assertFalse(CI["full_run_succeeded"](run, self.sha, jobs))
+    def test_pr_is_rejected_even_with_exact_sha_and_faked_full_job_and_step_names(self):
+        run = {**self.run_record(), "event": "pull_request"}
+        jobs = self.jobs()
+        next(job for job in jobs if job["name"] == "routing")["steps"] = [
+            {"name": f"Full routing for {self.sha}", "conclusion": "success"}]
+        self.assertFalse(CI["full_run_candidate"](run, self.sha))
+        self.assertFalse(CI["full_run_succeeded"](run, self.sha, jobs))
 
     def gate(self, responses):
         with patch.dict(os.environ, GITHUB_REPOSITORY="Cratis/Stage", GITHUB_SHA=self.sha), \
@@ -515,6 +517,28 @@ class PublishGateTests(unittest.TestCase):
                 patch("time.sleep"), contextlib.redirect_stdout(io.StringIO()):
             CI["publish_gate"]()
             return command
+
+    def test_missing_run_provenance_fails_closed(self):
+        for key in ("head_branch", "head_sha", "path", "event", "status", "conclusion"):
+            run = self.run_record()
+            del run[key]
+            with self.subTest(key=key):
+                self.assertFalse(CI["full_run_succeeded"](run, self.sha, self.jobs()))
+
+    def test_untrusted_run_cannot_be_reused_or_fetch_jobs_before_dispatch(self):
+        for key, value in (("event", "pull_request"), ("head_branch", "feature"),
+                           ("head_sha", "b" * 40), ("path", ".github/workflows/fake.yml")):
+            untrusted = {**self.run_record(), key: value}
+            complete = {**self.run_record(), "id": 43}
+            command = self.gate([json.dumps({"workflow_runs": [untrusted]}),
+                                 json.dumps({"object": {"sha": self.sha}}), "",
+                                 json.dumps({"workflow_runs": [untrusted, complete]}),
+                                 json.dumps([{"jobs": self.jobs()}])])
+            with self.subTest(key=key, value=value):
+                self.assertIn("git/ref/heads/main", command.call_args_list[1].args[0][-1])
+                self.assertIn("force-full=true", command.call_args_list[2].args[0])
+                self.assertIn("/runs/43/", command.call_args_list[4].args[0][-1])
+                self.assertEqual(5, command.call_count)
 
     def test_reuses_full_ci_without_dispatching(self):
         command = self.gate([json.dumps({"workflow_runs": [self.run_record()]}), json.dumps([{"jobs": self.jobs()}])])
@@ -527,13 +551,15 @@ class PublishGateTests(unittest.TestCase):
         old = self.run_record()
         running = {**old, "id": 43, "status": "in_progress", "conclusion": None}
         complete = {**running, "status": "completed", "conclusion": "success"}
+        newer_main = {**complete, "id": 44, "head_sha": "b" * 40}
         command = self.gate([json.dumps({"workflow_runs": [old]}), json.dumps([{"jobs": narrow}]),
                              json.dumps({"object": {"sha": self.sha}}), "",
-                             json.dumps({"workflow_runs": [old, running]}),
-                             json.dumps({"workflow_runs": [old, complete]}), json.dumps([{"jobs": self.jobs()}])])
+                             json.dumps({"workflow_runs": [old, newer_main, running]}),
+                             json.dumps({"workflow_runs": [old, newer_main, complete]}), json.dumps([{"jobs": self.jobs()}])])
         self.assertIn("force-full=true", command.call_args_list[3].args[0])
         self.assertIn("--ref", command.call_args_list[3].args[0])
         self.assertEqual(7, command.call_count)
+        self.assertIn("/runs/43/", command.call_args_list[6].args[0][-1])
 
     def test_moved_main_and_api_errors_fail_closed(self):
         with self.assertRaises(ValueError):
@@ -556,7 +582,10 @@ class PublishGateTests(unittest.TestCase):
 
     def test_wait_is_bounded_and_never_accepts_newer_main(self):
         for running in ({**self.run_record(), "status": "queued", "conclusion": None},
-                        {**self.run_record(), "head_sha": "b" * 40}):
+                        {**self.run_record(), "head_sha": "b" * 40},
+                        {**self.run_record(), "head_branch": "feature"},
+                        {**self.run_record(), "path": ".github/workflows/fake.yml"},
+                        {**self.run_record(), "event": "pull_request"}):
             clock = [0]
             initial = iter([json.dumps({"workflow_runs": []}), json.dumps({"object": {"sha": self.sha}}), ""])
             def response(*args, **kwargs):
@@ -580,7 +609,8 @@ class PublishGateTests(unittest.TestCase):
         self.assertIn("python3 .github/ci-routing.py publish-gate", gate)
         self.assertIn("  release:\n    needs: full-ci\n", workflow)
         self.assertIn("STAGE_ROUTE_ALWAYS_ON_LANES: ${{ vars.STAGE_ROUTE_ALWAYS_ON_LANES }}", JOBS["routing"])
-        self.assertIn("Full routing for ${{ steps.routes.outputs.full-sha }}", JOBS["routing"])
+        self.assertNotIn("Full routing for", JOBS["routing"])
+        self.assertNotIn("full-sha", JOBS["routing"])
         self.assertIn("force-full:", WORKFLOW)
 
 

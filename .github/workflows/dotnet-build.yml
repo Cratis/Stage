@@ -1,9 +1,10 @@
 name: .NET Build
 
 concurrency:
-  # Keep scheduled/manual runs independent; newer pushes still cancel older PR runs.
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve normal concurrency when narrowing is off. Release-verification dispatches use a
+  # unique group and cannot be cancelled by a later dispatch/push while Publish is waiting.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}${{ vars.STAGE_ROUTE_ALWAYS_ON_LANES == 'true' && github.event_name == 'workflow_dispatch' && inputs.force-full && format('-release-{0}', github.run_id) || '' }}
+  cancel-in-progress: ${{ !(vars.STAGE_ROUTE_ALWAYS_ON_LANES == 'true' && github.event_name == 'workflow_dispatch' && inputs.force-full) }}
 
 env:
   DOTNET_VERSION: "10.0.x"
@@ -82,11 +83,6 @@ jobs:
           # Unset/false preserves both always-on lanes; ci:full and manual/nightly runs stay full.
           STAGE_ROUTE_ALWAYS_ON_LANES: ${{ vars.STAGE_ROUTE_ALWAYS_ON_LANES }}
         run: python3 .github/ci-routing.py route
-
-      # The jobs API can verify the tested merge SHA of a full PR run (run.head_sha is the source head).
-      - name: Full routing for ${{ steps.routes.outputs.full-sha }}
-        if: steps.routes.outputs.full-sha != ''
-        run: echo 'Every lane selected for the checked-out commit'
 
   preflight:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}

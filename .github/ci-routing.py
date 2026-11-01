@@ -215,27 +215,25 @@ LIVE_STEPS = (
 )
 
 
-def full_run_candidate(run, sha):
-    if run["status"] != "completed" or run["conclusion"] != "success":
+def trusted_full_run(run, sha):
+    """Only main's workflow is trusted; PR authors control their own workflow/job/step names."""
+    expected = {"head_branch": "main", "head_sha": sha, "path": ".github/workflows/dotnet-build.yml"}
+    if any(run.get(key) != value for key, value in expected.items()):
         return False
-    if run["event"] == "pull_request":
-        return True  # The tested merge SHA is checked separately, not run.head_sha (the source head).
-    return run["event"] in ("schedule", "workflow_dispatch") and run["head_sha"] == sha
+    return run.get("event") in ("push", "schedule", "workflow_dispatch")
+
+
+def full_run_candidate(run, sha):
+    if run.get("status") != "completed" or run.get("conclusion") != "success":
+        return False
+    return trusted_full_run(run, sha)
 
 
 def full_run_succeeded(run, sha, jobs):
-    """Require actual execution of every lane, not just a green routed aggregate.
-
-    Full PR runs expose their checked-out merge SHA in a successful routing step name;
-    the API's run.head_sha is the source head and cannot certify the tested revision.
-    """
+    """Require trusted main-branch metadata and every lane executing, not just a green aggregate."""
     if not full_run_candidate(run, sha):
         return False
     by_name = {job["name"]: job for job in jobs}
-    if run["event"] == "pull_request":
-        proof = by_name.get("routing", {}).get("steps", [])
-        if f"Full routing for {sha}" not in successful_step_names(proof):
-            return False
     required = (LANE_PATHS.keys() - {"live-blueprints"}) | {"routing", "build", "routed-checks"}
     if any(by_name.get(name, {}).get("conclusion") != "success" for name in required):
         return False
@@ -261,7 +259,7 @@ class FullCIGate:
         return subprocess.check_output(["gh", *arguments], text=True, timeout=min(60, remaining)).strip()
 
     def runs(self):
-        # Include PR runs: their source head differs from the tested merge SHA.
+        # The API supplies run provenance; never infer trust from job or step names.
         endpoint = f"repos/{self.repository}/actions/workflows/dotnet-build.yml/runs?per_page=100"
         return json.loads(self.request("api", endpoint))["workflow_runs"]
 
@@ -282,7 +280,7 @@ class FullCIGate:
 
     def dispatched_run(self, current, known):
         candidates = [run["id"] for run in current if run["id"] not in known and run["event"] == "workflow_dispatch"
-                      and run["head_sha"] == self.sha and run["head_branch"] == "main"]
+                      and trusted_full_run(run, self.sha)]
         return min(candidates, default=None)
 
     @staticmethod
@@ -380,9 +378,6 @@ def write_routes(selected):
     with open(os.environ["GITHUB_OUTPUT"], "a") as output:
         for lane in LANE_PATHS:
             output.write(f"{lane}={str(lane in selected).lower()}\n")
-        if selected == set(LANE_PATHS):
-            sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-            output.write(f"full-sha={sha}\n")
     print("Selected lanes: " + ", ".join(sorted(selected)))
 
 

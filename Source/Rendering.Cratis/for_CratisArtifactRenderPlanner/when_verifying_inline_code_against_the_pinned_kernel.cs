@@ -116,9 +116,9 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
     {
         var document = XDocument.Load(Path.Combine(_evidence.FullName, "inline-probe.trx"));
         XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-        var result = Assert.Single(document.Descendants(ns + "UnitTestResult"));
-        Assert.Equal(name, (string?)result.Attribute("testName"));
-        Assert.Equal("Passed", (string?)result.Attribute("outcome"));
+        var result = Assert.Single(GeneratedTestResults.Read(document));
+        Assert.True(result.Matches(fullName: name));
+        Assert.Equal("Passed", result.Outcome);
         var counters = Assert.Single(document.Descendants(ns + "Counters"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));
         Assert.Equal("1", (string?)counters.Attribute("passed"));

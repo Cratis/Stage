@@ -13,8 +13,8 @@ public class with_duplicate_unordered_events(with_duplicate_unordered_events.con
 {
     [Fact] void should_build_debug_without_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
-    [Fact] void should_run_the_multiset_matcher_once() => fixture.Results.Count(_ => _.Name.Contains("should_append_the_expected_event_multiset", StringComparison.Ordinal)).ShouldEqual(1);
-    [Fact] void should_run_the_exact_count_check_once() => fixture.Results.Count(_ => _.Name.Contains("should_append_exactly_2_events", StringComparison.Ordinal)).ShouldEqual(1);
+    [Fact] void should_run_the_multiset_matcher_once() => fixture.Results.Count(_ => _.Matches(methodName: "should_append_the_expected_event_multiset")).ShouldEqual(1);
+    [Fact] void should_run_the_exact_count_check_once() => fixture.Results.Count(_ => _.Matches(methodName: "should_append_exactly_2_events")).ShouldEqual(1);
     [Fact] void should_pass_every_generated_specification() => (fixture.Results.Length > 0 && fixture.Results.All(_ => _.Outcome == "Passed")).ShouldBeTrue();
 
     internal static string Source => with_unordered_events.Source

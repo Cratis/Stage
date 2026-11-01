@@ -67,11 +67,8 @@ public abstract class a_three_way_application : a_generated_application
                 differences.Add($"{ApplicationName}: the previously renderable conformance model was blocked: {string.Join(", ", rendered.Diagnostics.Select(diagnostic => diagnostic.Code))}");
             }
 
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             var results = rendered.Success
-                ? XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
-                    .Descendants(ns + "UnitTestResult")
-                    .Select(result => (Name: result.Attribute("testName").Value, Outcome: result.Attribute("outcome").Value)).ToArray()
+                ? GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx")))
                 : [];
             foreach (var (form, model) in models)
             {
@@ -112,8 +109,8 @@ public abstract class a_three_way_application : a_generated_application
                         differences.Add($"{form}/{specification.Name}: unexpected Stage unsupported outcome {stage.Unsupported?.Capability}");
                     }
 
-                    var testClass = ".when_" + Identifiers.ToSnakeCase(specification.Name) + ".";
-                    var facts = results.Where(result => result.Name.Contains(testClass, StringComparison.Ordinal)).ToArray();
+                    var testClass = "when_" + Identifiers.ToSnakeCase(specification.Name);
+                    var facts = results.Where(result => result.Matches(className: testClass)).ToArray();
                     var rendering = "NotRendered";
                     if (facts.Length > 0)
                     {

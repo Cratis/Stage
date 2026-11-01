@@ -56,9 +56,9 @@ public class when_verifying_application_trigger_reactions_against_the_pinned_ker
     {
         XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
         var document = XDocument.Parse(trx);
-        var result = Assert.Single(document.Descendants(ns + "UnitTestResult"));
-        Assert.Equal(InnerTest, (string?)result.Attribute("testName"));
-        Assert.Equal("Passed", (string?)result.Attribute("outcome"));
+        var result = Assert.Single(GeneratedTestResults.Read(document));
+        Assert.True(result.Matches(fullName: InnerTest));
+        Assert.Equal("Passed", result.Outcome);
         var counters = Assert.Single(document.Descendants(ns + "Counters"));
         Assert.Equal("1", (string?)counters.Attribute("total"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));

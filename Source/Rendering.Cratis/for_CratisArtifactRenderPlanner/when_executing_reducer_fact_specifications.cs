@@ -52,6 +52,6 @@ public class when_executing_reducer_fact_specifications : a_generated_applicatio
     }
 
     internal static GeneratedTestResult[] ResultsForSpecification(IEnumerable<GeneratedTestResult> results, string name) =>
-        [.. results.Where(result => result.ClassName.Contains(name, StringComparison.Ordinal))];
+        [.. results.Where(result => result.Matches(className: name, match: GeneratedTestNameMatch.Prefix))];
 }
 #endif

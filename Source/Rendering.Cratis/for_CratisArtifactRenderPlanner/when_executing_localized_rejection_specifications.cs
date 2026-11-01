@@ -25,7 +25,7 @@ public class when_executing_localized_rejection_specifications(when_executing_lo
     [Fact] void should_build_without_debug_warnings() => fixture.DebugWarnings.ShouldBeEmpty();
     [Fact] void should_build_without_release_warnings() => fixture.ReleaseWarnings.ShouldBeEmpty();
     [Fact] void should_pass_all_generated_specifications() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_compare_both_rejection_keys() => fixture.Results.Count(_ => _.Name.Contains("should_report_the_expected_first_error_key", StringComparison.Ordinal) && _.Outcome == "Passed").ShouldEqual(2);
+    [Fact] void should_compare_both_rejection_keys() => fixture.Results.Count(_ => _.Matches(methodName: "should_report_the_expected_first_error_key") && _.Outcome == "Passed").ShouldEqual(2);
 
     public class context : a_generated_invoice_application
     {

@@ -16,8 +16,8 @@ public class with_stated_event_sources(context fixture) : IClassFixture<context>
     [Fact] void should_build_release_without_warnings() => fixture.ReleaseWarnings.ShouldEqual(string.Empty);
     [Fact] void should_execute_all_six_generated_facts() => fixture.Results.Length.ShouldEqual(6);
     [Fact] void should_pass_every_generated_fact() => fixture.Results.All(_ => _.Outcome == "Passed").ShouldBeTrue();
-    [Fact] void should_verify_the_stated_first_stream() => fixture.Results.Any(_ => _.Name.EndsWith(".when_issuing_first_invoice.should_have_appended_invoice_issued", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_verify_the_stated_second_stream() => fixture.Results.Any(_ => _.Name.EndsWith(".when_issuing_second_invoice.should_have_appended_invoice_issued", StringComparison.Ordinal)).ShouldBeTrue();
+    [Fact] void should_verify_the_stated_first_stream() => fixture.Results.Any(_ => _.Matches(className: "when_issuing_first_invoice", methodName: "should_have_appended_invoice_issued")).ShouldBeTrue();
+    [Fact] void should_verify_the_stated_second_stream() => fixture.Results.Any(_ => _.Matches(className: "when_issuing_second_invoice", methodName: "should_have_appended_invoice_issued")).ShouldBeTrue();
 
     public class context : a_generated_invoice_application
     {

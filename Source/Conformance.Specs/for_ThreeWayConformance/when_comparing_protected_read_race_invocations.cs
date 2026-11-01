@@ -42,17 +42,13 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
 
             BuildWarnings(await Run("race-debug-build.log", "build", "ProtectedCommandReadRaces.csproj", "-c", "Debug", "-warnaserror", "--nologo", "-m:3")).ShouldEqual(string.Empty);
             await Run("race-debug-test.log", "test", "ProtectedCommandReadRaces.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=races.trx", "--results-directory", _evidence.FullName);
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
             var run = XDocument.Load(Path.Combine(_evidence.FullName, "races.trx"));
-            var classes = run.Descendants(ns + "UnitTest").ToDictionary(
-                test => test.Attribute("id").Value,
-                test => test.Element(ns + "TestMethod").Attribute("className").Value);
-            var results = run.Descendants(ns + "UnitTestResult").ToArray();
+            var results = GeneratedTestResults.Read(run);
             foreach (var name in protected_read_race_probes.InvocationVectors)
             {
-                var facts = results.Where(result => classes[result.Attribute("testId").Value].EndsWith($".when_{name.Replace('-', '_')}", StringComparison.Ordinal)).ToArray();
+                var facts = results.Where(result => result.Matches(className: $"when_{name.Replace('-', '_')}")).ToArray();
                 facts.ShouldNotBeEmpty();
-                facts.ShouldEachConformTo(fact => fact.Attribute("outcome").Value == "Passed");
+                facts.ShouldEachConformTo(fact => fact.Outcome == "Passed");
                 Executed++;
             }
         }

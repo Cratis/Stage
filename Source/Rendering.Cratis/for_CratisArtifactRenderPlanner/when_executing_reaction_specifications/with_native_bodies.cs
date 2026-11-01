@@ -37,9 +37,9 @@ public class with_native_bodies : a_generated_application
         var results = Results("native.trx");
         Assert.Equal(20, results.Length);
         Assert.All(results, result => Assert.Equal("Passed", result.Outcome));
-        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.Highlighting.when_high_score_highlights.when_high_score_highlights");
-        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.Highlighting.when_low_score_does_not_highlight.when_low_score_does_not_highlight");
-        Assert.Contains(results, result => result.ClassName == "Invoices.CallForPapers.Review.FileHighlighting.when_high_score_file_highlights.when_high_score_file_highlights");
+        Assert.Contains(results, result => result.Matches(className: "Invoices.CallForPapers.Review.Highlighting.when_high_score_highlights.when_high_score_highlights"));
+        Assert.Contains(results, result => result.Matches(className: "Invoices.CallForPapers.Review.Highlighting.when_low_score_does_not_highlight.when_low_score_does_not_highlight"));
+        Assert.Contains(results, result => result.Matches(className: "Invoices.CallForPapers.Review.FileHighlighting.when_high_score_file_highlights.when_high_score_file_highlights"));
     }
 
     [Fact]

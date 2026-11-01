@@ -87,8 +87,8 @@ public class when_executing_validated_query_keys(when_executing_validated_query_
                 "Invoices.Billing.Invoicing.Lookup.when_looking_up_issued_invoice_is_queried.when_looking_up_issued_invoice_is_queried",
                 "Invoices.Billing.Invoicing.Lookup.when_filtering_issued_invoices_is_queried.when_filtering_issued_invoices_is_queried"
             ];
-            Assert.All(companions, name => Assert.Equal(3, outcomes.Count(result => result.ClassName == name)));
-            CompanionOutcomes = [.. outcomes.Where(result => companions.Contains(result.ClassName, StringComparer.Ordinal)).Select(result => result.Outcome)];
+            Assert.All(companions, name => Assert.Equal(3, outcomes.Count(result => result.Matches(className: name))));
+            CompanionOutcomes = [.. outcomes.Where(result => companions.Any(name => result.Matches(className: name))).Select(result => result.Outcome)];
         }
     }
 }

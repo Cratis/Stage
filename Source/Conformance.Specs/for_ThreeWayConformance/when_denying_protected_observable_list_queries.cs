@@ -38,15 +38,14 @@ public class when_denying_protected_observable_list_queries(when_denying_protect
             Warnings = BuildWarnings(await Run("denial-build.log", "build", "InvoiceApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("denial-test.log", "test", "InvoiceApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=denial.trx", "--results-directory", _evidence.FullName);
             var trx = XDocument.Load(Path.Combine(_evidence.FullName, "denial.trx"));
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            var results = trx.Descendants(ns + "UnitTestResult").ToArray();
-            UnkeyedOutcome = Outcomes(results, "when_denying_unkeyed_list_is_queried.should_be_unauthorized").Single();
-            FilteredOutcome = Outcomes(results, "when_denying_filtered_list_with_unset_argument_is_queried.should_be_unauthorized").Single();
-            NoDataOutcomes = Outcomes(results, "should_return_no_data");
+            var results = GeneratedTestResults.Read(trx);
+            UnkeyedOutcome = Outcomes(results, className: "when_denying_unkeyed_list_is_queried", methodName: "should_be_unauthorized").Single();
+            FilteredOutcome = Outcomes(results, className: "when_denying_filtered_list_with_unset_argument_is_queried", methodName: "should_be_unauthorized").Single();
+            NoDataOutcomes = Outcomes(results, methodName: "should_return_no_data");
         }
 
-        static string[] Outcomes(IEnumerable<XElement> results, string name) =>
-            [.. results.Where(result => ((string)result.Attribute("testName")!).Contains(name, StringComparison.Ordinal)).Select(result => (string)result.Attribute("outcome")!)];
+        static string[] Outcomes(IEnumerable<GeneratedTestResult> results, string? className = null, string? methodName = null) =>
+            [.. results.Where(result => result.Matches(className: className, methodName: methodName)).Select(result => result.Outcome)];
 
         static string Source => "policy Clerks\n  require authenticated\n" + a_query_filter_model.Source
             .Replace("query AllInvoices => observable InvoiceSummary[]\n", "query AllInvoices => observable InvoiceSummary[]\n        authorize Clerks\n", StringComparison.Ordinal)

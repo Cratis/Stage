@@ -12,7 +12,7 @@ public abstract class a_generated_invoice_application : a_generated_application
 {
     public string DebugWarnings { get; private set; } = null!;
     public string ReleaseWarnings { get; private set; } = null!;
-    public ImmutableArray<(string Name, string Outcome)> Results { get; private set; }
+    public ImmutableArray<GeneratedTestResult> Results { get; private set; }
     public ImmutableArray<GeneratedTestResult> StructuralResults { get; private set; }
     protected abstract string InvoiceSource { get; }
 
@@ -27,7 +27,7 @@ public abstract class a_generated_invoice_application : a_generated_application
             ReleaseWarnings = BuildWarnings(await Run("release-build.log", "build", "InvoiceApp.csproj", "-c", "Release", "-t:Rebuild", "-warnaserror", "-m:3", "--nologo"));
             var results = XDocument.Load(Path.Combine(_evidence.FullName, "generated.trx"));
             StructuralResults = GeneratedTestResults.Read(results);
-            Results = [.. StructuralResults.Select(result => ($"{result.ClassName}.{result.MethodName}", result.Outcome))];
+            Results = StructuralResults;
         }
         finally
         {

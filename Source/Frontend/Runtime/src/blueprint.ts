@@ -135,6 +135,26 @@ function logo(id: string, application: ApplicationIdentity | undefined, landing:
     });
 }
 
+/** What the chrome around a screen is asked to draw besides the screen itself. */
+export interface ChromeOptions {
+    /** Whether the model declares navigation regions, which the topbar and sidebar then draw instead of the menu. Off unless stated. */
+    regions?: boolean;
+
+    /** Whether the footer is drawn. On unless stated. */
+    showFooter?: boolean;
+
+    /** Whether the topbar offers the theme switcher. On unless stated. */
+    showThemeSwitcher?: boolean;
+}
+
+/** The end of the topbar: the locale picker when the application has more than one locale, then the theme switcher when it is offered. */
+function topbarEnd(locales: string[], locale: string, showThemeSwitcher: boolean): SceneElement[] {
+    const end: SceneElement[] = [];
+    if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
+    if (showThemeSwitcher) end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
+    return end;
+}
+
 /**
  * The chrome the blueprint's application shell wraps every screen in, besides the screen itself.
  *
@@ -143,7 +163,8 @@ function logo(id: string, application: ApplicationIdentity | undefined, landing:
  * the entries its screens authored as `Navigation` contributions - or one flat list of its screens - as the menu, and the topbar and
  * sidebar draw no region of their own.
  */
-export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, regions = false, showFooter = true, showThemeSwitcher = true): Record<string, SceneElement[]> {
+export function applicationChrome(screens: Screen[], activeScreen: string, locales: string[], locale: string, application?: ApplicationIdentity, options: ChromeOptions = {}): Record<string, SceneElement[]> {
+    const { regions = false, showFooter = true, showThemeSwitcher = true } = options;
     const first = screens[0]?.name ?? '';
     const title = application?.title ?? stageApplicationName;
     const authored = authoredNavigationEntries(screens);
@@ -162,9 +183,7 @@ export function applicationChrome(screens: Screen[], activeScreen: string, local
     const menu = authored.length > 0
         ? externalComponent('menu-hierarchy', stageNavigationTreeComponent, { nodes: tree, activeScreen })
         : externalComponent('menu-screens', ComponentName.Menu, { title: 'Screens', label: 'Screens' }, { items: entries });
-    const end: SceneElement[] = [];
-    if (locales.length > 1) end.push(externalComponent('topbar-locale', stageLocaleComponent, { locales, locale }));
-    if (showThemeSwitcher) end.push(externalComponent('topbar-theme', stageThemeToggleComponent, {}));
+    const end = topbarEnd(locales, locale, showThemeSwitcher);
     const regionNavigation = { regionNavigation: regions };
 
     return {

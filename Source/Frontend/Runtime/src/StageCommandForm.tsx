@@ -54,7 +54,7 @@ interface StageCommandContent {
 }
 
 /** Renders an authored screen form through Cratis Arc's native CommandForm boundary. */
-export function StageCommandForm({ element, cancellable = false }: StageCommandFormProps) {
+export function StageCommandForm({ element, cancellable }: StageCommandFormProps) {
     const data = useStageData();
     const arc = useContext(ArcContext);
     const closeDialog = useContext(StageDialogContext);
@@ -65,7 +65,7 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
     const hasSchemaMetadata = typeof element.properties.schema === 'string';
     const fields = useMemo(() => form ? fieldsFor(form, schema) : [], [form, schema]);
     const commandType = form ? registeredCommand(form.command, text(element, 'typeName'), text(element, 'route')) : undefined;
-    const submitLabel = text(element, 'submitLabel') || form?.label || 'Submit';
+    const submitLabel = submitLabelOf(element, form);
     const argumentValues = useArgumentValues(element, fields, data.resolveArgument);
     const answered = usePopulatedValues(element, schema, data);
 
@@ -119,14 +119,25 @@ export function StageCommandForm({ element, cancellable = false }: StageCommandF
                 {footer
                     // In a dialog the submit sits in the footer beside Cancel; it submits the form it belongs to.
                     ? createPortal(<Button type='button' className='scene-slice-dialog-submit' onClick={() => section.current?.querySelector('form')?.requestSubmit()}>{submitLabel}</Button>, footer)
-                    : (
-                        <div className='stage-command-form__actions'>
-                            <Button type='submit'>{submitLabel}</Button>
-                            {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
-                        </div>
-                    )}
+                    : <FormActions submitLabel={submitLabel} cancellable={cancellable} />}
             </NativeCommandForm>
         </section>
+    );
+}
+
+/** The label the form submits under: the one the model gave the action, else the command's own, else 'Submit'. */
+function submitLabelOf(element: ExternalComponent, form: NativeFormProperties | undefined): string {
+    return text(element, 'submitLabel') || form?.label || 'Submit';
+}
+
+/** The submit button, with Cancel beside it when the form asks for one and a dialog around it can be closed. */
+function FormActions({ submitLabel, cancellable }: { submitLabel: string; cancellable?: boolean }) {
+    const closeDialog = useContext(StageDialogContext);
+    return (
+        <div className='stage-command-form__actions'>
+            <Button type='submit'>{submitLabel}</Button>
+            {cancellable && closeDialog && <Button type='button' variant='outline' onClick={closeDialog}>Cancel</Button>}
+        </div>
     );
 }
 

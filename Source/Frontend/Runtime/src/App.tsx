@@ -51,8 +51,8 @@ import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
-import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
-import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
+import { applicationChrome, type ApplicationIdentity, type ChromeOptions, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { shellChromeOf, shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
 import { bindDataSources } from './stageDataSources';
@@ -145,8 +145,8 @@ function resolvedScreens(screens: Screen[], dictionary?: Record<string, string>)
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true): CompositionOptions {
-    const regions = declaresRegions(scene.navigation);
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], chromeOptions: ChromeOptions = {}): CompositionOptions {
+    const options: ChromeOptions = { ...chromeOptions, regions: declaresRegions(scene.navigation) };
     const chromeScreens = resolvedScreens(scene.screens, dictionary);
     const application = applicationIdentity(scene);
     return {
@@ -157,8 +157,8 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         blueprintTemplates: blueprintTemplates?.length ? [...galleryScreenTemplates, ...blueprintTemplates] : galleryScreenTemplates,
         namedTemplateOnly: true,
         chrome: (screen, shell) => shell === ComponentName.FullPageShell
-            ? { [SlotName.ConfigPanel]: applicationChrome(chromeScreens, screen.name, locales, locale, application, regions, showFooter, showThemeSwitcher)[SlotName.ConfigPanel] }
-            : applicationChrome(chromeScreens, screen.name, locales, locale, application, regions, showFooter, showThemeSwitcher),
+            ? { [SlotName.ConfigPanel]: applicationChrome(chromeScreens, screen.name, locales, locale, application, options)[SlotName.ConfigPanel] }
+            : applicationChrome(chromeScreens, screen.name, locales, locale, application, options),
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
@@ -298,10 +298,9 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const shellProblems = useMemo(() => shell ? shellStartupProblems(profile, shell) : [], [profile, shell]);
     const shellSettings = useMemo(() => shell ? stageShellSettings(profile, shell, prefersDark) : undefined, [profile, shell, prefersDark]);
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
-    const showFooter = shellSettings?.showFooter ?? true;
-    const showThemeSwitcher = shellSettings?.showThemeSwitcher ?? true;
+    const { showFooter, showThemeSwitcher } = shellChromeOf(shellSettings);
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher),
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, { showFooter, showThemeSwitcher }),
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);

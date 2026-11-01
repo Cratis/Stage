@@ -7,11 +7,17 @@ import { humanizeScreenName } from './humanize';
 const titleComponent = 'core:title';
 const bodySlots = ['content', 'main'];
 
+function titleText(element: SceneElement): string | undefined {
+    const candidate = element as { componentName?: string; properties?: Record<string, unknown> };
+    if (candidate.componentName !== titleComponent) return undefined;
+    const text = candidate.properties?.text;
+    return typeof text === 'string' && text.trim().length > 0 ? text : undefined;
+}
+
 function titleAmong(elements: readonly SceneElement[] | undefined): string | undefined {
     for (const element of elements ?? []) {
-        const candidate = element as { componentName?: string; properties?: Record<string, unknown> };
-        const text = candidate.properties?.text;
-        if (candidate.componentName === titleComponent && typeof text === 'string' && text.trim().length > 0) return text;
+        const text = titleText(element);
+        if (text !== undefined) return text;
     }
 
     return undefined;

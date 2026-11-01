@@ -17,17 +17,23 @@ export function readableValue(value: unknown): string | undefined {
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
     if (typeof value !== 'string') return undefined;
 
+    return readableDate(value) ?? readableDateTime(value);
+}
+
+/** An ISO date as the user's locale writes it, or undefined when the text is not one - or names a day the calendar does not have. */
+function readableDate(value: string): string | undefined {
     const date = isoDate.exec(value);
-    if (date) {
-        const parsed = new Date(2000, Number(date[2]) - 1, Number(date[3]));
-        parsed.setFullYear(Number(date[1]));
-        return Number.isNaN(parsed.getTime()) || parsed.getMonth() !== Number(date[2]) - 1 ? undefined : parsed.toLocaleDateString();
-    }
+    if (!date) return undefined;
 
-    if (isoDateTime.test(value)) {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? undefined : parsed.toLocaleString();
-    }
+    const parsed = new Date(2000, Number(date[2]) - 1, Number(date[3]));
+    parsed.setFullYear(Number(date[1]));
+    return Number.isNaN(parsed.getTime()) || parsed.getMonth() !== Number(date[2]) - 1 ? undefined : parsed.toLocaleDateString();
+}
 
-    return undefined;
+/** An ISO date-time as the user's locale writes it, or undefined when the text is not one. */
+function readableDateTime(value: string): string | undefined {
+    if (!isoDateTime.test(value)) return undefined;
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toLocaleString();
 }

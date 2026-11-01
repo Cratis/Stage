@@ -53,32 +53,41 @@ const hexColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
  */
 export function stageShellSettings(profile: UiProfile | undefined, shell: EffectiveShell, prefersDark = false): StageShellSettings {
     const problems: string[] = [];
-    const options = shell.options ?? {};
     const settings: StageShellSettings = { showFooter: true, showThemeSwitcher: true, followsSystem: false, problems };
 
-    for (const [name, value] of Object.entries(options)) {
-        if (!knownShellOptions.includes(name)) {
-            problems.push(`The shell '${shell.name}' has no option '${name}'; the options it understands are ${knownShellOptions.join(', ')}.`);
-            continue;
-        }
-
-        if (name === 'navigationMode') {
-            const mode = layoutModes.find(candidate => candidate === value);
-            if (mode) settings.mode = mode;
-            else problems.push(`Option 'navigationMode' is '${String(value)}'; expected one of ${layoutModes.join(', ')}.`);
-        } else if (name === 'menuTheme') {
-            const menuTheme = menuThemes.find(candidate => candidate === value);
-            if (menuTheme) settings.menuTheme = menuTheme;
-            else problems.push(`Option 'menuTheme' is '${String(value)}'; expected one of ${menuThemes.join(', ')}.`);
-        } else if (typeof value === 'boolean') {
-            if (name === 'showFooter') settings.showFooter = value;
-            else settings.showThemeSwitcher = value;
-        } else {
-            problems.push(`Option '${name}' is '${String(value)}'; expected true or false.`);
-        }
+    for (const [name, value] of Object.entries(shell.options ?? {})) {
+        const problem = applyShellOption(settings, shell.name, name, value);
+        if (problem) problems.push(problem);
     }
 
-    const appearance = profile?.appearance;
+    applyAppearance(settings, profile?.appearance, prefersDark);
+    return settings;
+}
+
+/** Applies one shell option to the settings; the problem it states when the option is unknown or its value is not one it takes. */
+function applyShellOption(settings: StageShellSettings, shellName: string, name: string, value: unknown): string | undefined {
+    if (!knownShellOptions.includes(name)) return `The shell '${shellName}' has no option '${name}'; the options it understands are ${knownShellOptions.join(', ')}.`;
+
+    if (name === 'navigationMode') {
+        const mode = layoutModes.find(candidate => candidate === value);
+        if (mode) settings.mode = mode;
+        else return `Option 'navigationMode' is '${String(value)}'; expected one of ${layoutModes.join(', ')}.`;
+    } else if (name === 'menuTheme') {
+        const menuTheme = menuThemes.find(candidate => candidate === value);
+        if (menuTheme) settings.menuTheme = menuTheme;
+        else return `Option 'menuTheme' is '${String(value)}'; expected one of ${menuThemes.join(', ')}.`;
+    } else if (typeof value === 'boolean') {
+        if (name === 'showFooter') settings.showFooter = value;
+        else settings.showThemeSwitcher = value;
+    } else {
+        return `Option '${name}' is '${String(value)}'; expected true or false.`;
+    }
+
+    return undefined;
+}
+
+/** Applies the profile's appearance - colour scheme, theme and accent - to the settings, stating an accent it cannot use. */
+function applyAppearance(settings: StageShellSettings, appearance: UiProfile['appearance'], prefersDark: boolean): void {
     if (appearance?.colorScheme !== undefined) {
         settings.followsSystem = appearance.colorScheme === ProfileColorScheme.System;
         const dark = settings.followsSystem ? prefersDark : appearance.colorScheme === ProfileColorScheme.Dark;
@@ -89,10 +98,13 @@ export function stageShellSettings(profile: UiProfile | undefined, shell: Effect
 
     if (appearance?.accent !== undefined) {
         if (hexColor.test(appearance.accent)) settings.accent = appearance.accent;
-        else problems.push(`The accent '${appearance.accent}' is not a colour written as #rgb or #rrggbb.`);
+        else settings.problems.push(`The accent '${appearance.accent}' is not a colour written as #rgb or #rrggbb.`);
     }
+}
 
-    return settings;
+/** The chrome options the settings ask of the application's composition: whether it draws its footer and offers the theme switcher. Both default to on. */
+export function shellChromeOf(settings: StageShellSettings | undefined): Pick<StageShellSettings, 'showFooter' | 'showThemeSwitcher'> {
+    return { showFooter: settings?.showFooter ?? true, showThemeSwitcher: settings?.showThemeSwitcher ?? true };
 }
 
 /**

@@ -32,5 +32,5 @@ public class when_formatting_a_timing
         }
     }
 
-    static string Line(string fileName, string[] arguments) => GeneratedApplicationBuilds.TimingLine(_started, "Caller", fileName, arguments, TimeSpan.FromSeconds(1.2), TimeSpan.FromSeconds(3.4));
+    static string Line(string fileName, string[] arguments) => GeneratedApplicationBuilds.TimingLine(_started, new("Caller", fileName, arguments), TimeSpan.FromSeconds(1.2), TimeSpan.FromSeconds(3.4));
 }

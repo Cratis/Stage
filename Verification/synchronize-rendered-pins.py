@@ -304,17 +304,19 @@ class RenderedPinSynchronization(unittest.TestCase):
                 published("@cratis/arc", "22.146.0")
 
     def test_runtime_peers_move_with_the_manifest(self):
+        # The runtime peers follow the committed root manifest, not the Arc-normalized fixture: right after a
+        # NuGet-only Arc bump the fixture already carries the new Arc while both npm manifests carry the old one.
         content = (ROOT / RUNTIME).read_text()
-        old = cratis_pins(self.manifest)
-        old["@cratis/components"] = json.loads(content)["peerDependencies"]["@cratis/components"]
-        new = {**old, "@cratis/components": "97.0.1"}
+        old = cratis_pins(json.loads((ROOT / MANIFEST).read_text()))
+        new = {**old, "@cratis/components": "97.0.1", "@cratis/arc": "98.0.1", "@cratis/arc.react": "98.0.1"}
         updated = json.loads(runtime_peers(content, old, new))["peerDependencies"]
         self.assertEqual(updated["@cratis/components"], "97.0.1")
+        self.assertEqual(updated["@cratis/arc"], "98.0.1")
         self.assertEqual(updated["react"], json.loads(content)["peerDependencies"]["react"])
 
     def test_runtime_peer_drift_is_refused(self):
         content = (ROOT / RUNTIME).read_text()
-        old = {**cratis_pins(self.manifest), "@cratis/components": "0.0.1"}
+        old = {**cratis_pins(json.loads((ROOT / MANIFEST).read_text())), "@cratis/components": "0.0.1"}
         with self.assertRaisesRegex(ValueError, "peer @cratis/components"):
             runtime_peers(content, old, old)
 

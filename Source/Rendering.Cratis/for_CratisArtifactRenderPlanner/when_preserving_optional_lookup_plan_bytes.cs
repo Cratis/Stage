@@ -31,7 +31,7 @@ public class when_preserving_optional_lookup_plan_bytes : Specification
 
     // Re-frozen for #656: generated Scene layouts are empty and screen layout names defer to the blueprint.
     // Re-frozen for Cratis/Stage#707: the default scaffold no longer installs or configures PrimeReact (package.json Prime deps, main.tsx
-    // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.80.2 and Components 4.34.0.
+    // provider/theme/licence, vite styledPrimeReact/licence, primeicons) and pins Scene 4.86.0 and Components 4.34.0.
     // Re-frozen for #437: only the Matching package pin and host reference are added.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #660: the only artifact-byte delta in all four views is CratisReadProtection=On in Directory.Build.props.

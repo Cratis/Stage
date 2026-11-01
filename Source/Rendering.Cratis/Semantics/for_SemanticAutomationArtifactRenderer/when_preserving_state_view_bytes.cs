@@ -34,11 +34,22 @@ public class when_preserving_state_view_bytes : given.an_automation
 
             namespace Reactions.Work.Processing.Summary;
 
+            /// <summary>
+            /// Represents summary.
+            /// </summary>
+            /// <param name="Amount">The amount.</param>
+            /// <param name="Id">The id.</param>
             [FromEvent<Started>]
             [ReadModel]
             public record Summary({{parameters}})
             {
 
+                /// <summary>
+                /// Queries summary through ById.
+                /// </summary>
+                /// <param name="readModels">The read-model store.</param>
+                /// <param name="id">The id to query.</param>
+                /// <returns>The matching read-model result.</returns>
                 public static async Task<Summary?> ById(IReadModels readModels, EventSourceId id) => await readModels.GetInstanceById<Summary>(id);
             }
             """ + Environment.NewLine;

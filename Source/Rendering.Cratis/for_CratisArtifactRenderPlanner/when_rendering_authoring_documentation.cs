@@ -83,13 +83,13 @@ public class when_rendering_authoring_documentation : Specification
     }
 
     [Fact] void should_render_the_command_description() => _command.ShouldContain("/// Registers &lt;project&gt; &amp; name\n/// </summary>");
-    [Fact] void should_render_command_markdown_before_attributes() => _command.ShouldContain("/// <remarks>\n/// # Command &lt;notes&gt; &amp; details\n///\n/// - **Keep** the requested name.\n/// </remarks>\n[Command]");
+    [Fact] void should_render_command_markdown_before_attributes() => _command.ShouldContain("/// <remarks>\n/// # Command &lt;notes&gt; &amp; details\n///\n/// - **Keep** the requested name.\n/// </remarks>\n/// <param name=\"ProjectId\">The project id.</param>\n/// <param name=\"Name\">The name.</param>\n[Command]");
     [Fact] void should_replace_the_event_summary() => _command.ShouldContain("/// A &lt;project&gt; &amp; name were registered");
     [Fact] void should_not_invent_an_event_summary_with_metadata() => _command.ShouldNotContain("The event that occurs when");
     [Fact] void should_copy_markdown_as_escaped_text() => _command.ShouldContain("/// <remarks>\n/// # Registration &lt;notes&gt; &amp; details\n///\n/// - **Keep** the project identity.\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>");
     [Fact] void should_render_the_read_model_description() => _view.ShouldContain("/// Shows &lt;project&gt; &amp; name\n/// </summary>");
-    [Fact] void should_render_read_model_markdown_before_attributes() => _view.ShouldContain("/// <remarks>\n/// # View &lt;notes&gt; &amp; details\n///\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>\n[FromEvent");
-    [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    public static");
+    [Fact] void should_render_read_model_markdown_before_attributes() => _view.ShouldContain("/// <remarks>\n/// # View &lt;notes&gt; &amp; details\n///\n/// - `name` may contain &lt;markup&gt; &amp; text.\n/// </remarks>\n/// <param name=\"Name\">The name.</param>\n/// <param name=\"ProjectId\">The project id.</param>\n[FromEvent");
+    [Fact] void should_render_the_query_description() => _view.ShouldContain("    /// Finds &lt;project&gt; &amp; name\n    /// </summary>\n    /// <param name=\"readModels\">The read-model store.</param>\n    /// <param name=\"projectId\">The project id to query.</param>\n    /// <returns>The matching read-model result.</returns>\n    public static");
     [Fact] void should_render_the_composite_type_description() => _type.ShouldContain("/// Describes &lt;project&gt; &amp; details");
     [Fact] void should_render_identical_bytes_twice() => Assert.Equal(_plan.Artifacts.Select(artifact => artifact.Sha256), Plan(_compilation).Artifacts.Select(artifact => artifact.Sha256));
 

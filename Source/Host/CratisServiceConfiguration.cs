@@ -62,9 +62,11 @@ public static class CratisServiceConfiguration
                 //
                 // Applied to whatever address is already configured rather than restating it, so pointing a Stage
                 // at a different kernel through cratis-stage.json keeps working.
-                options.ConnectionString = new ChronicleConnectionStringBuilder(options.ConnectionString.ToString())
-                    .WithoutAuthentication()
-                    .ToConnectionString();
+                // A runtime that mounted the connection string of the kernel to use (it carries a secret, so it is a file) wins, as supplied.
+                options.ConnectionString = SandboxRuntimeConventions.MountedConnectionString(Environment.GetEnvironmentVariable) ??
+                    new ChronicleConnectionStringBuilder(options.ConnectionString.ToString())
+                        .WithoutAuthentication()
+                        .ToConnectionString();
 
                 // Give the Chronicle client's initial handshake more headroom than the 5 second default — the
                 // bundled kernel competes for CPU with the host at container startup.

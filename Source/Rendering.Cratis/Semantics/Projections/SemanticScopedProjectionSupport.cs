@@ -759,7 +759,7 @@ internal static class SemanticScopedProjectionSupport
             return string.Join('.', names);
         }
 
-        static string NameOf(SemanticProperty? property, SemanticId id) => property?.Name ?? id.ToString();
+        string NameOf(SemanticProperty? property, SemanticId id) => property?.Name ?? id.ToString();
 
         string MappingReason(SemanticProjectionMapping mapping, SemanticEventContract @event)
         {

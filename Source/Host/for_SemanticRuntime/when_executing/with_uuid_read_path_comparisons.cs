@@ -70,7 +70,7 @@ public class with_uuid_read_path_comparisons : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("UuidReadPaths", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         _tail = ulong.MaxValue;
         ((ISemanticFactTail)_appender).Tail().Returns(_ => _tail);

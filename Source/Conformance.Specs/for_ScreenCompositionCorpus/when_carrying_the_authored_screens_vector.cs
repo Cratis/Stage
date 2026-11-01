@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
@@ -53,7 +54,49 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("086e6c4eff93923b48720ff02bd43a630b5f832f5502aecc24b942596b53dc61");
     [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24000);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
-    [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
+    [Fact]
+    void should_carry_the_guarded_double_click_branches()
+    {
+        var scene = JsonNode.Parse(_bytes)!;
+        var screen = scene["screens"]!.AsArray().Single(screen => screen!["name"]!.GetValue<string>() == "WorkItemList")!;
+        var bindings = screen["slotContent"]!["list"]![3]!["behaviors"]![0]!["bindings"];
+
+        // The authored open-status branch precedes otherwise; neither its navigation nor the fallback may move or disappear.
+        var expected = JsonNode.Parse("""
+            [{
+              "actions": [],
+              "alternatives": [{
+                "condition": {
+                  "enumeration": ["open", "closed"],
+                  "kind": "comparison",
+                  "left": { "subject": "item.status" },
+                  "operator": "Equal",
+                  "right": "open"
+                },
+                "actions": [{
+                  "arguments": [{ "name": "workItemId", "value": { "path": "item.workItemId" } }],
+                  "kind": "Navigate",
+                  "onFailure": [],
+                  "onResult": [],
+                  "onSuccess": [],
+                  "screen": "WorkItemDetails"
+                }]
+              }],
+              "otherwise": [{
+                "arguments": [],
+                "kind": "Notify",
+                "level": "Info",
+                "message": { "text": "This work item is closed" },
+                "onFailure": [],
+                "onResult": [],
+                "onSuccess": []
+              }],
+              "trigger": { "kind": "DoubleClick" }
+            }]
+            """);
+
+        JsonNode.DeepEquals(bindings, expected).ShouldBeTrue();
+    }
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
     [Fact] void should_type_every_status_comparison() => OpenStatusComparison.Count(Encoding.UTF8.GetString(_bytes)).ShouldEqual(ClosedEnumeration.Count(Encoding.UTF8.GetString(_bytes)));
     [Fact] void should_name_enumerations_as_the_scene_runtime_declares_them() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"trigger\":{\"kind\":\"DoubleClick\"}");

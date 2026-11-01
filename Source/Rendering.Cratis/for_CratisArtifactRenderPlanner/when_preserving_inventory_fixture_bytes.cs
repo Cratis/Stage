@@ -27,7 +27,8 @@ public class when_preserving_inventory_fixture_bytes
         ["query"] = "9abede2f083c0c0f2d20fecbfb841763fb516881128af26520912437a6fa1e11",
         ["reaction production"] = "6b382ed2e6093546c233a95f1edfc0e53dd55db3b6ec29dc043cdb67ff749efd",
         ["redelivery"] = "84c0e06e248f59586261abb1aac3338b389ba8f7ef0694409a303769dbc17c2f",
-        ["reducer typed contexts"] = "32e2f14dca8bb900eddd8a2a2791b5577209f72af09877977b8ac3ef08e4c2bd",
+        // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
+        ["reducer typed contexts"] = "625a1dc402edaa0ea9156ac5c9507bb5bd5bee9058e1585220155db1129b29e8",
         ["relocated"] = "45edad68ceee6d0f755e62771287a9e49b50179d81879922ddaab8f94114a308",
         ["reordered"] = "45edad68ceee6d0f755e62771287a9e49b50179d81879922ddaab8f94114a308",
         ["scoped projections"] = "f509232967f361c97a423493ba6bb7f80f7c963602a44c65654095147ec1881f",

@@ -159,7 +159,7 @@ internal static class SemanticStateChangeArtifactRenderer
         var streamId = routing.StreamId();
         string EventValue(SemanticProducedEvent produced)
         {
-            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, locals);
+            if (command.Handler is not null) return SemanticCommandHandlerRendering.Payload(command, produced, context, locals);
             var @event = context.Events[produced.EventContract];
             var arguments = @event.Properties.Select(property =>
             {

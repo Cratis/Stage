@@ -88,8 +88,9 @@ public class with_an_attachment_boundary
         var plan = handler_model.Plan(handler_model.Request(handler_model.MultiBody, handler_model.MultiSource));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var source = Source(plan);
-        Assert.Contains(".Item1", source, StringComparison.Ordinal);
-        Assert.Contains(".Item2", source, StringComparison.Ordinal);
+        Assert.Contains("var (orderPlaced, orderEchoed) = HandlePlaceOrder(", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("handlerPayloads", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Item1", source, StringComparison.Ordinal);
         Assert.Contains(".Token", source, StringComparison.Ordinal);
     }
 

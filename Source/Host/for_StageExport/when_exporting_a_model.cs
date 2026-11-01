@@ -3,6 +3,7 @@
 
 using Cratis.Specifications;
 using Cratis.Stage.Host.Published;
+using Cratis.Stage.Publishing;
 using Xunit;
 
 namespace Cratis.Stage.Host.Export.for_StageExport;

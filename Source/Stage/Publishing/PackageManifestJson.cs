@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 
-namespace Cratis.Stage.Host.Published;
+namespace Cratis.Stage.Publishing;
 
 /// <summary>
 /// Reads and writes manifests. Writing is byte-for-byte reproducible: declared property order, LF line endings, no timestamps.
@@ -19,5 +19,5 @@ internal static class PackageManifestJson
     internal static string Write(PackageManifest manifest) => JsonSerializer.Serialize(manifest, _options) + "\n";
 
     internal static PackageManifest Read(string json) =>
-        JsonSerializer.Deserialize<PackageManifest>(json, _options) ?? throw new PublishedModeRefused(["The package manifest is empty."]);
+        JsonSerializer.Deserialize<PackageManifest>(json, _options) ?? throw new JsonException("The package manifest is empty.");
 }

@@ -8,7 +8,7 @@ using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
 
-namespace Cratis.Stage.Host;
+namespace Cratis.Stage.Api;
 
 internal static class SemanticHostScene
 {

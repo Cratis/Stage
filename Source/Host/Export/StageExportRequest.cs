@@ -4,7 +4,7 @@
 namespace Cratis.Stage.Host.Export;
 
 /// <summary>
-/// Asks for an application package to be produced from a model.
+/// Asks for an application package to be produced from a model on disk.
 /// </summary>
 /// <param name="ModelPath">A <c language="shell">.play</c> file or a folder of them.</param>
 /// <param name="ApplicationVersion">The semantic version of this package of the application.</param>
@@ -12,6 +12,11 @@ namespace Cratis.Stage.Host.Export;
 /// <param name="OutputPath">The folder to write the package to. It must be empty or absent.</param>
 public sealed record StageExportRequest(string ModelPath, string ApplicationVersion, string PublishedName, string OutputPath)
 {
+    /// <summary>
+    /// Gets the application name, or <see langword="null"/> to take it from the model folder or file name.
+    /// </summary>
+    public string? ApplicationName { get; init; }
+
     /// <summary>
     /// Gets the publication id, or <see langword="null"/> to derive one from the published name, version and model.
     /// </summary>

@@ -3,9 +3,8 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Scene;
-using Cratis.Stage.Host.Published;
 
-namespace Cratis.Stage.Host.Export;
+namespace Cratis.Stage.Publishing;
 
 /// <summary>
 /// Pairs the elements of a model with the identifiers its source gave them.

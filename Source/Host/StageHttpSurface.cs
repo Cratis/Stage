@@ -37,7 +37,7 @@ internal sealed class StageHttpSurface
 
     internal static StageHttpSurface Create(ExecutableSemanticModel model, StageHttpRouteOptions? routeOptions = null)
     {
-        var slices = SemanticHostModelWalker.Slices(model).ToArray();
+        var slices = SemanticModelWalker.Slices(model).ToArray();
         var readModels = slices.SelectMany(located => located.Slice.ReadModels).ToDictionary(readModel => readModel.Id);
         var queries = slices.SelectMany(located => located.Slice.Queries).ToArray();
         return Create([.. slices.SelectMany(located => ArtifactsFor(located, readModels, queries))], routeOptions);

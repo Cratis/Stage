@@ -6,7 +6,7 @@ namespace Cratis.Stage.Host.Published;
 /// <summary>
 /// The deployment configuration of a published host, bound from <c language="shell">Stage:Published</c>.
 /// </summary>
-/// <param name="PackagePath">The folder holding the exported application package.</param>
+/// <param name="PackagePath">The folder holding the exported application package, or a <c language="shell">.tar.gz</c> archive of it.</param>
 /// <param name="StorageConnectionString">The MongoDB connection string for Chronicle and its read models.</param>
 /// <param name="AuthenticationMode">How callers are authenticated.</param>
 /// <param name="TrustedProxies">The addresses or CIDR networks whose forwarded headers and principal are trusted.</param>

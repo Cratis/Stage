@@ -2,10 +2,10 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Screenplay.Semantics;
-using Cratis.Stage.Host.Published;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
+using Cratis.Stage.Semantics;
 
-namespace Cratis.Stage.Host.Export;
+namespace Cratis.Stage.Publishing;
 
 /// <summary>
 /// Derives the sign-in requirements from the policies the model applies to its operations.
@@ -15,7 +15,7 @@ internal static class AuthenticationRequirementsReader
     internal static AuthenticationRequirements From(ExecutableSemanticModel model)
     {
         var policies = model.Application.Policies;
-        var applied = SemanticHostModelWalker.Slices(model)
+        var applied = SemanticModelWalker.Slices(model)
             .SelectMany(located => located.Slice.Commands.Select(command => command.Authorization)
                 .Concat(located.Slice.Queries.Select(query => query.Authorization)))
             .OfType<SemanticAuthorization>()

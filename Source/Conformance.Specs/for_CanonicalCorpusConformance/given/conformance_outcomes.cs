@@ -124,7 +124,7 @@ public static partial class conformance_outcomes
     {
         var refused = new Dictionary<refusal_fingerprint, string>();
         var problems = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var entry in new SemanticRuntimeAdmission(plan).Entries.Where(entry => entry.Status != Supported))
+        foreach (var entry in HostAdmission.Entries(plan).Where(entry => entry.Status != Supported))
         {
             var details = entry.Details ?? string.Empty;
             var capability = entry.Capability ?? string.Empty;

@@ -20,6 +20,7 @@ dotnet Cratis.Stage.Host.dll export \
 | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `--model <path>`            | A `.play` file or a folder of them. Required.                                                              |
 | `--version <semver>`        | The application version of this package. Required.                                                         |
+| `--application-name <name>` | The application name recorded in the manifest. Defaults to the model folder name, or the file name without its extension. |
 | `--name <publishedName>`    | The host label the application is published under, as in `https://my-shop.cratis.app`. Required.           |
 | `--output <dir>`            | Where to write the package. Must be absent or empty. Required.                                             |
 | `--publication-id <id>`     | The publication this package belongs to. Defaults to a value derived from the name, version and model.     |
@@ -27,8 +28,42 @@ dotnet Cratis.Stage.Host.dll export \
 | `--runtime-version <semver>`| The Stage runtime the package requires. Defaults to the runtime that exports.                              |
 | `--references <file.json>`  | The identifiers the source model gave to its elements: `{ "module:Shop": "id", "slice:Shop.Orders.PlaceOrder": "id" }`. Keys are `module`, `feature`, `slice` or `screen` followed by the dot-separated qualified name. A key the model does not have is refused. |
 
-The same operation is available to callers as a library: `Cratis.Stage.Host.Export.StageExport.Run(StageExportRequest)`.
 The exit code is `0` on success, `1` when the model is refused and `2` on a usage error.
+
+### Export in-process from a library
+
+The `Cratis.Stage` NuGet package exports without a file system or a process: pass the `.play` sources as text and get
+the package back as bytes.
+
+```csharp
+using Cratis.Stage.Publishing;
+
+var package = StageApplicationExport.Export(new StageApplicationExportRequest(
+    new Dictionary<string, string> { ["shop.play"] = source },   // relative path -> .play text
+    ApplicationName: "Shop",
+    ApplicationVersion: "1.2.0",
+    PublishedName: "my-shop")
+{
+    NotesEnabled = false,                                         // optional
+    ModelReferences = references                                   // optional, as for --references
+});
+
+PackageManifest manifest = package.Manifest;                      // typed
+string manifestJson = package.ManifestJson;                       // as written to manifest.json
+IReadOnlyDictionary<string, byte[]> files = package.Files;        // manifest.json, Dockerfile, model/...
+byte[] archive = package.ToArchive();                             // deterministic .tar.gz
+```
+
+`ExportAsync` is the asynchronous form. A request that fails validation, a model that fails admission and a model with no
+sign-in requirement throw `StageExportRefused`, whose `Reasons` lists every problem. `ApplicationName` is explicit, so
+the package never depends on a folder name. The command line `export` is this API with a file system reader in front of it.
+
+### The archive
+
+`ToArchive()` returns a gzip-compressed tar with flat paths from the package root (`manifest.json`, `Dockerfile`,
+`model/<relative path>`), regular files only, sorted by path, owner uid and gid 0, a fixed modification time and no
+names. The same package gives the same bytes. Hand it to Kubernetes as a single key of a ConfigMap or Secret, mounted
+as a file, and point `Stage:Published:PackagePath` at it.
 
 Export refuses a model that fails the semantic admission the Stage applies when it loads a model, and a model in which
 no command or query requires a signed-in caller, because a published application must require sign-in.
@@ -93,7 +128,7 @@ The host **refuses to start**, with a message naming each problem, unless all of
 
 | Key                                           | Meaning                                                                                                  |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `Stage:Published:PackagePath`                 | The package folder. Default `/stage/package`.                                                            |
+| `Stage:Published:PackagePath`                 | The package folder, or a `.tar.gz` / `.tgz` archive of one, which is extracted to a temporary folder at startup and verified exactly like a folder. Entries that leave the package, links and special files are refused. Default `/stage/package`. |
 | `Stage:Published:Storage:ConnectionString`    | A MongoDB connection string for Chronicle and its read models. Or `…ConnectionStringFile`, the path of a mounted secret holding it. |
 | `Stage:Published:Authentication:Mode`         | `TrustedProxy`, the only supported mode.                                                                 |
 | `Stage:Published:TrustedProxies`              | An array of IP addresses or CIDR networks the sign-in proxy connects from, for example `127.0.0.1` and `::1` for a proxy in the same pod. |

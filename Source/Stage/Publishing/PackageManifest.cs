@@ -1,7 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-namespace Cratis.Stage.Host.Published;
+namespace Cratis.Stage.Publishing;
 
 /// <summary>
 /// The manifest at the root of an exported application package. Property order is the serialized order.
@@ -16,7 +16,7 @@ namespace Cratis.Stage.Host.Published;
 /// <param name="NotesEnabled">Whether the package asks for the Notes backend.</param>
 /// <param name="Authentication">What callers must be able to do for the model's policies to be satisfiable.</param>
 /// <param name="ModelReferences">The identifiers the source model gave to modules, features, slices and screens. Empty when none were supplied.</param>
-internal sealed record PackageManifest(
+public sealed record PackageManifest(
     int SchemaVersion,
     string ApplicationName,
     string PublishedName,
@@ -28,9 +28,9 @@ internal sealed record PackageManifest(
     AuthenticationRequirements Authentication,
     IReadOnlyList<ModelReference> ModelReferences)
 {
-    internal const int CurrentSchemaVersion = 1;
-    internal const string FileName = "manifest.json";
-    internal const string ModelFolder = "model";
+    public const int CurrentSchemaVersion = 1;
+    public const string FileName = "manifest.json";
+    public const string ModelFolder = "model";
 }
 
 /// <summary>
@@ -41,7 +41,7 @@ internal sealed record PackageManifest(
 /// <param name="Roles">The roles those policies mention, sorted.</param>
 /// <param name="Claims">The claims those policies mention, sorted.</param>
 /// <param name="OpaquePolicies">Whether any policy is a code body the provider cannot inspect.</param>
-internal sealed record AuthenticationRequirements(
+public sealed record AuthenticationRequirements(
     bool Required,
     IReadOnlyList<string> Policies,
     IReadOnlyList<string> Roles,
@@ -53,7 +53,7 @@ internal sealed record AuthenticationRequirements(
 /// </summary>
 /// <param name="Name">The claim name.</param>
 /// <param name="Value">The required value, or <see langword="null"/> when any value satisfies it.</param>
-internal sealed record ClaimRequirement(string Name, string? Value);
+public sealed record ClaimRequirement(string Name, string? Value);
 
 /// <summary>
 /// The identifier the source model gave to one element of the application.
@@ -61,4 +61,4 @@ internal sealed record ClaimRequirement(string Name, string? Value);
 /// <param name="Kind">One of <c language="shell">module</c>, <c language="shell">feature</c>, <c language="shell">slice</c> or <c language="shell">screen</c>.</param>
 /// <param name="Name">The dot-separated qualified name.</param>
 /// <param name="Id">The identifier supplied by the source model.</param>
-internal sealed record ModelReference(string Kind, string Name, string Id);
+public sealed record ModelReference(string Kind, string Name, string Id);

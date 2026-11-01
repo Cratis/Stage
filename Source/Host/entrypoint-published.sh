@@ -27,10 +27,21 @@ if [ -z "$connection" ]; then
 fi
 
 package="${Stage__Published__PackagePath:-/stage/package}"
-if [ ! -f "$package/manifest.json" ] || [ ! -d "$package/model" ]; then
-    printf 'ERROR: No application package at %s (expected manifest.json and a model folder).\n' "$package" >&2
-    exit 78
-fi
+# The package is a folder, or a .tar.gz archive of one that the host extracts at startup.
+case "$package" in
+    *.tar.gz|*.tgz)
+        if [ ! -f "$package" ]; then
+            printf 'ERROR: No application package archive at %s.\n' "$package" >&2
+            exit 78
+        fi
+        ;;
+    *)
+        if [ ! -f "$package/manifest.json" ] || [ ! -d "$package/model" ]; then
+            printf 'ERROR: No application package at %s (expected manifest.json and a model folder).\n' "$package" >&2
+            exit 78
+        fi
+        ;;
+esac
 
 echo "Starting Chronicle (persistent storage, authentication on)..."
 export Cratis__Chronicle__Storage__Type=MongoDB

@@ -3,6 +3,7 @@
 
 using Cratis.Screenplay.Semantics;
 using Cratis.Specifications;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SandboxIdentity.when_selecting_per_operation;
@@ -17,7 +18,7 @@ public class with_nested_requirements : given.a_started_multimodule_host
     [Fact]
     void should_include_module_feature_and_operation_requirements()
     {
-        var query = SemanticHostModelWalker.Slices(_model).SelectMany(located => located.Slice.Queries).Single(query => query.Name == "RestrictedItems");
+        var query = SemanticModelWalker.Slices(_model).SelectMany(located => located.Slice.Queries).Single(query => query.Name == "RestrictedItems");
         string.Join(',', Policies(query.Authorization!).Order(StringComparer.Ordinal)).ShouldEqual("IsSales,IsShopper,Special");
     }
 

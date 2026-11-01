@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Specifications;
+using Cratis.Stage.Publishing;
 using Xunit;
 
 namespace Cratis.Stage.Host.Export.for_StageExport;

@@ -3,7 +3,7 @@
 
 using System.Reflection;
 
-namespace Cratis.Stage.Host.Published;
+namespace Cratis.Stage.Publishing;
 
 /// <summary>
 /// The version of this Stage runtime, without build metadata.

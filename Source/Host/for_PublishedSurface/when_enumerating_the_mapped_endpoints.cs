@@ -4,6 +4,7 @@
 using System.Net;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Publishing;
 using Microsoft.AspNetCore.Routing;
 using Xunit;
 

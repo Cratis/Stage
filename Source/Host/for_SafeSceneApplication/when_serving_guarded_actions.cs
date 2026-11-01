@@ -3,6 +3,7 @@
 
 using Cratis.Scene.Model.Elements;
 using Cratis.Specifications;
+using Cratis.Stage.Api;
 using Cratis.Stage.Contracts.Scene;
 using Xunit;
 using SceneScreens = Cratis.Scene.Model.Screens;

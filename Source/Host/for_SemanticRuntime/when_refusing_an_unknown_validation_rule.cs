@@ -7,6 +7,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Specifications;
+using Cratis.Stage.Semantics;
 using Xunit;
 
 namespace Cratis.Stage.Host.for_SemanticRuntime;

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Text.Json;
+using Cratis.Stage.Publishing;
 
 namespace Cratis.Stage.Host.Export;
 
@@ -12,7 +13,7 @@ internal static class StageExportCommand
 {
     internal const string Usage =
         "Usage: export --model <path> --version <semver> --name <publishedName> --output <dir> " +
-        "[--publication-id <id>] [--notes] [--runtime-version <semver>] [--references <file.json>]";
+        "[--application-name <name>] [--publication-id <id>] [--notes] [--runtime-version <semver>] [--references <file.json>]";
 
     /// <summary>
     /// Runs the command.
@@ -72,6 +73,7 @@ internal static class StageExportCommand
 
         return new StageExportRequest(Required("--model"), Required("--version"), Required("--name"), Required("--output"))
         {
+            ApplicationName = values.GetValueOrDefault("--application-name"),
             PublicationId = values.GetValueOrDefault("--publication-id"),
             NotesEnabled = notes,
             RuntimeVersion = values.GetValueOrDefault("--runtime-version"),

@@ -25,7 +25,7 @@ internal static class SemanticHost
     {
         var issues = new List<StageUnsupportedIssue>();
         var notes = new List<SemanticModelLoadDiagnostic>();
-        var (loaded, scene) = await LoadModel(modelPath, issues, notes);
+        var (loaded, scene) = await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
 
         var eventStore = ContainerEventStoreName.Resolve();
         SemanticWorld? world = null;
@@ -185,40 +185,13 @@ internal static class SemanticHost
         await app.WaitForShutdownAsync();
     }
 
-    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null)
+    internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null, string? applicationName = null)
     {
-        try
-        {
-            var loaded = await SemanticModelLoader.LoadFromPathAsync(modelPath);
-            notes?.AddRange(loaded.Notes);
+        var found = new List<StageLoadIssue>();
+        var result = await StageModelLoader.Load(modelPath, found, notes, applicationName);
+        issues.AddRange(found.Select(issue => new StageUnsupportedIssue(issue.Capability, issue.Artifact, issue.Details)));
 
-            var scene = SemanticHostScene.Load(modelPath, loaded.Model);
-            if (scene.RuntimeIssues.All(SafeSceneApplication.CanServeWithoutUnsafeBehavior))
-            {
-                return (loaded, SafeSceneApplication.From(scene));
-            }
-
-            issues.AddRange(scene.RuntimeIssues.Select(issue => new StageUnsupportedIssue("Scene", issue.Artifact, issue.Details)));
-
-            return scene.RuntimeIssues.Count > 0 ? (null, null) : (loaded, scene);
-        }
-        catch (Exception exception) when (exception is UnsupportedUiSyntax)
-        {
-            issues.Add(new StageUnsupportedIssue("Scene", "model", exception.Message));
-
-            return (null, null);
-        }
-        catch (InvalidSemanticModel invalid)
-        {
-            notes?.AddRange(invalid.Notes);
-            issues.AddRange(invalid.Diagnostics.Select(message => new StageUnsupportedIssue("Plan", "model", message)));
-            if (issues.Count == 0)
-            {
-                issues.Add(new StageUnsupportedIssue("Plan", "model", "The semantic model could not be loaded."));
-            }
-
-            return (null, null);
-        }
+        return result;
     }
 
     // Endpoint routing ignores trailing slashes. Match the exact path so the canonical URL never redirects to itself.

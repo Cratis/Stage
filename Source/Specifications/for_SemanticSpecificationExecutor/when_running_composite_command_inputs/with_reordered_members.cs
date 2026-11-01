@@ -11,7 +11,7 @@ public class with_reordered_members : given.a_composite_input
     void Establish()
     {
         Prepare("Details", "{\"count\":2,\"label\":\"bad\"}", "Label pattern");
-        var input = (SemanticCompositeValue)_specification.When!.Values[^1].Value;
+        var input = (SemanticCompositeValue)_specification.When.Values[^1].Value;
         ChangeInput(SemanticValue.Composite([.. input.Properties.Reverse()]));
     }
     Task Because() => Execute();

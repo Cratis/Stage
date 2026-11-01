@@ -59,22 +59,25 @@ public class a_composite_input : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("inputs"), "inputs", "Inputs.play", source);
         var compilation = new SemanticModelCompiler().Compile("CompositeInputs", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        SetPlan(compilation.Value!.Model);
+        SetPlan(compilation.Value.Model);
     }
 
     protected void SetPlan(ExecutableSemanticModel model)
     {
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
         _specification = _plan.Specifications.Values.Single();
         _command = _plan.Commands.Values.Single();
     }
 
     protected void ChangeInput(SemanticValue value)
     {
-        var specification = _specification with { When = _specification.When! with
+        var specification = _specification with
         {
-            Values = [.. _specification.When.Values.Select(member => _command.Properties.Single(property => property.Id == member.TargetProperty).Name == "value" ? member with { Value = value } : member)]
-        } };
+            When = _specification.When with
+            {
+                Values = [.. _specification.When.Values.Select(member => _command.Properties.Single(property => property.Id == member.TargetProperty).Name == "value" ? member with { Value = value } : member)]
+            }
+        };
         ChangeBehavior(specification, _command);
     }
 

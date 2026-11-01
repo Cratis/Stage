@@ -22,6 +22,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
     // Recomputed for #497's generated XML documentation and used-only specification imports.
     // Re-frozen for #494: artifacts without explicit authorization defer to host defaults.
+    // Recomputed for Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins.
     const string Before = "REGENERATE";
 
     void Because() => _application = AppPlan(_profile);

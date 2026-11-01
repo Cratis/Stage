@@ -83,7 +83,7 @@ static class CatalogScaffold
     static async Task<string> Run(string directory, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
-        using var slot = await GeneratedApplicationBuilds.Enter();
+        using var slot = await GeneratedApplicationBuilds.Enter(nameof(CatalogScaffold), "dotnet", arguments);
         var start = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = directory,

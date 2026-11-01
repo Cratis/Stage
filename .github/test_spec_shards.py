@@ -9,6 +9,7 @@ import contextlib
 import io
 from itertools import product
 import json
+import os
 from pathlib import Path
 import re
 import runpy
@@ -400,6 +401,29 @@ class SpecShardsTests(unittest.TestCase):
         self.assertIn("A: dotnet test exited 1", str(raised.exception))
         self.assertIn("C: dotnet test exited 3", str(raised.exception))
         self.assertNotIn("B:", str(raised.exception))
+
+    def test_shard_records_generated_application_timings_beside_each_trx(self):
+        shard = {"name": "multi", "filter": "F", "projects": ["A/A.csproj", "B/B.csproj"]}
+        work = SHARDS["ROOT"] / ".ai-work"
+        work.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="spec-shard-tests-", dir=work) as directory:
+            root = Path(directory)
+            for project in shard["projects"]:
+                timings = root / "TestResults" / shard["name"] / Path(project).stem / "generated-app-timings.tsv"
+                timings.parent.mkdir(parents=True)
+                timings.write_text("stale")
+
+            def fake_run(command, **kwargs):
+                timings = root / "TestResults" / shard["name"] / Path(command[2]).stem / "generated-app-timings.tsv"
+                self.assertEqual(str(timings), kwargs["env"]["STAGE_GENERATED_APP_TIMINGS"])
+                self.assertEqual({**os.environ, "STAGE_GENERATED_APP_TIMINGS": str(timings)}, kwargs["env"])
+                self.assertFalse(timings.exists())
+                return subprocess.CompletedProcess(command, 0)
+
+            with patch.dict(SHARDS["run_shard"].__globals__, {"ROOT": root, "require_executed": lambda path: None}), \
+                    patch("subprocess.run", side_effect=fake_run) as run:
+                SHARDS["run_shard"](shard)
+            self.assertEqual(2, run.call_count)
 
     def test_trx_guard_rejects_empty_or_skipped_runs_and_accepts_execution(self):
         # All fixture files are task-owned, tiny, and cleaned by TemporaryDirectory.

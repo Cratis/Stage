@@ -15,15 +15,16 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 /// </summary>
 public class when_preserving_inventory_fixture_bytes
 {
+    // Re-frozen for Cratis/Stage#850: only the policy runtime concept-base comparisons changed.
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
         ["append refusal"] = "40162a348403e9d792101c275306a96c2834c709faca90f097769ed5321b9ad7",
         ["cascade with trigger"] = "81d41901e41755eed0c607edc7177ee69f0ec22cfe494b583318058a612d3dda",
         ["case table"] = "db27485845dbbc9febff590eddc648c7f78a89772afb1a789fbb61ce18654137",
         ["composite keys"] = "f49fb3239668178da155939850a1d3140fb030ad8eba5e7a1cfa78d60e8728b0",
-        ["denied query"] = "98c4b61690f46793a8af628b0fb3ee9b52a8baf1583a356f8340763fe928bd4d",
+        ["denied query"] = "d80ea8714317455d2821e53b193848c713ecaef9475298a32387ce65f8f755de",
         ["folder"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
-        ["policy typed contexts"] = "bd03edb6a12d82341eceb3b69fdb3845af3d6cad5bcb641937ef91a4adc6063a",
+        ["policy typed contexts"] = "87b33de107937adfa5b017ca177c5b10780d6d2bee119a7d3a54562ecfb713d1",
         ["query"] = "2b177e776044740057a19ddc3270b94dd9bd7fbc264fbc751160105e7548657f",
         ["reaction production"] = "6b382ed2e6093546c233a95f1edfc0e53dd55db3b6ec29dc043cdb67ff749efd",
         ["redelivery"] = "250bea136b3f4dceb4e0378f345d64e6e9f708519ecc5c2b8a5f5e42d4091392",

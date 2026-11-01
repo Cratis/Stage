@@ -136,22 +136,22 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(_oldRawHashes.Keys.Order(StringComparer.Ordinal), HashedArtifacts().Select(artifact => artifact.RelativePath).Order(StringComparer.Ordinal));
 
     [Fact]
-    public void should_limit_raw_deltas_to_fold_and_policy_context()
+    public void should_limit_raw_deltas_to_fold_policy_context_and_type_comparisons()
     {
         var changedPaths = HashedArtifacts()
             .Where(artifact => Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan())) != _oldRawHashes[artifact.RelativePath])
             .Select(artifact => artifact.RelativePath)
             .Order(StringComparer.Ordinal);
         // Re-frozen for Cratis/Stage#848: the two policy body files change only by the body indentation.
-        Assert.Equal(["GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
+        Assert.Equal(["GeneratedPolicies/Policies.cs", "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs", "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs", "Orders/Ordering/Totals/Fold.cs", "TypedContexts/PolicyContext.cs"], changedPaths);
     }
 
     [Fact]
-    public void should_keep_the_other_sixteen_raw_artifacts_byte_identical()
+    public void should_keep_the_other_fifteen_raw_artifacts_byte_identical()
     {
-        // Re-frozen for Cratis/Stage#848: sixteen of the eighteen remain; the two PolicyBodies files gained body indentation only.
-        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs" and not "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs" and not "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs").ToArray();
-        Assert.Equal(16, unchanged.Length);
+        // Re-frozen for Cratis/Stage#850: Policies.cs changes only the concept-base comparisons.
+        var unchanged = HashedArtifacts().Where(artifact => artifact.RelativePath is not "GeneratedPolicies/Policies.cs" and not "Orders/Ordering/Totals/Fold.cs" and not "TypedContexts/PolicyContext.cs" and not "GeneratedPolicies/PolicyBodies_844D6619645B0916.cs" and not "GeneratedPolicies/PolicyBodies_C13C6DD636115D6A.cs").ToArray();
+        Assert.Equal(15, unchanged.Length);
         Assert.All(unchanged, artifact => Assert.Equal(_oldRawHashes[artifact.RelativePath], Convert.ToHexString(SHA256.HashData(artifact.Bytes.AsSpan()))));
     }
 
@@ -213,10 +213,24 @@ public class without_a_domain : given.a_domain_policy_plan
         Assert.Equal(observed, wrapper.GetProperty("Event")!.PropertyType);
     }
 
+    [Fact]
+    public void should_restore_the_old_policy_runtime_bytes_by_restoring_only_the_type_comparisons()
+    {
+        const string path = "GeneratedPolicies/Policies.cs";
+        var qualified = RawText(path)
+            .Replace("using Cratis.Chronicle.Events;\n", string.Empty, StringComparison.Ordinal)
+            .Replace("using Cratis.Concepts;\n", string.Empty, StringComparison.Ordinal)
+            .Replace("typeof(ConceptAs<>)", "typeof(global::Cratis.Concepts.ConceptAs<>)", StringComparison.Ordinal)
+            .Replace("typeof(EventSourceId<>)", "typeof(global::Cratis.Chronicle.Events.EventSourceId<>)", StringComparison.Ordinal);
+        var restored = QualifiedCommonOutput.BeforeTypeComparison(path, qualified);
+        Assert.Equal(_oldRawHashes[path], Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(restored))));
+    }
+
     string RawText(string path) => Encoding.UTF8.GetString(_rawPlan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     // Re-frozen for #424: generated C# uses short type names and using directives; again for Cratis/Stage#848: authored bodies are indented to their block.
-    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("7281BBD55502D73D1916990F6B6D96F9567057AAABE6CA07FC79CC5E78B2DF03");
+    // Re-frozen for Cratis/Stage#850: Policies.cs compares concept bases with typeof.
+    [Fact] void should_keep_all_paths_and_bytes() => _digest.ShouldEqual("029591E52507EED7EEB9513AFF9B4712B9D0F3F66099D6AEEA98D1F840345CBD");
     [Fact] void should_confine_changes_to_common_and_using_placement() => _qualifiedDigest.ShouldEqual("353B73D5BBCC2AA7CC0F8090D3FD2B01A35274305ACF7B96FFB97552750C6EEF");
 }
 #endif

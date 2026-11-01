@@ -241,6 +241,8 @@ A body that only reads another object's member of the same name, such as `other.
 A command handler whose generated Handle method does nothing else with the result returns the handler call directly instead of storing it in a pass-through local.
 When Handle does wrap the result, the handler result is held in one local per production, named after the event in camelCase with a numeric suffix on a clash. Several productions are deconstructed in declared order, for example `var (orderPlaced, orderEchoed) = HandlePlaceOrder(...)`.
 
+The shared policy runtime identifies concept base classes with open-generic `typeof(ConceptAs<>)` and `typeof(EventSourceId<>)` comparisons, not CLR type-name strings. Claim matching and fail-closed behavior are unchanged.
+
 ## Anonymous authorization
 
 A policy whose complete condition is `require anonymous` opts its command or query into

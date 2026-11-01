@@ -37,7 +37,7 @@ internal static class QualifiedCommonOutput
         var files = qualified.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .ToDictionary(artifact => artifact.RelativePath, StringComparer.Ordinal);
         return [.. plan.Artifacts.Select(artifact => files.TryGetValue(artifact.RelativePath, out var file)
-            ? PlannedArtifact.CreateText(artifact.RelativePath, BeforeReflectionImport(artifact.RelativePath, Encoding.UTF8.GetString(file.Bytes.AsSpan())), artifact.Sources)
+            ? PlannedArtifact.CreateText(artifact.RelativePath, BeforeTypeComparison(artifact.RelativePath, BeforeReflectionImport(artifact.RelativePath, Encoding.UTF8.GetString(file.Bytes.AsSpan()))), artifact.Sources)
             : WithoutPlacement(artifact))];
     }
 
@@ -48,6 +48,16 @@ internal static class QualifiedCommonOutput
         if (!path.EndsWith("GeneratedPolicies/Policies.cs", StringComparison.Ordinal)) return text;
         if (text.StartsWith($"{import}\n", StringComparison.Ordinal)) return text[(import.Length + 1)..];
         return text.Replace(import, string.Empty, StringComparison.Ordinal);
+    }
+
+    // Restores only the concept-base comparisons that became typeof expressions in #850.
+    internal static string BeforeTypeComparison(string path, string text)
+    {
+        if (!path.EndsWith("GeneratedPolicies/Policies.cs", StringComparison.Ordinal)) return text;
+        return text.Replace(
+            "current.GetGenericTypeDefinition() == typeof(global::Cratis.Concepts.ConceptAs<>) || current.GetGenericTypeDefinition() == typeof(global::Cratis.Chronicle.Events.EventSourceId<>)",
+            "current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\"",
+            StringComparison.Ordinal);
     }
 
     static PlannedArtifact WithoutPlacement(PlannedArtifact artifact) => artifact.RelativePath == ".editorconfig"

@@ -142,7 +142,7 @@ internal static class SemanticPolicyArtifactRenderer
             .Line("for (var current = type.BaseType; current is not null; current = current.BaseType)")
             .Line("{")
             .Line("    if (current.IsGenericType && current.GenericTypeArguments.Length == 1 && (current.GenericTypeArguments[0] == typeof(string) || current.GenericTypeArguments[0] == typeof(global::System.Guid) || current.GenericTypeArguments[0] == typeof(global::System.DateOnly) || current.GenericTypeArguments[0] == typeof(global::System.DateTimeOffset)) &&")
-            .Line("        (current.GetGenericTypeDefinition().FullName == \"Cratis.Concepts.ConceptAs`1\" || current.GetGenericTypeDefinition().FullName == \"Cratis.Chronicle.Events.EventSourceId`1\")) return true;")
+            .Line("        (current.GetGenericTypeDefinition() == typeof(global::Cratis.Concepts.ConceptAs<>) || current.GetGenericTypeDefinition() == typeof(global::Cratis.Chronicle.Events.EventSourceId<>))) return true;")
             .Line("}")
             .Line("return false;")
             .EndBlock()

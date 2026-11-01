@@ -3,7 +3,7 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, should, vi } from 'vitest';
-import { coreComponents, createBrowserDispatcher, InteractionScope, SceneElementView } from '@cratis/scene.react';
+import { createBrowserDispatcher, InteractionScope, SceneElementView } from '@cratis/scene.react';
 import { BindingSourceKind, type BindingExpression, type SceneElement } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
 import { stageApplicationRegistry } from './App';
@@ -130,22 +130,52 @@ describe('a guarded action rendered through Scene and Stage', () => {
         JSON.parse(request!.body as string).should.deep.equal({ invoiceId: 'invoice-1' });
     });
 
-    it('should still resolve an authored item binding through Scene', async () => {
-        const item = { id: 'invoice-bound', status: 'draft', path: 'unbound' };
+    it('should resolve an authored query-argument binding and use Stage’s queried subject instead of an authored item binding', async () => {
+        const item = { id: 'invoice-bound', status: 'sent', path: 'unbound' };
+        const itemBinding: BindingExpression = { kind: BindingSourceKind.DataContext, path: 'invoice' };
+        const argumentBinding: BindingExpression = { kind: BindingSourceKind.DataContext, path: 'invoice.id' };
+        registerTestQueries(routes.queries);
+        const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => queryResult({ data: item }) });
+        vi.stubGlobal('fetch', fetched);
+        const executeCommand = vi.fn().mockResolvedValue({ isSuccess: true });
+        const action = element('bound-process', 'core:guarded-action', {
+            label: 'Process bound invoice', item: itemBinding,
+            itemQuery: 'GetInvoice', itemArguments: { invoiceId: argumentBinding },
+            alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'draft' }, arguments: { invoiceId: { subject: 'item.id' } } }],
+            otherwise: { outcome: 'Execute', command: 'ReopenInvoice', arguments: { invoiceId: { subject: 'item.id' } } },
+        });
+        // Stage owns the subject: the authored item is draft, but the bound query returns sent.
+        render(<StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'>
+            <InteractionScope dispatcher={createBrowserDispatcher({ executeCommand })} attachments={[]}>
+                <SceneElementView element={action} registry={stageApplicationRegistry()} dataContext={{ invoice: { ...item, status: 'draft' } }} />
+            </InteractionScope>
+        </StageDataProvider>);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Process bound invoice' }));
+
+        should();
+        fetched.mock.calls.should.have.lengthOf(1);
+        String(fetched.mock.calls[0][0]).should.equal('http://localhost:3000/api/invoice?invoiceId=invoice-bound');
+        await waitFor(() => executeCommand.mock.calls.should.have.lengthOf(1));
+        executeCommand.mock.calls[0].should.deep.equal(['ReopenInvoice', { item, invoiceId: 'invoice-bound' }]);
+    });
+
+    it('should refuse an authored item binding without a Stage query or selection', () => {
         const itemBinding: BindingExpression = { kind: BindingSourceKind.DataContext, path: 'invoice' };
         const executeCommand = vi.fn().mockResolvedValue({ isSuccess: true });
         const action = element('bound-process', 'core:guarded-action', {
             label: 'Process bound invoice', item: itemBinding,
             alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'draft' }, arguments: { invoiceId: { subject: 'item.id' } } }],
         });
-        render(<InteractionScope dispatcher={createBrowserDispatcher({ executeCommand })} attachments={[]}>
-            <SceneElementView element={action} registry={coreComponents} dataContext={{ invoice: item }} />
-        </InteractionScope>);
-
-        fireEvent.click(await screen.findByRole('button', { name: 'Process bound invoice' }));
+        render(<StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'>
+            <InteractionScope dispatcher={createBrowserDispatcher({ executeCommand })} attachments={[]}>
+                <SceneElementView element={action} registry={stageApplicationRegistry()} dataContext={{ invoice: { id: 'invoice-bound', status: 'draft' } }} />
+            </InteractionScope>
+        </StageDataProvider>);
 
         should();
-        await waitFor(() => executeCommand.mock.calls.should.have.lengthOf(1));
-        executeCommand.mock.calls[0].should.deep.equal(['SendInvoice', { item, invoiceId: 'invoice-bound' }]);
+        screen.getByRole('alert').textContent!.should.contain('STAGE-SCENE-ACTION-001');
+        (screen.queryByRole('button', { name: 'Process bound invoice' }) === null).should.be.true;
+        executeCommand.mock.calls.should.have.lengthOf(0);
     });
 });

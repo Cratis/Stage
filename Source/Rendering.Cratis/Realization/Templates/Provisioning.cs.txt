@@ -102,6 +102,21 @@ public partial class Provisioning(IChronicleClient client, IConfiguration config
             $"{nameof(LegalTermsAccepted)}:{source}:{accepted.Version.Value}");
     }
 
+    /// <summary>
+    /// Records that Ante rejected an invitation the application published, so an administrator can see and correct it.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="rejected">The rejection.</param>
+    /// <returns>A task.</returns>
+    public async Task InvitationRejected(string invitation, InvitationRejected rejected)
+    {
+        InvitationWasRejected(logger, invitation, rejected.Reason.ToString());
+
+        // Ante observes the application's outbox in its fixed namespace, so invitations and their records live in the default namespace.
+        var store = await client.GetEventStore(StoreName(configuration), EventStoreNamespaceName.Default);
+        await AppendOnce(store, invitation, new OnboardingInvitationRejected(rejected.Reason.ToString()), $"{nameof(InvitationRejected)}:{invitation}");
+    }
+
     async Task CreateTenant(string source, string kind, string tenant, MemberIdentity owner, IReadOnlyList<string> personas)
     {
         var store = await client.GetEventStore(StoreName(configuration), tenant);
@@ -135,6 +150,9 @@ public partial class Provisioning(IChronicleClient client, IConfiguration config
 
         return [.. roles.Except(refused, StringComparer.Ordinal)];
     }
+
+    [LoggerMessage(LogLevel.Warning, "Ante rejected invitation {Invitation} ({Reason}); correct the invitation where it came from")]
+    static partial void InvitationWasRejected(ILogger logger, string invitation, string reason);
 
     [LoggerMessage(LogLevel.Information, "{Event} for {Key} was provisioned before")]
     static partial void ProvisioningAlreadyDone(ILogger logger, string @event, string key);

@@ -20,6 +20,7 @@ internal static class RealizationDiagnostics
     internal const string LegalDocumentCount = "STAGE-ONBOARDING-004";
     internal const string EmailTemplateMissing = "STAGE-ONBOARDING-005";
     internal const string InvitationWithoutInviters = "STAGE-ONBOARDING-006";
+    internal const string SignupDeclinedNotSent = "STAGE-ONBOARDING-007";
 
     internal static IEnumerable<ArtifactRenderDiagnostic> For(ApplicationRealization realization, SemanticId application)
     {
@@ -86,6 +87,15 @@ internal static class RealizationDiagnostics
             {
                 yield return Warning(EmailTemplateMissing, $"The '{email.Kind}' email template '{email.Path}' could not be read from the model root, so that email is not sent.", application);
             }
+        }
+
+        if (onboarding.Emails.Any(email => email.Kind == "signupDeclined"))
+        {
+            yield return new(
+                SignupDeclinedNotSent,
+                ArtifactRenderDiagnosticSeverity.Information,
+                "The 'signupDeclined' email template is rendered but not sent: it is for a sign-up a person reviewed and declined, and Ante does not publish that outcome yet. An invitation Ante rejects is recorded as OnboardingInvitationRejected for an administrator, and the invitee is not emailed.",
+                application);
         }
     }
 

@@ -34,7 +34,7 @@ internal static class RealizationArtifacts
         ["signupDeclined"] = (
             "signup-declined",
             "Your request to join {{application.name}}",
-            ["application.name", "reason"],
+            ["application.name", "decline.message"],
             [])
     };
 

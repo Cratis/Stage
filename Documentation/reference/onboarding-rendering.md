@@ -13,7 +13,7 @@ The files below are added to the application, in the namespace `<Root>.Generated
 | --- | --- |
 | `AnteOutcomes.cs` | A reactor on `InvitationTokenIssued`, `InvitationRejected`, `InvitationToJoinTenantAccepted`, `InvitationToCreateTenantAccepted`, `OrganizationRegistrationCompleted` and `LegalTermsAccepted` from the Ante store `Ante`. |
 | `Provisioning.cs` | Creates the tenant and records members, once per outcome. |
-| `OnboardingEmails.cs` | Sends the invitation, welcome and sign-up declined emails. |
+| `OnboardingEmails.cs` | Sends the invitation and welcome emails. |
 | `OnboardingInvitations.cs` | The command that invites a member, and the policy that lets the personas `invite member … by` send it. Only rendered when the model names inviters. |
 | `InvitationPublisher.cs` | A reactor that appends the invitation to the application's outbox for Ante, once per invitation. |
 | `MemberPersonaClaims.cs` | Gives a signed-in member the roles and claims of the personas they hold in the tenant AuthProxy resolved. |
@@ -50,13 +50,13 @@ The three email kinds map to the Herald kinds `invitation`, `welcome` and `signu
 | --- | --- |
 | `invitation` | `invitation.link` (required), `invitation.expiresAt`, `invitation.tenant`, `application.name` |
 | `welcome` | `member.name`, `tenant.name`, `application.name`, `application.link` |
-| `signup-declined` | `application.name`, `reason` |
+| `signup-declined` | `application.name`, `decline.message` |
 
 The language is the default locale of the model's strings, otherwise `en`. Herald refuses a template that uses a value the manifest does not declare. Images are copied from the model's `images` folder to `Emails/images`; refer to them with `cid:<file>`.
 
 The invitation link is `/invite/{token}` on the public origin of AuthProxy, read from `Cratis:Application:PublicBaseUrl`. The sender and the mail server come from the environment keys `onboarding.email.sender` and `onboarding.email.server.host`, `.port`, `.username` and `.password`; the password is a secret. When `CRATIS_MAIL_PICKUP_FOLDER` is set, Herald writes `.eml` files there instead of sending.
 
-Each kind is sent once per invitation or registration, Herald records what it queued, and a marker records the request. An invitation whose token has an unknown or past expiry is not announced. The sign-up declined email goes to the person of an invitation Ante rejected because it could not be honored, unless they were welcomed.
+Each kind is sent once per invitation or registration, Herald records what it queued, and a marker records the request. An invitation whose token has an unknown or past expiry is not announced. The sign-up declined email is rendered but not sent: it is for a sign-up a person reviewed and declined, and Ante does not publish that outcome yet, so the render reports `STAGE-ONBOARDING-007`. An invitation Ante rejects, because it asks for a persona or an invitation type the model does not allow, is a mistake in the invitation rather than a decision about the person. The application records it as `OnboardingInvitationRejected` on the invitation in the default namespace and logs a warning for an administrator; the invitee is not emailed.
 
 ## What is not rendered
 
@@ -73,5 +73,6 @@ Each kind is sent once per invitation or registration, Herald records what it qu
 | `STAGE-ONBOARDING-004` | The model does not list exactly two legal documents. |
 | `STAGE-ONBOARDING-005` | An email template could not be read from the model root. |
 | `STAGE-ONBOARDING-006` | An invitation to join a tenant names no inviting persona. |
+| `STAGE-ONBOARDING-007` | The model declares a `signupDeclined` template; it is rendered but not sent until Ante publishes a declined sign-up. |
 | `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
 | `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |

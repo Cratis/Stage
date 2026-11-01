@@ -48,4 +48,8 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_not_reference_box_office() => _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith(".csproj", StringComparison.Ordinal))
         .Where(artifact => Text(artifact.RelativePath).Contains("BoxOffice", StringComparison.OrdinalIgnoreCase)).ShouldBeEmpty();
     [Fact] void should_say_a_tenant_invitation_has_no_command() => Codes.ShouldContain("STAGE-ONBOARDING-002");
+    [Fact] void should_record_a_rejected_invitation_for_an_administrator() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("provisioning.InvitationRejected(context.EventSourceId.Value, @event)");
+    [Fact] void should_record_a_rejected_invitation_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("new OnboardingInvitationRejected(rejected.Reason.ToString()), $\"{nameof(InvitationRejected)}:{invitation}\"");
+    [Fact] void should_not_email_the_invitee_of_a_rejected_invitation() => Text("GeneratedOnboarding/OnboardingEmails.cs").Contains("InvitationRejected", StringComparison.Ordinal).ShouldBeFalse();
+    [Fact] void should_say_the_declined_email_is_not_sent_yet() => Codes.ShouldContain("STAGE-ONBOARDING-007");
 }

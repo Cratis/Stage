@@ -78,29 +78,6 @@ public partial class OnboardingEmails(IEmails emails, IChronicleClient client, I
     public Task Welcome(string registration, OrganizationRegistrationCompleted completed) =>
         Welcome(registration, completed.Email.Value, completed.FirstName.Value, completed.TenantName.Value);
 
-    /// <summary>
-    /// Tells a person an invitation for them could not be honored, when it was not accepted before.
-    /// </summary>
-    /// <param name="invitation">The invitation id.</param>
-    /// <param name="rejected">The rejection.</param>
-    /// <returns>A task.</returns>
-    public async Task SignupDeclined(string invitation, InvitationRejected rejected)
-    {
-        if (!OnboardingRules.Emails.Contains("signupDeclined", StringComparer.Ordinal) ||
-            rejected.Reason is not (InvitationRejectionReason.PersonaNotGrantable or InvitationRejectionReason.InvitationTypeNotAllowed or InvitationRejectionReason.InvalidRecipient) ||
-            await Recipient(invitation) is not { } recipient ||
-            await Queued(invitation, "welcome"))
-        {
-            return;
-        }
-
-        await Send("signup-declined", invitation, recipient.Email, new Dictionary<string, string>
-        {
-            ["application.name"] = ApplicationName.Value,
-            ["reason"] = rejected.Reason.ToString()
-        });
-    }
-
     async Task Welcome(string source, string email, string name, string tenant)
     {
         if (!OnboardingRules.Emails.Contains("welcome", StringComparer.Ordinal) || email.Length == 0)

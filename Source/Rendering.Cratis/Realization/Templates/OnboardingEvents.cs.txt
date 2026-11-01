@@ -36,6 +36,14 @@ public record OnboardingLegalTermsAccepted(string IdentityProvider, string Subje
 public record OnboardingEmailQueued(string Kind, string EmailId);
 
 /// <summary>
+/// Ante rejected an invitation the application published, because it did not match what the model allows. This is a mistake to
+/// correct where the invitation came from, not a decision about the person, so nothing is sent to them.
+/// </summary>
+/// <param name="Reason">Why Ante rejected the invitation.</param>
+[EventType]
+public record OnboardingInvitationRejected(string Reason);
+
+/// <summary>
 /// A member of a tenant invited a person to join it, with the personas they are given.
 /// </summary>
 /// <param name="Email">The address of the person invited.</param>

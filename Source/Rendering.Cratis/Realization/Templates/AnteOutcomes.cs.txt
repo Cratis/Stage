@@ -21,12 +21,13 @@ public class AnteOutcomes(Provisioning provisioning, OnboardingEmails emails) : 
     public Task Issued(InvitationTokenIssued @event, EventContext context) => emails.Invitation(context.EventSourceId.Value, @event);
 
     /// <summary>
-    /// Tells the person an invitation could not be honored.
+    /// Records that Ante rejected an invitation, for an administrator to correct. The invitee is not emailed: the rejection is
+    /// about the invitation, not about them.
     /// </summary>
     /// <param name="event">The rejection.</param>
     /// <param name="context">The event context, whose event source is the invitation id.</param>
     /// <returns>A task.</returns>
-    public Task Rejected(InvitationRejected @event, EventContext context) => emails.SignupDeclined(context.EventSourceId.Value, @event);
+    public Task Rejected(InvitationRejected @event, EventContext context) => provisioning.InvitationRejected(context.EventSourceId.Value, @event);
 
     /// <summary>
     /// Records the new member of an existing tenant and welcomes them.

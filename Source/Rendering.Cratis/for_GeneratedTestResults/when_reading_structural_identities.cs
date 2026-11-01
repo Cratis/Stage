@@ -27,6 +27,23 @@ public class when_reading_structural_identities : Specification
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    void should_match_only_the_requested_structural_identity_and_outcome(bool readableNames)
+    {
+        var results = GeneratedTestResults.Read(Report(readableNames));
+        results.Where(result => result.Matches(className: "when_native", methodName: "should_produce_event_1_with_score")).Select(result => result.Outcome).ShouldContainOnly("Passed", "Passed");
+        results.Single(result => result.Matches(className: "Example.when_mutated", methodName: "should_produce_event_1_with_score")).Outcome.ShouldEqual("Failed");
+        results.Single(result => result.Matches(className: "when_mutated", methodName: "should_produce_event_", match: GeneratedTestNameMatch.Prefix)).Outcome.ShouldEqual("Failed");
+        results.Single(result => result.Matches(fullName: "Example.when_mutated.should_produce_event_1_with_score")).Outcome.ShouldEqual("Failed");
+        results.Any(result => result.Matches(className: "when_nativ")).ShouldBeFalse();
+        results.Any(result => result.Matches(className: "Other.Example.when_native")).ShouldBeFalse();
+        results.Any(result => result.Matches(className: "when_native", methodName: "should_produce_event_1_with_scor")).ShouldBeFalse();
+        results.Any(result => result.Matches(className: "Other.", match: GeneratedTestNameMatch.Prefix)).ShouldBeFalse();
+        results.Any(result => result.Matches(fullName: "Other.when_mutated.should_produce_event_1_with_score")).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     void should_not_fall_back_to_display_names_for_an_unmatched_result(bool readableNames)
     {
         var document = Report(readableNames);

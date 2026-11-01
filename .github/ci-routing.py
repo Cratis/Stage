@@ -183,17 +183,29 @@ def nightly_body(repository, sha, run_id, green):
             "Do not retry/quarantine without a diagnosed transient cause or relax corpus/catalog assertions.")
 
 
+def gh_json(*arguments):
+    """gh prints nothing (not `[]`) for an empty `label list --json` result; treat that as no items."""
+    output = gh(*arguments)
+    return json.loads(output) if output else []
+
+
 def report_nightly():
     repository = os.environ["GITHUB_REPOSITORY"]
+    dry_run = os.environ.get("NIGHTLY_DRY_RUN") == "true"
     green = json.loads(gh("api", f"repos/{repository}/actions/workflows/dotnet-build.yml/runs?event=schedule&status=success&per_page=1"))["workflow_runs"]
     body = nightly_body(repository, os.environ["GITHUB_SHA"], os.environ["GITHUB_RUN_ID"], green)
     label = "ci-nightly-red"
-    issues = json.loads(gh("issue", "list", "--repo", repository, "--state", "open", "--label", label, "--limit", "1", "--json", "number"))
+    issues = gh_json("issue", "list", "--repo", repository, "--state", "open", "--label", label, "--limit", "1", "--json", "number")
+    if dry_run:
+        print("Dry run: nothing is written.")
+        action = f"comment on issue #{issues[0]['number']}" if issues else "create the label if missing and open a new issue"
+        print(f"Would {action} with body:\n{body}")
+        return
     if issues:
         gh("issue", "comment", str(issues[0]["number"]), "--repo", repository, "--body", body)
     else:
         # Bootstrap only a missing label; never overwrite an existing label's metadata.
-        labels = json.loads(gh("label", "list", "--repo", repository, "--search", label, "--limit", "100", "--json", "name"))
+        labels = gh_json("label", "list", "--repo", repository, "--search", label, "--limit", "100", "--json", "name")
         if not any(item["name"] == label for item in labels):
             gh("label", "create", label, "--repo", repository, "--color", "B60205", "--description", "Nightly CI needs conformance-owner triage")
         gh("issue", "create", "--repo", repository, "--label", label, "--title", "Nightly Stage CI is red", "--body", body)

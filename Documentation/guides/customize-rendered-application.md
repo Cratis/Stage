@@ -43,9 +43,11 @@ builder.Services.AddHealthChecks();
 builder.AddCratis(
     configureArcBuilder: arc => arc.WithMongoDB(),
     configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());
+<RootNamespace>.GeneratedAuthentication.Authentication.Add(builder);
 ConfigureServices(builder);
 
 var app = builder.Build();
+<RootNamespace>.GeneratedAuthentication.Authentication.Use(app);
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseCratis();
@@ -66,10 +68,15 @@ public partial class Program
 `ConfigureServices` runs after `AddCratis` and before `Build`. `ConfigureApplication` runs after `UseCratis` and
 the generated endpoints, and before `RunAsync`. When you do not implement a hook, the compiler removes the call.
 
+The two `Authentication` calls come from the managed `GeneratedAuthentication.cs`; `<RootNamespace>` stands for your
+application's root namespace. They do nothing until you configure sign-in; see
+[Sign in with Microsoft Entra ID](sign-in-with-entra-id.md).
+
 The generated `/healthz` endpoint runs all health checks. With Chronicle **19.59.6 or later**, it reports healthy
 only after the client is connected and Chronicle has successfully registered the application's artifacts,
 including its read models. Wait for a healthy response before querying the generated application. Earlier
-Chronicle versions can report healthy before registration completes.
+Chronicle versions can report healthy before registration completes. When Entra ID sign-in is enabled, `GET` and
+`HEAD` requests to `/healthz` are the only requests that skip sign-in.
 
 ## Keep the reducer convention stable
 
@@ -196,6 +203,9 @@ End the base address with `/` so the relative `rates/...` request keeps the `/v1
 above, the host refuses to start when the setting is missing instead of failing on the first request. Keep secrets
 in a secret store or environment variables, not in files under `Customizations/`.
 
+The host's own sign-in settings use the same mechanism. See
+[Sign in with Microsoft Entra ID](sign-in-with-entra-id.md) for the `Cratis:Authentication` keys.
+
 ## Add project and package references
 
 The rendered project file imports `Customizations/Dependencies.props` when it exists. Use it to move adapters into
@@ -284,10 +294,15 @@ that has one.
   captures, non-event triggers, opaque reaction bodies and Translate slices still fail `STAGE-ESM-024`.
   Registering a service does not bind it to a modeled `file` realization or make an unsupported construct renderable.
   See [Event reaction rendering](../reference/reaction-rendering.md) for the supported shape.
-- **No authorization is applied to your code.** Endpoints you map are anonymous unless you secure them with ASP.NET
-  Core authorization yourself. Modeled authorization covers only the artifacts Stage renders.
+- **No authorization is applied to your code by default.** Endpoints you map are anonymous unless you secure them with
+  ASP.NET Core authorization yourself. Modeled authorization covers only the artifacts Stage renders. When you turn on
+  [Entra ID sign-in](sign-in-with-entra-id.md), the perimeter covers your endpoints too: every route except `GET` and
+  `HEAD` on `/healthz` requires sign-in, whatever your endpoint declares. It decides who is signed in; it does not add
+  authorization policies to your code.
 - **Middleware order is fixed.** `ConfigureApplication` runs last, so middleware you add there runs after the
-  generated middleware. You cannot place middleware before static files or Cratis through this hook.
+  generated middleware. You cannot place middleware before static files or Cratis through this hook. With Entra ID
+  sign-in enabled, the authentication perimeter runs right after `Build`, before static files, `UseCratis` and your
+  middleware.
 - **Registrations can replace Cratis services.** `ConfigureServices` runs after `AddCratis`, and the last
   registration of a service wins. Register your own abstractions; do not re-register Cratis types unless you intend
   to replace them.

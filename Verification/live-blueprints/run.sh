@@ -55,9 +55,18 @@ for index in $(seq 0 $((count - 1))); do
         --volume "$packages:/packages:ro" \
         "$image" >/dev/null || { echo "could not run: the Stage image $image did not start"; exit 2; }
     ready=false
+    deadline=$((SECONDS + 180))
     for _ in $(seq 1 90); do
-        curl --silent --fail --output /dev/null "http://127.0.0.1:$port/stage/status" && { ready=true; break; }
-        sleep 2
+        remaining=$((deadline - SECONDS))
+        (( remaining > 0 )) || break
+        state=$(curl --silent --fail --max-time "$((remaining < 2 ? remaining : 2))" "http://127.0.0.1:$port/stage/status" | node -pe 'try { JSON.parse(require("fs").readFileSync(0, "utf8")).state || "" } catch { "" }')
+        case "$state" in
+            ready) ready=true; break ;;
+            unsupported) docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage reported unsupported for $model"; exit 2 ;;
+        esac
+        remaining=$((deadline - SECONDS))
+        (( remaining > 0 )) || break
+        sleep "$((remaining < 2 ? remaining : 2))"
     done
     $ready || { docker logs "$container" 2>&1 | tail -30; echo "could not run: the Stage did not become ready for $model"; exit 2; }
 

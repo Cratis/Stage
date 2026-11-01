@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.256.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.258.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -38,8 +38,8 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="4.80.2" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="4.80.2" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="4.86.0" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="4.86.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->

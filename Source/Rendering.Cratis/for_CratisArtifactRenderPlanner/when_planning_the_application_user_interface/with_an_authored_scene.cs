@@ -20,7 +20,9 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    const string Before = "356b1a6d7c0e31e5c75828507adffc624ec6c92e5f301435095b5ab6af724117";
+    // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
+    // Re-frozen for Cratis/Stage#120 on Screenplay 4.258.0 / Scene 4.86.0: executed comparison with main retains its pins and Scene bytes; only authentication artifacts and host wiring differ.
+    const string Before = "744728781bbc795e6b5b746537319e9b14eeeaa420dcaa38422cd25511ec2abe";
 
     ArtifactRenderPlan _plan = null!;
 

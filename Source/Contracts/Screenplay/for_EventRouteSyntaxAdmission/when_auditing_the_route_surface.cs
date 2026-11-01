@@ -39,6 +39,7 @@ public class when_auditing_the_route_surface : Specification
         [
             new EventSourceSyntax("Invoice", location),
             new EventStreamSyntax("Changes", location),
+            new PossibleEventSyntax("InvoiceRegistered", null, false, new("Invoice", "Changes", location), [], location),
             new CommandStreamSyntax("Invoice", "Changes", location),
             new CommandSyntax("RegisterInvoice", [], null, [], [], null, location) { StreamCandidates = [new("Invoice", "Changes", location)] },
             new SpecificationEventSyntax("InvoiceRegistered", [], location) { Stream = stream },

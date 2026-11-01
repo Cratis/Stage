@@ -145,8 +145,8 @@ function resolvedScreens(screens: Screen[], dictionary?: Record<string, string>)
  * What the Stage decides about composing a screen, on top of the composition it shares with the preview: its own chrome around the
  * shell (the effective navigation regions are Scene's), its command form, its status line and its data sources.
  */
-export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], chromeOptions: ChromeOptions = {}): CompositionOptions {
-    const options: ChromeOptions = { ...chromeOptions, regions: declaresRegions(scene.navigation) };
+export function stageComposition(scene: StageSceneApplication, locales: string[], locale: string, packageCatalog?: PackageCatalog, dictionary?: Record<string, string>, blueprintTemplates?: ScreenTemplate[], showFooter = true, showThemeSwitcher = true): CompositionOptions {
+    const options: ChromeOptions = { regions: declaresRegions(scene.navigation), showFooter, showThemeSwitcher };
     const chromeScreens = resolvedScreens(scene.screens, dictionary);
     const application = applicationIdentity(scene);
     return {
@@ -300,7 +300,7 @@ function StageApplication({ scene, registry, routing, routeState, strings, packa
     const themes = useMemo(() => themesWithAccent(defaultBlueprintThemes, shellSettings?.accent), [shellSettings?.accent]);
     const { showFooter, showThemeSwitcher } = shellChromeOf(shellSettings);
     const composition = useMemo(
-        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, { showFooter, showThemeSwitcher }),
+        () => stageComposition(scene, strings.locales, strings.locale, packageCatalog, strings.dictionary, screenTemplates, showFooter, showThemeSwitcher),
         [scene, strings.locales, strings.locale, strings.dictionary, packageCatalog, screenTemplates, showFooter, showThemeSwitcher]);
     const onSystemSchemeChange = useCallback((dark: boolean) => setPrefersDark(dark), []);
     const navigationModel = useMemo(() => stageNavigationModel(scene, isVisible, strings.dictionary), [scene, isVisible, strings.dictionary]);

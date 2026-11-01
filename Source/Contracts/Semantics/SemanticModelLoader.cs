@@ -52,6 +52,11 @@ public sealed record LoadedSemanticModel(ExecutableSemanticModel Model, Semantic
     public ReleaseBaselineAssessment ReleaseBaseline { get; init; } = ReleaseBaselineAssessment.NotSupplied;
 
     /// <summary>
+    /// Gets the realization metadata of the application - its identity providers, personas and onboarding - which the executable model does not carry.
+    /// </summary>
+    public ApplicationRealization Realization { get; init; } = ApplicationRealization.None;
+
+    /// <summary>
     /// Gets the compiler diagnostics in their original order and severity.
     /// </summary>
     public ImmutableArray<SemanticModelLoadDiagnostic> Diagnostics { get; init; } = [];
@@ -346,7 +351,8 @@ public static partial class SemanticModelLoader
             compiled,
             attachments.Diagnostics,
             compiled.Success ? StageReleaseBaseline.Check(compiled.Value!, ReleaseBaselineStore.Read(root, catalog.Application)) : ReleaseBaselineAssessment.NotSupplied,
-            cancellationToken);
+            cancellationToken,
+            root);
     }
 
     static IEnumerable<string> NamedFiles(string root, ImmutableArray<string> paths) =>

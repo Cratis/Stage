@@ -79,7 +79,7 @@ public static partial class SemanticModelLoader
                 "Release baseline checks require the whole model root with its persisted application name.");
         }
 
-        return FinishCompilation(compiled, workspace.AttachmentDiagnostics, assessment, cancellationToken);
+        return FinishCompilation(compiled, workspace.AttachmentDiagnostics, assessment, cancellationToken, root);
     }
 
     static CompilationResult<SemanticCompilation> CompileSelection(ScreenplayWorkspace workspace, ImmutableArray<WorkspaceDocument> documents, string name) =>

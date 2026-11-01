@@ -11,6 +11,8 @@ export type { StageSource, StageStaticContent } from './stageSource';
 export type { StageRoutes } from './stageRoutes';
 export { executeRegisteredCommand, registeredCommand, useStageCommandExecutor } from './commandExecutor';
 export { hostedBasePath } from './hostedBasePath';
+export { fetchModelReferences, modelReferenceFor } from './modelReferences';
+export type { StageModelReference, StageModelReferenceKind, StageModelReferences } from './modelReferences';
 export { registeredQuery, performQuery, subscribeQuery, registerQueryRouteResolver } from './queryExecutor';
 export { StageCommandForm } from './StageCommandForm';
 export { StageGuardedAction } from './StageGuardedAction';

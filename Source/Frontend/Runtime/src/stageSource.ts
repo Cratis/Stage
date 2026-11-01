@@ -36,6 +36,7 @@ export const stageEndpoints = {
     scene: 'stage/scene',
     routes: 'stage/routes',
     locales: 'stage/locales',
+    modelReferences: 'stage/model-references',
     strings: (locale: string) => `stage/strings/${encodeURIComponent(locale)}`,
 };
 

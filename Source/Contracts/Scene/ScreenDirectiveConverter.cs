@@ -77,12 +77,6 @@ public static class ScreenDirectiveConverter
         var all = directives.ToList();
         var scope = (behaviors ?? BehaviorScope.None) with { Diagnostics = diagnostics };
 
-        // The nearest data declaration is what a guard's `item` is, here and in everything nested below.
-        if (all.OfType<ScreenplaySyntax.ScreenDataSyntax>().FirstOrDefault() is { } subject)
-        {
-            scope = scope with { Subject = subject.Type.Name };
-        }
-
         // What was written at this level attaches to whatever encloses it - the section, or the screen when
         // nothing else does. Collecting it here rather than dropping it is the point: an interaction that
         // silently does not exist is worse than one that is reported.
@@ -265,7 +259,9 @@ public static class ScreenDirectiveConverter
             action.Label,
             [.. action.Alternatives.Select(alternative => new Cratis.Scene.Model.Guards.GuardedActionAlternative(
                 alternative.Command,
-                SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf, scope.IsStringField),
+                scope.GuardContexts is null
+                    ? SceneGuards.ConvertToCondition(alternative.Condition, scope.EnumerationOf)
+                    : SceneGuardConversion.FromResolved(alternative.Condition, scope.At(action).FieldType).ToCondition(),
                 ConvertArguments(alternative.Arguments)))],
             Otherwise: action.Otherwise is { } otherwise ? new Cratis.Scene.Model.Guards.GuardedActionFallback(
                 Enum.TryParse<Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome>(otherwise.Outcome.ToString(), out var outcome) ? outcome : (Cratis.Scene.Model.Guards.GuardedActionFallbackOutcome)(-1),
@@ -297,6 +293,7 @@ public static class ScreenDirectiveConverter
 
     static SceneElements.ExternalComponent ConvertTable(ScreenplaySyntax.ScreenTableSyntax table, string id, BehaviorScope scope)
     {
+        var row = scope.At(table);
         var properties = new Dictionary<string, object?>
         {
             // The route-resolution pass a running Stage attaches routes with (StageSceneRoutes.WithRoutes)
@@ -313,7 +310,13 @@ public static class ScreenDirectiveConverter
             .Select((column, index) =>
             {
                 var columnProperties = new Dictionary<string, object?> { ["property"] = column.Property, ["label"] = column.Label };
-                if (scope.Enumerations is { } enumerations && enumerations.TryGetValue(table.Target, out var fields) && fields.TryGetValue(column.Property, out var members))
+                var field = row.FieldType($"{SceneGuards.SubjectPrefix}{column.Property}");
+                if (scope.GuardContexts is not null && field.Kind == GuardFieldKind.Enumeration)
+                {
+                    columnProperties["options"] = field.Members;
+                    if (field.MemberNumbers is not null) columnProperties["optionValues"] = field.MemberNumbers;
+                }
+                else if (scope.GuardContexts is null && scope.Enumerations is { } enumerations && enumerations.TryGetValue(table.Target, out var fields) && fields.TryGetValue(column.Property, out var members))
                 {
                     columnProperties["options"] = members;
                     if (scope.EnumerationNumbers is { } numbers && numbers.TryGetValue(table.Target, out var numberedFields) && numberedFields.TryGetValue(column.Property, out var memberNumbers))

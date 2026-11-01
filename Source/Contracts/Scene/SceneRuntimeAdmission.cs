@@ -12,7 +12,7 @@ public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
 {
     readonly List<SceneRuntimeIssue> _issues = [];
     readonly Func<string, bool>? _isStringField;
-    BehaviorScope? _scope;
+    readonly BehaviorScope? _scope;
 
     /// <summary>Initializes admission without field type information.</summary>
     public SceneRuntimeAdmission()
@@ -51,6 +51,7 @@ public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
     /// <inheritdoc/>
     public override void VisitNode(SyntaxNode node)
     {
+        _subject = _usedSubject ?? _scope?.GuardContexts?.At(node);
         switch (node)
         {
             case ScreenGuardedActionSyntax action when !CanRun(action):
@@ -80,5 +81,7 @@ public sealed partial class SceneRuntimeAdmission : ScreenplaySyntaxWalker
     }
 
     bool CanEvaluate(ConditionSyntax condition) =>
-        SceneGuards.CanEvaluate(SceneGuards.ConvertToCondition(condition, null, _isStringField ?? (_scope is null ? null : _scope.IsStringField)));
+        SceneGuards.CanEvaluate(_scope?.GuardContexts is null
+            ? SceneGuards.ConvertToCondition(condition, null, _isStringField)
+            : SceneGuardConversion.FromResolved(condition, path => _subject?.Field(path) ?? GuardFieldType.Unknown("No attachment subject")).ToCondition());
 }

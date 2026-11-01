@@ -44,8 +44,8 @@ public class when_translating_guarded_constructs : Specification
         _scene = new ScreenplaySceneVisitor().Visit(compilation.Value!);
     }
 
-    [Fact] void should_admit_guarded_actions_the_runtime_evaluates() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedScreenAction.DiagnosticCode).ShouldBeFalse();
-    [Fact] void should_admit_named_and_inherited_guarded_interactions_the_runtime_evaluates() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedInteraction.DiagnosticCode).ShouldBeFalse();
+    [Fact] void should_refuse_guarded_actions_without_a_data_subject() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedScreenAction.DiagnosticCode).ShouldBeTrue();
+    [Fact] void should_refuse_named_and_inherited_guarded_interactions_without_a_data_subject() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedInteraction.DiagnosticCode).ShouldBeTrue();
     [Fact]
     void should_preserve_the_named_behaviors_authored_otherwise()
     {

@@ -28,13 +28,28 @@ internal abstract record SceneGuardConversion
         _ => new Unsupported(condition.GetType())
     };
 
+    internal static SceneGuardConversion FromResolved(ScreenplaySyntax.ConditionSyntax condition, Func<string, GuardFieldType> field) => condition switch
+    {
+        ScreenplaySyntax.ComparisonConditionSyntax comparison => new Comparison(
+            comparison.Left,
+            comparison.Operator.ToString(),
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax literal ? literal.Value : null,
+            comparison.Right is ScreenplaySyntax.LiteralExpressionSyntax ? null : comparison.Right.GetType().Name,
+            field(comparison.Left).Members,
+            false,
+            field(comparison.Left)),
+        ScreenplaySyntax.LogicalConditionSyntax logical => new Logical(FromResolved(logical.Left, field), logical.Operator.ToString(), FromResolved(logical.Right, field)),
+        _ => new Unsupported(condition.GetType())
+    };
+
     internal static IDictionary<string, object?> LegacySubject(SubjectReference subject) => new Dictionary<string, object?> { ["subject"] = subject.Subject };
 
-    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration, bool IsStringField) : SceneGuardConversion
+    sealed record Comparison(string Path, string Operation, object? Value, string? UnsupportedExpression, IReadOnlyList<string>? Enumeration, bool IsStringField, GuardFieldType? Field = null) : SceneGuardConversion
     {
         internal override GuardCondition ToCondition() => new ComparisonGuardCondition(
             SceneGuards.SubjectReferenceFor(Path),
-            Enum.TryParse<GuardOperator>(Operation, out var operation) && (operation != GuardOperator.Contains || (IsStringField && Value is string))
+            Enum.TryParse<GuardOperator>(Operation, out var operation) &&
+                (Field is not null ? Field.Admits(operation, Value) : operation != GuardOperator.Contains || (IsStringField && Value is string))
                 ? operation : (GuardOperator)(-1),
             UnsupportedExpression is { } kind ? new { unsupported = kind } : Value,
             Enumeration);

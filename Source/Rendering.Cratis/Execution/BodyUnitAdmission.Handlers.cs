@@ -24,7 +24,8 @@ internal static partial class BodyUnitAdmission
         if (kind is SemanticCommandHandlerAdmission.HandlerKind.Pending or SemanticCommandHandlerAdmission.HandlerKind.Foreign)
         {
             var feature = SemanticVersionFeatures.DescribedHandlersInCommand(command).First();
-            return (null, Refuse(requirement, SemanticVersionFeatures.PendingCommandHandler, SemanticVersionFeatureAdmission.HandlerDiagnostic(feature, context)));
+            var diagnostic = SemanticVersionFeatureAdmission.HandlerDiagnostic(feature, context);
+            return (null, Refuse(requirement, diagnostic.Code, diagnostic.Message));
         }
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticCommandBodyAdmission.Verify(command, context, diagnostics);

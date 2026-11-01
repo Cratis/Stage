@@ -58,7 +58,7 @@ internal static class SemanticVersionFeatureAdmission
             .Concat(slices.SelectMany(located => SemanticReactionBodyRendering.ReturnDiagnostics(located, context)))];
     }
 
-    internal static string HandlerDiagnostic(SemanticVersionFeature feature, SemanticApplicationContext context) => Diagnostic(feature, context).Message;
+    internal static ArtifactRenderDiagnostic HandlerDiagnostic(SemanticVersionFeature feature, SemanticApplicationContext context) => Diagnostic(feature, context);
 
     static ArtifactRenderDiagnostic Diagnostic(SemanticVersionFeature feature, SemanticApplicationContext context)
     {

@@ -23,6 +23,7 @@ internal static class BodyHandlerInvocation
     {
         var entry = assembly.GetType(unit.EntryType!, throwOnError: true)!;
         var snapshotType = assembly.GetType(unit.WrapperType!, throwOnError: true)!;
+
         // The catalog names the handler members, so the context type is the entry point's one nested parameter rather than a name prefix.
         var method = entry.GetMethods(BindingFlags.NonPublic | BindingFlags.Static).SingleOrDefault(candidate => string.Equals(candidate.Name, unit.EntryMethod, StringComparison.Ordinal) && candidate.GetParameters().Length == 1 && candidate.GetParameters()[0].ParameterType.DeclaringType == entry)
             ?? throw new InvalidOperationException("The handler entry point is unavailable.");

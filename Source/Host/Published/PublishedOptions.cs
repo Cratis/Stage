@@ -14,6 +14,7 @@ namespace Cratis.Stage.Host.Published;
 /// <param name="NotesEnabled">Whether the Notes backend is hosted, or <see langword="null"/> to follow the package manifest.</param>
 /// <param name="ChronicleClientId">The Chronicle client id, or <see langword="null"/> for the kernel's built-in client.</param>
 /// <param name="ChronicleClientSecret">The Chronicle client secret, or <see langword="null"/> for the kernel's built-in client.</param>
+/// <param name="EventStore">The Chronicle event store name, or <see langword="null"/> to derive it from the published name.</param>
 internal sealed record PublishedOptions(
     string PackagePath,
     string? StorageConnectionString,
@@ -22,8 +23,11 @@ internal sealed record PublishedOptions(
     string? AllowedHosts,
     bool? NotesEnabled,
     string? ChronicleClientId,
-    string? ChronicleClientSecret)
+    string? ChronicleClientSecret,
+    string? EventStore = null)
 {
+    internal const string EventStorePrefix = "app-";
+
     internal const string DefaultPackagePath = "/stage/package";
     internal const string TrustedProxyMode = "TrustedProxy";
     internal const string Section = "Stage:Published";
@@ -50,8 +54,17 @@ internal sealed record PublishedOptions(
             configuration["AllowedHosts"],
             bool.TryParse(published["Notes:Enabled"], out var enabled) ? enabled : null,
             published["Chronicle:ClientId"],
-            Secret(published, "Chronicle:ClientSecret"));
+            Secret(published, "Chronicle:ClientSecret"),
+            published["EventStore"] is { Length: > 0 } eventStore ? eventStore.Trim() : null);
     }
+
+    /// <summary>
+    /// Gets the Chronicle event store of the application. Published applications share one storage server, so each one's
+    /// data is isolated by this name: it is never random, and survives restarts, redeploys and new versions.
+    /// </summary>
+    /// <param name="publishedName">The host label the application is published under, from the package manifest.</param>
+    /// <returns>The configured name, otherwise <c>app-</c> followed by the published name.</returns>
+    internal string EventStoreFor(string publishedName) => EventStore is { Length: > 0 } configured ? configured : EventStorePrefix + publishedName;
 
     /// <summary>
     /// Lists everything that stops this configuration from running a published application.

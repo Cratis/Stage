@@ -27,7 +27,7 @@ internal static class SemanticHost
         var notes = new List<SemanticModelLoadDiagnostic>();
         var (loaded, scene) = await LoadModel(modelPath, issues, notes, package?.Manifest.ApplicationName);
 
-        var eventStore = ContainerEventStoreName.Resolve();
+        var eventStore = published is null ? ContainerEventStoreName.Resolve() : published.EventStoreFor(package!.Manifest.PublishedName);
         SemanticWorld? world = null;
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddJsonFile(

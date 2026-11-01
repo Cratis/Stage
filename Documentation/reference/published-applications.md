@@ -139,6 +139,7 @@ Optional keys:
 | Key                                           | Meaning                                                                                                  |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `Stage:Published:Chronicle:ClientId`, `…ClientSecret` (or `…ClientSecretFile`) | Credentials the host presents to its Chronicle kernel. Both or neither. |
+| `Stage:Published:EventStore`                  | The Chronicle event store name. Defaults to `app-<publishedName>`; see [Event store](#event-store). |
 | `Stage:Published:Notes:Enabled`               | Hosts the Notes backend. Defaults to the manifest's `notesEnabled`.                                      |
 | `Notes:ApplicationName`, `Notes:PublicationId` | Required when Notes is enabled. The name the receiving side sees on every note, and the publication the application runs as. |
 | `Notes:Transport`                             | `SameKernel` (default) or `Http`. With `Http`, also `Notes:CollectorUrl`, `Notes:CollectorTokenFile` (or `Notes:CollectorToken`) and `Notes:CollectorTenantId`. |
@@ -149,6 +150,26 @@ the options are incomplete. The browser gets the feedback button and the slice m
 
 The package must also be intact (digest matches), require this runtime version and declare an authentication
 requirement. Anything else exits with code `78` and a message on standard error.
+
+#### Event store
+
+Published applications share one storage server, so each application's Chronicle data is isolated by its event store name.
+In a play session that name is a random Docker-style one; a published host never uses a random name. It is
+`app-<publishedName>` from the package manifest, the same on every restart, redeploy and version, and different for every
+application. `Stage:Published:EventStore` overrides it, for example to keep the data of an application that was published
+under another name. Notes works in this same event store; its `Notes:CollectingStores` name the stores of the
+*receiving* side (the default is `Studio`), never this one, and the application identifies itself to the collector by
+`Notes:ApplicationName` and `Notes:PublicationId`, so a collecting store must not be given an `app-` name that matches an application.
+
+#### Notes and Chronicle registration
+
+Stage registers its own artifacts over raw Chronicle contracts, so the Chronicle client's automatic discovery is off. Switching it
+on for Notes is not safe: the client's registration is a full set that tells the kernel to retire every client-owned projection it
+does not list, which would retire Stage's own. Instead, when Notes is enabled the host registers the Notes event types (private
+facts and public contract events), its read model reducers and its outbox publisher reactor in the event store of each namespace,
+using the client's discovery scoped to the two Notes assemblies, and never runs the full registration. Notes artifacts of a kind
+that cannot be registered that way (projections, constraints) make the host report an error instead of being skipped. When Notes is
+not enabled, Arc does not serve its commands and queries.
 
 ### Authentication
 

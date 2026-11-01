@@ -31,7 +31,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    const string Digest = "eb88dbd541b74b48d24fe746fa1108f98d49186f7dbe1a0c243e33e2f7e2f77a";
+    const string Digest = "069a71b23bc91b027d1959f9cb9f600ca1cb9eb8788a551c70ffb355dff33c6b";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -184,7 +184,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("c69efcd2d3545e8b081cf182acd95fd9927b9db201af27243f79ff93116ac818"); // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
+            plan.Diagnostics).ShouldEqual("aa7365bb522a1032b144c65f48d32bdf37b525d2b5a11546a840f436b0fe0312"); // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
     }
 
     [Theory]

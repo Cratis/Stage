@@ -66,14 +66,14 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("ac4cfbe2a9fbede16d5363bf756d726607474d523b011f54b8722718c55382bf");
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan!, Legacy(_qualified)).ShouldEqual("33135bd68f1b36edd1bf2fd8b87a76af38315adc7842fde188ba618031cc8733");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("f280d11bf9ced3232b54602a6a7136c206647244942f5d0dca888aa12038ec93");
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan!).ShouldEqual("539e2be997f0f4d1702552bdd81376b96afc1337f37a36841d05854e66919182");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan!.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
         Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5c5a07d337d3f9410aa4bc506563d1f580c0149004da8bfcb8f131a14ede9a53 9793

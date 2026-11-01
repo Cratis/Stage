@@ -39,8 +39,8 @@ public class when_a_command_form_is_placed_on_a_screen : given.a_scene_model
     [Fact] void should_show_the_placed_form_as_the_runtime_command_form() => Placed.ComponentName.ShouldEqual("Stage:commandForm");
     [Fact] void should_carry_the_command_name() => Placed.Properties["command"].ShouldEqual("RegisterProject");
     [Fact] void should_keep_the_label_it_was_authored_with() => Placed.Properties["label"].ShouldEqual("Registration");
-    [Fact] void should_carry_the_command_schema() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]!).ShouldContain("\"projectId\"");
-    [Fact] void should_generate_the_fields_from_the_command() => ((IReadOnlyList<FormField>)Placed.Properties["fields"]!).Select(field => field.Name).ShouldContainOnly(["projectId", "name", "stage", "description", "tags"]);
+    [Fact] void should_carry_the_command_schema() => ((string)Placed.Properties[SceneSynthesizer.SchemaProperty]).ShouldContain("\"projectId\"");
+    [Fact] void should_generate_the_fields_from_the_command() => ((IReadOnlyList<FormField>)Placed.Properties["fields"]).Select(field => field.Name).ShouldContainOnly(["projectId", "name", "stage", "description", "tags"]);
     [Fact] void should_mark_the_metadata_as_available() => Placed.Properties["metadataStatus"].ShouldEqual("available");
     [Fact] void should_not_show_the_form_of_the_command_a_second_time() => _result.Screens.Single().SlotContent.GetValueOrDefault("forms").ShouldBeNull();
 

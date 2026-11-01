@@ -17,5 +17,5 @@ public class and_no_tenant_is_supplied : Specification
         DateTimeOffset.UnixEpoch,
         new Dictionary<string, string>());
 
-    [Fact] void should_use_the_portable_default_tenant() => _events[0].Content["tenant"]!.GetValue<string>().ShouldEqual(PortableTenantValues.Default);
+    [Fact] void should_use_the_portable_default_tenant() => _events[0].Content["tenant"].GetValue<string>().ShouldEqual(PortableTenantValues.Default);
 }

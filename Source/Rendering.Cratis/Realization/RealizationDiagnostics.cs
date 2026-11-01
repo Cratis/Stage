@@ -12,18 +12,19 @@ namespace Cratis.Stage.Rendering.Cratis.Realization;
 /// </summary>
 /// <remarks>
 /// Codes are permanent and never reused. Retired: STAGE-ONBOARDING-007 (the 'signupDeclined' template rendered but not sent), retired
-/// when Ante began publishing OrganizationRegistrationDeclined.
+/// when Ante began publishing OrganizationRegistrationDeclined; STAGE-ONBOARDING-001 (the offering is not rendered), retired when
+/// the offering began to be rendered against Box Office.
 /// </remarks>
 internal static class RealizationDiagnostics
 {
     internal const string UnsupportedProvider = "STAGE-AUTH-001";
     internal const string PersonaNotMappable = "STAGE-AUTH-002";
-    internal const string OfferingNotRendered = "STAGE-ONBOARDING-001";
     internal const string TenantInvitationUnattended = "STAGE-ONBOARDING-002";
     internal const string SignupWithoutPersona = "STAGE-ONBOARDING-003";
     internal const string LegalDocumentCount = "STAGE-ONBOARDING-004";
     internal const string EmailTemplateMissing = "STAGE-ONBOARDING-005";
     internal const string InvitationWithoutInviters = "STAGE-ONBOARDING-006";
+    internal const string OfferingNeedsOperator = "STAGE-ONBOARDING-008";
 
     internal static IEnumerable<ArtifactRenderDiagnostic> For(ApplicationRealization realization, SemanticId application)
     {
@@ -52,9 +53,10 @@ internal static class RealizationDiagnostics
     {
         if (onboarding.Offering.Length > 0)
         {
-            yield return Warning(
-                OfferingNotRendered,
-                $"Offering '{onboarding.Offering}' is not rendered: Box Office has no contract for a product starting a tenant on its own default offering without an operator's decision. New tenants are provisioned without licensing.",
+            yield return new(
+                OfferingNeedsOperator,
+                ArtifactRenderDiagnosticSeverity.Information,
+                $"Offering '{onboarding.Offering}' is started for every new tenant through Box Office. Its operator (event store 'Direct' unless the host configures another) must publish an offer named '{onboarding.Offering}' in its catalog; a tenant provisioned before it arrives is not started on it until its outcome is delivered again. The rendered application does not define the BoxOffice.ManageSeats and BoxOffice.ManageCompute authorization policies, so the seat and compute commands of Box Office are not available until it does.",
                 application);
         }
 

@@ -19,12 +19,13 @@ The files below are added to the application, in the namespace `<Root>.Generated
 | `MemberPersonaClaims.cs` | Gives a signed-in member the roles and claims of the personas they hold in the tenant AuthProxy resolved. |
 | `OnboardingRules.cs` | The personas an invitation may grant and who may send it. |
 | `OnboardingEvents.cs` | The application's own events: tenant provisioned, member provisioned, legal terms accepted, email queued. |
-| `OnboardingRegistration.cs` | Registers Herald, the reactor, the services and the policy. |
+| `OnboardingRegistration.cs` | Registers Herald, Box Office when there is an offering, the reactor, the services and the policy. |
 | `OnboardingEnvironment.cs` | Reads the environment values. |
+| `OnboardingOffering.cs` | Starts a new tenant on the default offering through Box Office. Only rendered when the model names an `offering`. |
 | `Emails/` | The templates and images of the model, laid out the way Herald reads them. |
 | `.runtime/ante.onboarding.json` | The settings of Ante, in the shape of its `Ante:Onboarding` contract. |
 
-The project references `Cratis.Ante.Contracts` and `Cratis.Showrunner.Herald`. Herald reads the event store name from the client options, which an ASP.NET Core host leaves empty, so `OnboardingRegistration` sets it to the application's store. `Cratis.Ante.Contracts` requires a newer Chronicle client than the other renderings pin, so an application with onboarding pins that client and the matching kernel image in `docker-compose.yml`; every other application is unchanged.
+The project references `Cratis.Ante.Contracts` and `Cratis.Showrunner.Herald`, and `Cratis.Showrunner.BoxOffice` when the model names an `offering`. Herald reads the event store name from the client options, which an ASP.NET Core host leaves empty, so `OnboardingRegistration` sets it to the application's store. `Cratis.Ante.Contracts` requires a newer Chronicle client than the other renderings pin, so an application with onboarding pins that client and the matching kernel image in `docker-compose.yml`; every other application is unchanged.
 
 ## Provisioning
 
@@ -60,22 +61,40 @@ Each kind is sent once per invitation or registration, Herald records what it qu
 
 Ante publishes that outcome only when sign-up review is on (`Ante:Registration:Review`). The Screenplay model has no syntax for review yet, so a rendered application leaves it off and `.runtime/ante.onboarding.json` does not mention it. A host that turns it on gets `OrganizationRegistrationAwaitingReview` in its inbox and has to decide, by appending `OrganizationRegistrationApproved` or `OrganizationRegistrationDeclineRequested(Message)` to its outbox under the registration id. Rendering those commands is not done. An invitation Ante rejects, because it asks for a persona or an invitation type the model does not allow, is a mistake in the invitation rather than a decision about the person. The application records it as `OnboardingInvitationRejected` on the invitation in the default namespace and logs a warning for an administrator; the invitee is not emailed.
 
+## Offering
+
+`offering <Name>` renders the product's side of Box Office. The project references `Cratis.Showrunner.BoxOffice`, which brings `Cratis.Showrunner.BoxOffice.Offering` and supplies the offers the operator published; the offering alone cannot look the default offer up. `OnboardingRegistration` then registers:
+
+```csharp
+builder.AddBoxOffice();
+builder.Services.AddBoxOfficeOffering(offering => offering
+    .Product(Guid.Parse("<derived from the application name>"))
+    .DefaultOffering("<Name>"));
+```
+
+- **Product.** The product id is a GUID derived from the application name, so every render of the same application declares the same product. No module is declared: the modules of a Screenplay model are not Box Office modules, so nothing is gated. Declare modules in code if the product sells them.
+- **Starting a tenant.** After `Provisioning` creates a tenant, from an accepted tenant invitation or a completed registration, it calls `TenantOffering.Start`, which calls `IDefaultOffering.StartTenant(tenant, organization)`. The tenant id is the name of the tenant's Chronicle namespace, which is what Box Office expects. The organization id is a GUID derived from the application and tenant name, because a self-service product has no operator-assigned organization; the same tenant is always the same organization. `StartTenant` is idempotent, so a delivery that arrives again starts nothing twice.
+- **Catalog not there yet.** The operator publishes its catalog after the application starts. When `StartTenant` throws `DefaultOfferingNotPublished` (or `DefaultOfferingNotDeclared`) the error is logged and provisioning goes on: a missing offer does not stop a person getting into their tenant. That tenant is started on the offering the next time its outcome is delivered, for example after replaying the observer. Any other failure, such as `TenantNotStarted`, fails the delivery so it is retried.
+- **Operator.** `AddBoxOffice` uses its defaults, so the application honors the operator event store `Direct`. Configure `OperatorStores` in code to use another one.
+- **Policies.** Box Office's `BoxOffice.ManageSeats` and `BoxOffice.ManageCompute` authorization policies are not rendered, so its seat and compute commands are unavailable until the host defines them.
+
+`STAGE-ONBOARDING-008` reports this at render time.
+
 ## What is not rendered
 
-- **Offering.** Box Office has no contract for a product starting a tenant on its own default offering without an operator's decision, so `offering` renders nothing, no Box Office package is referenced and `STAGE-ONBOARDING-001` says so. Tenants are provisioned without licensing.
 - **Legal documents** stay with Ante. The settings name them by their path in the model; the runtime mounts them. Ante presents two documents, terms first and privacy second; another count is reported as `STAGE-ONBOARDING-004`.
 
 ## Diagnostics
 
-Codes are permanent. `STAGE-ONBOARDING-007` (the declined email is rendered but not sent) is retired because the email is now sent; the number is not reused.
+Codes are permanent. `STAGE-ONBOARDING-001` (the offering is not rendered) and `STAGE-ONBOARDING-007` (the declined email is rendered but not sent) are retired because both are now realized; their numbers are not reused.
 
 | Code | Meaning |
 | --- | --- |
-| `STAGE-ONBOARDING-001` | The offering is not rendered. |
 | `STAGE-ONBOARDING-002` | A tenant invitation has no command. |
 | `STAGE-ONBOARDING-003` | A sign-up creates a tenant, but no persona is named for its first member. |
 | `STAGE-ONBOARDING-004` | The model does not list exactly two legal documents. |
 | `STAGE-ONBOARDING-005` | An email template could not be read from the model root. |
 | `STAGE-ONBOARDING-006` | An invitation to join a tenant names no inviting persona. |
+| `STAGE-ONBOARDING-008` | Information: the offering is started through Box Office, so the operator must publish an offer with that name and the host defines the Box Office policies. |
 | `STAGE-AUTH-001` | A provider kind AuthProxy does not know. |
 | `STAGE-AUTH-002` | A persona that cannot be reduced to roles and claims. |

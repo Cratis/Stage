@@ -44,9 +44,16 @@ public class when_planning_onboarding : given.a_model_with_authentication_and_on
     [Fact] void should_render_the_images_of_the_templates() => _plan.Artifacts.Single(artifact => artifact.RelativePath == "Emails/images/logo.png").Bytes.ToArray().ShouldEqual(Png);
     [Fact] void should_reference_herald_and_the_ante_contracts() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.Herald");
     [Fact] void should_register_onboarding_with_the_application() => Text("Program.cs").ShouldContain($"{Application}.GeneratedOnboarding.Registration.Register(builder);");
-    [Fact] void should_say_the_offering_is_not_rendered() => Codes.ShouldContain("STAGE-ONBOARDING-001");
-    [Fact] void should_not_reference_box_office() => _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) || artifact.RelativePath.EndsWith(".csproj", StringComparison.Ordinal))
-        .Where(artifact => Text(artifact.RelativePath).Contains("BoxOffice", StringComparison.OrdinalIgnoreCase)).ShouldBeEmpty();
+    [Fact] void should_reference_box_office_for_the_offering() => Text($"{Application}.csproj").ShouldContain("Cratis.Showrunner.BoxOffice\"");
+    [Fact] void should_pin_box_office() => Text("Directory.Packages.props").ShouldContain("Cratis.Showrunner.BoxOffice\" Version=\"1.13.0\"");
+    [Fact] void should_declare_the_default_offering_the_model_names() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain(".DefaultOffering(\"Starter\")");
+    [Fact] void should_declare_a_product_that_is_the_same_for_every_render() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain($".Product(Guid.Parse(\"{Realization.RealizationArtifacts.ProductId(Application)}\"))");
+    [Fact] void should_add_box_office_and_its_offering() => Text("GeneratedOnboarding/OnboardingRegistration.cs").ShouldContain("builder.AddBoxOffice();");
+    [Fact] void should_start_the_tenant_on_the_default_offering_after_creating_it() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("$\"{kind}:{source}\");\n        await offering.Start(tenant);");
+    [Fact] void should_start_the_tenant_by_its_namespace_name() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("offering.StartTenant(tenant, OrganizationFor(tenant))");
+    [Fact] void should_not_fail_provisioning_for_an_offer_the_operator_has_not_published() => Text("GeneratedOnboarding/OnboardingOffering.cs").ShouldContain("exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared");
+    [Fact] void should_not_emit_the_retired_offering_not_rendered_diagnostic() => Codes.ShouldNotContain("STAGE-ONBOARDING-001");
+    [Fact] void should_say_what_the_operator_must_publish() => Codes.ShouldContain("STAGE-ONBOARDING-008");
     [Fact] void should_say_a_tenant_invitation_has_no_command() => Codes.ShouldContain("STAGE-ONBOARDING-002");
     [Fact] void should_record_a_rejected_invitation_for_an_administrator() => Text("GeneratedOnboarding/AnteOutcomes.cs").ShouldContain("provisioning.InvitationRejected(context.EventSourceId.Value, @event)");
     [Fact] void should_record_a_rejected_invitation_once() => Text("GeneratedOnboarding/Provisioning.cs").ShouldContain("new OnboardingInvitationRejected(rejected.Reason.ToString()), $\"{nameof(InvitationRejected)}:{invitation}\"");

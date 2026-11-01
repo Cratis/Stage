@@ -69,6 +69,11 @@ internal static class RealizationArtifacts
     internal static string SignupPersona(RealizedOnboarding onboarding) =>
         onboarding.Invitations.FirstOrDefault(invitation => invitation.Kind == "tenant")?.Grant.FirstOrDefault() ?? string.Empty;
 
+    // The product is identified to the operator by a GUID derived from the application name, so every render of the same application
+    // declares the same product. The model's modules are not Box Office modules, so none is declared and nothing is gated.
+    internal static Guid ProductId(string applicationName) =>
+        new(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes($"product/{applicationName}")).AsSpan(0, 16));
+
     internal static string WithHeader(string template, string subject)
     {
         var text = template.TrimStart('﻿').Replace("\r\n", "\n", StringComparison.Ordinal);
@@ -99,6 +104,7 @@ internal static class RealizationArtifacts
         var inviters = member is null ? [] : member.By;
         var emails = onboarding.Emails.Where(email => _emails.ContainsKey(email.Kind) && realization.Texts.ContainsKey(email.Path)).ToArray();
         var invitations = inviters.Length > 0;
+        var offering = onboarding.Offering.Length > 0;
 
         yield return Source(
             $"{OnboardingFolder}/OnboardingRules.cs",
@@ -119,10 +125,25 @@ internal static class RealizationArtifacts
                 rootNamespace,
                 ("__Application__", RealizationTemplates.Literal(applicationName)),
                 ("__DefaultLanguage__", RealizationTemplates.Literal(language)),
+                ("__Offering__", offering ? OfferingRegistration(applicationName, onboarding.Offering) : string.Empty),
                 ("__AuthorizationUsing__", invitations ? "using Cratis.Arc.Authorization;\n" : string.Empty),
                 ("__InvitationPolicies__", invitations ? "        builder.Services.AddArcAuthorizationPolicy<InviteMemberPolicy>(OnboardingPolicies.InviteMember);\n" : string.Empty)),
             sources);
-        foreach (var template in new[] { "OnboardingEnvironment", "OnboardingEvents", "MemberPersonaClaims", "Provisioning", "OnboardingEmails", "AnteOutcomes" })
+        yield return Source(
+            $"{OnboardingFolder}/Provisioning.cs",
+            RealizationTemplates.Read(
+                "Provisioning",
+                rootNamespace,
+                ("__OfferingDocumentation__", offering ? "/// <param name=\"offering\">Starts a new tenant on the default offering.</param>\n" : string.Empty),
+                ("__OfferingParameter__", offering ? ", TenantOffering offering" : string.Empty),
+                ("__OfferingStart__", offering ? "        await offering.Start(tenant);\n" : string.Empty)),
+            sources);
+        if (offering)
+        {
+            yield return Source($"{OnboardingFolder}/OnboardingOffering.cs", RealizationTemplates.Read("OnboardingOffering", rootNamespace), sources);
+        }
+
+        foreach (var template in new[] { "OnboardingEnvironment", "OnboardingEvents", "MemberPersonaClaims", "OnboardingEmails", "AnteOutcomes" })
         {
             yield return Source($"{OnboardingFolder}/{template}.cs", RealizationTemplates.Read(template, rootNamespace), sources);
         }
@@ -159,6 +180,13 @@ internal static class RealizationArtifacts
             yield return PlannedArtifact.CreateBinary($"{EmailsFolder}/images/{name}", bytes, sources);
         }
     }
+
+    static string OfferingRegistration(string applicationName, string offering) =>
+        "        builder.AddBoxOffice();\n" +
+        "        builder.Services.AddBoxOfficeOffering(offering => offering\n" +
+        $"            .Product(Guid.Parse(\"{ProductId(applicationName)}\"))\n" +
+        $"            .DefaultOffering({RealizationTemplates.Literal(offering)}));\n" +
+        "        builder.Services.AddSingleton<TenantOffering>();\n";
 
     static string PersonaEntries(ApplicationRealization realization) => string.Join(
         ",\n",

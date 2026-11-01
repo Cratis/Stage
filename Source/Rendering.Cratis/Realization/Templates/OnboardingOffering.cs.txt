@@ -1,0 +1,49 @@
+using System.Security.Cryptography;
+using System.Text;
+using Cratis.Showrunner.BoxOffice.Contracts;
+using Cratis.Showrunner.BoxOffice.Offering.Starting;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Starts a tenant on the default offering the application declared to Box Office. Starting a tenant is idempotent, so a provisioning
+/// that is delivered again does not start it twice.
+/// </summary>
+/// <param name="offering">Box Office's default offering.</param>
+/// <param name="logger">The logger.</param>
+public partial class TenantOffering(IDefaultOffering offering, ILogger<TenantOffering> logger)
+{
+    /// <summary>
+    /// Gets the organization a tenant belongs to. A self-service product has no operator-assigned organization, so it is derived from
+    /// the tenant: the same tenant is always the same organization.
+    /// </summary>
+    /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
+    /// <returns>The organization.</returns>
+    public static OrganizationId OrganizationFor(string tenant) =>
+        new Guid(SHA256.HashData(Encoding.UTF8.GetBytes($"{ApplicationName.Value}/organization/{tenant}")).AsSpan(0, 16));
+
+    /// <summary>
+    /// Starts a tenant on the default offering. The operator publishes its catalog after the application starts, so an offer that is not
+    /// there yet is reported and does not fail the provisioning of the tenant.
+    /// </summary>
+    /// <param name="tenant">The tenant, which is the name of its Chronicle namespace.</param>
+    /// <returns>A task.</returns>
+    public async Task Start(string tenant)
+    {
+        try
+        {
+            var start = await offering.StartTenant(tenant, OrganizationFor(tenant));
+            TenantStarted(logger, tenant, start.ToString());
+        }
+        catch (Exception exception) when (exception is DefaultOfferingNotPublished or DefaultOfferingNotDeclared)
+        {
+            OfferingUnavailable(logger, exception, tenant);
+        }
+    }
+
+    [LoggerMessage(LogLevel.Information, "Tenant {Tenant} on the default offering: {Start}")]
+    static partial void TenantStarted(ILogger logger, string tenant, string start);
+
+    [LoggerMessage(LogLevel.Error, "Tenant {Tenant} was provisioned but not started on the default offering. Publish the offer from the operator's catalog; it is started when the tenant's outcome is delivered again")]
+    static partial void OfferingUnavailable(ILogger logger, Exception exception, string tenant);
+}

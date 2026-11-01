@@ -12,6 +12,10 @@ env:
 on:
   workflow_dispatch:
     inputs:
+      force-full:
+        description: "Force every lane (Publish release-commit gate)"
+        type: boolean
+        default: false
       test-nightly-alert:
         description: "Dry-run the red-nightly alert (prints the issue/label actions; creates nothing)"
         type: boolean
@@ -62,6 +66,8 @@ jobs:
       live-blueprints: ${{ steps.routes.outputs.live-blueprints }}
       generated-name-matrix: ${{ steps.routes.outputs.generated-name-matrix }}
       generated-react-blueprint-templates: ${{ steps.routes.outputs.generated-react-blueprint-templates }}
+      generated-react: ${{ steps.routes.outputs.generated-react }}
+      standalone-generated-application: ${{ steps.routes.outputs.standalone-generated-application }}
     steps:
       - name: Checkout merge-base history
         uses: actions/checkout@v4
@@ -72,7 +78,15 @@ jobs:
         id: routes
         env:
           GH_TOKEN: ${{ github.token }}
+          # Enable only after 5 consecutive green scheduled nightlies with the alert fix live.
+          # Unset/false preserves both always-on lanes; ci:full and manual/nightly runs stay full.
+          STAGE_ROUTE_ALWAYS_ON_LANES: ${{ vars.STAGE_ROUTE_ALWAYS_ON_LANES }}
         run: python3 .github/ci-routing.py route
+
+      # The jobs API can verify the tested merge SHA of a full PR run (run.head_sha is the source head).
+      - name: Full routing for ${{ steps.routes.outputs.full-sha }}
+        if: steps.routes.outputs.full-sha != ''
+        run: echo 'Every lane selected for the checked-out commit'
 
   preflight:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
@@ -247,21 +261,30 @@ jobs:
           retention-days: 7
 
   # Preserve the original build check as an aggregate: it must fail if preflight, compilation/packaging,
-  # any spec shard or the standalone generated-application spec (moved out of the shards) fails or is
-  # skipped. The independent live/generated probe checks stay separate.
+  # any spec shard fails or is skipped. The standalone application may skip only with an explicit
+  # false routing output; failed, cancelled or missing jobs never pass. Live/generated checks stay separate.
   build:
     needs: [preflight, dotnet-build, specs, routing, standalone-generated-application]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Require preflight, build, every spec shard and the standalone application spec to succeed
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Require preflight, build, every spec shard and the selected standalone application spec to succeed
+        if: needs.routing.outputs.standalone-generated-application == 'true'
         env:
           PREFLIGHT_RESULT: ${{ needs.preflight.result }}
           BUILD_RESULT: ${{ needs.dotnet-build.result }}
           SPECS_RESULT: ${{ needs.specs.result }}
           STANDALONE_RESULT: ${{ needs.standalone-generated-application.result }}
         run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
+
+      - name: Validate routing and any expected standalone skip
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: python3 .github/ci-routing.py check-build
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes
   # without a connection. The pinned development kernel includes MongoDB, unlike Stage's in-memory Host.
@@ -657,6 +680,7 @@ jobs:
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success'
+      && needs.routing.outputs.standalone-generated-application == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -829,6 +853,7 @@ jobs:
     if: >-
       !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.preflight.result == 'success' && needs.routing.result == 'success'
       && needs.dotnet-build.result == 'success'
+      && needs.routing.outputs.generated-react == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -1010,7 +1035,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Require every selected lane and the React smoke to succeed
+      - name: Require every selected lane to succeed
         env:
           NEEDS_JSON: ${{ toJson(needs) }}
         run: python3 .github/ci-routing.py check

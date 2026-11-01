@@ -41,6 +41,7 @@ internal static class SemanticHost
         var admission = CreateAdmission(loaded, bodies, issues);
         var surface = loaded is not null && issues.Count == 0 ? StageHttpSurface.Create(loaded.Model, routeOptions) : null;
         builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions);
+        builder.AddStageOrleans();
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
         {

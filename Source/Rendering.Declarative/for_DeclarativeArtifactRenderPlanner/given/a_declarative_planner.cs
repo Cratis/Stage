@@ -65,8 +65,8 @@ public class a_declarative_planner : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "model.play", source);
         var compilation = new SemanticModelCompiler().Compile("Sample", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
-        return new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var model = compilation.Value.Model;
+        return new(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
     }
 
     internal static ArtifactRenderPlan PlanWith(Dictionary<string, string> templates)

@@ -106,7 +106,7 @@ public class an_application_with_authorization : Specification
             [module],
             SourceLocation.Start,
             Personas: [new PersonaSyntax("Accountant", null, ["Auditor"], SourceLocation.Start)],
-            Authentication: new AuthenticationSyntax([new AuthenticationProviderSyntax("entra", null, SourceLocation.Start)], SourceLocation.Start));
+            Authentication: new AuthenticationSyntax([new AuthenticationProviderSyntax("EntraId", null, SourceLocation.Start)], SourceLocation.Start));
 
         _codeOutput = new InMemoryCodeOutput();
         _renderer = new CratisRenderer(

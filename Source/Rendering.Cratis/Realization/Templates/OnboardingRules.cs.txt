@@ -1,0 +1,37 @@
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// What the model says about onboarding: which personas invitations may grant and who may send them.
+/// </summary>
+public static class OnboardingRules
+{
+    /// <summary>
+    /// Gets what a self-signup does: <c>CreatesTenant</c>, <c>JoinsTenant</c>, or empty when sign-up is off.
+    /// </summary>
+    public const string Signup = __Signup__;
+
+    /// <summary>
+    /// Gets the persona the first member of a tenant created by a sign-up is given, or empty when the model names none.
+    /// </summary>
+    public const string SignupPersona = __SignupPersona__;
+
+    /// <summary>
+    /// Gets the personas an invitation to create a tenant may give the invitee.
+    /// </summary>
+    public static IReadOnlyList<string> TenantPersonas { get; } = __TenantPersonas__;
+
+    /// <summary>
+    /// Gets the personas an invitation to join a tenant may grant.
+    /// </summary>
+    public static IReadOnlyList<string> MemberGrantable { get; } = __MemberGrantable__;
+
+    /// <summary>
+    /// Gets the personas allowed to invite a member.
+    /// </summary>
+    public static IReadOnlyList<string> MemberInviters { get; } = __MemberInviters__;
+
+    /// <summary>
+    /// Gets the kinds of email the model gives a template for.
+    /// </summary>
+    public static IReadOnlyList<string> Emails { get; } = __Emails__;
+}

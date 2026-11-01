@@ -11,7 +11,7 @@ namespace Cratis.Stage.Contracts.Semantics;
 
 public static partial class SemanticModelLoader
 {
-    internal static SemanticModelLoadResult FinishCompilation(CompilationResult<SemanticCompilation> compiled, ImmutableArray<Diagnostic> attachmentDiagnostics, ReleaseBaselineAssessment baseline, CancellationToken cancellationToken)
+    internal static SemanticModelLoadResult FinishCompilation(CompilationResult<SemanticCompilation> compiled, ImmutableArray<Diagnostic> attachmentDiagnostics, ReleaseBaselineAssessment baseline, CancellationToken cancellationToken, string? root = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = compiled.Diagnostics.Select(diagnostic => new SemanticModelLoadDiagnostic(diagnostic.Code, diagnostic.Message, $"{diagnostic.Location.Path}({diagnostic.Location.Line},{diagnostic.Location.Column})") { Severity = diagnostic.Severity }).ToImmutableArray();
@@ -40,6 +40,7 @@ public static partial class SemanticModelLoader
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value!.Documents, compiled.ImplementationRequirements),
             AttachmentDiagnostics = attachmentDiagnostics,
             ReleaseBaseline = baseline,
+            Realization = ApplicationRealization.From(compiled.Value!, root),
             Diagnostics = diagnostics
         };
 

@@ -1,0 +1,24 @@
+namespace __Root__.GeneratedAuthentication;
+
+/// <summary>
+/// The conventions a Cratis runtime (<c>cratis run</c> or Stage Manager) starts the application with.
+/// </summary>
+public static class RuntimeConventions
+{
+    /// <summary>
+    /// Applies the conventions to the configuration of the application, before Cratis reads it.
+    /// </summary>
+    /// <remarks>
+    /// <c>CRATIS_CHRONICLE_CONNECTION_STRING_FILE</c> names a file holding the Chronicle connection string, which carries a secret, so the
+    /// runtime mounts it instead of putting it in the environment. <c>CRATIS_ENVIRONMENT</c> and <c>CRATIS_SECRETS_DIRECTORY</c> are read where the
+    /// values of the environment are needed.
+    /// </remarks>
+    /// <param name="builder">The application builder.</param>
+    public static void Apply(WebApplicationBuilder builder)
+    {
+        if (Environment.GetEnvironmentVariable("CRATIS_CHRONICLE_CONNECTION_STRING_FILE") is { Length: > 0 } file && File.Exists(file))
+        {
+            builder.Configuration["Cratis:Chronicle:ConnectionString"] = File.ReadAllText(file).Trim();
+        }
+    }
+}

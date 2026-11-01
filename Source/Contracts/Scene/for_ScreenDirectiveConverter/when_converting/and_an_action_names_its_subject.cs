@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Scene.Model.Elements;
+using Cratis.Scene.Model.Guards;
 using Cratis.Screenplay.Diagnostics;
 using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
@@ -39,8 +40,9 @@ public class and_an_action_names_its_subject : Specification
     public void should_carry_the_item_inputs_of_a_plain_action()
     {
         var input = new InteractionArgumentSyntax("itemId", "item.rowId", SourceLocation.Start);
-        var inputs = (IDictionary<string, IDictionary<string, object?>>)PlainAction(ScreenActionSubjectKind.Item, input).Properties["subjectInputs"]!;
-        inputs["itemId"]["subject"].ShouldEqual("item.rowId");
+        var inputs = (IDictionary<string, SubjectReference>)PlainAction(ScreenActionSubjectKind.Item, input).Properties["subjectInputs"]!;
+        inputs.Count.ShouldEqual(1);
+        inputs["itemId"].Subject.ShouldEqual("item.rowId");
     }
 
     [Fact]

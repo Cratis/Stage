@@ -3,7 +3,8 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, should, vi } from 'vitest';
-import { createBrowserDispatcher, SceneElementView } from '@cratis/scene.react';
+import { coreComponents, createBrowserDispatcher, InteractionScope, SceneElementView } from '@cratis/scene.react';
+import { BindingSourceKind, type BindingExpression, type SceneElement } from '@cratis/scene.model';
 import { PrimeReactProvider } from '@primereact/core';
 import { stageApplicationRegistry } from './App';
 import { StageDataProvider, useStageData } from './stageData';
@@ -27,9 +28,9 @@ const tree = bindDataSources(element('screen', 'core:section', {}, { content: [
 ] }));
 const routes = { queries: { GetInvoice: '/api/invoice' }, commands: { SendInvoice: '/api/send', ReopenInvoice: '/api/reopen' } };
 
-function ThroughScene() {
+function ThroughScene({ scene = tree }: { scene?: SceneElement }) {
     const data = useStageData();
-    return <SceneElementView element={tree} registry={stageApplicationRegistry()} resolveBinding={data.resolveBinding} />;
+    return <SceneElementView element={scene} registry={stageApplicationRegistry()} resolveBinding={data.resolveBinding} />;
 }
 
 describe('a guarded action rendered through Scene and Stage', () => {
@@ -72,11 +73,16 @@ describe('a guarded action rendered through Scene and Stage', () => {
         alert.textContent!.should.not.contain('The command did not succeed.');
     });
 
-    it.each([['draft', '/api/send'], ['sent', '/api/reopen']])('executes exactly the selected command for %s', async (status, commandRoute) => {
+    it.each([
+        { status: 'draft', commandRoute: '/api/send', fields: {} },
+        { status: 'sent', commandRoute: '/api/reopen', fields: {} },
+        { status: 'draft', commandRoute: '/api/send', fields: { path: 'unbound' } },
+        { status: 'sent', commandRoute: '/api/reopen', fields: { path: 'unbound' } },
+    ])('should keep the queried $status subject with $fields visible and execute exactly the selected command', async ({ status, commandRoute, fields }) => {
         registerTestQueries(routes.queries);
         for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { invoiceId: { type: 'string' } });
         const fetched = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve({ ok: true,
-            json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: { id: 'invoice-1', status } }),
+            json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: { id: 'invoice-1', status, ...fields } }),
         } as Response));
         vi.stubGlobal('fetch', fetched);
         render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene /></StageDataProvider></PrimeReactProvider>);
@@ -87,5 +93,59 @@ describe('a guarded action rendered through Scene and Stage', () => {
         const [url, request] = fetched.mock.calls.find(([, init]) => init?.method === 'POST')!;
         expect(String(url)).toBe(`http://localhost:3000${commandRoute}`);
         expect(request?.body).toBe(JSON.stringify({ invoiceId: 'invoice-1' }));
+    });
+
+    it.each([
+        { status: 'draft', commandRoute: '/api/send', fields: {} },
+        { status: 'sent', commandRoute: '/api/reopen', fields: {} },
+        { status: 'draft', commandRoute: '/api/send', fields: { path: 'unbound' } },
+        { status: 'sent', commandRoute: '/api/reopen', fields: { path: 'unbound' } },
+    ])('should keep the selected $status table row with $fields visible and execute exactly the selected command', async ({ status, commandRoute, fields }) => {
+        registerTestQueries(routes.queries);
+        for (const [name, route] of Object.entries(routes.commands)) registerTestCommand(name, route, { invoiceId: { type: 'string' } });
+        const fetched = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => Promise.resolve({ ok: true,
+            json: async () => init?.method === 'POST' ? commandResult() : queryResult({ data: [{ id: 'invoice-1', status, ...fields }] }),
+        } as Response));
+        vi.stubGlobal('fetch', fetched);
+        const collection = bindDataSources(element('screen', 'core:section', {}, { content: [
+            element('subject', 'core:data', { typeName: 'Invoice', query: 'GetInvoice', isCollection: true }),
+            element('process', 'core:guarded-action', {
+                label: 'Process',
+                alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'draft' }, arguments: { invoiceId: { subject: 'item.id' } } }],
+                otherwise: { outcome: 'Execute', command: 'ReopenInvoice', arguments: { invoiceId: { subject: 'item.id' } } },
+            }),
+            element('invoices', 'core:table', { typeName: 'Invoice' }, { columns: [element('id', 'core:column', { property: 'id', label: 'Invoice' })] }),
+        ] }));
+        render(<PrimeReactProvider><StageDataProvider routes={routes} locale='en' locales={['en']} screen='Invoice'><ThroughScene scene={collection} /></StageDataProvider></PrimeReactProvider>);
+
+        const row = await screen.findByText('invoice-1');
+        should();
+        (screen.queryByRole('button', { name: 'Process' }) === null).should.be.true;
+        fireEvent.click(row);
+        fireEvent.click(await screen.findByRole('button', { name: 'Process' }));
+
+        await waitFor(() => fetched.mock.calls.filter(([, init]) => init?.method === 'POST').should.have.lengthOf(1));
+        const [url, request] = fetched.mock.calls.find(([, init]) => init?.method === 'POST')!;
+        String(url).should.equal(`http://localhost:3000${commandRoute}`);
+        JSON.parse(request!.body as string).should.deep.equal({ invoiceId: 'invoice-1' });
+    });
+
+    it('should still resolve an authored item binding through Scene', async () => {
+        const item = { id: 'invoice-bound', status: 'draft', path: 'unbound' };
+        const itemBinding: BindingExpression = { kind: BindingSourceKind.DataContext, path: 'invoice' };
+        const executeCommand = vi.fn().mockResolvedValue({ isSuccess: true });
+        const action = element('bound-process', 'core:guarded-action', {
+            label: 'Process bound invoice', item: itemBinding,
+            alternatives: [{ command: 'SendInvoice', condition: { kind: 'comparison', left: { subject: 'item.status' }, operator: 'Equal', right: 'draft' }, arguments: { invoiceId: { subject: 'item.id' } } }],
+        });
+        render(<InteractionScope dispatcher={createBrowserDispatcher({ executeCommand })} attachments={[]}>
+            <SceneElementView element={action} registry={coreComponents} dataContext={{ invoice: item }} />
+        </InteractionScope>);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Process bound invoice' }));
+
+        should();
+        await waitFor(() => executeCommand.mock.calls.should.have.lengthOf(1));
+        executeCommand.mock.calls[0].should.deep.equal(['SendInvoice', { item, invoiceId: 'invoice-bound' }]);
     });
 });

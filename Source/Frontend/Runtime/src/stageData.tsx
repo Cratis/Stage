@@ -3,7 +3,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
-import type { BindingExpression } from '@cratis/scene.model';
+import { BindingSourceKind, type BindingExpression } from '@cratis/scene.model';
 import { ArcContext } from '@cratis/arc.react';
 import { ObservableQueryFor, type QueryResult } from '@cratis/arc/queries';
 import { applyQueryChangeSet } from './applyQueryChangeSet';
@@ -32,8 +32,9 @@ export function StageSceneGuardedAction(props: Omit<RegisteredComponentProps, 's
     const { dispatcher, attachments } = useGuardedActionDispatch();
     const { item, refused, error } = useGuardedActionSubject(props.element);
     if (refused) return <span role='alert'>STAGE-SCENE-ACTION-001: The action's data subject or command scope is unavailable.{error}</span>;
+    const itemBinding: BindingExpression = { kind: BindingSourceKind.Literal, path: '', value: item };
     return <InteractionScope dispatcher={dispatcher} attachments={attachments}>
-        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...props.element.properties, item, alternatives: screenplayGuardBinding({ alternatives: props.element.properties.alternatives }, item).alternatives } }} />
+        <SceneGuardedAction {...props} slots={props.slots ?? {}} element={{ ...props.element, properties: { ...props.element.properties, item: itemBinding, alternatives: screenplayGuardBinding({ alternatives: props.element.properties.alternatives }, item).alternatives } }} />
     </InteractionScope>;
 }
 

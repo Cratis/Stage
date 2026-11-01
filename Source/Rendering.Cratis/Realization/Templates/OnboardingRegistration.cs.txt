@@ -1,0 +1,89 @@
+using Cratis.Showrunner.Herald;
+__AuthorizationUsing__using Microsoft.AspNetCore.Authentication;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Registers what onboarding needs: Herald for the emails, the claims of the personas members were granted, provisioning from
+/// the outcomes Ante publishes, and the invitation commands.
+/// </summary>
+public static class Registration
+{
+    /// <summary>
+    /// Registers onboarding with the application.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    public static void Register(WebApplicationBuilder builder)
+    {
+        var environment = new EnvironmentValues(builder.Configuration);
+        var pickup = Environment.GetEnvironmentVariable("CRATIS_MAIL_PICKUP_FOLDER");
+        var folder = pickup is { Length: > 0 };
+        var required = new List<string> { "onboarding.email.sender" };
+        if (!folder)
+        {
+            required.AddRange(["onboarding.email.server.host", "onboarding.email.server.port"]);
+        }
+
+        var missing = required.Where(key => environment.Get(key).Length == 0).ToArray();
+        if (missing.Length > 0)
+        {
+            throw new OnboardingEnvironmentIncomplete(environment.Name, missing);
+        }
+
+        builder.Services.AddSingleton(environment);
+        builder.Services.AddMemoryCache();
+
+        // Herald asks for the event store by the client options, which an ASP.NET Core host binds only on the derived options the application uses.
+        builder.Services.PostConfigure<ChronicleClientOptions>(options => options.EventStore = Provisioning.StoreName(builder.Configuration));
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<Provisioning>();
+        builder.Services.AddTransient<OnboardingEmails>();
+__InvitationPolicies__        builder.Services.AddTransient<IClaimsTransformation, MemberPersonaClaims>();
+        builder.AddHerald(herald =>
+        {
+            herald.TemplatesFolder = Path.Combine(builder.Environment.ContentRootPath, "Emails");
+            herald.ImagesFolder = Path.Combine(builder.Environment.ContentRootPath, "Emails", "images");
+            herald.DefaultLanguage = EmailLanguage.Default;
+            herald.Sender = new() { Address = environment.Get("onboarding.email.sender"), Name = ApplicationName.Value };
+            if (folder)
+            {
+                herald.Transport = EmailTransportKind.Folder;
+                herald.PickupFolder = pickup!;
+                return;
+            }
+
+            var userName = environment.Get("onboarding.email.server.username");
+            var port = int.Parse(environment.Get("onboarding.email.server.port"), System.Globalization.CultureInfo.InvariantCulture);
+            herald.Smtp = new()
+            {
+                Host = environment.Get("onboarding.email.server.host"),
+                Port = port,
+                Security = port == 465 ? SmtpSecurity.Tls : userName.Length == 0 ? SmtpSecurity.None : SmtpSecurity.StartTls,
+                UserName = userName,
+                Password = environment.Get("onboarding.email.server.password")
+            };
+        });
+    }
+}
+
+/// <summary>
+/// The name of the application, used as the name emails are sent from.
+/// </summary>
+public static class ApplicationName
+{
+    /// <summary>
+    /// Gets the name of the application.
+    /// </summary>
+    public const string Value = __Application__;
+}
+
+/// <summary>
+/// The language emails are written in when the recipient has none.
+/// </summary>
+public static class EmailLanguage
+{
+    /// <summary>
+    /// Gets the default language.
+    /// </summary>
+    public const string Default = __DefaultLanguage__;
+}

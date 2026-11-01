@@ -9,6 +9,8 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Scene;
+using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Rendering.Cratis.Realization;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -235,6 +237,26 @@ public static partial class CratisRendering
             profile.RendererVersion,
             input is null ? inputs : inputs.Add(input));
     }
+
+    /// <summary>
+    /// Adds what the executable model does not carry - the identity providers, personas and onboarding of the application, with the files
+    /// onboarding refers to - so the rendered application trusts the identity AuthProxy forwards and provisions from Ante's outcomes.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="compilation">The compilation whose documents declare the authentication and onboarding.</param>
+    /// <param name="physicalModelRoot">The folder holding the <c language="text">.play</c> files on disk, which the images of the onboarding emails are read from; omitted, there are none.</param>
+    /// <returns>The profile carrying the realization input, or the profile unchanged when the model declares neither authentication nor onboarding.</returns>
+    public static ArtifactRenderProfile WithRealization(ArtifactRenderProfile profile, SemanticCompilation compilation, string? physicalModelRoot = null) =>
+        WithRealization(profile, ApplicationRealization.From(compilation, physicalModelRoot));
+
+    /// <summary>
+    /// Adds the realization of the application to the profile.
+    /// </summary>
+    /// <param name="profile">The resolved profile.</param>
+    /// <param name="realization">The <see cref="ApplicationRealization"/>, for example from <c language="csharp">ApplicationRealization.From</c>.</param>
+    /// <returns>The profile carrying the realization input, replacing any existing one.</returns>
+    public static ArtifactRenderProfile WithRealization(ArtifactRenderProfile profile, ApplicationRealization realization) =>
+        ApplicationRealizationInput.With(profile, realization);
 
     /// <summary>
     /// Maps spliced inline authored bodies back to their <c language="text">.play</c> lines with <c language="csharp">#line</c> directives.

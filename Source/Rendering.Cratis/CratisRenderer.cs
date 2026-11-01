@@ -1,14 +1,17 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Cratis.Screenplay.Environments;
 using Cratis.Screenplay.Syntax;
 using Cratis.Screenplay.Syntax.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Screenplay;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Emission;
 using Cratis.Stage.Rendering.Cratis.Expressions;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Realization;
 using Cratis.Stage.Rendering.Cratis.Renderers;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Specifications;
@@ -176,11 +179,28 @@ public class CratisRenderer : IRenderer
             await error.WriteLineAsync($"{seeds} seed declaration(s) are not rendered — the application starts with no seeded data.");
         }
 
-        var providers = applicationSet.Applications.Sum(application => application.Authentication?.Providers.Count() ?? 0);
-        if (providers > 0)
+        // The providers AuthProxy knows are rendered as its configuration (RuntimeConfigurationFiles), so only the ones it does not know are reported.
+        foreach (var provider in applicationSet.Applications.SelectMany(application => application.Authentication?.Providers ?? []).Where(provider => !RuntimeConfigurationFiles.IsSupportedKind(provider.Name)))
         {
             await error.WriteLineAsync(
-                $"{providers} authentication provider(s) are not rendered — the application authenticates nobody, so every authorization requirement rejects.");
+                $"Authentication provider '{provider.Identity}' (kind '{provider.Name}') is not one AuthProxy can sign people in with — it is not rendered, so nobody can sign in with it.");
+        }
+    }
+
+    // The legacy writer renders the configuration a runtime starts AuthProxy with. Making the application trust the identity AuthProxy forwards
+    // changes its scaffold, which only the artifact renderer (`cratis render`) does.
+    async Task RenderRuntimeConfiguration(ApplicationSet applicationSet, DirectoryInfo targetDirectory, TextWriter output, TextWriter error, List<Exception> failures)
+    {
+        var application = applicationSet.Applications.FirstOrDefault(candidate => candidate.Authentication?.Providers.Any() == true);
+        if (application is null)
+        {
+            return;
+        }
+
+        var realization = ApplicationRealization.From(application, EnvironmentRequirements.For(application), new Dictionary<string, string>(), null);
+        foreach (var (path, content) in RuntimeConfigurationFiles.Render(realization, Identifiers.ToPascalCase(targetDirectory.Name)))
+        {
+            await WriteFile(new RenderedFile(path, content), targetDirectory, output, error, failures);
         }
     }
 
@@ -270,6 +290,7 @@ public class CratisRenderer : IRenderer
             await RenderSlice(slice, applicationSet, rootNamespace, targetDirectory, output, error, failures, runtimeArtifacts);
         }
 
+        await RenderRuntimeConfiguration(applicationSet, targetDirectory, output, error, failures);
         await ReportUnrenderableReferences(applicationSet, error);
         await ReportUnrenderedDeclarations(applicationSet, error);
         await Complete(targetDirectory, output, error, failures);

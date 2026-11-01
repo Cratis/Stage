@@ -4,6 +4,8 @@
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
     <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.258.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
+    <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
+    <AnteContractsChronicleVersion>19.114.0</AnteContractsChronicleVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
@@ -38,6 +40,9 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
+    <!-- Referenced only by an application rendered with onboarding; Stage itself does not reference them. -->
+    <PackageVersion Include="Cratis.Ante.Contracts" Version="1.5.0" />
+    <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.10.0" />
     <PackageVersion Include="Cratis.Scene.Engine" Version="4.86.0" />
     <PackageVersion Include="Cratis.Scene.Model" Version="4.86.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />

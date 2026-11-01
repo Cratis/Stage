@@ -1,0 +1,176 @@
+using Ante.Contracts.Invitations;
+using Ante.Contracts.Organization;
+using Cratis.Chronicle.EventSequences;
+using Cratis.Showrunner.Herald;
+using Cratis.Showrunner.Herald.Sending;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Sends the onboarding emails through Herald, using the templates the model names. Each kind of email is sent once per invitation or
+/// registration: Herald records what it queued, and a marker records that this kind was asked for.
+/// </summary>
+/// <param name="emails">Herald.</param>
+/// <param name="client">The Chronicle client.</param>
+/// <param name="configuration">The application configuration.</param>
+/// <param name="logger">The logger.</param>
+public partial class OnboardingEmails(IEmails emails, IChronicleClient client, IConfiguration configuration, ILogger<OnboardingEmails> logger)
+{
+    /// <summary>
+    /// Sends the invitation email to the person an invitation was sent to.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="issued">The token Ante issued.</param>
+    /// <returns>A task.</returns>
+    public async Task Invitation(string invitation, InvitationTokenIssued issued)
+    {
+        if (!OnboardingRules.Emails.Contains("invitation", StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        // The sentinel means Ante does not know when the token expires; a link nobody can tell is usable is not announced.
+        if (issued.ExpiresAt == DateTimeOffset.UnixEpoch || issued.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            LinkNotAnnounced(logger, invitation);
+            return;
+        }
+
+        if (await Recipient(invitation) is not { } recipient)
+        {
+            return;
+        }
+
+        var link = $"{PublicBaseUrl().TrimEnd('/')}/invite/{issued.Token}";
+        await Send("invitation", invitation, recipient.Email, new Dictionary<string, string>
+        {
+            ["invitation.link"] = link,
+            ["invitation.expiresAt"] = issued.ExpiresAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            ["invitation.tenant"] = recipient.Tenant,
+            ["application.name"] = ApplicationName.Value
+        });
+    }
+
+    /// <summary>
+    /// Sends the welcome email to someone who joined a tenant.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="accepted">The outcome.</param>
+    /// <returns>A task.</returns>
+    public Task Welcome(string invitation, InvitationToJoinTenantAccepted accepted) =>
+        Welcome(invitation, accepted.Email.Value, accepted.FirstName.Value, accepted.TenantName.Value);
+
+    /// <summary>
+    /// Sends the welcome email to someone who was invited to create a tenant.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="accepted">The outcome.</param>
+    /// <returns>A task.</returns>
+    public Task Welcome(string invitation, InvitationToCreateTenantAccepted accepted) =>
+        Welcome(invitation, accepted.Email.Value, accepted.FirstName.Value, accepted.TenantName.Value);
+
+    /// <summary>
+    /// Sends the welcome email to someone who signed up. The address of a sign-up is a contact candidate and may be empty.
+    /// </summary>
+    /// <param name="registration">The registration id.</param>
+    /// <param name="completed">The outcome.</param>
+    /// <returns>A task.</returns>
+    public Task Welcome(string registration, OrganizationRegistrationCompleted completed) =>
+        Welcome(registration, completed.Email.Value, completed.FirstName.Value, completed.TenantName.Value);
+
+    /// <summary>
+    /// Tells a person an invitation for them could not be honored, when it was not accepted before.
+    /// </summary>
+    /// <param name="invitation">The invitation id.</param>
+    /// <param name="rejected">The rejection.</param>
+    /// <returns>A task.</returns>
+    public async Task SignupDeclined(string invitation, InvitationRejected rejected)
+    {
+        if (!OnboardingRules.Emails.Contains("signupDeclined", StringComparer.Ordinal) ||
+            rejected.Reason is not (InvitationRejectionReason.PersonaNotGrantable or InvitationRejectionReason.InvitationTypeNotAllowed or InvitationRejectionReason.InvalidRecipient) ||
+            await Recipient(invitation) is not { } recipient ||
+            await Queued(invitation, "welcome"))
+        {
+            return;
+        }
+
+        await Send("signup-declined", invitation, recipient.Email, new Dictionary<string, string>
+        {
+            ["application.name"] = ApplicationName.Value,
+            ["reason"] = rejected.Reason.ToString()
+        });
+    }
+
+    async Task Welcome(string source, string email, string name, string tenant)
+    {
+        if (!OnboardingRules.Emails.Contains("welcome", StringComparer.Ordinal) || email.Length == 0)
+        {
+            return;
+        }
+
+        await Send("welcome", source, email, new Dictionary<string, string>
+        {
+            ["member.name"] = name,
+            ["tenant.name"] = tenant,
+            ["application.name"] = ApplicationName.Value,
+            ["application.link"] = PublicBaseUrl()
+        });
+    }
+
+    async Task Send(string kind, string source, string to, Dictionary<string, string> values)
+    {
+        if (await Queued(source, kind))
+        {
+            return;
+        }
+
+
+        // The invitation or registration is the compliance subject, so erasing it erases the recipient and any link that works as a credential.
+        var id = await emails.Send(new EmailRequest(kind, source, to, values.Where(value => value.Value.Length > 0).ToDictionary(value => value.Key, value => value.Value, StringComparer.Ordinal))
+        {
+            Subject = new Cratis.Chronicle.Subject(source)
+        });
+        var log = (await Store()).GetEventSequence(EventSequenceId.Log);
+        await log.AppendOnce(source, new OnboardingEmailQueued(kind, id.ToString()!), new IdempotencyKey($"email:{kind}:{source}"));
+    }
+
+    async Task<bool> Queued(string source, string kind)
+    {
+        var log = (await Store()).GetEventSequence(EventSequenceId.Log);
+        var queued = await log.GetForEventSourceIdAndEventTypes(source, [typeof(OnboardingEmailQueued).GetEventType()]);
+
+        return queued.Select(appended => appended.Content).OfType<OnboardingEmailQueued>().Any(email => string.Equals(email.Kind, kind, StringComparison.Ordinal));
+    }
+
+    // The address an invitation was sent to is in the application's own outbox, where the invitation command appended it.
+    async Task<(string Email, string Tenant)?> Recipient(string invitation)
+    {
+        var outbox = (await Store()).GetEventSequence(EventSequenceId.Outbox);
+        var sent = await outbox.GetForEventSourceIdAndEventTypes(invitation, [typeof(UserInvitedToJoinTenant).GetEventType(), typeof(UserInvitedToCreateTenant).GetEventType()]);
+        foreach (var content in sent.Select(appended => appended.Content))
+        {
+            switch (content)
+            {
+                case UserInvitedToJoinTenant join:
+                    return (join.Email.Value, join.TenantName.Value);
+                case UserInvitedToCreateTenant create:
+                    return (create.Email.Value, string.Empty);
+            }
+        }
+
+        RecipientUnknown(logger, invitation);
+
+        return null;
+    }
+
+    // Ante observes the application's outbox in its fixed namespace, so invitations and their records live in the default namespace.
+    async Task<IEventStore> Store() => await client.GetEventStore(Provisioning.StoreName(configuration), EventStoreNamespaceName.Default);
+
+    string PublicBaseUrl() => configuration["Cratis:Application:PublicBaseUrl"] is { Length: > 0 } url ? url : throw new PublicBaseUrlNotConfigured();
+
+    [LoggerMessage(LogLevel.Warning, "The token for invitation {Invitation} has an unknown or past expiry, so no link was announced")]
+    static partial void LinkNotAnnounced(ILogger logger, string invitation);
+
+    [LoggerMessage(LogLevel.Warning, "No invitation {Invitation} was found in the application's outbox, so there is nobody to email")]
+    static partial void RecipientUnknown(ILogger logger, string invitation);
+}

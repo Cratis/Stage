@@ -1,0 +1,46 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Caching.Memory;
+
+using __Root__.GeneratedAuthentication;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Gives a signed-in caller the roles and claims of the personas they were granted when they became a member of the tenant
+/// AuthProxy resolved for the request.
+/// </summary>
+/// <param name="client">The Chronicle client.</param>
+/// <param name="accessor">Gives the request, whose tenant header AuthProxy wrote.</param>
+/// <param name="cache">Keeps a member's personas for a short while, so a request does not read the event log.</param>
+/// <param name="configuration">The application configuration.</param>
+public class MemberPersonaClaims(IChronicleClient client, IHttpContextAccessor accessor, IMemoryCache cache, IConfiguration configuration) : IClaimsTransformation
+{
+    static readonly TimeSpan _lifetime = TimeSpan.FromSeconds(15);
+
+    /// <inheritdoc/>
+    public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
+    {
+        var tenant = accessor.HttpContext?.Request.Headers["x-cratis-tenant-id"].FirstOrDefault();
+        if (principal.Identity?.IsAuthenticated != true || string.IsNullOrEmpty(tenant) || MemberIdentity.From(principal) is not { } member)
+        {
+            return principal;
+        }
+
+        var personas = await cache.GetOrCreateAsync($"personas:{tenant}:{member.Key}", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = _lifetime;
+            return Provisioning.PersonasOf(client, configuration, tenant, member);
+        }) ?? [];
+        var granted = Personas.ClaimsFor(personas).Where(claim => !principal.HasClaim(claim.Type, claim.Value)).ToArray();
+        if (granted.Length == 0)
+        {
+            return principal;
+        }
+
+        var transformed = principal.Clone();
+        transformed.AddIdentity(new ClaimsIdentity(granted, "Onboarding"));
+
+        return transformed;
+    }
+}

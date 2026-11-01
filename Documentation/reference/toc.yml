@@ -20,6 +20,10 @@
   href: event-source-routing.md
 - name: Protected reads rendering
   href: protected-reads-rendering.md
+- name: Authentication rendering
+  href: authentication-rendering.md
+- name: Onboarding rendering
+  href: onboarding-rendering.md
 - name: Plan artifacts from Screenplay sources
   href: plan-from-sources.md
 - name: Template helper catalogue

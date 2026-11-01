@@ -1,0 +1,45 @@
+using Cratis.Chronicle.Compliance.GDPR;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// A tenant was provisioned from an outcome Ante published. The tenant is the Chronicle namespace the event is appended in.
+/// </summary>
+/// <param name="TenantName">The name of the tenant.</param>
+[EventType]
+public record OnboardingTenantProvisioned(string TenantName);
+
+/// <summary>
+/// A person became a member of a tenant, holding the personas they were granted.
+/// </summary>
+/// <param name="IdentityProvider">The identity provider the member signs in with.</param>
+/// <param name="Subject">The subject of the member at that identity provider.</param>
+/// <param name="Personas">The personas the member holds.</param>
+[EventType]
+public record OnboardingMemberProvisioned(string IdentityProvider, string Subject, IReadOnlyList<string> Personas);
+
+/// <summary>
+/// A member accepted a version of the legal terms.
+/// </summary>
+/// <param name="IdentityProvider">The identity provider the member signs in with.</param>
+/// <param name="Subject">The subject of the member at that identity provider.</param>
+/// <param name="Version">The version of the legal terms.</param>
+[EventType]
+public record OnboardingLegalTermsAccepted(string IdentityProvider, string Subject, string Version);
+
+/// <summary>
+/// An onboarding email was handed to the mail sender for an invitation or a registration.
+/// </summary>
+/// <param name="Kind">The kind of email.</param>
+/// <param name="EmailId">The identifier of the queued email.</param>
+[EventType]
+public record OnboardingEmailQueued(string Kind, string EmailId);
+
+/// <summary>
+/// A member of a tenant invited a person to join it, with the personas they are given.
+/// </summary>
+/// <param name="Email">The address of the person invited.</param>
+/// <param name="Tenant">The tenant they are invited to join.</param>
+/// <param name="Personas">The personas the invitee is given.</param>
+[EventType]
+public record OnboardingMemberInvited([property: PII] string Email, string Tenant, IReadOnlyList<string> Personas);

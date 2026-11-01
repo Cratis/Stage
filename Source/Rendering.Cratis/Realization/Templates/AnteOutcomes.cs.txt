@@ -1,0 +1,74 @@
+using Ante.Contracts.Invitations;
+using Ante.Contracts.Legal;
+using Ante.Contracts.Organization;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Acts on what the application's own Ante published. Delivery from Ante is at least once, so everything here is idempotent per
+/// invitation or registration and event kind.
+/// </summary>
+/// <param name="provisioning">Provisions the application's model.</param>
+/// <param name="emails">Sends the onboarding emails.</param>
+public class AnteOutcomes(Provisioning provisioning, OnboardingEmails emails) : IReactor
+{
+    /// <summary>
+    /// Sends the invitation email.
+    /// </summary>
+    /// <param name="event">The token Ante issued.</param>
+    /// <param name="context">The event context, whose event source is the invitation id.</param>
+    /// <returns>A task.</returns>
+    public Task Issued(InvitationTokenIssued @event, EventContext context) => emails.Invitation(context.EventSourceId.Value, @event);
+
+    /// <summary>
+    /// Tells the person an invitation could not be honored.
+    /// </summary>
+    /// <param name="event">The rejection.</param>
+    /// <param name="context">The event context, whose event source is the invitation id.</param>
+    /// <returns>A task.</returns>
+    public Task Rejected(InvitationRejected @event, EventContext context) => emails.SignupDeclined(context.EventSourceId.Value, @event);
+
+    /// <summary>
+    /// Records the new member of an existing tenant and welcomes them.
+    /// </summary>
+    /// <param name="event">The outcome.</param>
+    /// <param name="context">The event context, whose event source is the invitation id.</param>
+    /// <returns>A task.</returns>
+    public async Task Joined(InvitationToJoinTenantAccepted @event, EventContext context)
+    {
+        await provisioning.MemberInvitationAccepted(context.EventSourceId.Value, @event);
+        await emails.Welcome(context.EventSourceId.Value, @event);
+    }
+
+    /// <summary>
+    /// Creates the tenant of an invitation and welcomes its first member.
+    /// </summary>
+    /// <param name="event">The outcome.</param>
+    /// <param name="context">The event context, whose event source is the invitation id.</param>
+    /// <returns>A task.</returns>
+    public async Task Created(InvitationToCreateTenantAccepted @event, EventContext context)
+    {
+        await provisioning.TenantInvitationAccepted(context.EventSourceId.Value, @event);
+        await emails.Welcome(context.EventSourceId.Value, @event);
+    }
+
+    /// <summary>
+    /// Creates the tenant of a self-service registration and welcomes its first member.
+    /// </summary>
+    /// <param name="event">The outcome.</param>
+    /// <param name="context">The event context, whose event source is the registration id.</param>
+    /// <returns>A task.</returns>
+    public async Task Registered(OrganizationRegistrationCompleted @event, EventContext context)
+    {
+        await provisioning.RegistrationCompleted(context.EventSourceId.Value, @event);
+        await emails.Welcome(context.EventSourceId.Value, @event);
+    }
+
+    /// <summary>
+    /// Records the acceptance of the legal terms.
+    /// </summary>
+    /// <param name="event">The outcome.</param>
+    /// <param name="context">The event context, whose event source is the invitation or registration id.</param>
+    /// <returns>A task.</returns>
+    public Task Accepted(LegalTermsAccepted @event, EventContext context) => provisioning.LegalTerms(context.EventSourceId.Value, @event);
+}

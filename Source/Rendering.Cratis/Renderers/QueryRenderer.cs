@@ -92,11 +92,6 @@ public static class QueryRenderer
                 applicationSet,
                 $"Query '{query.Name}'",
                 diagnostics);
-            if (authorization is not null)
-            {
-                builder.Using(AuthorizationRenderer.Namespace);
-            }
-
             builder.Documentation(query.Description).Attribute(authorization).Line(Signature(query, typeName, keyType, parameterName));
         }
     }

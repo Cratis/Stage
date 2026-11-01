@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_AuthorizationRenderer.when_rendering
 
 public class and_an_alternative_needs_no_role : an_application_with_policies
 {
-    string? _attribute;
+    string _attribute = null!;
 
     void Because() => _attribute = Render(Authorize("Administrator", "Authenticated"));
 

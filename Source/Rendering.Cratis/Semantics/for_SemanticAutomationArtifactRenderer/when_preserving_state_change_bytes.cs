@@ -17,6 +17,7 @@ public class when_preserving_state_change_bytes : given.an_automation
         /// <param name="Id">The id.</param>
         /// <param name="Amount">The amount.</param>
         [Command]
+        [AllowAnonymous]
         public record StartWork(string Id, decimal Amount) : ICanProvideEventSourceId
         {
             /// <inheritdoc/>

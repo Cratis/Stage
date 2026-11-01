@@ -156,7 +156,8 @@ public class StateViewSliceRenderer : ISliceRenderer
             ? ProjectionKey.Resolve(projection, fromBlocks, properties, events, applicationSet, diagnostics)
             : null;
 
-        builder.Using("Cratis.Arc.Queries.ModelBound")
+        builder.Using(AuthorizationRenderer.Namespace)
+            .Using("Cratis.Arc.Queries.ModelBound")
             .Using("Cratis.Chronicle.Events")
             .Using("Cratis.Chronicle.Projections.ModelBound")
             .Using("Cratis.Chronicle.ReadModels")
@@ -218,7 +219,7 @@ public class StateViewSliceRenderer : ISliceRenderer
         builder.Attribute("ReadModel");
         if (typeAuthorization is not null)
         {
-            builder.Using(AuthorizationRenderer.Namespace).Attribute(typeAuthorization);
+            builder.Attribute(typeAuthorization);
         }
 
         builder.OpenBlock($"public record {typeName}({parameters})");

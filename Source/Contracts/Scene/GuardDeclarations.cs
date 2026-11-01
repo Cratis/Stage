@@ -56,7 +56,7 @@ internal sealed class GuardDeclarations
             "Int" or "Integer" or "Long" or "Float" or "Double" or "Decimal" or "Number" => GuardFieldKind.Number,
             "Bool" or "Boolean" => GuardFieldKind.Boolean,
             "DateTime" or "DateTimeOffset" or "DateOnly" or "Date" => GuardFieldKind.DateTime,
-            "Guid" => GuardFieldKind.Identifier,
+            "Uuid" or "Guid" => GuardFieldKind.Identifier,
             _ => GuardFieldKind.Unknown
         };
         GuardFieldType result = new(kind);

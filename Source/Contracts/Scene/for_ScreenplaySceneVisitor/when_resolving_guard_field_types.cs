@@ -15,8 +15,12 @@ public class when_resolving_guard_field_types : Specification
     [Theory]
     [InlineData("String", GuardFieldKind.Text)]
     [InlineData("Int", GuardFieldKind.Number)]
+    [InlineData("Decimal", GuardFieldKind.Number)]
+    [InlineData("Bool", GuardFieldKind.Boolean)]
     [InlineData("Boolean", GuardFieldKind.Boolean)]
+    [InlineData("Uuid", GuardFieldKind.Identifier)]
     [InlineData("Guid", GuardFieldKind.Identifier)]
+    [InlineData("Date", GuardFieldKind.DateTime)]
     [InlineData("DateTime", GuardFieldKind.DateTime)]
     [InlineData("Missing", GuardFieldKind.Unknown)]
     public void should_classify_optional_fields(string type, object expected)

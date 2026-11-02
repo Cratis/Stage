@@ -16,6 +16,8 @@
   href: generated-values-rendering.md
 - name: Event reaction rendering
   href: reaction-rendering.md
+- name: State machines and workflows
+  href: state-machines-and-workflows.md
 - name: Event-source routing
   href: event-source-routing.md
 - name: Protected reads rendering

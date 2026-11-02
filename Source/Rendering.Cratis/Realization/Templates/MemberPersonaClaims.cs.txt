@@ -7,8 +7,8 @@ using __Root__.GeneratedAuthentication;
 namespace __Root__.GeneratedOnboarding;
 
 /// <summary>
-/// Gives a signed-in caller the roles and claims of the personas they were granted when they became a member of the tenant
-/// AuthProxy resolved for the request.
+/// Provides the application's persona roles and claims from the member's grants in the tenant of the request,
+/// replacing persona roles and claims that arrive with the sign-in.
 /// </summary>
 /// <param name="client">The Chronicle client.</param>
 /// <param name="accessor">Gives the request, whose tenant header AuthProxy wrote.</param>
@@ -16,31 +16,99 @@ namespace __Root__.GeneratedOnboarding;
 /// <param name="configuration">The application configuration.</param>
 public class MemberPersonaClaims(IChronicleClient client, IHttpContextAccessor accessor, IMemoryCache cache, IConfiguration configuration) : IClaimsTransformation
 {
+    /// <summary>
+    /// The identity containing the tenant's persona grants.
+    /// </summary>
+    public const string AuthenticationType = "Onboarding";
+
+    /// <summary>
+    /// The claim identifying the tenant of a persona grant.
+    /// </summary>
+    public const string TenantClaimType = "urn:cratis:onboarding:tenant";
+
+    /// <summary>
+    /// The claim identifying a persona granted in the tenant.
+    /// </summary>
+    public const string PersonaClaimType = "urn:cratis:onboarding:persona";
+
     static readonly TimeSpan _lifetime = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Replaces persona roles and claims with the grants for the selected tenant, without changing the incoming principal.
+    /// </summary>
+    /// <param name="principal">The signed-in caller.</param>
+    /// <param name="tenant">The selected tenant, if any.</param>
+    /// <param name="personas">The names of the personas granted in that tenant.</param>
+    /// <returns>A principal whose persona roles and claims belong only to the selected tenant.</returns>
+    public static ClaimsPrincipal Scope(ClaimsPrincipal principal, string? tenant, IEnumerable<string> personas)
+    {
+        var transformed = new ClaimsPrincipal(principal.Identities
+            .Where(identity => identity.AuthenticationType != AuthenticationType)
+            .Select(WithoutPersonaClaims));
+        var granted = personas.ToArray();
+        if (!string.IsNullOrEmpty(tenant) && granted.Length > 0)
+        {
+            transformed.AddIdentity(new ClaimsIdentity(
+                new[] { new Claim(TenantClaimType, tenant) }
+                    .Concat(granted.Select(persona => new Claim(PersonaClaimType, persona)))
+                    .Concat(Personas.ClaimsFor(granted)),
+                AuthenticationType));
+        }
+
+        return transformed;
+    }
+
+    /// <summary>
+    /// Gets whether an authenticated caller holds a persona grant in the selected tenant.
+    /// </summary>
+    /// <param name="principal">The caller.</param>
+    /// <param name="tenant">The selected tenant.</param>
+    /// <param name="persona">The name of the persona.</param>
+    /// <returns>Whether the tenant-bound identity holds that persona.</returns>
+    public static bool Holds(ClaimsPrincipal principal, string tenant, string persona) =>
+        principal.Identity?.IsAuthenticated == true &&
+        principal.Identities.Any(identity => identity.AuthenticationType == AuthenticationType &&
+            identity.HasClaim(TenantClaimType, tenant) && identity.HasClaim(PersonaClaimType, persona));
 
     /// <inheritdoc/>
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            return principal;
+        }
+
         var tenant = accessor.HttpContext?.Request.Headers["x-cratis-tenant-id"].FirstOrDefault();
-        if (principal.Identity?.IsAuthenticated != true || string.IsNullOrEmpty(tenant) || MemberIdentity.From(principal) is not { } member)
+        IReadOnlyList<string> personas = [];
+        if (!string.IsNullOrEmpty(tenant) && MemberIdentity.From(principal) is { } member)
         {
-            return principal;
+            personas = await cache.GetOrCreateAsync($"personas:{tenant}:{member.Key}", entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = _lifetime;
+                return Provisioning.PersonasOf(client, configuration, tenant, member);
+            }) ?? [];
         }
 
-        var personas = await cache.GetOrCreateAsync($"personas:{tenant}:{member.Key}", entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = _lifetime;
-            return Provisioning.PersonasOf(client, configuration, tenant, member);
-        }) ?? [];
-        var granted = Personas.ClaimsFor(personas).Where(claim => !principal.HasClaim(claim.Type, claim.Value)).ToArray();
-        if (granted.Length == 0)
-        {
-            return principal;
-        }
-
-        var transformed = principal.Clone();
-        transformed.AddIdentity(new ClaimsIdentity(granted, "Onboarding"));
-
-        return transformed;
+        return Scope(principal, tenant, personas);
     }
+
+    static ClaimsIdentity WithoutPersonaClaims(ClaimsIdentity identity)
+    {
+        var scoped = identity.Clone();
+        foreach (var claim in scoped.Claims.Where(claim => IsPersonaClaim(identity, claim)).ToArray())
+        {
+            scoped.TryRemoveClaim(claim);
+        }
+
+        return scoped;
+    }
+
+    static bool IsPersonaClaim(ClaimsIdentity identity, Claim claim) =>
+        claim.Type is TenantClaimType or PersonaClaimType ||
+        Personas.All.Any(persona =>
+            ((string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(claim.Type, identity.RoleClaimType, StringComparison.OrdinalIgnoreCase)) &&
+                persona.Roles.Contains(claim.Value, StringComparer.Ordinal)) ||
+            persona.Claims.Any(required => string.Equals(required.Type, claim.Type, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(required.Value, claim.Value, StringComparison.Ordinal)));
 }

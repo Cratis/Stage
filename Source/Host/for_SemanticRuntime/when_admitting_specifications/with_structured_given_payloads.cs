@@ -16,7 +16,7 @@ public class with_structured_given_payloads : Specification
     {
         var source = "type Payload\n  labels String[]\n" + specification_plan.Source()
             .Replace("      event ProjectRegistered", "      event Historical\n        payload Payload\n        entries Payload[]\n        values Int[]\n      event ProjectRegistered", StringComparison.Ordinal)
-            .Replace("        when RegisterProject", "        given Historical\n          payload = {\"labels\":[]}\n          entries = [{\"labels\":[\"first\"]}]\n          values = [1,2]\n        when RegisterProject", StringComparison.Ordinal);
+            .Replace("        when RegisterProject", "        given Historical\n          payload\n            labels none\n          entries\n            item\n              labels\n                item \"first\"\n          values\n            item 1\n            item 2\n        when RegisterProject", StringComparison.Ordinal);
         _admission = new(compiled_plan.From(source));
     }
 

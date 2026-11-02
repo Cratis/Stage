@@ -85,7 +85,9 @@ public class when_running_typed_multipart_projection_keys : Specification
                 when append Cancelled
                   tenant = "north"
                   invoice = "00000000-0000-0000-0000-000000000001"
-                then no readmodel Payment for {"tenant":"north","invoice":"00000000-0000-0000-0000-000000000001"}
+                then no readmodel Payment for
+                  tenant = "north"
+                  invoice = "00000000-0000-0000-0000-000000000001"
                 then readmodel Payment
                   invoice = "00000000-0000-0000-0000-000000000002"
                   tenant = "north"

@@ -50,9 +50,17 @@ public class a_structured_event : Specification
                   specification Checking
                     {{occurrence}}
                       count = 7
-                      details = {"tags":[]}
-                      entries = [{"label":"first"},{"tags":[]},{}]
-                      numbers = [1,2]
+                      details
+                        tags none
+                      entries
+                        item
+                          label = "first"
+                        item
+                          tags none
+                        item empty
+                      numbers
+                        item 1
+                        item 2
                     then readmodel Marker
                       id = "one"
                       count = {{expected}}

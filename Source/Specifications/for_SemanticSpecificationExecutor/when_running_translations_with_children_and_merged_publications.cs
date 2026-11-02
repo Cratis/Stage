@@ -38,7 +38,13 @@ public class when_running_translations_with_children_and_merged_publications : S
               specification OneDemandPerLine
                 when append OrderConfirmed
                   orderId = "o1"
-                  lines   = [{"sku":"A","quantity":3},{"sku":"B","quantity":1}]
+                  lines
+                    item
+                      sku = "A"
+                      quantity = 3
+                    item
+                      sku = "B"
+                      quantity = 1
                 then DemandRecorded
                   for "o1"
                   orderId  = "o1"
@@ -53,10 +59,19 @@ public class when_running_translations_with_children_and_merged_publications : S
                 given OrderConfirmed
                   for "o1"
                   orderId = "o1"
-                  lines   = [{"sku":"A","quantity":3}]
+                  lines
+                    item
+                      sku = "A"
+                      quantity = 3
                 when append OrderConfirmed
                   orderId = "o1"
-                  lines   = [{"sku":"A","quantity":3},{"sku":"B","quantity":1}]
+                  lines
+                    item
+                      sku = "A"
+                      quantity = 3
+                    item
+                      sku = "B"
+                      quantity = 1
                 then DemandRecorded
                   for "o1"
                   orderId  = "o1"

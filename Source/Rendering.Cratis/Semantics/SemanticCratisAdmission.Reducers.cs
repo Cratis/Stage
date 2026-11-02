@@ -17,9 +17,9 @@ internal static partial class SemanticCratisAdmission
         foreach (var reducer in slice.Reducers)
         {
             var eventTarget = reducer.Target == SemanticProjectionTargetKind.Event;
-            if (eventTarget && !IsExclusivePublicReducer(reducer, slice, context))
+            if (EventTargetReducerDiagnostic(reducer, slice, context) is { } eventTargetDiagnostic)
             {
-                diagnostics.Add(Error(SemanticVersionFeatures.PublicEvents, $"Reducer '{reducer.Name}' needs one exclusive, untagged public event in its outbound translation, distinct local private transitions and no From filter.", reducer.ReadModel));
+                diagnostics.Add(eventTargetDiagnostic);
                 continue;
             }
             if (!eventTarget && slice.Kind is not (SemanticSliceKind.StateView or SemanticSliceKind.Automation))
@@ -166,11 +166,6 @@ internal static partial class SemanticCratisAdmission
 
         return analysed;
     }
-
-    static bool IsExclusivePublicReducer(SemanticReducer reducer, SemanticSlice slice, SemanticApplicationContext context) =>
-        SemanticTranslationSupport.Reducer(reducer, slice, context.Events) &&
-        !context.Projections.Values.Any(projection => projection.ReadModel == reducer.ReadModel) &&
-        context.Reducers.Count(candidate => candidate.ReadModel == reducer.ReadModel) == 1;
 
     static (SemanticId Id, string Name, ImmutableArray<SemanticProperty> Properties) ReducerState(SemanticReducer reducer, SemanticApplicationContext context) =>
         reducer.Target == SemanticProjectionTargetKind.Event

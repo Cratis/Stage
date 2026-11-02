@@ -169,7 +169,10 @@ internal static partial class SemanticCratisAdmission
         var descriptors = SemanticValidationContextRuntime.Selected(context, slices).ToArray();
         if (descriptors.Length == 0) yield break;
         var ns = string.Join('.', context.Domain.Append("TypedContexts"));
-        yield return (ns, "ValidationBodies");
+        foreach (var owner in descriptors.Select(descriptor => descriptor.OperationId!.Value).Distinct())
+        {
+            yield return (SemanticValidationContextRuntime.OwnerRelativeNamespace(context, owner), context.ContextNames.ContextRules(owner));
+        }
         foreach (var descriptor in descriptors) yield return (ns, context.ContextNames.ContextWrapper(descriptor));
     }
 

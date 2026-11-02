@@ -93,17 +93,36 @@ internal static partial class PureValidationAdmission
         PureTransitionAdmission.Verdict? ShadowRejection(SyntaxTree tree, SemanticModel model)
         {
             var references = PureTransitionAdmission.MethodTypeReferences(tree, model, SemanticValidationContextRuntime.Method(context, descriptor));
-            var peers = context.Application.Concepts.Select(concept => Naming.Identifiers.ToPascalCase(concept.Name))
-                .Concat(context.Application.Types.Select(type => Naming.Identifiers.ToPascalCase(type.Name)));
-            var shadow = peers.FirstOrDefault(name => references.Any(reference => reference.Name == name && PureTransitionAdmission.ShadowsAuditedName(name)));
-            var commands = context.Commands.Values.Select(command => (Naming.Identifiers.ToPascalCase(command.Name), Naming.SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path))).ToHashSet();
             var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
-            var commandTypes = method.Body!.DescendantNodes().OfType<SimpleNameSyntax>().Select(name => model.GetSymbolInfo(name).Symbol)
-                .OfType<INamedTypeSymbol>().Where(type => commands.Contains((type.Name, type.ContainingNamespace.ToDisplayString()))).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
-            var namespaceShadow = context.NamespacePaths.GroupBy(path => path.Split('.')[^1], StringComparer.Ordinal).FirstOrDefault(group =>
+            var boundTypes = method.Body!.DescendantNodes().OfType<SimpleNameSyntax>()
+                .Select(name => model.GetSymbolInfo(name).Symbol).OfType<INamedTypeSymbol>().ToArray();
+            var shadowed = AuditedShadow(references) ?? NamespaceShadow(references, boundTypes) ?? OwnerShadow(boundTypes);
+            return shadowed is null ? null : Reject("STAGE-ESM-022", $"Generated declaration '{shadowed}' shadows a validation body type.");
+        }
+
+        string? AuditedShadow(HashSet<(string Name, string? Namespace)> references) =>
+            context.Application.Concepts.Select(concept => Naming.Identifiers.ToPascalCase(concept.Name))
+                .Concat(context.Application.Types.Select(type => Naming.Identifiers.ToPascalCase(type.Name)))
+                .FirstOrDefault(name => references.Any(reference => reference.Name == name && PureTransitionAdmission.ShadowsAuditedName(name)));
+
+        string? NamespaceShadow(HashSet<(string Name, string? Namespace)> references, INamedTypeSymbol[] boundTypes)
+        {
+            var commands = context.Commands.Values.Select(command => (Naming.Identifiers.ToPascalCase(command.Name), Naming.SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(command.Id).Path))).ToHashSet();
+            var commandTypes = boundTypes.Where(type => commands.Contains((type.Name, type.ContainingNamespace.ToDisplayString()))).Select(type => type.Name).ToHashSet(StringComparer.Ordinal);
+            return context.NamespacePaths.GroupBy(path => path.Split('.')[^1], StringComparer.Ordinal).FirstOrDefault(group =>
                 references.Any(reference => !commandTypes.Contains(reference.Name) && reference.Name == group.Key &&
                     (reference.Namespace is null || group.Any(path => path != reference.Namespace))))?.Key;
-            return shadow is null && namespaceShadow is null ? null : Reject("STAGE-ESM-022", $"Generated declaration '{shadow ?? namespaceShadow}' shadows a validation body type.");
+        }
+
+        string? OwnerShadow(INamedTypeSymbol[] boundTypes)
+        {
+            var ownerNamespace = SemanticValidationContextRuntime.OwnerNamespace(context, descriptor.OperationId!.Value);
+            return SemanticCratisAdmission.NamingReservations(context, context.AllSlices).FirstOrDefault(peer =>
+            {
+                var peerNamespace = $"{context.RootNamespace}.{peer.Namespace}";
+                return (ownerNamespace == peerNamespace || ownerNamespace.StartsWith(peerNamespace + ".", StringComparison.Ordinal)) &&
+                    boundTypes.Any(type => type.Name == peer.Name && type.ContainingNamespace.ToDisplayString() != peerNamespace);
+            })?.Name;
         }
 
         PureTransitionAdmission.Verdict? CompilationRejection(CSharpCompilation compilation, MethodDeclarationSyntax method, string body)

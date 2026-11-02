@@ -166,15 +166,9 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         refusals = refusals.AddRange(evidence.Refusals);
         context.RefuseSpecifications([.. refusals.Select(refusal => refusal.Artifact)]);
 
-        var validations = omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)).ToArray();
-        foreach (var descriptor in validations)
+        foreach (var descriptor in omission.Apply(SemanticValidationContextRuntime.Selected(context, slices)))
         {
             artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderWrapper(context, descriptor)));
-        }
-        if (validations.Length > 0)
-        {
-            artifacts.Add(Artifact(SemanticValidationContextRuntime.RenderBodies(context, validations.Select(descriptor =>
-                (descriptor, context.Request.ImplementationContents[descriptor.RequirementId])))));
         }
 
         if (SemanticValidationContextRuntime.UsesCommandReceiptTime(context, slices))

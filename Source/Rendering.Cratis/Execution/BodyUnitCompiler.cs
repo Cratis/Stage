@@ -60,7 +60,7 @@ public static partial class BodyUnitCompiler
         try
         {
             var sources = BodyUnitSources.Render(context, descriptor!, body!);
-            var build = new UnitBuild(sources, References(), Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14, (hash, peSha) => new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: $"{context.TypedContextsNamespace}.ValidationBodies", EntryMethod: SemanticValidationContextRuntime.Method(context, descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(context, descriptor!)}")
+            var build = new UnitBuild(sources, References(), Microsoft.CodeAnalysis.CSharp.LanguageVersion.CSharp14, (hash, peSha) => new BodyUnitEntry(requirement.RequirementId, requirement.Role.ToString(), true, UnitHash: hash, PeSha256: peSha, EntryType: SemanticValidationContextRuntime.RulesType(context, descriptor!.OperationId!.Value), EntryMethod: SemanticValidationContextRuntime.Method(context, descriptor!), WrapperType: $"{context.TypedContextsNamespace}.{SemanticValidationContextRuntime.Wrapper(context, descriptor!)}")
             {
                 BodySha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(body!))),
                 PropertyNames = PropertyNames(context),

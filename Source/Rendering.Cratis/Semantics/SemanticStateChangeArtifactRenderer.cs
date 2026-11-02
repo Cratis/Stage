@@ -361,6 +361,7 @@ internal static class SemanticStateChangeArtifactRenderer
         builder.Summary($"Initializes validation rules for {commandName}.")
             .OpenBlock($"public {commandName}Validator()");
         var raw = SemanticDateComparisonAdmission.Raw(context.Application, command);
+        var hasBodies = !command.CodeValidations.IsEmpty;
         foreach (var rule in command.Validations)
         {
             var property = command.Properties.Single(_ => _.Id == rule.Property);
@@ -368,6 +369,7 @@ internal static class SemanticStateChangeArtifactRenderer
             var wrapped = property.Type.Kind == SemanticTypeReferenceKind.Concept && !raw.Contains(property.Id);
             if (SemanticValidationContextRuntime.IsBody(rule))
             {
+                hasBodies = true;
                 SemanticValidationContextRuntime.RenderRule(builder, context, rule, command.Id, property);
             }
             else
@@ -395,6 +397,7 @@ internal static class SemanticStateChangeArtifactRenderer
         }
 
         builder.EndBlock().EndBlock();
+        if (hasBodies) SemanticValidationContextRuntime.RenderOwnerBodies(builder, context, command.Id);
     }
 
     static void RenderInlineConceptRules(CSharpCodeBuilder builder, SemanticCommand command, SemanticApplicationContext context)

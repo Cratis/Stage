@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics;
+using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
 namespace Cratis.Stage.Rendering.Cratis.Naming;
 
@@ -24,12 +25,9 @@ internal sealed partial class SemanticInlineNames
         var descriptors = (context.Request.TypedContextDescriptors.IsDefault ? [] : context.Request.TypedContextDescriptors)
             .Where(descriptor => descriptor is not null)
             .DistinctBy(ContextKey, StringComparer.Ordinal)
-            .OrderBy(ContextKey, StringComparer.Ordinal);
-        var sites = descriptors.Select(descriptor =>
-        {
-            var (stem, qualified) = ContextStems(context, descriptor);
-            return new SemanticInlineNameSite(ContextKey(descriptor), stem, descriptor.RequirementId, ContextScope, null, ContextFileScope, qualified, name => ContextSpellings(name, descriptor));
-        }).ToArray();
+            .OrderBy(ContextKey, StringComparer.Ordinal)
+            .ToArray();
+        var sites = descriptors.Select(descriptor => ContextSite(context, descriptor)).Concat(RulesSites(context, descriptors)).ToArray();
         var modeled = context.Concepts.Values.Select(concept => concept.Name)
             .Concat(context.Types.Values.Select(type => type.Name))
             .Concat(context.Events.Values.Select(@event => @event.Name))
@@ -41,7 +39,8 @@ internal sealed partial class SemanticInlineNames
             .Concat(TypedContextTypes.Fixed)
             .Concat(PureTransitionAdmission.AuditedNames)
             .Distinct(StringComparer.Ordinal);
-        return new(sites, modeled.Select(name => new SemanticInlineNameReservation(ContextScope, name)));
+        var reservations = modeled.Select(name => new SemanticInlineNameReservation(ContextScope, name));
+        return new(sites, reservations);
     }
 
     /// <summary>Gets the model-derived name every declaration of a typed context is built from.</summary>
@@ -49,6 +48,11 @@ internal sealed partial class SemanticInlineNames
     /// <returns>The allocated base spelling.</returns>
     internal string ContextBase(SemanticTypedContextDescriptor descriptor) =>
         _names.TryGetValue(ContextKey(descriptor), out var name) ? name : $"{descriptor.Role}_{ContextDigest(descriptor)}";
+
+    /// <summary>Gets the name of the static class that holds an owner's validation bodies next to its validator.</summary>
+    /// <param name="owner">The command or concept that owns the validation bodies.</param>
+    /// <returns>The class name.</returns>
+    internal string ContextRules(SemanticId owner) => _names[RulesKey(owner)];
 
     /// <summary>Gets the wrapper record name.</summary>
     /// <param name="descriptor">The typed context.</param>
@@ -81,6 +85,22 @@ internal sealed partial class SemanticInlineNames
     /// <param name="descriptor">The typed context.</param>
     /// <returns>The file name.</returns>
     internal string ContextPolicyFile(SemanticTypedContextDescriptor descriptor) => $"PolicyBodies.{ContextBase(descriptor)}.cs";
+
+    static SemanticInlineNameSite ContextSite(SemanticApplicationContext context, SemanticTypedContextDescriptor descriptor)
+    {
+        var (stem, qualified) = ContextStems(context, descriptor);
+        return new SemanticInlineNameSite(ContextKey(descriptor), stem, descriptor.RequirementId, ContextScope, null, ContextFileScope, qualified, name => ContextSpellings(name, descriptor));
+    }
+
+    static IEnumerable<SemanticInlineNameSite> RulesSites(SemanticApplicationContext context, SemanticTypedContextDescriptor[] descriptors) =>
+        descriptors.Where(SemanticValidationContextRuntime.IsOwnerBody)
+            .Select(descriptor => descriptor.OperationId!.Value)
+            .Select(owner => (Owner: owner, Name: ContextOwner(context, owner)))
+            .Where(pair => pair.Name is not null)
+            .Select(pair => new SemanticInlineNameSite(RulesKey(pair.Owner), $"{pair.Name}ValidationRules", pair.Owner.ToString(), ContextScope))
+            .DistinctBy(site => site.Key, StringComparer.Ordinal);
+
+    static string RulesKey(SemanticId owner) => $"validation-rules:{owner}";
 
     static string ContextKey(SemanticTypedContextDescriptor descriptor) => $"typed-context:{descriptor.RequirementId}:{descriptor.OperationId}";
 

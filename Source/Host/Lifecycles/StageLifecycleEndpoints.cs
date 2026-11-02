@@ -17,13 +17,6 @@ internal static class StageLifecycleEndpoints
     /// <summary>The route that reports state machines and workflow runs.</summary>
     internal const string Route = "/stage/lifecycles";
 
-    /// <summary>
-    /// The body of an approval decision.
-    /// </summary>
-    /// <param name="Approved">Whether the person approved.</param>
-    /// <param name="Actor">Who decided; the sandbox person when omitted.</param>
-    internal sealed record ApprovalDecision(bool Approved, string? Actor);
-
     internal static void Map(WebApplication app, SemanticExecutionPlan plan, Func<LifecycleDriver?> driver)
     {
         var application = plan.Model.Application;
@@ -54,4 +47,11 @@ internal static class StageLifecycleEndpoints
             return decided ? Results.Accepted() : Results.NotFound();
         });
     }
+
+    /// <summary>
+    /// The body of an approval decision.
+    /// </summary>
+    /// <param name="Approved">Whether the person approved.</param>
+    /// <param name="Actor">Who decided; the sandbox person when omitted.</param>
+    internal sealed record ApprovalDecision(bool Approved, string? Actor);
 }

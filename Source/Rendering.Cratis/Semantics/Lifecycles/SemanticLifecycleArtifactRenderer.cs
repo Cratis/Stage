@@ -67,6 +67,7 @@ internal static class SemanticLifecycleArtifactRenderer
             .Line($"public override global::System.Collections.Immutable.IImmutableList<global::Cratis.Orleans.StateMachines.IState<{modelType}>> CreateStates() => [{string.Join(", ", machine.States.Select(state => $"new {Identifiers.ToPascalCase(state.Name)}()"))}];")
             .BlankLine()
             .Line("/// <inheritdoc/>");
+
         // A transition written under several states is one transition of the engine: it is tried whatever state the machine is in, and the state's allowed targets decide.
         var transitions = machine.Transitions.DistinctBy(transition => (transition.Event, transition.Guard, transition.To)).Select(transition =>
         {
@@ -230,7 +231,7 @@ internal static class SemanticLifecycleArtifactRenderer
                 builder.Line($"options.OnEvent<{types.EventType(@event)}>({CSharpCodeBuilder.StringLiteral(workflow.Name)}, (@event, context) => new {Workflows}.Triggers.WorkflowTrigger(")
                     .Line($"    {Workflows}.Triggers.WorkflowTriggerKind.Signal,")
                     .Line($"    new({source}),")
-                    .Line($"    new($\"{{context.EventSourceId.Value}}:{{context.SequenceNumber.Value}}\"),")
+                    .Line("    new($\"{context.EventSourceId.Value}:{context.SequenceNumber.Value}\"),")
                     .Line($"    new {Workflows}.Contracts.WorkflowSubjectReference(new {Workflows}.Contracts.WorkflowSubjectKind({CSharpCodeBuilder.StringLiteral(model.Name)}), new(context.EventSourceId.Value)),")
                     .Line($"    {Workflows}.Contracts.WorkflowContractReference.Any,")
                     .Line($"    {Workflows}.Contracts.WorkflowData.Empty,")

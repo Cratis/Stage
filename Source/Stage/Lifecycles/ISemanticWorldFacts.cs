@@ -9,7 +9,7 @@ namespace Cratis.Stage.Lifecycles;
 /// <summary>
 /// Reads the facts of the committed semantic world.
 /// </summary>
-internal interface ISemanticWorldFacts
+public interface ISemanticWorldFacts
 {
     /// <summary>
     /// Gets every committed fact in order.

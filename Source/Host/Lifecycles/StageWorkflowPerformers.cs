@@ -21,6 +21,8 @@ namespace Cratis.Stage.Host.Lifecycles;
 /// Finds the performer of an action or decision node of a modeled workflow: actions send their command through the semantic
 /// runtime, decisions evaluate their condition over the current subject read model.
 /// </summary>
+/// <param name="plan">The execution plan of the loaded model.</param>
+/// <param name="runtime">Gets the semantic runtime commands are sent through.</param>
 [IgnoreConvention]
 internal sealed class StageWorkflowPerformers(SemanticExecutionPlan plan, Func<ISemanticRuntime> runtime) : IWorkflowNodePerformers
 {

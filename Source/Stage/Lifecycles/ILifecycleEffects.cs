@@ -9,7 +9,7 @@ namespace Cratis.Stage.Lifecycles;
 /// <summary>
 /// Performs what a state machine entering a state, or a fact reaching a workflow, asks for.
 /// </summary>
-internal interface ILifecycleEffects
+public interface ILifecycleEffects
 {
     /// <summary>
     /// Sends a command on behalf of a state a machine entered.

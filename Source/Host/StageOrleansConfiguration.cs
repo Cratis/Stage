@@ -37,7 +37,7 @@ public static class StageOrleansConfiguration
     /// <returns>The same <see cref="WebApplicationBuilder"/> for chaining.</returns>
     /// <remarks>
     /// The Chronicle kernel runs in the same container and is itself an Orleans silo on the Orleans default ports. The Stage silo
-    /// therefore listens on its own ports, which <c>Stage:Orleans:SiloPort</c> and <c>Stage:Orleans:GatewayPort</c> can override.
+    /// therefore listens on its own ports, which <c language="text">Stage:Orleans:SiloPort</c> and <c language="text">Stage:Orleans:GatewayPort</c> can override.
     /// </remarks>
     public static WebApplicationBuilder AddStageOrleans(this WebApplicationBuilder builder)
     {

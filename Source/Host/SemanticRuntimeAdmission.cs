@@ -106,6 +106,10 @@ internal sealed class SemanticRuntimeAdmission
         Blocking = [.. entries.Where(entry => entry.Kind == "event" && entry.Status == "unsupported"), .. blocking];
     }
 
+    internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
+
+    internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
+
     static SemanticAdmissionEntry LifecycleEntry(string name, string kind, IEnumerable<Cratis.Stage.Contracts.Lifecycles.LifecycleRefusal> refusals)
     {
         var own = refusals.Where(refusal => refusal.Owner == name).ToArray();
@@ -113,10 +117,6 @@ internal sealed class SemanticRuntimeAdmission
             ? new(name, kind, "supported", null, null)
             : new(name, kind, "unsupported", "Lifecycle", string.Join(' ', own.Select(refusal => $"{refusal.Code}: {refusal.Message}")));
     }
-
-    internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
-
-    internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
 
     static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {

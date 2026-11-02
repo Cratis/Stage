@@ -103,5 +103,4 @@ public static class StructuredBlocks
         JsonValueKind.False => "false",
         _ => "null"
     };
-
 }

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cratis.Stage.Lifecycles;
 
-static partial class LifecycleLog
+internal static partial class LifecycleLog
 {
     [LoggerMessage(LogLevel.Error, "A state machine or workflow could not act on committed fact {Index}")]
     internal static partial void FactFailed(ILogger logger, Exception exception, int index);

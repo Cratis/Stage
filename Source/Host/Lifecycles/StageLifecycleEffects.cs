@@ -23,6 +23,9 @@ namespace Cratis.Stage.Host.Lifecycles;
 /// Performs lifecycle effects on the Orleans silo: commands go through the semantic runtime, workflow runs are admitted to the
 /// Cratis.Orleans workflow engine and resumed when the fact they wait for is committed.
 /// </summary>
+/// <param name="plan">The execution plan of the loaded model.</param>
+/// <param name="runtime">The semantic runtime commands are sent through.</param>
+/// <param name="workflows">The workflow engine runs are admitted to.</param>
 internal sealed class StageLifecycleEffects(SemanticExecutionPlan plan, ISemanticRuntime runtime, IWorkflows workflows) : ILifecycleEffects
 {
     /// <summary>The workflow scope every Stage run belongs to; it is the Chronicle namespace the sandbox uses.</summary>

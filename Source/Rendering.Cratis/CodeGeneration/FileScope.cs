@@ -93,8 +93,8 @@ internal sealed record FileScope(
         if (type is InterfaceDeclarationSyntax)
         {
             // An interface adds no members to the file's scope; it only needs every base to be one the catalog knows.
-            return type.BaseList is null || type.BaseList.Types.All(baseType => Qualified(baseType.Type) is var (@namespace, name, arity) &&
-                FrameworkNameCatalog.Current.TypesNamed(@namespace, name, arity, project).Count(candidate => candidate.Kind == "interface") == 1);
+            return type.BaseList?.Types.All(baseType => Qualified(baseType.Type) is var (@namespace, name, arity) &&
+                FrameworkNameCatalog.Current.TypesNamed(@namespace, name, arity, project).Count(candidate => candidate.Kind == "interface") == 1) ?? true;
         }
 
         if (type is StructDeclarationSyntax || (type is RecordDeclarationSyntax record && record.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword)))

@@ -24,6 +24,13 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
 
     StageWorkflowDefinitions(Dictionary<string, WorkflowDefinitionSnapshot> snapshots) => _snapshots = snapshots;
 
+    /// <inheritdoc/>
+    public bool Owns(WorkflowKey workflow) => _snapshots.ContainsKey(workflow.Workflow.Value);
+
+    /// <inheritdoc/>
+    public Task<WorkflowDefinitionSnapshot?> GetActive(WorkflowKey workflow) =>
+        Task.FromResult(_snapshots.GetValueOrDefault(workflow.Workflow.Value));
+
     /// <summary>
     /// Builds the snapshots of every workflow the runtime drives; a refused workflow has none, so a start for it is rejected.
     /// </summary>
@@ -63,13 +70,6 @@ internal sealed class StageWorkflowDefinitions : IWorkflowDefinitions
             new WorkflowCatalogVersion(plan.Revision.ToString()),
             []);
     }
-
-    /// <inheritdoc/>
-    public bool Owns(WorkflowKey workflow) => _snapshots.ContainsKey(workflow.Workflow.Value);
-
-    /// <inheritdoc/>
-    public Task<WorkflowDefinitionSnapshot?> GetActive(WorkflowKey workflow) =>
-        Task.FromResult(_snapshots.GetValueOrDefault(workflow.Workflow.Value));
 
     static WorkflowNodeKind Kind(SemanticWorkflowNodeKind kind) => kind switch
     {

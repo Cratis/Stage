@@ -8,7 +8,7 @@ using Cratis.Stage.Contracts.Lifecycles;
 namespace Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles;
 
 /// <summary>
-/// Decides which state machines and workflows the renderer can emit, and names the rest with a <c>STAGE-LIFECYCLE-*</c> diagnostic.
+/// Decides which state machines and workflows the renderer can emit, and names the rest with a <c language="text">STAGE-LIFECYCLE-*</c> diagnostic.
 /// </summary>
 /// <remarks>
 /// What is refused fails the plan: a lifecycle is never silently left out of a rendered application.
@@ -61,7 +61,7 @@ internal static class SemanticLifecycleAdmission
                     case SemanticWorkflowNodeKind.Trigger when node.TriggerKind == SemanticWorkflowTriggerKind.Schedule:
                         refusals.Add(new(LifecycleCodes.ScheduledTrigger, workflow.Name, $"Trigger '{node.Name}' of workflow '{workflow.Name}' is a schedule; the renderer emits event, state and manual triggers."));
                         break;
-                    case SemanticWorkflowNodeKind.Action when context.Commands[node.Command].Properties.Count(property => !property.IsGenerated && !property.IsIdentifier) > 0:
+                    case SemanticWorkflowNodeKind.Action when context.Commands[node.Command].Properties.Any(property => !property.IsGenerated && !property.IsIdentifier):
                         refusals.Add(new(NotRendered, workflow.Name, $"Command '{context.Commands[node.Command].Name}' sent by '{node.Name}' has more than its identifier; a rendered action passes only the subject key."));
                         break;
                 }

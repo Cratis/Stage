@@ -203,7 +203,9 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         // Only the local development kernel uses a self-signed certificate; redirects are disabled.
         if (health.IsLoopback)
         {
+#pragma warning disable MA0039 // Local development kernel on loopback uses a self-signed certificate
             handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+#pragma warning restore MA0039
         }
 
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };

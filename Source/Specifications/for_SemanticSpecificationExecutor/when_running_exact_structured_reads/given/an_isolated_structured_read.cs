@@ -17,7 +17,7 @@ public class an_isolated_structured_read : Specification
     {
         var mapping = wholeCopy ? "detail = detail" : "amount = detail.amount";
         var property = wholeCopy ? "detail Detail" : $"amount {memberType}";
-        var expectation = wholeCopy ? $"\n                      detail = {{\"amount\":{value}}}" : $"\n                      amount = {value}";
+        var expectation = wholeCopy ? $"\n                      detail\n                        amount = {value}" : $"\n                      amount = {value}";
         var source = $$"""
             type Detail
               amount {{memberType}}

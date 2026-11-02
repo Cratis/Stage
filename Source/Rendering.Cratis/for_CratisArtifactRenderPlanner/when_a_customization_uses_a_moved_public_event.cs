@@ -5,6 +5,7 @@
 using Cratis.Chronicle.Events;
 using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.for_CratisRenderer;
 using Xunit;
 
@@ -40,7 +41,7 @@ public class when_a_customization_uses_a_moved_public_event : given.a_translatio
     [Fact] void should_keep_the_event_in_the_contracts_project() => _plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.StartsWith("Contracts.Events.Contracts/", StringComparison.Ordinal) && artifact.RelativePath.EndsWith("/PublishOrderShipped.Events.cs", StringComparison.Ordinal));
     [Fact] void should_compile_the_customization_without_errors() => RenderedOutput.Errors(_withCustomization).ShouldBeEmpty();
     [Fact] void should_compile_the_customization_without_warnings() => RenderedOutput.Warnings(_withCustomization).ShouldBeEmpty();
-    [Fact] void should_resolve_the_customization_to_the_event_with_the_same_identity() => ((Type)_customization.GetProperty("EventType")!.GetValue(null)!).ShouldEqual(Generated("PublishOrderShipped", "OrderShipped"));
+    [Fact] void should_resolve_the_customization_to_the_event_with_the_same_identity() => ((Type)_customization.GetProperty("EventType")!.GetValue(null)!).ShouldEqual(_customization.Assembly.GetType("Contracts.Integration.Translation.PublishOrderShipped.OrderShipped", throwOnError: true)!);
     [Fact] void should_keep_the_event_type_attribute() => Generated("PublishOrderShipped", "OrderShipped").GetCustomAttributes(typeof(EventTypeAttribute), false).Length.ShouldEqual(1);
 }
 #endif

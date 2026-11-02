@@ -33,7 +33,7 @@ public class when_preserving_inventory_fixture_bytes
         ["scoped projections"] = "dd1d283e2acd2dd3aaf27c4642045497091d5f7cadaba85c2f246ddc5c2bd485",
         ["single"] = "472e7680397cc5554d3582e436519098dcd83fc6619281cf1d3674e399aa782b",
         ["strings"] = "02a6a179fd5a7c2b9517be88980f361961ce0729c20b8691197f716dffa779cb",
-        ["translation specification"] = "1de4e0c30247eb94fdbd9c3b1c0fa729fbaed69711275787c9d7855be068496e",
+        ["translation specification"] = "1d444c65b48b5d890ef005b0d8e1a85a3cbcf1ddab52ecc707b85ad91255c974",
         ["validation typed contexts"] = "2aac89971f306eda14e3eed70316276b3864bb26812f1027f83f077c4b1504d3",
     };
 
@@ -62,7 +62,7 @@ public class when_preserving_inventory_fixture_bytes
             .OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal)
             .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256}");
         var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));
-        Assert.Equal(_digests[name], digest);
+        Assert.True(_digests[name] == digest, $"{name}: expected {_digests[name]}, actual {digest}");
     }
 }
 #endif

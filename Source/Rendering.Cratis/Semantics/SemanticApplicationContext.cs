@@ -25,7 +25,6 @@ internal sealed partial class SemanticApplicationContext
     readonly Lazy<SemanticInlineNames> _inlineNames;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
     Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
-    SemanticEventContracts? _eventContracts;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SemanticApplicationContext"/> class.
@@ -102,16 +101,6 @@ internal sealed partial class SemanticApplicationContext
     public string RootNamespace { get; }
 
     /// <summary>
-    /// Gets the folder and project name that carry the application's own public events.
-    /// </summary>
-    internal string ContractsFolder { get; }
-
-    /// <summary>
-    /// Gets the own public events and the declarations they need, which render into the contracts project.
-    /// </summary>
-    internal SemanticEventContracts EventContracts => _eventContracts ??= SemanticEventContracts.From(this);
-
-    /// <summary>
     /// Gets the optional validated locale catalog.
     /// </summary>
     public StringsCatalogInput.Catalog? Strings { get; }
@@ -178,6 +167,16 @@ internal sealed partial class SemanticApplicationContext
     /// Gets the identities of the queries a performer answers, which the application lists beside the declared ones.
     /// </summary>
     internal IReadOnlySet<SemanticId> PerformedQueries { get; }
+
+    /// <summary>
+    /// Gets the folder and project name that carry the application's own public events.
+    /// </summary>
+    internal string ContractsFolder { get; }
+
+    /// <summary>
+    /// Gets the own public events and the declarations they need, which render into the contracts project.
+    /// </summary>
+    internal SemanticEventContracts EventContracts => field ??= SemanticEventContracts.From(this);
 
     /// <summary>
     /// Gets why a performed query cannot render, by the identity of the read model it returns.

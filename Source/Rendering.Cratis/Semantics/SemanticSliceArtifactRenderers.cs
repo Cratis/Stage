@@ -42,6 +42,11 @@ internal static class SemanticSliceArtifactRenderers
         }
     }
 
+    // The events file of a translation slice is left out when every event it declares moved to the contracts project.
+    static bool HasApplicationSource(LocatedSemanticSlice located, SemanticApplicationContext context) =>
+        located.Slice.Events.Any(declared => !context.EventContracts.ContainsEvent(declared.Id)) ||
+        (located.Slice.Events.IsEmpty && !located.Slice.Constraints.IsDefaultOrEmpty);
+
     sealed class StateChange : ISemanticSliceArtifactRenderer
     {
         public bool Handles(LocatedSemanticSlice located) => located.Slice.Kind == SemanticSliceKind.StateChange;
@@ -121,11 +126,6 @@ internal static class SemanticSliceArtifactRenderers
             }
         }
     }
-
-    // The events file of a translation slice is left out when every event it declares moved to the contracts project.
-    static bool HasApplicationSource(LocatedSemanticSlice located, SemanticApplicationContext context) =>
-        located.Slice.Events.Any(declared => !context.EventContracts.ContainsEvent(declared.Id)) ||
-        (located.Slice.Events.IsEmpty && !located.Slice.Constraints.IsDefaultOrEmpty);
 
     sealed class StateView : ISemanticSliceArtifactRenderer
     {

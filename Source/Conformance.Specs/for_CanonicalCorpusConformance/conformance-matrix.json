@@ -1,6 +1,6 @@
 {
   "corpusVersion": "5.1.0",
-  "minimumVectorCount": 79,
+  "minimumVectorCount": 80,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "EsmConformanceVectors": "Unknown-preserving reader fixtures under the reserved conformance version; not executable semantic models.",

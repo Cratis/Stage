@@ -38,6 +38,21 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>) && (bool)type.GetProperty("IsDefault")!.GetValue(value)!;
     }
 
+    static bool IsPresent(object? value)
+    {
+        if (value is null || IsDefaultArray(value)) return false;
+        if (value is string || value is not IEnumerable sequence) return true;
+        var enumerator = sequence.GetEnumerator();
+        try
+        {
+            return enumerator.MoveNext();
+        }
+        finally
+        {
+            (enumerator as IDisposable)?.Dispose();
+        }
+    }
+
     static bool IsAbsentReference(object node, PropertyInfo property) => node switch
     {
         SemanticTypeReference { Kind: SemanticTypeReferenceKind.Primitive } => property.Name == "Target",
@@ -109,9 +124,28 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
             Member = member,
             PropertyTypeOf = member == "SemanticProperty.Type" ? scope.Owner : scope.PropertyTypeOf
         };
-        if (classification is null) graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
-        else if (classification.Kind is { } category && !IsAbsentReference(node, property)) Walk(value, location with { Kind = EdgeKind(node, scope.Kind, category) });
-        else if (!IsAbsentReference(node, property)) Walk(value, location);
+        if (classification is null)
+        {
+            graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
+        }
+        else if (classification.RefusalReason is not null)
+        {
+            RefuseIfPresent(value, location, scope.Owner, classification);
+        }
+        else if (classification.Kind is { } category && !IsAbsentReference(node, property))
+        {
+            Walk(value, location with { Kind = EdgeKind(node, scope.Kind, category) });
+        }
+        else if (!IsAbsentReference(node, property))
+        {
+            Walk(value, location);
+        }
+    }
+
+    void RefuseIfPresent(object? value, SemanticDependencyScope location, SemanticId owner, SemanticDependencyClassification classification)
+    {
+        if (!IsPresent(value)) return;
+        graph.Incomplete(new(SemanticDependencyIncompletenessKind.RefusedMember, owner, location.Member, location.PropertyTypeOf, $"{location.Member}: {classification.RefusalReason}"));
     }
 
     void Policy(SemanticPolicyReference reference, SemanticId owner)

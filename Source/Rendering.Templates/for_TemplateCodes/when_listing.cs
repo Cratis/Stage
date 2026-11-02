@@ -11,7 +11,7 @@ public partial class when_listing : Specification
 {
     string[] _codes = [];
 
-    void Because() => _codes = [.. typeof(TemplateCodes).GetFields(BindingFlags.Public | BindingFlags.Static).Select(field => (string)field.GetRawConstantValue()!)];
+    void Because() => _codes = [.. typeof(TemplateCodes).GetFields(BindingFlags.Public | BindingFlags.Static).Select(field => (string)field.GetRawConstantValue())];
 
     [Fact] void should_have_unique_codes() => _codes.Distinct(StringComparer.Ordinal).Count().ShouldEqual(_codes.Length);
     [Fact] void should_have_stable_code_shapes() => _codes.ShouldEachConformTo(CodePattern.IsMatch);

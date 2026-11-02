@@ -16,35 +16,25 @@ public class when_scoping_security_findings : given.a_range_model
     public void should_include_only_findings_in_selected_slices(bool selected)
     {
         Versions(32, 1, 32, 1);
-        var captureSlice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
-        var specification = captureSlice.Slice.Specifications[0];
-        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
-        var slice = selected ? captureSlice : _context.AllSlices.First(located => located.Slice.Id != captureSlice.Slice.Id);
-        var request = _request with { Scope = new(ArtifactRenderScopeKind.Slice, slice.Slice.Id) };
+        var (request, owner) = WithUnknownSecurity(selected);
         var verdict = CratisEsmRangeAdmission.Evaluate(request, new(request, new("Contracts", "Contracts")));
         verdict.IsAdmitted.ShouldEqual(!selected);
         verdict.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-016").ShouldEqual(selected ? 1 : 0);
-        if (selected) verdict.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(specification.Id);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void should_scope_invocation_expectations_in_the_audited_v34_pair(bool selected)
-    {
-        var (request, specification) = WithInvocationExpectation(34, selected);
-        var verdict = CratisEsmRangeAdmission.Evaluate(request, new(request, new("Contracts", "Contracts")));
-        verdict.IsAdmitted.ShouldEqual(!selected);
-        verdict.Diagnostics.Count(diagnostic => diagnostic.Code == "STAGE-ESM-016").ShouldEqual(selected ? 1 : 0);
-        if (selected) verdict.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(specification.Id);
+        if (selected) verdict.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-016").Artifact.ShouldEqual(owner);
     }
 
     [Theory]
     [InlineData(32)]
     [InlineData(33)]
-    public void should_not_scan_audited_pairs_before_v34(uint major)
+    [InlineData(34)]
+    public void should_admit_invocation_expectations_in_the_range_verdict(uint major)
     {
-        var (request, _) = WithInvocationExpectation(major, true);
+        // The per-shape refusal (STAGE-ESM-016 on the specification) is made by SemanticSpecificationAdmission.ValidateInvocations, not by the range verdict.
+        Versions(major, 0, major, 0);
+        var captureSlice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
+        var specification = captureSlice.Slice.Specifications[0];
+        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
+        var request = _request with { Scope = new(ArtifactRenderScopeKind.Slice, captureSlice.Slice.Id) };
         var verdict = CratisEsmRangeAdmission.Evaluate(request, new(request, new("Contracts", "Contracts")));
         verdict.IsAdmitted.ShouldBeTrue();
         verdict.Diagnostics.ShouldBeEmpty();
@@ -64,14 +54,13 @@ public class when_scoping_security_findings : given.a_range_model
         verdict.Diagnostics.ShouldBeEmpty();
     }
 
-    (ArtifactRenderRequest Request, SemanticSpecification Specification) WithInvocationExpectation(uint major, bool selected)
+    (ArtifactRenderRequest Request, SemanticId Owner) WithUnknownSecurity(bool selected)
     {
-        Versions(major, 0, major, 0);
-        var captureSlice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
-        var specification = captureSlice.Slice.Specifications[0];
-        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, System.Collections.Immutable.ImmutableArray.Create(new SemanticSpecificationInvocation(default, [])));
-        var slice = selected ? captureSlice : _context.AllSlices.First(located => located.Slice.Id != captureSlice.Slice.Id);
-        return (_request with { Scope = new(ArtifactRenderScopeKind.Slice, slice.Slice.Id) }, specification);
+        // An undefined slice kind is an unknown member the slice itself carries; a slice is not a finding owner, so the application receives it.
+        var owning = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty);
+        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Kind)).SetValue(owning.Slice, (SemanticSliceKind)9876);
+        var slice = selected ? owning : _context.AllSlices.First(located => located.Slice.Id != owning.Slice.Id);
+        return (_request with { Scope = new(ArtifactRenderScopeKind.Slice, slice.Slice.Id) }, _model.Application.Id);
     }
 
     [Fact]

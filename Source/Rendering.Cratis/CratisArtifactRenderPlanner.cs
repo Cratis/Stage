@@ -259,7 +259,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var standing = SemanticVersionFeatures.Supports(request.Model)
             ? EsmVersionStanding.Audited
             : CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
-        return standing == EsmVersionStanding.NewerWithinRange || CratisEsmRangeAdmission.ScansAuditedMembers(request.Model, standing)
+        return standing == EsmVersionStanding.NewerWithinRange
             ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
             : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
     }

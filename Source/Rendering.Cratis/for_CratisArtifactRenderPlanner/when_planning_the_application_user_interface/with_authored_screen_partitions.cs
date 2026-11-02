@@ -26,7 +26,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0, Arc 22.146.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "a968d481b10088ecf8bf063e3a2ddeae2f00f49d7511435a7a6004a25a7eb909";
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    const string Before = "59c2497864829ba03622b222fd5612067534b98802cf248caac68047707030ea";
 
     void Because() => _application = AppPlan(_profile);
 

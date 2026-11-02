@@ -26,7 +26,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Components 4.38.1 (only the npm package pin changes).
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "3e72cc9cc3fa642a6570a6b56a0e892a4a8d7e7bf4bc4e6dd2e5dc0e29a0925e";
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    const string Before = "99b4786f26f8046afe6e5031ff72a433180b346c3026bc77f58b58cece107d36";
 
     ArtifactRenderPlan _plan = null!;
 

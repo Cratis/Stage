@@ -17,6 +17,10 @@ pin	TargetFramework	net10.0
 pin	TargetingPackVersion	10.0.12
 pin	xunit	2.9.3
 pin	xunit.runner.visualstudio	4.0.1
+package	AS	Azure.Core	1.50.0
+package	AS	Azure.Identity	1.17.2
+package	AS	Azure.Security.KeyVault.Certificates	4.6.0
+package	AS	Azure.Security.KeyVault.Secrets	4.6.0
 package	AS	Castle.Core	5.2.1
 package	AS	Cratis	22.146.0
 package	AS	Cratis.Arc	22.146.0
@@ -105,6 +109,10 @@ package	AS	Humanizer.Core.zh-CN	3.0.10
 package	AS	Humanizer.Core.zh-Hans	3.0.10
 package	AS	Humanizer.Core.zh-Hant	3.0.10
 package	AS	JsonCons.JmesPath	1.0.0
+package	AS	Microsoft.AspNetCore.Authentication.JwtBearer	10.0.0
+package	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect	10.0.0
+package	AS	Microsoft.Bcl.AsyncInterfaces	8.0.0
+package	AS	Microsoft.Bcl.Cryptography	10.0.2
 package	AS	Microsoft.Build.Framework	18.9.6
 package	AS	Microsoft.Build.Utilities.Core	18.9.6
 package	AS	Microsoft.CodeAnalysis.Analyzers	5.9.0
@@ -120,6 +128,23 @@ package	AS	Microsoft.Extensions.Diagnostics.ExceptionSummarization	10.10.0
 package	AS	Microsoft.Extensions.Resilience	10.10.0
 package	AS	Microsoft.Extensions.Telemetry	10.10.0
 package	AS	Microsoft.Extensions.Telemetry.Abstractions	10.11.0
+package	AS	Microsoft.Identity.Abstractions	12.7.0
+package	AS	Microsoft.Identity.Client	4.90.1
+package	AS	Microsoft.Identity.Client.Extensions.Msal	4.83.1
+package	AS	Microsoft.Identity.Web	4.16.1
+package	AS	Microsoft.Identity.Web.Certificate	4.16.1
+package	AS	Microsoft.Identity.Web.Certificateless	4.16.1
+package	AS	Microsoft.Identity.Web.Diagnostics	4.16.1
+package	AS	Microsoft.Identity.Web.TokenAcquisition	4.16.1
+package	AS	Microsoft.Identity.Web.TokenCache	4.16.1
+package	AS	Microsoft.IdentityModel.Abstractions	8.23.0
+package	AS	Microsoft.IdentityModel.JsonWebTokens	8.23.0
+package	AS	Microsoft.IdentityModel.Logging	8.23.0
+package	AS	Microsoft.IdentityModel.LoggingExtensions	8.23.0
+package	AS	Microsoft.IdentityModel.Protocols	8.23.0
+package	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect	8.23.0
+package	AS	Microsoft.IdentityModel.Tokens	8.23.0
+package	AS	Microsoft.IdentityModel.Validators	8.23.0
 package	AS	Microsoft.NET.StringTools	18.9.6
 package	AS	Microsoft.NET.Test.Sdk	18.11.0
 package	AS	Microsoft.OpenApi	2.12.2
@@ -157,6 +182,7 @@ package	AS	Swashbuckle.AspNetCore	10.2.3
 package	AS	Swashbuckle.AspNetCore.Swagger	10.2.3
 package	AS	Swashbuckle.AspNetCore.SwaggerGen	10.2.3
 package	AS	Swashbuckle.AspNetCore.SwaggerUI	10.2.3
+package	AS	System.ClientModel	1.8.0
 package	AS	System.Composition	10.0.1
 package	AS	System.Composition.AttributedModel	10.0.1
 package	AS	System.Composition.Convention	10.0.1
@@ -165,9 +191,11 @@ package	AS	System.Composition.Runtime	10.0.1
 package	AS	System.Composition.TypedParts	10.0.1
 package	AS	System.Configuration.ConfigurationManager	10.0.8
 package	AS	System.IO.Hashing	10.0.3
+package	AS	System.IdentityModel.Tokens.Jwt	8.23.0
 package	AS	System.Memory.Data	10.0.3
 package	AS	System.Reactive	7.0.0
 package	AS	System.Reflection.MetadataLoadContext	10.0.13
+package	AS	System.Security.Cryptography.Pkcs	10.0.13
 package	AS	System.Security.Cryptography.ProtectedData	10.0.8
 package	AS	ZstdSharp.Port	0.7.3
 package	AS	protobuf-net	3.2.56
@@ -261,6 +289,24 @@ scope	NSubstitute
 scope	OneOf
 scope	System
 scope	Xunit
+namespace	AS	Azure
+namespace	AS	Azure.Core
+namespace	AS	Azure.Core.Buffers
+namespace	AS	Azure.Core.Cryptography
+namespace	AS	Azure.Core.Diagnostics
+namespace	AS	Azure.Core.Extensions
+namespace	AS	Azure.Core.GeoJson
+namespace	AS	Azure.Core.Json
+namespace	AS	Azure.Core.JsonPatch
+namespace	AS	Azure.Core.Pipeline
+namespace	AS	Azure.Core.Serialization
+namespace	AS	Azure.Core.Shared
+namespace	AS	Azure.Identity
+namespace	AS	Azure.Messaging
+namespace	AS	Azure.Security
+namespace	AS	Azure.Security.KeyVault
+namespace	AS	Azure.Security.KeyVault.Certificates
+namespace	AS	Azure.Security.KeyVault.Secrets
 namespace	AS	Castle
 namespace	AS	Castle.Components
 namespace	AS	Castle.Components.DictionaryAdapter
@@ -752,6 +798,10 @@ namespace	AS	FxResources.System.IO
 namespace	AS	FxResources.System.IO.Hashing
 namespace	AS	FxResources.System.Memory
 namespace	AS	FxResources.System.Memory.Data
+namespace	AS	FxResources.System.Security
+namespace	AS	FxResources.System.Security.Cryptography
+namespace	AS	FxResources.System.Security.Cryptography.Pkcs
+namespace	AS	FxResources.System.Security.Cryptography.ProtectedData
 namespace	AS	Google
 namespace	AS	Google.Protobuf
 namespace	AS	Google.Protobuf.Reflection
@@ -801,6 +851,10 @@ namespace	AS	HandlebarsDotNet.Runtime
 namespace	AS	HandlebarsDotNet.StringUtils
 namespace	AS	HandlebarsDotNet.ValueProviders
 namespace	AS	Humanizer
+namespace	AS	Internal
+namespace	AS	Internal.Cryptography
+namespace	AS	Internal.Cryptography.Pal
+namespace	AS	Internal.Cryptography.Pal.AnyOS
 namespace	AS	JsonCons
 namespace	AS	JsonCons.JmesPath
 namespace	AS	Jsonite
@@ -816,8 +870,11 @@ namespace	AS	Microsoft.AspNetCore.Authentication
 namespace	AS	Microsoft.AspNetCore.Authentication.Abstractions
 namespace	AS	Microsoft.AspNetCore.Authentication.BearerToken
 namespace	AS	Microsoft.AspNetCore.Authentication.Cookies
+namespace	AS	Microsoft.AspNetCore.Authentication.JwtBearer
 namespace	AS	Microsoft.AspNetCore.Authentication.OAuth
 namespace	AS	Microsoft.AspNetCore.Authentication.OAuth.Claims
+namespace	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect
+namespace	AS	Microsoft.AspNetCore.Authentication.OpenIdConnect.Claims
 namespace	AS	Microsoft.AspNetCore.Authorization
 namespace	AS	Microsoft.AspNetCore.Authorization.Infrastructure
 namespace	AS	Microsoft.AspNetCore.Authorization.Policy
@@ -1189,6 +1246,7 @@ namespace	AS	Microsoft.DotNet.PlatformAbstractions
 namespace	AS	Microsoft.Extensions
 namespace	AS	Microsoft.Extensions.AmbientMetadata
 namespace	AS	Microsoft.Extensions.ApiDescriptions
+namespace	AS	Microsoft.Extensions.Azure
 namespace	AS	Microsoft.Extensions.Caching
 namespace	AS	Microsoft.Extensions.Caching.Distributed
 namespace	AS	Microsoft.Extensions.Caching.Hybrid
@@ -1261,6 +1319,104 @@ namespace	AS	Microsoft.Extensions.Validation.Embedded
 namespace	AS	Microsoft.Extensions.WebEncoders
 namespace	AS	Microsoft.Extensions.WebEncoders.Sources
 namespace	AS	Microsoft.Extensions.WebEncoders.Testing
+namespace	AS	Microsoft.Identity
+namespace	AS	Microsoft.Identity.Abstractions
+namespace	AS	Microsoft.Identity.Client
+namespace	AS	Microsoft.Identity.Client.Advanced
+namespace	AS	Microsoft.Identity.Client.ApiConfig
+namespace	AS	Microsoft.Identity.Client.ApiConfig.Executors
+namespace	AS	Microsoft.Identity.Client.ApiConfig.Parameters
+namespace	AS	Microsoft.Identity.Client.AppConfig
+namespace	AS	Microsoft.Identity.Client.AuthScheme
+namespace	AS	Microsoft.Identity.Client.AuthScheme.Bearer
+namespace	AS	Microsoft.Identity.Client.AuthScheme.PoP
+namespace	AS	Microsoft.Identity.Client.AuthScheme.SSHCertificates
+namespace	AS	Microsoft.Identity.Client.Cache
+namespace	AS	Microsoft.Identity.Client.Cache.Items
+namespace	AS	Microsoft.Identity.Client.Cache.Keys
+namespace	AS	Microsoft.Identity.Client.Core
+namespace	AS	Microsoft.Identity.Client.Extensibility
+namespace	AS	Microsoft.Identity.Client.Extensions
+namespace	AS	Microsoft.Identity.Client.Extensions.Msal
+namespace	AS	Microsoft.Identity.Client.Extensions.Msal.Accessors
+namespace	AS	Microsoft.Identity.Client.Http
+namespace	AS	Microsoft.Identity.Client.Http.Retry
+namespace	AS	Microsoft.Identity.Client.Instance
+namespace	AS	Microsoft.Identity.Client.Instance.Discovery
+namespace	AS	Microsoft.Identity.Client.Instance.Oidc
+namespace	AS	Microsoft.Identity.Client.Instance.Validation
+namespace	AS	Microsoft.Identity.Client.Internal
+namespace	AS	Microsoft.Identity.Client.Internal.Broker
+namespace	AS	Microsoft.Identity.Client.Internal.ClientCredential
+namespace	AS	Microsoft.Identity.Client.Internal.Logger
+namespace	AS	Microsoft.Identity.Client.Internal.Requests
+namespace	AS	Microsoft.Identity.Client.Internal.Requests.Silent
+namespace	AS	Microsoft.Identity.Client.Kerberos
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity.KeyProviders
+namespace	AS	Microsoft.Identity.Client.ManagedIdentity.V2
+namespace	AS	Microsoft.Identity.Client.OAuth2
+namespace	AS	Microsoft.Identity.Client.OAuth2.Throttling
+namespace	AS	Microsoft.Identity.Client.Platforms
+namespace	AS	Microsoft.Identity.Client.Platforms.Features
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.DesktopOs
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos
+namespace	AS	Microsoft.Identity.Client.Platforms.Features.OpenTelemetry
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.DefaultOSBrowser
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.Desktop
+namespace	AS	Microsoft.Identity.Client.Platforms.Shared.Desktop.OsBrowser
+namespace	AS	Microsoft.Identity.Client.Platforms.net
+namespace	AS	Microsoft.Identity.Client.Platforms.netstandard
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Factories
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Interfaces
+namespace	AS	Microsoft.Identity.Client.PlatformsCommon.Shared
+namespace	AS	Microsoft.Identity.Client.RP
+namespace	AS	Microsoft.Identity.Client.Region
+namespace	AS	Microsoft.Identity.Client.SSHCertificates
+namespace	AS	Microsoft.Identity.Client.TelemetryCore
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Http
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Internal
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.Internal.Events
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.OpenTelemetry
+namespace	AS	Microsoft.Identity.Client.TelemetryCore.TelemetryClient
+namespace	AS	Microsoft.Identity.Client.UI
+namespace	AS	Microsoft.Identity.Client.Utils
+namespace	AS	Microsoft.Identity.Client.Utils.Windows
+namespace	AS	Microsoft.Identity.Client.WsTrust
+namespace	AS	Microsoft.Identity.Extensions
+namespace	AS	Microsoft.Identity.Extensions.Mac
+namespace	AS	Microsoft.Identity.Web
+namespace	AS	Microsoft.Identity.Web.Certificateless
+namespace	AS	Microsoft.Identity.Web.Diagnostics
+namespace	AS	Microsoft.Identity.Web.Experimental
+namespace	AS	Microsoft.Identity.Web.Extensibility
+namespace	AS	Microsoft.Identity.Web.Hosts
+namespace	AS	Microsoft.Identity.Web.Internal
+namespace	AS	Microsoft.Identity.Web.PostConfigureOptions
+namespace	AS	Microsoft.Identity.Web.Resource
+namespace	AS	Microsoft.Identity.Web.TestOnly
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.Distributed
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.InMemory
+namespace	AS	Microsoft.Identity.Web.TokenCacheProviders.Session
+namespace	AS	Microsoft.Identity.Web.Util
+namespace	AS	Microsoft.IdentityModel
+namespace	AS	Microsoft.IdentityModel.Abstractions
+namespace	AS	Microsoft.IdentityModel.JsonWebTokens
+namespace	AS	Microsoft.IdentityModel.Logging
+namespace	AS	Microsoft.IdentityModel.LoggingExtensions
+namespace	AS	Microsoft.IdentityModel.Protocols
+namespace	AS	Microsoft.IdentityModel.Protocols.Configuration
+namespace	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect
+namespace	AS	Microsoft.IdentityModel.Protocols.OpenIdConnect.Configuration
+namespace	AS	Microsoft.IdentityModel.Telemetry
+namespace	AS	Microsoft.IdentityModel.Tokens
+namespace	AS	Microsoft.IdentityModel.Tokens.Configuration
+namespace	AS	Microsoft.IdentityModel.Tokens.Experimental
+namespace	AS	Microsoft.IdentityModel.Tokens.Json
+namespace	AS	Microsoft.IdentityModel.Validators
 namespace	AS	Microsoft.JSInterop
 namespace	AS	Microsoft.JSInterop.Implementation
 namespace	AS	Microsoft.JSInterop.Infrastructure
@@ -1861,6 +2017,9 @@ namespace	AS	System
 namespace	AS	System.Buffers
 namespace	AS	System.Buffers.Binary
 namespace	AS	System.Buffers.Text
+namespace	AS	System.ClientModel
+namespace	AS	System.ClientModel.Internal
+namespace	AS	System.ClientModel.Primitives
 namespace	AS	System.CodeDom
 namespace	AS	System.CodeDom.Compiler
 namespace	AS	System.Collections
@@ -1922,6 +2081,9 @@ namespace	AS	System.IO.IsolatedStorage
 namespace	AS	System.IO.MemoryMappedFiles
 namespace	AS	System.IO.Pipelines
 namespace	AS	System.IO.Pipes
+namespace	AS	System.IdentityModel
+namespace	AS	System.IdentityModel.Tokens
+namespace	AS	System.IdentityModel.Tokens.Jwt
 namespace	AS	System.Linq
 namespace	AS	System.Linq.Expressions
 namespace	AS	System.Net
@@ -1988,6 +2150,11 @@ namespace	AS	System.Security.Authentication
 namespace	AS	System.Security.Authentication.ExtendedProtection
 namespace	AS	System.Security.Claims
 namespace	AS	System.Security.Cryptography
+namespace	AS	System.Security.Cryptography.Asn1
+namespace	AS	System.Security.Cryptography.Asn1.Pkcs12
+namespace	AS	System.Security.Cryptography.Asn1.Pkcs7
+namespace	AS	System.Security.Cryptography.Pkcs
+namespace	AS	System.Security.Cryptography.Pkcs.Asn1
 namespace	AS	System.Security.Cryptography.X509Certificates
 namespace	AS	System.Security.Cryptography.Xml
 namespace	AS	System.Security.Permissions
@@ -5909,6 +6076,7 @@ type	AS	Microsoft.Extensions.DependencyInjection	ISupportRequiredService	interfa
 type	AS	Microsoft.Extensions.DependencyInjection	IdentityProviderServiceCollectionExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	IdentityServiceCollectionExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	JsonProtocolDependencyInjectionExtensions	static
+type	AS	Microsoft.Extensions.DependencyInjection	JwtBearerExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	KeyedService	static
 type	AS	Microsoft.Extensions.DependencyInjection	LatencyConsoleExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	LatencyContextExtensions	static
@@ -5945,6 +6113,7 @@ type	AS	Microsoft.Extensions.DependencyInjection	OAuthPostConfigureOptions`2	cla
 type	AS	Microsoft.Extensions.DependencyInjection	ObjectFactory	delegate
 type	AS	Microsoft.Extensions.DependencyInjection	ObjectFactory`1	delegate
 type	AS	Microsoft.Extensions.DependencyInjection	OccurrenceLifecycleServiceCollectionExtensions	static
+type	AS	Microsoft.Extensions.DependencyInjection	OpenIdConnectExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OptionsBuilderConfigurationExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OptionsBuilderDataAnnotationsExtensions	static
 type	AS	Microsoft.Extensions.DependencyInjection	OptionsBuilderExtensions	static
@@ -8048,6 +8217,61 @@ type	AS	System.Buffers.Text	Base64	static
 type	AS	System.Buffers.Text	Base64Url	static
 type	AS	System.Buffers.Text	Utf8Formatter	static
 type	AS	System.Buffers.Text	Utf8Parser	static
+type	AS	System.ClientModel	ApiKeyCredential	class
+type	AS	System.ClientModel	AsyncCollectionResult`1	class
+type	AS	System.ClientModel	AuthenticationTokenProvider	class
+type	AS	System.ClientModel	BinaryContent	class
+type	AS	System.ClientModel	ClientResult	class
+type	AS	System.ClientModel	ClientResultException	class
+type	AS	System.ClientModel	ClientResult`1	class
+type	AS	System.ClientModel	CollectionResult`1	class
+type	AS	System.ClientModel	ContinuationToken	class
+type	AS	System.ClientModel.Primitives	ActivityExtensions	static
+type	AS	System.ClientModel.Primitives	ApiKeyAuthenticationPolicy	class
+type	AS	System.ClientModel.Primitives	AsyncCollectionResult	class
+type	AS	System.ClientModel.Primitives	AuthenticationPolicy	class
+type	AS	System.ClientModel.Primitives	AuthenticationToken	class
+type	AS	System.ClientModel.Primitives	BearerTokenPolicy	class
+type	AS	System.ClientModel.Primitives	ClientCache	class
+type	AS	System.ClientModel.Primitives	ClientConnection	struct
+type	AS	System.ClientModel.Primitives	ClientConnectionCollection	class
+type	AS	System.ClientModel.Primitives	ClientConnectionProvider	class
+type	AS	System.ClientModel.Primitives	ClientErrorBehaviors	enum
+type	AS	System.ClientModel.Primitives	ClientLoggingOptions	class
+type	AS	System.ClientModel.Primitives	ClientPipeline	class
+type	AS	System.ClientModel.Primitives	ClientPipelineOptions	class
+type	AS	System.ClientModel.Primitives	ClientRetryPolicy	class
+type	AS	System.ClientModel.Primitives	CollectionResult	class
+type	AS	System.ClientModel.Primitives	CredentialKind	enum
+type	AS	System.ClientModel.Primitives	GetTokenOptions	class
+type	AS	System.ClientModel.Primitives	HttpClientPipelineTransport	class
+type	AS	System.ClientModel.Primitives	IJsonModel`1	interface
+type	AS	System.ClientModel.Primitives	IPersistableModel`1	interface
+type	AS	System.ClientModel.Primitives	JsonModelConverter	class
+type	AS	System.ClientModel.Primitives	JsonPatch	struct
+type	AS	System.ClientModel.Primitives	JsonPatch+EncodedValue	struct
+type	AS	System.ClientModel.Primitives	JsonPatch+PropagatorGetter	delegate
+type	AS	System.ClientModel.Primitives	JsonPatch+PropagatorSetter	delegate
+type	AS	System.ClientModel.Primitives	MessageLoggingPolicy	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriter	static
+type	AS	System.ClientModel.Primitives	ModelReaderWriterBuildableAttribute	attribute
+type	AS	System.ClientModel.Primitives	ModelReaderWriterContext	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriterContextTypeAttribute	attribute
+type	AS	System.ClientModel.Primitives	ModelReaderWriterOptions	class
+type	AS	System.ClientModel.Primitives	ModelReaderWriterTypeBuilder	class
+type	AS	System.ClientModel.Primitives	OperationResult	class
+type	AS	System.ClientModel.Primitives	PersistableModelProxyAttribute	attribute
+type	AS	System.ClientModel.Primitives	PipelineMessage	class
+type	AS	System.ClientModel.Primitives	PipelineMessageClassifier	class
+type	AS	System.ClientModel.Primitives	PipelinePolicy	class
+type	AS	System.ClientModel.Primitives	PipelinePosition	enum
+type	AS	System.ClientModel.Primitives	PipelineRequest	class
+type	AS	System.ClientModel.Primitives	PipelineRequestHeaders	class
+type	AS	System.ClientModel.Primitives	PipelineResponse	class
+type	AS	System.ClientModel.Primitives	PipelineResponseHeaders	class
+type	AS	System.ClientModel.Primitives	PipelineTransport	class
+type	AS	System.ClientModel.Primitives	RequestOptions	class
+type	AS	System.ClientModel.Primitives	UserAgentPolicy	class
 type	AS	System.CodeDom.Compiler	GeneratedCodeAttribute	attribute
 type	AS	System.CodeDom.Compiler	IndentedTextWriter	class
 type	AS	System.Collections	ArrayList	class
@@ -9207,6 +9431,15 @@ type	AS	System.IO.Pipes	PipeStream	class
 type	AS	System.IO.Pipes	PipeStreamImpersonationWorker	delegate
 type	AS	System.IO.Pipes	PipeTransmissionMode	enum
 type	AS	System.IO.Pipes	PipesAclExtensions	static
+type	AS	System.IdentityModel.Tokens.Jwt	JsonClaimValueTypes	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtConstants	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtHeader	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtHeaderParameterNames	struct
+type	AS	System.IdentityModel.Tokens.Jwt	JwtPayload	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtRegisteredClaimNames	struct
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityToken	class
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityTokenConverter	static
+type	AS	System.IdentityModel.Tokens.Jwt	JwtSecurityTokenHandler	class
 type	AS	System.Linq	AsyncEnumerable	static
 type	AS	System.Linq	Enumerable	static
 type	AS	System.Linq	EnumerableExecutor	class
@@ -10992,6 +11225,9 @@ type	AS	System.Security.Cryptography	CompositeMLDsaCng	class
 type	AS	System.Security.Cryptography	CryptoConfig	class
 type	AS	System.Security.Cryptography	CryptoStream	class
 type	AS	System.Security.Cryptography	CryptoStreamMode	enum
+type	AS	System.Security.Cryptography	CryptographicAttributeObject	class
+type	AS	System.Security.Cryptography	CryptographicAttributeObjectCollection	class
+type	AS	System.Security.Cryptography	CryptographicAttributeObjectEnumerator	class
 type	AS	System.Security.Cryptography	CryptographicException	class
 type	AS	System.Security.Cryptography	CryptographicOperations	static
 type	AS	System.Security.Cryptography	CryptographicUnexpectedOperationException	class
@@ -11008,6 +11244,7 @@ type	AS	System.Security.Cryptography	DSAParameters	struct
 type	AS	System.Security.Cryptography	DSASignatureDeformatter	class
 type	AS	System.Security.Cryptography	DSASignatureFormat	enum
 type	AS	System.Security.Cryptography	DSASignatureFormatter	class
+type	AS	System.Security.Cryptography	DataProtectionScope	enum
 type	AS	System.Security.Cryptography	DeriveBytes	class
 type	AS	System.Security.Cryptography	ECAlgorithm	class
 type	AS	System.Security.Cryptography	ECCurve	struct
@@ -11071,6 +11308,7 @@ type	AS	System.Security.Cryptography	PbeEncryptionAlgorithm	enum
 type	AS	System.Security.Cryptography	PbeParameters	class
 type	AS	System.Security.Cryptography	PemEncoding	static
 type	AS	System.Security.Cryptography	PemFields	struct
+type	AS	System.Security.Cryptography	ProtectedData	static
 type	AS	System.Security.Cryptography	RC2	class
 type	AS	System.Security.Cryptography	RC2CryptoServiceProvider	class
 type	AS	System.Security.Cryptography	RNGCryptoServiceProvider	class
@@ -11122,6 +11360,50 @@ type	AS	System.Security.Cryptography	ToBase64Transform	class
 type	AS	System.Security.Cryptography	TripleDES	class
 type	AS	System.Security.Cryptography	TripleDESCng	class
 type	AS	System.Security.Cryptography	TripleDESCryptoServiceProvider	class
+type	AS	System.Security.Cryptography.Pkcs	AlgorithmIdentifier	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipient	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipientCollection	class
+type	AS	System.Security.Cryptography.Pkcs	CmsRecipientEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	CmsSigner	class
+type	AS	System.Security.Cryptography.Pkcs	ContentInfo	class
+type	AS	System.Security.Cryptography.Pkcs	EnvelopedCms	class
+type	AS	System.Security.Cryptography.Pkcs	KeyAgreeRecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	KeyTransRecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12Builder	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12CertBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12ConfidentialityMode	enum
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12Info	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12IntegrityMode	enum
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12KeyBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeContents	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SafeContentsBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12SecretBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs12ShroudedKeyBag	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs8PrivateKeyInfo	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9AttributeObject	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9ContentType	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9DocumentDescription	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9DocumentName	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9LocalKeyId	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9MessageDigest	class
+type	AS	System.Security.Cryptography.Pkcs	Pkcs9SigningTime	class
+type	AS	System.Security.Cryptography.Pkcs	PublicKeyInfo	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfo	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoCollection	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	RecipientInfoType	enum
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampRequest	class
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampToken	class
+type	AS	System.Security.Cryptography.Pkcs	Rfc3161TimestampTokenInfo	class
+type	AS	System.Security.Cryptography.Pkcs	SignedCms	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfo	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfoCollection	class
+type	AS	System.Security.Cryptography.Pkcs	SignerInfoEnumerator	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifier	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierOrKey	class
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierOrKeyType	enum
+type	AS	System.Security.Cryptography.Pkcs	SubjectIdentifierType	enum
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRequest	class
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRequestLoadOptions	enum
 type	AS	System.Security.Cryptography.X509Certificates	CertificateRevocationListBuilder	class
@@ -11149,6 +11431,7 @@ type	AS	System.Security.Cryptography.X509Certificates	X509Certificate2Collection
 type	AS	System.Security.Cryptography.X509Certificates	X509Certificate2Enumerator	class
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateCollection	class
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateCollection+X509CertificateEnumerator	class
+type	AS	System.Security.Cryptography.X509Certificates	X509CertificateKeyAccessors	static
 type	AS	System.Security.Cryptography.X509Certificates	X509CertificateLoader	static
 type	AS	System.Security.Cryptography.X509Certificates	X509Chain	class
 type	AS	System.Security.Cryptography.X509Certificates	X509ChainElement	class
@@ -11208,6 +11491,7 @@ type	AS	System.Security.Cryptography.Xml	SignedInfo	class
 type	AS	System.Security.Cryptography.Xml	SignedXml	class
 type	AS	System.Security.Cryptography.Xml	Transform	class
 type	AS	System.Security.Cryptography.Xml	TransformChain	class
+type	AS	System.Security.Cryptography.Xml	X509IssuerSerial	struct
 type	AS	System.Security.Cryptography.Xml	XmlDecryptionTransform	class
 type	AS	System.Security.Cryptography.Xml	XmlDsigBase64Transform	class
 type	AS	System.Security.Cryptography.Xml	XmlDsigC14NTransform	class
@@ -12271,7 +12555,7 @@ extensions	AS	Microsoft.AspNetCore.Hosting	CaptureStartupErrors Configure Config
 extensions	AS	Microsoft.AspNetCore.Http	Accepts AddEndpointFilter AddEndpointFilterFactory Append AppendCommaSeparatedValues AppendList AppendTrailer CheckTrailersAvailable Clear DeclareTrailer EnableBuffering ExcludeFromDescription Get GetCommaSeparatedValues GetCorrelationId GetDeclaredTrailers GetEndpoint GetInt32 GetServerVariable GetString GetTrailer GetTypedHeaders HasJsonContentType Produces ProducesProblem ProducesValidationProblem ReadFormAsync ReadFromJsonAsync Redirect SendFileAsync SetCommaSeparatedValues SetEndpoint SetInt32 SetString SupportsTrailers WithDescription WithSummary WithTags WriteAsJsonAsync WriteAsync
 extensions	AS	Microsoft.AspNetCore.Routing	EndpointExists EndpointNames GetPathByAction GetPathByName GetPathByPage GetPathByRouteValues GetRouteData GetRouteValue GetUriByAction GetUriByName GetUriByPage GetUriByRouteValues MapDelete MapGet MapIdentityApi MapMiddlewareDelete MapMiddlewareGet MapMiddlewarePost MapMiddlewarePut MapMiddlewareRoute MapMiddlewareVerb MapPost MapPut MapRoute MapShortCircuit MapVerb ParsePathByEndpointName
 extensions	AS	Microsoft.Extensions.Configuration	Add AddApplicationMetadata AddCommandLine AddConfiguration AddEnvironmentVariables AddInMemoryCollection AddIniFile AddIniStream AddJsonFile AddJsonStream AddKeyPerFile AddUserSecrets AddXmlFile AddXmlStream AsEnumerable Bind Exists Get GetConnectionString GetDebugView GetFileLoadExceptionHandler GetFileProvider GetRequiredSection GetValue SetBasePath SetFileLoadExceptionHandler SetFileProvider
-extensions	AS	Microsoft.Extensions.DependencyInjection	ActivateKeyedSingleton ActivateSingleton Add AddActivatedKeyedSingleton AddActivatedSingleton AddAggregateRoots AddAntiforgery AddApiExplorer AddApplicationLogEnricher AddApplicationMetadata AddApplicationPart AddAreaPageRoute AddAsKeyed AddAsyncCheck AddAuthentication AddAuthenticationCore AddAuthorization AddAuthorizationBuilder AddAuthorizationCore AddAuthorizationPolicyEvaluator AddBearerToken AddCQRS AddCacheTagHelper AddCacheTagHelperLimits AddCamelCaseNamingPolicy AddCascadingAuthenticationState AddCascadingValue AddCertificateForwarding AddCheck AddChronicleHealthCheck AddChronicleOccurrenceLifecycle AddCircuitOptions AddCommandAwareDecisionReads AddCompliance AddConnectionResolution AddConnections AddConsoleLatencyDataExporter AddControllers AddControllersAsServices AddControllersFromProjectReferencedAssembles AddControllersWithViews AddCookie AddCookiePolicy AddCookieTempDataProvider AddCorrelationId AddCors AddCratisEventModelViewer AddDataAnnotations AddDataAnnotationsLocalization AddDataProtection AddDefaultLogger AddDefaultNamingPolicy AddDirectoryBrowser AddDistributedMemoryCache AddDocumentAsyncFilterInstance AddDocumentFilterInstance AddEndpointsApiExplorer AddExceptionHandler AddExceptionSummarizer AddFormatterMappings AddHealthChecks AddHostedService AddHttpClient AddHttpContextAccessor AddHttpLogging AddHttpLoggingInterceptor AddHttpMessageHandler AddHubOptions AddIdentity AddIdentityApiEndpoints AddIdentityProvider AddInteractiveServerComponents AddJsonOptions AddJsonProtocol AddKeyedScoped AddKeyedSingleton AddKeyedTransient AddLatencyContext AddLocalization AddLogEnricher AddLogger AddLogging AddMemoryCache AddMetrics AddMicrosoftIdentityPlatformIdentityAuthentication AddModelBoundOperationFilters AddMvc AddMvcCore AddMvcLocalization AddMvcOptions AddNamedActivitySource AddNamedMeter AddNamespaceNamingPolicy AddNamingPolicy AddNullLatencyContext AddOAuth AddOperationAsyncFilterInstance AddOperationFilterInstance AddOptions AddOptionsWithValidateOnStart AddOutputCache AddPageRoute AddParameterAsyncFilterInstance AddParameterFilterInstance AddProblemDetails AddProcessLogEnricher AddRazorComponents AddRazorOptions AddRazorPages AddRazorPagesOptions AddRazorViewEngine AddReadModels AddReadModelsForCommand AddRequestBodyAsyncFilterInstance AddRequestBodyFilterInstance AddRequestDecompression AddRequestLocalization AddRequestTimeouts AddResilienceEnricher AddResponseCaching AddRouting AddRoutingCore AddSchemaFilterInstance AddScoped AddSecurityDefinition AddSecurityRequirement AddServer AddServerSideBlazor AddServiceLogEnricher AddSession AddSessionStateTempDataProvider AddSignalRCore AddSingleton AddStaticLogEnricher AddSwaggerGen AddTagHelpersAsServices AddTransient AddTypeActivatedCheck AddTypeDiscovery AddTypedClient AddUnitOfWork AddValidation AddViewComponentsAsServices AddViewLocalization AddViewOptions AddViews AddW3CLogging AddWebEncoders AddXmlDataContractSerializerFormatters AddXmlOptions AddXmlSerializerFormatters AllowAnonymousToAreaFolder AllowAnonymousToAreaPage AllowAnonymousToFolder AllowAnonymousToPage AuthorizeAreaFolder AuthorizeAreaPage AuthorizeFolder AuthorizePage Bind BindConfiguration BuildServiceProvider CacheOutput Configure ConfigureAdditionalHttpMessageHandlers ConfigureAll ConfigureApiBehaviorOptions ConfigureApplicationCookie ConfigureApplicationPartManager ConfigureCors ConfigureExternalCookie ConfigureFilter ConfigureHttpClient ConfigureHttpClientDefaults ConfigureHttpJsonOptions ConfigureHttpMessageHandlerBuilder ConfigureOptions ConfigurePrimaryHttpMessageHandler ConfigureSwagger ConfigureSwaggerGen ConfigureViews CreateAsyncScope CreateScope CurrentTypeUniverse CustomOperationIds CustomSchemaIds DescribeAllParametersInCamelCase DocInclusionPredicate DocumentAsyncFilter DocumentFilter GetKeyedService GetKeyedServices GetRequiredKeyedService GetRequiredService GetService GetServices IgnoreObsoleteActions IgnoreObsoleteProperties IncludeXmlComments InferSecuritySchemes InitializeTagHelper MapType NonNullableReferenceTypesAsRequired OperationAsyncFilter OperationFilter OrderActionsBy ParameterAsyncFilter ParameterFilter PostConfigure PostConfigureAll RedactLoggedHeaders RegisterCheckpointNames RegisterMeasureNames RegisterPersistentService RegisterTagNames RemoveAllLoggers RemoveAsKeyed RemoveType RequestBodyAsyncFilter RequestBodyFilter ResolveConflictingActions SchemaFilter SelectDiscriminatorNameUsing SelectDiscriminatorValueUsing SelectSubTypesUsing SetCompatibilityVersion SetCustomDocumentSerializer SetHandlerLifetime SortSchemasWith SupportNonNullableReferenceTypes SwaggerDoc TagActionsBy TryAddActivatedKeyedSingleton TryAddActivatedSingleton TryAddCascadingValue UseAllOfForInheritance UseAllOfToExtendReferenceSchemas UseInlineDefinitionsForEnums UseOneOfForPolymorphism UseSocketsHttpHandler ValidateDataAnnotations ValidateOnStart WithRazorPagesAtContentRoot WithRazorPagesRoot
+extensions	AS	Microsoft.Extensions.DependencyInjection	ActivateKeyedSingleton ActivateSingleton Add AddActivatedKeyedSingleton AddActivatedSingleton AddAggregateRoots AddAntiforgery AddApiExplorer AddApplicationLogEnricher AddApplicationMetadata AddApplicationPart AddAreaPageRoute AddAsKeyed AddAsyncCheck AddAuthentication AddAuthenticationCore AddAuthorization AddAuthorizationBuilder AddAuthorizationCore AddAuthorizationPolicyEvaluator AddBearerToken AddCQRS AddCacheTagHelper AddCacheTagHelperLimits AddCamelCaseNamingPolicy AddCascadingAuthenticationState AddCascadingValue AddCertificateForwarding AddCheck AddChronicleHealthCheck AddChronicleOccurrenceLifecycle AddCircuitOptions AddCommandAwareDecisionReads AddCompliance AddConnectionResolution AddConnections AddConsoleLatencyDataExporter AddControllers AddControllersAsServices AddControllersFromProjectReferencedAssembles AddControllersWithViews AddCookie AddCookiePolicy AddCookieTempDataProvider AddCorrelationId AddCors AddCratisEventModelViewer AddDataAnnotations AddDataAnnotationsLocalization AddDataProtection AddDefaultLogger AddDefaultNamingPolicy AddDirectoryBrowser AddDistributedMemoryCache AddDocumentAsyncFilterInstance AddDocumentFilterInstance AddEndpointsApiExplorer AddExceptionHandler AddExceptionSummarizer AddFormatterMappings AddHealthChecks AddHostedService AddHttpClient AddHttpContextAccessor AddHttpLogging AddHttpLoggingInterceptor AddHttpMessageHandler AddHubOptions AddIdentity AddIdentityApiEndpoints AddIdentityProvider AddInteractiveServerComponents AddJsonOptions AddJsonProtocol AddJwtBearer AddKeyedScoped AddKeyedSingleton AddKeyedTransient AddLatencyContext AddLocalization AddLogEnricher AddLogger AddLogging AddMemoryCache AddMetrics AddMicrosoftIdentityPlatformIdentityAuthentication AddModelBoundOperationFilters AddMvc AddMvcCore AddMvcLocalization AddMvcOptions AddNamedActivitySource AddNamedMeter AddNamespaceNamingPolicy AddNamingPolicy AddNullLatencyContext AddOAuth AddOpenIdConnect AddOperationAsyncFilterInstance AddOperationFilterInstance AddOptions AddOptionsWithValidateOnStart AddOutputCache AddPageRoute AddParameterAsyncFilterInstance AddParameterFilterInstance AddProblemDetails AddProcessLogEnricher AddRazorComponents AddRazorOptions AddRazorPages AddRazorPagesOptions AddRazorViewEngine AddReadModels AddReadModelsForCommand AddRequestBodyAsyncFilterInstance AddRequestBodyFilterInstance AddRequestDecompression AddRequestLocalization AddRequestTimeouts AddResilienceEnricher AddResponseCaching AddRouting AddRoutingCore AddSchemaFilterInstance AddScoped AddSecurityDefinition AddSecurityRequirement AddServer AddServerSideBlazor AddServiceLogEnricher AddSession AddSessionStateTempDataProvider AddSignalRCore AddSingleton AddStaticLogEnricher AddSwaggerGen AddTagHelpersAsServices AddTransient AddTypeActivatedCheck AddTypeDiscovery AddTypedClient AddUnitOfWork AddValidation AddViewComponentsAsServices AddViewLocalization AddViewOptions AddViews AddW3CLogging AddWebEncoders AddXmlDataContractSerializerFormatters AddXmlOptions AddXmlSerializerFormatters AllowAnonymousToAreaFolder AllowAnonymousToAreaPage AllowAnonymousToFolder AllowAnonymousToPage AuthorizeAreaFolder AuthorizeAreaPage AuthorizeFolder AuthorizePage Bind BindConfiguration BuildServiceProvider CacheOutput Configure ConfigureAdditionalHttpMessageHandlers ConfigureAll ConfigureApiBehaviorOptions ConfigureApplicationCookie ConfigureApplicationPartManager ConfigureCors ConfigureExternalCookie ConfigureFilter ConfigureHttpClient ConfigureHttpClientDefaults ConfigureHttpJsonOptions ConfigureHttpMessageHandlerBuilder ConfigureOptions ConfigurePrimaryHttpMessageHandler ConfigureSwagger ConfigureSwaggerGen ConfigureViews CreateAsyncScope CreateScope CurrentTypeUniverse CustomOperationIds CustomSchemaIds DescribeAllParametersInCamelCase DocInclusionPredicate DocumentAsyncFilter DocumentFilter GetKeyedService GetKeyedServices GetRequiredKeyedService GetRequiredService GetService GetServices IgnoreObsoleteActions IgnoreObsoleteProperties IncludeXmlComments InferSecuritySchemes InitializeTagHelper MapType NonNullableReferenceTypesAsRequired OperationAsyncFilter OperationFilter OrderActionsBy ParameterAsyncFilter ParameterFilter PostConfigure PostConfigureAll RedactLoggedHeaders RegisterCheckpointNames RegisterMeasureNames RegisterPersistentService RegisterTagNames RemoveAllLoggers RemoveAsKeyed RemoveType RequestBodyAsyncFilter RequestBodyFilter ResolveConflictingActions SchemaFilter SelectDiscriminatorNameUsing SelectDiscriminatorValueUsing SelectSubTypesUsing SetCompatibilityVersion SetCustomDocumentSerializer SetHandlerLifetime SortSchemasWith SupportNonNullableReferenceTypes SwaggerDoc TagActionsBy TryAddActivatedKeyedSingleton TryAddActivatedSingleton TryAddCascadingValue UseAllOfForInheritance UseAllOfToExtendReferenceSchemas UseInlineDefinitionsForEnums UseOneOfForPolymorphism UseSocketsHttpHandler ValidateDataAnnotations ValidateOnStart WithRazorPagesAtContentRoot WithRazorPagesRoot
 extensions	AS	Microsoft.Extensions.Hosting	AddCorrelationIdLogEnricher AddCratisArc AddCratisChronicle AddCratisCommands AddCratisQueries AddOrleans AddOrleansClient ConfigureAppConfiguration ConfigureContainer ConfigureDefaults ConfigureHostOptions ConfigureLogging ConfigureMetrics ConfigureServices ConfigureSlimWebHost ConfigureWebHost ConfigureWebHostDefaults IsDevelopment IsEnvironment IsProduction IsStaging Run RunAsync RunConsoleAsync Start StartAsync StopAsync UseApplicationMetadata UseConsoleLifetime UseContentRoot UseDefaultServiceProvider UseEnvironment UseInvariantCulture UseOrleans UseOrleansClient WaitForShutdown WaitForShutdownAsync
 extensions	AS	Microsoft.Extensions.Logging	AddConfiguration AddConsole AddConsoleFormatter AddDebug AddEventLog AddEventSourceLogger AddFilter AddGlobalBuffer AddJsonConsole AddOpenTelemetry AddRandomProbabilisticSampler AddSampler AddSimpleConsole AddSystemdConsole AddTraceBasedSampler AddTraceSource BeginScope CreateLogger EnableEnrichment EnableRedaction Log LogCritical LogDebug LogError LogInformation LogTrace LogWarning
 extensions	AS	MongoDB.Bson	ToBson ToBsonDocument ToJson ToServerString
@@ -12296,6 +12580,7 @@ extensions	AS	Orleans.Hosting	AddActivationRebalancer AddActivationRepartitioner
 extensions	AS	Orleans.Runtime	AverageTicksToMilliSeconds BatchIEnumerable CreateGuidKey CreateIntegerKey DeactivateAsync DictionaryToString EnumerableToString Export GetComponent GetGuidKey GetIntegerKey GetStackTrace Import IsClient IsGrainService IsLegacyGrain IsSystemTarget IsTerminating ParticipateIn SafeExecute SafeExecuteAsync TicksToMilliSeconds TimeSpanToString ToGatewayAddress ToGatewayUri ToIPEndPoint TryGetGuidKey TryGetIntegerKey WithBatchSize
 extensions	AS	System	AsMemory AsSpan BinarySearch CommonPrefixLength CompareTo Contains ContainsAny ContainsAnyExcept ContainsAnyExceptInRange ContainsAnyInRange CopyTo Count CountAny Deconstruct EndsWith EnumerateLines EnumerateRunes Equals GetNormalizedLength IndexOf IndexOfAny IndexOfAnyExcept IndexOfAnyExceptInRange IndexOfAnyInRange IsNormalized IsWhiteSpace LastIndexOf LastIndexOfAny LastIndexOfAnyExcept LastIndexOfAnyExceptInRange LastIndexOfAnyInRange Normalize Overlaps Replace ReplaceAny ReplaceAnyExcept Reverse SequenceCompareTo SequenceEqual Sort Split SplitAny StartsWith Subscribe SubscribeSafe ToLower ToLowerInvariant ToTuple ToUpper ToUpperInvariant ToValueTuple Trim TrimEnd TrimStart TryNormalize TryWrite
 extensions	AS	System.Buffers	CopyTo PositionOf ToArray TryReadBigEndian TryReadLittleEndian Write
+extensions	AS	System.ClientModel.Primitives	MarkClientActivityFailed StartClientActivity
 extensions	AS	System.Collections.Frozen	Create ToFrozenDictionary ToFrozenSet
 extensions	AS	System.Collections.Generic	GetDefaultAssets GetDefaultGroup GetDefaultRuntimeFileAssets GetRuntimeAssets GetRuntimeFileAssets GetRuntimeGroup
 extensions	AS	System.Collections.Immutable	BinarySearch Contains Create CreateBuilder CreateRange CreateRangeWithOverwrite Dequeue GetValueOrDefault IndexOf LastIndexOf Pop Remove RemoveRange Replace ToImmutableArray ToImmutableDictionary ToImmutableHashSet ToImmutableList ToImmutableSortedDictionary ToImmutableSortedSet
@@ -12327,7 +12612,7 @@ extensions	AS	System.Runtime.InteropServices	GetAddressOfArrayData GetAddressOfS
 extensions	AS	System.Runtime.Intrinsics	Abs Add AddSaturate All AllWhereAllBitsSet AndNot Any AnyWhereAllBitsSet As AsByte AsDouble AsInt16 AsInt32 AsInt64 AsNInt AsNUInt AsPlane AsQuaternion AsSByte AsSingle AsUInt16 AsUInt32 AsUInt64 AsVector AsVector128 AsVector128Unsafe AsVector2 AsVector256 AsVector3 AsVector4 AsVector512 BitwiseAnd BitwiseOr Ceiling Clamp ClampNative ConditionalSelect ConvertToDouble ConvertToInt32 ConvertToInt32Native ConvertToInt64 ConvertToInt64Native ConvertToSingle ConvertToUInt32 ConvertToUInt32Native ConvertToUInt64 ConvertToUInt64Native CopySign CopyTo Cos Count CountWhereAllBitsSet Create CreateScalar CreateScalarUnsafe CreateSequence DegreesToRadians Divide Dot Equals EqualsAll EqualsAny Exp ExtractMostSignificantBits Floor FusedMultiplyAdd GetElement GetLower GetUpper GreaterThan GreaterThanAll GreaterThanAny GreaterThanOrEqual GreaterThanOrEqualAll GreaterThanOrEqualAny Hypot IndexOf IndexOfWhereAllBitsSet IsEvenInteger IsFinite IsHardwareAccelerated IsInfinity IsInteger IsNaN IsNegative IsNegativeInfinity IsNormal IsOddInteger IsPositive IsPositiveInfinity IsSubnormal IsZero LastIndexOf LastIndexOfWhereAllBitsSet Lerp LessThan LessThanAll LessThanAny LessThanOrEqual LessThanOrEqualAll LessThanOrEqualAny Load LoadAligned LoadAlignedNonTemporal LoadUnsafe Log Log2 Max MaxMagnitude MaxMagnitudeNumber MaxNative MaxNumber Min MinMagnitude MinMagnitudeNumber MinNative MinNumber Multiply MultiplyAddEstimate Narrow NarrowWithSaturation Negate None NoneWhereAllBitsSet OnesComplement RadiansToDegrees Round ShiftLeft ShiftRightArithmetic ShiftRightLogical Shuffle ShuffleNative Sin SinCos Sqrt Store StoreAligned StoreAlignedNonTemporal StoreUnsafe Subtract SubtractSaturate Sum ToScalar ToVector128 ToVector128Unsafe ToVector256 ToVector256Unsafe ToVector512 ToVector512Unsafe Truncate TryCopyTo Widen WidenLower WidenUpper WithElement WithLower WithUpper Xor
 extensions	AS	System.Runtime.Serialization	GetSerializationSurrogateProvider SetSerializationSurrogateProvider
 extensions	AS	System.Security.Claims	FindFirstValue
-extensions	AS	System.Security.Cryptography.X509Certificates	CopyWithPrivateKey GetDSAPrivateKey GetDSAPublicKey GetECDsaPrivateKey GetECDsaPublicKey GetRSAPrivateKey GetRSAPublicKey
+extensions	AS	System.Security.Cryptography.X509Certificates	CopyWithPrivateKey GetCompositeMLDsaPrivateKey GetCompositeMLDsaPublicKey GetDSAPrivateKey GetDSAPublicKey GetECDsaPrivateKey GetECDsaPublicKey GetMLDsaPrivateKey GetMLDsaPublicKey GetMLKemPrivateKey GetMLKemPublicKey GetRSAPrivateKey GetRSAPublicKey GetSlhDsaPrivateKey GetSlhDsaPublicKey
 extensions	AS	System.Security.Principal	GetUserIdAsGuid
 extensions	AS	System.Text	AppendRedacted Convert GetBytes GetChars GetString
 extensions	AS	System.Text.Json	Deserialize DeserializeAsync DeserializeAsyncEnumerable IsReflectionEnabledByDefault Serialize SerializeAsync SerializeToDocument SerializeToElement SerializeToNode SerializeToUtf8Bytes
@@ -14916,6 +15201,46 @@ base	AS	System.Buffers.MemoryPool`1	System.Object	Dispose MaxBufferSize Rent Sha
 base	AS	System.Buffers.ReadOnlySequenceSegment`1	System.Object	Memory Next RunningIndex	-
 base	AS	System.Buffers.SearchValues`1	System.Object	Contains	-
 base	AS	System.CannotUnloadAppDomainException	System.SystemException	-	-
+base	AS	System.ClientModel.ApiKeyCredential	System.Object	Deconstruct Update	-
+base	AS	System.ClientModel.AsyncCollectionResult`1	System.ClientModel.Primitives.AsyncCollectionResult	GetAsyncEnumerator GetValuesFromPageAsync	-
+base	AS	System.ClientModel.AuthenticationTokenProvider	System.Object	CreateTokenOptions GetToken GetTokenAsync	-
+base	AS	System.ClientModel.BinaryContent	System.Object	Create CreateJson Dispose MediaType TryComputeLength WriteTo WriteToAsync	-
+base	AS	System.ClientModel.ClientResult	System.Object	FromOptionalValue FromResponse FromValue GetRawResponse	-
+base	AS	System.ClientModel.ClientResultException	System.Exception	CreateAsync GetRawResponse Status	-
+base	AS	System.ClientModel.ClientResult`1	System.ClientModel.ClientResult	Value	-
+base	AS	System.ClientModel.CollectionResult`1	System.ClientModel.Primitives.CollectionResult	GetEnumerator GetValuesFromPage	-
+base	AS	System.ClientModel.ContinuationToken	System.Object	FromBytes ToBytes	-
+base	AS	System.ClientModel.Primitives.ApiKeyAuthenticationPolicy	System.ClientModel.Primitives.AuthenticationPolicy	CreateBasicAuthorizationPolicy CreateBearerAuthorizationPolicy CreateHeaderApiKeyPolicy Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.AsyncCollectionResult	System.Object	GetContinuationToken GetRawPagesAsync	-
+base	AS	System.ClientModel.Primitives.AuthenticationPolicy	System.ClientModel.Primitives.PipelinePolicy	-	-
+base	AS	System.ClientModel.Primitives.AuthenticationToken	System.Object	ExpiresOn RefreshOn TokenType TokenValue	-
+base	AS	System.ClientModel.Primitives.BearerTokenPolicy	System.ClientModel.Primitives.AuthenticationPolicy	Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.ClientCache	System.Object	GetClient	-
+base	AS	System.ClientModel.Primitives.ClientConnectionCollection	System.Collections.ObjectModel.KeyedCollection`2	AddRange GetKeyForItem	-
+base	AS	System.ClientModel.Primitives.ClientConnectionProvider	System.Object	GetAllConnections GetConnection Subclients	-
+base	AS	System.ClientModel.Primitives.ClientLoggingOptions	System.Object	AllowedHeaderNames AllowedQueryParameters AssertNotFrozen EnableLogging EnableMessageContentLogging EnableMessageLogging Freeze LoggerFactory MessageContentSizeLimit	-
+base	AS	System.ClientModel.Primitives.ClientPipelineOptions	System.Object	AddPolicy AssertNotFrozen ClientLoggingOptions EnableDistributedTracing Freeze MessageLoggingPolicy NetworkTimeout RetryPolicy Transport	-
+base	AS	System.ClientModel.Primitives.ClientRetryPolicy	System.ClientModel.Primitives.PipelinePolicy	Default GetNextDelay OnRequestSent OnRequestSentAsync OnSendingRequest OnSendingRequestAsync OnTryComplete Process ProcessAsync ShouldRetry ShouldRetryAsync Wait WaitAsync	-
+base	AS	System.ClientModel.Primitives.CollectionResult	System.Object	GetContinuationToken GetRawPages	-
+base	AS	System.ClientModel.Primitives.GetTokenOptions	System.Object	AuthorizationUrlPropertyName Properties RefreshUrlPropertyName ScopesPropertyName TokenUrlPropertyName	-
+base	AS	System.ClientModel.Primitives.HttpClientPipelineTransport	System.ClientModel.Primitives.PipelineTransport	CreateMessageCore Dispose OnReceivedResponse OnSendingRequest ProcessCore ProcessCoreAsync Shared	-
+base	AS	System.ClientModel.Primitives.JsonModelConverter	System.Text.Json.Serialization.JsonConverter`1	CanConvert Read Write	-
+base	AS	System.ClientModel.Primitives.MessageLoggingPolicy	System.ClientModel.Primitives.PipelinePolicy	Default Process ProcessAsync	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterBuildableAttribute	System.Attribute	-	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterContext	System.Object	GetTypeBuilder TryGetTypeBuilder TryGetTypeBuilderCore	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterOptions	System.Object	Format Json Xml	-
+base	AS	System.ClientModel.Primitives.ModelReaderWriterTypeBuilder	System.Object	AddItem AddItemWithKey BuilderType ConvertCollectionBuilder CreateInstance GetItems ItemType	-
+base	AS	System.ClientModel.Primitives.OperationResult	System.Object	GetRawResponse HasCompleted RehydrationToken SetRawResponse UpdateStatus UpdateStatusAsync WaitForCompletion WaitForCompletionAsync	-
+base	AS	System.ClientModel.Primitives.PipelineMessage	System.Object	Apply BufferResponse CancellationToken Dispose ExtractResponse NetworkTimeout Request Response ResponseClassifier SetProperty TryGetProperty	-
+base	AS	System.ClientModel.Primitives.PipelineMessageClassifier	System.Object	Create Default TryClassify	-
+base	AS	System.ClientModel.Primitives.PipelinePolicy	System.Object	Process ProcessAsync ProcessNext ProcessNextAsync	-
+base	AS	System.ClientModel.Primitives.PipelineRequest	System.Object	ClientRequestId Content ContentCore Dispose Headers HeadersCore Method MethodCore Uri UriCore	-
+base	AS	System.ClientModel.Primitives.PipelineRequestHeaders	System.Object	Add GetEnumerator Remove Set TryGetValue TryGetValues	-
+base	AS	System.ClientModel.Primitives.PipelineResponse	System.Object	BufferContent BufferContentAsync Content ContentStream Dispose Headers HeadersCore IsError IsErrorCore ReasonPhrase Status	-
+base	AS	System.ClientModel.Primitives.PipelineResponseHeaders	System.Object	GetEnumerator TryGetValue TryGetValues	-
+base	AS	System.ClientModel.Primitives.PipelineTransport	System.ClientModel.Primitives.PipelinePolicy	CreateMessage CreateMessageCore Process ProcessAsync ProcessCore ProcessCoreAsync	-
+base	AS	System.ClientModel.Primitives.RequestOptions	System.Object	AddHeader AddPolicy Apply AssertNotFrozen BufferResponse CancellationToken ErrorOptions Freeze SetHeader	-
+base	AS	System.ClientModel.Primitives.UserAgentPolicy	System.ClientModel.Primitives.PipelinePolicy	ApplicationId Assembly Process ProcessAsync UserAgentValue	-
 base	AS	System.CodeDom.Compiler.IndentedTextWriter	System.IO.TextWriter	Close DefaultTabString DisposeAsync Encoding Flush FlushAsync Indent InnerWriter NewLine OutputTabs OutputTabsAsync Write WriteAsync WriteLine WriteLineAsync WriteLineNoTabs WriteLineNoTabsAsync	-
 base	AS	System.Collections.ArrayList	System.Object	Adapter Add AddRange BinarySearch Capacity Clear Clone Contains CopyTo Count FixedSize GetEnumerator GetRange IndexOf Insert InsertRange IsFixedSize IsReadOnly IsSynchronized Item LastIndexOf ReadOnly Remove RemoveAt RemoveRange Repeat Reverse SetRange Sort SyncRoot Synchronized ToArray TrimToSize	-
 base	AS	System.Collections.CaseInsensitiveComparer	System.Object	Compare Default DefaultInvariant	-
@@ -15382,6 +15707,10 @@ base	AS	System.IO.TextReader	System.MarshalByRefObject	Close Dispose Null Peek R
 base	AS	System.IO.TextWriter	System.MarshalByRefObject	Close CoreNewLine CreateBroadcasting Dispose DisposeAsync Encoding Flush FlushAsync FormatProvider NewLine Null Synchronized Write WriteAsync WriteLine WriteLineAsync	-
 base	AS	System.IO.UnmanagedMemoryAccessor	System.Object	CanRead CanWrite Capacity Dispose Initialize IsOpen Read ReadArray ReadBoolean ReadByte ReadChar ReadDecimal ReadDouble ReadInt16 ReadInt32 ReadInt64 ReadSByte ReadSingle ReadUInt16 ReadUInt32 ReadUInt64 Write WriteArray	-
 base	AS	System.IO.UnmanagedMemoryStream	System.IO.Stream	CanRead CanSeek CanWrite Capacity Dispose Flush FlushAsync Initialize Length Position PositionPointer Read ReadAsync ReadByte Seek SetLength Write WriteAsync WriteByte	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtHeader	System.Collections.Generic.Dictionary`2	Alg Base64UrlDeserialize Base64UrlEncode Cty Enc EncryptingCredentials IV Kid SerializeToJson SigningCredentials Typ X5c X5t Zip	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtPayload	System.Collections.Generic.Dictionary`2	Acr Actort AddClaim AddClaims Amr Aud AuthTime Azp Base64UrlDeserialize Base64UrlEncode CHash Claims Deserialize Exp Expiration Iat Iss IssuedAt Jti Nbf Nonce NotBefore SerializeToJson Sub ValidFrom ValidTo	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtSecurityToken	Microsoft.IdentityModel.Tokens.SecurityToken	Actor Audiences Claims EncodedHeader EncodedPayload EncryptingCredentials Header Id InnerToken IssuedAt Issuer Payload RawAuthenticationTag RawCiphertext RawData RawEncryptedKey RawHeader RawInitializationVector RawPayload RawSignature SecurityKey SignatureAlgorithm SigningCredentials SigningKey Subject ToString UnsafeToString ValidFrom ValidTo	-
+base	AS	System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler	Microsoft.IdentityModel.Tokens.SecurityTokenHandler	CanReadToken CanValidateToken CanWriteToken CreateActorValue CreateClaimsIdentity CreateEncodedJwt CreateJwtSecurityToken CreateToken DecryptToken DefaultInboundClaimFilter DefaultInboundClaimTypeMap DefaultMapInboundClaims DefaultOutboundAlgorithmMap DefaultOutboundClaimTypeMap InboundClaimFilter InboundClaimTypeMap JsonClaimTypeProperty MapInboundClaims OutboundAlgorithmMap OutboundClaimTypeMap ReadJwtToken ReadToken ResolveIssuerSigningKey ResolveTokenDecryptionKey ShortClaimTypeProperty TokenType ValidateAudience ValidateIssuer ValidateIssuerSecurityKey ValidateLifetime ValidateSignature ValidateToken ValidateTokenAsync ValidateTokenPayload ValidateTokenReplay WriteToken	-
 base	AS	System.InvalidCastException	System.SystemException	-	-
 base	AS	System.InvalidOperationException	System.SystemException	-	-
 base	AS	System.InvalidTimeZoneException	System.Exception	-	-
@@ -15919,6 +16248,9 @@ base	AS	System.Security.Cryptography.MLKem	System.Object	Algorithm Decapsulate D
 base	AS	System.Security.Cryptography.MaskGenerationMethod	System.Object	GenerateMask	-
 base	AS	System.Security.Cryptography.PKCS1MaskGenerationMethod	System.Security.Cryptography.MaskGenerationMethod	GenerateMask HashName	-
 base	AS	System.Security.Cryptography.PasswordDeriveBytes	System.Security.Cryptography.DeriveBytes	CryptDeriveKey Dispose GetBytes HashName IterationCount Reset Salt	-
+base	AS	System.Security.Cryptography.Pkcs.Pkcs12SafeBag	System.Object	Attributes Encode EncodedBagValue GetBagId TryEncode	-
+base	AS	System.Security.Cryptography.Pkcs.Pkcs9AttributeObject	System.Security.Cryptography.AsnEncodedData	CopyFrom Oid	-
+base	AS	System.Security.Cryptography.Pkcs.RecipientInfo	System.Object	EncryptedKey KeyEncryptionAlgorithm RecipientIdentifier Type Version	-
 base	AS	System.Security.Cryptography.RC2	System.Security.Cryptography.SymmetricAlgorithm	Create EffectiveKeySize EffectiveKeySizeValue KeySize	-
 base	AS	System.Security.Cryptography.RSA	System.Security.Cryptography.AsymmetricAlgorithm	Create Decrypt DecryptValue Encrypt EncryptValue ExportParameters ExportRSAPrivateKey ExportRSAPrivateKeyPem ExportRSAPublicKey ExportRSAPublicKeyPem FromXmlString GetMaxOutputSize HashData ImportEncryptedPkcs8PrivateKey ImportFromEncryptedPem ImportFromPem ImportParameters ImportPkcs8PrivateKey ImportRSAPrivateKey ImportRSAPublicKey ImportSubjectPublicKeyInfo KeyExchangeAlgorithm SignData SignHash SignatureAlgorithm ToXmlString TryDecrypt TryEncrypt TryExportEncryptedPkcs8PrivateKey TryExportPkcs8PrivateKey TryExportRSAPrivateKey TryExportRSAPrivateKeyPem TryExportRSAPublicKey TryExportRSAPublicKeyPem TryExportSubjectPublicKeyInfo TryHashData TrySignData TrySignHash VerifyData VerifyHash	-
 base	AS	System.Security.Cryptography.RSAOAEPKeyExchangeDeformatter	System.Security.Cryptography.AsymmetricKeyExchangeDeformatter	DecryptKeyExchange Parameters SetKey	-

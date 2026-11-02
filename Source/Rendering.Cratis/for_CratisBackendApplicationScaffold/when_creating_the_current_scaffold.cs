@@ -20,6 +20,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
         "Directory.Build.props",
         "Directory.Build.targets",
         "Directory.Packages.props",
+        "GeneratedAuthentication.cs",
+        "GeneratedAuthenticationPerimeter.cs",
         "GeneratedPolicyRegistration.cs",
         "GlobalUsings.cs",
         "MyApp.csproj",
@@ -137,8 +139,10 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",
             $"Microsoft.Extensions.Telemetry.Abstractions={Scaffolding.ScaffoldPackageVersions.TelemetryAbstractions}",
+            $"Microsoft.Identity.Web={Scaffolding.ScaffoldPackageVersions.IdentityWeb}",
             $"Microsoft.NET.Test.Sdk={_profile.MicrosoftNetTestSdkPackageVersion}",
             $"NSubstitute={_profile.NSubstitutePackageVersion}",
+            $"System.Security.Cryptography.Pkcs={Scaffolding.ScaffoldPackageVersions.CryptographyPkcs}",
             $"xunit={_profile.XunitPackageVersion}",
             $"xunit.runner.visualstudio={_profile.XunitRunnerVisualStudioPackageVersion}"
         }.Order(StringComparer.Ordinal));

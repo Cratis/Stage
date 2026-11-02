@@ -95,5 +95,14 @@ public sealed partial class CratisBackendApplicationScaffold
         Package references in `Customizations/Dependencies.props` can use a matching
         central `PackageVersion` or an explicit `VersionOverride`, not `Version`.
         Edit `package.json` for frontend dependencies.
+
+        ## Sign in with Microsoft Entra ID
+
+        Sign-in is off by default and nothing is registered until you configure it outside the
+        generated files. Set the `Cratis:Authentication:EntraId` section (your app registration)
+        and `Cratis:Authentication:PublicOrigin` (the exact origin browsers use) through user
+        secrets, environment variables or your deployment configuration, never in `appsettings.json`.
+        When on, every route requires sign-in except GET and HEAD on `{{HealthRoute}}`.
+        See the Stage guide "Sign in with Microsoft Entra ID" for the full key list.
         """;
 }

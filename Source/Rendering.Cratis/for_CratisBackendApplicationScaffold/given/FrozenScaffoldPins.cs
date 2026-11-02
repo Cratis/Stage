@@ -32,8 +32,10 @@ internal static class FrozenScaffoldPins
                 ("Cratis.Screenplay.Matching", ScaffoldPackageVersions.ScreenplayMatching, "4.241.0"),
                 ("Cratis.Specifications", profile.CratisSpecificationsPackageVersion, "4.1.1"),
                 ("Cratis.Specifications.XUnit", profile.CratisSpecificationsXUnitPackageVersion, "4.1.1"),
+                ("Microsoft.Identity.Web", ScaffoldPackageVersions.IdentityWeb, "4.16.1"),
                 ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
                 ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
+                ("System.Security.Cryptography.Pkcs", ScaffoldPackageVersions.CryptographyPkcs, "10.0.13"),
                 ("xunit", profile.XunitPackageVersion, "2.9.3"),
                 ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
             ];

@@ -141,6 +141,15 @@ internal static class SemanticDependencyReferences
         SemanticReaction:From Triggers
         SemanticReactionTrigger:Source Where Produces Invokes
         SemanticInvocation:Command Mappings OnRefused
+        SemanticApplication:StateMachines Workflows
+        SemanticStateMachine:ReadModel States Transitions Specifications
+        SemanticState:Entering
+        SemanticStateEntry:Command
+        SemanticStateTransition:Event Guard
+        SemanticWorkflow:Subject Nodes Edges Specifications
+        SemanticWorkflowNode:Event Command Condition Items
+        SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
+        SemanticLifecycleExpectation:Command
         """,
         [SemanticDependencyKind.Capture] = """
         SemanticCapture:EventsSource Appends Children Nested

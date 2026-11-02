@@ -163,6 +163,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
-         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
+         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14) ||
+         (code.StartsWith("STAGE-LIFECYCLE-", StringComparison.Ordinal) && code.Length == 19)) &&
         code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
 }

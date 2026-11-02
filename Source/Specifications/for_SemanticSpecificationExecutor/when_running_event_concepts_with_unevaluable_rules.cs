@@ -88,7 +88,8 @@ public class when_running_event_concepts_with_unevaluable_rules : Specification
               specification AppendedCompositeConceptFact
                 when append CompositeRecorded
                   for "one"
-                  details = {"label":"x"}
+                  details
+                    label = "x"
                 then no events
         """;
 }

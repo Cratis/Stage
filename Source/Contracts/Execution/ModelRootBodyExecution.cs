@@ -121,8 +121,8 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
             _slots.RemoveAll(slot => slot.IsDisposed);
             _failure = Diagnostic(exception.Message);
 
-            // Only a deterministic refusal is pinned to this revision; a worker timeout or crash is retried on the next call.
-            if (exception is InvalidSemanticModel) _revision = revision;
+            // Only a deterministic refusal is pinned to this revision; a worker timeout or crash forgets the last good revision so the next call recompiles.
+            _revision = exception is InvalidSemanticModel ? revision : null;
         }
     }
 

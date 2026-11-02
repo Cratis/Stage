@@ -27,7 +27,10 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0 and Screenplay 4.259.0: native guarded-action serialization and restored guard/message bridges.
-    const string Before = "d54aad9c0e5682a94b15ae6b9c2fc4c5ea1aea5c39df84f2b172de186b4bdcd0";
+    // Re-frozen after train 11: authored submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals;
+    // Components 4.38.1, Cratis.Specifications 5.1.0, Microsoft.Identity.Web 4.16.1 and the Pkcs 10.0.13 security pin.
+    const string Before = "38ec11ded7de28b0daf0946bf0f6cb542f1d79814b9828ecbb418e40874b24a5";
 
     ArtifactRenderPlan _plan = null!;
 

@@ -50,12 +50,13 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    // Scene 4.86.0 adds an empty onSubmit array to each of the two authored forms.
+    // Scene 4.86.0 originally added empty onSubmit arrays to the two authored forms.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: native Close (-34 bytes) and double-click alternatives (-273 bytes).
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("09703bb69ea1cb4633d1dd53799ba36b8679f250153b6dc473fcfcc0c42a3a3a");
+    // Train 11 carries their authored submit navigation: +156 bytes for details and +153 for list.
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("16e71ed659eac083ba4faf3479098d01b426222869ada359b91ee9c826ff2f8d");
 
-    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: only the reviewed native guards and omitted null properties.
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(23693);
+    // Re-frozen after train 11: the restored native guards plus the two authored submit continuations (23693 + 309 bytes).
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24002);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact]
     void should_carry_the_guarded_double_click_branches()
@@ -114,7 +115,9 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for #741 (.gitignore gains .yarn/) and #734 (.yarnrc.yml preapproves @cratis/*).
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("efb94bf716de87131a2ff720640f7e163eb4e2f2dc80bb344166be9cd57907a4");
+    // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("767ba2bae5ce1c9f7eb0bff53b08471355c700b195d37ade1583c603a5201862");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
@@ -122,13 +125,16 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: reviewed native guards and restored runtime guard/message bridges.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("402845000b6d88ca80a44af4213d4de6024111fce69050b05f451dfd61c3d39b");
+    // Re-frozen after train 11: submit continuations, response contracts/reference schemas and bundled runtime changes;
+    // generated documentation/specification imports, Entra host artifacts/wiring/dependencies and Yarn preapprovals.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("013eb5a7aef2cfd2b024b23e777033ec220dab157f39a258eba146e16ea1d656");
 
-    // Re-frozen for Cratis/Stage#209 on Scene 4.86.0: details loses 34 bytes; list loses 273; comments is unchanged.
+    // The #209 restoration removed 34 details bytes and 273 list bytes on Scene 4.86.0.
+    // Train 11 adds the authored submit navigation: details 9773 -> 9929; list 6402 -> 6555; comments is unchanged.
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json beb6616b4597f8f90e001027a004130fc03c44dba1909fa6a8c58ee7c38cf347 9773
-        Workspaces/Tracking/WorkItemList/Screens.scene.json 31bb4871537700e7be2383d82a6530d73d1e4d20495fbf6bbac85daf7ea1ed51 6402
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json c8a74e3f707a26878d1e3edcfe7348bd18e7df5dd9d199625abc5a018c96d36a 9929
+        Workspaces/Tracking/WorkItemList/Screens.scene.json f849abdf5408d218df994e1c4ccbe4df6daf59ae8f988a8f6015d24aca1c2417 6555
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)

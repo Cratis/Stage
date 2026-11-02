@@ -66,6 +66,15 @@ public class AnteOutcomes(Provisioning provisioning, OnboardingEmails emails) : 
     }
 
     /// <summary>
+    /// Tells a person whose sign-up a reviewer declined. Ante publishes this only when sign-up review is on
+    /// (<c>Ante:Registration:Review</c>), which a rendered application does not turn on.
+    /// </summary>
+    /// <param name="event">The outcome.</param>
+    /// <param name="context">The event context, whose event source is the registration id.</param>
+    /// <returns>A task.</returns>
+    public Task Declined(OrganizationRegistrationDeclined @event, EventContext context) => emails.SignupDeclined(context.EventSourceId.Value, @event);
+
+    /// <summary>
     /// Records the acceptance of the legal terms.
     /// </summary>
     /// <param name="event">The outcome.</param>

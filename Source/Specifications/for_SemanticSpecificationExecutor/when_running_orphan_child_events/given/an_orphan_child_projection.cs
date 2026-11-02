@@ -70,6 +70,6 @@ public abstract class an_orphan_child_projection : Specification
                 then readmodel Current
                   id = "other"
                   name = "other name"
-                  entries = []
+                  entries none
         """;
 }

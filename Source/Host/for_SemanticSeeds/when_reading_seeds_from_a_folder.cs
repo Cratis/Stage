@@ -24,7 +24,7 @@ public class when_reading_seeds_from_a_folder : a_seeded_model
                   name = "Stoneware mug"
                   price = 12.5
                   featured = false
-                  tags = []
+                  tags none
             """);
         Compile(string.Empty);
     }

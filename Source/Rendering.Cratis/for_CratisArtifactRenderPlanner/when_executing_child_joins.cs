@@ -90,7 +90,11 @@ public class when_executing_child_joins : a_generated_application
                 then readmodel ItemDetail
                   sku = "ACM-1000"
                   name = "Acme mug"
-                  locations = [{"locationCode":"A-01-01","label":"Aisle A, shelf 1","quantity":20}]
+                  locations
+                    item
+                      locationCode = "A-01-01"
+                      label = "Aisle A, shelf 1"
+                      quantity = 20
               specification TheShelfIsRegisteredLast
                 given SkuRegistered
                   for "ACM-2000"
@@ -107,7 +111,11 @@ public class when_executing_child_joins : a_generated_application
                 then readmodel ItemDetail
                   sku = "ACM-2000"
                   name = "Acme cup"
-                  locations = [{"locationCode":"B-02-02","label":"Aisle B, shelf 2","quantity":5}]
+                  locations
+                    item
+                      locationCode = "B-02-02"
+                      label = "Aisle B, shelf 2"
+                      quantity = 5
         """;
 
     protected override ArtifactRenderPlan CreatePlan() => when_rendering_a_pure_reducer.Plan(when_rendering_a_pure_reducer.Load(Source).GetAwaiter().GetResult());

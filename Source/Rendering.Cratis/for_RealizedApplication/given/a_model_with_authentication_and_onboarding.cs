@@ -103,7 +103,7 @@ public class a_model_with_authentication_and_onboarding : Specification
             Path.Combine(folder, "Emails", "invitation.html"),
             "---\nsubject: Join {{application.name}}\n---\n<html><body><img src=\"cid:logo.png\" alt=\"Logo\"><a href=\"{{invitation.link}}\">Accept</a></body></html>\n");
         File.WriteAllText(Path.Combine(folder, "Emails", "welcome.html"), "<html><body><p>Welcome {{member.name}} to {{tenant.name}}</p></body></html>\n");
-        File.WriteAllText(Path.Combine(folder, "Emails", "signup-declined.html"), "<html><body><p>Sorry, {{reason}}</p></body></html>\n");
+        File.WriteAllText(Path.Combine(folder, "Emails", "signup-declined.html"), "<html><body><p>Sorry, {{decline.message}}</p></body></html>\n");
         File.WriteAllBytes(Path.Combine(folder, "Emails", "Images", "logo.png"), Png);
     }
 

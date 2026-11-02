@@ -103,7 +103,7 @@ public sealed class rendered_event_contracts
             new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id),
             new CratisRenderingOptions(ProjectName, "ContractsProof")) : CratisRendering.Plan(
                 model,
-                execution.Plan!,
+                execution.Plan,
                 new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id),
                 new CratisRenderingOptions(ProjectName, "ContractsProof"),
                 loaded.ImplementationRequirements,

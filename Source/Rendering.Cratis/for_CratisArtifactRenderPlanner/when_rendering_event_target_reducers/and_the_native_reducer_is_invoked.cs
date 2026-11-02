@@ -30,8 +30,12 @@ public class and_the_native_reducer_is_invoked : Specification
         var assembly = RenderedOutput.Load(plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))));
         var type = assembly.GetTypes().Single(type => type.Name == "OrderPublisher");
-        _reducer = Activator.CreateInstance(type)!;
-        _on = type.GetMethod("On")!;
+        var reducer = Activator.CreateInstance(type);
+        Assert.NotNull(reducer);
+        _reducer = reducer;
+        var on = type.GetMethod("On");
+        Assert.NotNull(on);
+        _on = on;
         _event = assembly.GetTypes().Single(type => type.Name == "Drafted");
     }
 
@@ -43,10 +47,30 @@ public class and_the_native_reducer_is_invoked : Specification
         _failure = Catch.Exception(() => Fold("delete", _initial));
     }
 
-    [Fact] void should_create_the_first_public_value() => Assert.Equal("first", _initial!.GetType().GetProperty("Name")!.GetValue(_initial));
+    [Fact]
+    void should_create_the_first_public_value()
+    {
+        Assert.NotNull(_initial);
+        var name = _initial.GetType().GetProperty("Name");
+        Assert.NotNull(name);
+        Assert.Equal("first", name.GetValue(_initial));
+    }
     [Fact] void should_suppress_duplicate_publication_by_preserving_the_previous_instance() => Assert.Same(_initial, _unchanged);
-    [Fact] void should_return_the_changed_public_value() => Assert.Equal("second", _changed!.GetType().GetProperty("Name")!.GetValue(_changed));
-    [Fact] void should_fail_loudly_instead_of_retracting() => Assert.Equal("PublicEventCannotBeRetracted", Assert.IsType<TargetInvocationException>(_failure).InnerException!.GetType().Name);
+    [Fact]
+    void should_return_the_changed_public_value()
+    {
+        Assert.NotNull(_changed);
+        var name = _changed.GetType().GetProperty("Name");
+        Assert.NotNull(name);
+        Assert.Equal("second", name.GetValue(_changed));
+    }
+    [Fact]
+    void should_fail_loudly_instead_of_retracting()
+    {
+        var failure = Assert.IsType<TargetInvocationException>(_failure).InnerException;
+        Assert.NotNull(failure);
+        Assert.Equal("PublicEventCannotBeRetracted", failure.GetType().Name);
+    }
 
     object? Fold(string name, object? current) => _on.Invoke(_reducer, [Activator.CreateInstance(_event, name), current, EventContext.EmptyWithEventSourceId("source") with { SequenceNumber = new(1) }]);
 }

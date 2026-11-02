@@ -91,7 +91,7 @@ static class BindingSites
 
     static int Map(ImmutableArray<TextChange> changes, int position) => position + changes
         .Where(change => change.Span.End <= position && !(change.Span.Start == position && change.Span.Length > 0))
-        .Sum(change => change.NewText!.Length - change.Span.Length);
+        .Sum(change => change.NewText.Length - change.Span.Length);
 
     static string Describe(SemanticModel model, SyntaxNode node) => node switch
     {

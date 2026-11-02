@@ -35,7 +35,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
     {
         var result = fixture.StageResults.Single(result => result.Name == name);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Query);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Query);
         result.Unsupported.Details.ShouldEqual("Only optional snapshot queries by read-model identifier are admitted.");
     }
     [Fact] void should_compare_all_eight_stage_expectations() => fixture.StageResults.Length.ShouldEqual(8);
@@ -67,7 +67,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
         async Task Because()
         {
             var model = Model();
-            var plan = SemanticExecutionPlan.Compile(model).Plan!;
+            var plan = SemanticExecutionPlan.Compile(model).Plan;
             var specifications = plan.Specifications.Values.ToArray();
             var runner = new SemanticSpecificationRunner();
             ReferenceCorrect = [.. specifications.Where(specification => specification.Name.StartsWith("Correct", StringComparison.Ordinal)).Select(specification => runner.Run(plan, specification.Id).Passed)];
@@ -82,7 +82,7 @@ public class when_comparing_observable_list_queries(when_comparing_observable_li
             GeneratedCorrect = Outcomes(results, classPrefix: "when_correct");
             GeneratedWrong = Outcomes(results, classPrefix: "when_wrong");
             WrongFailures = [.. results.Where(result => result.Matches(className: "when_wrong", match: GeneratedTestNameMatch.Prefix) && result.Outcome == "Failed")
-                .Select(result => trx.Descendants(ns + "UnitTestResult").Single(element => (string)element.Attribute("testId")! == result.TestId).Descendants(ns + "Message").Single().Value)];
+                .Select(result => trx.Descendants(ns + "UnitTestResult").Single(element => (string)element.Attribute("testId") == result.TestId).Descendants(ns + "Message").Single().Value)];
             PushOutcome = Outcomes(results, methodName: "should_push_matching_rows_and_exclude_other_rows").Single();
         }
 

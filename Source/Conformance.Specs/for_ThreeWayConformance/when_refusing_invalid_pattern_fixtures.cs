@@ -43,7 +43,7 @@ public class when_refusing_invalid_pattern_fixtures : Specification
                 }]
             }]
         });
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         var stage = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
         reference.Passed.ShouldBeTrue();

@@ -25,13 +25,13 @@ public static class conformance_source_bodies
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(
             catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
-        var compiled = new SemanticModelCompiler().Compile(vector.Corpus!.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
+        var compiled = new SemanticModelCompiler().Compile(vector.Corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         if (!compiled.Success)
         {
             return (null, "source-form-does-not-compile");
         }
 
-        var model = compiled.Value!.Model;
+        var model = compiled.Value.Model;
 
         // A frozen vector whose source now binds to a later semantic version (PublicEventsCorpus.V9 since typed capture identities in
         // V32) keeps its ESM bytes on purpose; the bytes alone are then the vector, without source bodies.

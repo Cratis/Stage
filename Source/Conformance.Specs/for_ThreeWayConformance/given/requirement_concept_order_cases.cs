@@ -51,8 +51,8 @@ internal static class requirement_concept_order_cases
                     when Check
                       id = "{{vector.Id}}"
                       zeta = "{{vector.Zeta}}"
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("alpha", vector.Alpha, 22))}}
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("extra", vector.Extra, 22))}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("alpha", vector.Alpha.ToString(System.Globalization.CultureInfo.InvariantCulture), 22))}}
+                      {{(global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment("extra", vector.Extra.ToString(System.Globalization.CultureInfo.InvariantCulture), 22))}}
                     {{(vector.Message is null ? "then returns \"one\"" : $"then error \"{vector.Message}\"")}}
             """);
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("RequirementConceptOrder"));

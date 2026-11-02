@@ -51,8 +51,8 @@
     <PackageVersion Include="Cratis.Scene.Model" Version="4.86.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
-    <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
-    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="5.1.0" />
+    <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->
+    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
     <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->

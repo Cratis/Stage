@@ -73,7 +73,9 @@ public class when_comparing_composite_and_colliding_responses(when_comparing_com
                       address
                         street = "Main"
                         city = "Oslo"
-                    then returns {"street":"Main","city":"Oslo"}
+                    then returns value
+                      street = "Main"
+                      city = "Oslo"
                   specification EscapedResponse
                     when Relocate
                       for "11111111-1111-1111-1111-111111111111"
@@ -109,7 +111,9 @@ public class when_comparing_composite_and_colliding_responses(when_comparing_com
                       address
                         street = "Main"
                         city = "Oslo"
-                    then returns {"street":"Main","city":"Bergen"}
+                    then returns value
+                      street = "Main"
+                      city = "Bergen"
             """;
     }
 }

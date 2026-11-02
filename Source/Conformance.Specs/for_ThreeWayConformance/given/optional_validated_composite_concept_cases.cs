@@ -119,7 +119,7 @@ internal static class optional_validated_composite_concept_cases
               specification {{shape.Name}}{{name}}
                 when Check{{shape.Name}}
                   id = "one"
-                  {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("value", value, 18))}}
+                  {{Structured("value", value, 10)}}
                 {{(string.Equals(name, "Invalid", StringComparison.Ordinal) ? "then error \"Count minimum\"" : "then returns \"one\"")}}
         """;
 
@@ -198,5 +198,7 @@ internal static class optional_validated_composite_concept_cases
     }
 
     sealed record InputShape(string Name, string Type, string Valid, string Invalid, string Absent);
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment(property, value, indent);
 }
 #endif

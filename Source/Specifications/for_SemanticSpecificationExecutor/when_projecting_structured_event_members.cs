@@ -12,8 +12,8 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 public class when_projecting_structured_event_members : Specification
 {
     [Theory]
-    [InlineData("""{"street":"1 Way","city":"Oslo"}""", "Oslo", true)]
-    [InlineData("""{"street":"1 Way","city":"Oslo"}""", "Bergen", false)]
+    [InlineData("address\n  street = \"1 Way\"\n  city = \"Oslo\"", "Oslo", true)]
+    [InlineData("address\n  street = \"1 Way\"\n  city = \"Oslo\"", "Bergen", false)]
     public async Task should_agree_with_the_reference_for_whole_and_nested_members(string whole, string city, bool passes)
     {
         var plan = Compile(whole, city);
@@ -60,14 +60,14 @@ public class when_projecting_structured_event_members : Specification
                   specification Projecting
                     when Place
                       id = "one"
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("address", whole, 22))}}
+                      {{whole.Replace("\n", "\n          ", StringComparison.Ordinal)}}
                       lines
                         item
                           street = "2 Way"
                           city = "Trondheim"
                     then Placed
                       for "one"
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("address", whole, 22))}}
+                      {{whole.Replace("\n", "\n          ", StringComparison.Ordinal)}}
                       lines
                         item
                           street = "2 Way"

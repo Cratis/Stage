@@ -196,7 +196,7 @@ public class when_running_child_projections : Specification
                     then readmodel Current
                       id = "parent"
                       name = "parent name"
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("entries", expected, 22))}}
+                      {{Structured("entries", expected, 10)}}
             """;
         if (action == "root-join")
         {
@@ -238,4 +238,6 @@ public class when_running_child_projections : Specification
         }
         return when_running_property_keyed_removal_only_projections.Compile(source);
     }
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

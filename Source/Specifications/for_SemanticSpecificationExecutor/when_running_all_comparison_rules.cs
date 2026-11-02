@@ -32,12 +32,12 @@ public class when_running_all_comparison_rules : Specification
                     returns answer
                   specification Accepted
                     when Check
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("values", accepted, 22))}}
+                      {{Structured("values", accepted, 10)}}
                       answer = true
                     then returns true
                   specification Rejected
                     when Check
-                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("values", rejected, 22))}}
+                      {{Structured("values", rejected, 10)}}
                       answer = true
                     then error "All values must meet the bound"
                   specification Empty
@@ -66,4 +66,6 @@ public class when_running_all_comparison_rules : Specification
         report.Results.Count.ShouldEqual(3);
         report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Passed);
     }
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

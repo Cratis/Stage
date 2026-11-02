@@ -35,6 +35,18 @@ public class with_gated_members : a_range_model
         FindGated().Any(member => member.Member == "SemanticSpecification.ThenInvocations").ShouldEqual(populated);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void should_treat_only_populated_lifecycles_as_unknown(bool populated)
+    {
+        ImmutableArray<SemanticStateMachine> machines = populated ? [new("ProjectLifecycle", _model.Application.Id, [], [])] : [];
+        typeof(SemanticApplication).GetProperty(nameof(SemanticApplication.StateMachines)).SetValue(_model.Application, machines);
+        var found = FindGated();
+        found.Any(member => member.Member == "SemanticApplication.StateMachines").ShouldEqual(populated);
+        found.ShouldEachConformTo(member => member.SecurityRelevant);
+    }
+
     [Fact]
     void should_report_an_empty_anonymous_security_variant()
     {

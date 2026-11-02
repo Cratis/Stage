@@ -1,6 +1,6 @@
 {
-  "corpusVersion": "5.0.0",
-  "minimumVectorCount": 79,
+  "corpusVersion": "5.1.0",
+  "minimumVectorCount": 80,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
     "EsmConformanceVectors": "Unknown-preserving reader fixtures under the reserved conformance version; not executable semantic models.",
@@ -2209,6 +2209,14 @@
     "EsmGoldenVectors.V34": {
       "loader": { "outcome": "supported" },
       "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] }
+    },
+    "EsmGoldenVectors.V36": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "n/a:no-specifications" },
       "host": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] },
       "renderer": { "outcome": "refused", "refusals": [

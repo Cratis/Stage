@@ -173,21 +173,17 @@ internal static class SemanticDependencyReferences
     internal static IReadOnlyDictionary<string, SemanticDependencyClassification> Build()
     {
         var entries = new Dictionary<string, SemanticDependencyClassification>(StringComparer.Ordinal);
-        foreach (var group in _groups)
-        {
-            foreach (var line in group.Value.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = line.Split(':');
-                foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", new(group.Key));
-            }
-        }
+        foreach (var group in _groups) Add(entries, group.Value, new(group.Key));
+        Add(entries, Refused, new(null, null, LifecycleRefusal));
+        return entries;
+    }
 
-        foreach (var line in Refused.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+    static void Add(Dictionary<string, SemanticDependencyClassification> entries, string members, SemanticDependencyClassification classification)
+    {
+        foreach (var line in members.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
             var parts = line.Split(':');
-            foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", new(null, null, LifecycleRefusal));
+            foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", classification);
         }
-
-        return entries;
     }
 }

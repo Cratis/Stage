@@ -128,12 +128,9 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         {
             graph.Incomplete(new(SemanticDependencyIncompletenessKind.UnclassifiedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: unclassified reference-carrying member."));
         }
-        else if (classification.RefusalReason is { } refusal)
+        else if (classification.RefusalReason is not null)
         {
-            if (IsPresent(value))
-            {
-                graph.Incomplete(new(SemanticDependencyIncompletenessKind.RefusedMember, scope.Owner, member, location.PropertyTypeOf, $"{member}: {refusal}"));
-            }
+            RefuseIfPresent(value, location, scope.Owner, classification);
         }
         else if (classification.Kind is { } category && !IsAbsentReference(node, property))
         {
@@ -143,6 +140,12 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         {
             Walk(value, location);
         }
+    }
+
+    void RefuseIfPresent(object? value, SemanticDependencyScope location, SemanticId owner, SemanticDependencyClassification classification)
+    {
+        if (!IsPresent(value)) return;
+        graph.Incomplete(new(SemanticDependencyIncompletenessKind.RefusedMember, owner, location.Member, location.PropertyTypeOf, $"{location.Member}: {classification.RefusalReason}"));
     }
 
     void Policy(SemanticPolicyReference reference, SemanticId owner)

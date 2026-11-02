@@ -14,6 +14,6 @@ public class and_planning_is_strict : Specification
 
     void Because() => _plan = event_context_projection_model.Plan(event_context_projection_model.Plain, strict: true);
 
-    [Fact] void should_fail() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_promote_the_degradation_to_an_error() => _plan.Diagnostics.Single(_ => _.Code == ArtifactRenderDegradationCodes.UnsupportedConstruct).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Error);
+    [Fact] void should_succeed() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_not_degrade() => _plan.Diagnostics.Any(_ => _.Code == ArtifactRenderDegradationCodes.UnsupportedConstruct).ShouldBeFalse();
 }

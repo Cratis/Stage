@@ -122,6 +122,27 @@ conversion diagnostics before creating a profile; warnings alone do not refuse i
 arrangement missing the target size-class variant remains a separate missing-variant finding. Package catalog
 failures continue to use the existing render findings.
 
+## Projection event-context mappings
+
+Generated scoped projections map supported `$eventContext` values directly from Chronicle
+metadata, including `from`, `every`/`all`, joins, children, and unconditional nested targets:
+
+| Screenplay value | Target type | Generated mapping |
+| --- | --- | --- |
+| `$eventContext.occurred` | `DateTime` | `.ToEventContextProperty(c => c.Occurred)` |
+| `$eventContext.correlationId` | `Uuid` | `.ToEventContextProperty(c => c.CorrelationId)` |
+| `$eventContext.sequenceNumber` | `Int` | `.ToEventContextProperty(c => c.SequenceNumber)` |
+| `$eventContext.eventSourceId` | `String` | `.ToEventSourceId()` |
+
+Optional leaves and unconstrained concepts over these primitives are supported. Required
+leaves remain required; Stage does not replace metadata with payload fields or defaults.
+Mappings through optional intermediate objects still degrade only where omission is safe.
+Unsupported paths such as `$eventContext.causedBy.name` are not emitted as arbitrary C#
+members. Key, child-identity, join-backfill, query-filter, and command-decision guards still
+apply; strict planning rejects unsafe or degraded output. Modeled specifications asserting
+occurrence, correlation, or sequence values without bound event metadata are not rendered.
+This renderer support does not change Screenplay's reference executor.
+
 ## Generated C# self-reducing read models
 
 Artifact planning can opt a confirmed new application into self-reducing read models.

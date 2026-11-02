@@ -32,8 +32,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo (Program.cs, Directory.Packages.props, the project).
-    // Re-frozen for Cratis/Chronicle#5492: Program.cs registers a no-op telemetry callback.
-    const string Digest = "bd843cbc40543d1730f559a489fd363895744d7fd28bc2aa5fdae8c25fa5418e";
+    // Re-frozen for Chronicle 19.114.0 and Cratis.Orleans 1.33.1: Program.cs no longer registers a telemetry callback.
+    const string Digest = "ed8a044c6602754717ea5fb26e9e483f96e23e6f3bb487a0c1009387363c09da";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -51,10 +51,10 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 3e1702646d8b71cdd756e8280b50d50c922eb850c41c99b394da684f85ed95b3 158
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props eb302d3fdb8f6df431a5995ac04f9ad7cf4589c1c48f669f8b66a454baaa266a 1411
+        Directory.Packages.props dcb61dcbc15faa5f82c551eef831d61b2280b966678b90a8d9b036e1937bed2b 1411
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
         GlobalUsings.cs 74b2438fda9d5bc192e6fcd6b44837b6129b532faa99555d77013f62f1ec3f8e 137
-        Program.cs 1e4d0b94e41f747bb6b6bff97c950c1c33c8c861ca1808c0740e0dbf57afe8b2 1822
+        Program.cs 776eb8b55f6e7eafe9a37ea2c4ccd4dec221882fbfaeff653ad739318c1cef2f 1497
         README.md 6afd097c34ac79a7e53e5c8da59c3d37d1146fc9703d14cf098fb47af0774e4f 1849
         Workspaces.csproj 8d7951c05af543b387ed1a7f97fd3b84571bc1866f90548c7019b3a3e0060145 2553
         Workspaces.slnx f74d3ddcde0097a4bdb2ce376128f76d0ed516c309d01f273f9b92c394ba2166 62
@@ -98,9 +98,9 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 5bee5282aed332a1c26d9b125b73756d5a5e558d3ff3ced2a4ef0d01cac63978 307
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props eb302d3fdb8f6df431a5995ac04f9ad7cf4589c1c48f669f8b66a454baaa266a 1411
+        Directory.Packages.props dcb61dcbc15faa5f82c551eef831d61b2280b966678b90a8d9b036e1937bed2b 1411
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
-        Program.cs 903796baf1fc297a10e8340cb38ac4773d7fd5b0fbaec5a1076296a9c17ba81a 1971
+        Program.cs fedd146bdedfe0bf283d9b73e5d27095a1d358a13cac9bf982cd4cd18713028b 1646
         README.md 07ae5cc82d0a7f0367ef58ebe49ebe9082757b29aee950e8993a76f84e3b7869 1789
         Workspaces.Specs/Workspaces.Specs.csproj b88f81e8d9f2f47b00113df7ec92e37919c703083d9b767a24451a5104d8f617 1105
         Workspaces.csproj 2c30eebf6bbb73120943f5439f93f0e3f351c0f070aecc24a8b4df479ab8a6c3 1398
@@ -186,7 +186,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("2ee4d649db7136f4f67c7b6ff68a56a5a538b4bd3cd8c3416ac35bd943f728b7"); // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo.
+            plan.Diagnostics).ShouldEqual("816d4e1bf566a4f5556a125c2a53a3d281a1abf085728581d1733ce50a1518a2"); // Re-frozen for Cratis/Stage#926: the scaffold hosts an Orleans silo.
     }
 
     [Theory]

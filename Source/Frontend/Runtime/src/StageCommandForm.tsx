@@ -21,6 +21,7 @@ import { asCommandValue, humanize, missingMember, schemaPropertiesOf } from './s
 import type { SchemaProperty } from './stageFormSchema';
 import { StageValueField } from './StageValueFields';
 import { useScreenRows } from './stageScreenTables';
+import { withReferenceField } from './StageReferenceField';
 
 export { schemaPropertiesOf };
 export type { SchemaProperty };
@@ -73,10 +74,14 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
     const populationKey = JSON.stringify(answered ?? null);
     const populated = useMemo(() => answered, [populationKey]);
     const { selectableRows, selectedRows, rowAction, subjectValues } = subjectFormOf(element, useScreenRows());
+    const suppliedReferences = useMemo(() => suppliedReferenceValues(schema, data.parameters, selectedRows, subjectValues), [schema, selectedRows, data.parameters, subjectValues]);
+    const askedFields = useMemo(() => referenceFieldsToAsk(fields, suppliedReferences), [fields, suppliedReferences]);
 
     // What the action binds from its subject row wins over the session, which only holds what nobody chose.
-    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, subjectValues]);
-    const renderedFields = useMemo(() => form ? renderFields(form, fields, schema) : undefined, [form, fields, schema]);
+    const initialValues = useMemo(() => ({ ...populated, ...sessionIdentifiers(fields, schema, data.parameters, selectedRows, selectableRows, rowAction), ...suppliedReferences, ...subjectValues, ...initialCommandValues(fields, data.parameters) }), [populated, fields, schema, data.parameters, selectedRows, selectableRows, rowAction, suppliedReferences, subjectValues]);
+    // A reference supplied after mounting hides its picker, but must also update the native command without resetting other edits.
+    const currentValues = useMemo(() => ({ ...Object.fromEntries(Object.keys(suppliedReferences).map(name => [name, initialValues[name]])), ...argumentValues }), [suppliedReferences, initialValues, argumentValues]);
+    const renderedFields = useMemo(() => form ? renderFields(form, askedFields, schema) : undefined, [form, askedFields, schema]);
     const unsupportedSchemaMessages = useMemo(() => form ? unsupportedSchemaMessagesFor(fields, schema) : [], [form, fields, schema]);
     const unsupportedGeometryMessages = useMemo(() => form ? unsupportedGeometryMessagesFor(form.layout, fields) : [], [form, fields]);
     const [messages, setMessages] = useState<string[]>([]);
@@ -96,7 +101,7 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                 key={populationKey}
                 command={commandType}
                 initialValues={initialValues}
-                currentValues={argumentValues}
+                currentValues={currentValues}
                 validateOn='both'
                 validateAllFieldsOnChange
                 onBeforeExecute={command => withHostedBasePath(command, arc.apiBasePath)}
@@ -201,7 +206,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
     const title = field.label ?? field.name;
     const accessor = (command: unknown) => (command as Record<string, unknown>)[property];
     const required = descriptor?.required ?? true;
-    const fieldElement = (() => {
+    const fieldElement = withReferenceField(descriptor, { value: accessor, fieldName: property, title, required }, (() => {
         if (descriptor?.options) {
             const options = descriptor.options.map(option => ({ value: option, label: humanize(option) }));
             return <DropdownField value={accessor} fieldName={property} title={title} required={required} options={options} optionValue='value' optionLabel='label' />;
@@ -215,7 +220,7 @@ function renderField(field: FormField, schema: SchemaProperty[], placement?: For
             case 'date': return <StageCalendarField value={accessor} fieldName={property} title={title} required={required} showIcon showTime={descriptor?.withTime} />;
             default: return <InputTextField value={accessor} fieldName={property} title={title} required={required} />;
         }
-    })();
+    })());
 
     const style = placementStyle(placement);
     return (
@@ -305,6 +310,17 @@ export function sessionIdentifiers(fields: FormField[], schema: SchemaProperty[]
     }
 
     return values;
+}
+
+function suppliedReferenceValues(schema: SchemaProperty[], parameters: Record<string, string>, selectedRows: Record<string, unknown>[], subjectValues: StageCommandContent): StageCommandContent {
+    return Object.fromEntries(schema.filter(property => property.reference).flatMap(property => {
+        const value = parameters[property.name] || subjectValues[property.name] || selectedIdentifier(property, selectedRows) || (suppliedWithoutAsking({ ...property, required: true }, parameters) ? suppliedIdentifier(property, parameters) : undefined);
+        return value === undefined ? [] : [[property.name, value]];
+    }));
+}
+
+function referenceFieldsToAsk(fields: FormField[], supplied: StageCommandContent): FormField[] {
+    return fields.filter(field => !Object.hasOwn(supplied, field.sourceProperty ?? field.name));
 }
 
 /**

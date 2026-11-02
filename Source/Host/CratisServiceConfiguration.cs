@@ -28,6 +28,9 @@ public static class CratisServiceConfiguration
 
     internal static WebApplicationBuilder AddStageCratis(this WebApplicationBuilder builder, string eventStore, string programIdentifier, StageHttpRouteOptions routeOptions)
     {
+        // Chronicle 19.115 resolves its telemetry configuration at startup and fails when no telemetry callback is
+        // registered (Cratis/Chronicle#5492). This no-op callback works around it until the Chronicle release with the fix.
+        builder.Services.AddSingleton<Action<ChronicleTelemetryOptions>>(_ => { });
         builder.AddCratis(
             options =>
             {

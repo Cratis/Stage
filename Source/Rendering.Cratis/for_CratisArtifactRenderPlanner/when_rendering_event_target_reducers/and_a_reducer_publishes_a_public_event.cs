@@ -59,7 +59,8 @@ public class and_a_reducer_publishes_a_public_event : Specification
     [Fact] void should_not_render_an_identity_check() => Assert.DoesNotContain("identifier different", _reducer, StringComparison.Ordinal);
     [Fact] void should_throw_rather_than_retract() => Assert.Contains("if (result is null) throw new PublicEventCannotBeRetracted();", _reducer, StringComparison.Ordinal);
     [Fact] void should_preserve_the_previous_instance_for_equal_values() => Assert.Contains("SamePublicValue(current, result) ? current : result", _reducer, StringComparison.Ordinal);
-    [Fact] void should_compile() => Assert.Empty(RenderedOutput.Errors(_plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
+    [Fact]
+    void should_compile() => Assert.Empty(RenderedOutput.Errors(_plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
         .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))));
 
     [Fact]

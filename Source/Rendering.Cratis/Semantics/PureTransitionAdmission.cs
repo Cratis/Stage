@@ -146,6 +146,15 @@ internal static partial class PureTransitionAdmission
         SemanticReadModel readModel,
         SemanticEventContract @event,
         SemanticTypedContextDescriptor descriptor,
+        SemanticImplementationRequirement requirement) =>
+        Analyze(body, context, (readModel.Id, readModel.Name, readModel.Properties), @event, descriptor, requirement);
+
+    internal static Verdict Analyze(
+        string body,
+        SemanticApplicationContext context,
+        (SemanticId Id, string Name, ImmutableArray<SemanticProperty> Properties) readModel,
+        SemanticEventContract @event,
+        SemanticTypedContextDescriptor descriptor,
         SemanticImplementationRequirement requirement)
     {
         // Reject disallowed type tests before diagnostics: an ImmutableArray input cannot legally
@@ -170,7 +179,8 @@ internal static partial class PureTransitionAdmission
 
         // The actual output file owns the binding environment: a separate classic reducer,
         // or the entire combined slice, including sibling reducers/projections and Automation commands.
-        var environment = context.ReducerBindings(located, reducer);
+        var eventTarget = reducer.Target == SemanticProjectionTargetKind.Event;
+        var environment = eventTarget ? SemanticReducerBindingEnvironment.Create(located, context, reducer) : context.ReducerBindings(located, reducer);
         var reducerEvents = reducer.Transitions.Select(transition => context.Events[transition.EventContract]).ToArray();
         var stubbed = reducerEvents.Select(@event => (
                 Id: (SemanticId?)@event.Id,
@@ -220,12 +230,12 @@ internal static partial class PureTransitionAdmission
             definitions.Add($"namespace {context.CommonNamespace} {{ public record {Identifiers.ToPascalCase(composite.Name)}({Parameters(composite.Properties)}); }}");
         }
 
-        var self = context.SelfReduces(readModel.Id);
+        var self = !eventTarget && context.SelfReduces(readModel.Id);
         if (!self)
         {
-            definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
+            definitions.Add($"namespace {modelNs} {{ public record {Identifiers.ToPascalCase(readModel.Name)}({Parameters(eventTarget ? readModel.Properties : SemanticStateViewArtifactRenderer.OrderedProperties(readModel.Properties), true)}); }}");
         }
-        foreach (var visibleEvent in environment.Events)
+        foreach (var visibleEvent in environment.Events.Where(candidate => !eventTarget || candidate.Id != readModel.Id))
         {
             var eventNs = SliceNaming.Namespace(context.RootNamespace, context.DeclaringSlice(visibleEvent.Id).Path);
             var immutable = context.Reducers.Any(candidate => candidate.Transitions.Any(transition => transition.EventContract == visibleEvent.Id));
@@ -297,7 +307,7 @@ internal static partial class PureTransitionAdmission
             .ToString();
         if (self)
         {
-            code = SelfAnalysisCode(context, located, readModel, reducer, descriptor, body);
+            code = SelfAnalysisCode(context, located, context.ReadModels[readModel.Id], reducer, descriptor, body);
         }
         var options = new CSharpParseOptions(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Latest);
         var tree = CSharpSyntaxTree.ParseText(code, options);

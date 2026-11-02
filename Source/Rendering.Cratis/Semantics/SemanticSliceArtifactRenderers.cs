@@ -117,6 +117,10 @@ internal static class SemanticSliceArtifactRenderers
             {
                 yield return SemanticPublicationArtifactRenderer.Render(located, projection, context);
             }
+            foreach (var reducer in located.Slice.Reducers.Where(reducer => SemanticTranslationSupport.Reducer(reducer, located.Slice, context.Events)))
+            {
+                yield return SemanticReducerArtifactRenderer.Render(located, reducer, context);
+            }
             foreach (var specification in located.Slice.Specifications.Where(specification => !context.RefusedSpecifications.Contains(specification.Id)))
             {
                 foreach (var file in SemanticSpecificationArtifactRenderer.Render(specification, context))

@@ -27,7 +27,7 @@ public class when_inspecting_translations : Specification
 
     [Fact] void should_admit_the_canonical_foreign_capture() => SemanticTranslationSupport.Capture(_capture, _events).ShouldBeTrue();
     [Fact] void should_admit_the_canonical_publication() => SemanticTranslationSupport.Projection(_publisher, _events).ShouldBeTrue();
-    [Fact] void should_refuse_event_target_reducers() => SemanticTranslationSupport.Slice(
+    [Fact] void should_refuse_event_target_reducers_without_transitions() => SemanticTranslationSupport.Slice(
         _slices.Single(slice => slice.Projections.Contains(_publisher)) with
         {
             Reducers = [new("Publish", _publisher.ReadModel, []) { Target = SemanticProjectionTargetKind.Event }]

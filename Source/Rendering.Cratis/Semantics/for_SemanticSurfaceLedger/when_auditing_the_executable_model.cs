@@ -63,7 +63,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
-    [Fact] void should_keep_event_target_reducers_refused() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-032"));
+    [Fact] void should_admit_event_target_reducers() => _ledger["SemanticReducer.Target"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Theory]
     [InlineData("SemanticSpecification.WhenAppended")]

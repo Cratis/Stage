@@ -425,7 +425,7 @@ internal static class SemanticSurfaceLedger
         Add(entries, "SemanticEventVisibility", rendered, "Private");
         Add(entries, "SemanticEventVisibility", publication, "Public");
         Add(entries, "SemanticProjection", publication, "Target");
-        Add(entries, "SemanticReducer", rejected(SemanticVersionFeatures.PublicEvents), "Target");
+        Add(entries, "SemanticReducer", publication, "Target");
         Add(entries, "SemanticProjectionTargetKind", rendered, "ReadModel");
         Add(entries, "SemanticProjectionTargetKind", publication, "Event");
         Add(entries, "SemanticSlice", rendered, "Direction");

@@ -9,7 +9,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
 /// <summary>
 /// Decimal composite key parts stay refused until Cratis/Stage#847. #847 flips this file to
-/// <c>when_rendering_decimal_composite_key_parts</c> and asserts that no <c>STAGE-ESM-048</c> diagnostic is reported.
+/// <c lang="csharp">when_rendering_decimal_composite_key_parts</c> and asserts that no <c lang="text">STAGE-ESM-048</c> diagnostic is reported.
 /// </summary>
 public class when_refusing_decimal_composite_key_parts
 {

@@ -40,9 +40,11 @@ public class when_a_command_generates_its_identifier : Specification
         var profile = CratisRendering.CreateProfile("Sales", new("Sales", "Sales"));
         var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Sales", "Sales"));
-        var result = StageSceneDocument.Render("""
+        var result = StageSceneDocument.Render(
+            """
             {"toolbar":{"slice":"Sales.Opportunities.CaptureOpportunity"},"screens":[{"name":"Capture","forms":[{"name":"CaptureOpportunity","forCommand":"CaptureOpportunity","fields":[],"generationMode":"auto"}]}]}
-            """, context);
+            """,
+            context);
         var document = JsonNode.Parse(result);
         _form = document["screens"][0]["slotContent"]["forms"][0]["properties"].AsObject();
         _dialogSchema = document["commandSchemas"]["CaptureOpportunity"].GetValue<string>();

@@ -205,6 +205,7 @@ public class when_verifying_reaction_bodies_against_the_pinned_kernel : a_genera
         {
             handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
         }
+
         using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(120));
         var last = "No health response received.";

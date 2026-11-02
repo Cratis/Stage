@@ -56,7 +56,7 @@ describe('an authored response continuation through the application shell', () =
         render(<PrimeReactProvider theme={stageTheme}><StageSourceProvider source={source}><App /></StageSourceProvider></PrimeReactProvider>);
 
         fireEvent.change(await screen.findByLabelText('Title'), { target: { value: 'My project' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Register' }));
 
         await waitFor(() => expect(globalThis.location.hash).toEqual(`#/Details?projectId=${returnedId}`));
         await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).includes(`/api/project?projectId=${returnedId}`))).toBe(true));

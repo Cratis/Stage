@@ -68,8 +68,15 @@ internal static class FrozenScaffoldPins
             }
         }
 
+        text = WithoutYarnChanges(text, previous);
+
         return text.Replace($"cratis/chronicle:{profile.ChronicleImageVersion}-development", $"cratis/chronicle:{(previous ? "19.55.2" : "19.71.0")}-development", StringComparison.Ordinal);
     }
+
+    // Cratis/Stage#734 and #741 intentionally changed the scaffolded Yarn files; the previous frozen plan predates both.
+    static string WithoutYarnChanges(string text, bool previous) => !previous ? text :
+        text.Replace("nodeLinker: node-modules\nnpmPreapprovedPackages:\n  - \"@cratis/*\"", "nodeLinker: node-modules", StringComparison.Ordinal)
+            .Replace("node_modules/\n.yarn/\n", "node_modules/\n", StringComparison.Ordinal);
 
     internal static string Digest(ArtifactRenderPlan plan, IEnumerable<PlannedArtifact>? artifacts = null)
     {

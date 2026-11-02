@@ -52,7 +52,7 @@ async function submit(fetched: Awaited<ReturnType<typeof renderShipments>>) {
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Order Id', { exact: false }), { target: { value: typedOrder } });
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Submit' })); });
+    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Add shipment' })); });
     await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
     return JSON.parse(String(init?.body)) as Record<string, unknown>;
@@ -78,7 +78,7 @@ describe('a toolbar action that creates an entity beside a list carrying a relat
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).queryByLabelText('Order Id', { exact: false })).toBeNull();
         expect(within(dialog).queryByLabelText('Carrier', { exact: false })).toBeNull();
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Submit' })); });
+        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: 'Add shipment' })); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;

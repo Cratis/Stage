@@ -52,7 +52,12 @@ public class when_executing_invocation_expectations(context fixture) : IClassFix
                 await Run("debug-build.log", "build", "BackendHost.csproj", "-c", "Debug", "--nologo", "-nodeReuse:false", "-m:2");
                 await Run("debug-test.log", true, "test", "BackendHost.csproj", "-c", "Debug", "--no-build", "--nologo", "--logger", "trx;LogFileName=invocations.trx", "--results-directory", _evidence.FullName);
                 XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-                Results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "invocations.trx")).Descendants(ns + "UnitTestResult").Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+                var trx = XDocument.Load(Path.Combine(_evidence.FullName, "invocations.trx"));
+                var methods = trx.Descendants(ns + "UnitTest")
+                    .Select(test => (Id: test.Attribute("id")!.Value, Method: test.Element(ns + "TestMethod")))
+                    .Where(test => test.Method is not null)
+                    .ToDictionary(test => test.Id, test => $"{test.Method!.Attribute("className")!.Value}.{test.Method.Attribute("name")!.Value}");
+                Results = [.. trx.Descendants(ns + "UnitTestResult").Select(result => (methods.GetValueOrDefault(result.Attribute("testId")!.Value, result.Attribute("testName")!.Value), result.Attribute("outcome")!.Value))];
             }
             finally
             {

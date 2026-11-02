@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 import { registeredQuery } from './queryExecutor';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ExternalComponent, SceneElement } from '@cratis/scene.model';
 import { CoreSliceDialog, CoreToolbarItem, SliceDialogView, coreComponents, sliceDialogParameters, useOptionalSceneNavigation } from '@cratis/scene.react';
 import type { InteractionHandlers } from '@cratis/scene.react';
@@ -14,6 +14,8 @@ import { useStageData, useStageQuery } from './stageData';
 import { StageCommandForm, StageDialogContext, StageDialogFooterContext, carriedBy, identifiersAwaitingSelection, selectedIdentifier, suppliedWithoutAsking } from './StageCommandForm';
 import { useScreenRows } from './stageScreenTables';
 import { type ActionSubject, actionSubjectOf, awaitsSubjectRow, itemSubjectElement, subjectActionProperties, subjectRowOf } from './stageActionSubject';
+import { actionVariant } from './humanize';
+import { readableValue } from './readableValue';
 import { createsEntity, humanize, schemaPropertiesOf, type SchemaProperty } from './stageFormSchema';
 import { registeredCommand } from './commandExecutor';
 import { navigateToScreen } from './stageNavigation';
@@ -63,7 +65,7 @@ function tableValue(value: unknown, options?: readonly string[], optionValues?: 
     const member = typeof value === 'number' && Number.isInteger(value)
         ? (optionValues && optionValues.length === options?.length ? options?.[optionValues.indexOf(value)] : options?.[value])
         : value;
-    return typeof member === 'string' && options?.includes(member) ? humanize(member) : String(value ?? '');
+    return typeof member === 'string' && options?.includes(member) ? humanize(member) : readableValue(value) ?? String(value ?? '');
 }
 
 interface QueryArguments {
@@ -247,7 +249,7 @@ export function StageAction({ element, interactions, slots }: RegisteredProps) {
  * and disabled, instead of opening a form that would act on an entity nobody chose.
  */
 function StageCommandAction({ element, interactions }: RegisteredProps) {
-    const label = text(element, 'label', text(element, 'command'));
+    const label = text(element, 'label') || humanize(text(element, 'command'));
     const command = registeredCommand(text(element, 'command'), text(element, 'typeName'), text(element, 'route'));
     const subject = actionSubjectOf(element);
     const awaiting = useIdentifiersAwaitingSelection(element, subject);
@@ -295,19 +297,29 @@ function askedProperty(field: unknown): string {
     return typeof field.name === 'string' ? field.name : '';
 }
 
+/** Whether an action stands after another one - directly, or as a toolbar item whose wrapper stands after another action's wrapper. */
+function followsEarlierAction(host: HTMLElement | null): boolean {
+    const anchor = host?.parentElement?.classList.contains('stage-toolbar-action') ? host.parentElement : host;
+    const earlier = anchor?.previousElementSibling;
+    return earlier?.classList.contains('stage-action') === true || earlier?.classList.contains('stage-toolbar-action') === true;
+}
+
 /** The dialog a command's form opens in. The dialog keeps its own visibility, so it is closed by starting it over once the command succeeded. */
 function StageCommandDialog({ element, label }: { element: ExternalComponent; label: string }) {
     const [generation, setGeneration] = useState(0);
     const [visible, setVisible] = useState(false);
+    const [followsAction, setFollowsAction] = useState(false);
+    const host = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => setFollowsAction(followsEarlierAction(host.current)));
     const close = useCallback(() => {
         setVisible(false);
         setGeneration(current => current + 1);
     }, []);
-    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} /></StageDialogContext.Provider>;
+    const content = <StageDialogContext.Provider value={close}><StageCommandForm key={generation} element={element} cancellable /></StageDialogContext.Provider>;
 
     return (
-        <div className='stage-action' data-scene-id={element.id}>
-            <Button type='button' onClick={() => setVisible(true)}>{label}</Button>
+        <div className='stage-action' data-scene-id={element.id} ref={host}>
+            <Button type='button' variant={actionVariant(text(element, 'emphasis'), followsAction)} onClick={() => setVisible(true)}>{label}</Button>
             <Dialog title={label} visible={visible} onClose={() => setVisible(false)} buttons={null} dismissable dismissOnOutsideClick={false}>{content}</Dialog>
         </div>
     );
@@ -326,7 +338,7 @@ export function StageSliceDialog(props: Partial<RegisteredProps>) {
     const { routes, parameters } = useStageData();
     const opened = sliceDialogParameters(navigation?.currentDialogParameters);
     const command = text(element, 'command') || opened?.command || text(element, 'slice') || '';
-    const title = text(element, 'title') || opened?.title || command;
+    const title = text(element, 'title') || opened?.title || humanize(command);
     const schema = routes?.commandSchemas?.[command];
     const properties = useMemo(() => schemaPropertiesOf(schema ?? ''), [schema]);
     const { selectableRows, selectedRows } = useScreenRows();
@@ -420,7 +432,7 @@ function StageToolbarCommand(props: RegisteredProps) {
     const awaiting = subject === undefined && !creates ? identifiersAwaitingSelection(properties, parameters, selectedRows, selectableRows) : [];
     const askedFields = toolbarCommandFields(schema, properties, parameters, subject, selectableRows);
     const intent = creates ? { createsEntity: true } : subjectActionProperties(element, subject);
-    const action = { ...element, componentName: 'core:action', properties: { command, label, ...askedFields, ...intent } } as ExternalComponent;
+    const action = { ...element, componentName: 'core:action', properties: { command, label, emphasis: text(element, 'emphasis'), ...askedFields, ...intent } } as ExternalComponent;
 
     return (
         <span className='stage-toolbar-action' data-scene-toolbar-item={name}>

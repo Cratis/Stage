@@ -37,7 +37,7 @@ function form(result: Record<string, unknown>, responseContracts: ResponseValida
     render(<PrimeReactProvider>
         <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Create'>
             <InteractionScope dispatcher={createBrowserDispatcher({ navigate })} context={{ resolve: () => 'request-or-selected-row', responseContracts }} attachments={[]} onFindings={findings}>
-                <StageCommandForm element={element('place', 'Stage:commandForm', { command: 'PlaceOrder', schema, generationMode: FormGenerationMode.Auto, fields: [{ name: 'sku', label: 'Product' }], onSubmit: actions })} />
+                <StageCommandForm element={element('place', 'Stage:commandForm', { command: 'PlaceOrder', submitLabel: 'Submit', schema, generationMode: FormGenerationMode.Auto, fields: [{ name: 'sku', label: 'Product' }], onSubmit: actions })} />
             </InteractionScope>
         </StageDataProvider>
     </PrimeReactProvider>);

@@ -167,7 +167,7 @@ describe('when the application is hosted by the Scene navigation host', () => {
 
         const nav = await screen.findByRole('navigation', { name: 'Navigation' });
         const browsing = within(nav).getByText('Browsing').closest('li')!;
-        expect(within(browsing).getAllByRole('link').map(link => link.textContent)).toEqual(['Invoices', 'InvoiceDetails']);
+        expect(within(browsing).getAllByRole('link').map(link => link.textContent)).toEqual(['Invoices', 'Details screen']);
     });
 
     it('should restore the composition an outlet destination\'s address stands for', async () => {

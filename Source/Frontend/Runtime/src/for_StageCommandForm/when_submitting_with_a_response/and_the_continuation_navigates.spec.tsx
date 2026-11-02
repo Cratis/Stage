@@ -34,7 +34,7 @@ function form(result: Record<string, unknown>) {
         <StageDataProvider routes={routes} locale='en' locales={['en']} screen='Create'>
             <StageDialogContext.Provider value={closeDialog}>
                 <InteractionScope dispatcher={createBrowserDispatcher({ navigate })} context={{ resolve: () => 'request-or-selected-row', responseContracts }} attachments={[]}>
-                    <StageCommandForm element={element('place', 'Stage:commandForm', { command: 'PlaceOrder', schema, generationMode: FormGenerationMode.Auto, fields: [{ name: 'sku', label: 'Product' }], navigateToScreen: 'Basket', onSubmit })} />
+                    <StageCommandForm element={element('place', 'Stage:commandForm', { command: 'PlaceOrder', submitLabel: 'Submit', schema, generationMode: FormGenerationMode.Auto, fields: [{ name: 'sku', label: 'Product' }], navigateToScreen: 'Basket', onSubmit })} />
                 </InteractionScope>
             </StageDialogContext.Provider>
         </StageDataProvider>

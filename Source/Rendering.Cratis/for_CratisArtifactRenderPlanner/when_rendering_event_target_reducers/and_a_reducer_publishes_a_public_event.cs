@@ -54,7 +54,7 @@ public class and_a_reducer_publishes_a_public_event : Specification
         _reducer = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("OrderPublisher.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 
-    [Fact] void should_render_a_reducer_for_the_contract_event() => Assert.Contains("IReducerFor<global::Projects.Shop.Sales.Publish.OrderPublished>", _reducer, StringComparison.Ordinal);
+    [Fact] void should_render_a_reducer_for_the_contract_event() => Assert.Contains("IReducerFor<OrderPublished>", _reducer, StringComparison.Ordinal);
     [Fact] void should_use_instance_dispatch_even_for_a_self_reducing_profile() => Assert.Contains("? On(", _reducer, StringComparison.Ordinal);
     [Fact] void should_not_render_an_identity_check() => Assert.DoesNotContain("identifier different", _reducer, StringComparison.Ordinal);
     [Fact] void should_throw_rather_than_retract() => Assert.Contains("if (result is null) throw new PublicEventCannotBeRetracted();", _reducer, StringComparison.Ordinal);
@@ -65,7 +65,12 @@ public class and_a_reducer_publishes_a_public_event : Specification
     [Fact]
     async Task should_not_change_the_contract_file()
     {
-        var without = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Declaration), self: true);
+        const string projection = """
+              projection OrderPublisher => OrderPublished
+                from Drafted
+                  name = name
+        """;
+        var without = when_rendering_a_pure_reducer.Plan(await when_rendering_a_pure_reducer.Load(Declaration + "\n" + projection), self: true);
         Assert.True(without.Success, string.Join(Environment.NewLine, without.Diagnostics));
         var contract = _plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Publish.Events.cs", StringComparison.Ordinal));
         Assert.Equal<byte>(without.Artifacts.Single(artifact => artifact.RelativePath == contract.RelativePath).Bytes, contract.Bytes);

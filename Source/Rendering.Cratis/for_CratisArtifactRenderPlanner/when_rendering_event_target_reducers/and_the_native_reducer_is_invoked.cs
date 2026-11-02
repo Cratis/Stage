@@ -48,6 +48,6 @@ public class and_the_native_reducer_is_invoked : Specification
     [Fact] void should_return_the_changed_public_value() => Assert.Equal("second", _changed!.GetType().GetProperty("Name")!.GetValue(_changed));
     [Fact] void should_fail_loudly_instead_of_retracting() => Assert.Equal("PublicEventCannotBeRetracted", Assert.IsType<TargetInvocationException>(_failure).InnerException!.GetType().Name);
 
-    object? Fold(string name, object? current) => _on.Invoke(_reducer, [Activator.CreateInstance(_event, name), current, EventContext.EmptyWithEventSourceId("source")]);
+    object? Fold(string name, object? current) => _on.Invoke(_reducer, [Activator.CreateInstance(_event, name), current, EventContext.EmptyWithEventSourceId("source") with { SequenceNumber = new(1) }]);
 }
 #endif

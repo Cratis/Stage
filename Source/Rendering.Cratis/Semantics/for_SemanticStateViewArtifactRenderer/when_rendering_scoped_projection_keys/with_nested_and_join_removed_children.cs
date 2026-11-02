@@ -30,10 +30,10 @@ public class with_nested_and_join_removed_children : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", every_literal_projection.Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         execution.Success.ShouldBeTrue();
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         _plan.Success.ShouldBeTrue();
     }
 
@@ -43,7 +43,7 @@ public class with_nested_and_join_removed_children : Specification
             .Select(artifact => new RenderedFile(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))).ToArray();
         _source = sources.Single(source => source.RelativePath == "Projects/Registration/ProjectLookup/ProjectLookup.cs").Content;
         var assembly = RenderedOutput.Load(sources);
-        _identifier = assembly.GetType("Projects.Projects.Registration.ProjectLookup.ProjectSummary")!.GetProperty("ProjectId")!;
+        _identifier = assembly.GetType("Projects.Projects.Registration.ProjectLookup.ProjectSummary").GetProperty("ProjectId");
     }
 
     [Fact] void should_preserve_the_typed_event_source_identifier() => typeof(EventSourceId<Guid>).IsAssignableFrom(_identifier.PropertyType).ShouldBeTrue();

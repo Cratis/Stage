@@ -45,7 +45,7 @@ public class when_building_the_scaffold_only_frontend(when_building_the_scaffold
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

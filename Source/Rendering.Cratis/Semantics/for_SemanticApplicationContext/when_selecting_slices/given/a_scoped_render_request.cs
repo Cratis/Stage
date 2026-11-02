@@ -50,12 +50,12 @@ public class a_scoped_render_request : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "scopes.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         _application = model.Application;
         _banking = _application.Modules[0];
         _accounts = _banking.Features[0];
         _savings = _accounts.Features[0];
         var profile = ArtifactRenderProfile.Create("cratis", "1", "Cratis.Stage.Rendering.Cratis", "1", []);
-        _request = new(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, _application.Id));
+        _request = new(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, _application.Id));
     }
 }

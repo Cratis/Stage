@@ -30,7 +30,7 @@ public class when_rendering_authored_root_string_keys : a_multi_slice_applicatio
         var compilation = new NativeScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         IRenderer renderer = _renderer;
         await renderer.Render([_application], _targetDirectory, _output, _error);
     }

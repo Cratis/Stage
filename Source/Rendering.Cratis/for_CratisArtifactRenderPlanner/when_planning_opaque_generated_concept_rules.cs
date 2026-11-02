@@ -32,7 +32,7 @@ public class when_planning_opaque_generated_concept_rules : Specification
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         compilation.Success.ShouldBeTrue();
         _model = SemanticModelSerializer.Deserialize(corpus.EsmBytes.AsSpan());
-        _model.Revision.ShouldEqual(compilation.Value!.Model.Revision);
+        _model.Revision.ShouldEqual(compilation.Value.Model.Revision);
         _requirements = compilation.ImplementationRequirements;
         _contents = SemanticImplementationBodies.Resolve(compilation.Value.Documents, _requirements);
         _descriptors = compilation.TypedContextDescriptors;
@@ -40,7 +40,7 @@ public class when_planning_opaque_generated_concept_rules : Specification
         _specification = _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Review").Specifications.Single();
     }
 
-    void Because() => _result = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Slice, _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Review").Id), new("GeneratedConceptRules", "GeneratedConceptRules"), _requirements, _contents, [], _descriptors);
+    void Because() => _result = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Slice, _model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Review").Id), new("GeneratedConceptRules", "GeneratedConceptRules"), _requirements, _contents, [], _descriptors);
 
     [Fact] void should_render_the_verified_concept_rule() => _result.Success.ShouldBeTrue();
     [Fact] void should_emit_the_concept_validator() => _result.Artifacts.ShouldContain(artifact => System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan()).Contains($"class {_concept.Name}Validator", StringComparison.Ordinal));

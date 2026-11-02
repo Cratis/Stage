@@ -74,7 +74,7 @@ public class when_the_projection_loses_what_no_attribute_carries : Specification
     void Because() => _error = Catch.Exception(() => new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp"));
 
     [Fact] void should_reject_unfaithful_block_settings() => _error.ShouldBeOfExactType<UnsupportedLegacyProjection>();
-    [Fact] void should_name_the_blocking_diagnostic() => _error!.Message.ShouldContain(UnsupportedLegacyProjection.DiagnosticCode);
+    [Fact] void should_name_the_blocking_diagnostic() => _error.Message.ShouldContain(UnsupportedLegacyProjection.DiagnosticCode);
 
     static EventSyntax Event(string name, string property) =>
         new(

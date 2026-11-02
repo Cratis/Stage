@@ -25,7 +25,7 @@ internal static class generation_rule_corpus
             document.Text.Replace("return value;", body, StringComparison.Ordinal))).ToArray();
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-        var model = compiled.Value!.Model;
+        var model = compiled.Value.Model;
         Assert.Equal(corpus.SemanticRevision, model.Revision);
         Assert.Equal([.. corpus.EsmBytes], SemanticModelSerializer.Serialize(model));
 
@@ -40,10 +40,10 @@ internal static class generation_rule_corpus
                 SelectSpecification(document.Text).Replace("return value;", body, StringComparison.Ordinal)))];
             compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-            model = compiled.Value!.Model;
+            model = compiled.Value.Model;
         }
 
-        return new(model, SemanticExecutionPlan.Compile(model).Plan!)
+        return new(model, SemanticExecutionPlan.Compile(model).Plan)
         {
             ImplementationRequirements = compiled.ImplementationRequirements,
             ImplementationContents = SemanticImplementationBodies.Resolve(compiled.Value.Documents, compiled.ImplementationRequirements),

@@ -11,7 +11,7 @@ public class with_a_scoped_plan_with_a_domain : given.a_policy_plan
 {
     void Establish()
     {
-        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices") { Domain = "Sales/Retail" }).Plan!;
+        _plan = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Slice("Billing", "Invoicing", "Issue")]), new(_loaded.Model.Application.Name, "InvoiceApp", "Invoices") { Domain = "Sales/Retail" }).Plan;
         _existing["GeneratedPolicies/Policies.cs"] = LegacyPolicies;
     }
 

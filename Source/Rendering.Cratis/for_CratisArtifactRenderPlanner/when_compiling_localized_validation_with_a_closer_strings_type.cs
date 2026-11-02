@@ -25,7 +25,7 @@ public class when_compiling_localized_validation_with_a_closer_strings_type(when
             var model = compilation.Model;
             var profile = CratisRendering.CreateProfile(model.Application.Name, new("Projects", "Projects"), null, new Dictionary<string, string> { ["projects.en.strings"] = "project.name = \"Project name\"\n" }, "en");
             profile = CratisRendering.WithAuthoringMetadata(profile, compilation);
-            return new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan!, DomainPlacementInput.WithDomain(profile, "Projects"), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+            return new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan, DomainPlacementInput.WithDomain(profile, "Projects"), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
         }
 
         async Task Because()

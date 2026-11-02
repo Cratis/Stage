@@ -24,7 +24,7 @@ public class when_validating_a_specification_without_a_command : Specification
         _context = new(
             new(
                 model,
-                SemanticExecutionPlan.Compile(model).Plan!,
+                SemanticExecutionPlan.Compile(model).Plan,
                 CratisRendering.CreateProfile(model.Application.Name, options),
                 new(ArtifactRenderScopeKind.Application, model.Application.Id)),
             options);

@@ -16,7 +16,7 @@ public class with_a_composite_part_from_the_event_source : a_source_observabilit
         _model = SemanticModelSerializer.Deserialize(CompositeReadModelKeysCorpus.V27.EsmBytes.AsSpan());
         var slice = _model.Application.Modules.Single().Features.Single().Slices.Single();
         var projection = slice.Projections.Single();
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var contribution = scope.From[0];
         var key = (SemanticProjectionPartsKey)contribution.Key;
         var parts = key.Parts.SetItem(0, key.Parts[0] with { Value = new SemanticProjectionEventSourceIdentity() });

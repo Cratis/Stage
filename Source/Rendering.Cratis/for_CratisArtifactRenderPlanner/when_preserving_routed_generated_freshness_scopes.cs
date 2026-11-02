@@ -34,7 +34,7 @@ public class when_preserving_routed_generated_freshness_scopes : Specification
         services.GetService(typeof(IEventSources)).Returns(_sources);
         var command = new RecordTransaction();
         _context = new(CorrelationId.New(), typeof(RecordTransaction), command, [], new EventSourceDefinitionValuesProvider(services).Provide(command), null);
-        await new CommandHandlerArgumentResolver(new NoProvidedValues()).Resolve(new ModelBoundCommandHandler(typeof(RecordTransaction), typeof(RecordTransaction).GetMethod("Handle")!), _context, services, null);
+        await new CommandHandlerArgumentResolver(new NoProvidedValues()).Resolve(new ModelBoundCommandHandler(typeof(RecordTransaction), typeof(RecordTransaction).GetMethod("Handle")), _context, services, null);
         _expected = new(EventSequenceNumber.BeforeFirst, EventSourceId: _source);
         _log = Substitute.For<IEventLog>();
         _log.Id.Returns(EventSequenceId.Log);

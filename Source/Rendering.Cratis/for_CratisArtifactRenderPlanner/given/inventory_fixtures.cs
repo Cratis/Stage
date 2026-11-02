@@ -9,11 +9,11 @@ using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Screenplay.Semantics.Serialization;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
-using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_inventorying_reducer_typed_contexts;
-using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.when_rendering_reaction_cascades.given;
-using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationAdmission.when_validating_append_refusals;
+using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticReactionSpecificationRenderer.given;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationAdmission.when_validating_append_refusals;
+using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationArtifactRenderer.when_rendering_reaction_cascades.given;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 
@@ -119,7 +119,7 @@ internal static class inventory_fixtures
     }
 
     static string ReducerFixturePath([CallerFilePath] string path = "") =>
-        Path.Combine(Path.GetDirectoryName(path)!, "..", "when_inventorying_reducer_typed_contexts", "reducer_context_model.cs");
+        Path.Combine(Path.GetDirectoryName(path), "..", "when_inventorying_reducer_typed_contexts", "reducer_context_model.cs");
 
     static IEnumerable<(string Name, string Source)> SpecificationSources()
     {
@@ -132,7 +132,7 @@ internal static class inventory_fixtures
     }
 
     static ArtifactRenderRequest Application(ExecutableSemanticModel model, CratisRenderingOptions options) =>
-        new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
 
     static ArtifactRenderRequest Loaded(LoadedSemanticModel loaded) =>
         new(loaded.Model, loaded.Plan, CratisRendering.CreateProfile(loaded.Model.Application.Name, _invoiceOptions), new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
@@ -154,14 +154,14 @@ internal static class inventory_fixtures
             RegisterProjectCorpus.LegacyV1.ApplicationName,
             SemanticDocumentSet.Create([.. documents], catalog));
         Xunit.Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 
     static ArtifactRenderRequest Strings(CratisRenderingOptions options)
     {
         var documented = when_rendering_authoring_documentation.Compile(when_rendering_authoring_documentation.Source).Model;
         var profile = CratisRendering.CreateProfile(documented.Application.Name, options, scene: null, stringsFiles: new Dictionary<string, string> { ["projects.en.strings"] = "project.name = \"Project name\"\n" }, defaultLocale: "en");
-        return new(documented, SemanticExecutionPlan.Compile(documented).Plan!, profile, new(ArtifactRenderScopeKind.Application, documented.Application.Id));
+        return new(documented, SemanticExecutionPlan.Compile(documented).Plan, profile, new(ArtifactRenderScopeKind.Application, documented.Application.Id));
     }
 
     static ExecutableSemanticModel Composite()

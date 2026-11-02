@@ -21,10 +21,10 @@ public class when_planning_a_closed_application : given.a_model_with_authenticat
 
     string[] Codes => [.. _plan.Diagnostics.Select(diagnostic => diagnostic.Code)];
 
-    [Fact] void should_close_registration() => Ante["RegistrationEnabled"]!.GetValue<bool>().ShouldBeFalse();
-    [Fact] void should_leave_out_the_sign_up_outcome() => (Ante as JsonObject)!.ContainsKey("SignUp").ShouldBeFalse();
-    [Fact] void should_allow_only_the_invitation_the_model_declares() => Ante["InvitationTypes"]!.ToJsonString().ShouldEqual("[\"JoinTenant\"]");
-    [Fact] void should_leave_out_legal_terms() => (Ante as JsonObject)!.ContainsKey("Legal").ShouldBeFalse();
+    [Fact] void should_close_registration() => Ante["RegistrationEnabled"].GetValue<bool>().ShouldBeFalse();
+    [Fact] void should_leave_out_the_sign_up_outcome() => (Ante as JsonObject).ContainsKey("SignUp").ShouldBeFalse();
+    [Fact] void should_allow_only_the_invitation_the_model_declares() => Ante["InvitationTypes"].ToJsonString().ShouldEqual("[\"JoinTenant\"]");
+    [Fact] void should_leave_out_legal_terms() => (Ante as JsonObject).ContainsKey("Legal").ShouldBeFalse();
     [Fact] void should_not_report_an_offering_the_model_does_not_name() => Codes.ShouldNotContain("STAGE-ONBOARDING-008");
     [Fact] void should_not_reference_box_office() => Text($"{Application}.csproj").ShouldNotContain("BoxOffice");
     [Fact] void should_not_pin_box_office() => Text("Directory.Packages.props").ShouldNotContain("BoxOffice");

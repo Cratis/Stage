@@ -23,7 +23,7 @@ public abstract class a_source_observability_check : Specification
         _model = invoice_model.Compile(when_checking_sourceless_event_consumers.Source);
         _slice = _model.Application.Modules.Single().Features.Single().Slices.Single();
         _projection = _slice.Projections.Single();
-        _scope = _projection.Scope!;
+        _scope = _projection.Scope;
     }
 
     private protected bool Check(SemanticSlice slice, params SemanticSlice[] others)
@@ -42,7 +42,7 @@ public abstract class a_source_observability_check : Specification
     {
         var options = new CratisRenderingOptions("Payments", "Payments");
         return new SemanticApplicationContext(
-            new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Slice, slice)),
+            new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Slice, slice)),
             options);
     }
 

@@ -22,7 +22,7 @@ public class when_policy_bindings_conflict : Specification
     {
         var model = Policies.for_SemanticPolicyNames.when_policy_bindings_conflict.CompileModel();
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        _context = new(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         _operations = [.. _context.AllSlices.SelectMany(located => located.Slice.Commands).Where(command => command.Name == "IssueInvoice" || command.Name == "Block4").Select(command => command.Id)];
     }
 

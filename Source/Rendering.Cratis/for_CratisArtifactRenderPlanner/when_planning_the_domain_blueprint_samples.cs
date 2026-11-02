@@ -40,6 +40,6 @@ public class when_planning_the_domain_blueprint_samples
             directory = directory.Parent;
         }
 
-        return directory!.FullName;
+        return directory.FullName;
     }
 }

@@ -100,7 +100,7 @@ public class when_executing_time_ordered_generation : a_generated_application
                     returns orderId
             """);
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
     }
 
     async Task Because()

@@ -142,7 +142,7 @@ public class when_rendering_specification_descriptions : Specification
         var withSyntax = when_rendering_authoring_documentation.Plan(compilation);
         var withoutSyntax = CratisRendering.Plan(
             compilation.Model,
-            SemanticExecutionPlan.Compile(compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(compilation.Model).Plan,
             new(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id),
             new("Projects", "Projects"));
         Assert.True(withSyntax.Success, string.Join("; ", withSyntax.Diagnostics));

@@ -24,6 +24,6 @@ public class with_a_command_rule : Specification
 
     [Fact] void should_accept_a_positive_value() => validation_body_model.Validate(_assembly, "PlaceOrder", 1m).IsValid.ShouldBeTrue();
     [Fact] void should_reject_a_nonpositive_value_with_the_authored_message() => validation_body_model.Validate(_assembly, "PlaceOrder", 0m).Errors.Single().ErrorMessage.ShouldEqual("Positive amount required");
-    [Fact] void should_have_no_screenplay_runtime_dependency() => _assembly.GetReferencedAssemblies().ShouldNotContain(reference => reference.Name!.StartsWith("Cratis.Screenplay", StringComparison.Ordinal));
+    [Fact] void should_have_no_screenplay_runtime_dependency() => _assembly.GetReferencedAssemblies().ShouldNotContain(reference => reference.Name.StartsWith("Cratis.Screenplay", StringComparison.Ordinal));
 }
 #endif

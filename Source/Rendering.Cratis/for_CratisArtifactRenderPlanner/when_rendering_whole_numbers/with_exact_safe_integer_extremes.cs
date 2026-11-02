@@ -44,7 +44,7 @@ public class with_exact_safe_integer_extremes : Specification
     static SemanticSpecification WithExactValues(SemanticSpecification specification)
     {
         var value = specification.Name == "RecordingPositive" ? 9007199254740991m : -9007199254740991m;
-        var action = specification.When!;
+        var action = specification.When;
         return specification with
         {
             When = action with { Values = ReplaceNumbers(action.Values, value) },

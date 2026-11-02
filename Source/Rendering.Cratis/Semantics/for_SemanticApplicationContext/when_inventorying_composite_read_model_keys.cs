@@ -25,7 +25,7 @@ public class when_inventorying_composite_read_model_keys : Specification
         var model = SemanticModelSerializer.Deserialize(CompositeReadModelKeysCorpus.V27.EsmBytes.AsSpan());
         CratisRenderingOptions options = new("Payments", "Payments");
         var profile = CratisRendering.CreateProfile(model.Application.Name, options);
-        ArtifactRenderRequest request = new(model, SemanticExecutionPlan.Compile(model, []).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        ArtifactRenderRequest request = new(model, SemanticExecutionPlan.Compile(model, []).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, options);
         var readModel = _context.ReadModels.Values.Single();
         _key = new(SliceNaming.Namespace(_context.RootNamespace, _context.DeclaringSlice(readModel.Id).Path), SemanticCompositeKeyAdmission.KeyTypeName(readModel));

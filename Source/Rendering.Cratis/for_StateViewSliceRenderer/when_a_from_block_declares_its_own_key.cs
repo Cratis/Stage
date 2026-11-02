@@ -61,7 +61,7 @@ public class when_a_from_block_declares_its_own_key : Specification
     void Because() => _error = Catch.Exception(() => new StateViewSliceRenderer().Render(_applicationSet.Slices.Single(), _applicationSet, "CratisApp"));
 
     [Fact] void should_reject_a_key_that_disagrees_with_the_read_model_identity() => _error.ShouldBeOfExactType<UnsupportedLegacyProjection>();
-    [Fact] void should_name_the_mismatched_identity() => _error!.Message.ShouldContain("OrderCancelled");
+    [Fact] void should_name_the_mismatched_identity() => _error.Message.ShouldContain("OrderCancelled");
 
     static EventSyntax Event(string name, params string[] properties) =>
         new(

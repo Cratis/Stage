@@ -43,9 +43,9 @@ public class when_inspecting_translations : Specification
     [Fact] void should_recognize_both_public_contracts() => _events.Values.Where(contract => contract.Visibility == SemanticEventVisibility.Public).All(contract => SemanticTranslationSupport.Event(contract, _slices, _events)).ShouldBeTrue();
     [Fact] void should_refuse_an_outside_system_capture() => SemanticTranslationSupport.Capture(_capture with { EventsSource = null }, _events).ShouldBeFalse();
     [Fact] void should_refuse_a_missing_source_key() => SemanticTranslationSupport.Capture(_capture with { Key = "missing" }, _events).ShouldBeFalse();
-    [Fact] void should_refuse_a_mapping_that_reads_another_contract() => SemanticTranslationSupport.Projection(_publisher with { Scope = _publisher.Scope! with { From = [_publisher.Scope.From.Single() with { EventContract = _publisher.ReadModel }] } }, _events).ShouldBeFalse();
+    [Fact] void should_refuse_a_mapping_that_reads_another_contract() => SemanticTranslationSupport.Projection(_publisher with { Scope = _publisher.Scope with { From = [_publisher.Scope.From.Single() with { EventContract = _publisher.ReadModel }] } }, _events).ShouldBeFalse();
     [Fact] void should_refuse_a_read_model_target() => SemanticTranslationSupport.Projection(_publisher with { Target = SemanticProjectionTargetKind.ReadModel }, _events).ShouldBeFalse();
-    [Fact] void should_refuse_an_unmapped_required_property() => SemanticTranslationSupport.Projection(_publisher with { Scope = _publisher.Scope! with { From = [_publisher.Scope.From.Single() with { Mappings = [] }] } }, _events).ShouldBeFalse();
+    [Fact] void should_refuse_an_unmapped_required_property() => SemanticTranslationSupport.Projection(_publisher with { Scope = _publisher.Scope with { From = [_publisher.Scope.From.Single() with { Mappings = [] }] } }, _events).ShouldBeFalse();
 
     [Theory]
     [InlineData(SemanticCaptureConditionKind.Added)]

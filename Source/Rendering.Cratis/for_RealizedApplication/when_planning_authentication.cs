@@ -15,10 +15,10 @@ public class when_planning_authentication : given.a_model_with_authentication_an
 
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.Where(diagnostic => diagnostic.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeEmpty();
     [Fact] void should_list_every_provider_with_its_kind_and_identity() =>
-        AuthProxy["Cratis"]!["AuthProxy"]!["Application"]!["Providers"]!.ToJsonString().ShouldEqual("[{\"Kind\":\"EntraId\",\"Identity\":\"EntraId\"},{\"Kind\":\"GitHub\",\"Identity\":\"GitHub\"},{\"Kind\":\"OpenId\",\"Identity\":\"Partner\"}]");
-    [Fact] void should_tell_authproxy_the_application_has_onboarding() => AuthProxy["Cratis"]!["AuthProxy"]!["Application"]!["Onboarding"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_trust_the_identity_authproxy_forwards() => JsonNode.Parse(Text("appsettings.json"))!["Cratis"]!["Arc"]!["TrustForwardedIdentityHeaders"]!.GetValue<bool>().ShouldBeTrue();
-    [Fact] void should_keep_the_scaffold_settings() => JsonNode.Parse(Text("appsettings.json"))!["Cratis"]!["Chronicle"]!["EventStore"]!.GetValue<string>().ShouldEqual(Application);
+        AuthProxy["Cratis"]["AuthProxy"]["Application"]["Providers"].ToJsonString().ShouldEqual("[{\"Kind\":\"EntraId\",\"Identity\":\"EntraId\"},{\"Kind\":\"GitHub\",\"Identity\":\"GitHub\"},{\"Kind\":\"OpenId\",\"Identity\":\"Partner\"}]");
+    [Fact] void should_tell_authproxy_the_application_has_onboarding() => AuthProxy["Cratis"]["AuthProxy"]["Application"]["Onboarding"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_trust_the_identity_authproxy_forwards() => JsonNode.Parse(Text("appsettings.json"))["Cratis"]["Arc"]["TrustForwardedIdentityHeaders"].GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_keep_the_scaffold_settings() => JsonNode.Parse(Text("appsettings.json"))["Cratis"]["Chronicle"]["EventStore"].GetValue<string>().ShouldEqual(Application);
     [Fact] void should_read_the_runtime_conventions_before_cratis_does() => Text("Program.cs").IndexOf("RuntimeConventions.Apply(builder);", StringComparison.Ordinal).ShouldBeLessThan(Text("Program.cs").IndexOf("builder.AddCratis(", StringComparison.Ordinal));
     [Fact] void should_list_the_environment_keys_with_the_secrets_marked() => Text(".runtime/environment.json").ShouldContain("\"key\": \"authentication.providers.EntraId.clientSecret\",\n      \"secret\": true");
     [Fact] void should_list_the_tenant_of_an_entra_id_provider() => Text(".runtime/environment.json").ShouldContain("authentication.providers.EntraId.tenantId");

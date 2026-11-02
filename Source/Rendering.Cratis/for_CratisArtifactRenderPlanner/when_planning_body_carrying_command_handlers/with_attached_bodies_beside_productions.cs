@@ -78,7 +78,7 @@ public class with_attached_bodies_beside_productions
             {
                 Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == code &&
                     diagnostic.Message.Contains(language, StringComparison.Ordinal) &&
-                    diagnostic.Message.Contains(command.Handler!.RequirementId, StringComparison.Ordinal) &&
+                    diagnostic.Message.Contains(command.Handler.RequirementId, StringComparison.Ordinal) &&
                     diagnostic.Message.Contains("Add a csharp body to render it with the Cratis target.", StringComparison.Ordinal));
             }
         }

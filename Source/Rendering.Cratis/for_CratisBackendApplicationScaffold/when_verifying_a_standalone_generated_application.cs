@@ -57,7 +57,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
         {
             var rendering = Stopwatch.StartNew();
             _model = CreateLongMatchModel();
-            _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+            _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
             _application = Directory.CreateDirectory(SpecTemporaryRoot.NewPath("stage-generated-application"));
             var plan = CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options);
             if (!plan.Success)
@@ -70,7 +70,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
             foreach (var artifact in plan.Artifacts)
             {
                 var path = Path.Combine(_application.FullName, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
 
@@ -187,7 +187,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
             result.ExitCode.ShouldEqual(0);
             using var document = System.Text.Json.JsonDocument.Parse(result.Output);
             return [.. document.RootElement.GetProperty("Items").GetProperty("Compile").EnumerateArray()
-            .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()!).Replace('\\', '/'))];
+            .Select(item => Path.GetRelativePath(_application.FullName, item.GetProperty("FullPath").GetString()).Replace('\\', '/'))];
         }
 
         internal int ExecutedSpecifications(string fileName = "generated.trx") => SpecificationCount(fileName, "executed");
@@ -198,7 +198,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
         {
             var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
             var counters = results.Descendants().Single(element => element.Name.LocalName == "Counters");
-            return int.Parse(counters.Attribute(counter)!.Value, System.Globalization.CultureInfo.InvariantCulture);
+            return int.Parse(counters.Attribute(counter).Value, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         async Task<string> VerifyHealth()

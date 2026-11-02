@@ -21,5 +21,5 @@ public class an_application_trigger_reaction : Specification
         _reaction = _model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
     }
 
-    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Reactions", "Reactions"));
+    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Reactions", "Reactions"));
 }

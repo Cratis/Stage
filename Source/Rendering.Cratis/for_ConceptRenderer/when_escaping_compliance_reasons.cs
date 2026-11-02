@@ -33,7 +33,7 @@ public class when_escaping_compliance_reasons : concepts
 
     [Fact] void should_escape_quotes_and_backslashes() => _files.All(file => file.Content.Contains("Quoted \\\"note\\\" in C:\\\\notes", StringComparison.Ordinal)).ShouldBeTrue();
     [Fact] void should_escape_line_breaks_and_unicode_separators() => _files.All(file => file.Content.Contains("\\u000D\\u000ANext line\\u0085Next\\u2028Line\\u2029Paragraph", StringComparison.Ordinal)).ShouldBeTrue();
-    [Fact] void should_recover_the_exact_personal_reason() => _assembly.GetType("Generated.Common.PersonalNote")!.GetCustomAttribute<ComplianceDetailsAttribute>()!.Details.ShouldEqual(Reason);
-    [Fact] void should_recover_the_exact_secret_reason() => _assembly.GetType("Generated.Common.SecretNote")!.GetCustomAttribute<EncryptedAttribute>()!.Details.ShouldEqual(Reason);
-    [Fact] void should_use_the_chronicle_default_scope() => _assembly.GetType("Generated.Common.SecretNote")!.GetCustomAttribute<EncryptedAttribute>()!.Scope.ShouldEqual(new EncryptedAttribute().Scope);
+    [Fact] void should_recover_the_exact_personal_reason() => _assembly.GetType("Generated.Common.PersonalNote").GetCustomAttribute<ComplianceDetailsAttribute>().Details.ShouldEqual(Reason);
+    [Fact] void should_recover_the_exact_secret_reason() => _assembly.GetType("Generated.Common.SecretNote").GetCustomAttribute<EncryptedAttribute>().Details.ShouldEqual(Reason);
+    [Fact] void should_use_the_chronicle_default_scope() => _assembly.GetType("Generated.Common.SecretNote").GetCustomAttribute<EncryptedAttribute>().Scope.ShouldEqual(new EncryptedAttribute().Scope);
 }

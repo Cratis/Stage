@@ -34,10 +34,10 @@ public class when_admitting_implementation_roles : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("application"), "application", "application.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics));
-        var model = compiled.Value!.Model;
+        var model = compiled.Value.Model;
         _request = new(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {

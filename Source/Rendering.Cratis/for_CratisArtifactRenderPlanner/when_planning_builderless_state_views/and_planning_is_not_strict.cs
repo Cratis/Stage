@@ -26,8 +26,8 @@ public class and_planning_is_not_strict : Specification
     [Fact] void should_name_the_read_model() => _warning.Message.ShouldContain("WelcomeRow");
     [Fact] void should_record_the_degradation_with_a_remedy() => _plan.Degradations.Single().Remedy.ShouldContain("WelcomeRow");
     [Fact] void should_record_the_warning_as_the_degradation_evidence() => _plan.Degradations.Single().Diagnostic.ShouldEqual(_warning);
-    [Fact] void should_mark_the_read_model_degraded_in_the_inventory() => _plan.Inventory!.Constructs.Single(_ => _.Identity == _warning.Artifact).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
-    [Fact] void should_retain_the_read_model_type_in_the_inventory() => _plan.Inventory!.Constructs.Single(_ => _.Identity == _warning.Artifact).Degradations.Single().PlaceholderKind.ShouldEqual(ArtifactRenderPlaceholderKind.RetainedSignatureOrType);
+    [Fact] void should_mark_the_read_model_degraded_in_the_inventory() => _plan.Inventory.Constructs.Single(_ => _.Identity == _warning.Artifact).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
+    [Fact] void should_retain_the_read_model_type_in_the_inventory() => _plan.Inventory.Constructs.Single(_ => _.Identity == _warning.Artifact).Degradations.Single().PlaceholderKind.ShouldEqual(ArtifactRenderPlaceholderKind.RetainedSignatureOrType);
     [Fact] void should_emit_the_read_model_record() => Source(_plan).ShouldContain("record WelcomeRow");
     [Fact] void should_comment_the_degradation_on_the_read_model() => Source(_plan).ShouldContain("// STAGE-DEGRADE-002");
 

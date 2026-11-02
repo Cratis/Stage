@@ -24,7 +24,7 @@ public class when_rendering_a_routed_append : given.a_reaction_specification
         var source = _context.Application.EventSources.Single();
         _specification = _specification with
         {
-            WhenAppended = _specification.WhenAppended! with
+            WhenAppended = _specification.WhenAppended with
             {
                 EventSource = new(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text), SemanticValue.Text("one")),
                 Route = new(source.Id, source.Streams.Single().Id) { StreamId = SemanticValue.Text("notes") }

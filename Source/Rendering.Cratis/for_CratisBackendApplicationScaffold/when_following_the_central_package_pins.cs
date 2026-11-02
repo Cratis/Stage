@@ -30,10 +30,10 @@ public class when_following_the_central_package_pins : a_current_scaffold
         var document = XDocument.Parse(xml);
         var screenplayVersion = document.Descendants("CratisScreenplayVersion").SingleOrDefault()?.Value;
         return document.Descendants("PackageVersion").ToDictionary(
-            pin => pin.Attribute("Include")!.Value,
-            pin => pin.Attribute("Version")!.Value.Replace("$(CratisScreenplayVersion)", screenplayVersion ?? string.Empty, StringComparison.Ordinal),
+            pin => pin.Attribute("Include").Value,
+            pin => pin.Attribute("Version").Value.Replace("$(CratisScreenplayVersion)", screenplayVersion ?? string.Empty, StringComparison.Ordinal),
             StringComparer.Ordinal);
     }
 
-    static string CentralPackagesPath([CallerFilePath] string path = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "../../..", "Directory.Packages.props"));
+    static string CentralPackagesPath([CallerFilePath] string path = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), "../../..", "Directory.Packages.props"));
 }

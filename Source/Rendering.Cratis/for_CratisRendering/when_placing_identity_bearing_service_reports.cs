@@ -62,7 +62,7 @@ public class when_placing_identity_bearing_service_reports : given.a_source_plan
     void should_preserve_report_bytes_and_selected_scope_ownership()
     {
         Assert.Equal(2, Reports(_service).Count());
-        var expected = ArtifactRenderReports.Create(_service, new(_service.InputVersions!, new([_service.InputVersions!]), [new(_service.Renderer, _service.RendererVersion)]));
+        var expected = ArtifactRenderReports.Create(_service, new(_service.InputVersions, new([_service.InputVersions]), [new(_service.Renderer, _service.RendererVersion)]));
         foreach (var report in new[] { expected.Completeness, expected.Unsupported })
         {
             var placed = _service.Artifacts.Single(artifact => artifact.RelativePath == "Source/Projects/" + report.RelativePath);
@@ -83,7 +83,7 @@ public class when_placing_identity_bearing_service_reports : given.a_source_plan
         Assert.Equal(_service.Success, root.GetProperty("success").GetBoolean());
         Assert.Equal(_service.CanPublishArtifacts, root.GetProperty("canPublishArtifacts").GetBoolean());
         Assert.Equal(2, root.GetProperty("scopes").GetArrayLength());
-        Assert.NotEmpty(_service.Inventory!.Constructs);
+        Assert.NotEmpty(_service.Inventory.Constructs);
         var constructs = root.GetProperty("inventory").GetProperty("constructs").EnumerateArray().ToArray();
         Assert.Equal(_service.Inventory.Constructs.Select(construct => construct.Identity.ToString()), constructs.Select(construct => construct.GetProperty("identity").GetString()));
         Assert.All(constructs, construct => Assert.Equal(JsonValueKind.Null, construct.GetProperty("modelPath").ValueKind));
@@ -155,9 +155,9 @@ public class when_placing_identity_bearing_service_reports : given.a_source_plan
         await File.WriteAllBytesAsync(Path.Combine(_root, ".screenplay", "identities.json"), PersistedIdentityStateSerializer.Serialize(PersistedIdentityStateSerializer.From(workspace)));
         var loaded = await SemanticModelLoader.LoadAsync(_root, [.. SourcePaths], ".screenplay/identities.json", _planOptions.ApplicationName);
         Assert.True(loaded.Success, string.Join(';', loaded.Diagnostics));
-        _loaded = loaded.Loaded!;
+        _loaded = loaded.Loaded;
         Assert.True(_loaded.SemanticIdentities.SequenceEqual(workspace.IdentityCatalog.Semantics));
-        Assert.Equal(workspace.Compilation.Value!.Model.Revision, _loaded.Model.Revision);
+        Assert.Equal(workspace.Compilation.Value.Model.Revision, _loaded.Model.Revision);
     }
 
     async Task<ArtifactRenderPlan> PlanSources()

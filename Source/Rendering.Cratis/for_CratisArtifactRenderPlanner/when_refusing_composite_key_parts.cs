@@ -55,21 +55,21 @@ public class when_refusing_composite_key_parts
         (model, projection, slice) = shape switch
         {
             nameof(Reducer) => (model, null, slice),
-            nameof(Flat) => (model, projection! with { Scope = null }, slice),
+            nameof(Flat) => (model, projection with { Scope = null }, slice),
             nameof(IdProperty) => (model with { Properties = [.. model.Properties.Select(property => property.IsIdentifier ? property : property with { Name = "id" })] }, projection, slice),
             nameof(OptionalPart) => (WithKeyType(model, type => type with { IsOptional = true }), projection, slice),
             nameof(CollectionPart) => (WithKeyType(model, type => type with { IsCollection = true }), projection, slice),
             nameof(DateTimePart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = SemanticPrimitiveType.DateTime }), projection, slice),
             nameof(OptionalDecimalPart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.Primitive, Primitive = SemanticPrimitiveType.DecimalNumber, IsOptional = true }), projection, slice),
             nameof(NonPrimitivePart) => (WithKeyType(model, type => type with { Kind = SemanticTypeReferenceKind.CompositeType }), projection, slice),
-            nameof(Every) => (model, WithScope(projection!, scope => scope with { Every = Placeholder<SemanticProjectionEvery>() }), slice),
-            nameof(Joins) => (model, WithScope(projection!, scope => scope with { Joins = [Placeholder<SemanticProjectionJoin>()] }), slice),
-            nameof(JoinRemovals) => (model, WithScope(projection!, scope => scope with { JoinRemovals = [Placeholder<SemanticProjectionJoinRemoval>()] }), slice),
-            nameof(Children) => (model, WithScope(projection!, scope => scope with { Children = [Placeholder<SemanticProjectionChildren>()] }), slice),
-            nameof(Nested) => (model, WithScope(projection!, scope => scope with { Nested = [Placeholder<SemanticProjectionNested>()] }), slice),
-            nameof(IncompleteKey) => (model, WithScope(projection!, scope => scope with { From = [scope.From[0] with { Key = new SemanticProjectionPartsKey([.. ((SemanticProjectionPartsKey)scope.From[0].Key).Parts.Take(1)]) }] }), slice),
-            nameof(RemovalWithoutKey) => (model, WithScope(projection!, scope => scope with { Removals = [scope.Removals[0] with { Key = new SemanticProjectionPartsKey([]) }] }), slice),
-            nameof(MappingOntoKeyPart) => (model, WithScope(projection!, scope => scope with { From = [scope.From[0] with { Mappings = [new SemanticProjectionMapping([model.Properties.First(property => property.IsIdentifier).Id], SemanticProjectionOperation.Set, scope.From[0].Mappings[0].Source)] }] }), slice),
+            nameof(Every) => (model, WithScope(projection, scope => scope with { Every = Placeholder<SemanticProjectionEvery>() }), slice),
+            nameof(Joins) => (model, WithScope(projection, scope => scope with { Joins = [Placeholder<SemanticProjectionJoin>()] }), slice),
+            nameof(JoinRemovals) => (model, WithScope(projection, scope => scope with { JoinRemovals = [Placeholder<SemanticProjectionJoinRemoval>()] }), slice),
+            nameof(Children) => (model, WithScope(projection, scope => scope with { Children = [Placeholder<SemanticProjectionChildren>()] }), slice),
+            nameof(Nested) => (model, WithScope(projection, scope => scope with { Nested = [Placeholder<SemanticProjectionNested>()] }), slice),
+            nameof(IncompleteKey) => (model, WithScope(projection, scope => scope with { From = [scope.From[0] with { Key = new SemanticProjectionPartsKey([.. ((SemanticProjectionPartsKey)scope.From[0].Key).Parts.Take(1)]) }] }), slice),
+            nameof(RemovalWithoutKey) => (model, WithScope(projection, scope => scope with { Removals = [scope.Removals[0] with { Key = new SemanticProjectionPartsKey([]) }] }), slice),
+            nameof(MappingOntoKeyPart) => (model, WithScope(projection, scope => scope with { From = [scope.From[0] with { Mappings = [new SemanticProjectionMapping([model.Properties.First(property => property.IsIdentifier).Id], SemanticProjectionOperation.Set, scope.From[0].Mappings[0].Source)] }] }), slice),
             _ => throw new InvalidOperationException(shape)
         };
 
@@ -82,13 +82,13 @@ public class when_refusing_composite_key_parts
         model with { Properties = [.. model.Properties.Select((property, index) => property.IsIdentifier && index == model.Properties.ToList().FindIndex(_ => _.IsIdentifier) ? property with { Type = change(property.Type) } : property)] };
 
     static SemanticProjection WithScope(SemanticProjection projection, Func<SemanticProjectionScope, SemanticProjectionScope> change) =>
-        projection with { Scope = change(projection.Scope!) };
+        projection with { Scope = change(projection.Scope) };
 
     static (SemanticApplicationContext Context, SemanticReadModel Model, SemanticProjection? Projection, SemanticSlice Slice) Parts()
     {
         var model = invoice_model.Compile(when_refusing_composite_key_shapes.Valid);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
         var slice = context.SelectedSlices().Single(located => located.Slice.Name == "Totals").Slice;
         return (context, slice.ReadModels.Single(), slice.Projections.Single(), slice);
     }

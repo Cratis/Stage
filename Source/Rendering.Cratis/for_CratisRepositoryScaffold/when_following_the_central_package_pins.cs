@@ -30,7 +30,7 @@ public class when_following_the_central_package_pins : Specification
     static string Text(CratisPlanResult result, string path) => Encoding.UTF8.GetString(result.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 
     static Dictionary<string, string> Versions(string xml) =>
-        XDocument.Parse(xml).Descendants("PackageVersion").ToDictionary(pin => pin.Attribute("Include")!.Value, pin => pin.Attribute("Version")!.Value, StringComparer.Ordinal);
+        XDocument.Parse(xml).Descendants("PackageVersion").ToDictionary(pin => pin.Attribute("Include").Value, pin => pin.Attribute("Version").Value, StringComparer.Ordinal);
 
-    static string CentralPackagesPath([CallerFilePath] string path = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "../../..", "Directory.Packages.props"));
+    static string CentralPackagesPath([CallerFilePath] string path = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), "../../..", "Directory.Packages.props"));
 }

@@ -24,6 +24,6 @@ public class with_a_protected_query_without_caller : Specification
     }
 
     [Fact] void should_refuse_the_model_before_it_can_be_planned() => _refusal.ShouldNotBeNull();
-    [Fact] void should_refuse_it_with_the_language_diagnostic() => _refusal!.Message.ShouldContain("PLAY0389");
-    [Fact] void should_name_the_missing_caller_fixture() => _refusal!.Message.ShouldContain("given caller");
+    [Fact] void should_refuse_it_with_the_language_diagnostic() => _refusal.Message.ShouldContain("PLAY0389");
+    [Fact] void should_name_the_missing_caller_fixture() => _refusal.Message.ShouldContain("given caller");
 }

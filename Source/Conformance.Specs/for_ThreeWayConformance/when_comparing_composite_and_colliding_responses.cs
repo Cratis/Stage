@@ -66,32 +66,54 @@ public class when_comparing_composite_and_colliding_responses(when_comparing_com
                   specification CompositeResponse
                     when Move
                       for "11111111-1111-1111-1111-111111111111"
-                      address = {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
                     then Moved
-                      address = {"street":"Main","city":"Oslo"}
-                    then returns {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
+                    then returns value
+                      street = "Main"
+                      city = "Oslo"
                   specification EscapedResponse
                     when Relocate
                       for "11111111-1111-1111-1111-111111111111"
-                      address = {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
                     then Relocated
-                      address = {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
                     then returns
                       projectId = "11111111-1111-1111-1111-111111111111"
-                      address = {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
                   specification GeneratedNew
                     when RelocateResponse
                       for "22222222-2222-2222-2222-222222222222"
-                      address = {"street":"Side","city":"Bergen"}
+                      address
+                        street = "Side"
+                        city = "Bergen"
                     then RelocationRecorded
-                      address = {"street":"Side","city":"Bergen"}
+                      address
+                        street = "Side"
+                        city = "Bergen"
                   specification WrongComposite
                     when Move
                       for "11111111-1111-1111-1111-111111111111"
-                      address = {"street":"Main","city":"Oslo"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
                     then Moved
-                      address = {"street":"Main","city":"Oslo"}
-                    then returns {"street":"Main","city":"Bergen"}
+                      address
+                        street = "Main"
+                        city = "Oslo"
+                    then returns value
+                      street = "Main"
+                      city = "Bergen"
             """;
     }
 }

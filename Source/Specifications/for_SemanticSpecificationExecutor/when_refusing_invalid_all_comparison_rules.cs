@@ -31,7 +31,7 @@ public class when_refusing_invalid_all_comparison_rules : Specification
                     returns answer
                   specification Empty
                     when Check
-                      values = []
+                      values none
                       answer = true
                     then returns true
             """);

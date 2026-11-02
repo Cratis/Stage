@@ -137,7 +137,9 @@ public class when_running_multipart_projection_lifecycle : Specification
                 when append Cancelled
                   tenant = "north"
                   invoice = "a"
-                then no readmodel Payment for {"invoice":"a","tenant":"north"}
+                then no readmodel Payment for
+                  invoice = "a"
+                  tenant = "north"
                 then readmodel Payment
                   tenant = "north"
                   invoice = "b"
@@ -156,6 +158,8 @@ public class when_running_multipart_projection_lifecycle : Specification
                   tenant = "north"
                   invoice = "a"
                   amount = 1
-                then no readmodel Payment for {"tenant":"north","invoice":"a"}
+                then no readmodel Payment for
+                  tenant = "north"
+                  invoice = "a"
         """;
 }

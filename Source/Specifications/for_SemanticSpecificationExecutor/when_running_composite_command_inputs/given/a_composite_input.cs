@@ -52,7 +52,7 @@ public class a_composite_input : Specification
                   specification CheckingInput
                     when CheckInput
                       id = "one"
-                      value = {{value}}
+                      {{Structured("value", value, 10)}}
                     {{(error is null ? "then returns \"one\"" : $"then error \"{error}\"")}}
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("CompositeInputs"));
@@ -101,4 +101,6 @@ public class a_composite_input : Specification
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([_specification.Id]), new())).Results);
         _failures = [.. SemanticRuleEvaluation.Failures(_command, _specification, _plan.Model.Application)];
     }
+
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Specifications.given.StructuredValueText.Assignment(property, value, indent);
 }

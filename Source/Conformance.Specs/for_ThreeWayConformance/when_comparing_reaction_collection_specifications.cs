@@ -55,18 +55,28 @@ public class when_comparing_reaction_collection_specifications(when_comparing_re
                   specification CollectionProduction
                     when append LabelsStarted
                       id = "labels"
-                      labels = ["first", "second"]
-                      alternateLabels = ["third"]
+                      labels
+                        item "first"
+                        item "second"
+                      alternateLabels
+                        item "third"
                     then LabelsFollowed
-                      labels = ["third"]
+                      labels
+                        item "third"
                     then LabelsFollowed
-                      labels = ["first", "second"]
+                      labels
+                        item "first"
+                        item "second"
                   specification CollectionInvocation
                     when append LabelsRequested
                       id = "labels"
-                      labels = ["first", "second"]
+                      labels
+                        item "first"
+                        item "second"
                     then LabelsCompleted
-                      labels = ["first", "second"]
+                      labels
+                        item "first"
+                        item "second"
             """;
 
         protected override string ApplicationName => "ReactionCollections";

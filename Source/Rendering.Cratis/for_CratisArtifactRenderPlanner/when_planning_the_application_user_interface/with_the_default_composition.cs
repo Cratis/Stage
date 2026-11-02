@@ -28,6 +28,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
     // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
+    // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
+    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
     const string Before = "96bebb32dd9b9e331f97f22a95c54792422087a6083110e17c09eeffebd40f15";
 
     ArtifactRenderPlan _plan = null!;

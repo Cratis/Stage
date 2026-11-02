@@ -20,13 +20,14 @@ public class when_seeding_an_empty_event_log : a_seeding_store
               name = "Stoneware mug"
               price = 12.5
               featured = true
-              tags = ["kitchen"]
+              tags
+                item "kitchen"
           for "tee"
             ProductListed
               name = "Organic cotton tee"
               price = 24
               featured = false
-              tags = []
+              tags none
         """);
 
     async Task Because() => _world = await SemanticChronicleRegistration.Register(_client, Store, _plan, _seeds);

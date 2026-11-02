@@ -84,7 +84,9 @@ public class with_one_missing_parent : Specification
                 then readmodel Current
                   id = "parent"
                   name = "parent name"
-                  lefts = [{"code":"one"}]
-                  rights = []
+                  lefts
+                    item
+                      code = "one"
+                  rights none
         """;
 }

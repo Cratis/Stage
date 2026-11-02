@@ -285,7 +285,8 @@ docker run --rm -p 9090:9090 -p 35000:35000 \
 The semantic engine evaluates validation, requirements, authorization, conditional production and constraints
 before accepting a command. Accepted facts are appended to Chronicle as one batch; a failed append does not
 commit the in-process read-model state. `GET /stage/semantic/admission` lists the model's admitted and
-unsupported artifacts. `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
+unsupported artifacts, state machines and workflows included; `GET /stage/lifecycles` reports where state machines are and what
+workflows wait for (see [State machines and workflows](../reference/state-machines-and-workflows.md)). `GET /stage/status` includes `engine: "semantic"`. If Screenplay cannot compile an
 executable plan, the host returns `state: "unsupported"` with issues; `/api/**` responds with HTTP 501
 instead of performing a partial model. Only Error-severity compiler diagnostics become blocking
 `Plan` issues. Information and Warning diagnostics are returned separately in the optional `notes`

@@ -23,6 +23,11 @@ When Stage performs a model, the semantic runtime keeps the world of facts. A st
 | `wait ... for <Event>` | The fact resumes the runs waiting at the node for the same subject. |
 | `approval` | The run is suspended until a person decides it. |
 
+A workflow run starts with the current values of the subject read model. The engine fans out over a list of objects that each
+have a unique string `key`, so the runtime gives every element of a list its position as `key` (and wraps a scalar element in an
+object holding its `value`). An action's command takes the subject key as its identifier and every other property from the
+fan-out item first, then from the subject.
+
 Only facts committed after the runtime started act. History is never replayed into side effects, so a restart does not send a
 command twice.
 

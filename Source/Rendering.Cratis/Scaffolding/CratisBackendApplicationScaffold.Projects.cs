@@ -59,6 +59,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
             <!-- Transitive security pin for Microsoft.Identity.Web.TokenCache; referenced by no project. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
+            <PackageVersion Include="System.Security.Cryptography.Xml" Version="{{ScaffoldPackageVersions.CryptographyXml}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
           </ItemGroup>

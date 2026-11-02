@@ -143,6 +143,7 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Microsoft.NET.Test.Sdk={_profile.MicrosoftNetTestSdkPackageVersion}",
             $"NSubstitute={_profile.NSubstitutePackageVersion}",
             $"System.Security.Cryptography.Pkcs={Scaffolding.ScaffoldPackageVersions.CryptographyPkcs}",
+            $"System.Security.Cryptography.Xml={Scaffolding.ScaffoldPackageVersions.CryptographyXml}",
             $"xunit={_profile.XunitPackageVersion}",
             $"xunit.runner.visualstudio={_profile.XunitRunnerVisualStudioPackageVersion}"
         }.Order(StringComparer.Ordinal));

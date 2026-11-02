@@ -12,7 +12,7 @@ internal static class DomainPlacementInput
 {
     internal const string Name = "cratis-domain-placement";
     const string Version = "1";
-    static readonly string[] _reservedFolders = ["Customizations", "GeneratedPolicies", "TypedContexts", "GeneratedCommands", "GeneratedTenancy"];
+    static readonly string[] _reservedFolders = ["Customizations", "GeneratedPolicies", "TypedContexts", "GeneratedCommands", "GeneratedTenancy", "GeneratedAuthentication", "GeneratedOnboarding"];
 
     internal static ArtifactRenderProfile WithDomain(ArtifactRenderProfile profile, string domain) => domain.Length == 0 ? profile :
         ArtifactRenderProfile.Create(profile.Target, profile.TargetVersion, profile.Renderer, profile.RendererVersion, profile.Inputs.Add(ArtifactRenderInput.Create(Name, Version, [.. Encoding.UTF8.GetBytes(domain)])));

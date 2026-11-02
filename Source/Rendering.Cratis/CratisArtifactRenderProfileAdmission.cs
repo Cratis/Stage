@@ -127,6 +127,12 @@ static class CratisArtifactRenderProfileAdmission
             return false;
         }
 
+        if (!Realization.ApplicationRealizationInput.TryRead(profile, out _))
+        {
+            mismatch = "The Cratis profile carries an invalid or duplicate application realization.";
+            return false;
+        }
+
         var domains = profile.Inputs.Where(input => input.Name == DomainPlacementInput.Name).ToArray();
         if (domains.Length > 1 || (domains.Length == 1 &&
             (!DomainPlacementInput.TryRead(domains[0], out var domain) || DomainPlacementInput.IsReserved(domain, expected))))

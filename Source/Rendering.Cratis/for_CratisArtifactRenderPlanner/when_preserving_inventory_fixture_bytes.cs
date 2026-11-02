@@ -17,24 +17,25 @@ public class when_preserving_inventory_fixture_bytes
 {
     static readonly Dictionary<string, string> _digests = new(StringComparer.Ordinal)
     {
-        ["append refusal"] = "7f3f3c6755c46edb3b9f61c875ddc94aabb4573c7cd3e4d3b30d931ed22081a2",
-        ["cascade with trigger"] = "ceae53c2319a8d852485b3962acb8aac6802bd75df4e4051e60f932942684457",
-        ["case table"] = "f470fc8e2ce82bd21231dd8bf4220271d88d9b482b24accd2d0be9a59148599c",
-        ["composite keys"] = "50bd3d6c6912192329a4274a9d1445b19d1f8ad283e400849a7a3574379c6c62",
-        ["denied query"] = "090df479265b37c694d9cd323fb92834711d599186731034d0e33b4a0cb57e9f",
-        ["folder"] = "0c1ddf580de35ba24f59a3768d94a3fe8b660770fa1e566fd07ebcb5442b72e0",
-        ["policy typed contexts"] = "53834fd0ac2cc70b1bf76f5c84458491c0a242c953a1fbb9c45e3541c882943e",
-        ["query"] = "cedb01b5d61bac3d6ba02166a4ec21f8582f3011517e7d758c477b2fdbcd6cfd",
-        ["reaction production"] = "a52b8c5d361d842fa4c894a76b55e88b6c96ec20e0eeb9930f985070ec6688bc",
-        ["redelivery"] = "24d5fcb2b60d726cd3dccf68548615ec57b15bdf32251897b1f90e9ed8b49462",
-        ["reducer typed contexts"] = "c2f31d4eb3b5bcdeffaafbe4abe1a32e7c3ff1b6d55b595f12defc8f25dbfc24",
-        ["relocated"] = "0c1ddf580de35ba24f59a3768d94a3fe8b660770fa1e566fd07ebcb5442b72e0",
-        ["reordered"] = "0c1ddf580de35ba24f59a3768d94a3fe8b660770fa1e566fd07ebcb5442b72e0",
-        ["scoped projections"] = "160ef9ad151f0afed57ee72d02fc43b88b985e5e8e82f11c45449fe1bc500021",
-        ["single"] = "0c1ddf580de35ba24f59a3768d94a3fe8b660770fa1e566fd07ebcb5442b72e0",
-        ["strings"] = "2a3921e50e411655a3d855c1b87ef38b47401cbebd7095e8b2b72fb8433a6000",
-        ["translation specification"] = "903166e56c85c8eb1497b42ee1822371558bb413f20298253b04d1784224fab5",
-        ["validation typed contexts"] = "08d4d4e51a670b39725d1f144c8b17c47ad87528a03d0a8db2654d68d2a19793",
+        // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+        ["append refusal"] = "f2da738480ba58919ef5fc7477d9715d21b06e1ce8029ffae7f0f466cc4e80c2",
+        ["cascade with trigger"] = "e3289304073f9a9a6163851531c4446e97e57836da2bda222cb9b221bd7930c9",
+        ["case table"] = "623dc05f80fd39fe1babc8c85bc29b0f24067f42bb8c6abc66fb15ba8ce560df",
+        ["composite keys"] = "fd7e783281a9e7f7d148e248a5c5090317ec758d08000cd17e328cdbe84fa2a5",
+        ["denied query"] = "cb36042a87afa01148361b578a34623118765039ad13c56e6f2a06ce81b0b7e6",
+        ["folder"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["policy typed contexts"] = "2f2e44c15b53d1ae9b267abe78c6f7d841e0cd248d53bd1d9650f5e62546bf37",
+        ["query"] = "eabbebac64b27b0312fd5933d1b5cf9d71a66b7ce4c13ee94a1bdca179357f00",
+        ["reaction production"] = "e75c717623deeae584e540cec0d96b8873f87cce2f97baff5a47ad6d89798c84",
+        ["redelivery"] = "302eb806a0e1e48be52bf028d74e7a370749eef4dfce02dc27ffea8509617401",
+        ["reducer typed contexts"] = "46a58440ccb22c6f72cebd6c962b53b9379b63bffb5edb1a4be34a6fe61d4bec",
+        ["relocated"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["reordered"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["scoped projections"] = "7ca702a0a7d2dddd83591ca181189fd583f6816f9149208471880198badd4327",
+        ["single"] = "59fcd5f056949fe5e92f2cb8e4c46e5712f86b5aec7c9b3382c4aa8dc85d776f",
+        ["strings"] = "ec893996937aa19eb83176683cfa97778420f3ae234d0c5ead5f1dbccbb4b5fa",
+        ["translation specification"] = "86bd892deb7659afe0a9bcebb8ac23961dc17e7d80b71b309d7a80e1e67a7a1d",
+        ["validation typed contexts"] = "dd22e0f866fe32e560fccd9cef1a0683f5dded5227500ffb0cd189d08434e6c5",
     };
 
     public static TheoryData<string> Fixtures

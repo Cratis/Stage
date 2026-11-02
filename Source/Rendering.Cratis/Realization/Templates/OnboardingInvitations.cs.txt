@@ -1,0 +1,75 @@
+using Cratis.Arc.Authorization;
+using Cratis.Arc.Tenancy;
+using FluentValidation;
+
+using __Root__.GeneratedAuthentication;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// The names of the authorization policies of the invitation commands.
+/// </summary>
+public static class OnboardingPolicies
+{
+    /// <summary>
+    /// Gets the policy of the persona allowed to invite a member.
+    /// </summary>
+    public const string InviteMember = "Onboarding.InviteMember";
+}
+
+/// <summary>
+/// Allows a caller who is one of the personas the model lets invite a member.
+/// </summary>
+public sealed class InviteMemberPolicy : IAuthorizationPolicy
+{
+    /// <inheritdoc/>
+    public ValueTask<bool> IsAuthorized(AuthorizationPolicyContext context, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(OnboardingRules.MemberInviters.Any(persona => Personas.Holds(context.Principal, persona)));
+}
+
+/// <summary>
+/// Invites a person into the tenant of the caller, giving them the personas the model allows an invitation to grant.
+/// </summary>
+/// <remarks>
+/// The command records that the invitation was issued in the tenant of the caller; <see cref="InvitationPublisher"/> hands it to Ante, whose
+/// outbox lives in one fixed namespace.
+/// </remarks>
+/// <param name="Email">The address of the person to invite.</param>
+/// <param name="Personas">The personas the invitee is given.</param>
+[Command]
+[Authorize(Policy = OnboardingPolicies.InviteMember)]
+public record InviteMemberToTenant(string Email, IReadOnlyList<string> Personas) : ICanProvideEventSourceId
+{
+    /// <summary>
+    /// Gets the identifier of the invitation, which is the event source id Ante appends everything about it under.
+    /// </summary>
+    public Guid Invitation { get; init; } = Guid.NewGuid();
+
+    /// <inheritdoc/>
+    public EventSourceId GetEventSourceId() => Invitation.ToString("D");
+
+    /// <summary>
+    /// Records the invitation in the tenant of the caller, which AuthProxy resolved.
+    /// </summary>
+    /// <param name="tenants">Gives the tenant of the caller.</param>
+    /// <returns>The event that records the invitation.</returns>
+    public OnboardingMemberInvited Handle(ITenantIdAccessor tenants) => new(Email, tenants.Current.Value, Personas);
+}
+
+/// <summary>
+/// Validates that an invitation only grants personas the model allows it to grant.
+/// </summary>
+public class InviteMemberToTenantValidator : CommandValidator<InviteMemberToTenant>
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="InviteMemberToTenantValidator"/> class.
+    /// </summary>
+    public InviteMemberToTenantValidator()
+    {
+        RuleFor(command => command.Email).NotEmpty().EmailAddress();
+        RuleFor(command => command.Personas)
+            .NotEmpty()
+            .Must(personas => personas.All(persona => OnboardingRules.MemberGrantable.Contains(persona, StringComparer.Ordinal)))
+            .WithMessage($"An invitation can only grant {string.Join(", ", OnboardingRules.MemberGrantable)}.");
+    }
+}

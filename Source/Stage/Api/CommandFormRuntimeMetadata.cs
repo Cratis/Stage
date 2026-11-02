@@ -89,9 +89,9 @@ static class CommandFormRuntimeMetadata
         IReadOnlyDictionary<string, CommandFormRuntimeCommand> commands,
         IReadOnlyDictionary<string, Form> formsByCommand,
         PlacedForms placed) => contribution with
-    {
-        Content = Enrich(contribution.Content, commands, formsByCommand, placed)
-    };
+        {
+            Content = Enrich(contribution.Content, commands, formsByCommand, placed)
+        };
 
     static SceneElements.SceneElement Enrich(
         SceneElements.SceneElement element,
@@ -126,6 +126,7 @@ static class CommandFormRuntimeMetadata
         if (form is not null)
         {
             properties["form"] = form.Name;
+            properties["onSubmit"] = form.OnSubmit;
             properties["generationMode"] = form.GenerationMode;
             properties["layout"] = form.Layout;
             if (form.PopulateSource is not null)
@@ -148,7 +149,8 @@ static class CommandFormRuntimeMetadata
             ["label"] = form.Name,
             ["generationMode"] = form.GenerationMode,
             ["layout"] = form.Layout,
-            ["fields"] = form.Fields
+            ["fields"] = form.Fields,
+            ["onSubmit"] = form.OnSubmit
         };
 
         if (form.PopulateSource is not null)

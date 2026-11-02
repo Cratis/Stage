@@ -47,8 +47,8 @@ public class when_rendering_authored_composite_projection_keys : a_multi_slice_a
         var compilation = new NativeScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, $"Invalid authored application: {string.Join(Environment.NewLine, compilation.Diagnostics)}");
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
-        var projection = _application.Modules.Single().Features.Single().Slices.Single().Projections.Single();
+        var application = compilation.Value;
+        var projection = application.Modules.Single().Features.Single().Slices.Single().Projections.Single();
         var from = Assert.IsType<FromSyntax>(Assert.Single(projection.Blocks));
         var key = Assert.IsType<CompositeKeySyntax>(from.Key);
         key.Type.ShouldEqual("OrderKey");
@@ -59,7 +59,7 @@ public class when_rendering_authored_composite_projection_keys : a_multi_slice_a
         Source.Split('\n')[key.Location.Line - 1].Trim().ShouldEqual("key OrderKey");
 
         IRenderer renderer = _renderer;
-        var exception = await Catch.Exception(() => renderer.Render([_application], _targetDirectory, _output, _error));
+        var exception = await Catch.Exception(() => renderer.Render([application], _targetDirectory, _output, _error));
         var evidence = $"Native compiler: {typeof(NativeScreenplayCompiler).Assembly.FullName}{Environment.NewLine}" +
             $"Route: IRenderer.Render(applications) -> LegacyRendererCompatibilityAdapter -> StateViewSliceRenderer{Environment.NewLine}" +
             $"Authored key: {key.Type} at {key.Location}{Environment.NewLine}" +

@@ -35,14 +35,14 @@ public class when_executing_reducer_fact_specifications : a_generated_applicatio
             Assert.Equal(string.Empty, BuildWarnings(build));
             var trx = Path.Combine(_evidence.FullName, "reducer-facts.trx");
             await Run("reducer-facts-test.log", wrongBody, "test", "Projects.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", $"trx;LogFileName={trx}", "--filter", "FullyQualifiedName~when_score_");
-            var results = XDocument.Load(trx).Descendants().Where(element => element.Name.LocalName == "UnitTestResult").ToArray();
+            var results = GeneratedTestResults.Read(XDocument.Load(trx));
             Assert.NotEmpty(results);
             foreach (var name in new[] { "when_score_shows", "when_score_accumulates", "when_score_after_append" })
             {
-                var assertions = results.Where(result => result.Attribute("testName")!.Value.Contains(name, StringComparison.Ordinal)).ToArray();
+                var assertions = ResultsForSpecification(results, name);
                 Assert.NotEmpty(assertions);
-                if (wrongBody) Assert.Contains(assertions, result => result.Attribute("outcome")!.Value == "Failed");
-                else Assert.All(assertions, result => Assert.Equal("Passed", result.Attribute("outcome")!.Value));
+                if (wrongBody) Assert.Contains(assertions, result => result.Outcome == "Failed");
+                else Assert.All(assertions, result => Assert.Equal("Passed", result.Outcome));
             }
         }
         finally
@@ -50,5 +50,8 @@ public class when_executing_reducer_fact_specifications : a_generated_applicatio
             Cleanup();
         }
     }
+
+    internal static GeneratedTestResult[] ResultsForSpecification(IEnumerable<GeneratedTestResult> results, string name) =>
+        [.. results.Where(result => result.Matches(className: name, match: GeneratedTestNameMatch.Prefix))];
 }
 #endif

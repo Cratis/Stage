@@ -66,8 +66,12 @@ public class when_rendering_an_application_with_authorization : an_application_w
         _error.ToString().ShouldContain("Slice 'Summary' declares 1 screen declaration(s) with no rendered equivalent");
     [Fact] void should_report_the_personas_it_does_not_render() =>
         _error.ToString().ShouldContain("1 persona declaration(s) are not rendered");
-    [Fact] void should_report_the_authentication_providers_it_does_not_render() =>
-        _error.ToString().ShouldContain("1 authentication provider(s) are not rendered");
+    [Fact] void should_no_longer_report_a_provider_authproxy_supports_as_unrendered() =>
+        _error.ToString().ShouldNotContain("authentication provider");
+    [Fact] void should_render_the_providers_as_the_configuration_authproxy_starts_from() =>
+        _codeOutput.Files.Single(file => file.RelativePath == ".runtime/authproxy.application.json").Content.ShouldContain("\"Kind\": \"EntraId\"");
+    [Fact] void should_list_what_the_environment_has_to_supply() =>
+        _codeOutput.Files.Single(file => file.RelativePath == ".runtime/environment.json").Content.ShouldContain("authentication.providers.EntraId.tenantId");
 
     [Fact] void should_admit_an_administrator_to_the_generated_role_alternative() =>
         IsAuthorized(_register, Authenticated("Administrator")).ShouldBeTrue();

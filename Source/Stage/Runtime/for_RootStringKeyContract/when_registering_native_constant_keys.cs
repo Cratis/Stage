@@ -77,7 +77,7 @@ public class when_registering_native_constant_keys : Specification
         await projections.Discover();
         await projections.Register();
         registration.ShouldNotBeNull();
-        return Assert.Single(registration!.Projections);
+        return Assert.Single(registration.Projections);
     }
 }
 #endif

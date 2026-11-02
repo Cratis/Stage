@@ -49,9 +49,9 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
         });
     }
 
-    // Scene 4.86.0 adds an empty onSubmit array to each of the two authored forms.
-    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("086e6c4eff93923b48720ff02bd43a630b5f832f5502aecc24b942596b53dc61");
-    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24000);
+    // Re-frozen for Scene 4.86.0 guarded fragments and empty onSubmit arrays on the two authored forms.
+    [Fact] void should_pin_the_authored_scene_bytes() => Convert.ToHexStringLower(SHA256.HashData(_bytes)).ShouldEqual("ab84b541d8c0e601987b690a079acc823ecd40329838ca5848567e1e674c9503");
+    [Fact] void should_pin_the_authored_scene_length() => _bytes.Length.ShouldEqual(24309);
     [Fact] void should_carry_the_guarded_close_action() => Encoding.UTF8.GetString(_bytes).ShouldContain("\"alternatives\"");
     [Fact] void should_carry_the_guarded_double_click_branches() => Encoding.UTF8.GetString(_bytes).ShouldContain($"\"path\":\"{SceneGuards.GuardPath}\"");
     [Fact] void should_type_the_close_guard_by_the_enumeration_of_the_details_status() => Guards().Count(_ => _.Contains("\"left\":{\"subject\":\"item.status\"},\"operator\":\"Equal\",\"right\":\"open\"", StringComparison.Ordinal) && _.Contains("\"enumeration\":[\"open\",\"closed\"]", StringComparison.Ordinal)).ShouldBeGreaterThanOrEqual(2);
@@ -67,20 +67,22 @@ public partial class when_carrying_the_authored_screens_vector : given.the_plann
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
-    // Re-frozen for Cratis/Stage#120 on Screenplay 4.258.0 / Scene 4.86.0: executed comparison with main preserves its onSubmit arrays and guard spellings; only authentication artifacts and host wiring differ.
-    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("ccc5ec978ab85902038055b7942bb5a0876b9e9d99b60fdfe19f832940de7400");
+    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    [Fact] void should_confine_changes_to_common_and_using_placement() => FrozenScaffoldPins.Digest(_plan, Legacy(_qualified)).ShouldEqual("f5e0a6ad77434805a22c9338a179d7471663de22da3693223b2f2f9673f43dcd");
 
     // Re-frozen when the license header became the caller's choice and specifications moved into the application project.
     // Re-frozen for #424: generated C# uses short type names and using directives above the namespace.
     // Re-frozen for Cratis/Stage#816 and Cratis/Stage#757: only src/bindings.ts command imports and the package.json fundamentals resolution change.
     // Re-captured on Train 8b: only #660 adds CratisReadProtection On relative to main; all Scene artifacts match main.
     // Re-frozen for #741: only .gitignore gains the .yarn/ line.
-    // Re-frozen for Cratis/Stage#120: the same executed auth-only delta applies to the partitioned view on main's Scene 4.86.0 bytes.
-    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("d5d32e2ae64debe5cb0233b5ad3a85a7d27a71793c0aa52fade938d072ea36b2");
+    // Re-frozen for merged Scene 4.86.0 / Screenplay 4.258.0 output.
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    [Fact] void should_pin_the_partitioned_artifact_digest() => FrozenScaffoldPins.Digest(_plan).ShouldEqual("5f55f93e07f2b310bc8f86e9407d5c2ded1cc283475d90bf5e844e310d78bb04");
     [Fact] void should_pin_the_screen_fragments() => string.Join('\n', _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith("/Screens.scene.json", StringComparison.Ordinal)).Select(artifact => $"{artifact.RelativePath} {artifact.Sha256} {artifact.Bytes.Length}")).ShouldEqual("""
         Workspaces/Tracking/WorkItemComments/Screens.scene.json acd7f05ae339201f3867044a5a7ae3e7f3501e0ae90aac9b9742fa24cc0b98da 2270
-        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 5e0dc1b034697a89e4db4f9142afe146263165b65f35157692c812b047752c35 9807
-        Workspaces/Tracking/WorkItemList/Screens.scene.json 64e90a343aa684f50d4112e00658c89cdbb9f6533e61bb1d012bb3d3aa5dff26 6675
+        Workspaces/Tracking/WorkItemDetails/Screens.scene.json 536a72745002460a699cdb87ea8e6638ac38d4867978a3cce2cebcf24a5f1811 9963
+        Workspaces/Tracking/WorkItemList/Screens.scene.json af0735bc0d0bb8dfa8227f4960c7e93cc97e599e05eb46232c0e1b470ef7ceb0 6828
         """);
 
     static IEnumerable<PlannedArtifact> Legacy(IEnumerable<PlannedArtifact> artifacts) => SeparateSpecificationsLayout.RestoreWithLicenseHeader(artifacts, ApplicationName, ApplicationName)

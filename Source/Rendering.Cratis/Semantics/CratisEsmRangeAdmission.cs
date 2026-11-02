@@ -12,17 +12,25 @@ internal static class CratisEsmRangeAdmission
     internal static CratisEsmRangeVerdict Evaluate(ArtifactRenderRequest request, SemanticApplicationContext context)
     {
         var version = CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
-        if (version != EsmVersionStanding.NewerWithinRange) return FromFindings(request, new(version, []));
+        if (version != EsmVersionStanding.NewerWithinRange && !ScansAuditedMembers(request.Model, version)) return FromFindings(request, new(version, []));
         var owners = CratisSelectedSemanticOwners.Enumerate(context).Select(owner => owner.Id).Append(context.Application.Id).ToImmutableHashSet();
         var selected = context.SelectedSlices().Select(located => located.Slice.Id).ToImmutableHashSet();
         var excluded = context.AllSlices.Select(located => located.Slice.Id).Where(id => !selected.Contains(id)).ToImmutableHashSet();
-        var standing = EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, EsmRangeSurface.Scope(owners, excluded));
+        var scope = EsmRangeSurface.Scope(owners, excluded);
+        var standing = version == EsmVersionStanding.Audited
+            ? new EsmSupportStanding(version, [.. SemanticUnknownMembers.Find(request.Model, EsmRangeSurface.Known, scope)
+                .Where(member => member.Member == $"{nameof(SemanticSpecification)}.{nameof(SemanticSpecification.ThenInvocations)}")])
+            : EsmSupportStanding.Evaluate(CratisEsmSupport.Descriptor, request.Model, EsmRangeSurface.Known, scope);
         return FromFindings(request, standing);
     }
 
+    // Only the audited v34 pair can carry 'then invokes' expectations, so older audited pairs skip the member scan entirely.
+    internal static bool ScansAuditedMembers(ExecutableSemanticModel model, EsmVersionStanding standing) =>
+        standing == EsmVersionStanding.Audited && model.SemanticVersion.Major >= SemanticVersion.V34.Major;
+
     internal static CratisEsmRangeVerdict FromFindings(ArtifactRenderRequest request, EsmSupportStanding standing)
     {
-        if (standing.Version == EsmVersionStanding.Audited) return new(standing, [], []);
+        if (standing.Version == EsmVersionStanding.Audited) return new(standing, [.. standing.UnknownMembers.Select(Finding)], []);
         var pair = $"{request.Model.LanguageVersion}/{request.Model.SemanticVersion}";
         if (standing.Version != EsmVersionStanding.NewerWithinRange)
         {

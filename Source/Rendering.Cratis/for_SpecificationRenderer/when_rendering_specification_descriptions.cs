@@ -24,7 +24,7 @@ public class when_rendering_specification_descriptions : given.a_slice_with_spec
     {
         var specification = Specification(
             "RegisteringAnInvoice",
-            when: When("RegisterInvoice", ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9"), ("invoiceNumber", "INV-000123"), ("dueDate", "2026-08-13")),
+            when: WhenCommand("RegisterInvoice", ("invoiceId", "9c858901-8a57-4791-81fe-4c455b099bc9"), ("invoiceNumber", "INV-000123"), ("dueDate", "2026-08-13")),
             then: [Event("InvoiceRegistered", ("invoiceNumber", "INV-000123"))]);
         _withoutDescription = SpecificationRenderer.Render(specification, _command, _slice, _applicationSet, "Acme");
         _appended = SpecificationRenderer.Render(specification with { Description = Description }, _command, _slice, _applicationSet, "Acme");
@@ -32,7 +32,8 @@ public class when_rendering_specification_descriptions : given.a_slice_with_spec
             Specification(
                 "RejectingAnInvoice",
                 when: specification.When,
-                errors: [new(null, SourceLocation.Start)]) with { Description = "Witnesses <rejection> & no events" },
+                errors: [new(null, SourceLocation.Start)]) with
+            { Description = "Witnesses <rejection> & no events" },
             _command,
             _slice,
             _applicationSet,

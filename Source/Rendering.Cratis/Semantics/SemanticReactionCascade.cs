@@ -60,7 +60,7 @@ internal sealed record SemanticReactionCascade(SemanticSpecification Reaction, S
             ThenEvents = accepted ? [.. specification.ThenEvents.Skip(taken.Length)] : []
         };
         var trigger = accepted
-            ? specification with { Name = specification.Name + TriggerSuffix, ThenEvents = [.. specification.ThenEvents.Take(taken.Length)] }
+            ? specification with { Name = specification.Name + TriggerSuffix, ThenEvents = [.. specification.ThenEvents.Take(taken.Length)], ThenInvocations = [] }
             : null;
         cascade = new(reaction, trigger);
 

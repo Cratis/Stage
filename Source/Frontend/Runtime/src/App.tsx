@@ -46,12 +46,14 @@ import '@cratis/scene.blueprint.default/styles.css';
 import { useStageRouteState } from './stageRoutes';
 import { StageDataProvider, useStageData } from './stageData';
 import { useComponentOutputsPublisher } from './stageComponentOutputs';
+import { withBoardSelection } from './stageBoardSelection';
 import { StageSliceDialog, stageCommandFormComponent, stageComponents } from './stageComponents';
 import { useStrings } from './useStrings';
 import { StageQueryBindings } from './stageQueryBindings';
 import { StageScreenTables } from './stageScreenTables';
 import { ColorSchemeMirror, StageChromeProvider, stageActivityComponent, stageChromeComponents } from './StageChrome';
 import { applicationChrome, type ApplicationIdentity, stageCatalogWith, stageProfile, stageRegistry } from './blueprint';
+import { stageResponseContracts, type StageResponseContracts } from './stageResponseContracts';
 import { shellStartupProblems, stageShellSettings, themesWithAccent, type StageShellSettings } from './stageShell';
 import { StageShellSettingsApplier, systemPrefersDark } from './StageShellSettings';
 import { declaresRegions, stageNavigationModel } from './stageNavigationModel';
@@ -83,6 +85,7 @@ export interface StageSceneApplication {
 
     /** The JSON schema of every modeled command, by name, which a toolbar slice's task dialog reads its fields from. */
     commandSchemas?: Record<string, string>;
+    responseContracts?: StageResponseContracts;
 }
 
 interface SceneCommandDetail {
@@ -113,6 +116,7 @@ function commandFormElement(screenName: string, form: Form): SceneElement {
         generationMode: form.generationMode,
         layout: form.layout,
         fields: form.fields,
+        onSubmit: form.onSubmit,
     });
 }
 
@@ -152,7 +156,7 @@ export function stageComposition(scene: StageSceneApplication, locales: string[]
         form: commandFormElement,
         trailing: [externalComponent('activity', stageActivityComponent)],
         decorate: element => {
-            const bound = bindDataSources(element);
+            const bound = bindDataSources(withBoardSelection(element));
             return dictionary ? resolveStringsInElement(bound, dictionary) : bound;
         },
     };
@@ -477,7 +481,7 @@ function StageInteractions({ activity, routesReady, scene, setActivity, strings,
         <StageChromeProvider state={{ locales: strings.locales, locale: strings.locale, setLocale: strings.setLocale, activity }}>
             <SliceInvokerProvider invoker={invoker}>
                 <SliceCommandFieldsProvider fieldsFor={fieldsFor}>
-                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key }} attachments={[]} onFindings={reportFindings}>
+                    <InteractionScope dispatcher={dispatcher} context={{ resolve: data.resolveBinding, localize: key => strings.dictionary[key] ?? key, responseContracts: stageResponseContracts(scene.responseContracts) }} attachments={[]} onFindings={reportFindings}>
                         {children}
                     </InteractionScope>
                 </SliceCommandFieldsProvider>
@@ -491,7 +495,7 @@ function StageScreen({ element, configuration, registry }: { element: SceneEleme
     const data = useStageData();
     const publishOutputs = useComponentOutputsPublisher();
     return (
-        <StageScreenTables element={element}>
+        <StageScreenTables element={element} outputScope={publishOutputs.scope}>
             <StageQueryBindings element={element} />
             <SceneElementView element={element} registry={registry} resolveBinding={data.resolveBinding} queryResults={data.queryResults} onComponentOutputsChanged={publishOutputs} configuration={configuration} />
         </StageScreenTables>

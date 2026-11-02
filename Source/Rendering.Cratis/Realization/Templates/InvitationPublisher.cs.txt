@@ -1,0 +1,39 @@
+using Ante.Contracts.Invitations;
+using Cratis.Chronicle.EventSequences;
+
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// Hands an invitation to Ante. Ante observes the application's outbox in one fixed namespace, whatever tenant the invitation was issued in.
+/// </summary>
+/// <param name="client">The Chronicle client.</param>
+/// <param name="configuration">The application configuration.</param>
+public class InvitationPublisher(IChronicleClient client, IConfiguration configuration) : IReactor
+{
+    /// <summary>
+    /// Appends the invitation to the application's outbox, once per invitation.
+    /// </summary>
+    /// <param name="event">The invitation.</param>
+    /// <param name="context">The event context, whose event source is the invitation id.</param>
+    /// <returns>A task.</returns>
+    public async Task Invited(OnboardingMemberInvited @event, EventContext context)
+    {
+        var store = await client.GetEventStore(Provisioning.StoreName(configuration), EventStoreNamespaceName.Default);
+        var invited = new UserInvitedToJoinTenant(new Email(@event.Email), new TenantName(@event.Tenant), [.. @event.Personas.Select(persona => new RoleName(persona))]);
+        var result = await store.GetEventSequence(EventSequenceId.Outbox).AppendOnce(
+            context.EventSourceId,
+            invited,
+            new IdempotencyKey($"invitation:{context.EventSourceId}"),
+            subject: new Cratis.Chronicle.Subject(context.EventSourceId.Value));
+        if (!result.IsSuccess)
+        {
+            throw new InvitationNotPublished(context.EventSourceId.Value);
+        }
+    }
+}
+
+/// <summary>
+/// The exception that is thrown when an invitation could not be appended to the application's outbox.
+/// </summary>
+/// <param name="invitation">The identifier of the invitation.</param>
+public class InvitationNotPublished(string invitation) : Exception($"Invitation {invitation} could not be appended to the outbox.");

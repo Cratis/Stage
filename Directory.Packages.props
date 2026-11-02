@@ -2,8 +2,10 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.258.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.259.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
+    <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
+    <AnteContractsChronicleVersion>19.115.2</AnteContractsChronicleVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Cratis -->
@@ -38,6 +40,10 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.11.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
+    <!-- Referenced only by an application rendered with onboarding; Stage itself does not reference them. -->
+    <PackageVersion Include="Cratis.Ante.Contracts" Version="1.6.0" />
+    <PackageVersion Include="Cratis.Showrunner.BoxOffice" Version="1.13.0" />
+    <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.10.0" />
     <PackageVersion Include="Cratis.Scene.Engine" Version="4.86.0" />
     <PackageVersion Include="Cratis.Scene.Model" Version="4.86.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
@@ -86,8 +92,8 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.303" />
     <!-- Testing & Specifications -->
-    <PackageVersion Include="Cratis.Specifications" Version="4.1.1" />
-    <PackageVersion Include="Cratis.Specifications.XUnit" Version="4.1.1" />
+    <PackageVersion Include="Cratis.Specifications" Version="5.1.0" />
+    <PackageVersion Include="Cratis.Specifications.XUnit" Version="5.1.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />

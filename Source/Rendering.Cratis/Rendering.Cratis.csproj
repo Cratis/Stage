@@ -8,6 +8,8 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Cratis.Screenplay" />
+        <PackageReference Include="System.Security.Cryptography.Pkcs" />
+        <PackageReference Include="System.Security.Cryptography.Xml" />
     </ItemGroup>
     <!--
         Specs compile the rendered output in memory against the real Cratis assemblies — asserting on generated

@@ -54,8 +54,11 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Cratis.Specifications" Version="{{profile.CratisSpecificationsPackageVersion}}" />
             <PackageVersion Include="Cratis.Specifications.XUnit" Version="{{profile.CratisSpecificationsXUnitPackageVersion}}" />
             <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="{{ScaffoldPackageVersions.TelemetryAbstractions}}" />
+            <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
+            <!-- Transitive security pin for Microsoft.Identity.Web.TokenCache; referenced by no project. -->
+            <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
           </ItemGroup>
@@ -103,6 +106,7 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageReference Include="Cratis.Arc.MongoDB" />
             <PackageReference Include="Cratis.Chronicle" />
             <PackageReference Include="Cratis.Chronicle.AspNetCore" />
+            <PackageReference Include="Microsoft.Identity.Web" />
           </ItemGroup>
           <ItemGroup Condition="'$(Configuration)' == 'Debug'">
             <PackageReference Include="Cratis.Arc.Chronicle.Testing" />

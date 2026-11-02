@@ -22,8 +22,9 @@ const rows = [
 ];
 const typedId = '33333333-3333-3333-3333-333333333333';
 
-async function openScreen(index: number | 'toolbar', data = rows, subject?: 'item' | 'screen') {
-    const routes = { commands: { RegisterResource: '/api/register', RenameResource: '/api/rename' }, commandSchemas: emitted.commandSchemas, queries: { AllResources: '/api/resources' } };
+async function openScreen(index: number | 'toolbar', data = rows, subject?: 'item' | 'screen', overrides: Record<string, unknown> = {}) {
+    const commandSchemas = typeof overrides.schema === 'string' ? { ...emitted.commandSchemas, RenameResource: overrides.schema } : emitted.commandSchemas;
+    const routes = { commands: { RegisterResource: '/api/register', RenameResource: '/api/rename' }, commandSchemas, queries: { AllResources: '/api/resources' } };
     registerStageCommands(routes);
     registerTestQueries({ AllResources: '/api/resources' });
     const fetched = vi.fn((_: RequestInfo | URL, init?: RequestInit) => Promise.resolve(init?.method === 'POST'
@@ -34,7 +35,7 @@ async function openScreen(index: number | 'toolbar', data = rows, subject?: 'ite
     const captured = element(authored.id ?? 'action', authored.componentName, authored.properties);
     const action = index === 'toolbar'
         ? element('register-toolbar', 'core:toolbarItem', { name: 'register', label: 'Register resource', kind: 'Action', target: 'RegisterResource' })
-        : { ...captured, properties: { ...captured.properties, ...(subject ? { actionSubject: subject } : {}) } };
+        : { ...captured, properties: { ...captured.properties, ...(subject ? { actionSubject: subject } : {}), ...overrides } };
     const table = element('resources', 'core:table', { query: 'AllResources' }, { columns: [element('resource-name', 'core:column', { property: 'name', label: 'Name' })] });
     const page = element('page', 'core:screen', {}, { content: [table, action] });
     const Table = stageComponents['core:table'];
@@ -72,6 +73,24 @@ describe('renderer-emitted creation and row actions', () => {
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
         expect(JSON.parse(String(init?.body))).toEqual({ resourceId: rows[1].resourceId, name: 'Renamed' });
+    });
+
+    it('submits an identifier-only plain action with the selected row identifiers and asks for nothing', async () => {
+        // A CloseWorkItem-shaped command: its only input is the identifier the selected row carries.
+        const fetched = await openScreen(1, rows, undefined, {
+            fields: [{ name: 'resourceId', label: 'Resource Id' }],
+            schema: JSON.stringify({ type: 'object', properties: { resourceId: { type: 'string', format: 'uuid', 'x-concept': 'ResourceId' } }, required: ['resourceId'] }),
+        });
+        await waitFor(() => expect((screen.getByRole('button', { name: 'Rename resource' }) as HTMLButtonElement).disabled).toBe(true));
+        fireEvent.click(screen.getByText('Mountain'));
+        fireEvent.click(screen.getByRole('button', { name: 'Rename resource' }));
+        expect(await screen.findByRole('dialog')).toBeTruthy();
+        expect(screen.queryByLabelText(/^Resource [Ii]d$/)).toBeNull();
+        expect(screen.queryByLabelText('Name')).toBeNull();
+        fireEvent.click(screen.getAllByRole('button', { name: 'Rename resource' }).at(-1)!);
+        await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
+        const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
+        expect(JSON.parse(String(init?.body))).toEqual({ resourceId: rows[1].resourceId });
     });
 
     it('honors an explicit item subject on a creation candidate', async () => {

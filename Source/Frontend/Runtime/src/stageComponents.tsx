@@ -274,7 +274,8 @@ function autoActionFields(input: ExternalComponent, schema: string | undefined, 
     if (!Array.isArray(ownFields) || ownFields.length === 0) return toolbarCommandFields(schema, properties, parameters, subject, rows);
     if (rows.length === 0 || subject === 'screen') return {};
     const carried = new Set(properties.filter(property => carriedByRows(property, subject, rows)).map(property => property.name));
-    return { fields: ownFields.filter(field => !carried.has(askedProperty(field))) };
+    // Manual even when nothing is left to ask, so the form does not regenerate the identifiers the row supplies.
+    return { fields: ownFields.filter(field => !carried.has(askedProperty(field))), generationMode: 'manual' };
 }
 
 function StageCommandAction({ element: input, interactions }: RegisteredProps) {

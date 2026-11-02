@@ -199,6 +199,6 @@ internal static class optional_validated_composite_concept_cases
 
     sealed record InputShape(string Name, string Type, string Valid, string Invalid, string Absent);
 
-    static string Structured(string property, string value, int indent) => Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment(property, value, indent);
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Conformance.Specs.given.StructuredValueText.Assignment(property, value, indent);
 }
 #endif

@@ -117,5 +117,5 @@ public class when_validating_composite_fixture_values : Specification
         _ => SemanticValue.Null
     };
 
-    static string Structured(string property, string value, int indent) => Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(property, value, indent);
+    static string Structured(string property, string value, int indent) => global::Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(property, value, indent);
 }

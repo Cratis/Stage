@@ -85,7 +85,7 @@ public class with_all_declarative_rules(context fixture) : IClassFixture<context
             lines.Add("        when IssueInvoice");
             lines.Add("          streamReference = \"invoice-one\"");
             lines.Add("          description = \"Accepted\"");
-            lines.AddRange(Rules.Select(_ => "          " + Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(_.Name, _.Name == replacement ? invalid! : _.Valid, 10)));
+            lines.AddRange(Rules.Select(_ => "          " + global::Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(_.Name, _.Name == replacement ? invalid! : _.Valid, 10)));
             if (message is null)
             {
                 lines.Add("        then InvoiceIssued");

@@ -34,7 +34,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Scene 4.86.0.
     // Recomputed from train 9 execution after combining generated documentation, concepts and shared Common output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Digest = "f627e420d24088d3081092de4802a9bdc55816241b8009ce522445d08cb329a2";
+    const string Digest = "b71181af50413a0a0128ced2c2c13778180efdb570ff0ca58a4bb8a70fb02538";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -46,7 +46,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
         .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
-        .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
+        .yarnrc.yml 90be03827dbdc6c1875cdf7c57ea44b1eb5bc71e6692f46dab07dcec2a288b37 65
         Common/CommentId.cs b09abdd1ae5570070ca8c6c49323ff1077789fccdbeba5dcdeaf19a68af03103 857
         Common/WorkItemId.cs d23f662b4e209e76408cce40888ab0c9207d1b4d7814b9257bc199cde5e2bda5 869
         Common/WorkStatus.cs 39e8088132ed10030ab679cbd735db36c75cd2dfc5c9650596aa9c285458cce3 282
@@ -95,7 +95,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         .frontend/vite-env.d.ts 65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5 38
         .frontend/vite.config.ts 5daf7f13caaa4595c83ba8909b745687c932893405b4941bd55a4b16f1ee0361 1113
         .gitignore cfff10c57387b861a42002754373868d7167021fa46ee762ec879c5cb0275b6a 260
-        .yarnrc.yml 473e6def86fc03638120e0c01d0c8bbab095677256460fa4ea763e5d4697f270 25
+        .yarnrc.yml 90be03827dbdc6c1875cdf7c57ea44b1eb5bc71e6692f46dab07dcec2a288b37 65
         Common/CommentId.cs 2651823873f3fceb34c04b456f3ccf04a4bc5e76381a5f6e38e9893d6af88e5d 1201
         Common/WorkItemId.cs 6cccba7c19f37effa332a37b720ace84152adc9353f89a6b6e58d9b9815be380 1213
         Common/WorkStatus.cs 94c14a6093b208dfe5065c1320725638b94db7a004b164fef1cc4765e967f36a 431
@@ -191,7 +191,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("751295edbaa3f1855359d9a20c9b7aabc740b53d9304f7cb95bcfe51fdc093ca"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and Scene 4.86.0 and Cratis/Stage#120 merged with train 10.
+            plan.Diagnostics).ShouldEqual("bcd94c6d0d64f921be38b90dfc7fec1353af8a849fe6cbf2c1f80a29b76acd9c"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and Scene 4.86.0 and Cratis/Stage#120 merged with train 10.
     }
 
     [Theory]

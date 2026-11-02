@@ -52,7 +52,7 @@ if (model is not null)
     _ = StageChronicleDefinitions.Build(model, EventSequenceId.Log);
 }
 var eventStore = ContainerEventStoreName.Resolve();
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(StageHostModeSelection.ConfigurationArguments(args));
 
 builder.Configuration.AddJsonFile(
     Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
@@ -60,6 +60,8 @@ builder.Configuration.AddJsonFile(
         : Path.Combine(builder.Environment.ContentRootPath, "cratis-stage.json"),
     optional: true,
     reloadOnChange: true);
+
+_ = StageHostModeSelection.Read(builder.Configuration, args, engine);
 
 // Admit modeled ownership before AddCratis, DI/provider resolution, type emission, any endpoint mapping,
 // or Chronicle connection. Use one startup snapshot for planning, mapping, and discovery.

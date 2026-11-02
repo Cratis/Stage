@@ -22,19 +22,34 @@ internal static class SemanticHost
 {
     internal static async Task Run(string[] args, string modelPath)
     {
+        var (app, initialize) = await Build(args, modelPath);
+        if (initialize is null)
+        {
+            await app.RunAsync();
+            return;
+        }
+
+        await app.StartAsync();
+        await initialize();
+        await app.WaitForShutdownAsync();
+    }
+
+    internal static async Task<(WebApplication App, Func<Task>? Initialize)> Build(string[] args, string modelPath)
+    {
         var issues = new List<StageUnsupportedIssue>();
         var notes = new List<SemanticModelLoadDiagnostic>();
         var (loaded, scene) = await LoadModel(modelPath, issues, notes);
 
         var eventStore = ContainerEventStoreName.Resolve();
         SemanticWorld? world = null;
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(StageHostModeSelection.ConfigurationArguments(args));
         builder.Configuration.AddJsonFile(
             Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
                 ? configuredPath
                 : Path.Combine(builder.Environment.ContentRootPath, "cratis-stage.json"),
             optional: true,
             reloadOnChange: true);
+        var mode = StageHostModeSelection.Read(builder.Configuration, args, StageRuntimeEngine.Semantic);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         var bodySettings = SemanticBodyWorkerOptions.From(builder.Configuration);
         var bodies = loaded is null ? null : await SemanticBodyWorkerHosting.Start(loaded, modelPath, bodySettings, notes);
@@ -52,8 +67,7 @@ internal static class SemanticHost
             builder.Services.AddSingleton<DynamicTypeFactory>();
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddControllers();
-            builder.Services.AddWorkbenchProxy();
-            builder.Services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+            AddSandboxServices(builder.Services, mode);
         }
 
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -70,29 +84,28 @@ internal static class SemanticHost
         app.UseRouting();
         app.UseCratisChronicle();
         StagePackageEndpoints.Map(app);
-        app.MapPost("/stage/load", () => Results.Conflict());
-        app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
-        MapReadModelBrowserPage(app);
-        foreach (var entry in admission?.Entries.Where(entry => entry.Status == "renderedAround") ?? [])
+        if (mode == StageHostMode.Sandbox)
         {
-            StageLog.RenderedAround(app.Logger, entry.Kind, entry.Artifact, entry.Details!);
+            app.MapPost("/stage/load", () => Results.Conflict());
+            app.MapGet("/stage/semantic/admission", () => Results.Json(new { engine = "semantic", issues = issues.Select(issue => issue.Details), entries = admission?.Entries ?? [] }, StageJson.Options));
+            MapReadModelBrowserPage(app);
         }
-        if (scene is not null && loaded is not null)
-        {
-            MapSceneEndpoints(app, scene, modelPath, loaded.Model);
-        }
+        LogRenderedAround(app, admission);
+        MapSceneIfLoaded(app, scene, modelPath, loaded?.Model);
 
         if (surface is null)
         {
-            MapRefused(app, issues, notes: notes.Count > 0 ? notes : null);
-            await app.RunAsync();
-            return;
+            MapRefusedHost(app, issues, notes.Count > 0 ? notes : null, mode);
+            return (app, null);
         }
 
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
-        SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
-        SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
+        if (mode == StageHostMode.Sandbox)
+        {
+            SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+            SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
+        }
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
         app.UseWebSockets();
@@ -100,34 +113,54 @@ internal static class SemanticHost
         StageEndpointMapper.Map(app, surface);
         app.UseSandboxIdentity(modelPath, loaded.Model, surface);
         app.UseCratisArc();
-        app.MapOpenApi();
-        app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
-        app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
+        if (mode == StageHostMode.Sandbox)
+        {
+            app.MapOpenApi();
+            app.MapScalarApiReference(options => options.WithDynamicBaseServerUrl());
+            app.MapWorkbenchProxy(WorkbenchAddress.For(app.Services));
+        }
 
         app.MapFallbackToFile("index.html");
-        await app.StartAsync();
-        try
+        return (app, Initialize);
+
+        async Task Initialize()
         {
-            var seeds = SemanticSeeds.Read(modelPath, loaded.Plan, bodies);
-            foreach (var diagnostic in seeds.Diagnostics)
+            try
             {
-                StageLog.SeedLeftOut(app.Logger, diagnostic.Code, diagnostic.Message, diagnostic.Source);
+                var seeds = SemanticSeeds.Read(modelPath, loaded.Plan, bodies);
+                foreach (var diagnostic in seeds.Diagnostics)
+                {
+                    StageLog.SeedLeftOut(app.Logger, diagnostic.Code, diagnostic.Message, diagnostic.Source);
+                }
+
+                notes.AddRange(seeds.Diagnostics);
+                world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds);
+                await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
             }
+            catch (SemanticWorldRebuildRefused exception)
+            {
+                issues.Add(new StageUnsupportedIssue("World", "model", $"World rebuild refused: {exception.Message}"));
+            }
+            catch (Exception exception)
+            {
+                issues.Add(new StageUnsupportedIssue("World", "model", $"Chronicle initialization failed: {exception.Message}"));
+            }
+        }
+    }
 
-            notes.AddRange(seeds.Diagnostics);
-            world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds);
-            await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
-        }
-        catch (SemanticWorldRebuildRefused exception)
-        {
-            issues.Add(new StageUnsupportedIssue("World", "model", $"World rebuild refused: {exception.Message}"));
-        }
-        catch (Exception exception)
-        {
-            issues.Add(new StageUnsupportedIssue("World", "model", $"Chronicle initialization failed: {exception.Message}"));
-        }
+    internal static void AddSandboxServices(IServiceCollection services, StageHostMode mode)
+    {
+        if (mode != StageHostMode.Sandbox) return;
+        services.AddWorkbenchProxy();
+        services.AddOpenApi(options => options.AddDocumentTransformer<StageOnlyOperationsDocumentTransformer>());
+    }
 
-        await app.WaitForShutdownAsync();
+    internal static void LogRenderedAround(WebApplication app, SemanticRuntimeAdmission? admission)
+    {
+        foreach (var entry in admission?.Entries.Where(entry => entry.Status == "renderedAround") ?? [])
+        {
+            StageLog.RenderedAround(app.Logger, entry.Kind, entry.Artifact, entry.Details!);
+        }
     }
 
     internal static async Task<(LoadedSemanticModel? Model, SceneApplication? Scene)> LoadModel(string modelPath, List<StageUnsupportedIssue> issues, List<SemanticModelLoadDiagnostic>? notes = null)
@@ -170,6 +203,12 @@ internal static class SemanticHost
     internal static void MapReadModelBrowserPage(IApplicationBuilder app) => app.MapWhen(
         context => HttpMethods.IsGet(context.Request.Method) && context.Request.Path == "/read-models/",
         branch => branch.Run(context => Results.Redirect($"../read-models{context.Request.QueryString}").ExecuteAsync(context)));
+
+    internal static void MapSceneIfLoaded(WebApplication app, SceneApplication? scene, string modelPath, ExecutableSemanticModel? model)
+    {
+        if (scene is null || model is null) return;
+        MapSceneEndpoints(app, scene, modelPath, model);
+    }
 
     internal static void MapSceneEndpoints(WebApplication app, SceneApplication scene, string modelPath, ExecutableSemanticModel model)
     {
@@ -232,6 +271,19 @@ internal static class SemanticHost
 
     internal static void MapStatus(WebApplication app, Func<StageStatus> status, IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null) =>
         app.MapGet("/stage/status", () => status() with { Notes = notes is { Count: > 0 } ? notes : null });
+
+    internal static void MapRefusedHost(WebApplication app, List<StageUnsupportedIssue> issues, IReadOnlyList<SemanticModelLoadDiagnostic>? notes, StageHostMode mode)
+    {
+        if (mode == StageHostMode.Sandbox)
+        {
+            MapRefused(app, issues, notes: notes);
+            return;
+        }
+
+        MapStatus(app, () => new StageStatus("unsupported", null, null) { Engine = "semantic", Issues = issues }, notes);
+        MapRefusedApi(app, issues);
+        app.MapFallbackToFile("index.html");
+    }
 
     internal static void MapRefused(WebApplication app, List<StageUnsupportedIssue> issues, string engine = "semantic", IReadOnlyList<SemanticModelLoadDiagnostic>? notes = null)
     {

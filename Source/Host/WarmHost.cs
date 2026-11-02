@@ -26,7 +26,7 @@ internal static class WarmHost
     internal static async Task Run(string[] args, StageRuntimeEngine engine)
     {
         var eventStore = ContainerEventStoreName.Resolve();
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(StageHostModeSelection.ConfigurationArguments(args));
 
         builder.Configuration.AddJsonFile(
             Environment.GetEnvironmentVariable("STAGE_CONFIG") is { Length: > 0 } configuredPath
@@ -35,6 +35,7 @@ internal static class WarmHost
             optional: true,
             reloadOnChange: true);
 
+        _ = StageHostModeSelection.Read(builder.Configuration, args, engine, warmMode: true);
         var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
         builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
         builder.Services.AddSingleton<StageEventStoreName>(eventStore);

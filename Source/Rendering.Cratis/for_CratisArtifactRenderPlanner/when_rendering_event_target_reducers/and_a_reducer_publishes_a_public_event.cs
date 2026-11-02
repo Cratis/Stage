@@ -20,6 +20,12 @@ public class and_a_reducer_publishes_a_public_event : Specification
             slice StateChange Orders
               event Drafted
                 name String
+              command Draft
+                id String identifier
+                name String
+                produces Drafted
+                  for id
+                  name = name
             slice Translate Publish
               direction outbound
               public event OrderPublished

@@ -13,7 +13,7 @@ public class with_a_workflow : given.a_dependency_index
 
     void Because() => BuildIndex();
 
-    [Fact] void should_be_complete() => _index.IsSemanticGraphComplete.ShouldBeTrue();
+    [Fact] void should_be_complete() => Assert.True(_index.IsSemanticGraphComplete, string.Join(" / ", _index.IncompleteReasons));
     [Fact] void should_not_refuse_the_lifecycle() => _index.Incompleteness.Any(gap => gap.Kind == SemanticDependencyIncompletenessKind.RefusedMember).ShouldBeFalse();
     [Fact] void should_not_record_unclassified_members() => _index.Incompleteness.Any(gap => gap.Kind == SemanticDependencyIncompletenessKind.UnclassifiedMember).ShouldBeFalse();
 }

@@ -15,9 +15,14 @@ static class FrameworkNameCatalogGenerator
     /// <summary>
     /// The namespace prefixes whose types are recorded in full, besides every imported namespace and the global namespace.
     /// They cover what generated code names: Arc, Chronicle and the rest of Cratis, the BCL, FluentValidation, the
-    /// MongoDB driver, OneOf for protected-read handler results and the test libraries of the specifications project.
+    /// MongoDB driver, OneOf for protected-read handler results, ASP.NET authentication and Identity.Web for the
+    /// authentication scaffold, and the test libraries of the specifications project.
     /// </summary>
-    public static readonly ImmutableArray<string> Scopes = ["Cratis", "FluentValidation", "MongoDB", "NSubstitute", "OneOf", "System", "Xunit"];
+    public static readonly ImmutableArray<string> Scopes =
+    [
+        "Cratis", "FluentValidation", "Microsoft.AspNetCore.Authentication", "Microsoft.Identity.Web",
+        "MongoDB", "NSubstitute", "OneOf", "System", "Xunit"
+    ];
 
     /// <summary>
     /// Generates the catalog content.

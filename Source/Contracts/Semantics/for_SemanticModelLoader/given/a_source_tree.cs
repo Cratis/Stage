@@ -16,7 +16,7 @@ public class a_source_tree : Specification
     void Establish()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent!;
+        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
         _workspace = Path.Combine(directory.FullName, ".ai-work", "210", "link-specs", Guid.NewGuid().ToString("N"));
         _root = Path.Combine(_workspace, "root");
         _outside = Path.Combine(_workspace, "outside");

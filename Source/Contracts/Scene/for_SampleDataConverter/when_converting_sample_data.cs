@@ -79,10 +79,10 @@ public class when_converting_sample_data : given.a_translated_application
     [Fact] void should_show_a_pack_without_a_title_by_its_name() => _application.SampleDataPacks.Single(pack => pack.Id == "helpdesk-demo").Title.ShouldEqual("HelpdeskDemo");
     [Fact] void should_follow_the_default_locale_without_one() => _application.SampleDataPacks.Single(pack => pack.Id == "helpdesk-demo").Locale.ShouldEqual("en-GB");
     [Fact] void should_convert_the_sets_and_rows() => (Nordic.Sets.Single().Shape, Nordic.Sets.Single().Rows.Count).ShouldEqual(("Customer", 2));
-    [Fact] void should_keep_a_string_as_text() => Nordic.Sets[0].Rows[0]["name"]!.GetValue<string>().ShouldEqual("Fjordline AS");
-    [Fact] void should_keep_a_whole_number_whole() => Nordic.Sets[0].Rows[0]["seats"]!.GetValue<long>().ShouldEqual(12L);
-    [Fact] void should_keep_a_decimal_a_decimal() => Nordic.Sets[0].Rows[0]["score"]!.GetValue<decimal>().ShouldEqual(4.5m);
-    [Fact] void should_keep_a_flag_a_boolean() => Nordic.Sets[0].Rows[0]["active"]!.GetValue<bool>().ShouldBeTrue();
+    [Fact] void should_keep_a_string_as_text() => Nordic.Sets[0].Rows[0]["name"].GetValue<string>().ShouldEqual("Fjordline AS");
+    [Fact] void should_keep_a_whole_number_whole() => Nordic.Sets[0].Rows[0]["seats"].GetValue<long>().ShouldEqual(12L);
+    [Fact] void should_keep_a_decimal_a_decimal() => Nordic.Sets[0].Rows[0]["score"].GetValue<decimal>().ShouldEqual(4.5m);
+    [Fact] void should_keep_a_flag_a_boolean() => Nordic.Sets[0].Rows[0]["active"].GetValue<bool>().ShouldBeTrue();
     [Fact] void should_keep_null_null() => Nordic.Sets[0].Rows[0]["note"].ShouldBeNull();
     [Fact] void should_keep_the_authored_field_order() => Nordic.Sets[0].Rows[0].Select(field => field.Key).ShouldEqual(["name", "seats", "score", "active", "note"]);
     [Fact] void should_choose_the_active_pack_in_the_profile() => Selection("Desktop").ActivePack.ShouldEqual("nordic-demo");

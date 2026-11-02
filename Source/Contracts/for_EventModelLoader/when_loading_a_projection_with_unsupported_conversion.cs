@@ -24,5 +24,5 @@ public class when_loading_a_projection_with_unsupported_conversion : Specificati
         _error.ShouldBeOfExactType<InvalidEventModel>();
 
     [Fact] void should_name_the_failed_slice_and_expression() =>
-        _error!.Message.ShouldContain("Catalog.Items.Summary");
+        _error.Message.ShouldContain("Catalog.Items.Summary");
 }

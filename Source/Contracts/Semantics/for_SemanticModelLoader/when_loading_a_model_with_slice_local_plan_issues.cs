@@ -60,7 +60,7 @@ public class when_loading_a_model_with_slice_local_plan_issues : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "source.play", Source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        var original = compiled.Value!;
+        var original = compiled.Value;
         var module = original.Model.Application.Modules.Single();
         var feature = module.Features.Single();
         var slices = feature.Slices.Select(slice => slice with { Queries = [.. slice.Queries.Select(query => query with { Cardinality = SemanticQueryCardinality.One })] });
@@ -73,8 +73,8 @@ public class when_loading_a_model_with_slice_local_plan_issues : Specification
     [Fact] void should_load_the_model() => Assert.True(_result.Success, string.Join("; ", _result.Diagnostics.Select(diagnostic => diagnostic.Message)));
     [Fact] void should_keep_the_plan_issue_as_a_warning() => Assert.Contains(_result.Notes, note => note.Code == "STAGE-PLAN-004" && note.Severity == DiagnosticSeverity.Warning);
     [Fact] void should_have_no_blocking_diagnostics() => _result.Errors.ShouldBeEmpty();
-    [Fact] void should_attach_the_warning_to_the_loaded_model() => Assert.Equal(_result.Notes.AsEnumerable(), _result.Loaded!.Notes.AsEnumerable());
-    [Fact] void should_run_the_supported_command() => new SemanticSpecificationRunner().Run(_result.Loaded!.Plan, _result.Loaded.Plan.Specifications.Values.Single(specification => specification.Name == "Registering").Id).Passed.ShouldBeTrue();
-    [Fact] void should_refuse_only_the_single_query() => Assert.IsType<SemanticUnsupported>(new SemanticEvaluator().Execute(_result.Loaded!.Plan, SemanticWorld.Empty, SemanticExecutionRequest.ForQueries([new(_result.Loaded.Plan.Queries.Keys.Single(), SemanticValue.Text("first"))]))).Capability.ShouldEqual(SemanticExecutionCapability.Query);
+    [Fact] void should_attach_the_warning_to_the_loaded_model() => Assert.Equal(_result.Notes.AsEnumerable(), _result.Loaded.Notes.AsEnumerable());
+    [Fact] void should_run_the_supported_command() => new SemanticSpecificationRunner().Run(_result.Loaded.Plan, _result.Loaded.Plan.Specifications.Values.Single(specification => specification.Name == "Registering").Id).Passed.ShouldBeTrue();
+    [Fact] void should_refuse_only_the_single_query() => Assert.IsType<SemanticUnsupported>(new SemanticEvaluator().Execute(_result.Loaded.Plan, SemanticWorld.Empty, SemanticExecutionRequest.ForQueries([new(_result.Loaded.Plan.Queries.Keys.Single(), SemanticValue.Text("first"))]))).Capability.ShouldEqual(SemanticExecutionCapability.Query);
 }
 #endif

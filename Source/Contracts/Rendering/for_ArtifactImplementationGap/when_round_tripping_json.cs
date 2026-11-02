@@ -12,7 +12,7 @@ public class when_round_tripping_json : given.a_gap
     ArtifactImplementationGap _roundTripped = null!;
     string _json = null!;
     void Establish() => _json = JsonSerializer.Serialize(_gap, StageJson.Options);
-    void Because() => _roundTripped = JsonSerializer.Deserialize<ArtifactImplementationGap>(_json, StageJson.Options)!;
+    void Because() => _roundTripped = JsonSerializer.Deserialize<ArtifactImplementationGap>(_json, StageJson.Options);
 
     [Fact] void should_preserve_every_payload_field() => JsonSerializer.Serialize(_roundTripped, StageJson.Options).ShouldEqual(_json);
     [Fact] void should_preserve_the_validated_digest() => Digest([_roundTripped]).ShouldEqual(Digest([_gap]));

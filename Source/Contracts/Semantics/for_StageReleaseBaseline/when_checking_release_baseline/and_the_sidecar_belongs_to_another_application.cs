@@ -10,7 +10,7 @@ namespace Cratis.Stage.Contracts.Semantics.for_StageReleaseBaseline.when_checkin
 
 public class and_the_sidecar_belongs_to_another_application : given.a_release_baseline
 {
-    void Because() => _assessment = StageReleaseBaseline.Check(_workspace, _baseline with { Document = _baseline.Document! with { ApplicationIdentity = ApplicationIdentity.Create("OtherApp").ToString() } });
+    void Because() => _assessment = StageReleaseBaseline.Check(_workspace, _baseline with { Document = _baseline.Document with { ApplicationIdentity = ApplicationIdentity.Create("OtherApp").ToString() } });
     [Fact] void should_report_unreadable() => _assessment.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Unreadable);
     [Fact] void should_not_invent_missing_revisions() => _assessment.Violations.ShouldBeEmpty();
 }

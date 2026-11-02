@@ -21,9 +21,9 @@ public class and_a_target_selects_another_declared_shell : an_application_target
 
     void Because() => _result = RenderPlanner.Plan(_application, _catalog);
 
-    [Fact] void should_render_inside_the_shell_the_target_selects() => _result.Targets[0].Layout!.Name.ShouldEqual("MobileShell");
-    [Fact] void should_report_the_screen_left_on_the_other_shell() => Finding()!.Kind.ShouldEqual(RenderFindingKind.ScreenNotOnSelectedLayout);
-    [Fact] void should_name_the_screen_that_did_not_follow() => Finding()!.Subject.ShouldEqual("InvoiceDetails");
+    [Fact] void should_render_inside_the_shell_the_target_selects() => _result.Targets[0].Layout.Name.ShouldEqual("MobileShell");
+    [Fact] void should_report_the_screen_left_on_the_other_shell() => Finding().Kind.ShouldEqual(RenderFindingKind.ScreenNotOnSelectedLayout);
+    [Fact] void should_name_the_screen_that_did_not_follow() => Finding().Subject.ShouldEqual("InvoiceDetails");
 
     RenderFinding? Finding() =>
         _result.Targets[0].Findings.FirstOrDefault(finding => finding.Kind == RenderFindingKind.ScreenNotOnSelectedLayout);

@@ -18,8 +18,8 @@ public class when_admitting_a_model_for_a_legacy_engine : Specification
     }
 
     [Fact] void should_refuse_a_protected_model() => _protected.ShouldBeOfExactType<InvalidEventModel>();
-    [Fact] void should_name_the_refusal_code() => _protected!.Message.ShouldContain("STAGE-ESM-044:");
-    [Fact] void should_name_the_declaration() => _protected!.Message.ShouldContain("command reads protected");
-    [Fact] void should_name_the_engine() => _protected!.Message.ShouldContain("eventmodel engine");
+    [Fact] void should_name_the_refusal_code() => _protected.Message.ShouldContain("STAGE-ESM-044:");
+    [Fact] void should_name_the_declaration() => _protected.Message.ShouldContain("command reads protected");
+    [Fact] void should_name_the_engine() => _protected.Message.ShouldContain("eventmodel engine");
     [Fact] void should_admit_an_unprotected_model() => _unprotected.ShouldBeNull();
 }

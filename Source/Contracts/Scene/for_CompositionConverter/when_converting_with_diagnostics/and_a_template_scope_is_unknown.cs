@@ -17,7 +17,7 @@ public class and_a_template_scope_is_unknown : Specification
         var diagnostics = new ConversionDiagnostics();
         var result = CompositionConverter.Metadata(null, null, true, ["module", "unknown", "slice"], [], diagnostics, "Workspace", location);
 
-        result.Scopes!.ToArray().ShouldEqual([TemplateScope.Module, TemplateScope.Slice]);
+        result.Scopes.ToArray().ShouldEqual([TemplateScope.Module, TemplateScope.Slice]);
         diagnostics.All.Single().Code.ShouldEqual("STAGE-SCENE-COMPOSITION-002");
         diagnostics.All.Single().Path.ShouldEqual("Workspace");
         diagnostics.All.Single().Location.ShouldEqual(location);

@@ -36,12 +36,12 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
         var compilation = new SemanticModelCompiler().Compile("Commerce", SemanticDocumentSet.Create([document], catalog));
         compilation.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         compilation.Success.ShouldBeTrue();
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
         var plan = SemanticExecutionPlan.Compile(_model);
         plan.Success.ShouldBeTrue();
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
-        MapSemanticModel(EventModelLoader.LoadFromSource(multimodule_source.Source), plan.Plan!, appender);
+        MapSemanticModel(EventModelLoader.LoadFromSource(multimodule_source.Source), plan.Plan, appender);
 
         _folder = Path.Combine(Path.GetTempPath(), $"stage-personas-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_folder);
@@ -49,7 +49,7 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
         await File.WriteAllTextAsync(path, multimodule_source.Source);
         _app.UseSandboxIdentityHeaders();
         _app.UseRouting();
-        _app.UseSandboxIdentity(path, plan.Plan!.Model, _surface);
+        _app.UseSandboxIdentity(path, plan.Plan.Model, _surface);
         _app.Use((context, next) =>
         {
             context.Response.Headers["X-Test-Persona"] = context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous";
@@ -63,7 +63,7 @@ public class a_started_multimodule_host : for_StageEndpointMapper.given.a_routed
         _app.MapGet("/outside", () => Results.Ok());
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 

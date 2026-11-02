@@ -16,5 +16,5 @@ public class with_a_trailing_slash : a_browser_page
     void Destroy() => _response.Dispose();
 
     [Fact] void should_redirect_before_serving_the_page() => _response.StatusCode.ShouldEqual(HttpStatusCode.Found);
-    [Fact] void should_use_a_relative_location() => _response.Headers.Location!.OriginalString.ShouldEqual("../read-models");
+    [Fact] void should_use_a_relative_location() => _response.Headers.Location.OriginalString.ShouldEqual("../read-models");
 }

@@ -40,7 +40,7 @@ public class when_describing_generated_inputs_and_responses : for_StageEndpointM
     [Fact] void should_describe_only_caller_inputs() => _schema.GetProperty("properties").EnumerateObject().Select(property => property.Name).ShouldContainOnly("name");
     [Fact] void should_require_only_caller_inputs() => _schema.GetProperty("required").EnumerateArray().Select(property => property.GetString()).ShouldContainOnly("name");
     [Fact] void should_execute_without_a_caller_supplied_identifier() => _status.ShouldEqual(200);
-    [Fact] void should_return_the_generated_identifier_as_a_string() => Guid.Parse(_response.GetProperty("response").GetString()!).ShouldNotEqual(Guid.Empty);
+    [Fact] void should_return_the_generated_identifier_as_a_string() => Guid.Parse(_response.GetProperty("response").GetString()).ShouldNotEqual(Guid.Empty);
     [Fact] void should_describe_the_generated_identifier_response() => _routes.CommandResponseKinds["RegisterIdentifier"].ShouldEqual("string");
     [Fact] void should_describe_a_text_response() => _routes.CommandResponseKinds["EchoText"].ShouldEqual("string");
     [Fact] void should_describe_a_whole_number_response() => _routes.CommandResponseKinds["EchoCount"].ShouldEqual("number");

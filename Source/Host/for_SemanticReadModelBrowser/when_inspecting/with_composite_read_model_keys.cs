@@ -54,7 +54,7 @@ public class with_composite_read_model_keys : Specification
         SemanticReadModelBrowser.Map(_app, runtime, () => true);
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        _client = new HttpClient { BaseAddress = new Uri(_app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()) };
+        _client = new HttpClient { BaseAddress = new Uri(_app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>().Addresses.Single()) };
     }
 
     async Task Because()

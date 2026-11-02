@@ -17,5 +17,5 @@ public class when_loading_an_authored_scene : given.a_model_path
     async Task Because() => (_, _scene) = await SemanticHost.LoadModel(_path, _issues);
 
     [Fact] void should_report_no_unsupported_issues() => _issues.ShouldBeEmpty();
-    [Fact] void should_preserve_the_authored_screen_instead_of_synthesizing_defaults() => _scene!.Screens.Single().Name.ShouldEqual("AuthoredOverview");
+    [Fact] void should_preserve_the_authored_screen_instead_of_synthesizing_defaults() => _scene.Screens.Single().Name.ShouldEqual("AuthoredOverview");
 }

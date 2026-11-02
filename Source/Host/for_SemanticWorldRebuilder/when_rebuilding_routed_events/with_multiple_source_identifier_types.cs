@@ -100,8 +100,8 @@ public class with_multiple_source_identifier_types : a_routed_runtime
 
     [Fact] void should_append_and_rebuild_both_facts() => _world.Facts.Length.ShouldEqual(2);
     [Fact] void should_rebuild_the_same_event_contract() => _world.Facts.Select(fact => fact.EventContract).Distinct().Count().ShouldEqual(1);
-    [Fact] void should_use_the_accounts_declared_identifier_type() => _world.Facts[0].Context!.EventSource.Type.ShouldEqual(IdentifierType("Account"));
-    [Fact] void should_use_the_invoices_declared_identifier_type() => _world.Facts[1].Context!.EventSource.Type.ShouldEqual(IdentifierType("Invoice"));
+    [Fact] void should_use_the_accounts_declared_identifier_type() => _world.Facts[0].Context.EventSource.Type.ShouldEqual(IdentifierType("Account"));
+    [Fact] void should_use_the_invoices_declared_identifier_type() => _world.Facts[1].Context.EventSource.Type.ShouldEqual(IdentifierType("Invoice"));
     [Fact] void should_preserve_the_account_identity() => _world.Facts[0].Destination.ShouldEqual(SemanticValue.Text("acc-1"));
     [Fact] void should_preserve_the_invoice_identity() => _world.Facts[1].Destination.ShouldEqual(SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
 

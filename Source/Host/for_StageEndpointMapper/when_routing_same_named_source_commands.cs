@@ -31,7 +31,7 @@ public class when_routing_same_named_source_commands : given.a_routed_model
         _statuses.Add((await Request("POST", "/api/orders/checkout/do-it/validate")).Status);
     }
 
-    [Fact] void should_preserve_both_source_commands() => StageModelWalker.Slices(_model).Select(slice => slice.Slice.Command!.Name).ToArray().ShouldEqual(["DoIt", "DoIt"]);
+    [Fact] void should_preserve_both_source_commands() => StageModelWalker.Slices(_model).Select(slice => slice.Slice.Command.Name).ToArray().ShouldEqual(["DoIt", "DoIt"]);
     [Fact] void should_select_both_canonical_commands_and_validation_routes() => _statuses.Take(4).ToArray().ShouldEqual([200, 200, 200, 200]);
     [Fact] void should_leave_both_ambiguous_legacy_routes_unmapped() => _statuses.Skip(4).ToArray().ShouldEqual([404, 404]);
     [Fact] void should_never_invoke_any_command_for_the_ambiguous_aliases() => _commands.Count.ShouldEqual(4);

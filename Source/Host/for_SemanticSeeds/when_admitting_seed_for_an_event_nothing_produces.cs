@@ -30,7 +30,7 @@ public class when_admitting_seed_for_an_event_nothing_produces : Specification
                   query All => ProductRow[]
             """;
         var plan = compiled_plan.From(Model);
-        var syntax = new ScreenplayCompiler().Compile($"{Model}\nseed\n  for \"mug\"\n    ProductListed\n      name = \"Mug\"\n").Value!;
+        var syntax = new ScreenplayCompiler().Compile($"{Model}\nseed\n  for \"mug\"\n    ProductListed\n      name = \"Mug\"\n").Value;
         _seeds = SemanticSeeds.Admit(SemanticSeeds.Create(syntax.Seeds, plan), plan);
     }
 

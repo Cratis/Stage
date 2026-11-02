@@ -41,7 +41,7 @@ public class with_another_slices_translate_reaction : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("work"), "work", "Work.play", source);
         var compilation = new SemanticModelCompiler().Compile("Work", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     void Because() => _admission = new(_plan);

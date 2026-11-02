@@ -2509,6 +2509,7 @@ type	AS	Cratis.Arc.Commands	ValueRequiresExplicitOffset	class
 type	AS	Cratis.Arc.Commands.Filters	AuthorizationFilter	class
 type	AS	Cratis.Arc.Commands.Filters	DataAnnotationValidationFilter	class
 type	AS	Cratis.Arc.Commands.Filters	FluentValidationFilter	class
+type	AS	Cratis.Arc.Commands.Generated	OperationRegistration	static
 type	AS	Cratis.Arc.Commands.ModelBound	BlockOnValidationSeverityAttribute	attribute
 type	AS	Cratis.Arc.Commands.ModelBound	CommandAttribute	attribute
 type	AS	Cratis.Arc.Commands.ModelBound	CommandAttributeExtensions	static
@@ -2578,6 +2579,7 @@ type	AS	Cratis.Arc.Execution	CorrelationIdMiddleware	class
 type	AS	Cratis.Arc.Execution	CorrelationIdOptions	class
 type	AS	Cratis.Arc.Execution	CorrelationIdResolver	static
 type	AS	Cratis.Arc.Generated	GeneratedMarker	static
+type	AS	Cratis.Arc.Generated	__CratisArcProjectReferenceModules	static
 type	AS	Cratis.Arc.Http	AuthenticationMiddleware	class
 type	AS	Cratis.Arc.Http	AuthenticationRequiredWithoutHandlers	class
 type	AS	Cratis.Arc.Http	CookieOptions	class

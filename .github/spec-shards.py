@@ -34,10 +34,13 @@ NAMESPACE = "Cratis.Stage.Rendering.Cratis"
 PLANNER = NAMESPACE + ".for_CratisArtifactRenderPlanner"
 # Each fixture runs in exactly one dedicated workflow job (dotnet-build.yml) and in no shard.
 STANDALONE_APPLICATION_FIXTURE = "when_verifying_a_standalone_generated_application"
+# Opt-in real builds of a rendered application and its event contracts project; they skip unless the lane enables them.
+EVENT_CONTRACTS_FIXTURE = "when_building_rendered_event_contracts"
 DEDICATED_FIXTURES = (
     "when_compiling_generated_name_matrix",
     "when_building_the_generated_screen_composition_application",
     STANDALONE_APPLICATION_FIXTURE,
+    EVENT_CONTRACTS_FIXTURE,
 )
 EXCLUSIONS = "&".join("FullyQualifiedName!~" + fixture for fixture in DEDICATED_FIXTURES)
 BLUEPRINT_TEMPLATES_FIXTURE = "when_building_the_blueprint_templates_application"

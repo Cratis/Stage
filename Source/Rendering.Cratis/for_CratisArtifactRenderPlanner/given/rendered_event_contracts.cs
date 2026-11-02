@@ -16,7 +16,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 /// <summary>
 /// A generated application whose public event and shared concept moved into a separate contracts project, planned through the public
 /// <see cref="CratisRendering.Plan(ExecutableSemanticModel, SemanticExecutionPlan, ArtifactRenderScope, CratisRenderingOptions)"/>, written unchanged
-/// under the task-scoped proof root and built for real in one configuration.
+/// under the configured proof root and built for real in one configuration.
 /// </summary>
 public sealed class rendered_event_contracts
 {
@@ -166,37 +166,12 @@ public sealed class rendered_event_contracts
     static string ProofRoot()
     {
         var configured = Environment.GetEnvironmentVariable(RootVariable);
-        Assert.False(string.IsNullOrWhiteSpace(configured), $"{RootVariable} must name the task-scoped proof directory when {EnableVariable} is 1.");
-        var required = Path.Combine(RepositoryRoot(), ".ai-work", "212", "contracts-proof");
+        Assert.False(string.IsNullOrWhiteSpace(configured), $"{RootVariable} must name an existing proof directory when {EnableVariable} is 1.");
+        Assert.True(Path.IsPathFullyQualified(configured), $"{RootVariable} must be an absolute path, not {configured}.");
         var root = Path.GetFullPath(configured).TrimEnd(Path.DirectorySeparatorChar);
-        Assert.True(
-            string.Equals(root, required, StringComparison.Ordinal) || root.StartsWith(required + Path.DirectorySeparatorChar, StringComparison.Ordinal),
-            $"{RootVariable} must be {required} or beneath it, not {root}.");
         Assert.True(Directory.Exists(root), $"{RootVariable} names {root}, which does not exist.");
-        for (var directory = new DirectoryInfo(root); directory is not null; directory = directory.Parent)
-        {
-            Assert.True(directory.LinkTarget is null, $"{directory.FullName} is a symbolic link, so the proof root could escape {required}.");
-            if (string.Equals(directory.FullName.TrimEnd(Path.DirectorySeparatorChar), required, StringComparison.Ordinal))
-            {
-                break;
-            }
-        }
-
+        Assert.True(new DirectoryInfo(root).LinkTarget is null, $"{root} is a symbolic link; name the directory it points to.");
         return root;
-    }
-
-    static string RepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var git = Path.Combine(directory.FullName, ".git");
-            if (File.Exists(git) || Directory.Exists(git))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new InvalidOperationException($"No repository root was found above {AppContext.BaseDirectory}.");
     }
 
     static ExecutableSemanticModel Compile()

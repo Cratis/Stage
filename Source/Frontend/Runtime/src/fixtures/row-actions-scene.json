@@ -1,0 +1,234 @@
+{
+  "commandSchemas": {
+    "AddChildResource": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022parentId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ParentId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022parentId\u0022,\u0022name\u0022]}",
+    "ImportSummary": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022summaryId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022SummaryId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022summaryId\u0022,\u0022name\u0022]}",
+    "RegisterResource": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022],\u0022x-creates\u0022:true}",
+    "RegisterSummary": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022summaryId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022SummaryId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022summaryId\u0022,\u0022name\u0022]}",
+    "RenameResource": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}"
+  },
+  "responseContracts": {
+    "commandInputs": {
+      "AddChildResource": {
+        "name": {
+          "kind": "string"
+        },
+        "parentId": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      },
+      "ImportSummary": {
+        "name": {
+          "kind": "string"
+        },
+        "summaryId": {
+          "kind": "string"
+        }
+      },
+      "RegisterResource": {
+        "name": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      },
+      "RegisterSummary": {
+        "name": {
+          "kind": "string"
+        },
+        "summaryId": {
+          "kind": "string"
+        }
+      },
+      "RenameResource": {
+        "name": {
+          "kind": "string"
+        },
+        "resourceId": {
+          "kind": "string"
+        }
+      }
+    },
+    "commands": {
+      "AddChildResource": {
+        "kind": "void"
+      },
+      "ImportSummary": {
+        "kind": "void"
+      },
+      "RegisterResource": {
+        "kind": "void"
+      },
+      "RegisterSummary": {
+        "kind": "void"
+      },
+      "RenameResource": {
+        "kind": "void"
+      }
+    },
+    "screenInputs": {
+      "Resources": {}
+    }
+  },
+  "screens": [
+    {
+      "forms": [],
+      "name": "Resources",
+      "slotContent": {
+        "content": [
+          {
+            "componentName": "core:action",
+            "id": "register",
+            "properties": {
+              "command": "RegisterResource",
+              "createsEntity": true,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "form": "Register",
+              "generationMode": "auto",
+              "label": "Register resource",
+              "layout": null,
+              "metadataStatus": "available",
+              "onSubmit": null,
+              "parameterless": false,
+              "rowAction": true,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022],\u0022x-creates\u0022:true}"
+            }
+          },
+          {
+            "componentName": "core:action",
+            "id": "rename",
+            "properties": {
+              "command": "RenameResource",
+              "createsEntity": false,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "label": "Rename resource",
+              "metadataStatus": "available",
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022]}"
+            }
+          },
+          {
+            "componentName": "core:action",
+            "properties": {
+              "command": "AddChildResource",
+              "createsEntity": false,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Parent Id",
+                  "name": "parentId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "metadataStatus": "available",
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022parentId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ParentId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022parentId\u0022,\u0022name\u0022]}"
+            }
+          },
+          {
+            "componentName": "core:action",
+            "properties": {
+              "command": "RegisterSummary",
+              "createsEntity": false,
+              "fields": [
+                {
+                  "label": "Summary Id",
+                  "name": "summaryId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "metadataStatus": "available",
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022summaryId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022SummaryId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022summaryId\u0022,\u0022name\u0022]}"
+            }
+          },
+          {
+            "componentName": "core:table",
+            "properties": {
+              "rows": [],
+              "typeName": "Resource"
+            }
+          }
+        ],
+        "forms": [
+          {
+            "behaviors": [],
+            "componentName": "Stage:commandForm",
+            "horizontalAlignment": "Stretch",
+            "id": "form-Resources-Register",
+            "isEnabled": true,
+            "margin": {
+              "bottom": 0,
+              "left": 0,
+              "right": 0,
+              "top": 0
+            },
+            "maximumSize": {},
+            "minimumSize": {},
+            "name": "Register",
+            "opacity": 1,
+            "properties": {
+              "command": "RegisterResource",
+              "createsEntity": true,
+              "fields": [
+                {
+                  "label": "Resource Id",
+                  "name": "resourceId"
+                },
+                {
+                  "label": "Name",
+                  "name": "name"
+                }
+              ],
+              "generationMode": "auto",
+              "label": "Register",
+              "layout": null,
+              "metadataStatus": "available",
+              "onSubmit": [],
+              "parameterless": false,
+              "schema": "{\u0022type\u0022:\u0022object\u0022,\u0022properties\u0022:{\u0022resourceId\u0022:{\u0022type\u0022:\u0022string\u0022,\u0022format\u0022:\u0022uuid\u0022,\u0022x-concept\u0022:\u0022ResourceId\u0022},\u0022name\u0022:{\u0022type\u0022:\u0022string\u0022}},\u0022required\u0022:[\u0022resourceId\u0022,\u0022name\u0022],\u0022x-creates\u0022:true}"
+            },
+            "size": {},
+            "slots": {},
+            "verticalAlignment": "Stretch",
+            "visibility": "Visible",
+            "zIndex": 0
+          }
+        ]
+      }
+    }
+  ],
+  "toolbar": {
+    "slice": "Business.Inventory.Resources.RegisterResource"
+  }
+}

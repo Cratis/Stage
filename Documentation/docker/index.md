@@ -543,3 +543,20 @@ Both Dockerfiles expect a prebuilt `dotnet publish` output, so build them throug
 It publishes the host and the specification runner, then builds both images from the repository root. The host
 image is tagged `cratis/studio-stage:latest` by default; `STAGE_IMAGE`, `STAGE_TAG`, `SPECRUNNER_IMAGE`,
 `SPECRUNNER_TAG`, `VERSION`, `COMMIT` and `PLATFORM` override the defaults.
+
+## Published mode (preview)
+
+Stage defaults to Sandbox mode. Opt in to Published mode with `Stage:Mode=Published` in configuration,
+`STAGE_MODE=Published` in the environment, or the `--published` host argument. Mode names are case-insensitive;
+unknown names refuse startup.
+
+Published mode requires the semantic engine and `Stage:Sandbox:ForwardedIdentity=true`. Run behind AuthProxy
+so only its forwarded principal reaches Stage. Test personas are disabled even when `Stage:Sandbox:Identity`
+is enabled. Warm hosting (`--warm` or `STAGE_WARM`) and the EventModel engine are refused.
+
+OpenAPI, Scalar, the Workbench proxy, the read-model browser, model loading, semantic admission and specification
+execution endpoints are not mapped. Application APIs, `/.cratis/*`, scene, route, locale, string, package and status
+endpoints, static files and the application SPA fallback remain available.
+
+This preview only gates host surfaces and identity. It does not configure persistent storage, restrict kernel
+network access or harden forwarded-header trust. It is not a complete production deployment configuration.

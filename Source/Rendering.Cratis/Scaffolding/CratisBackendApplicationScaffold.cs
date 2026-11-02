@@ -95,6 +95,10 @@ public sealed partial class CratisBackendApplicationScaffold
 
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddHealthChecks();
+
+        // Chronicle 19.115 resolves its telemetry configuration at startup and fails when no telemetry callback is
+        // registered (Cratis/Chronicle#5492). This no-op callback works around it until the Chronicle release with the fix.
+        builder.Services.AddSingleton<System.Action<Cratis.Chronicle.ChronicleTelemetryOptions>>(_ => { });
         builder.AddCratis(
             configureArcBuilder: arc => arc.WithMongoDB(),
             configureChronicleBuilder: chronicle => chronicle.WithCamelCaseNamingPolicy());

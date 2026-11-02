@@ -25,7 +25,7 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.0 and moves to Chronicle 19.115.2.
     // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
-    const string Before = "97a77bf36b13336d87ec05c5a1bcee2ef539ae347f8e4cb42e4e4a15e80304bd";
+    const string Before = "f7865554e4c1e18cdb8e430cb167d22054d9bfc8799f7f9166f33b51f62e39de";
 
     void Because() => _application = AppPlan(_profile);
 

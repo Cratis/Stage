@@ -25,9 +25,21 @@ public class when_building_rendered_event_contracts : Specification
 #pragma warning restore CRSPEC0004
         => await Prove("Release");
 
-    static async Task Prove(string configuration)
+#pragma warning disable CRSPEC0004 // EventContractsBuildFact derives from FactAttribute and is discovered by xUnit.
+    [EventContractsBuildFact]
+    async Task should_build_the_debug_event_target_reducer_against_the_contracts_project()
+#pragma warning restore CRSPEC0004
+        => await Prove("Debug", eventTargetReducer: true);
+
+#pragma warning disable CRSPEC0004 // EventContractsBuildFact derives from FactAttribute and is discovered by xUnit.
+    [EventContractsBuildFact]
+    async Task should_build_the_release_event_target_reducer_against_the_contracts_project()
+#pragma warning restore CRSPEC0004
+        => await Prove("Release", eventTargetReducer: true);
+
+    static async Task Prove(string configuration, bool eventTargetReducer = false)
     {
-        var proof = new rendered_event_contracts(configuration);
+        var proof = new rendered_event_contracts(configuration, eventTargetReducer);
         proof.Render();
         await proof.Build();
         proof.AssertBuilt();

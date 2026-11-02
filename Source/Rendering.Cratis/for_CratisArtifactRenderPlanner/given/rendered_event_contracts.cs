@@ -8,6 +8,7 @@ using Cratis.Screenplay;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Execution;
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_GeneratedReactApplication.given;
 using Xunit;
 
@@ -57,6 +58,7 @@ public sealed class rendered_event_contracts
     static readonly TimeSpan _fixtureBudget = TimeSpan.FromSeconds(270);
 
     readonly string _configuration;
+    readonly bool _eventTargetReducer;
     readonly string _case;
     readonly string _application;
     ArtifactRenderPlan _plan = null!;
@@ -67,9 +69,11 @@ public sealed class rendered_event_contracts
     /// Initializes a new instance of the <see cref="rendered_event_contracts"/> class and allocates its fresh case directory.
     /// </summary>
     /// <param name="configuration">The generated application's build configuration, Debug or Release.</param>
-    public rendered_event_contracts(string configuration)
+    /// <param name="eventTargetReducer">Whether publication is performed by a native event-target reducer.</param>
+    public rendered_event_contracts(string configuration, bool eventTargetReducer = false)
     {
         _configuration = configuration;
+        _eventTargetReducer = eventTargetReducer;
         _case = Path.Combine(ProofRoot(), $"{configuration.ToLowerInvariant()}-{Guid.NewGuid():N}");
         _application = Path.Combine(_case, "application");
         Directory.CreateDirectory(_application);
@@ -87,15 +91,25 @@ public sealed class rendered_event_contracts
     /// </summary>
     public void Render()
     {
-        File.WriteAllText(Path.Combine(_case, "model.play"), Source);
-        var model = Compile();
+        var source = _eventTargetReducer ? Source.Replace("      projection OrderPublisher => OrderPublished\n        from Drafted\n          name = name", "      reducer OrderPublisher => OrderPublished\n        on Drafted\n          ```csharp\n          return new OrderPublished(context.Event.Name);\n          ```", StringComparison.Ordinal) : Source;
+        File.WriteAllText(Path.Combine(_case, "model.play"), source);
+        var loaded = _eventTargetReducer ? SemanticModelLoader.LoadFromPathAsync(_case, null, ApplicationName).GetAwaiter().GetResult() : null;
+        var model = loaded?.Model ?? Compile();
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, "The execution plan did not compile: " + string.Join(Environment.NewLine, execution.Issues.Select(issue => issue.Details)) + Evidence);
-        _plan = CratisRendering.Plan(
+        _plan = loaded is null ? CratisRendering.Plan(
             model,
             execution.Plan!,
             new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id),
-            new CratisRenderingOptions(ProjectName, "ContractsProof"));
+            new CratisRenderingOptions(ProjectName, "ContractsProof")) : CratisRendering.Plan(
+                model,
+                execution.Plan!,
+                new ArtifactRenderScope(ArtifactRenderScopeKind.Application, model.Application.Id),
+                new CratisRenderingOptions(ProjectName, "ContractsProof"),
+                loaded.ImplementationRequirements,
+                loaded.ImplementationContents,
+                [],
+                loaded.TypedContextDescriptors);
         Assert.True(_plan.Success, "The plan was refused: " + string.Join(Environment.NewLine, _plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")) + Evidence);
         Assert.Empty(_plan.Refusals);
         Assert.NotEmpty(_plan.Artifacts);

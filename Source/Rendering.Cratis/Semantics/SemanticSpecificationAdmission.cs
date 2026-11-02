@@ -307,7 +307,7 @@ internal static partial class SemanticSpecificationAdmission
 
         if (!specification.GivenReadModels.IsEmpty)
         {
-            return "Given read-model state replaces projected state before the action in the reference world. Chronicle's scenario seed serves lookup interception but cannot initialize each projected instance for subsequent command events; only a query-only lookup of one complete seeded record is supported.";
+            return "Given read-model state requires complete non-null scalar records with identifiers matching their keys and independent projections. Seeded command reads, reducers and query combinations are not supported; a query-only lookup of one complete seeded record is supported.";
         }
 
         if (specification.GivenEvents.Any(fact => MissingObservableSource(context, fact)))

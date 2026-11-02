@@ -31,8 +31,7 @@ internal static class SemanticProjectionFactSpecification
             specification.WhenTrigger is not null || specification.WhenClock is not null ||
             (specification.ThenReadModels.IsEmpty && specification.ThenAbsentReadModels.IsEmpty) || !specification.ThenEvents.IsEmpty || specification.ThenNoEvents ||
             specification.ThenEventsInAnyOrder || !specification.ThenQueries.IsEmpty || !specification.ThenErrors.IsEmpty ||
-            specification.ThenDenied || specification.ThenReturns is not null ||
-            HasUnsupportedSeedExpectation(specification))
+            specification.ThenDenied || specification.ThenReturns is not null)
         {
             return false;
         }
@@ -62,7 +61,4 @@ internal static class SemanticProjectionFactSpecification
             WhenAppended = null,
             GivenEvents = specification.GivenEvents.Add(new(appended.EventContract, appended.Values) { EventSource = appended.EventSource, Route = appended.Route })
         };
-
-    static bool HasUnsupportedSeedExpectation(SemanticSpecification specification) =>
-        specification.ThenAbsentReadModels.IsEmpty && specification.GivenReadModels.Any(seed => seed.Key is not SemanticCompositeValue);
 }

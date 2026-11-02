@@ -10,7 +10,9 @@ using Cratis.Stage.Contracts;
 using Cratis.Stage.Contracts.Execution;
 using Cratis.Stage.Contracts.Scene;
 using Cratis.Stage.Contracts.Semantics;
+using Cratis.Stage.Host.Lifecycles;
 using Cratis.Stage.Host.Workbench;
+using Cratis.Stage.Lifecycles;
 using Cratis.Stage.Runtime;
 using Cratis.Stage.Semantics;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -41,6 +43,11 @@ internal static class SemanticHost
         var admission = CreateAdmission(loaded, bodies, issues);
         var surface = loaded is not null && issues.Count == 0 ? StageHttpSurface.Create(loaded.Model, routeOptions) : null;
         builder.AddStageCratis(eventStore, $"Cratis Stage ({eventStore})", routeOptions);
+        if (surface is not null)
+        {
+            StageLifecycleHosting.Add(builder.Services, loaded!.Plan);
+        }
+
         builder.AddStageOrleans();
         builder.Services.AddSingleton(new StageEventStoreName(eventStore));
         if (surface is not null)
@@ -90,9 +97,11 @@ internal static class SemanticHost
             return;
         }
 
+        LifecycleDriver? lifecycles = null;
         var modelName = loaded!.Model.Application.Modules.FirstOrDefault()?.Name ?? "EventModel";
         MapStatus(app, () => RegistrationStatus(world, issues, app.Services, modelName, modelPath), notes);
         SemanticSpecificationRuns.Map(app, loaded.Plan, modelPath);
+        StageLifecycleEndpoints.Map(app, loaded.Plan, () => lifecycles);
         SemanticReadModelBrowser.Map(app, new(app.Services.GetRequiredService<ISemanticRuntime>(), () => world is not null, context => issues.Count > 0 ? RefusedResponse(context, issues) : null, admission));
         UseReadinessGate(app, () => world, issues);
         app.Use((context, next) => SemanticUnsupportedResponses.Rewrite(context, () => next(context)));
@@ -118,6 +127,7 @@ internal static class SemanticHost
             notes.AddRange(seeds.Diagnostics);
             world = await SemanticChronicleRegistration.Register(app.Services.GetRequiredService<IChronicleClient>(), eventStore, new SemanticReplayPlan(loaded.Plan, bodies), seeds);
             await SemanticInbox.Start(app.Services.GetRequiredService<IChronicleClient>(), eventStore, loaded.Plan, (ISemanticForeignFacts)app.Services.GetRequiredService<ISemanticRuntime>());
+            lifecycles = await StageLifecycleHosting.Start(app.Services, loaded.Plan);
         }
         catch (SemanticWorldRebuildRefused exception)
         {

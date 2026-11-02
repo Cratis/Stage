@@ -34,7 +34,8 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
     // Re-frozen for Scene 4.86.0.
     // Recomputed from train 9 execution after combining generated documentation, concepts and shared Common output.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Digest = "b71181af50413a0a0128ced2c2c13778180efdb570ff0ca58a4bb8a70fb02538";
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
+    const string Digest = "10426c93ae8681f53a3a264f99a0ea7cade667b5d65f2bf0cec642ba60803720";
 
     const string Manifest = """
         .editorconfig 0071ecdc7a762e5966d5f6e6c72cc6b53d96c918c2e32dbe74059ffbc792859f 741
@@ -52,7 +53,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 39e8088132ed10030ab679cbd735db36c75cd2dfc5c9650596aa9c285458cce3 282
         Directory.Build.props b074ad4117a0d8e81466865fbb69d5d57a9c9cb7c0d3886d2575c1009322597a 1167
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props a2d5b966a54f8f0cdc5bca02ce4145aee11edbc94276ce9473d32a3e17292e02 1531
+        Directory.Packages.props 3f885f60b3ffd4392969918e3f5a190d0ce211a489d7594990635854297a41a3 1615
         GeneratedAuthentication.cs ed09e251946fc352764a02a5b0ba94af3f465c824458b163fc4dc0fd958d7d29 5225
         GeneratedAuthenticationPerimeter.cs 81cd5b2cf77e385a07fcd4ff6d413be8e79436b1226242e9aa9ac461d6b6e960 9693
         GeneratedPolicyRegistration.cs 7962c40dc5f71ab971cf01ae185b06e584594e03161c3db0fed18363ca166100 593
@@ -101,7 +102,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
         Common/WorkStatus.cs 94c14a6093b208dfe5065c1320725638b94db7a004b164fef1cc4765e967f36a 431
         Directory.Build.props fb4abdf22956b96063dbf033d57b65bb965ad5679faeccbd0cbcd8947e7c0f99 1115
         Directory.Build.targets 17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea 12
-        Directory.Packages.props a2d5b966a54f8f0cdc5bca02ce4145aee11edbc94276ce9473d32a3e17292e02 1531
+        Directory.Packages.props 3f885f60b3ffd4392969918e3f5a190d0ce211a489d7594990635854297a41a3 1615
         GeneratedAuthentication.cs ff86455b7f123bb85d611a5fabc40fd3e124ea6e6724ba9cca9d0b730e105ac2 5374
         GeneratedAuthenticationPerimeter.cs aef7e8ae1697056711fe37948080bbda478ba5bf26cbccdf8614c6578b96041b 9842
         GeneratedPolicyRegistration.cs 05e8d5a16d52bc9e50828e14aab5d929e5778f7f855b3f8e8ec4c4e7d122ddbf 742
@@ -191,7 +192,7 @@ public class when_planning_the_screens_vector : given.the_planned_screen_composi
                     PreviousNames(PreviousPins(artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan()))),
                     previous_slice_sources.Of(artifact, planned.Model))
                 : artifact)],
-            plan.Diagnostics).ShouldEqual("bcd94c6d0d64f921be38b90dfc7fec1353af8a849fe6cbf2c1f80a29b76acd9c"); // Re-frozen for #741 (.gitignore gains the .yarn/ line) and Scene 4.86.0 and Cratis/Stage#120 merged with train 10.
+            plan.Diagnostics).ShouldEqual("c4457f92e859da571e949e142246731609f46da0f802914901fc772769c28336"); // Re-frozen for #741 (.gitignore gains the .yarn/ line), Scene 4.86.0, Cratis/Stage#120 merged with train 10 and #937 (only Directory.Packages.props cryptography pins).
     }
 
     [Theory]

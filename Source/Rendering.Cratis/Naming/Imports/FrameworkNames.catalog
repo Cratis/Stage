@@ -195,7 +195,7 @@ package	AS	System.IdentityModel.Tokens.Jwt	8.23.0
 package	AS	System.Memory.Data	10.0.3
 package	AS	System.Reactive	7.0.0
 package	AS	System.Reflection.MetadataLoadContext	10.0.13
-package	AS	System.Security.Cryptography.Pkcs	10.0.13
+package	AS	System.Security.Cryptography.Pkcs	10.0.14
 package	AS	System.Security.Cryptography.ProtectedData	10.0.8
 package	AS	ZstdSharp.Port	0.7.3
 package	AS	protobuf-net	3.2.56

@@ -23,7 +23,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Recomputed for Cratis/Stage#926: the scaffold now hosts an Orleans silo, pins Cratis.Orleans 1.33.0 and moves to Chronicle 19.115.2.
-    const string Before = "72c216729bef2102ac35f4d3bcd1319bdf9c44bbe16ee5153eb6f67342ba4254";
+    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
+    const string Before = "4e00becdbd2eb6716598cf0cc54c28b95053f66c41fe5a763bd486d356995e34";
 
     ArtifactRenderPlan _plan = null!;
 

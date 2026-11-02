@@ -22,7 +22,7 @@ public class a_v4_reducer : Specification
         _event = loaded.Model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events).Single();
         _request = new(
             loaded.Model,
-            SemanticExecutionPlan.Compile(loaded.Model).Plan!,
+            SemanticExecutionPlan.Compile(loaded.Model).Plan,
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, loaded.Model.Application.Id))
         {

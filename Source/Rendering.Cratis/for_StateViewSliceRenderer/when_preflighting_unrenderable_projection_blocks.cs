@@ -29,7 +29,7 @@ public class when_preflighting_unrenderable_projection_blocks : Specification
             string.Join('\n', blocks.Split('\n').Select(_ => $"        {_}"));
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var applicationSet = new ApplicationSet([compilation.Value!]);
+        var applicationSet = new ApplicationSet([compilation.Value]);
         var error = Catch.Exception(() => new StateViewSliceRenderer().Render(applicationSet.Slices.Single(), applicationSet, "CratisApp"));
         Assert.IsType<UnsupportedLegacyProjection>(error);
         Assert.Contains(UnsupportedLegacyProjection.DiagnosticCode, error.Message, StringComparison.Ordinal);
@@ -48,7 +48,7 @@ public class when_preflighting_unrenderable_projection_blocks : Specification
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success);
-        var application = compilation.Value!;
+        var application = compilation.Value;
         var module = application.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();

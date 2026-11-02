@@ -240,10 +240,7 @@ public static class ScreenConverter
         [
             .. availableForms
                 .Where(form => commands.Contains(form.For))
-                .Select(form => FormConverter.Convert(form, scope.Diagnostics, $"{screen.Name}.form.{form.Name}") with
-                {
-                    Behaviors = scope.Resolve(form.Behaviors, form.UsedBehaviors, form.Name)
-                })
+                .Select(form => FormSubmitConverter.Convert(form, scope, $"{screen.Name}.form.{form.Name}"))
         ];
     }
 

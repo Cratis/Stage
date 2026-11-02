@@ -24,7 +24,7 @@ static class ScaffoldedNamespaces
             {
                 var metadata = libraries.GetProperty(library.Name);
                 if (metadata.GetProperty("type").GetString() != "package") continue;
-                var package = metadata.GetProperty("path").GetString()!;
+                var package = metadata.GetProperty("path").GetString();
                 foreach (var group in new[] { "compile", "runtime" })
                 {
                     if (!library.Value.TryGetProperty(group, out var assemblies)) continue;

@@ -13,6 +13,6 @@ public class with_duplicate_requirements : given.a_described_handler
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_classify_as_invalid_without_throwing() => _classification.Kind.ShouldEqual(HandlerKind.Invalid);
-    [Fact] void should_explain_the_ambiguous_requirement() => _classification.Reason!.ShouldContain("unique");
+    [Fact] void should_explain_the_ambiguous_requirement() => _classification.Reason.ShouldContain("unique");
     [Fact] void should_not_select_either_requirement() => _classification.Requirement.ShouldBeNull();
 }

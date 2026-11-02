@@ -20,7 +20,7 @@ public class with_any_order_needing_assignment : a_routed_plan
         var exact = wildcard with { EventSource = new(Text, SemanticValue.Text("exact")) };
         var specification = _specification with
         {
-            When = _specification.When! with { Values = [new(_command.Properties[0].Id, SemanticValue.Text("exact")), new(_command.Properties[1].Id, SemanticValue.Text("other"))] },
+            When = _specification.When with { Values = [new(_command.Properties[0].Id, SemanticValue.Text("exact")), new(_command.Properties[1].Id, SemanticValue.Text("other"))] },
             ThenEventsInAnyOrder = true,
             ThenEvents = [wildcard, exact]
         };

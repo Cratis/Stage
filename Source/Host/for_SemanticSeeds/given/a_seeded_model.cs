@@ -54,7 +54,7 @@ public class a_seeded_model : Specification
         _plan = compiled_plan.From(Model);
         var result = new ScreenplayCompiler().Compile($"{Model}\n{seeds}");
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-        Syntax = result.Value!;
+        Syntax = result.Value;
     }
 
     protected Cratis.Screenplay.Syntax.ApplicationSyntax Syntax { get; private set; } = null!;

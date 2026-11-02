@@ -67,8 +67,8 @@ public class with_a_fault_while_waiting_for_the_runtime : a_browser
     [Fact] void should_refuse_the_detail() => _detailStatus.ShouldEqual(503);
     [Fact] void should_report_the_fault_in_the_list() => _list.GetProperty("state").GetString().ShouldEqual("faulted");
     [Fact] void should_report_the_fault_in_the_detail() => _detail.GetProperty("state").GetString().ShouldEqual("faulted");
-    [Fact] void should_include_the_list_fault_reason() => _list.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime!).FaultReason);
-    [Fact] void should_include_the_detail_fault_reason() => _detail.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime!).FaultReason);
+    [Fact] void should_include_the_list_fault_reason() => _list.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime).FaultReason);
+    [Fact] void should_include_the_detail_fault_reason() => _detail.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime).FaultReason);
     [Fact] void should_not_return_counts() => _list.EnumerateObject().Select(property => property.Name).ShouldContainOnly("state", "reason");
     [Fact] void should_not_return_rows() => _detail.EnumerateObject().Select(property => property.Name).ShouldContainOnly("state", "reason");
 }

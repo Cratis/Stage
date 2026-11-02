@@ -41,7 +41,7 @@ public class when_checking_source_keyed_captures : Specification
                 })]
             })]
         };
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application)).Plan;
         return SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single());
     }
 }

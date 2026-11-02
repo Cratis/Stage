@@ -97,7 +97,7 @@ internal static class composite_source_models
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
         var projection = slice.Projections.Single();
-        var changed = slice with { Projections = [projection with { Scope = change(projection.Scope!) }] };
+        var changed = slice with { Projections = [projection with { Scope = change(projection.Scope) }] };
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [changed] }] }] };
         return ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
     }

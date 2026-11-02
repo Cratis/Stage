@@ -79,6 +79,6 @@ public class when_refusing_guarded_scene_runtime : Specification
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+        return new ScreenplaySceneVisitor().Visit(compilation.Value);
     }
 }

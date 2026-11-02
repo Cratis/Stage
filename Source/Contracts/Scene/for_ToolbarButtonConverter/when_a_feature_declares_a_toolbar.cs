@@ -71,7 +71,7 @@ public class when_a_feature_declares_a_toolbar : given.a_translated_application
 
     [Fact] void should_put_the_screens_own_toolbar_first() => ToolbarsOf(Orders).Select(toolbar => (string?)toolbar.Properties["name"]).ShouldEqual(["own", "actions"]);
     [Fact] void should_add_the_feature_button() => Item("place").Properties["label"].ShouldEqual("Place order");
-    [Fact] void should_link_the_button_to_the_slice_of_the_command() => ToolbarButtons.FromItem(Item("place").Id, Item("place").Properties)!.Slice.ShouldEqual("Shop.Orders.PlaceOrder");
+    [Fact] void should_link_the_button_to_the_slice_of_the_command() => ToolbarButtons.FromItem(Item("place").Id, Item("place").Properties).Slice.ShouldEqual("Shop.Orders.PlaceOrder");
     [Fact] void should_carry_the_confirmation_of_a_button() => Item("place").Properties["confirm"].ShouldEqual("Place it?");
     [Fact] void should_add_the_feature_item_linked_to_a_command() => (Item("cancel").Properties["target"], Item("cancel").Properties["confirm"]).ShouldEqual(("CancelOrder", "Cancel it?"));
     [Fact] void should_not_put_a_toolbar_in_a_template_without_a_toolbar_slot() => Summary.SlotContent.ContainsKey("toolbar").ShouldBeFalse();

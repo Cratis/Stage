@@ -17,7 +17,7 @@ public class when_rendering_pattern_and_random_generation : Specification
     void Because()
     {
         var model = a_pattern_random_model.Model();
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
     }
 
     [Fact] void should_admit_the_strategies() => Assert.True(_plan.Success, string.Join(';', _plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
@@ -31,7 +31,7 @@ public class when_rendering_pattern_and_random_generation : Specification
     [Fact] void should_render_identical_bytes_on_repeated_planning()
     {
         var model = a_pattern_random_model.Model();
-        var repeated = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
+        var repeated = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));
         _plan.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256)).SequenceEqual(repeated.Artifacts.Select(artifact => (artifact.RelativePath, artifact.Sha256))).ShouldBeTrue();
     }
 

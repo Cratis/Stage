@@ -24,7 +24,7 @@ public class when_rendering_a_generation_marked_event : an_automation_slice
                   event InvoiceRegistered generation 2
                     newValue String
             """,
-            "invoice.play").Value!;
+            "invoice.play").Value;
         var events = syntax.Modules.Single().Features.Single().Slices.Single().Events;
         var slice = _detectorSlice with { Slice = _detectorSlice.Slice with { Events = events } };
 

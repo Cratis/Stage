@@ -65,7 +65,7 @@ public class and_the_host_maps_endpoints_before_rebuild : a_rebuildable_world
         {
             Occurrence = new(new DateTimeOffset(2026, 9, 24, 12, 0, 0, TimeSpan.Zero), "owner", "Owner", "owner")
         });
-        _world = (result as SemanticAccepted)!.World;
+        _world = (result as SemanticAccepted).World;
         _readModels = (await _app.Services.GetRequiredService<ISemanticRuntime>().ReadModels(_readModel.Id)).Length;
         _readyState = SemanticHost.RegistrationStatus(_world, [], _app.Services, "Projects", "project-model").State;
     }

@@ -56,8 +56,8 @@ public class when_planning_date_comparisons : Specification
             catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compilation = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        model = compilation.Value!.Model;
+        model = compilation.Value.Model;
 
-        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Dates", "Dates"));
+        return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Dates", "Dates"));
     }
 }

@@ -43,9 +43,9 @@ public class when_refusing_date_comparisons : Specification
         var compilation = new SemanticModelCompiler().Compile("Dates", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
 
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 
     static ArtifactRenderPlan Plan(ExecutableSemanticModel model, ArtifactRenderScope scope) =>
-        CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan!, scope, new("Dates", "Dates"));
+        CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan, scope, new("Dates", "Dates"));
 }

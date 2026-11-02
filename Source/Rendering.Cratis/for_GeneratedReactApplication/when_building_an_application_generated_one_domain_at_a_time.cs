@@ -81,7 +81,7 @@ public class when_building_an_application_generated_one_domain_at_a_time(when_bu
         void Establish()
         {
             var compilation = when_rendering_authoring_documentation.Compile(when_rendering_authoring_documentation.Source + "\n" + ArchivingSource);
-            var loaded = new LoadedSemanticModel(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan!);
+            var loaded = new LoadedSemanticModel(compilation.Model, SemanticExecutionPlan.Compile(compilation.Model).Plan);
             var options = new CratisPlanOptions("Projects", "Projects", "Projects");
             var scaffold = CratisRendering.PlanScaffold(options);
             var sales = CratisRendering.PlanFrom(loaded, new([PlanSelectionEntry.Module("Projects")]), options with { Domain = "Sales", UserInterface = new([]) });
@@ -101,7 +101,7 @@ public class when_building_an_application_generated_one_domain_at_a_time(when_bu
             foreach (var artifact in scaffold.Artifacts.Concat(sales.Artifacts).Concat(support.Artifacts))
             {
                 var path = Path.Combine(_application, artifact.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. artifact.Bytes]);
             }
         }

@@ -42,12 +42,12 @@ public class when_planning_event_source_routes : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("routes"), "routes", "Routes.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Banking", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _model = compilation.Value!.Model;
+        _model = compilation.Value.Model;
     }
 
     void Because() => _plan = CratisRendering.Plan(
         _model,
-        SemanticExecutionPlan.Compile(_model).Plan!,
+        SemanticExecutionPlan.Compile(_model).Plan,
         new(ArtifactRenderScopeKind.Application, _model.Application.Id),
         new("Banking", "Banking"));
 

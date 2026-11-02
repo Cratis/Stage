@@ -238,10 +238,10 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mongo"), "mongo", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        return CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        return CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 
     string _output = string.Empty;
@@ -275,12 +275,12 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reference"), "reference", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success);
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
         var view = feature.Slices.Single(slice => slice.Kind == SemanticSliceKind.StateView);
         var projection = view.Projections.Single(candidate => candidate.Name == "ProjectSummaryProjection");
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var events = feature.Slices.SelectMany(slice => slice.Events).ToDictionary(@event => @event.Name);
         scope = scope with
         {
@@ -343,7 +343,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         };
         var givens = facts.Select(fact => new SemanticSpecificationEvent(events[fact.Name].Id, [.. events[fact.Name].Properties.Select(property => new SemanticPropertyValue(property.Id, new SemanticTextValue(property.Name switch
         {
-            "projectId" => fact.Project!, "noteId" => fact.Note!, "name" => fact.Label!,
+            "projectId" => fact.Project, "noteId" => fact.Note, "name" => fact.Label,
             _ => throw new UnknownReferenceProperty(property.Name)
         })))]) { EventSource = new(identity, new SemanticTextValue(fact.Stream)) }).ToArray();
         var marker = events["ProjectRegistered"];
@@ -358,7 +358,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
             ThenEvents = [], ThenReadModels = [], ThenQueries = [], ThenErrors = []
         };
         var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
-        var plan = execution.Plan!;
+        var plan = execution.Plan;
         var reference = (SemanticExecutionPlan)constructor.Invoke([
             model, plan.Commands, plan.Events, plan.Projections, plan.ReadModels, plan.Queries,
             plan.Specifications.SetItem(specification.Id, specification), plan.Constraints,
@@ -379,7 +379,7 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
     // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
     static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
-        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
+        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(plan);
 
     sealed class UnknownReferenceProperty(string name) : Exception($"Unknown reference property '{name}'.");
 }

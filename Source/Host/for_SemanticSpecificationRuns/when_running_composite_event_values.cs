@@ -41,5 +41,5 @@ public class when_running_composite_event_values : a_specification_endpoint
 
     [Fact] void should_return_ok() => _status.ShouldEqual(StatusCodes.Status200OK);
     [Fact] void should_pass_in_the_real_child_executor() => Report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_report_named_composite_members() => JsonSerializer.Deserialize<JsonElement>(Report.Results.Single().Trace!.Facts.Single().Values.Single().Value).GetProperty("label").GetString().ShouldEqual("nested");
+    [Fact] void should_report_named_composite_members() => JsonSerializer.Deserialize<JsonElement>(Report.Results.Single().Trace.Facts.Single().Values.Single().Value).GetProperty("label").GetString().ShouldEqual("nested");
 }

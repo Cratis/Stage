@@ -31,6 +31,6 @@ public class when_refusing_unsourced_property_removals_observed_by_all : Specifi
     }
 
     [Fact] void should_refuse_the_unsourced_append() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_the_projection_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
-    [Fact] void should_preserve_the_source_fidelity_reason() => _result.Unsupported!.Details.ShouldEqual("A scoped event-source key must have the read-model identifier's value type and enumeration values.");
+    [Fact] void should_report_the_projection_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_preserve_the_source_fidelity_reason() => _result.Unsupported.Details.ShouldEqual("A scoped event-source key must have the read-model identifier's value type and enumeration values.");
 }

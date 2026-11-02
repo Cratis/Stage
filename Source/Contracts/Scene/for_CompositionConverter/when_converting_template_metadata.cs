@@ -23,8 +23,8 @@ public class when_converting_template_metadata : Specification
     }
 
     [Fact] void should_leave_a_template_without_scopes_usable_anywhere() => _unrestricted.Scopes.ShouldBeNull();
-    [Fact] void should_keep_scopes_none_distinct_from_no_scopes() => _restrictedToNothing.Scopes!.ShouldBeEmpty();
-    [Fact] void should_convert_each_declared_scope() => _restricted.Scopes!.ShouldEqual(TemplateScope.Module, TemplateScope.Slice);
+    [Fact] void should_keep_scopes_none_distinct_from_no_scopes() => _restrictedToNothing.Scopes.ShouldBeEmpty();
+    [Fact] void should_convert_each_declared_scope() => _restricted.Scopes.ShouldEqual(TemplateScope.Module, TemplateScope.Slice);
     [Fact] void should_carry_the_template_type() => _unrestricted.Type.ShouldEqual("masterDetail");
     [Fact] void should_refuse_an_unknown_scope() => _unknown.ShouldBeOfExactType<UnknownCompositionValue>();
 }

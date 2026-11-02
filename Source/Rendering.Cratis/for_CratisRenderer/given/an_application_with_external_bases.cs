@@ -54,7 +54,7 @@ public class an_application_with_external_bases : a_multi_slice_application
     {
         var compilation = new ScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _renderer = new CratisRenderer(
             _scaffolder,
             new Dictionary<SliceType, ISliceRenderer>

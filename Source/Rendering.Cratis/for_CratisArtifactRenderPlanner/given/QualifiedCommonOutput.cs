@@ -22,7 +22,7 @@ internal static class QualifiedCommonOutput
 
     // Restores an application-scoped plan the way the request-less planners make it, in the fully qualified spelling.
     internal static ImmutableArray<PlannedArtifact> Restore(ExecutableSemanticModel model, ArtifactRenderPlan plan, CratisRenderingOptions options) =>
-        Restore(plan, () => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options));
+        Restore(plan, () => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), options));
 
     // Restores the output as Stage rendered it before imports were resolved: the plan made again in the fully qualified
     // spelling, so a frozen digest of the old output proves that resolving imports changed spelling alone.

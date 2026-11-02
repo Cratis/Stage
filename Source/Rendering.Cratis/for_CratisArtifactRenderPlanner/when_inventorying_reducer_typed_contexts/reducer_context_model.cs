@@ -14,7 +14,7 @@ internal static class reducer_context_model
     internal static readonly CratisRenderingOptions Options = new("MinA3", "MinA3");
 
     internal static Task<LoadedSemanticModel> LoadMinA3([CallerFilePath] string path = "") =>
-        SemanticModelLoader.LoadFromPathAsync(Path.Combine(Path.GetDirectoryName(path)!, "min-a3"), null, "MinA3");
+        SemanticModelLoader.LoadFromPathAsync(Path.Combine(Path.GetDirectoryName(path), "min-a3"), null, "MinA3");
 
     internal static ArtifactRenderRequest Request(LoadedSemanticModel loaded, ArtifactRenderScope? scope = null, string domain = "") =>
         new(

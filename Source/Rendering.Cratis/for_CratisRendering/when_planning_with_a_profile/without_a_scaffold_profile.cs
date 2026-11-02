@@ -14,7 +14,7 @@ public class without_a_scaffold_profile : Specification
     CratisPlanResult _result = null!;
 
     void Establish() => _expected = [.. CratisRendering.CreateProfile(_options.ApplicationName, new(_options.ProjectName, _options.RootNamespace)).Inputs.Select(input =>
-        CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact) ? artifact! : throw new InvalidArtifactRenderContract("The default scaffold input could not be rendered."))];
+        CratisArtifactRenderInput.TryCreateArtifact(input, out var artifact) ? artifact : throw new InvalidArtifactRenderContract("The default scaffold input could not be rendered."))];
     void Because() => _result = CratisRendering.PlanScaffold(_options);
     [Fact] void should_plan_successfully() => _result.Success.ShouldBeTrue();
     [Fact] void should_preserve_the_default_artifact_count() => _result.Artifacts.Length.ShouldEqual(_expected.Length);

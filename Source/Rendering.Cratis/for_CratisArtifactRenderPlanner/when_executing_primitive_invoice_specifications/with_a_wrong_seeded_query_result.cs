@@ -11,8 +11,8 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_exe
 
 public class with_a_wrong_seeded_query_result(with_a_wrong_seeded_query_result.context fixture) : IClassFixture<with_a_wrong_seeded_query_result.context>
 {
-    [Fact] void should_fail_the_generated_seeded_query_specification() => fixture.Error!.Message.ShouldContain("should_have_name");
-    [Fact] void should_report_the_wrong_expectation() => fixture.Error!.Message.ShouldContain("Failed");
+    [Fact] void should_fail_the_generated_seeded_query_specification() => fixture.Error.Message.ShouldContain("should_have_name");
+    [Fact] void should_report_the_wrong_expectation() => fixture.Error.Message.ShouldContain("Failed");
 
     public class context : a_generated_application
     {

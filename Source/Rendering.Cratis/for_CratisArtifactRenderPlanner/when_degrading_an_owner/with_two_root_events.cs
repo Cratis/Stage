@@ -20,7 +20,7 @@ public class with_two_root_events : given.an_unsupported_event_request
     {
         _first = _planner.Plan(_request);
         var reordered = _model with { };
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(reordered, _model.Application with { Modules = [.. _model.Application.Modules.Reverse()] });
         _reordered = _planner.Plan(_request with { Model = reordered });
     }

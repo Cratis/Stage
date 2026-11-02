@@ -13,7 +13,7 @@ public class with_role_and_claim_only_policies : a_command_only_plan
 
     async Task Because()
     {
-        var original = _plan.Commands[_specification.When!.Command];
+        var original = _plan.Commands[_specification.When.Command];
         var policies = new SemanticPolicy[]
         {
             new("RoleOnly", new SemanticRoleCondition("Registrar")),

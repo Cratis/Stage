@@ -27,9 +27,9 @@ public class when_rendering_explicit_destinations
             content.ShouldNotContain("ToString()");
         }
 
-        var produced = (EventForEventSourceId)command.GetType().GetMethod("Handle")!.Invoke(command, [])!;
+        var produced = (EventForEventSourceId)command.GetType().GetMethod("Handle").Invoke(command, []);
         produced.EventSourceId.ToString().ShouldEqual(expected);
-        produced.Event.GetType().GetProperty("Name")!.GetValue(produced.Event).ShouldEqual("payload");
+        produced.Event.GetType().GetProperty("Name").GetValue(produced.Event).ShouldEqual("payload");
         assembly.GetTypes().ShouldContain(candidate => candidate.Name == "Changed");
     }
 
@@ -49,7 +49,7 @@ public class when_rendering_explicit_destinations
               for id
             """);
         var (command, _, _) = Render(source, "String", "elsewhere", includeConditional ? "payload" : string.Empty, omitLastDestination: true);
-        var produced = ((IEnumerable<object>)command.GetType().GetMethod("Handle")!.Invoke(command, [])!).ToArray();
+        var produced = ((IEnumerable<object>)command.GetType().GetMethod("Handle").Invoke(command, [])).ToArray();
         produced.Length.ShouldEqual(includeConditional ? 3 : 2);
         if (includeConditional)
         {

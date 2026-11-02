@@ -53,12 +53,12 @@ public class an_inventory_request : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("projects"), "projects", "Projects.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var compiled = compilation.Value!;
+        var compiled = compilation.Value;
         var model = compiled.Model;
         var slices = model.Application.Modules.Single().Features.Single().Slices;
         _registration = slices.Single(slice => slice.Name == "RegisterProject");
         _renaming = slices.Single(slice => slice.Name == "RenameProject");
-        _request = new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Projects", _options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        _request = new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Projects", _options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             IdentityCatalog = compiled.Documents.IdentityCatalog,
             SemanticIdentities = compiled.Documents.IdentityCatalog.Semantics

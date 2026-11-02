@@ -73,7 +73,7 @@ public class when_validating_file_and_folder_inputs : given.a_compiled_invoicing
         var slices = fromFile.Collections.Single().Modules.Single().Features.Single().Slices;
         slices.Count.ShouldEqual(4);
         var registration = slices.Single(slice => slice.Name == "RegisterInvoice");
-        registration.Command!.Name.ShouldEqual("RegisterInvoice");
+        registration.Command.Name.ShouldEqual("RegisterInvoice");
         registration.Events.Single().Name.ShouldEqual("InvoiceRegistered");
         registration.Specifications.Single().ShouldNotBeNull();
         slices.Single(slice => slice.Name == "InvoiceList").ReadModel.ShouldNotBeNull();
@@ -215,7 +215,7 @@ public class when_validating_file_and_folder_inputs : given.a_compiled_invoicing
         feature.Name.ShouldEqual("InvoiceManagement");
         collection.EventModelId.ShouldEqual(fromFolder.Id);
         module.EventModelId.ShouldEqual(fromFolder.Id);
-        var command = feature.Slices.Single(slice => slice.Name == "RegisterInvoice").Command!;
+        var command = feature.Slices.Single(slice => slice.Name == "RegisterInvoice").Command;
         var ownedEvent = feature.Slices.Single(slice => slice.Name == "RecordInvoice").Events.Single();
         command.Produces.Single().Event.ShouldEqual(ownedEvent.Name);
         ownedEvent.SourceEventId.ShouldEqual(string.Empty);
@@ -278,7 +278,7 @@ public class when_validating_file_and_folder_inputs : given.a_compiled_invoicing
     string WriteSource(string relativePath, string source)
     {
         var path = Path.Combine(_directory, relativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllText(path, source);
         return path;
     }

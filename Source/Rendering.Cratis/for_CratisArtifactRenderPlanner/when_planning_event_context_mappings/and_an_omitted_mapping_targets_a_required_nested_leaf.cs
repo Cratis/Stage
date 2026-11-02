@@ -19,9 +19,9 @@ public class and_an_omitted_mapping_targets_a_required_nested_leaf : Specificati
         _strict = event_context_projection_model.Plan(event_context_projection_model.RequiredNestedLeaf, strict: true);
     }
 
-    // The composite is shared, so its leaf is not made nullable for one view: the refusal is kept instead of rendering an invalid backend.
-    [Fact] void should_refuse_the_projection() => _plan.Success.ShouldBeFalse();
-    [Fact] void should_report_an_error() => _plan.Diagnostics.Any(_ => _.Severity == ArtifactRenderDiagnosticSeverity.Error).ShouldBeTrue();
+    [Fact] void should_render_the_projection() => _plan.Success.ShouldBeTrue();
+    [Fact] void should_render_the_nested_mapping() => event_context_projection_model.Source(_plan).ShouldContain("Set(model => model.Details.Seen).ToEventContextProperty(c => c.Occurred)");
     [Fact] void should_not_produce_a_degradation() => _plan.Degradations.IsEmpty.ShouldBeTrue();
-    [Fact] void should_refuse_when_strict() => _strict.Success.ShouldBeFalse();
+    [Fact] void should_succeed_when_strict() => _strict.Success.ShouldBeTrue();
+    [Fact] void should_compile_the_generated_backend() => event_context_projection_model.AssertCompiles(_plan);
 }

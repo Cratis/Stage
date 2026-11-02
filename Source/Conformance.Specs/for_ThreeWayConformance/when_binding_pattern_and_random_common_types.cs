@@ -30,7 +30,7 @@ public class when_binding_pattern_and_random_common_types : Specification
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join('\n', execution.Issues));
         var options = new CratisRenderingOptions("PatternRandom", "PatternRandom");
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), options);
         Assert.True(_plan.Success, string.Join('\n', _plan.Diagnostics));
         _restored = [.. QualifiedCommonOutput.Restore(model, _plan, options)];
         _qualified = Common(_restored);

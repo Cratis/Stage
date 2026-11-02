@@ -56,7 +56,7 @@ public class a_product_projection : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("ProductProjections", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
     }
 

@@ -24,13 +24,13 @@ public class when_describing_the_runtime_configuration : Specification
             string.Empty,
             [],
             string.Empty);
-        _ante = JsonNode.Parse(RuntimeConfigurationFiles.Ante(_onboarding, "Shop"))!["Ante"]!["Onboarding"]!;
+        _ante = JsonNode.Parse(RuntimeConfigurationFiles.Ante(_onboarding, "Shop"))["Ante"]["Onboarding"];
     }
 
-    [Fact] void should_map_a_sign_up_that_joins_a_tenant_to_join_tenant() => _ante["SignUp"]!.GetValue<string>().ShouldEqual("JoinTenant");
-    [Fact] void should_list_documents_when_the_model_does_not_name_terms_and_privacy() => _ante["Legal"]!["Documents"]!.ToJsonString().ShouldEqual("[\"Legal/a.md\",\"Legal/b.md\",\"Legal/c.md\"]");
-    [Fact] void should_not_invent_terms_and_privacy_paths() => (_ante["Legal"] as JsonObject)!.ContainsKey("TermsAndConditions").ShouldBeFalse();
-    [Fact] void should_name_the_host_store_after_the_application() => _ante["HostStore"]!.GetValue<string>().ShouldEqual("Shop");
+    [Fact] void should_map_a_sign_up_that_joins_a_tenant_to_join_tenant() => _ante["SignUp"].GetValue<string>().ShouldEqual("JoinTenant");
+    [Fact] void should_list_documents_when_the_model_does_not_name_terms_and_privacy() => _ante["Legal"]["Documents"].ToJsonString().ShouldEqual("[\"Legal/a.md\",\"Legal/b.md\",\"Legal/c.md\"]");
+    [Fact] void should_not_invent_terms_and_privacy_paths() => (_ante["Legal"] as JsonObject).ContainsKey("TermsAndConditions").ShouldBeFalse();
+    [Fact] void should_name_the_host_store_after_the_application() => _ante["HostStore"].GetValue<string>().ShouldEqual("Shop");
     [Fact] void should_report_a_number_of_legal_documents_ante_does_not_present() =>
         RealizationDiagnostics.For(new([], [], _onboarding, []), default).Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ONBOARDING-004");
     [Fact] void should_report_an_invitation_nobody_may_send() =>

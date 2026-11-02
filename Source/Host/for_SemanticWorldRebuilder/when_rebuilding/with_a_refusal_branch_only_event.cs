@@ -79,7 +79,7 @@ public class with_a_refusal_branch_only_event : Specification
     void Because() => _rebuilt = SemanticWorldRebuilder.Create(_plan, _history, 1);
 
     [Fact] void should_restore_the_branch_only_contract() => _rebuilt.Facts[1].EventContract.ShouldEqual(_live.Facts[1].EventContract);
-    [Fact] void should_infer_the_destination_type_through_the_trigger() => _rebuilt.Facts[1].Context!.EventSource.Type.ShouldEqual(_live.Facts[1].Context!.EventSource.Type);
+    [Fact] void should_infer_the_destination_type_through_the_trigger() => _rebuilt.Facts[1].Context.EventSource.Type.ShouldEqual(_live.Facts[1].Context.EventSource.Type);
     [Fact] void should_restore_the_inherited_destination() => _rebuilt.Facts[1].Destination.ShouldEqual(SemanticValue.Text("one"));
     [Fact] void should_restore_the_refusal_payload() => _rebuilt.Facts[1].Values.Single().Value.ShouldEqual(SemanticValue.Text("required"));
     [Fact] void should_preserve_the_branch_event_tags() => _rebuilt.Facts[1].Tags.ShouldContain("completed");

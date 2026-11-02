@@ -36,7 +36,7 @@ public class with_a_java_performer
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing"), "billing", "Billing.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         const string body = "return figures;";
         var requirement = Assert.Single(compilation.ImplementationRequirements) with
         {
@@ -45,7 +45,7 @@ public class with_a_java_performer
             AttachmentResolution = SemanticAttachmentResolution.Resolved,
             ContentHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(body)))
         };
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing") { ImplementationGaps = mode, Strict = strict }, [requirement], ImmutableDictionary<string, string>.Empty.Add(requirement.RequirementId, body));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Billing", "Billing") { ImplementationGaps = mode, Strict = strict }, [requirement], ImmutableDictionary<string, string>.Empty.Add(requirement.RequirementId, body));
 
         Assert.Equal(ArtifactRenderOutcome.Refused, plan.Outcome);
         var diagnostic = Assert.Single(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-IMPL-LANGUAGE");

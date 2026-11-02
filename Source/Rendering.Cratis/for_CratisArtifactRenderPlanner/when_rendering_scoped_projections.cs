@@ -153,10 +153,10 @@ public class when_rendering_scoped_projections(when_rendering_scoped_projections
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scopes"), "scopes", "Scopes.play", ScopedSource);
             var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             var execution = SemanticExecutionPlan.Compile(model);
             Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-            _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
+            _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), _options);
             Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));
             return _plan;
         }

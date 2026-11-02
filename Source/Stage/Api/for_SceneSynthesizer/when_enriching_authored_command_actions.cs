@@ -52,9 +52,9 @@ public class when_enriching_authored_command_actions : given.a_scene_model
     {
         get
         {
-            using var document = JsonDocument.Parse((string)ActionProperties[SceneSynthesizer.SchemaProperty]!);
+            using var document = JsonDocument.Parse((string)ActionProperties[SceneSynthesizer.SchemaProperty]);
 
-            return [.. document.RootElement.GetProperty("required").EnumerateArray().Select(item => item.GetString()!)];
+            return [.. document.RootElement.GetProperty("required").EnumerateArray().Select(item => item.GetString())];
         }
     }
 }

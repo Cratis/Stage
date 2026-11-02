@@ -36,7 +36,7 @@ public class when_applying_acceptance_to_verified_generation_body : Specificatio
         var inventory = ArtifactRenderInventory.Create([new(concept.Id, ArtifactRenderConstructKind.Concept, null, ArtifactRenderOutcome.Degraded)
         {
             SemanticLocator = address,
-            Degradations = [new(_evidence, ArtifactRenderPlaceholderKind.ThrowingOperationBody, concept.Generation!.RequirementId!, null) { SemanticLocator = address }]
+            Degradations = [new(_evidence, ArtifactRenderPlaceholderKind.ThrowingOperationBody, concept.Generation.RequirementId, null) { SemanticLocator = address }]
         }]);
         _original = generated.WithAcceptance([_evidence]).WithInventory(inventory);
         _strict = _original.WithAcceptance(_original.Degradations, strict: true);
@@ -54,10 +54,10 @@ public class when_applying_acceptance_to_verified_generation_body : Specificatio
     [Fact] void should_keep_the_original_evidence_and_remedy() => Assert.Equal(_evidence, Assert.Single(_original.Degradations));
     [Fact] void should_fail_strict_acceptance() => _strict.Success.ShouldBeFalse();
     [Fact] void should_still_publish_safe_artifacts_in_strict_mode() => _strict.CanPublishArtifacts.ShouldBeTrue();
-    [Fact] void should_keep_the_degraded_construct() => Assert.Single(_strict.Inventory!.Constructs).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
+    [Fact] void should_keep_the_degraded_construct() => Assert.Single(_strict.Inventory.Constructs).Outcome.ShouldEqual(ArtifactRenderOutcome.Degraded);
     [Fact] void should_keep_original_warning_evidence_in_strict_mode() => Assert.Equal(_evidence, Assert.Single(_strict.Degradations));
     [Fact] void should_keep_the_inventory_instance() => Assert.Same(_original.Inventory, _strict.Inventory);
-    [Fact] void should_keep_the_inventory_digest() => _strict.Inventory!.Digest.ShouldEqual(_original.Inventory!.Digest);
+    [Fact] void should_keep_the_inventory_digest() => _strict.Inventory.Digest.ShouldEqual(_original.Inventory.Digest);
     [Fact] void should_keep_all_artifacts() => _strict.Artifacts.SequenceEqual(_original.Artifacts).ShouldBeTrue();
     [Fact] void should_keep_required_removals() => _strict.RequiredRemovals.SequenceEqual(_original.RequiredRemovals).ShouldBeTrue();
     [Fact] void should_keep_scope() => _strict.Scope.ShouldEqual(_original.Scope);

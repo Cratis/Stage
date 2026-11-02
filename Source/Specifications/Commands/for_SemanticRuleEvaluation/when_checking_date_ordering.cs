@@ -51,7 +51,7 @@ public class when_checking_date_ordering : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", source);
         var compilation = new SemanticModelCompiler().Compile("DateRules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var command = plan.Commands.Values.Single();
         var input = value is null ? SemanticValue.Null : SemanticValue.Text(value);
         var values = command.Properties.Select(property => new SemanticPropertyValue(property.Id, property.Name == "id" ? SemanticValue.Text("window") : input)).ToImmutableArray();

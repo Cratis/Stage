@@ -21,7 +21,7 @@ public class when_planning_a_model_with_duplicate_identities : given.a_register_
         // Fault injection: duplicate a compiled event without changing the valid source fixture.
         var @event = _registerProject.Events.Single();
         _duplicateId = @event.Id;
-        typeof(SemanticSlice).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_registerProject, ImmutableArray.Create(@event, @event));
+        typeof(SemanticSlice).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_registerProject, ImmutableArray.Create(@event, @event));
     }
 
     void Because() => _error = Catch.Exception(() => _plan = _planner.Plan(_request));

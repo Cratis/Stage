@@ -14,11 +14,11 @@ public class with_a_routed_given_without_a_producer : a_routed_plan
         var given = new SemanticSpecificationEvent(historical.Id, [])
         {
             EventSource = new(Text, SemanticValue.Text("history")),
-            Route = _specification.ThenEvents[0].Route! with { StreamId = SemanticValue.Text("previous") }
+            Route = _specification.ThenEvents[0].Route with { StreamId = SemanticValue.Text("previous") }
         };
         await Run(With(_specification with { GivenEvents = [given] }));
     }
 
     [Fact] void should_pass_like_the_reference() => AssertParity(true);
-    [Fact] void should_keep_the_historical_route_in_the_reference_world() => _reference.Execution.World.Facts[0].Route!.StreamId.ShouldEqual("previous");
+    [Fact] void should_keep_the_historical_route_in_the_reference_world() => _reference.Execution.World.Facts[0].Route.StreamId.ShouldEqual("previous");
 }

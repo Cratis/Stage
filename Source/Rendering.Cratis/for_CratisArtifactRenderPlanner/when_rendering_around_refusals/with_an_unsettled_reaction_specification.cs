@@ -19,7 +19,7 @@ public class with_an_unsettled_reaction_specification : given.a_refused_specific
         _refused = model.Application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Specifications).Single().Id;
         _request = OptIn(new(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("InvoiceApp", "Invoices")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }

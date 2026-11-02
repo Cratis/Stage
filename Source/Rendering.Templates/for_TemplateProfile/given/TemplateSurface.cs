@@ -37,7 +37,7 @@ internal static class TemplateSurface
         {
             foreach (var member in members)
             {
-                var function = (IScriptFunctionInfo)((ScriptObject)builtins[name]!)[member]!;
+                var function = (IScriptFunctionInfo)((ScriptObject)builtins[name])[member];
                 var parameters = Enumerable.Range(0, function.ParameterCount).Select(function.GetParameterInfo).Select(parameter => TypeName(parameter.ParameterType) + " " + parameter.Name + (parameter.HasDefaultValue ? "=" + Convert.ToString(parameter.DefaultValue, CultureInfo.InvariantCulture) : string.Empty));
                 lines.Add("builtin:" + name + "." + member + "(" + string.Join(',', parameters) + ")->" + TypeName(function.ReturnType) + ":required=" + function.RequiredParameterCount.ToString(CultureInfo.InvariantCulture) + ":var=" + function.VarParamKind);
             }

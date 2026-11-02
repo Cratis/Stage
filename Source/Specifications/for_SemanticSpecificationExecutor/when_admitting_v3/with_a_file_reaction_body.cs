@@ -55,9 +55,9 @@ public class with_a_file_reaction_body : Specification
     void Destroy() => Directory.Delete(_workspace, recursive: true);
 
     [Fact] void should_refuse_the_file_body() => _fileRefusal.ShouldNotBeNull();
-    [Fact] void should_report_the_reaction_capability() => _fileRefusal!.Capability.ShouldEqual(StageExecutionCapability.Reaction);
-    [Fact] void should_refuse_exactly_as_the_inline_form_does() => _fileRefusal!.Details.ShouldEqual(_inlineRefusal!.Details);
-    [Fact] void should_name_the_opaque_body() => _fileRefusal!.Details.ShouldContain("STAGE-ESM-024: Reaction 'Notifier' has an opaque body for trigger kind '");
+    [Fact] void should_report_the_reaction_capability() => _fileRefusal.Capability.ShouldEqual(StageExecutionCapability.Reaction);
+    [Fact] void should_refuse_exactly_as_the_inline_form_does() => _fileRefusal.Details.ShouldEqual(_inlineRefusal.Details);
+    [Fact] void should_name_the_opaque_body() => _fileRefusal.Details.ShouldContain("STAGE-ESM-024: Reaction 'Notifier' has an opaque body for trigger kind '");
     [Fact] void should_be_unsupported_in_the_reference() => _reference.Execution.ShouldBeOfExactType<SemanticUnsupported>();
     [Fact] void should_be_unsupported_not_passed_in_the_executor() => _executed.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
 

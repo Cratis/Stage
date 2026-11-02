@@ -28,5 +28,5 @@ public class with_a_direct_append : a_command_only_plan
     }
 
     [Fact] void should_pass_as_the_reference_does() => Assert.True(_reference.Passed && _report.Results.Single().Outcome == SemanticSpecificationOutcome.Passed, $"Reference: {_reference.Execution.Kind} {string.Join(',', _reference.Failures)}; Stage: {_report.Results.Single().Outcome} {string.Join(',', _report.Results.Single().Failures)}");
-    [Fact] void should_append_the_same_fact_as_the_reference() => _report.Results.Single().Trace!.Facts.Single().EventSource.ShouldEqual(SemanticRunContext.Canonical(((SemanticAccepted)_reference.Execution).Facts.Single().Destination));
+    [Fact] void should_append_the_same_fact_as_the_reference() => _report.Results.Single().Trace.Facts.Single().EventSource.ShouldEqual(SemanticRunContext.Canonical(((SemanticAccepted)_reference.Execution).Facts.Single().Destination));
 }

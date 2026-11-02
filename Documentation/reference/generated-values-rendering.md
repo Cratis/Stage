@@ -249,7 +249,9 @@ For time-ordered strategies, the Host uses the same occurrence instant for gener
 
 An accepted scalar response becomes the HTTP command result's `response` value. A named response becomes an object with camelCase field names. Rejected or unauthorized results carry no response. The Stage frontend passes the accepted response through Scene's `CommandOutcome.response`.
 
-Form `on submit` response binding and navigation remain blocked on [Scene #53](https://github.com/Cratis/Scene/issues/53). Generated TypeScript proxies already expose the scalar or named command response; they do not supply Scene's continuation binding.
+A form's successful `on submit` continuation can use the command's scalar return name or a named response field as a value in navigation arguments, subsequent command arguments or messages. Generated applications and the live Host carry the response and destination types to Scene; incompatible or unknown contracts prevent submission rather than falling back to request fields or selected rows. Named fields use the backend's camelCase wire names. Form fields and behavior parameters shadow matching response names.
+
+This first continuation slice supports primitive and concept values, including optional values and collections, and named records of those values. Non-command success branches retain the response. A nested command success uses that command's response; captures of an outer response across nested command success, failure or result branches are refused during translation. Guarded submit triggers are also refused because the pinned Scene form continuation cannot represent their guard. Composite response contracts and response-to-state assignments remain unsupported. These limits do not restrict generated TypeScript proxies, which expose the command's declared response independently of form continuations.
 
 ## Limits and diagnostics
 
@@ -270,12 +272,13 @@ Commands with generated properties can validate and require request values. Requ
 | `STAGE-ESM-042` | Unsupported validation rule kinds in the legacy syntax renderer, including checksum; semantic checksum rules are supported |
 | `STAGE-ESM-011` | A generated fixture that fails its required strategy shape or concept rules |
 | `STAGE-ESM-004` | StateChange slices without a command |
-| `STAGE-ESM-006` | Expression conditions, enum operands and nonnumeric ordering in production conditions |
+| `STAGE-ESM-006` | Unsupported production destinations, mappings, tags, types, or conditions, including enum operands and nonnumeric ordering. Described handlers own payload and destination and retain `STAGE-IMPL-002` instead of this code for those two checks |
+| `STAGE-ESM-053` | A declarative command production with neither its own nor the command's destination. Stage does not yet render event-source identity allocation for it ([Stage#629](https://github.com/Cratis/Stage/issues/629)); the message names the command and event |
 | `STAGE-ESM-038` | Command rules or requirements that read a generated property; collection responses, responses from a source that is not a command property of the same type, or response fields whose C# members collide; the message names the reason |
 | `STAGE-ESM-038` | Unpinned generation on a concept with any unproven rule, read by a production condition, or with unordered event, read-model or query expectations, or a generated constrained value whose unpinned draw could change the asserted collision outcome |
 | `STAGE-ESM-038` | A generated identifier combined with a destination-less plain production |
 
-The last case is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
+The last case retains `STAGE-ESM-038`, before destination admission, and is not shorthand for using the generated identifier. Screenplay keeps legacy allocation in a separate `AllocatedIdentities` channel. Use an inline `produces event` declaration as above, or an explicit production destination. Stage refuses the ambiguous combination instead of sending the event to a different stream than the evaluator.
 
 Time-ordered factories (`uuidv7`, `ulid`, `typeid`) follow Arc's `ReceivedAt`, with no wall-clock fallback in the rendered app. Missing receipt times fail generation. Pins bypass the factory and need not encode the receipt time. Values reveal the receipt time and are not monotonic within a millisecond. Screenplay `given clock` is supported on otherwise admitted command specifications from ESM v6. Fixed `$context.occurred` payload assertions use that instant; a wrong expected instant fails rather than changing the clock. The executor also uses the authored instant for stored occurrence metadata, while retaining deterministic generated fixtures. Authored clocks with reactions, `when clock` and `sequence` remain unsupported. The executor can run pinned `rule` values without executing bodies. The Host interpreter refuses commands generating them; rendered applications execute the verified bodies through the context factory.
 

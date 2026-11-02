@@ -17,5 +17,5 @@ public class with_a_rejection_message : a_command_only_plan
     }
 
     [Fact] void should_pass() => _report.Results.Single().Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_preserve_the_message() => _report.Results.Single().Trace!.Rejection.ShouldEqual("Project name is required");
+    [Fact] void should_preserve_the_message() => _report.Results.Single().Trace.Rejection.ShouldEqual("Project name is required");
 }

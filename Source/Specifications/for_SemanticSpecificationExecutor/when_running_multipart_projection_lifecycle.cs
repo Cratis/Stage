@@ -18,7 +18,7 @@ public class when_running_multipart_projection_lifecycle : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", Source);
         var compilation = new SemanticModelCompiler().Compile("MultipartLifecycle", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
         var assertion = plan.Specifications.Values.Single(specification => specification.Name == "Found").ThenQueries.Single();
         var key = (SemanticCompositeValue)assertion.Key;
@@ -35,7 +35,7 @@ public class when_running_multipart_projection_lifecycle : Specification
     [Fact] void should_fail_a_wrong_absence() => Result("WrongAbsence").Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
     [Fact] void should_not_report_unsupported() => Assert.All(_report.Results, result => result.Unsupported.ShouldBeNull());
     [Fact] void should_not_treat_an_omitted_query_part_as_a_wildcard() => _missingPartResults.ShouldEqual(0);
-    [Fact] void should_trace_each_distinct_updated_key() => Result("Updated").Trace!.ReadModels.Count.ShouldEqual(3);
+    [Fact] void should_trace_each_distinct_updated_key() => Result("Updated").Trace.ReadModels.Count.ShouldEqual(3);
     [Fact] void should_report_a_value_mismatch_not_an_execution_exception() => Result("WrongValue").Failures.Single().ShouldContain("was not found with matching values.");
     [Fact] void should_report_an_absence_mismatch_not_an_execution_exception() => Result("WrongAbsence").Failures.Single().ShouldContain("to be absent.");
 

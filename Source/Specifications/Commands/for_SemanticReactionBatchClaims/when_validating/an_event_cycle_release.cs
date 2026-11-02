@@ -9,5 +9,5 @@ public class an_event_cycle_release : given.a_constrained_plan
 
     [Fact] void should_accept_the_release() => _results[0].ShouldBeNull();
     [Fact] void should_accept_the_claim_after_the_release() => _results[1].ShouldBeNull();
-    [Fact] void should_refuse_a_second_claim_in_the_same_cycle() => _results[2]!.Name.ShouldEqual("OneClaim");
+    [Fact] void should_refuse_a_second_claim_in_the_same_cycle() => _results[2].Name.ShouldEqual("OneClaim");
 }

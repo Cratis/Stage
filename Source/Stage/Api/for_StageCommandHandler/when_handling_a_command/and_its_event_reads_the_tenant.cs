@@ -27,7 +27,7 @@ public class and_its_event_reads_the_tenant : given.a_command_handler
         .Returns(call =>
         {
             _appended++;
-            _value = ((IReadOnlyList<ProducedEventPayload>)call[1])[0].Content["tenant"]!.GetValue<string>();
+            _value = ((IReadOnlyList<ProducedEventPayload>)call[1])[0].Content["tenant"].GetValue<string>();
             return Task.FromResult<CommandResult?>(null);
         });
 

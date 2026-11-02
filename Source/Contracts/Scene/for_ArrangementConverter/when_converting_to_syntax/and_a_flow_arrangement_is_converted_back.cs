@@ -30,8 +30,8 @@ public class and_a_flow_arrangement_is_converted_back : Specification
 
     void Because()
     {
-        _syntax = ArrangementConverter.ToSyntax(_arrangement)!;
-        _converted = (FlowArrangement)ArrangementConverter.Convert(_syntax)!;
+        _syntax = ArrangementConverter.ToSyntax(_arrangement);
+        _converted = (FlowArrangement)ArrangementConverter.Convert(_syntax);
     }
 
     [Fact] void should_be_a_flow_arrangement() => _syntax.Mode.ShouldEqual(ArrangementMode.Flow);

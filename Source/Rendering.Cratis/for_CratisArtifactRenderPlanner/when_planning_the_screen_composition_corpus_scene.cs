@@ -32,13 +32,13 @@ public class when_planning_the_screen_composition_corpus_scene : Specification
     [Fact] void should_plan_the_folder_scene_without_findings() => _folderPlan.Findings.ShouldBeEmpty();
     [Fact] void should_plan_the_typed_scene_without_findings() => _typedPlan.Findings.ShouldBeEmpty();
     [Fact] void should_preserve_the_folder_navigation_contribution() => _folderScene.Screens.SelectMany(_ => _.Contributions).Any(_ => _.ContributionPointName == "Navigation").ShouldBeTrue();
-    [Fact] void should_preserve_dialog_template_metadata() => _typedScene.DialogTemplates.Single(_ => _.Name == "EditWorkItemDialog").Metadata!.Type.ShouldEqual("commandForm");
-    [Fact] void should_preserve_layout_outlet_metadata() => _typedScene.Layouts.Single().Outlets!.Single().Name.ShouldEqual("details");
+    [Fact] void should_preserve_dialog_template_metadata() => _typedScene.DialogTemplates.Single(_ => _.Name == "EditWorkItemDialog").Metadata.Type.ShouldEqual("commandForm");
+    [Fact] void should_preserve_layout_outlet_metadata() => _typedScene.Layouts.Single().Outlets.Single().Name.ShouldEqual("details");
     [Fact] void should_preserve_package_profile_choices() => string.Join(',', _typedScene.UiProfiles.Single().Packages).ShouldEqual("core,scene.web,Cratis.Components");
     [Fact] void should_emit_the_typed_grid_component() => TypedGrid.ComponentName.ShouldEqual("scene.web.DataGrid");
     [Fact] void should_preserve_component_property_bindings() => SelectedItemBinding.Kind.ShouldEqual(BindingSourceKind.ComponentProperty);
     [Fact] void should_preserve_component_property_null_behavior() => SelectedItemBinding.NullBehavior.ShouldEqual(BindingNullBehavior.Clear);
-    [Fact] void should_preserve_component_exposures() => ((Dictionary<string, BindingExpression>)TypedGrid.Properties["exposes"]!).ContainsKey("selectedWorkItem").ShouldBeTrue();
+    [Fact] void should_preserve_component_exposures() => ((Dictionary<string, BindingExpression>)TypedGrid.Properties["exposes"]).ContainsKey("selectedWorkItem").ShouldBeTrue();
     [Fact] void should_preserve_component_outlets() => TypedGrid.Slots.ContainsKey("detail").ShouldBeTrue();
     [Fact] void should_emit_toolbar_items_with_icons() => Toolbar.Slots["items"].Cast<ExternalComponent>().Any(_ => (string?)_.Properties["icon"] == "add").ShouldBeTrue();
 
@@ -57,13 +57,13 @@ public class when_planning_the_screen_composition_corpus_scene : Specification
             foreach (var document in documents)
             {
                 var path = Path.Combine(root, document.DisplayPath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, document.Text);
             }
 
             var compilation = new PlayFileCompiler().CompileFolder(root).Result;
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-            return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+            return new ScreenplaySceneVisitor().Visit(compilation.Value);
         }
         finally
         {

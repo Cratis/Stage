@@ -25,6 +25,10 @@ internal static class SemanticReactorArtifactRenderer
         {
             var source = context.Events[group.Key];
             builder.BlankLine()
+                .Summary($"Reacts to {Identifiers.ToWords(source.Name)}.")
+                .Parameter("event", "The triggering event.")
+                .Parameter("context", "The triggering event context.")
+                .Returns("The modeled reaction effects.")
                 .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object> {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)")
                 .Line("var effects = new global::System.Collections.Generic.List<object>();");
             foreach (var trigger in group)
@@ -80,7 +84,7 @@ internal static class SemanticReactorArtifactRenderer
     static CSharpCodeBuilder ReactorBuilder(LocatedSemanticSlice located, SemanticReaction reaction, SemanticApplicationContext context)
     {
         var builder = context.CodeBuilder().Namespace(SliceNaming.Namespace(context.RootNamespace, located.Path));
-        context.Docs(reaction.Id).Render(builder)
+        context.Docs(reaction.Id).Render(builder, $"Reacts through {Identifiers.ToPascalCase(reaction.Name)}.")
             .Attribute($"global::Cratis.Chronicle.Reactors.ReactorAttribute({CSharpCodeBuilder.StringLiteral(reaction.Id.ToString())})")
             .Attribute("global::Cratis.Chronicle.Reactors.OnceOnlyAttribute");
         RenderIdentityAttribute(builder, reaction);
@@ -105,6 +109,10 @@ internal static class SemanticReactorArtifactRenderer
         var source = context.Events[reaction.Triggers[0].Source];
         var types = new SemanticTypeSystem(context);
         builder.BlankLine()
+            .Summary($"Reacts to {Identifiers.ToWords(source.Name)}.")
+            .Parameter("event", "The triggering event.")
+            .Parameter("context", "The triggering event context.")
+            .Returns("The modeled reaction effects.")
             .OpenBlock($"public global::System.Collections.Generic.IEnumerable<object>? {Identifiers.ToPascalCase(source.Name)}({types.EventType(source)} @event, global::Cratis.Chronicle.Events.EventContext context)");
         foreach (var name in CSharpBodyBindings.Referenced(inline.Code!.Text, source.Properties.Select(property => Identifiers.ToPascalCase(property.Name))))
         {

@@ -15,6 +15,6 @@ public class and_mapping_fails_mid_batch : given.an_observed_reaction_plan
     Task Because() => ExecuteObserved();
 
     [Fact] void should_reject_as_the_reference_does() => AssertMatchesReference();
-    [Fact] void should_report_the_mapping_failure() => _result.Trace!.Rejection.ShouldEqual(Message);
+    [Fact] void should_report_the_mapping_failure() => _result.Trace.Rejection.ShouldEqual(Message);
     [Fact] void should_append_none_of_the_batch() => _worldFacts.ShouldEqual(1);
 }

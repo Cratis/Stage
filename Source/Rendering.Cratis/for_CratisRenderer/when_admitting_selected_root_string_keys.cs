@@ -48,7 +48,7 @@ public class when_admitting_selected_root_string_keys : a_multi_slice_applicatio
             """);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _application = compilation.Value!;
+        _application = compilation.Value;
         _module = _application.Modules.Single();
         _feature = _module.Features.Single();
         _blocked = _feature.Slices.First();
@@ -79,7 +79,7 @@ public class when_admitting_selected_root_string_keys : a_multi_slice_applicatio
         rejection.ProjectionName.ShouldEqual("Order");
         rejection.ReadModel.ShouldEqual("OrderReadModel");
         rejection.EventName.ShouldEqual("OrderCreated");
-        var key = (ExpressionKeySyntax)_blocked.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key!;
+        var key = (ExpressionKeySyntax)_blocked.Projections.Single().Blocks.OfType<FromSyntax>().Single().Key;
         rejection.Location.ShouldEqual(key.Expression.Location);
         _error.ToString().ShouldContain(rejection.Message);
         _output.ToString().ShouldNotContain("Rendering complete.");

@@ -28,7 +28,7 @@ public class when_reading_the_checked_in_catalog : Specification
     [Fact] void should_know_both_identity_providers() =>
         (_catalog.TypesNamed("Cratis.Arc.Identity", "IIdentityProvider", 0, GeneratedProjects.Application).Any() &&
             _catalog.TypesNamed("Cratis.Chronicle.Identities", "IIdentityProvider", 0, GeneratedProjects.Application).Any()).ShouldBeTrue();
-    [Fact] void should_know_what_a_concept_inherits() => _catalog.Inherited("Cratis.Concepts.ConceptAs`1", GeneratedProjects.Application)!.Members.ShouldContain("Value");
+    [Fact] void should_know_what_a_concept_inherits() => _catalog.Inherited("Cratis.Concepts.ConceptAs`1", GeneratedProjects.Application).Members.ShouldContain("Value");
 
     static string Pins(IEnumerable<KeyValuePair<string, string>> pins) => string.Join(' ', pins.Select(pin => $"{pin.Key}={pin.Value}"));
 }

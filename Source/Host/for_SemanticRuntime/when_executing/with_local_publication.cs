@@ -18,7 +18,7 @@ public class with_local_publication : Specification
     [Fact]
     public async Task should_append_the_outbound_publication_locally()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan;
         var log = new a_semantic_fact_log();
         using var runtime = log.Runtime(plan, SemanticWorld.Empty);
         var arguments = new Dictionary<string, JsonElement>
@@ -39,7 +39,7 @@ public class with_local_publication : Specification
     [Fact]
     public async Task should_refuse_a_restart_from_a_history_with_published_events()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan())).Plan;
         var log = new a_semantic_fact_log();
         using var runtime = log.Runtime(plan, SemanticWorld.Empty);
         var arguments = new Dictionary<string, JsonElement>

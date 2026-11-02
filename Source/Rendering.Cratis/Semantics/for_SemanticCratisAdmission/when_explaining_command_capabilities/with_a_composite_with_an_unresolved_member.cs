@@ -17,11 +17,11 @@ public class with_a_composite_with_an_unresolved_member : given.a_command_model
 
     void Because()
     {
-        var plan = SemanticExecutionPlan.Compile(_model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(_model).Plan;
         var type = _model.Application.Types.Single();
 
         // Exercise the renderer boundary with a nested reference the executable-model compiler would reject.
-        typeof(SemanticCompositeType).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(SemanticCompositeType).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(type, ImmutableArray.Create(type.Properties.Single() with { Type = SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Unknown) }));
         var options = new CratisRenderingOptions("Invoices", "Invoices");
         var request = new ArtifactRenderRequest(_model, plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));

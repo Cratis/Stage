@@ -26,7 +26,7 @@ public class when_refusing_v10_corpora(ITestOutputHelper output) : Specification
     {
         var vector = EventRoutesCorpus.ObserverFiltersV10;
         var model = SemanticModelSerializer.Deserialize(vector.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         plan.Specifications.Count.ShouldEqual(5);
         var expectation = vector.SpecificationExpectations.Single(expectation => expectation.Name == name);
         var reference = new SemanticSpecificationRunner().Run(plan, expectation.Specification);
@@ -41,7 +41,7 @@ public class when_refusing_v10_corpora(ITestOutputHelper output) : Specification
     public void should_preserve_complete_corpus_renderer_refusals()
     {
         var model = SemanticModelSerializer.Deserialize(EventRoutesCorpus.ObserverFiltersV10.EsmBytes.AsSpan());
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var rendered = CratisRendering.Plan(model, plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-011");
         rendered.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

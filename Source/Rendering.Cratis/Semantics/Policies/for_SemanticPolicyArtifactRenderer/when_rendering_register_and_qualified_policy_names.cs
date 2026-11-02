@@ -29,7 +29,7 @@ public class when_rendering_register_and_qualified_policy_names : for_SemanticPo
         var context = new SemanticApplicationContext(
             new(
                 _model,
-                SemanticExecutionPlan.Compile(_model).Plan!,
+                SemanticExecutionPlan.Compile(_model).Plan,
                 CratisRendering.CreateProfile(_model.Application.Name, options),
                 new(ArtifactRenderScopeKind.Application, _model.Application.Id)),
             options);

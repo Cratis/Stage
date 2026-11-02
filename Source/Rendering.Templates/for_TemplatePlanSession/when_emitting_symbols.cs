@@ -14,10 +14,10 @@ public class when_emitting_symbols : for_TemplatePreparer.given.a_kit
     [Fact]
     public void should_emit_declarations_references_and_imports_in_order()
     {
-        using var session = TemplatePreparer.Prepare(Kit("A{{ sym.decl 'Domain' model.name }}{{ sym.ref 'Other' model.name }}{{ sym.imports }}B")).Value!.BeginPlan(TemplateBudget.Default);
+        using var session = TemplatePreparer.Prepare(Kit("A{{ sym.decl 'Domain' model.name }}{{ sym.ref 'Other' model.name }}{{ sym.imports }}B")).Value.BeginPlan(TemplateBudget.Default);
         var result = session.Render("main.scriban", Scope);
         result.Refusal.ShouldBeNull();
-        var output = result.Output!;
+        var output = result.Output;
         output.Segments.Length.ShouldEqual(5);
         ((TemplateSymbolSegment)output.Segments[1]).ShouldEqual(new(TemplateSymbolKind.Declaration, new("Domain", "Customer")));
         ((TemplateSymbolSegment)output.Segments[2]).ShouldEqual(new(TemplateSymbolKind.Reference, new("Other", "Customer")));
@@ -33,16 +33,16 @@ public class when_emitting_symbols : for_TemplatePreparer.given.a_kit
     [InlineData("{{ x = sym.ref 'Domain' 'Customer'; x.name }}")]
     public void should_refuse_text_and_container_coercion(string text)
     {
-        using var session = TemplatePreparer.Prepare(Kit(text)).Value!.BeginPlan(TemplateBudget.Default);
+        using var session = TemplatePreparer.Prepare(Kit(text)).Value.BeginPlan(TemplateBudget.Default);
         var result = session.Render("main.scriban", Scope);
-        result.Refusal!.Code.ShouldEqual(TemplateCodes.Symbol);
+        result.Refusal.Code.ShouldEqual(TemplateCodes.Symbol);
         result.Output.ShouldBeNull();
     }
 
     [Fact]
     public void should_allow_opaque_assignment_and_null_test()
     {
-        using var session = TemplatePreparer.Prepare(Kit("{{ x = sym.ref 'Domain' 'Customer'; if x != null; x; end }}")).Value!.BeginPlan(TemplateBudget.Default);
-        session.Render("main.scriban", Scope).Output!.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
+        using var session = TemplatePreparer.Prepare(Kit("{{ x = sym.ref 'Domain' 'Customer'; if x != null; x; end }}")).Value.BeginPlan(TemplateBudget.Default);
+        session.Render("main.scriban", Scope).Output.Segments[0].ShouldEqual(new TemplateSymbolSegment(TemplateSymbolKind.Reference, new("Domain", "Customer")));
     }
 }

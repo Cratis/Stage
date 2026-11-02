@@ -14,5 +14,5 @@ public class and_the_query_is_unknown : given.registered_endpoints
 
     [Fact] void should_not_fall_back_to_another_query_over_the_read_model() => Properties("list").ContainsKey("route").ShouldBeFalse();
     [Fact] void should_mark_the_binding_unresolved() => Properties("list")[StageSceneRoutes.RouteStatusProperty].ShouldEqual("unresolved");
-    [Fact] void should_say_which_query_was_not_found() => ((string)Properties("list")[StageSceneRoutes.RouteDiagnosticProperty]!).ShouldContain("Query 'AllWorkItems' over 'WorkItemSummary'");
+    [Fact] void should_say_which_query_was_not_found() => ((string)Properties("list")[StageSceneRoutes.RouteDiagnosticProperty]).ShouldContain("Query 'AllWorkItems' over 'WorkItemSummary'");
 }

@@ -12,7 +12,7 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_exe
 public abstract class a_handler_application : a_generated_application
 {
     public string Warnings { get; private set; } = null!;
-    public (string Name, string Outcome)[] Results { get; private set; } = [];
+    public GeneratedTestResult[] Results { get; private set; } = [];
     protected virtual string Body => handler_model.Body;
 
     protected override ArtifactRenderPlan CreatePlan() => handler_model.Plan(handler_model.Request(Body, with_a_body_dependent_specification.Source));
@@ -23,8 +23,7 @@ public abstract class a_handler_application : a_generated_application
         {
             Warnings = BuildWarnings(await Run("debug-build.log", "build", "HandlerApp.csproj", "-c", "Debug", "-warnaserror", "--nologo"));
             await Run("debug-test.log", allowFailedTests, "test", "HandlerApp.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=handler.trx", "--results-directory", _evidence.FullName);
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            Results = [.. XDocument.Load(Path.Combine(_evidence.FullName, "handler.trx")).Descendants(ns + "UnitTestResult").Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+            Results = [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "handler.trx")))];
         }
         finally
         {

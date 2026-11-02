@@ -53,10 +53,10 @@ public class and_a_production_overrides_the_command_route : a_routed_runtime
     async Task Because() => _result = await Execute();
 
     [Fact] void should_accept_the_command() => _result.ShouldBeOfExactType<SemanticAccepted>();
-    [Fact] void should_send_both_events() => _append!.Events.Count().ShouldEqual(2);
-    [Fact] void should_keep_the_command_stream_type_on_the_default_production() => _append!.Events.ElementAt(0).EventStreamType.ShouldEqual("stored-transactions");
-    [Fact] void should_keep_the_command_stream_id_on_the_default_production() => _append!.Events.ElementAt(0).EventStreamId.ShouldEqual("2026-10");
-    [Fact] void should_send_the_override_stream_type() => _append!.Events.ElementAt(1).EventStreamType.ShouldEqual("stored-archive");
-    [Fact] void should_send_the_override_stream_id() => _append!.Events.ElementAt(1).EventStreamId.ShouldEqual("archive-1");
-    [Fact] void should_preserve_the_destination_of_the_override() => _append!.Events.ElementAt(1).EventSourceId.ShouldEqual("acc-1");
+    [Fact] void should_send_both_events() => _append.Events.Count().ShouldEqual(2);
+    [Fact] void should_keep_the_command_stream_type_on_the_default_production() => _append.Events.ElementAt(0).EventStreamType.ShouldEqual("stored-transactions");
+    [Fact] void should_keep_the_command_stream_id_on_the_default_production() => _append.Events.ElementAt(0).EventStreamId.ShouldEqual("2026-10");
+    [Fact] void should_send_the_override_stream_type() => _append.Events.ElementAt(1).EventStreamType.ShouldEqual("stored-archive");
+    [Fact] void should_send_the_override_stream_id() => _append.Events.ElementAt(1).EventStreamId.ShouldEqual("archive-1");
+    [Fact] void should_preserve_the_destination_of_the_override() => _append.Events.ElementAt(1).EventSourceId.ShouldEqual("acc-1");
 }

@@ -23,7 +23,7 @@ public class with_a_generation_rule_command_and_requirements : Specification
             catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text)).ToArray();
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var requirements = compiled.ImplementationRequirements;
         _admission = new(plan, id => requirements.FirstOrDefault(requirement => requirement.RequirementId == id)?.Member);
     }

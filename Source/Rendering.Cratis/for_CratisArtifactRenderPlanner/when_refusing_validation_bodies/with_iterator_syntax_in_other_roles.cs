@@ -27,6 +27,6 @@ public class with_iterator_syntax_in_other_roles : Specification
     [InlineData("policy", "yield return \"message\";")]
     [InlineData("policy", "return $\"{context.Occurred}\";")]
     void should_keep_shared_pure_parsing_closed_for_reducers_and_policies(string role, string body) =>
-        PureTransitionAdmission.ParseBody(body, new HashSet<string>(), role).Rejection!.Code.ShouldEqual("STAGE-ESM-022");
+        PureTransitionAdmission.ParseBody(body, new HashSet<string>(), role).Rejection.Code.ShouldEqual("STAGE-ESM-022");
 }
 #endif

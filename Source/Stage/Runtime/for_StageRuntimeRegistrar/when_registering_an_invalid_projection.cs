@@ -27,8 +27,8 @@ public class when_registering_an_invalid_projection
         var module = collection.Modules.Single();
         var feature = module.Features.Single();
         var slice = feature.Slices.Single();
-        var readModel = slice.ReadModel!;
-        var projection = readModel.Projection!;
+        var readModel = slice.ReadModel;
+        var projection = readModel.Projection;
         var invalid = projection with { From = new Dictionary<string, FromDefinition>
         {
             ["ItemRegistered"] = projection.From.Single().Value with { Key = "$composite(OrderKey, region=$value(us-east), id=id)" }

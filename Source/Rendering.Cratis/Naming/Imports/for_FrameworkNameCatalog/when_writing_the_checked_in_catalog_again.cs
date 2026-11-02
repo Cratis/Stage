@@ -13,7 +13,7 @@ public class when_writing_the_checked_in_catalog_again : Specification
 
     void Establish()
     {
-        using var stream = typeof(FrameworkNameCatalog).Assembly.GetManifestResourceStream(FrameworkNameCatalog.ResourceName)!;
+        using var stream = typeof(FrameworkNameCatalog).Assembly.GetManifestResourceStream(FrameworkNameCatalog.ResourceName);
         using var reader = new StreamReader(stream);
         _text = reader.ReadToEnd();
     }

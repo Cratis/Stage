@@ -22,7 +22,7 @@ public class when_loading_a_slice_without_a_projection : Specification
     void Because()
     {
         var model = EventModelLoader.LoadFromSource(Source);
-        _readModel = model.Collections.Single().Modules.Single().Features.Single().Slices.Single().ReadModel!;
+        _readModel = model.Collections.Single().Modules.Single().Features.Single().Slices.Single().ReadModel;
     }
 
     [Fact] void should_leave_the_selected_projection_name_unknown() => _readModel.SelectedProjectionName.ShouldBeNull();

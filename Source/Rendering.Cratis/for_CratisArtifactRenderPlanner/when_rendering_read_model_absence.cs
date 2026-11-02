@@ -127,8 +127,8 @@ public class when_rendering_read_model_absence : Specification
         types.ShouldNotBeEmpty();
         foreach (var type in types)
         {
-            using var instance = (IDisposable)Activator.CreateInstance(type)!;
-            var establishment = type.GetMethod("Establish", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(instance, null);
+            using var instance = (IDisposable)Activator.CreateInstance(type);
+            var establishment = type.GetMethod("Establish", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, null);
             if (establishment is Task task) await task;
             foreach (var fact in type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Where(method => Attribute.IsDefined(method, typeof(FactAttribute))))
             {

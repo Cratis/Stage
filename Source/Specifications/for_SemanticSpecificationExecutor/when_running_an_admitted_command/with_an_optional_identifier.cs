@@ -32,5 +32,5 @@ public class with_an_optional_identifier : a_command_only_plan
     }
 
     [Fact] void should_remain_an_invalid_contract() => _error.ShouldBeOfExactType<InvalidSemanticContract>();
-    [Fact] void should_identify_the_required_scalar_identifier() => _error!.Message.ShouldContain("one required scalar identifier");
+    [Fact] void should_identify_the_required_scalar_identifier() => _error.Message.ShouldContain("one required scalar identifier");
 }

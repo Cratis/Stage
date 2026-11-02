@@ -17,7 +17,7 @@ public class when_configuring_request_localization_below_existing_usings : Speci
     {
         var input = StringsCatalogInput.Create(new Dictionary<string, string> { ["invoices.en.strings"] = "invoice.key = \"Value\"\n" }, "en");
         StringsCatalogInput.TryRead(input, out var catalog);
-        _program = StringsCatalogInput.ConfigureProgram(Source, catalog!, "Invoices");
+        _program = StringsCatalogInput.ConfigureProgram(Source, catalog, "Invoices");
     }
 
     [Fact] void should_merge_the_using_block_in_ordinal_order() => _program[..(_program.IndexOf("\n\n", StringComparison.Ordinal) + 2)].ShouldEqual(Usings);

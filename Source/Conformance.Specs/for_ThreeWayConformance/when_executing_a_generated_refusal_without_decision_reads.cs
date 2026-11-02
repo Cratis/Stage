@@ -19,7 +19,7 @@ public class when_executing_a_generated_refusal_without_decision_reads(when_exec
     [Fact] void should_not_use_an_untyped_scenario() => fixture.GeneratedSpecification.ShouldNotContain("CommandScenario<object>");
     [Fact] void should_not_use_the_legacy_event_scenario() => fixture.GeneratedSpecification.ShouldNotContain("EventScenario");
     [Fact] void should_execute_three_generated_tests() => fixture.GeneratedResults.Length.ShouldEqual(3);
-    [Fact] void should_execute_the_settlement_count_and_exact_refusal_event_assertions() => fixture.GeneratedResults.Select(result => result.Name.Split('.')[^1]).ShouldContainOnly(["should_settle", "should_append_exactly_the_expected_events", "should_append_event_1"]);
+    [Fact] void should_execute_the_settlement_count_and_exact_refusal_event_assertions() => fixture.GeneratedResults.Select(result => result.MethodName).ShouldContainOnly(["should_settle", "should_append_exactly_the_expected_events", "should_append_event_1"]);
     [Fact] void should_pass_every_generated_test_without_skipping() => Assert.All(fixture.GeneratedResults, result => Assert.Equal("Passed", result.Outcome));
     [Fact] void should_pass_the_refusal_expectation_on_all_three_paths() => fixture.Outcomes.ShouldContainOnly(["single-refusal/Completing: Reference=Passed, Stage=Passed, Rendered=Passed"]);
     [Fact] void should_preserve_three_way_parity() => ThreeWayOutcomes.Report(fixture, output);
@@ -78,17 +78,14 @@ public class when_executing_a_generated_refusal_without_decision_reads(when_exec
         protected override bool RequireStageExecution => true;
         protected override IEnumerable<(string Form, ExecutableSemanticModel Model)> Models => [("single-refusal", a_refusal_model.Compile(ModelSource))];
         public string GeneratedSpecification { get; private set; } = string.Empty;
-        public (string Name, string Outcome)[] GeneratedResults { get; private set; } = [];
+        public GeneratedTestResult[] GeneratedResults { get; private set; } = [];
 
         async Task Because()
         {
             // Verify removes the generated application, but retains its runtime evidence.
             GeneratedSpecification = ReadGeneratedFile(GeneratedFiles("when_completing.cs").Single());
             await Verify();
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            GeneratedResults = [.. XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx"))
-                .Descendants(ns + "UnitTestResult")
-                .Select(result => (result.Attribute("testName")!.Value, result.Attribute("outcome")!.Value))];
+            GeneratedResults = [.. GeneratedTestResults.Read(XDocument.Load(Path.Combine(_evidence.FullName, "parity.trx")))];
         }
     }
 }

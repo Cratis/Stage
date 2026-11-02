@@ -33,7 +33,7 @@ public class a_stored_partial_event : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("partial-event"), "partial-event", "Partial.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        _partialPlan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _partialPlan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var contract = _partialPlan.Events.Values.Single();
 
         // Chronicle omits an absent value from stored content, so the stored event has no "value" property.

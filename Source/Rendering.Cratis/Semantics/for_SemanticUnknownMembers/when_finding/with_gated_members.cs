@@ -32,7 +32,7 @@ public class with_gated_members : a_range_model
         var specification = slice.Specifications[0];
         ImmutableArray<SemanticSpecificationInvocation> invocations = populated ? [new(_model.Application.Id, [])] : [];
         typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, invocations);
-        FindGated().Any(member => member.Member == "SemanticSpecification.ThenInvocations").ShouldEqual(populated);
+        FindGated("SemanticSpecification.ThenInvocations").Any(member => member.Member == "SemanticSpecification.ThenInvocations").ShouldEqual(populated);
     }
 
     [Fact]

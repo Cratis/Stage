@@ -39,7 +39,7 @@ public class when_converting_the_produces_declarations : given.a_compiled_model_
     [Fact] void should_render_the_compared_constant_as_json() => Comparison(_conditional).Value.ShouldEqual("true");
 
     [Fact] void should_combine_two_conditions() => _either.When.ShouldBeOfExactType<ProducedEventLogicalCondition>();
-    [Fact] void should_use_the_modeled_combinator() => ((ProducedEventLogicalCondition)_either.When!).Operator.ShouldEqual(ProducedEventLogicalOperator.Or);
+    [Fact] void should_use_the_modeled_combinator() => ((ProducedEventLogicalCondition)_either.When).Operator.ShouldEqual(ProducedEventLogicalOperator.Or);
 
     static ProducedEventProperty Property(ProducedEvent produced, string property) =>
         produced.Properties.Single(candidate => candidate.Property == property);

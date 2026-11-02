@@ -13,6 +13,6 @@ public class when_performing_a_filtered_query : given.a_list_query_runtime
     void Establish() => CreateProvider();
     async Task Because() => await Perform("FilteredProjects", new QueryArguments { ["name"] = "Shared", ["projectId"] = "project-2" });
 
-    [Fact] void should_combine_all_supplied_filters() => ((object[])_result!).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-2");
+    [Fact] void should_combine_all_supplied_filters() => ((object[])_result).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-2");
     [Fact] void should_expose_both_filter_parameters() => _performer.Parameters.Select(parameter => parameter.Name).ShouldContainOnly("name", "projectId");
 }

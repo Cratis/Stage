@@ -28,7 +28,8 @@ public class when_rendering_unpinned_time_ordered_values : Specification
     }
 
     // Pinned fixtures retain their generated values without enabling receipt-time generation.
-    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("64ab39685560b89102e45d789b2e1969ed5d614bb9b986cad6f790f5ead1b54c");
+    // Recomputed for #497's generated XML documentation and used-only specification imports.
+    [Fact] void should_preserve_the_pinned_specification_bytes() => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(LegacyLicenseHeader.Restore("when_several_initial_facts.cs", Render(null))))).ShouldEqual("299867df56e172c3d00cd8815bec718f0b6c7c7c6e44ac4a7c68f0df930cbee7");
     [Fact] void should_leave_pinned_specifications_without_clock_setup() => Render(null).ShouldNotContain("_scenario.Clock(");
     [Fact] void should_leave_pinned_specifications_without_receipt_time_facts() => Render(null).ShouldNotContain("_at_the_receipt_time()");
     [Fact] void should_leave_non_time_ordered_generation_without_clock_setup() => Render("receipt").ShouldNotContain("_scenario.Clock(");
@@ -53,13 +54,13 @@ public class when_rendering_unpinned_time_ordered_values : Specification
         var changed = specification with
         {
             GivenClock = clock,
-            When = specification.When! with { GeneratedValues = [.. specification.When.GeneratedValues.Where(value => value.TargetProperty != property?.Id)] }
+            When = specification.When with { GeneratedValues = [.. specification.When.GeneratedValues.Where(value => value.TargetProperty != property?.Id)] }
         };
         var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, original.Application with
         {
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [changed] } : value)] }] }]
         });
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
         Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(value => value.Message)));
 
         return Encoding.UTF8.GetString(plan.Artifacts.Single(value => value.RelativePath.EndsWith("when_several_initial_facts.cs", StringComparison.Ordinal)).Bytes.AsSpan());

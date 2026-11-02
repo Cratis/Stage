@@ -27,7 +27,7 @@ public class when_running_beside_an_event_reaction : Specification
             Triggers = [],
             Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Where(slice => slice.Kind == SemanticSliceKind.StateChange), reminders] }] }]
         });
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
     }
 
     async Task Because()
@@ -39,5 +39,5 @@ public class when_running_beside_an_event_reaction : Specification
     [Fact] void should_run_the_validation_specification() => _report.Results.Single(result => result.Name == "RejectingAnEmptyReason").Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_clocked_reference_specification() => _reference.Passed.ShouldBeTrue();
     [Fact] void should_run_the_clocked_reaction_specification() => _report.Results.Single(result => result.Name == "SendingAnInvoice").Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_preserve_the_authored_instant_in_the_reminder() => _report.Results.Single(result => result.Name == "SendingAnInvoice").Trace!.Facts[^1].Values.Values.ShouldContain("\"2026-10-02T09:00:00.0000000Z\"");
+    [Fact] void should_preserve_the_authored_instant_in_the_reminder() => _report.Results.Single(result => result.Name == "SendingAnInvoice").Trace.Facts[^1].Values.Values.ShouldContain("\"2026-10-02T09:00:00.0000000Z\"");
 }

@@ -33,6 +33,6 @@ public static class policy_names
     static SemanticApplicationContext Context(ExecutableSemanticModel model)
     {
         CratisRenderingOptions options = new("InvoiceApp", "Invoices");
-        return new(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
+        return new(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)), options);
     }
 }

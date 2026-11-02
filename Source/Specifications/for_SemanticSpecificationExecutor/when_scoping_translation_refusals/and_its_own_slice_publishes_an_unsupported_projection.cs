@@ -13,5 +13,5 @@ public class and_its_own_slice_publishes_an_unsupported_projection : given.a_tra
     async Task Because() => await Execute();
 
     [Fact] void should_refuse_translation() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_preserve_the_translation_diagnostic() => _result.Unsupported!.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_preserve_the_translation_diagnostic() => _result.Unsupported.Details.StartsWith("STAGE-ESM-024:", StringComparison.Ordinal).ShouldBeTrue();
 }

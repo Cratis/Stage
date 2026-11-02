@@ -77,7 +77,7 @@ public class when_rendering_requirements_with_validated_concepts : Specification
 
     static (string RelativePath, string Code)[] Plan(ExecutableSemanticModel model)
     {
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ConceptOrder", "ConceptOrder"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ConceptOrder", "ConceptOrder"));
         return [.. plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal)).Select(artifact => (artifact.RelativePath, Encoding.UTF8.GetString(artifact.Bytes.AsSpan())))];
     }
 }

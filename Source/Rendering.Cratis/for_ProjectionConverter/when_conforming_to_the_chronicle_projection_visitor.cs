@@ -54,6 +54,6 @@ public class when_conforming_to_the_chronicle_projection_visitor
             string.Join('\n', blocks.Split('\n').Select(_ => $"        {_}"));
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, $"{caseName}: {string.Join(Environment.NewLine, compilation.Diagnostics)}");
-        return compilation.Value!.Modules.Single().Features.Single().Slices.Single().Projections.Single();
+        return compilation.Value.Modules.Single().Features.Single().Slices.Single().Projections.Single();
     }
 }

@@ -14,5 +14,5 @@ public class with_a_keyed_list : given.a_list_query_runtime
     async Task Because() => await Perform("ProjectsByName", new QueryArguments { ["name"] = "Shared" });
 
     [Fact] void should_expose_only_the_declared_argument() => _performer.Parameters.Select(parameter => parameter.Name).ShouldContainOnly("name");
-    [Fact] void should_preserve_both_matching_instances() => ((object[])_result!).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-1", "project-2");
+    [Fact] void should_preserve_both_matching_instances() => ((object[])_result).Cast<DynamicReadModel>().Select(model => model.Id).ShouldContainOnly("project-1", "project-2");
 }

@@ -17,12 +17,15 @@ public class when_creating_a_zoo_project : Specification
         _paths = [.. inputs.Select(input => input.Name["cratis-scaffold:text:".Length..])];
     }
 
-    [Fact] void should_order_all_actual_relative_paths_ordinally() => _paths.SequenceEqual(
+    [Fact]
+    void should_order_all_actual_relative_paths_ordinally() => _paths.SequenceEqual(
         [
             ".editorconfig",
             "Directory.Build.props",
             "Directory.Build.targets",
             "Directory.Packages.props",
+            "GeneratedAuthentication.cs",
+            "GeneratedAuthenticationPerimeter.cs",
             "GeneratedPolicyRegistration.cs",
             "GlobalUsings.cs",
             "Program.cs",

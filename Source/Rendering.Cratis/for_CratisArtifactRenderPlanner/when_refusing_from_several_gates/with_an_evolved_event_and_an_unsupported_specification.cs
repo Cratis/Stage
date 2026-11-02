@@ -37,7 +37,7 @@ public class with_an_evolved_event_and_an_unsupported_specification : given.a_co
         _request = _request with
         {
             Model = model,
-            ExecutionPlan = execution.Plan!,
+            ExecutionPlan = execution.Plan,
             Profile = ArtifactRenderProfile.Create(
                 profile.Target,
                 profile.TargetVersion,

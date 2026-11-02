@@ -29,7 +29,7 @@ public class when_verifying_original_bytes : Specification
         var bytes = Encoding.UTF8.GetBytes(source);
         var result = InlineCode.Verify(bytes, Envelope(bytes));
         Assert.Empty(result.Diagnostics);
-        result.Value!.ContentHash.ShouldEqual(Hash(bytes));
+        result.Value.ContentHash.ShouldEqual(Hash(bytes));
         result.Value.Text.ShouldEqual(source);
         result.Value.ByteSource.ShouldEqual("supplied-bytes");
     }
@@ -38,7 +38,7 @@ public class when_verifying_original_bytes : Specification
     void should_keep_bom_in_hash_but_out_of_body()
     {
         byte[] bytes = [0xef, 0xbb, 0xbf, .. Encoding.UTF8.GetBytes("return 1;\r\n")];
-        var code = InlineCode.Verify(bytes, Envelope(bytes)).Value!;
+        var code = InlineCode.Verify(bytes, Envelope(bytes)).Value;
         code.Text.ShouldEqual("return 1;\r\n");
         code.ContentHash.ShouldEqual(Hash(bytes));
         Assert.NotEqual(Hash(Encoding.UTF8.GetBytes(code.Text)), code.ContentHash);
@@ -48,11 +48,11 @@ public class when_verifying_original_bytes : Specification
     void should_snapshot_mutable_input_and_label_string_provenance()
     {
         var bytes = Encoding.UTF8.GetBytes("return 1;");
-        var code = InlineCode.Verify(bytes, Envelope(bytes)).Value!;
+        var code = InlineCode.Verify(bytes, Envelope(bytes)).Value;
         bytes[0] = (byte)'X';
         code.Text.ShouldEqual("return 1;");
         code.BodyLines.Single().ShouldEqual("return 1;");
-        InlineCode.VerifyUtf8Text(code.Text, code.Envelope).Value!.ByteSource.ShouldEqual("utf8-string");
+        InlineCode.VerifyUtf8Text(code.Text, code.Envelope).Value.ByteSource.ShouldEqual("utf8-string");
     }
 
     [Fact]

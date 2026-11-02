@@ -11,5 +11,5 @@ public class with_trigger_values : when_settling_reactions.given.a_reaction_plan
         new(Action: "when trigger Arrived\n  item = \"one\"", Policy: "trigger Arrived\n  item String"));
     Task Because() => Execute();
     [Fact] void should_match_the_reference() => AssertMatchesReference();
-    [Fact] void should_use_the_trigger_identity_value() => _result.Trace!.Facts.Single().EventSource.ShouldEqual("\"one\"");
+    [Fact] void should_use_the_trigger_identity_value() => _result.Trace.Facts.Single().EventSource.ShouldEqual("\"one\"");
 }

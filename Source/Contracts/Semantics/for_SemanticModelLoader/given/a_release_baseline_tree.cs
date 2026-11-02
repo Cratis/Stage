@@ -16,10 +16,10 @@ public class a_release_baseline_tree : for_StageReleaseBaseline.given.a_release_
     void Establish()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent!;
+        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
         _root = Path.Combine(directory.FullName, ".ai-work", "375", "loader-specs", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(_root, ".screenplay"));
-        _baselineBytes = ReleaseBaselineStore.Serialize(_baseline.Document!);
+        _baselineBytes = ReleaseBaselineStore.Serialize(_baseline.Document);
         _catalogBytes = PersistedIdentityStateSerializer.Serialize(PersistedIdentityStateSerializer.From(_workspace));
         File.WriteAllText(Path.Combine(_root, "source.play"), Source.Replace("value String", "value Bool", StringComparison.Ordinal));
         File.WriteAllBytes(Path.Combine(_root, ".screenplay", "identities.json"), _catalogBytes);

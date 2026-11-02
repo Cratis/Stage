@@ -19,12 +19,12 @@ public class when_admitting_nullable_query_keys_without_not_empty_rules : Specif
     {
         var model = invoice_model.Compile(a_validated_query_key_model.Source);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var located = context.SelectedSlices().Single(value => value.Slice.Queries.Length > 0);
         var slice = located.Slice with
         {
-            Queries = [.. located.Slice.Queries.Select(query => query with { Argument = query.Argument! with { Type = query.Argument!.Type with { IsOptional = true } } })]
+            Queries = [.. located.Slice.Queries.Select(query => query with { Argument = query.Argument with { Type = query.Argument.Type with { IsOptional = true } } })]
         };
         _diagnostics = [.. SemanticCratisAdmission.Evaluate(context, [located with { Slice = slice }])];
     }

@@ -28,11 +28,11 @@ public class when_refusing_composite_read_model_keys : Specification
     {
         var parsed = new ScreenplayCompiler().Parse(Source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        _ensured = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!));
-        _visited = Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        _ensured = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value));
+        _visited = Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
     }
 
-    [Fact] void should_refuse_with_the_composite_key_code() => _ensured!.Message.ShouldContain("STAGE-ESM-048");
-    [Fact] void should_name_the_read_model() => _ensured!.Message.ShouldContain("'PaymentTotals'");
-    [Fact] void should_refuse_before_the_legacy_engine_visits_the_model() => _visited!.Message.ShouldContain("STAGE-ESM-048");
+    [Fact] void should_refuse_with_the_composite_key_code() => _ensured.Message.ShouldContain("STAGE-ESM-048");
+    [Fact] void should_name_the_read_model() => _ensured.Message.ShouldContain("'PaymentTotals'");
+    [Fact] void should_refuse_before_the_legacy_engine_visits_the_model() => _visited.Message.ShouldContain("STAGE-ESM-048");
 }

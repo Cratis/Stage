@@ -27,7 +27,7 @@ public class when_receiving_source_keyed_events : Specification
         using var runtime = new SemanticRuntime(plan, log);
         var first = Fact(plan, First, First);
         first.Destination.ShouldEqual(SemanticValue.Text(First));
-        first.Context!.EventSource.Type.ShouldEqual(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text));
+        first.Context.EventSource.Type.ShouldEqual(SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text));
         await runtime.Receive(first, Occurrence());
         await runtime.Receive(Fact(plan, Second, Second), Occurrence());
         await runtime.Receive(first, Occurrence());
@@ -58,7 +58,7 @@ public class when_receiving_source_keyed_events : Specification
         var contract = plan.Events.Values.Single(contract => contract.Origin is not null);
         var context = EventContext.Empty with { EventSourceId = new(source), EventType = new(SemanticStoredEventNames.Of(contract), EventTypeGeneration.First) };
         var received = new ReactorEvent(context, new JsonObject { [contract.Properties.Single().Name] = key }, new Dictionary<int, string>());
-        return SemanticInbox.Fact(plan, contract.Origin!, received);
+        return SemanticInbox.Fact(plan, contract.Origin, received);
     }
 
     static SemanticCommandOccurrence Occurrence() => new(DateTimeOffset.UnixEpoch, "caller", "Caller", "user");

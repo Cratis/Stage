@@ -20,9 +20,14 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for Screenplay 4.254.0: the scaffold now emits the published matcher pin.
     // Recomputed for Chronicle 19.112.1, Arc 22.143.0 and Fundamentals 7.27.0: the scaffold now emits those package pins and the matching npm Arc pins.
     // Recomputed for the Microsoft.Extensions.Telemetry.Abstractions 10.11.0 pin (537a7b80, Cratis/Chronicle#5442): the backend scaffold now emits its central package version and the specifications project reference.
-    // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
+    // Re-frozen for #497's generated XML documentation and used-only specification imports;
+    // Cratis.Specifications 5.1.0 and train 8b's Screenplay 4.256.0 / Arc 22.146.0 pins;
+    // Components 4.37.0 and Scene 4.86.0 (the scaffold now emits those npm pins);
+    // Components 4.38.1 (only the npm package pin changes).
+    // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
-    const string Before = "e8e0ed90849a3232a53c0eeb6bd07728da344521c85b3e60151f6c7f2576e0d6";
+    // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
+    const string Before = "5c6666af74fd84b4e8f4aac44810a39860899daefdeb04a83400a2b5f186e7eb";
 
     ArtifactRenderPlan _plan = null!;
 

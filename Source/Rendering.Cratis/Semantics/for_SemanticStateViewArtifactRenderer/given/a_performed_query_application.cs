@@ -54,7 +54,7 @@ public class a_performed_query_application : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing"), "billing", "Billing.play", source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("Billing", "Billing");
         var bodies = compilation.ImplementationRequirements.ToImmutableDictionary(requirement => requirement.RequirementId,
             requirement => requirement.QueryShape?.Cardinality == SemanticQueryCardinality.Many ? "return readModels;" : "return readModels.FirstOrDefault();");
@@ -62,7 +62,7 @@ public class a_performed_query_application : Specification
         {
             ContentHash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(bodies[requirement.RequirementId])))
         }).ToImmutableArray();
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Billing", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Billing", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = requirements,
             ImplementationContents = bodies

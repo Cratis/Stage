@@ -60,8 +60,8 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
         store.Connection.Returns(connection);
         var client = Substitute.For<IChronicleClient>();
         client.GetEventStore(Arg.Any<EventStoreName>()).Returns(store);
-        var appenderType = typeof(SemanticRuntimeHosting).Assembly.GetType("Cratis.Stage.Semantics.SemanticFactAppender", throwOnError: true)!;
-        var appender = (IAppendSemanticFacts)Activator.CreateInstance(appenderType, client, new StageEventStoreName("stage-specs"), _runtime.Plan)!;
+        var appenderType = typeof(SemanticRuntimeHosting).Assembly.GetType("Cratis.Stage.Semantics.SemanticFactAppender", throwOnError: true);
+        var appender = (IAppendSemanticFacts)Activator.CreateInstance(appenderType, client, new StageEventStoreName("stage-specs"), _runtime.Plan);
         _chronicleRuntime = SemanticRuntimeHosting.Create(_runtime.Plan, appender);
     }
 
@@ -74,10 +74,10 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
     [Fact] void should_append_the_first_fact_to_the_empty_log() => _first.ShouldBeOfExactType<SemanticAccepted>();
     [Fact] void should_send_one_unrestricted_scope_for_the_empty_log()
     {
-        var scope = _requests[0].ConcurrencyScopes!.Single();
+        var scope = _requests[0].ConcurrencyScopes.Single();
         scope.EventSourceId.ShouldEqual("__stage:event-log-tail__");
         scope.Scope.EventSourceId.ShouldBeFalse();
-        scope.Scope.EventTypes!.ShouldBeEmpty();
+        scope.Scope.EventTypes.ShouldBeEmpty();
         scope.Scope.EventSourceType.ShouldBeNull();
         scope.Scope.EventStreamId.ShouldBeNull();
         scope.Scope.EventStreamType.ShouldBeNull();
@@ -87,10 +87,10 @@ public class and_an_external_writer_arrives_during_append : a_semantic_runtime
 
     [Fact] void should_send_the_checked_tail_for_the_next_append()
     {
-        var scope = _requests[1].ConcurrencyScopes!.Single();
-        scope.EventSourceId.ShouldEqual(_requests[0].ConcurrencyScopes!.Single().EventSourceId);
+        var scope = _requests[1].ConcurrencyScopes.Single();
+        scope.EventSourceId.ShouldEqual(_requests[0].ConcurrencyScopes.Single().EventSourceId);
         scope.Scope.EventSourceId.ShouldBeFalse();
-        scope.Scope.EventTypes!.ShouldBeEmpty();
+        scope.Scope.EventTypes.ShouldBeEmpty();
         scope.Scope.EventSourceType.ShouldBeNull();
         scope.Scope.EventStreamId.ShouldBeNull();
         scope.Scope.EventStreamType.ShouldBeNull();

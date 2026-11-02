@@ -20,7 +20,7 @@ public class and_the_kit_renders_every_construct : given.a_declarative_planner
     [Fact] void should_render_nothing_else() => _plan.Artifacts.Length.ShouldEqual(4);
     [Fact] void should_not_write_fully_qualified_type_names() => _plan.Artifacts.Count(_ => System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan()).Contains("global::", StringComparison.Ordinal)).ShouldEqual(0);
     [Fact] void should_be_rendered() => _plan.Outcome.ShouldEqual(ArtifactRenderOutcome.Rendered);
-    [Fact] void should_account_for_every_command_and_reaction() => _plan.Inventory!.Constructs.Count(_ => _.Outcome == ArtifactRenderOutcome.Rendered).ShouldEqual(3);
-    [Fact] void should_score_everything() => _plan.Inventory!.Score.BasisPoints.ShouldEqual(10000);
+    [Fact] void should_account_for_every_command_and_reaction() => _plan.Inventory.Constructs.Count(_ => _.Outcome == ArtifactRenderOutcome.Rendered).ShouldEqual(3);
+    [Fact] void should_score_everything() => _plan.Inventory.Score.BasisPoints.ShouldEqual(10000);
     [Fact] void should_keep_the_input_components() => _plan.InputProvenance.Components.Length.ShouldEqual(5);
 }

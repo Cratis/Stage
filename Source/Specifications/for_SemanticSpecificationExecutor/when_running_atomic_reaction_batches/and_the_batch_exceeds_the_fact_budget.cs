@@ -16,6 +16,6 @@ public class and_the_batch_exceeds_the_fact_budget : given.an_observed_reaction_
 
     [Fact] void should_match_the_reference_fact_limit() => AssertMatchesReference();
     [Fact] void should_append_none_of_the_batch() => _worldFacts.ShouldEqual(1);
-    [Fact] void should_report_the_reaction_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Reaction);
-    [Fact] void should_report_the_limit() => _result.Unsupported!.Details.ShouldEqual("The scenario appends more than 1000 facts; its reactions do not settle.");
+    [Fact] void should_report_the_reaction_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Reaction);
+    [Fact] void should_report_the_limit() => _result.Unsupported.Details.ShouldEqual("The scenario appends more than 1000 facts; its reactions do not settle.");
 }

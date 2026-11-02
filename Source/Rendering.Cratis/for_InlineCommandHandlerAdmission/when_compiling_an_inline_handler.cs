@@ -27,7 +27,7 @@ public class when_compiling_an_inline_handler
     {
         var result = new ScreenplayCompiler().Compile(Source);
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        result.Value!.Modules.Single().Features.Single().Slices.Single().Commands.Single().Handler!.Code!.Code.ShouldContain("context.Identity.Id");
+        result.Value.Modules.Single().Features.Single().Slices.Single().Commands.Single().Handler.Code.Code.ShouldContain("context.Identity.Id");
     }
 
     [Fact]

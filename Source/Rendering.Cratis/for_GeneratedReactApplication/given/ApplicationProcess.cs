@@ -22,7 +22,7 @@ public static class ApplicationProcess
     public static async Task<ProcessResult> Run(string directory, TimeSpan timeout, string fileName, params string[] arguments)
     {
         // Bounded so a local run does not start every generated application's build at once.
-        using var slot = await GeneratedApplicationBuilds.Enter();
+        using var slot = await GeneratedApplicationBuilds.Enter(new(directory, fileName, arguments));
         var startInfo = new ProcessStartInfo(fileName)
         {
             WorkingDirectory = directory,

@@ -64,7 +64,7 @@ async function submit(fetched: ReturnType<typeof renderScreen>, carrier = 'Poste
     fireEvent.click(dispatchButton());
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: carrier } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+    await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
     await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
     return JSON.parse(String(init?.body));
@@ -108,7 +108,7 @@ describe('a toolbar action that names the item and needs nothing else', () => {
         fireEvent.click(dispatchButton());
         const dialog = await screen.findByRole('dialog');
         expect(dialog.querySelectorAll('input, select, textarea')).toHaveLength(0);
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+        await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
@@ -123,7 +123,7 @@ describe('a toolbar action that names the item and needs nothing else', () => {
         await waitFor(() => expect(dispatchButton().disabled).toBe(false));
         fireEvent.click(dispatchButton());
         const dialog = await screen.findByRole('dialog');
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+        await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;
@@ -168,7 +168,7 @@ describe('a screen action that names the item as its subject', () => {
         const dialog = await screen.findByRole('dialog');
         expect(within(dialog).queryByLabelText('Shipment id', { exact: false })).toBeNull();
         fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-        await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+        await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
         await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
         const [, init] = fetched.mock.calls.find(([, request]) => request?.method === 'POST')!;

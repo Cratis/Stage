@@ -71,13 +71,13 @@ public class when_validating_source_keyed_delivery : Specification
         var plan = when_running_source_keyed_captures.Plan(
             specification => specification with
             {
-                WhenAppended = specification.WhenAppended! with { Values = [new(specification.WhenAppended.Values.Single().TargetProperty, key)] },
+                WhenAppended = specification.WhenAppended with { Values = [new(specification.WhenAppended.Values.Single().TargetProperty, key)] },
                 ThenEvents = [specification.ThenEvents.Single() with { Values = [new(specification.ThenEvents.Single().Values.Single().TargetProperty, key)], EventSource = new(type, key) }]
             },
             type);
         var specification = plan.Specifications.Values.Single();
         var normalized = SemanticCaptureSources.Normalize(plan, specification);
-        normalized.WhenAppended!.EventSource!.Value.ShouldEqual(SemanticValue.Text("42"));
+        normalized.WhenAppended.EventSource.Value.ShouldEqual(SemanticValue.Text("42"));
         new SemanticSpecificationRunner().Run(plan, specification.Id).Passed.ShouldBeTrue();
         var record = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         Assert.True(record.Outcome == SemanticSpecificationOutcome.Passed, $"{record.Unsupported?.Details} {string.Join(';', record.Failures)}");
@@ -87,7 +87,7 @@ public class when_validating_source_keyed_delivery : Specification
     public void should_not_infer_or_prevalidate_a_fixture_with_an_explicit_route()
     {
         var plan = when_running_source_keyed_captures.Plan(specification => specification);
-        var appended = plan.Specifications.Values.Single().WhenAppended!;
+        var appended = plan.Specifications.Values.Single().WhenAppended;
         var routed = new SemanticSpecificationEvent(appended.EventContract, appended.Values)
         {
             Route = new(appended.EventContract, appended.EventContract),

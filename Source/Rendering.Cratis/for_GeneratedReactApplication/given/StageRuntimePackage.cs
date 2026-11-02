@@ -31,8 +31,8 @@ public static class StageRuntimePackage
     {
         var tarball = await _tarball.Value;
         var path = Path.Combine(application, "package.json");
-        var package = JsonNode.Parse(await File.ReadAllTextAsync(path))!.AsObject();
-        package["dependencies"]![Name] = $"file:{tarball}";
+        var package = JsonNode.Parse(await File.ReadAllTextAsync(path)).AsObject();
+        package["dependencies"][Name] = $"file:{tarball}";
         await File.WriteAllTextAsync(path, package.ToJsonString(new() { WriteIndented = true }));
     }
 
@@ -79,5 +79,5 @@ public static class StageRuntimePackage
     }
 
     static string FrontendDirectory([CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", "..", "..", "Frontend"));
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source), "..", "..", "..", "Frontend"));
 }

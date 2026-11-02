@@ -20,12 +20,12 @@ public class when_formatting_integer_literals : Specification
     {
         var model = invoice_model.Compile(when_planning_event_source_routes.Source);
         var options = new CratisRenderingOptions("InvoiceApp", "InvoiceApp");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("InvoiceApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("InvoiceApp", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var command = context.Commands.Values.Single();
         foreach (var value in new[] { -9007199254740991m, 9007199254740991m, -9007199254740992m, 9007199254740992m })
         {
-            var routed = command with { Route = command.Route! with { StreamId = SemanticExpression.FromValue(SemanticValue.Number(value)) } };
+            var routed = command with { Route = command.Route with { StreamId = SemanticExpression.FromValue(SemanticValue.Number(value)) } };
             var exception = Catch.Exception(() => _ids.Add(new SemanticCommandRouteRendering(routed, context, new(routed)).StreamId()));
             if (exception is not null) _refusals.Add(Assert.IsType<UnsupportedSemanticRendering>(exception));
         }

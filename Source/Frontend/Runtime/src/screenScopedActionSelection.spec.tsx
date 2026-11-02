@@ -17,6 +17,14 @@ import { RegisteredTable, registerTestQueries, queryResult } from './testing/que
 import { commandResult } from './testing/commands';
 
 describe('the tables belonging to a screen', () => {
+    it.each(['kanbanBoard', 'Cratis.Blueprint.Default:kanbanBoard'])('should register only the card query and selection of a %s board', component => {
+        const board = element('picking', component, { cards: { kind: 'queryResult', query: 'PickingQueue' }, columns: { kind: 'queryResult', query: 'Columns' } });
+        const summary = element('summary', 'core:text', { value: { kind: 'queryResult', query: 'OtherShipments' } });
+        const outlet = element('outlet', 'core:outlet', {}, { content: [element('foreign', component, { cards: { kind: 'queryResult', query: 'ForeignQueue' } })] });
+
+        expect(screenTablesOf(element('screen', 'core:stack', {}, { content: [board, summary, outlet] }))).toEqual(['picking', 'binding:PickingQueue']);
+    });
+
     it('should find distinct tables nested in any slot without descending into outlets', () => {
         const ownTable = element('own-table', 'core:table');
         const nested = element('nested', 'core:stack', {}, { content: [ownTable] });
@@ -92,7 +100,7 @@ async function submitDispatch() {
     fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+    await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 }
 
 async function submittedBody(fetched: ReturnType<typeof renderScreens>) {

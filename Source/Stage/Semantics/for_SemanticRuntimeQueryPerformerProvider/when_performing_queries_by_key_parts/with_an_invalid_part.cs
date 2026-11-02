@@ -14,5 +14,5 @@ public class with_an_invalid_part : given.a_composite_key_runtime
     async Task Because() => _error = await Catch.Exception(async () => await Perform("Total", new QueryArguments { ["invoiceId"] = "X", ["method"] = "cash" }));
 
     [Fact] void should_reject_the_query() => _error.ShouldBeOfExactType<SemanticQueryRejected>();
-    [Fact] void should_name_the_concept_rule() => _error!.Message.ShouldEqual("Invoice id is too short");
+    [Fact] void should_name_the_concept_rule() => _error.Message.ShouldEqual("Invoice id is too short");
 }

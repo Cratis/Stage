@@ -119,7 +119,7 @@ async function submitSelected(fetched: ReturnType<typeof renderShipments>) {
     fireEvent.click(screen.getByRole('button', { name: 'Dispatch' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Carrier', { exact: false }), { target: { value: 'Posten' } });
-    await act(async () => { fireEvent.click(within(dialog).getByRole('button', { name: /submit/i })); });
+    await act(async () => { fireEvent.click(dialog.querySelector('.scene-slice-dialog-submit, button[type="submit"]')!); });
 
     await waitFor(() => expect(fetched.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true));
     return fetched;

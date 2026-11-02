@@ -49,7 +49,7 @@ public class an_application_trigger_reaction : Specification
     private protected void SetContext(ExecutableSemanticModel model)
     {
         _model = model;
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Reactions", new("Reactions", "Reactions")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Reactions", new("Reactions", "Reactions")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, new("Reactions", "Reactions"));
         _located = _context.SelectedSlices().Single();
     }
@@ -62,7 +62,7 @@ public class an_application_trigger_reaction : Specification
         Inspect();
     }
 
-    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, _context.Request.Scope, new("Reactions", "Reactions"));
+    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, _context.Request.Scope, new("Reactions", "Reactions"));
 
     private protected void Inspect()
     {

@@ -13,7 +13,7 @@ public class when_generating : Specification
 
     void Establish()
     {
-        using var stream = typeof(KitManifestSchema).Assembly.GetManifestResourceStream("Cratis.Stage.Rendering.Kits.stage-target.v1.schema.json")!;
+        using var stream = typeof(KitManifestSchema).Assembly.GetManifestResourceStream("Cratis.Stage.Rendering.Kits.stage-target.v1.schema.json");
         using var reader = new StreamReader(stream);
         _checkedIn = reader.ReadToEnd();
     }

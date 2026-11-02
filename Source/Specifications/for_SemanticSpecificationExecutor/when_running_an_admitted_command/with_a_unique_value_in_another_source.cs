@@ -18,7 +18,7 @@ public class with_a_unique_value_in_another_source : a_command_only_plan
         var @event = _specification.ThenEvents.Single();
         var contract = _plan.Events[@event.EventContract];
         var property = @event.Values.First(value => value.Value is SemanticTextValue && !contract.Properties.Single(candidate => candidate.Id == value.TargetProperty).IsIdentifier);
-        var source = @event.EventSource!;
+        var source = @event.EventSource;
         var given = @event with
         {
             EventSource = new(source.Type, SemanticValue.Text("6ca6599c-eefd-42a1-8e97-3aac1899487e")),

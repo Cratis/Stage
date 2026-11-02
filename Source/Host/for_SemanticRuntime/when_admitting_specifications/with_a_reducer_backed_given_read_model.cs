@@ -50,7 +50,7 @@ public class with_a_reducer_backed_given_read_model : Specification
 
     [Fact] void should_refuse_the_seeded_specification() => _admission.Entries.Single(entry => entry.Kind == "specification").Status.ShouldEqual("unsupported");
     [Fact] void should_report_the_projection_capability() => _admission.Entries.Single(entry => entry.Kind == "specification").Capability.ShouldEqual("Projection");
-    [Fact] void should_retain_the_implementation_refusal_code() => _admission.Entries.Single(entry => entry.Kind == "specification").Details!.ShouldContain("STAGE-IMPL-003: Reducer 'Fold' transition '");
+    [Fact] void should_retain_the_implementation_refusal_code() => _admission.Entries.Single(entry => entry.Kind == "specification").Details.ShouldContain("STAGE-IMPL-003: Reducer 'Fold' transition '");
     [Fact] void should_match_the_reference_refusal() => Assert.IsType<SemanticUnsupported>(_reference.Execution).Capability.ShouldEqual(SemanticExecutionCapability.Projection);
     [Fact] void should_still_admit_the_unrelated_live_command() => _admission.Entries.Single(entry => entry.Kind == "command").Status.ShouldEqual("supported");
     [Fact] void should_not_block_the_live_model() => _admission.Blocking.ShouldBeEmpty();

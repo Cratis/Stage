@@ -15,7 +15,7 @@ public class with_a_scoped_read_model : for_SemanticCratisAdmission.given.a_quer
     {
         var foreignKey = _slice.ReadModels.Single().Properties.First(property => !property.IsIdentifier);
         Configure(SemanticQueryCardinality.Many, SemanticQueryDelivery.Live, true);
-        _query = _query with { Argument = new(_query.Argument!.Id, foreignKey.Name, foreignKey.Type), KeyProperty = foreignKey.Id };
+        _query = _query with { Argument = new(_query.Argument.Id, foreignKey.Name, foreignKey.Type), KeyProperty = foreignKey.Id };
 
         // A scope/reducer uses the parameter path without a flat transition; isolate that path here.
         _slice = _slice with { Queries = [_query], Projections = [] };

@@ -35,9 +35,9 @@ internal static class RealizationScaffold
         {
             "Program.cs" => text => Program(text, realization, rootNamespace),
             "appsettings.json" => text => AppSettings(text, realization),
-            "Directory.Packages.props" when realization.Onboarding is not null => PackageVersions,
+            "Directory.Packages.props" when realization.Onboarding is not null => text => PackageVersions(text, realization.Onboarding.Offering.Length > 0),
             "docker-compose.yml" when realization.Onboarding is not null => ChronicleImage,
-            _ when path.EndsWith(".csproj", StringComparison.Ordinal) && realization.Onboarding is not null => Project,
+            _ when path.EndsWith(".csproj", StringComparison.Ordinal) && realization.Onboarding is not null => text => Project(text, realization.Onboarding.Offering.Length > 0),
             _ => null
         };
 
@@ -68,7 +68,7 @@ internal static class RealizationScaffold
         return root.ToJsonString(_indented);
     }
 
-    static string PackageVersions(string text)
+    static string PackageVersions(string text, bool offering)
     {
         const string required = ScaffoldPackageVersions.AnteChronicle;
         text = _chroniclePackage.Replace(text, match => AtLeast(match.Groups["version"].Value, required) ? match.Value : $"{match.Groups["head"].Value}{required}\"");
@@ -77,17 +77,21 @@ internal static class RealizationScaffold
             text,
             "  </ItemGroup>",
             $"    <PackageVersion Include=\"Cratis.Ante.Contracts\" Version=\"{ScaffoldPackageVersions.AnteContracts}\" />\n" +
-            $"    <PackageVersion Include=\"Cratis.Showrunner.Herald\" Version=\"{ScaffoldPackageVersions.Herald}\" />\n");
+            $"    <PackageVersion Include=\"Cratis.Showrunner.Herald\" Version=\"{ScaffoldPackageVersions.Herald}\" />\n" +
+            (offering ? $"    <PackageVersion Include=\"Cratis.Showrunner.BoxOffice\" Version=\"{ScaffoldPackageVersions.BoxOffice}\" />\n" : string.Empty));
     }
 
     static string ChronicleImage(string text) =>
         _chronicleImage.Replace(text, match => AtLeast(match.Groups["version"].Value, ScaffoldPackageVersions.AnteChronicle) ? match.Value : $"{match.Groups["head"].Value}{ScaffoldPackageVersions.AnteChronicle}-development");
 
     // Herald reads the templates and images from the Emails folder next to the application, so they travel with it.
-    static string Project(string text) => InsertBefore(
+    // Box Office brings the offering with it, and supplies the offers the operator published that starting a tenant looks the default offering up in.
+    static string Project(string text, bool offering) => InsertBefore(
         text,
         "  <Import Project=\"Customizations/Dependencies.props\"",
-        "  <ItemGroup>\n    <PackageReference Include=\"Cratis.Ante.Contracts\" />\n    <PackageReference Include=\"Cratis.Showrunner.Herald\" />\n  </ItemGroup>\n" +
+        "  <ItemGroup>\n    <PackageReference Include=\"Cratis.Ante.Contracts\" />\n    <PackageReference Include=\"Cratis.Showrunner.Herald\" />\n" +
+        (offering ? "    <PackageReference Include=\"Cratis.Showrunner.BoxOffice\" />\n" : string.Empty) +
+        "  </ItemGroup>\n" +
         "  <ItemGroup>\n    <None Include=\"Emails/**\" CopyToOutputDirectory=\"PreserveNewest\" CopyToPublishDirectory=\"PreserveNewest\" />\n  </ItemGroup>\n");
 
     static bool AtLeast(string current, string required) =>

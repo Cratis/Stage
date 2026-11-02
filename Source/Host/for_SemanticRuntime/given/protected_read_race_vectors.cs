@@ -13,20 +13,20 @@ internal static class protected_read_race_vectors
 {
     internal static SemanticFact Fact(SemanticExecutionPlan plan, JsonNode json)
     {
-        var contract = plan.Events.Values.Single(value => value.Name == json["event"]!.GetValue<string>());
-        var source = SemanticValue.Text(json["source"]!.GetValue<string>());
+        var contract = plan.Events.Values.Single(value => value.Name == json["event"].GetValue<string>());
+        var source = SemanticValue.Text(json["source"].GetValue<string>());
         var type = json["sourceType"] is { } concept
             ? SemanticTypeReference.ForConcept(plan.Model.Application.Concepts.Single(value => value.Name == concept.GetValue<string>()).Id)
             : SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text);
-        var values = contract.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(json["values"]![property.Name]!.GetValue<string>())));
+        var values = contract.Properties.Select(property => new SemanticPropertyValue(property.Id, SemanticValue.Text(json["values"][property.Name].GetValue<string>())));
 
         return new(contract.Id, source, [.. values]) { Context = new(new(type, source)) };
     }
 
     internal static SemanticDecision Decide(SemanticExecutionPlan plan, SemanticWorld world, JsonNode json)
     {
-        var command = plan.Commands.Values.Single(value => value.Name == json["command"]!.GetValue<string>());
-        var request = SemanticExecutionRequest.Create(command.Id, Values(command, json["values"]!.AsObject()), []);
+        var command = plan.Commands.Values.Single(value => value.Name == json["command"].GetValue<string>());
+        var request = SemanticExecutionRequest.Create(command.Id, Values(command, json["values"].AsObject()), []);
         if (json["generated"] is JsonObject generated)
         {
             request = request with { GeneratedValues = Values(command, generated) };
@@ -52,9 +52,9 @@ internal static class protected_read_race_vectors
     internal static async Task Verify(SemanticExecutionPlan plan, JsonNode vector)
     {
         var evaluator = new SemanticEvaluator();
-        var prefix = vector["decided"]!.AsArray().Select(fact => Fact(plan, fact!)).ToImmutableArray();
+        var prefix = vector["decided"].AsArray().Select(fact => Fact(plan, fact)).ToImmutableArray();
         var decided = Assert.IsType<SemanticAccepted>(evaluator.EstablishWorld(plan, prefix)).World;
-        var decision = Decide(plan, decided, vector["request"]!);
+        var decision = Decide(plan, decided, vector["request"]);
         var dependencies = new JsonArray();
         foreach (var entry in decision.Dependencies.Entries)
         {
@@ -68,19 +68,19 @@ internal static class protected_read_race_vectors
 
         // Each entry is an alternative durable log, not a continuation of a successful append.
         // The very same prepared decision is passed through the Host's settlement and guarded-persistence path.
-        foreach (var commit in vector["commits"]!.AsArray())
+        foreach (var commit in vector["commits"].AsArray())
         {
             var log = new a_semantic_fact_log();
             var initial = decided;
-            if (commit!["history"] is JsonArray history)
+            if (commit["history"] is JsonArray history)
             {
-                initial = Assert.IsType<SemanticAccepted>(evaluator.EstablishWorld(plan, [.. history.Select(fact => Fact(plan, fact!))])).World;
+                initial = Assert.IsType<SemanticAccepted>(evaluator.EstablishWorld(plan, [.. history.Select(fact => Fact(plan, fact))])).World;
                 log.Facts.AddRange(initial.Facts);
             }
             else
             {
                 log.Facts.AddRange(prefix);
-                log.Facts.AddRange(commit["later"]!.AsArray().Select(fact => Fact(plan, fact!)));
+                log.Facts.AddRange(commit["later"].AsArray().Select(fact => Fact(plan, fact)));
             }
 
             using var runtime = log.Runtime(plan, initial);
@@ -93,7 +93,7 @@ internal static class protected_read_race_vectors
     }
 
     static ImmutableArray<SemanticPropertyValue> Values(SemanticCommand command, JsonObject values) =>
-        [.. values.Select(pair => new SemanticPropertyValue(command.Properties.Single(property => property.Name == pair.Key).Id, SemanticValue.Text(pair.Value!.GetValue<string>())))];
+        [.. values.Select(pair => new SemanticPropertyValue(command.Properties.Single(property => property.Name == pair.Key).Id, SemanticValue.Text(pair.Value.GetValue<string>())))];
 
     static JsonObject Rejected(SemanticRejected rejected)
     {

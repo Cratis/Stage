@@ -19,8 +19,8 @@ public class and_every_target_resolves : an_application_targeting_web_and_ios
     [Fact] void should_report_nothing() => _result.IsComplete.ShouldBeTrue();
     [Fact] void should_expand_the_declared_packages_to_their_closure() => Web().Profile.Packages.SequenceEqual(["Tailwind", "PrimeReact"]).ShouldBeTrue();
     [Fact] void should_report_the_package_it_added_on_the_targets_behalf() => Web().Packages.Added.ShouldContainOnly("Tailwind");
-    [Fact] void should_resolve_the_selected_shell() => Web().Layout!.Name.ShouldEqual("AppShell");
-    [Fact] void should_resolve_the_selected_theme() => Web().Theme!.Name.ShouldEqual("Aurora");
+    [Fact] void should_resolve_the_selected_shell() => Web().Layout.Name.ShouldEqual("AppShell");
+    [Fact] void should_resolve_the_selected_theme() => Web().Theme.Name.ShouldEqual("Aurora");
     [Fact] void should_scope_the_themes_tokens_to_the_active_packages() => Web().ThemePackages.SequenceEqual(["Tailwind", "PrimeReact"]).ShouldBeTrue();
     [Fact] void should_resolve_a_component_only_core_declares() => Resolution("core:title").Package.ShouldEqual("core");
     [Fact] void should_resolve_a_component_to_the_highest_priority_package_declaring_it() => Resolution("core:table").Package.ShouldEqual("PrimeReact");

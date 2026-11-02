@@ -46,7 +46,7 @@ public class a_root_string_key_slice : Specification
 
         // Screenplay 4.212.3 reports an event used twice in one projection scope (PLAY0801); these scenarios use it on purpose, to prove that the
         // renderer still refuses what a hand-built or older tree can carry.
-        Assert.True(compilation.Value is not null && compilation.Diagnostics.All(diagnostic => diagnostic.Code == "PLAY0801" || diagnostic.Severity != global::Cratis.Screenplay.Diagnostics.DiagnosticSeverity.Error), $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
+        Assert.True(compilation.Value is not null && compilation.Diagnostics.All(diagnostic => diagnostic.Code == "PLAY0801" || diagnostic.Severity != Screenplay.Diagnostics.DiagnosticSeverity.Error), $"{string.Join(Environment.NewLine, compilation.Diagnostics)}{Environment.NewLine}{source}");
 
         // A deliberately declared projection-level key is exactly what Screenplay warns about (PLAY0381: it
         // does not route events). Stage must still reject it on its own terms, so only that warning is expected.
@@ -57,5 +57,5 @@ public class a_root_string_key_slice : Specification
         _slice = _context.Slices.Single().Slice;
     }
 
-    protected RenderedFile Render() => new StateViewSliceRenderer().Render(new(_slice, ["Sales", "Orders"]), _context, "OrdersApp");
+    protected RenderedFile Render(SliceSyntax? slice = null) => new StateViewSliceRenderer().Render(new(slice ?? _slice, ["Sales", "Orders"]), _context, "OrdersApp");
 }

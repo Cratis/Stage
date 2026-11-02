@@ -170,8 +170,8 @@ public class when_rendering_a_pure_reducer
         Assert.Empty(RenderedOutput.Errors(baselineFiles));
         var assembly = RenderedOutput.Load(baselineFiles);
         var concept = assembly.GetType("Projects.Common.TenantId");
-        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.PlaceOrder")!.GetProperty("Tenant")!.PropertyType);
-        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced")!.GetProperty("Tenant")!.PropertyType);
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.PlaceOrder").GetProperty("Tenant").PropertyType);
+        Assert.Equal(concept, assembly.GetType("Projects.Orders.Ordering.PlaceOrder.OrderPlaced").GetProperty("Tenant").PropertyType);
         var unrelated = source + "\nmodule TypedContexts\n  feature Other\n    slice StateChange Unrelated\n      event TenantChanged\n        tenant TenantId\n";
         var plan = Plan(await Load(unrelated));
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-022" && diagnostic.Message.Contains("TypedContexts", StringComparison.Ordinal));

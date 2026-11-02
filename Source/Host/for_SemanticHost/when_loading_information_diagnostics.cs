@@ -35,14 +35,14 @@ public class when_loading_information_diagnostics : given.a_model_path
     async Task Because()
     {
         (_loaded, _scene) = await SemanticHost.LoadModel(_path, _issues, _notes);
-        var command = _loaded!.Plan.Commands.Values.Single();
+        var command = _loaded.Plan.Commands.Values.Single();
         var request = SemanticExecutionRequest.Create(command.Id, [new(command.Properties.Single().Id, new SemanticTextValue("f439c9cb-4207-48a5-8445-94572c2d21b9"))], []);
         _execution = new SemanticEvaluator().Execute(_loaded.Plan, SemanticWorld.Empty, request);
     }
 
     [Fact] void should_load_the_semantic_model() => _loaded.ShouldNotBeNull();
     [Fact] void should_serve_a_scene() => _scene.ShouldNotBeNull();
-    [Fact] void should_admit_the_command() => _loaded!.Plan.Commands.Count.ShouldEqual(1);
+    [Fact] void should_admit_the_command() => _loaded.Plan.Commands.Count.ShouldEqual(1);
     [Fact] void should_execute_the_command() => _execution.ShouldBeOfExactType<SemanticAccepted>();
     [Fact] void should_append_the_registered_event() => ((SemanticAccepted)_execution).Facts.Length.ShouldEqual(1);
     [Fact] void should_report_no_unsupported_issues() => _issues.ShouldBeEmpty();

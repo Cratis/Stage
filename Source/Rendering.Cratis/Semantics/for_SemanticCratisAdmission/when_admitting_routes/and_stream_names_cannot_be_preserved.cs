@@ -28,7 +28,14 @@ public class and_stream_names_cannot_be_preserved : a_routed_command
     public void should_refuse_duplicate_member_names()
     {
         var stream = _source.Streams[0];
-        _source = _source with { Streams = [stream, stream with { Id = SemanticId.Parse($"sem1:{new string('a', 64)}"), StreamKind = "other" }] };
-        Assert.Throws<InvalidSemanticContract>(ReplaceSlice);
+        var source = _source with { Streams = [stream, stream with { Id = SemanticId.Parse($"sem1:{new string('a', 64)}"), StreamKind = "other" }] };
+        var slice = _slice with { Commands = [_command] };
+        var module = _model.Application.Modules.Single();
+        var feature = module.Features.Single();
+        Assert.Throws<InvalidSemanticContract>(() => ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with
+        {
+            EventSources = [source],
+            Modules = [module with { Features = [feature with { Slices = [slice] }] }]
+        }));
     }
 }

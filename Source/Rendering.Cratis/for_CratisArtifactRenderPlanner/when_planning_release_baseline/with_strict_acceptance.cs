@@ -49,7 +49,7 @@ public class with_strict_acceptance : given.a_release_baseline_request
     {
         var original = _original.WithAcceptance(_original.Degradations);
         var expected = ArtifactRenderPlan.Create(_request, original.Artifacts, [.. original.Diagnostics, .. _warnings], original.ImplementationGaps, original.Refusals, original.RequiredRemovals)
-            .WithInventory(original.Inventory!).WithAcceptance(original.Degradations, strict: true);
+            .WithInventory(original.Inventory).WithAcceptance(original.Degradations, strict: true);
         Assert.Equal(expected.Digest, _rebuilt.Digest);
     }
 

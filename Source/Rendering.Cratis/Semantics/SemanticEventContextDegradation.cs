@@ -8,7 +8,7 @@ using Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 namespace Cratis.Stage.Rendering.Cratis.Semantics;
 
 /// <summary>
-/// Strips projection mappings the renderer cannot express from a read model nothing decides on: $eventContext values (Stage#876)
+/// Strips projection mappings the renderer cannot express from a read model nothing decides on: unsupported $eventContext values
 /// and nested properties reached through an optional property, for which Chronicle's fluent builder has no equivalent.
 /// </summary>
 internal static class SemanticEventContextDegradation
@@ -57,7 +57,7 @@ internal static class SemanticEventContextDegradation
             ]);
     }
 
-    static bool IsEventContext(SemanticProjectionMapping mapping) => mapping.Source is SemanticProjectionEventContextValue { Path: not "eventSourceId" };
+    static bool IsEventContext(SemanticProjectionMapping mapping) => mapping.Source is SemanticProjectionEventContextValue;
 
     // Chronicle's fluent builder cannot set a property under an optional one: the optional object would have to be created from nothing.
     static bool IsThroughOptional(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context)
@@ -87,10 +87,17 @@ internal static class SemanticEventContextDegradation
         return false;
     }
 
+    static bool NeedsRequiredNestedLeafCheck(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context)
+    {
+        if (!IsEventContext(mapping)) return false;
+        if (mapping.Target.Length < 2) return false;
+        return IsUnsupported(mapping, readModel, context);
+    }
+
     // A composite type is shared with every other read model, event and command using it, so a required nested leaf is never made nullable for one view: the refusal stays.
     static bool LeavesRequiredNestedProperty(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context)
     {
-        if (!IsEventContext(mapping) || mapping.Target.Length < 2)
+        if (!NeedsRequiredNestedLeafCheck(mapping, readModel, context))
         {
             return false;
         }
@@ -112,7 +119,9 @@ internal static class SemanticEventContextDegradation
     }
 
     static bool IsUnsupported(SemanticProjectionMapping mapping, SemanticReadModel readModel, SemanticApplicationContext context) =>
-        IsEventContext(mapping) || IsThroughOptional(mapping, readModel, context);
+        (mapping.Source is SemanticProjectionEventContextValue value &&
+            !SemanticScopedProjectionSupport.EventContextMappingSupported(mapping, value, readModel.Properties, context)) ||
+        IsThroughOptional(mapping, readModel, context);
 
     static ImmutableArray<SemanticProjectionMapping> Kept(ImmutableArray<SemanticProjectionMapping> mappings, SemanticReadModel readModel, SemanticApplicationContext context) =>
         [.. mappings.Where(mapping => !IsUnsupported(mapping, readModel, context))];

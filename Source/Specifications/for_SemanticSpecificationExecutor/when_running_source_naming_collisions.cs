@@ -50,9 +50,9 @@ public class when_running_source_naming_collisions : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("names"), "names", "Names.play", source);
         var compilation = new SemanticModelCompiler().Compile("Payments", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var execution = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var execution = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.True(execution.Success, string.Join(';', execution.Issues));
-        var plan = execution.Plan!;
+        var plan = execution.Plan;
         var specification = plan.Specifications.Values.Single();
         var reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
 

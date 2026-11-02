@@ -14,7 +14,7 @@ public class a_locally_unadmitted_projection : a_rebuildable_world
 
     void Establish()
     {
-        _plan = Compile(ModelSource).Plan!;
+        _plan = Compile(ModelSource).Plan;
         _command = Command("RegisterProject");
         _readModel = _plan.ReadModels.Values.Single();
         _storedFact = ((SemanticAccepted)new SemanticEvaluator().Execute(
@@ -29,7 +29,7 @@ public class a_locally_unadmitted_projection : a_rebuildable_world
             value => eventContract.Properties.Single(property => property.Id == value.TargetProperty).Name,
             value => ((SemanticTextValue)value.Value).Value));
         var compilation = Compile(ModelSource + Extra);
-        _plan = compilation.Plan!;
+        _plan = compilation.Plan;
         var refusedProjection = _plan.Projections.Values.Single(projection => projection.Name == "RefusedProjection");
         Assert.Equal(refusedProjection.Id, Assert.Single(compilation.UnselectedIssues).Artifact);
     }
@@ -42,7 +42,7 @@ public class a_locally_unadmitted_projection : a_rebuildable_world
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("project-model"), "project-model", "RegisterProject.play", source);
         var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(issue => issue.Message)));
-        var compilation = SemanticExecutionPlan.Compile(compiled.Value!.Model, []);
+        var compilation = SemanticExecutionPlan.Compile(compiled.Value.Model, []);
         Assert.True(compilation.Success);
         return compilation;
     }

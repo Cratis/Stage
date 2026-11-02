@@ -39,7 +39,7 @@ public class when_redelivery_does_not_settle : Specification
                   id = "one"
                 when redelivered Started to Worker
                 then no events
-        """)).Plan!;
+        """)).Plan;
 
     async Task Because()
     {
@@ -51,6 +51,6 @@ public class when_redelivery_does_not_settle : Specification
     [Fact] void should_not_pass_the_reference() => _reference.Passed.ShouldBeFalse();
     [Fact] void should_match_the_reference_unsupported_outcome() => _reference.Execution.ShouldBeOfExactType<SemanticUnsupported>();
     [Fact] void should_not_pass_the_executor() => _stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_the_reaction_budget() => _stage.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Reaction);
+    [Fact] void should_report_the_reaction_budget() => _stage.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Reaction);
 }
 #endif

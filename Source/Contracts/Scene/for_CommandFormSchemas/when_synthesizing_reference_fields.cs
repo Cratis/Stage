@@ -22,10 +22,10 @@ public class when_synthesizing_reference_fields : Specification
     [Fact]
     public void should_annotate_the_shared_schema_with_the_query_key_and_label_but_no_route()
     {
-        var reference = Schema(Application(), [Reference])["properties"]![Reference.Name]!["x-reference"]!;
-        reference["query"]!.GetValue<string>().ShouldEqual("AllOrganisations");
-        reference["value"]!.GetValue<string>().ShouldEqual("organisationId");
-        reference["label"]!.GetValue<string>().ShouldEqual("name");
+        var reference = Schema(Application(), [Reference])["properties"][Reference.Name]["x-reference"];
+        reference["query"].GetValue<string>().ShouldEqual("AllOrganisations");
+        reference["value"].GetValue<string>().ShouldEqual("organisationId");
+        reference["label"].GetValue<string>().ShouldEqual("name");
         reference.AsObject().ContainsKey("route").ShouldBeFalse();
     }
 
@@ -37,13 +37,13 @@ public class when_synthesizing_reference_fields : Specification
     public void should_choose_labels_in_priority_order(string first, string second, string expected)
     {
         var model = Model with { Properties = [Key, Name with { Name = first }, Name with { Name = second }] };
-        Schema(Application([model]), [Reference])["properties"]![Reference.Name]!["x-reference"]!["label"]!.GetValue<string>().ShouldEqual(expected);
+        Schema(Application([model]), [Reference])["properties"][Reference.Name]["x-reference"]["label"].GetValue<string>().ShouldEqual(expected);
     }
 
     [Fact]
     public void should_use_the_key_as_label_if_there_is_no_string_property()
     {
-        Schema(Application([Model with { Properties = [Key] }]), [Reference])["properties"]![Reference.Name]!["x-reference"]!["label"]!.GetValue<string>().ShouldEqual(Key.Name);
+        Schema(Application([Model with { Properties = [Key] }]), [Reference])["properties"][Reference.Name]["x-reference"]["label"].GetValue<string>().ShouldEqual(Key.Name);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class when_synthesizing_reference_fields : Specification
     {
         var other = Model with { Id = SemanticId.Create(SemanticKind.ReadModel, "OrganisationSummary"), Name = "OrganisationSummary" };
         var schema = Schema(Application([other, Model], [Query with { Name = "Summaries", ReadModel = other.Id }, Query]), [Reference]);
-        schema["properties"]![Reference.Name]!["x-reference"]!["query"]!.GetValue<string>().ShouldEqual(Query.Name);
+        schema["properties"][Reference.Name]["x-reference"]["query"].GetValue<string>().ShouldEqual(Query.Name);
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public class when_synthesizing_reference_fields : Specification
     {
         var property = Reference with { IsGenerated = true };
         var schema = Schema(Application(), [property], new ConversionDiagnostics());
-        schema["properties"]![property.Name]!.AsObject().ContainsKey("type").ShouldBeTrue();
+        schema["properties"][property.Name].AsObject().ContainsKey("type").ShouldBeTrue();
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public class when_synthesizing_reference_fields : Specification
         var queries = ambiguous ? new[] { Query, Query with { Name = "OtherOrganisations" } } : [];
         var diagnostics = new ConversionDiagnostics();
         var schema = Schema(Application(queries: queries), [Reference], diagnostics);
-        (schema["properties"]![Reference.Name]!["x-reference"] is null).ShouldBeTrue();
+        (schema["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
         var note = diagnostics.All.Single();
         note.Code.ShouldEqual("STAGE-SCENE-REFERENCE-001");
         note.Severity.ShouldEqual(DiagnosticSeverity.Information);
@@ -104,20 +104,20 @@ public class when_synthesizing_reference_fields : Specification
     {
         var argument = new SemanticReadModelQueryArgument(default, "region", Name.Type);
         var query = filter ? Query with { Filters = [new(default, "region", Name.Type, Name.Id)] } : Query with { Argument = argument };
-        (Schema(Application(queries: [query]), [Reference])["properties"]![Reference.Name]!["x-reference"] is null).ShouldBeTrue();
+        (Schema(Application(queries: [query]), [Reference])["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
     }
 
     [Fact]
     public void should_allow_optional_query_filters()
     {
         var query = Query with { Filters = [new(default, "region", Name.Type with { IsOptional = true }, Name.Id)] };
-        (Schema(Application(queries: [query]), [Reference])["properties"]![Reference.Name]!["x-reference"] is not null).ShouldBeTrue();
+        (Schema(Application(queries: [query]), [Reference])["properties"][Reference.Name]["x-reference"] is not null).ShouldBeTrue();
     }
 
     [Fact]
     public void should_reject_single_instance_queries()
     {
-        (Schema(Application(queries: [Query with { Cardinality = SemanticQueryCardinality.ZeroOrOne }]), [Reference])["properties"]![Reference.Name]!["x-reference"] is null).ShouldBeTrue();
+        (Schema(Application(queries: [Query with { Cardinality = SemanticQueryCardinality.ZeroOrOne }]), [Reference])["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
     }
 
     [Fact]
@@ -125,12 +125,12 @@ public class when_synthesizing_reference_fields : Specification
     {
         var model = Model with { Properties = [Key with { IsIdentifier = false }, Name] };
         var diagnostics = new ConversionDiagnostics();
-        (Schema(Application([model]), [Reference], diagnostics)["properties"]![Reference.Name]!["x-reference"] is null).ShouldBeTrue();
+        (Schema(Application([model]), [Reference], diagnostics)["properties"][Reference.Name]["x-reference"] is null).ShouldBeTrue();
         diagnostics.All.ShouldBeEmpty();
     }
 
     static JsonObject Schema(SemanticApplication application, SemanticProperty[] properties, ConversionDiagnostics? diagnostics = null) =>
-        JsonNode.Parse(CommandFormSchemas.For(application, properties, diagnostics ?? new(), "RegisterOpportunity", Location)!)!.AsObject();
+        JsonNode.Parse(CommandFormSchemas.For(application, properties, diagnostics ?? new(), "RegisterOpportunity", Location)).AsObject();
 
     static SemanticApplication Application(SemanticReadModel[]? models = null, SemanticKeyedQuery[]? queries = null)
     {

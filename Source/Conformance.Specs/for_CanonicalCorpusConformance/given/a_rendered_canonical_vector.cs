@@ -14,7 +14,7 @@ public class a_rendered_canonical_vector : Specification
     protected const string Vector = "AcmeAdmissionsCorpus.V29";
     protected const string Probe = "\n#if DEBUG\nclass Stage824Probe { MissingType _f; }\n#endif";
 
-    void Establish() => _plan = conformance_outcomes.RenderPlan(canonical_corpus_vectors.All.Single(vector => vector.Name == Vector))!;
+    void Establish() => _plan = conformance_outcomes.RenderPlan(canonical_corpus_vectors.All.Single(vector => vector.Name == Vector));
 
     protected PlannedArtifact[] Corrupt(string path) =>
         [.. _plan.Artifacts.Select(file => file.RelativePath == path

@@ -28,7 +28,7 @@ public class a_refused_browser_page : Specification
         SemanticHost.MapRefused(_app, [new StageUnsupportedIssue("Plan", "model", "The model is not admitted.")]);
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
     }
 

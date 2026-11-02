@@ -14,8 +14,8 @@ public class with_a_reference_cycle : a_populated_model
     {
         AddAuthenticatedPolicy();
         var condition = new SemanticNotPolicyCondition(new SemanticAuthenticatedCondition());
-        typeof(SemanticPolicy).GetProperty(nameof(SemanticPolicy.Condition))!.SetValue(_model.Application.Policies[0], condition);
-        typeof(SemanticNotPolicyCondition).GetProperty(nameof(SemanticNotPolicyCondition.Operand))!.SetValue(condition, condition);
+        typeof(SemanticPolicy).GetProperty(nameof(SemanticPolicy.Condition)).SetValue(_model.Application.Policies[0], condition);
+        typeof(SemanticNotPolicyCondition).GetProperty(nameof(SemanticNotPolicyCondition.Operand)).SetValue(condition, condition);
     }
 
     void Because() => _unknown = SemanticUnknownMembers.Find(_model, _known);

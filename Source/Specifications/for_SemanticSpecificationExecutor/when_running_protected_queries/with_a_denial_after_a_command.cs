@@ -31,6 +31,6 @@ public class with_a_denial_after_a_command : a_projected_specification
 
     [Fact] void should_fail_the_success_expectation() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
     [Fact] void should_match_the_reference() => _reference.Passed.ShouldBeFalse();
-    [Fact] void should_not_expose_tentative_facts() => _result.Trace!.Facts.ShouldBeEmpty();
-    [Fact] void should_not_expose_tentative_read_models() => _result.Trace!.ReadModels.ShouldBeEmpty();
+    [Fact] void should_not_expose_tentative_facts() => _result.Trace.Facts.ShouldBeEmpty();
+    [Fact] void should_not_expose_tentative_read_models() => _result.Trace.ReadModels.ShouldBeEmpty();
 }

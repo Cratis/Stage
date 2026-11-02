@@ -26,7 +26,7 @@ public class when_an_event_property_has_an_unhandled_type_reference : a_register
         var properties = @event.Properties.Select(property => property.Name == "name"
             ? property with { Type = property.Type with { Kind = (SemanticTypeReferenceKind)999 } }
             : property).ToImmutableArray();
-        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(@event, properties);
+        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(@event, properties);
         var profile = _request.Profile;
         _request = _request with
         {

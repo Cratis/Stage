@@ -62,7 +62,7 @@ public class a_structured_event : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("StructuredEvents", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     protected async Task Execute() => _result = Assert.Single((await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results);

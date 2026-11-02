@@ -40,7 +40,7 @@ public class and_the_layout_uses_freeform_arrangement : Specification
     [Fact]
     void should_have_one_variant_for_the_declared_size_class()
     {
-        var freeform = (FreeformSlotArrangement)_result.Arrangement!;
+        var freeform = (FreeformSlotArrangement)_result.Arrangement;
         freeform.Variants.Count.ShouldEqual(1);
         freeform.Variants[0].SizeClass.ShouldEqual(new SizeClass(WidthSizeClass.Compact, HeightSizeClass.Regular));
     }
@@ -48,7 +48,7 @@ public class and_the_layout_uses_freeform_arrangement : Specification
     [Fact]
     void should_exclude_the_hidden_place_from_the_variants_placements()
     {
-        var placements = ((FreeformSlotArrangement)_result.Arrangement!).Variants[0].Placements;
+        var placements = ((FreeformSlotArrangement)_result.Arrangement).Variants[0].Placements;
         placements.Count.ShouldEqual(1);
         placements[0].SlotName.ShouldEqual("header");
     }

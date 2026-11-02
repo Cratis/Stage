@@ -40,7 +40,7 @@ public class when_refusing_unsupported_multipart_projection_mappings : Specifica
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "application.play", source);
         var compilation = new SemanticModelCompiler().Compile("MultipartMappings", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         return SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single())?.Details;
     }
 

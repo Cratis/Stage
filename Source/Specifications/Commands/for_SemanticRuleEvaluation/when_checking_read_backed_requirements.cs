@@ -16,7 +16,7 @@ public class when_checking_read_backed_requirements : Specification
     [InlineData(null, true)]
     public void should_resolve_the_view_property_or_semantic_null(string? value, bool expected)
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadsCorpus.V25.EsmBytes.AsSpan())).Plan;
         var command = plan.Commands.Values.Single(command => command.Name == "Consume");
         var read = command.Reads.Single();
         var property = plan.ReadModels[read.ReadModel].Properties.Single(property => property.Name == "value");

@@ -35,14 +35,14 @@ public class when_refusing_leading_combining_marks : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("shop"), "shop", "Shop.play", "concept Reference : String");
         var compilation = new SemanticModelCompiler().Compile("Shop", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success);
-        var original = compilation.Value!.Model;
+        var original = compilation.Value.Model;
         var model = ExecutableSemanticModel.Create(
             original.LanguageVersion,
             original.SemanticVersion,
             original.Application with { Concepts = [original.Application.Concepts.Single() with { Name = "_\u0301x" }] });
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success);
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Shop", "Shop"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Shop", "Shop"));
         Assert.False(plan.Success);
         Assert.Empty(plan.Artifacts);
         Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "STAGE-ESM-019");

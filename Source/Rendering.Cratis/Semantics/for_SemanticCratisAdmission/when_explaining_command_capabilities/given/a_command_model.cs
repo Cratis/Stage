@@ -44,7 +44,7 @@ public class a_command_model : Specification
     {
         // Test the capability predicates directly: malformed references cannot enter an executable model.
         var options = new CratisRenderingOptions("Invoices", "Invoices");
-        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
+        var request = new ArtifactRenderRequest(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticCratisAdmission.ValidateCommandCapabilities(context, _slice, _command, diagnostics);

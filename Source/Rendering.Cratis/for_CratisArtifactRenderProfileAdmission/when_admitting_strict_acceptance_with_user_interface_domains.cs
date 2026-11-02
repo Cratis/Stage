@@ -24,10 +24,10 @@ public class when_admitting_strict_acceptance_with_user_interface_domains : Spec
     {
         var profile = WithInputs(UserInterface(), Domains(), StrictAcceptanceInput.Create(true));
         CratisArtifactRenderProfileAdmission.MatchesScaffold(profile, "Shop", out var options, out var mismatch).ShouldBeTrue();
-        options!.Strict.ShouldBeTrue();
+        options.Strict.ShouldBeTrue();
         mismatch.ShouldEqual(string.Empty);
         UserInterfaceDomainsInput.TryRead(profile, out var domains).ShouldBeTrue();
-        Assert.Equal("screen", Assert.Single(domains!["Sales"]));
+        Assert.Equal("screen", Assert.Single(domains["Sales"]));
     }
 
     [Theory]

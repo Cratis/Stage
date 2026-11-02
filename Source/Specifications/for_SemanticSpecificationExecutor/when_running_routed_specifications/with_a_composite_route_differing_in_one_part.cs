@@ -16,14 +16,14 @@ public class with_a_composite_route_differing_in_one_part : a_routed_plan
         var stream = _plan.Model.Application.EventSources[0].Streams[0] with { StreamIdType = null, StreamIdParts = [new("project", uuid), new("period", Text)] };
         var command = _command with
         {
-            Route = _command.Route! with
+            Route = _command.Route with
             {
                 StreamId = null,
-                StreamIdParts = [new("project", SemanticExpression.FromValue(SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6"))), new("period", _command.Route.StreamId!)]
+                StreamIdParts = [new("project", SemanticExpression.FromValue(SemanticValue.Text("3fa85f64-5717-4562-b3fc-2c963f66afa6"))), new("period", _command.Route.StreamId)]
             }
         };
         var expected = _specification.ThenEvents[0];
-        var route = expected.Route! with
+        var route = expected.Route with
         {
             StreamId = null,
             StreamIdParts = [new("project", SemanticValue.Text("3FA85F64-5717-4562-B3FC-2C963F66AFA6")), new("period", SemanticValue.Text("2026-10"))]

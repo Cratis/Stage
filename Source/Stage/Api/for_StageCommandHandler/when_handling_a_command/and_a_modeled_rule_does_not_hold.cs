@@ -20,6 +20,6 @@ public class and_a_modeled_rule_does_not_hold : given.a_command_handler
         .Handle(ContextFor("{\"invoiceId\":\"33333333-3333-3333-3333-333333333333\",\"authorName\":\"\"}")).AsTask());
 
     [Fact] void should_reject_it_as_a_validation_failure() => _error.ShouldBeOfExactType<CommandInputRejected>();
-    [Fact] void should_report_the_modeled_message() => _error!.Message.ShouldEqual("Name the author.");
+    [Fact] void should_report_the_modeled_message() => _error.Message.ShouldEqual("Name the author.");
     [Fact] void should_append_nothing() => _appender.DidNotReceiveWithAnyArgs().Append(default!, default!, default!);
 }

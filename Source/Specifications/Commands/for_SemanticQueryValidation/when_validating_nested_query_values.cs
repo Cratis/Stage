@@ -34,10 +34,10 @@ public class when_validating_nested_query_values : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "model.play", source);
         var compiled = new SemanticModelCompiler().Compile("NestedQueries", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         var composite = _plan.Model.Application.Types.Single();
         var query = _plan.Queries.Values.Single();
-        _query = query with { Argument = query.Argument! with { Type = new(SemanticTypeReferenceKind.CompositeType, SemanticPrimitiveType.Unknown, composite.Id, false, false) } };
+        _query = query with { Argument = query.Argument with { Type = new(SemanticTypeReferenceKind.CompositeType, SemanticPrimitiveType.Unknown, composite.Id, false, false) } };
         var first = composite.Properties.Single(property => property.Name == "first");
         var rest = composite.Properties.Single(property => property.Name == "rest");
         _request = new(query.Id, new SemanticCompositeValue([new(first.Id, SemanticValue.Text("x")), new(rest.Id, new SemanticArrayValue([SemanticValue.Text(""), SemanticValue.Text("valid"), SemanticValue.Text("a")]))]), []);

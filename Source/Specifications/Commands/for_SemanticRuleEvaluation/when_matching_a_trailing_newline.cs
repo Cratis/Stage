@@ -20,7 +20,7 @@ public class when_matching_a_trailing_newline : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("codes"), "codes", "Codes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Codes", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _application = plan.Model.Application;
         _command = plan.Commands.Values.Single();
         _specification = plan.Specifications.Values.Single();

@@ -50,7 +50,7 @@ public class when_matching_lookup_inputs_to_native_proxies(when_matching_lookup_
                 var form = Corpus.SourceForms.Single(_ => _.Name == "single");
                 var source = form.Documents.Single();
                 _model = Compile(form with { Documents = [source with { Bytes = [.. Encoding.UTF8.GetBytes(source.Text.Replace("concept ProjectId : Uuid", "concept ProjectId : String", StringComparison.Ordinal))] }] }).Model;
-                _executionPlan = SemanticExecutionPlan.Compile(_model).Plan!;
+                _executionPlan = SemanticExecutionPlan.Compile(_model).Plan;
             }
 
             return CratisRendering.Plan(_model, _executionPlan, new(ArtifactRenderScopeKind.Application, _model.Application.Id), _options);
@@ -66,11 +66,11 @@ public class when_matching_lookup_inputs_to_native_proxies(when_matching_lookup_
                 var properties = scene.RootElement.GetProperty("screens")[0].GetProperty("slotContent").GetProperty(DefaultLayout.ContentSlotName)
                     .EnumerateArray().Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:queryInputForm").GetProperty("properties");
                 var input = properties.GetProperty("inputs")[0];
-                Parameter = input.GetProperty("parameter").GetString()!;
+                Parameter = input.GetProperty("parameter").GetString();
                 InputProperties = string.Join('|', input.EnumerateObject().Select(_ => _.Name));
                 properties.GetProperty("resultField").GetString().ShouldEqual("name");
                 using var package = JsonDocument.Parse(ReadGeneratedFile("package.json"));
-                SceneVersion = package.RootElement.GetProperty("dependencies").GetProperty("@cratis/scene.components").GetString()!;
+                SceneVersion = package.RootElement.GetProperty("dependencies").GetProperty("@cratis/scene.components").GetString();
             }
             finally
             {

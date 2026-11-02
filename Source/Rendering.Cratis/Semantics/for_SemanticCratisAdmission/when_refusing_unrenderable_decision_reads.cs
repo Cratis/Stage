@@ -64,7 +64,7 @@ public class when_refusing_unrenderable_decision_reads
                 ? candidate with { Properties = [.. candidate.Properties.Select(property => property.Id == value.Id ? changedValue : property)] }
                 : candidate)]
         });
-        var plan = CratisRendering.Plan(changed, SemanticExecutionPlan.Compile(changed).Plan!, new(ArtifactRenderScopeKind.Application, changed.Application.Id), new("InvoiceApp", "Invoices"));
+        var plan = CratisRendering.Plan(changed, SemanticExecutionPlan.Compile(changed).Plan, new(ArtifactRenderScopeKind.Application, changed.Application.Id), new("InvoiceApp", "Invoices"));
 
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" && diagnostic.Artifact == command.Id);
     }
@@ -80,7 +80,7 @@ public class when_refusing_unrenderable_decision_reads
                 ? candidate with { Properties = [.. candidate.Properties.Select(property => property.IsIdentifier ? property with { Name = "currentId" } : property)] }
                 : candidate)]
         });
-        var plan = CratisRendering.Plan(renamed, SemanticExecutionPlan.Compile(renamed).Plan!, new(ArtifactRenderScopeKind.Application, renamed.Application.Id), new("InvoiceApp", "Invoices"));
+        var plan = CratisRendering.Plan(renamed, SemanticExecutionPlan.Compile(renamed).Plan, new(ArtifactRenderScopeKind.Application, renamed.Application.Id), new("InvoiceApp", "Invoices"));
 
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-044" &&
             diagnostic.Message.Contains("whose key property is 'currentId'", StringComparison.Ordinal) &&
@@ -111,7 +111,7 @@ public class when_refusing_unrenderable_decision_reads
     {
         SemanticFeature Feature(SemanticFeature feature) => feature with { Features = [.. feature.Features.Select(Feature)], Slices = [.. feature.Slices.Select(change)] };
         var application = model.Application with { Modules = [.. model.Application.Modules.Select(module => module with { Features = [.. module.Features.Select(Feature)] })] };
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
 
         return model;
     }

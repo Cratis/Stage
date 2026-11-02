@@ -23,11 +23,11 @@ public class with_an_opaque_reducer : a_rebuildable_world
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reducer"), "reducer", "Reducer.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.True(plan.Success, string.Join("; ", plan.Issues));
-        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(plan.Plan!, [_event], 0));
+        _error = Catch.Exception(() => SemanticWorldRebuilder.Create(plan.Plan, [_event], 0));
     }
 
     [Fact] void should_refuse_the_unsupported_projection() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_reducer() => _error!.Message.ShouldContain("BalanceReducer");
+    [Fact] void should_name_the_reducer() => _error.Message.ShouldContain("BalanceReducer");
 }

@@ -25,7 +25,7 @@ public class and_a_size_is_invalid : Specification
             [new VariantSyntax(width, height, [new PlaceSyntax("content", location, SizeWidth: size, SizeHeight: "fill")], location)]);
         var diagnostics = new ConversionDiagnostics();
 
-        var result = (FreeformSlotArrangement)ArrangementConverter.Convert(syntax, diagnostics, "Shell")!;
+        var result = (FreeformSlotArrangement)ArrangementConverter.Convert(syntax, diagnostics, "Shell");
 
         result.Variants.SelectMany(variant => variant.Placements).ShouldBeEmpty();
         diagnostics.All.Count.ShouldEqual(1);

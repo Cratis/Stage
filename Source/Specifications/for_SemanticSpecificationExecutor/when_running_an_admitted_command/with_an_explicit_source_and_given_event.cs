@@ -22,11 +22,11 @@ public class with_an_explicit_source_and_given_event : a_command_only_plan
     }
 
     [Fact] void should_pass_when_the_reference_passes() => Xunit.Assert.True(_reference.Passed && _report.Results.Single().Outcome == SemanticSpecificationOutcome.Passed, $"Reference: {_reference.Execution.Kind} {string.Join(',', _reference.Failures)}; Stage: {_report.Results.Single().Outcome} {_report.Results.Single().Unsupported?.Details} {string.Join(',', _report.Results.Single().Failures)}; expected: {System.Text.Json.JsonSerializer.Serialize(_specification.ThenEvents.Single())}; actual: {System.Text.Json.JsonSerializer.Serialize(_report.Results.Single().Trace?.Facts)}");
-    [Fact] void should_produce_only_the_new_fact() => _report.Results.Single().Trace!.Facts.Count.ShouldEqual(1);
+    [Fact] void should_produce_only_the_new_fact() => _report.Results.Single().Trace.Facts.Count.ShouldEqual(1);
     [Fact] void should_match_the_reference_fact_trace()
     {
         var expected = ((SemanticAccepted)_reference.Execution).Facts.Single();
-        var actual = _report.Results.Single().Trace!.Facts.Single();
+        var actual = _report.Results.Single().Trace.Facts.Single();
         actual.EventContract.ShouldEqual(expected.EventContract.ToString());
         actual.EventSource.ShouldEqual(SemanticRunContext.Canonical(expected.Destination));
         actual.EventSourceType.ShouldEqual(expected.Context?.EventSource.Type.Target.ToString());

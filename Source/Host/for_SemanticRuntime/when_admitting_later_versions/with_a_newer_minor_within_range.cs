@@ -15,6 +15,6 @@ public class with_a_newer_minor_within_range : Specification
 
     [Fact] void should_not_block_the_model() => _admission.Blocking.ShouldBeEmpty();
     [Fact] void should_report_one_degradation_for_the_application() => _admission.Entries.Count(entry => entry.Kind == "application").ShouldEqual(1);
-    [Fact] void should_say_the_pair_is_unaudited() => _admission.Entries.Single(entry => entry.Kind == "application").Details!.StartsWith("STAGE-DEGRADE-004:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_say_the_pair_is_unaudited() => _admission.Entries.Single(entry => entry.Kind == "application").Details.StartsWith("STAGE-DEGRADE-004:", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_keep_the_entry_non_blocking() => _admission.Entries.Single(entry => entry.Kind == "application").Status.ShouldEqual("supported");
 }

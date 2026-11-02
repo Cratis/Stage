@@ -42,7 +42,7 @@ internal static class invocation_expectation_model
             })],
             Specifications = [.. slice.Specifications.Select(specification => specification.Name == "Refused" ? specification : specification with
             {
-                ThenInvocations = [new(command.Id, [new(id.Id, (specification.WhenAppended?.Values ?? specification.When!.Values).Single().Value), new(note.Id, SemanticValue.Null), new(tags.Id, collection)])]
+                ThenInvocations = [new(command.Id, [new(id.Id, (specification.WhenAppended?.Values ?? specification.When.Values).Single().Value), new(note.Id, SemanticValue.Null), new(tags.Id, collection)])]
             })]
         };
         local = local with { Features = [feature with { Slices = [slice] }] };

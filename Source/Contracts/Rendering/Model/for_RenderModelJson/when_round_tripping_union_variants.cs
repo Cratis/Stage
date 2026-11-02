@@ -70,7 +70,7 @@ public class when_round_tripping_union_variants : given.render_models
             RenderResponse response => payload with { Response = response },
             _ => throw new InvalidOperationException("Unclassified schema fixture.")
         });
-        var schema = JsonNode.Parse(File.ReadAllBytes(for_RenderModelSchema.given.render_model_schema.FilePath("render-model.v1.schema.json")))!;
+        var schema = JsonNode.Parse(File.ReadAllBytes(for_RenderModelSchema.given.render_model_schema.FilePath("render-model.v1.schema.json")));
         using var document = JsonDocument.Parse(RenderModelJson.Serialize(model));
         new for_RenderModelSchema.given.strict_schema_validator(schema).Validate(document.RootElement).ShouldBeTrue();
     }

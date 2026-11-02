@@ -43,7 +43,7 @@ public class an_append_comparison : a_routed_plan
         var language = LanguageVersion.V2;
         if (version == SemanticVersion.V6) language = LanguageVersion.V6;
         else if (version == SemanticVersion.V7) language = LanguageVersion.V7;
-        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(language, version, application)).Plan!;
+        var plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(language, version, application)).Plan;
         _reference = new SemanticSpecificationRunner().Run(plan, specification.Id);
         _result = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
     }

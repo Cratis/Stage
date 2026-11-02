@@ -69,10 +69,10 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             var document = SemanticSourceDocument.Create(catalog.ResolveDocument("differential"), "differential", "Scopes.play", source);
             var compiled = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics));
-            _model = compiled.Value!.Model;
+            _model = compiled.Value.Model;
             var execution = SemanticExecutionPlan.Compile(_model);
             Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-            _execution = execution.Plan!;
+            _execution = execution.Plan;
             var plan = CratisRendering.Plan(_model, _execution, new(ArtifactRenderScopeKind.Application, _model.Application.Id), new("Projects", "Projects"));
             Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
             return plan;
@@ -180,7 +180,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
             });
             var referencePlan = SemanticExecutionPlan.Compile(referenceModel);
             Assert.True(referencePlan.Success, string.Join(Environment.NewLine, referencePlan.Issues));
-            var compiled = referencePlan.Plan!;
+            var compiled = referencePlan.Plan;
             var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
             var reference = (SemanticExecutionPlan)constructor.Invoke(
             [
@@ -205,7 +205,7 @@ public class when_comparing_scoped_projection_execution(when_comparing_scoped_pr
 
         // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
         static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
-            typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
+            typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(plan);
 
         static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel, ExecutableSemanticModel model)
         {

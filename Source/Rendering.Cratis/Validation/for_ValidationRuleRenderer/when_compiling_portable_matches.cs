@@ -89,13 +89,13 @@ public class when_compiling_portable_matches : Specification
             }
             """;
         var assembly = RenderedOutput.Load([new("Probe.cs", code)]);
-        var probe = assembly.GetType("Probe")!;
-        var instance = Activator.CreateInstance(probe, [input])!;
-        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance)!;
+        var probe = assembly.GetType("Probe");
+        var instance = Activator.CreateInstance(probe, [input]);
+        var context = (IValidationContext)Activator.CreateInstance(typeof(ValidationContext<>).MakeGenericType(probe), instance);
         foreach (var name in new[] { "ProbeValidator", "SemanticProbeValidator" })
         {
-            var validator = (IValidator)Activator.CreateInstance(assembly.GetType(name)!)!;
-            var cache = validator.GetType().GetField("_matchPatterns", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            var validator = (IValidator)Activator.CreateInstance(assembly.GetType(name));
+            var cache = validator.GetType().GetField("_matchPatterns", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
             cache.IsInitOnly.ShouldBeTrue();
             var metadata = validator.CreateDescriptor().GetValidatorsForMember("Value").Single().Validator;
             Assert.IsType<IRegularExpressionValidator>(metadata, exactMatch: false).Expression.ShouldEqual(pattern);

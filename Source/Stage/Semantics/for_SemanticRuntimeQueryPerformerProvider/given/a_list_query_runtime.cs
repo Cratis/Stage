@@ -58,7 +58,7 @@ public class a_list_query_runtime : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("projects"), "projects", "Projects.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var world = SemanticWorld.Empty;
         var command = plan.Commands.Values.Single();
         foreach (var (id, name) in new[] { ("project-1", "Shared"), ("project-2", "Shared"), ("project-3", "Other") })

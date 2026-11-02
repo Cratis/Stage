@@ -29,9 +29,9 @@ public class when_a_query_is_named_like_a_property : Specification
     {
         Assert.True(_plan.Success, string.Join("; ", _plan.Diagnostics));
         var assembly = RenderedOutput.Load(member_collision_model.Files(_plan));
-        var type = assembly.GetType("Payments.Payments.Recording.Lookup.PaymentTotals")!;
-        var method = type.GetMethod("Total_")!;
-        Assert.Equal(EndpointRouteHelper.BuildRouteUrl(Options(), type.Namespace!.Split('.'), GeneratedApiRoutes.SegmentsToSkipForRoute, "Total", true), method.GetCustomAttribute<PathAttribute>()!.Path);
+        var type = assembly.GetType("Payments.Payments.Recording.Lookup.PaymentTotals");
+        var method = type.GetMethod("Total_");
+        Assert.Equal(EndpointRouteHelper.BuildRouteUrl(Options(), type.Namespace.Split('.'), GeneratedApiRoutes.SegmentsToSkipForRoute, "Total", true), method.GetCustomAttribute<PathAttribute>().Path);
     }
 
     [Fact]

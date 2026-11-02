@@ -21,6 +21,6 @@ public class with_a_reducer_fed_by_a_refused_action : given.a_body_reach_plan
     void Because() => _refusal = SemanticRunAdmission.Check(_plan, _specification);
 
     [Fact] void should_refuse_the_specification() => _refusal.ShouldNotBeNull();
-    [Fact] void should_start_the_refusal_details_with_the_implementation_body_code() => _refusal!.Details.StartsWith("STAGE-IMPL-003:", StringComparison.Ordinal).ShouldBeTrue();
-    [Fact] void should_identify_the_reducer_body() => _refusal!.Details.ShouldContain("Reducer 'Fold' transition");
+    [Fact] void should_start_the_refusal_details_with_the_implementation_body_code() => _refusal.Details.StartsWith("STAGE-IMPL-003:", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_identify_the_reducer_body() => _refusal.Details.ShouldContain("Reducer 'Fold' transition");
 }

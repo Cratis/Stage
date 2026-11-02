@@ -71,7 +71,7 @@ public class a_notify_speaker_render_request : Specification
         var options = new CratisRenderingOptions("Conference", "Conference");
         _plan = new CratisArtifactRenderPlanner().Plan(new(
             model,
-            execution.Plan!,
+            execution.Plan,
             CratisRendering.CreateProfile(model.Application.Name, options),
             new(ArtifactRenderScopeKind.Application, model.Application.Id)));
     }

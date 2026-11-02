@@ -35,7 +35,7 @@ public class with_nested_providers : Specification
         var result = Assert.Single((await executor.Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal(SemanticSpecificationOutcome.Passed, result.Outcome);
         Assert.Null(result.Unsupported);
-        Assert.Empty(result.Trace!.ReadModels);
+        Assert.Empty(result.Trace.ReadModels);
         Assert.Empty(result.Trace.Facts);
         Assert.Contains(1, retainedFacts);
     }
@@ -54,7 +54,7 @@ public class with_nested_providers : Specification
         Assert.Equal("The asserted read model has no projection in this run.", refusal.Details);
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
-        Assert.Equal(refusal.Details, result.Unsupported!.Details);
+        Assert.Equal(refusal.Details, result.Unsupported.Details);
     }
 
     [Theory]
@@ -70,7 +70,7 @@ public class with_nested_providers : Specification
         Assert.Contains("STAGE-IMPL-003: Reducer 'Fold'", refusal.Details, StringComparison.Ordinal);
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results);
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, result.Outcome);
-        Assert.Equal(refusal.Details, result.Unsupported!.Details);
+        Assert.Equal(refusal.Details, result.Unsupported.Details);
     }
 
     static SemanticExecutionPlan Plan(int depth, string route, bool provider = true)

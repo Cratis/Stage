@@ -16,5 +16,5 @@ public class with_a_keyed_query : a_command_only_plan
         _report = await new SemanticSpecificationExecutor().Run(plan, new([_specification.Id]), new());
     }
 
-    [Fact] void should_block_query_execution() => _report.Results.Single().Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Query);
+    [Fact] void should_block_query_execution() => _report.Results.Single().Unsupported.Capability.ShouldEqual(StageExecutionCapability.Query);
 }

@@ -46,7 +46,7 @@ public class when_executing_invocation_expectations(context fixture) : IClassFix
                 var execution = SemanticExecutionPlan.Compile(model);
                 Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
                 var profile = CratisRendering.CreateProfile(model.Application.Name, new("BackendHost", "BackendHost"));
-                var plan = _planner.Plan(new(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+                var plan = _planner.Plan(new(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
                 Assert.True(plan.Refusals.IsEmpty, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Artifact}: {diagnostic.Message}")));
                 RenderApplication(plan);
                 await Run("debug-build.log", "build", "BackendHost.csproj", "-c", "Debug", "--nologo", "-nodeReuse:false", "-m:2");
@@ -54,10 +54,10 @@ public class when_executing_invocation_expectations(context fixture) : IClassFix
                 XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
                 var trx = XDocument.Load(Path.Combine(_evidence.FullName, "invocations.trx"));
                 var methods = trx.Descendants(ns + "UnitTest")
-                    .Select(test => (Id: test.Attribute("id")!.Value, Method: test.Element(ns + "TestMethod")))
+                    .Select(test => (Id: test.Attribute("id").Value, Method: test.Element(ns + "TestMethod")))
                     .Where(test => test.Method is not null)
-                    .ToDictionary(test => test.Id, test => $"{test.Method!.Attribute("className")!.Value}.{test.Method.Attribute("name")!.Value}");
-                Results = [.. trx.Descendants(ns + "UnitTestResult").Select(result => (methods.GetValueOrDefault(result.Attribute("testId")!.Value, result.Attribute("testName")!.Value), result.Attribute("outcome")!.Value))];
+                    .ToDictionary(test => test.Id, test => $"{test.Method.Attribute("className").Value}.{test.Method.Attribute("name").Value}");
+                Results = [.. trx.Descendants(ns + "UnitTestResult").Select(result => (methods.GetValueOrDefault(result.Attribute("testId").Value, result.Attribute("testName").Value), result.Attribute("outcome").Value))];
             }
             finally
             {

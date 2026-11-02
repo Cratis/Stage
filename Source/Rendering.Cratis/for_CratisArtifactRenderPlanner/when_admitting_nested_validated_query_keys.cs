@@ -20,7 +20,7 @@ public class when_admitting_nested_validated_query_keys : Specification
     {
         var model = invoice_model.Compile("type InvoiceKey\n  invoiceId InvoiceId\n" + a_validated_query_key_model.Source);
         var options = new CratisRenderingOptions("InvoiceApp", "Invoices");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var slice = context.SelectedSlices().Single(value => value.Slice.Queries.Length > 0);
         var type = model.Application.Types.Single();
@@ -38,7 +38,7 @@ public class when_admitting_nested_validated_query_keys : Specification
         var slice = located.Slice with
         {
             Queries = [.. located.Slice.Queries.Select(query => query.Name == "InvoicesById"
-                ? query with { Argument = query.Argument! with { Type = change(query.Argument!.Type) } } : query)]
+                ? query with { Argument = query.Argument with { Type = change(query.Argument.Type) } } : query)]
         };
         var candidate = located with { Slice = slice };
         _sources.Add(SemanticStateViewArtifactRenderer.Render(candidate, context).Content);

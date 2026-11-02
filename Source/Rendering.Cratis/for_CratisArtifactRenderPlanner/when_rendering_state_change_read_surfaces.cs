@@ -26,7 +26,7 @@ public class when_rendering_state_change_read_surfaces : Specification
         Assert.NotEmpty(slice.Queries);
         Assert.NotEmpty(slice.Specifications);
 
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("EventRoutes", "EventRoutes"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("EventRoutes", "EventRoutes"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = when_selecting_self_reducing_rendering.Files(plan);
         var combined = Assert.Single(files, file => Path.GetFileName(file.RelativePath) == "S.cs");

@@ -23,7 +23,7 @@ public class a_command_only_plan : Specification
         var catalog = SemanticIdentityCatalogSerializer.Deserialize(form.IdentityCatalogBytes.AsSpan());
         var documents = form.Documents.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text));
         var compiled = new SemanticModelCompiler().Compile(corpus.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
-        var original = compiled.Value!.Model;
+        var original = compiled.Value.Model;
         _originalModel = original;
         var slice = original.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Kind == SemanticSliceKind.StateChange);
         _original = slice.Specifications.Single(specification => specification.Name == "RegisteringAProject");

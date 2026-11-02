@@ -63,5 +63,5 @@ public class when_emitting_the_stage_frontend_runtime : a_screen_composition_ren
     }
 
     static string RuntimePackage([CallerFilePath] string specification = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(specification)!, "..", "..", "Frontend", "Runtime", "package.json"));
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(specification), "..", "..", "Frontend", "Runtime", "package.json"));
 }

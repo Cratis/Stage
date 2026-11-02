@@ -54,7 +54,7 @@ public class a_captured_delivery : a_translation_application
     protected async Task<EventForEventSourceId[]> Effects(AppendedEvent fact)
     {
         var reactor = Reactor();
-        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived")!.Invoke(reactor, [fact.Content, fact.Context, ReactorDelivery.For(reactor, fact.Context)])!;
+        var effects = await (Task<IEnumerable<object>>)reactor.GetType().GetMethod("OnArrived").Invoke(reactor, [fact.Content, fact.Context, ReactorDelivery.For(reactor, fact.Context)]);
         return [.. effects.Cast<EventForEventSourceId>()];
     }
 
@@ -69,7 +69,7 @@ public class a_captured_delivery : a_translation_application
     }
     object Arrived(string status, string key)
     {
-        var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true)!.GetConstructors().Single();
+        var constructor = _assembly.GetType("Contracts.Shipping.Tracking.Receive.Arrived", throwOnError: true).GetConstructors().Single();
         return constructor.Invoke([.. constructor.GetParameters().Select(parameter => string.Equals(parameter.Name, "Id", StringComparison.OrdinalIgnoreCase) ? key : status)]);
     }
 
@@ -78,7 +78,7 @@ public class a_captured_delivery : a_translation_application
         Features = MarkSourceKeys(feature.Features),
         Slices = [.. feature.Slices.Select(slice => slice with
         {
-            Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = capture.EventsSource! with { KeyIsEventSource = true } })]
+            Captures = [.. slice.Captures.Select(capture => capture with { EventsSource = capture.EventsSource with { KeyIsEventSource = true } })]
         })]
     })];
 }

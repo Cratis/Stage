@@ -536,7 +536,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string FrontendTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "target": "ES2022",
@@ -581,7 +581,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string NodeTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "compilerOptions": {
                 "composite": true,
@@ -597,7 +597,7 @@ public sealed class CratisFrontendApplicationScaffold
         """;
 
     static string RootTsConfig() =>
-        """
+        /*lang=json*/ """
         {
             "extends": "./.frontend/tsconfig.json"
         }

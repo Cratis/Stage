@@ -16,7 +16,7 @@ public class when_planning_invocation_expectations : Semantics.for_SemanticReact
     void should_admit_the_v34_golden_through_the_full_planner()
     {
         var model = _context.Request.Model;
-        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, new("BackendHost", "BackendHost")), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, new("BackendHost", "BackendHost")), new(ArtifactRenderScopeKind.Application, model.Application.Id)));
         Assert.True(plan.Refusals.IsEmpty, string.Join(Environment.NewLine, plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
     }
 
@@ -35,7 +35,7 @@ public class when_planning_invocation_expectations : Semantics.for_SemanticReact
             When = new(expected.Command, expected.Values),
             WhenAppended = null,
             ThenInvocations = [],
-            ThenEvents = [new(_specification.WhenAppended!.EventContract, _specification.WhenAppended.Values)]
+            ThenEvents = [new(_specification.WhenAppended.EventContract, _specification.WhenAppended.Values)]
         });
     }
 

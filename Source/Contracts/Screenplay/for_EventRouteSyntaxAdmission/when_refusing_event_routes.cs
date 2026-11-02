@@ -48,7 +48,7 @@ public class when_refusing_event_routes : Specification
         const string source = "module Billing\n  feature Invoices\n    slice StateChange Register\n      command Register\n        id String identifier\n        produces event Registered\n          for id\n          stream Account.All\n      event Registered";
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var error = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        var error = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
         error.ShouldBeOfExactType<UnsupportedEventSourceRoutes>();
     }
 

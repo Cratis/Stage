@@ -22,13 +22,13 @@ public class when_an_inline_event_import_would_rebind_a_handler_contract : state
         var eventName = returned ? collision : original.Name;
         var body = $"return new {eventName}(string.Empty);";
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = body } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = body } } };
         var slice = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
 
         var error = Assert.Throws<CSharpImportRejected>(() => new StateChangeSliceRenderer().Render(slice, ReplaceDeclaration(declaration), "CratisApp"));
 
         Assert.Contains($"The inferred generated return type '{eventName}' cannot be imported unambiguously for the authored handler.", error.Message);
-        Assert.Equal(body, slice.Slice.Commands.Single().Handler!.Code!.Code);
+        Assert.Equal(body, slice.Slice.Commands.Single().Handler.Code.Code);
     }
 
     ApplicationSet ReplaceDeclaration(LocatedSlice declaration)

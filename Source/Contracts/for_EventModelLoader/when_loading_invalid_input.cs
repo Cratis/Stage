@@ -24,7 +24,7 @@ public class when_loading_invalid_input : Specification
     }
 
     [Fact] void should_reject_source_that_fails_to_compile() => (_compileFailure is InvalidEventModel).ShouldBeTrue();
-    [Fact] void should_surface_the_diagnostics() => _compileFailure!.Message.Contains("Invalid module declaration", StringComparison.Ordinal).ShouldBeTrue();
+    [Fact] void should_surface_the_diagnostics() => _compileFailure.Message.Contains("Invalid module declaration", StringComparison.Ordinal).ShouldBeTrue();
     [Fact] void should_reject_a_missing_directory() => (_missingDirectory is InvalidEventModel).ShouldBeTrue();
     [Fact] void should_reject_a_directory_without_play_files() => (_emptyDirectory is InvalidEventModel).ShouldBeTrue();
 }

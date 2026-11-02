@@ -42,7 +42,7 @@ public static class RenderOutcomeContract
         if (plan.Strict && degradation) return;
         if (!IsSafety(diagnostic, safetyCases))
             problems.Add($"Unclassified error: {diagnostic.Code}: {diagnostic.Message}");
-        if (!plan.Inventory!.Constructs.Any(construct => construct.RefusalReasons.Contains(diagnostic)))
+        if (!plan.Inventory.Constructs.Any(construct => construct.RefusalReasons.Contains(diagnostic)))
             problems.Add($"Missing refusal evidence: {diagnostic.Code}.");
     }
 

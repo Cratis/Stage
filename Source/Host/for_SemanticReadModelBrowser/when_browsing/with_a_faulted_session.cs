@@ -39,6 +39,6 @@ public class with_a_faulted_session : a_browser
     [Fact] void should_refuse_the_list() => ((int)_list.StatusCode).ShouldEqual(503);
     [Fact] void should_refuse_the_detail() => ((int)_detail.StatusCode).ShouldEqual(503);
     [Fact] void should_report_the_fault() => _body.GetProperty("state").GetString().ShouldEqual("faulted");
-    [Fact] void should_include_the_fault_reason() => _body.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime!).FaultReason);
+    [Fact] void should_include_the_fault_reason() => _body.GetProperty("reason").GetString().ShouldEqual(((ISemanticRuntimeStatus)_semanticRuntime).FaultReason);
     [Fact] void should_not_return_stale_instances() => _body.TryGetProperty("instances", out _).ShouldBeFalse();
 }

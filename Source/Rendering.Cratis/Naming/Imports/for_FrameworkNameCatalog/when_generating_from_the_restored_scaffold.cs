@@ -18,7 +18,7 @@ public class when_generating_from_the_restored_scaffold : given.a_restored_scaff
             return;
         }
 
-        using var stream = typeof(FrameworkNameCatalog).Assembly.GetManifestResourceStream(FrameworkNameCatalog.ResourceName)!;
+        using var stream = typeof(FrameworkNameCatalog).Assembly.GetManifestResourceStream(FrameworkNameCatalog.ResourceName);
         using var reader = new StreamReader(stream);
         _checkedIn = reader.ReadToEnd();
     }

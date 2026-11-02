@@ -100,10 +100,10 @@ public class a_routed_model : Specification
         }
         var commands = semanticRuntime is null
             ? (ICommandHandlerProvider)new StageCommandHandlerProvider([model], [types], [appender], [identity], [tenant])
-            : new SemanticRuntimeCommandHandlerProvider([semanticRuntime], [types], [_httpContext!]);
+            : new SemanticRuntimeCommandHandlerProvider([semanticRuntime], [types], [_httpContext]);
         IQueryPerformerProvider queries = semanticRuntime is null
             ? new StageQueryPerformerProvider([model], [types])
-            : new SemanticRuntimeQueryPerformerProvider([semanticRuntime], [types], [_httpContext!]);
+            : new SemanticRuntimeQueryPerformerProvider([semanticRuntime], [types], [_httpContext]);
         _commandProviders = new CommandHandlerProviders(Instances<ICommandHandlerProvider>(commands));
         _queryProviders = new QueryPerformerProviders(Instances<IQueryPerformerProvider>(queries));
         builder.Services.AddSingleton(_commandProviders);
@@ -183,7 +183,7 @@ public class a_routed_model : Specification
     void ConfigureCommandPipeline(IServiceCollection services, ICorrelationIdAccessor correlation, ISemanticRuntime? semanticRuntime)
     {
         var filters = Substitute.For<ICommandFilters>();
-        var semanticFilter = semanticRuntime is null ? null : new SemanticRuntimeCommandFilter([semanticRuntime], [_httpContext!]);
+        var semanticFilter = semanticRuntime is null ? null : new SemanticRuntimeCommandFilter([semanticRuntime], [_httpContext]);
         filters.OnExecution(Arg.Any<CommandContext>()).Returns(async call =>
         {
             var context = call.Arg<CommandContext>();
@@ -232,7 +232,7 @@ public class a_routed_model : Specification
                 null => 0,
                 _ => 1
             };
-            return new QueryRendererResult(count, data!);
+            return new QueryRendererResult(count, data);
         });
         var interceptors = Substitute.For<IReadModelInterceptors>();
         interceptors.Intercept(Arg.Any<Type>(), Arg.Any<IEnumerable<object>>(), Arg.Any<IServiceProvider>())
@@ -252,7 +252,7 @@ public class a_routed_model : Specification
     {
         var documents = StageModelWalker.Slices(model)
             .Where(located => located.Slice.ReadModel is not null)
-            .Select(located => located.Slice.ReadModel!.Id.ToString())
+            .Select(located => located.Slice.ReadModel.Id.ToString())
             .Distinct(StringComparer.Ordinal)
             .ToDictionary(id => id, id => JsonSerializer.Serialize(new { Id = "11111111-1111-1111-1111-111111111111", owner = id }), StringComparer.Ordinal);
         var connection = Substitute.For<IChronicleConnection, IChronicleServicesAccessor>();

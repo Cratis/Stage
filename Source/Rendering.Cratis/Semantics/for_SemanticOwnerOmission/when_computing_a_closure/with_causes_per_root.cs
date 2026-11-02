@@ -22,8 +22,8 @@ public class with_causes_per_root : given.an_omission_context
 
     void Because()
     {
-        _first = SemanticOwnerOmission.Compute(_context, _index, new Dictionary<SemanticId, string> { [_event] = "STAGE-DEGRADE-001", [_query] = "STAGE-DEGRADE-001" })!;
-        _reversed = SemanticOwnerOmission.Compute(_context, _index, new Dictionary<SemanticId, string> { [_query] = "STAGE-DEGRADE-001", [_event] = "STAGE-DEGRADE-001" })!;
+        _first = SemanticOwnerOmission.Compute(_context, _index, new Dictionary<SemanticId, string> { [_event] = "STAGE-DEGRADE-001", [_query] = "STAGE-DEGRADE-001" });
+        _reversed = SemanticOwnerOmission.Compute(_context, _index, new Dictionary<SemanticId, string> { [_query] = "STAGE-DEGRADE-001", [_event] = "STAGE-DEGRADE-001" });
     }
 
     [Fact] void should_report_both_roots_for_the_shared_consuming_slice() => Assert.Equal(new[] { _event, _query }.OrderBy(owner => owner.ToString(), StringComparer.Ordinal), _first.Causes[_projectLookup.Id]);

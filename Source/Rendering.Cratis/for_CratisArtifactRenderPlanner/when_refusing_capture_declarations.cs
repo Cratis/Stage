@@ -35,7 +35,7 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
         var model = Transform(_model, slice => slice with { Captures = [.. slice.Captures.Select(capture => capture with { Name = name })] });
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Name == "TrackShipments");
         var application = Plan(model);
-        var selected = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
+        var selected = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
         foreach (var plan in new[] { application, selected })
         {
             Assert.False(plan.Success);
@@ -50,8 +50,8 @@ public class when_refusing_capture_declarations : given.a_translation_applicatio
         var slice = _model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Name == "TrackShipments");
         var capture = slice.Captures.Single();
         var options = new CratisRenderingOptions("Contracts", "Contracts");
-        var context = new SemanticApplicationContext(new(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
-        var plan = SemanticCaptureMemberPlan.Create(capture with { EventsSource = capture.EventsSource! with { Events = [capture.EventsSource.Events[0], capture.EventsSource.Events[0]] } }, context);
+        var context = new SemanticApplicationContext(new(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
+        var plan = SemanticCaptureMemberPlan.Create(capture with { EventsSource = capture.EventsSource with { Events = [capture.EventsSource.Events[0], capture.EventsSource.Events[0]] } }, context);
         Assert.Contains(plan.Refusals, reason => reason.Contains("source event is repeated", StringComparison.Ordinal));
     }
 

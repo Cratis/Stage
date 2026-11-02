@@ -15,11 +15,11 @@ public static class a_model_at_an_esm_pair
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", "module Projects\n  feature Registration\n    slice StateChange Register\n      event Registered");
         var compilation = new SemanticModelCompiler().Compile("Model", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success);
-        var source = compilation.Value!.Model;
+        var source = compilation.Value.Model;
         var model = ExecutableSemanticModel.Create(source.LanguageVersion, source.SemanticVersion, source.Application);
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, change?.Invoke(model.Application) ?? model.Application);
-        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new LanguageVersion(major, minor));
-        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, new SemanticVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, change?.Invoke(model.Application) ?? model.Application);
+        typeof(ExecutableSemanticModel).GetField("<LanguageVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new LanguageVersion(major, minor));
+        typeof(ExecutableSemanticModel).GetField("<SemanticVersion>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, new SemanticVersion(major, minor));
         return model;
     }
 }

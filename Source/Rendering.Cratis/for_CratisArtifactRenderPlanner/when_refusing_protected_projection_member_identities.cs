@@ -21,7 +21,7 @@ public class when_refusing_protected_projection_member_identities
     public void should_refuse_protected_join_or_child_identity_without_partial_artifacts(bool join, bool personal)
     {
         var model = invoice_model.Compile(when_rendering_scoped_projections.ScopedSource);
-        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(model).Plan;
         var application = model.Application;
         var concept = application.Concepts.Single(concept => concept.Name == "ProjectName");
         var protectedType = application.Types.Single(type => type.Name == "ProjectNote").Properties.Single(property => property.Name == "name").Type;
@@ -40,7 +40,7 @@ public class when_refusing_protected_projection_member_identities
                 })]
             })]
         };
-        typeof(ExecutableSemanticModel).GetField($"<{nameof(model.Application)}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
+        typeof(ExecutableSemanticModel).GetField($"<{nameof(model.Application)}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
         var options = new CratisRenderingOptions("Projects", "Projects");
         var request = new ArtifactRenderRequest(model, execution, CratisRendering.CreateProfile(application.Name, options), new(ArtifactRenderScopeKind.Application, application.Id));
         var result = new CratisArtifactRenderPlanner().Plan(request);

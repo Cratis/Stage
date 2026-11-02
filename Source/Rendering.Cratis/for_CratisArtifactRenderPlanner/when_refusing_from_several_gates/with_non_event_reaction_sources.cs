@@ -37,12 +37,12 @@ public class with_non_event_reaction_sources : Specification
                         for "acknowledgments"
                         scheduledAt = $context.occurred
             """);
-        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(model).Plan;
         var reaction = model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
         if (trigger == "when Started")
         {
             // Fault injection: unresolved event references cannot be authored in valid Screenplay.
-            typeof(SemanticReactionTrigger).GetField("<Source>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            typeof(SemanticReactionTrigger).GetField("<Source>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
                 .SetValue(reaction.Triggers.Single(), model.Application.Id);
         }
 

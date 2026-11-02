@@ -21,7 +21,7 @@ public class when_running_a_model_with_slice_local_plan_issues : Specification
     SemanticExecutionResult _command = null!;
     SemanticExecutionResult _query = null!;
 
-    void Establish() => _loaded = when_loading_a_model_with_slice_local_plan_issues.Create().Loaded!;
+    void Establish() => _loaded = when_loading_a_model_with_slice_local_plan_issues.Create().Loaded;
 
     async Task Because()
     {
@@ -49,6 +49,6 @@ public class when_running_a_model_with_slice_local_plan_issues : Specification
     {
         var specification = _loaded.Plan.Specifications.Values.Single(value => value.Name == "LookingUp");
         var empty = specification with { ThenQueries = [.. specification.ThenQueries.Select(query => query with { Results = [] })] };
-        SemanticRunAdmission.Check(_loaded.Plan, empty)!.Details.ShouldContain("STAGE-PLAN-004:");
+        SemanticRunAdmission.Check(_loaded.Plan, empty).Details.ShouldContain("STAGE-PLAN-004:");
     }
 }

@@ -23,7 +23,7 @@ public class when_detecting_changes_outside_common_output : given.the_planned_sc
         var form = ScreenCompositionCorpus.V1.SourceForms.Single(form => form.Name == "single");
         var planned = Plan(form.Documents, form.IdentityCatalogBytes.AsSpan(), carryScene: false);
         var options = new CratisRenderingOptions(ApplicationName, ApplicationName);
-        var request = new ArtifactRenderRequest(planned.Model, SemanticExecutionPlan.Compile(planned.Model).Plan!, CratisRendering.CreateProfile(ApplicationName, options), new(ArtifactRenderScopeKind.Application, planned.Model.Application.Id));
+        var request = new ArtifactRenderRequest(planned.Model, SemanticExecutionPlan.Compile(planned.Model).Plan, CratisRendering.CreateProfile(ApplicationName, options), new(ArtifactRenderScopeKind.Application, planned.Model.Application.Id));
         var changed = ArtifactRenderPlan.Create(
             request,
             [.. planned.Plan.Artifacts.Select(artifact => artifact.RelativePath == path

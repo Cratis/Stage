@@ -37,7 +37,7 @@ public class the_canonical_corpus : for_StageEndpointMapper.given.a_routed_model
         foreach (var document in form.Documents)
         {
             var path = Path.Combine(_directory, document.DisplayPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
             await File.WriteAllTextAsync(path, document.Text);
         }
 
@@ -46,7 +46,7 @@ public class the_canonical_corpus : for_StageEndpointMapper.given.a_routed_model
 
         var readModels = StageModelWalker.Slices(application.EventModel)
             .Where(located => located.Slice.ReadModel is not null)
-            .ToDictionary(located => located.Slice.ReadModel!.Name, located => located.Slice.ReadModel!.Id.ToString(), StringComparer.Ordinal);
+            .ToDictionary(located => located.Slice.ReadModel.Name, located => located.Slice.ReadModel.Id.ToString(), StringComparer.Ordinal);
         _readModelDocuments[readModels["WorkItemSummary"]] =
         [
             JsonSerializer.Serialize(new { id = WorkItemA, workItemId = WorkItemA, title = TitleA, status = "open" }),
@@ -99,9 +99,9 @@ public class the_canonical_corpus : for_StageEndpointMapper.given.a_routed_model
 
         return data.ValueKind switch
         {
-            JsonValueKind.Array => [.. data.EnumerateArray().Select(instance => instance.GetProperty(property).GetString()!)],
+            JsonValueKind.Array => [.. data.EnumerateArray().Select(instance => instance.GetProperty(property).GetString())],
             JsonValueKind.Null => [],
-            _ => [data.GetProperty(property).GetString()!]
+            _ => [data.GetProperty(property).GetString()]
         };
     }
 

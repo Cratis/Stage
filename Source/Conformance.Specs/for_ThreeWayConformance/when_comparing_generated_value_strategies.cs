@@ -77,14 +77,14 @@ public class when_comparing_generated_value_strategies(when_comparing_generated_
             var unpinned = specification with
             {
                 Name = "CapturingUnpinnedReceipt",
-                When = specification.When! with { GeneratedValues = [.. specification.When.GeneratedValues.Where(value => value.TargetProperty != receipt.Id)] }
+                When = specification.When with { GeneratedValues = [.. specification.When.GeneratedValues.Where(value => value.TargetProperty != receipt.Id)] }
             };
             var changed = original.Application with
             {
                 Modules = [module with { Features = [feature with { Slices = [.. feature.Slices.Select(value => value.Id == slice.Id ? value with { Specifications = [unpinned] } : value)] }] }]
             };
             var model = ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, changed);
-            var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
+            var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("GenerationApp", "GenerationApp"));
             Assert.True(plan.Success, string.Join(';', plan.Diagnostics.Select(diagnostic => diagnostic.Message)));
             var artifact = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("when_capturing_unpinned_receipt.cs", StringComparison.Ordinal));
             AddGeneratedSpecification("UnpinnedReceipt.cs", Encoding.UTF8.GetString(artifact.Bytes.AsSpan()));

@@ -76,6 +76,6 @@ public class compliance_concepts : Specification
         var compilation = new ScreenplayCompiler().Compile(Source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         compilation.Diagnostics.ShouldBeEmpty();
-        _applicationSet = new([compilation.Value!]);
+        _applicationSet = new([compilation.Value]);
     }
 }

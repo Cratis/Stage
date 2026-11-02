@@ -19,7 +19,7 @@ public class with_reordered_owners_without_omission : given.an_unsupported_event
     {
         var owner = _registerProject.Events.Single();
         var originalType = _registerProject.Commands.Single().Properties.Single(property => property.Name == "name").Type;
-        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(SemanticEventContract).GetField("<Properties>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(owner, owner.Properties.Select(property => property.Name == "name" ? property with { Type = originalType } : property).ToImmutableArray());
     }
 
@@ -27,7 +27,7 @@ public class with_reordered_owners_without_omission : given.an_unsupported_event
     {
         _first = _planner.Plan(_request);
         var reordered = _model with { };
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(reordered, _model.Application with { Modules = [.. _model.Application.Modules.Reverse()] });
         _reordered = _planner.Plan(_request with { Model = reordered });
     }

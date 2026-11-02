@@ -20,7 +20,7 @@ public class a_browser_page : Specification
         _app.MapFallback(() => Results.Text("SPA fallback"));
         _app.Urls.Add("http://127.0.0.1:0");
         await _app.StartAsync();
-        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+        var addresses = _app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>();
         _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CheckCertificateRevocationList = true })
         {
             BaseAddress = new Uri(addresses.Addresses.Single())

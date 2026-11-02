@@ -12,5 +12,5 @@ public class with_a_generated_identifier : given.a_response_application
 
     [Fact] void should_succeed() => _status.ShouldEqual(200);
     [Fact] void should_return_the_committed_event_source() => _result.GetProperty("response").GetString().ShouldEqual(AppendedId());
-    [Fact] void should_return_a_nonempty_uuid() => Guid.Parse(_result.GetProperty("response").GetString()!).ShouldNotEqual(Guid.Empty);
+    [Fact] void should_return_a_nonempty_uuid() => Guid.Parse(_result.GetProperty("response").GetString()).ShouldNotEqual(Guid.Empty);
 }

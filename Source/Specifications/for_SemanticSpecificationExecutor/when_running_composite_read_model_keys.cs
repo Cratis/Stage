@@ -56,7 +56,7 @@ public class when_running_composite_read_model_keys : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("billing"), "billing", "Billing.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Billing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     async Task Because() => _result = (await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results.Single();

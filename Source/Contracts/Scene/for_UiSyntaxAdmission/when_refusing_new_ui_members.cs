@@ -81,7 +81,7 @@ public class when_refusing_new_ui_members : Specification
     static SyntaxNode Authored(Type type, string member)
     {
         var node = (SyntaxNode)Create(type);
-        var property = type.GetProperty(member)!;
+        var property = type.GetProperty(member);
         property.SetValue(node, AuthoredValue(property.PropertyType));
         return node;
     }

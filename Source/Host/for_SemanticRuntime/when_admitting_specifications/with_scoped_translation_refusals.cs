@@ -21,7 +21,7 @@ public class with_scoped_translation_refusals : Specification
         var original = SemanticModelSerializer.Deserialize(PublicEventsCorpus.V9.EsmBytes.AsSpan());
         var unrelated = specification_plan.Create().Model.Application.Modules.Single();
         var application = original.Application with { Modules = [.. original.Application.Modules, unrelated] };
-        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application)).Plan!;
+        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(original.LanguageVersion, original.SemanticVersion, application)).Plan;
     }
 
     void Because() => _admission = new(_plan);

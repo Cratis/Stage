@@ -20,7 +20,7 @@ public static class a_concept_compliance_model
         var compilation = new SemanticModelCompiler().Compile(ConceptComplianceCorpus.V13.ApplicationName, SemanticDocumentSet.Create([.. documents], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value!.Model));
+        return SemanticModelSerializer.Deserialize(SemanticModelSerializer.Serialize(compilation.Value.Model));
     }
 
     public static string Unmarked(string source) => source

@@ -18,7 +18,7 @@ internal static class golden_vector_refusals
         var golden = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(version).Bytes.AsSpan());
         var model = ExecutableSemanticModel.Create(golden.LanguageVersion, golden.SemanticVersion, golden.Application with { Name = "Golden" });
         var profile = CratisRendering.CreateProfile("Golden", new("Golden", "Golden"));
-        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model, []).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
+        var plan = new CratisArtifactRenderPlanner().Plan(new(model, SemanticExecutionPlan.Compile(model, []).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id)));
         var label = model.Application.Concepts.Single(concept => concept.Name == "Label");
         var slices = SemanticVersionFeatures.Slices(model.Application).ToArray();
         var creation = slices.Single(slice => slice.Name == "Creation");

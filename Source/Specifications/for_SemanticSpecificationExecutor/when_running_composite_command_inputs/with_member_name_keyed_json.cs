@@ -15,7 +15,7 @@ public class with_member_name_keyed_json : given.a_composite_input
     void Establish() => Prepare("Node[] optional", "[{\"count\":7,\"next\":{\"count\":8}}]");
     void Because()
     {
-        var input = _specification.When!.Values[^1];
+        var input = _specification.When.Values[^1];
         var type = _command.Properties.Single(property => property.Id == input.TargetProperty).Type;
         _json = JsonSerializer.Deserialize<JsonElement>(SemanticRunContext.Canonical(input.Value, type, new SemanticApplicationContext(_plan)));
     }

@@ -61,14 +61,14 @@ public class when_building_an_unfiltered_legacy_query(context fixture) : IClassF
             var compilation = new SemanticModelCompiler().Compile("LegacyQueryControl", SemanticDocumentSet.Create([document], catalog));
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
             compilation.Diagnostics.ShouldBeEmpty();
-            var model = compilation.Value!.Model;
+            var model = compilation.Value.Model;
             model.Application.Concepts.ShouldBeEmpty();
             model.Application.Types.ShouldBeEmpty();
             model.Application.Modules.Single().Features.ShouldBeEmpty();
             var execution = SemanticExecutionPlan.Compile(model);
             execution.Success.ShouldBeTrue();
             var profile = CratisRendering.CreateProfile(model.Application.Name, new("LegacyQueryControl", "AppQueryIntentAdmission"));
-            var request = new ArtifactRenderRequest(model, execution.Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+            var request = new ArtifactRenderRequest(model, execution.Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
             var scaffold = new CratisArtifactRenderPlanner().Plan(request);
             scaffold.Success.ShouldBeTrue();
             scaffold.Diagnostics.ShouldBeEmpty();
@@ -81,7 +81,7 @@ public class when_building_an_unfiltered_legacy_query(context fixture) : IClassF
             var syntax = new NativeScreenplayCompiler().Compile(LegacySource);
             Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
             syntax.Diagnostics.ShouldBeEmpty();
-            var application = syntax.Value!;
+            var application = syntax.Value;
             var slice = application.Modules.Single().Features.Single().Slices.Single();
             var query = Assert.Single(slice.Queries);
             query.Filters.ShouldBeEmpty();

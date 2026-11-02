@@ -36,7 +36,7 @@ public class when_reporting_a_generated_fixture_defect : Specification
             GeneratedValues = [new(command.Properties.Single().Id, SemanticValue.Text(fixture))]
         };
         var outcome = new SemanticEvaluator().Execute(plan, SemanticWorld.Empty, request);
-        SemanticExecutionResult reported = null!;
+        SemanticExecutionResult reported = null;
         var error = Catch.Exception(() => reported = SemanticGeneratedValues.ReportDefect(command, plan.Model.Application, outcome));
         if (defect)
         {

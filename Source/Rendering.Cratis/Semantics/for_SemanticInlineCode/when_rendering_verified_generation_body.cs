@@ -77,7 +77,7 @@ public class when_rendering_verified_generation_body : Specification
         var owner = context.Application.Concepts.Single().Id;
         var site = new SemanticInlineCodeSite(requirement.RequirementId, owner, new("generation", owner.ToString(), "member"));
         SemanticImplementationAdmission.TryGetVerifiedInline(context.Request, site, diagnostics, out var code).ShouldBeTrue();
-        code!.ByteSource.ShouldEqual("utf8-string");
+        code.ByteSource.ShouldEqual("utf8-string");
         Assert.Empty(diagnostics);
     }
 
@@ -109,10 +109,10 @@ public class when_rendering_verified_generation_body : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("shop"), "shop", "Shop.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Shop", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("Shop", "Shop");
         var requirements = compilation.ImplementationRequirements.Select(requirement => requirement with { ContentHash = Hash(Encoding.UTF8.GetBytes(hashSource ?? body)), Language = language }).ToImmutableArray();
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Shop", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Shop", options), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = requirements,
             ImplementationContents = requirements.ToImmutableDictionary(requirement => requirement.RequirementId, _ => body)

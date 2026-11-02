@@ -38,7 +38,7 @@ public class with_a_wrapped_concept_property : Specification
         var plan = invoice_model.Plan(model);
         Assert.True(plan.Success, opaque_policy_model.Errors(plan));
         _assembly = opaque_policy_model.Compile(plan);
-        _nameType = _assembly.GetTypes().Single(type => type.Name == "Register").GetProperty("Name")!.PropertyType;
+        _nameType = _assembly.GetTypes().Single(type => type.Name == "Register").GetProperty("Name").PropertyType;
     }
 
     void Because()
@@ -48,7 +48,7 @@ public class with_a_wrapped_concept_property : Specification
             _assembly,
             "Register",
             Guid.Empty,
-            input is null ? null! : Activator.CreateInstance(_nameType, input)!))];
+            input is null ? null : Activator.CreateInstance(_nameType, input)))];
     }
 
     [Fact] void should_validate_a_wrapped_text_concept_property() => typeof(ConceptAs<string>).IsAssignableFrom(_nameType).ShouldBeTrue();

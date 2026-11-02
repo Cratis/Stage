@@ -39,9 +39,9 @@ public class an_emitted_authentication_host : Specification
         ["Cratis:Authentication:PublicOrigin"] = PublicOrigin
     });
 
-    protected void AddAuthentication() => _authentication.Value.GetMethod("Add")!.Invoke(null, [_builder]);
+    protected void AddAuthentication() => _authentication.Value.GetMethod("Add").Invoke(null, [_builder]);
 
-    protected void UseAuthentication() => _authentication.Value.GetMethod("Use")!.Invoke(null, [_app]);
+    protected void UseAuthentication() => _authentication.Value.GetMethod("Use").Invoke(null, [_app]);
 
     async Task Destroy()
     {

@@ -12,8 +12,8 @@ public class and_identities_are_provisional : given.a_release_baseline
 {
     void Because()
     {
-        var documents = SemanticDocumentSet.Create(_workspace.Compilation.Value!.Documents.Documents, SemanticIdentityCatalog.Empty(_workspace.IdentityCatalog.Application));
-        var compilation = new SemanticModelCompiler().Compile("RecordsApp", documents).Value!;
+        var documents = SemanticDocumentSet.Create(_workspace.Compilation.Value.Documents.Documents, SemanticIdentityCatalog.Empty(_workspace.IdentityCatalog.Application));
+        var compilation = new SemanticModelCompiler().Compile("RecordsApp", documents).Value;
         _assessment = StageReleaseBaseline.Check(compilation, _baseline);
     }
     [Fact] void should_report_unavailable() => _assessment.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Unavailable);

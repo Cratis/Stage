@@ -59,11 +59,11 @@ public class and_a_package_component_declares_rich_metadata : Specification
 
     [Fact] void should_use_the_authored_component_name_as_the_stable_scene_id() => _result.Id.ShouldEqual("workItems");
     [Fact] void should_carry_the_component_identity() => _result.ComponentName.ShouldEqual("scene.web.DataGrid");
-    [Fact] void should_carry_the_query_context_binding() => ((BindingExpression)_result.Properties["context"]!).Kind.ShouldEqual(BindingSourceKind.QueryResult);
+    [Fact] void should_carry_the_query_context_binding() => ((BindingExpression)_result.Properties["context"]).Kind.ShouldEqual(BindingSourceKind.QueryResult);
     [Fact] void should_carry_literal_property_values() => _result.Properties["title"].ShouldEqual("Work items");
-    [Fact] void should_carry_component_property_bindings() => ((BindingExpression)_result.Properties["selectedItem"]!).ComponentId.ShouldEqual("work-items:list");
-    [Fact] void should_carry_binding_null_behavior() => ((BindingExpression)_result.Properties["selectedItem"]!).NullBehavior.ShouldEqual(BindingNullBehavior.Clear);
-    [Fact] void should_carry_presentation_values() => ((IReadOnlyDictionary<string, string>)_result.Properties["presentation"]!)["density"].ShouldEqual("compact");
-    [Fact] void should_carry_exposed_values() => ((IReadOnlyDictionary<string, BindingExpression>)_result.Properties["exposes"]!)["selectedWorkItem"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
+    [Fact] void should_carry_component_property_bindings() => ((BindingExpression)_result.Properties["selectedItem"]).ComponentId.ShouldEqual("work-items:list");
+    [Fact] void should_carry_binding_null_behavior() => ((BindingExpression)_result.Properties["selectedItem"]).NullBehavior.ShouldEqual(BindingNullBehavior.Clear);
+    [Fact] void should_carry_presentation_values() => ((IReadOnlyDictionary<string, string>)_result.Properties["presentation"])["density"].ShouldEqual("compact");
+    [Fact] void should_carry_exposed_values() => ((IReadOnlyDictionary<string, BindingExpression>)_result.Properties["exposes"])["selectedWorkItem"].ComponentPropertyPath.ShouldEqual("selectedItem.workItemId");
     [Fact] void should_carry_the_icon() => _result.Properties["icon"].ShouldEqual("table");
 }

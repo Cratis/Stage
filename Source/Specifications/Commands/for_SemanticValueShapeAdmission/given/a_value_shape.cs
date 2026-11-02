@@ -34,7 +34,7 @@ public class a_value_shape : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("inputs"), "inputs", "Inputs.play", source);
         var compilation = new SemanticModelCompiler().Compile("Inputs", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _context = new(plan);
         _type = plan.Commands.Values.Single().Properties.Single().Type;
     }

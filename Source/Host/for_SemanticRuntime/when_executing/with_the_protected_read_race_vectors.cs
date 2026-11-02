@@ -19,15 +19,15 @@ public class with_the_protected_read_race_vectors : Specification
 
     void Establish()
     {
-        _vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())!["vectors"]!.AsArray();
-        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan())).Plan!;
+        _vectors = JsonNode.Parse(ProtectedCommandReadRaceVectors.Bytes.AsSpan())["vectors"].AsArray();
+        _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan())).Plan;
     }
 
     async Task Because()
     {
         foreach (var vector in _vectors)
         {
-            await protected_read_race_vectors.Verify(_plan, vector!);
+            await protected_read_race_vectors.Verify(_plan, vector);
             _matched++;
         }
     }

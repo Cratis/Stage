@@ -32,7 +32,7 @@ public class when_refusing_golden_destinationless_productions : Specification
     {
         var golden = SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(version).Bytes.AsSpan());
         var model = ExecutableSemanticModel.Create(golden.LanguageVersion, golden.SemanticVersion, golden.Application with { Name = "Golden" });
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Golden", "Golden"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Golden", "Golden"));
         var diagnostics = plan.Diagnostics.Where(diagnostic => diagnostic.Artifact.ToString() == "sem1:000000000000000000000000000000000000000000000000000000000000277e").ToArray();
         diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain("STAGE-ESM-053");
         diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-006");

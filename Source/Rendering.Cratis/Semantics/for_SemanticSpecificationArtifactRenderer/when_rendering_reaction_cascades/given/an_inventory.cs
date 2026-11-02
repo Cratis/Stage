@@ -84,7 +84,7 @@ public class an_inventory : Specification
     protected void Plan(string source)
     {
         var model = for_SemanticAutomationArtifactRenderer.given.an_automation.Compile(source);
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Inventory", "Inventory"));
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Inventory", "Inventory"));
     }
 
     protected IEnumerable<string> Paths(string fileName) =>

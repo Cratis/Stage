@@ -76,7 +76,7 @@ internal static class handler_model
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("orders"), "orders", "Orders.play", source ?? Source);
         var compilation = new SemanticModelCompiler().Compile("HandlerModel", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var commands = model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).SelectMany(slice => slice.Commands).ToArray();
         var requirements = compilation.ImplementationRequirements.Select(requirement =>
         {
@@ -91,7 +91,7 @@ internal static class handler_model
             };
         }).ToImmutableArray();
         var descriptors = compilation.TypedContextDescriptors;
-        return new(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile("HandlerModel", new("HandlerApp", "Orders")), new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        return new(model, SemanticExecutionPlan.Compile(model, []).Plan, CratisRendering.CreateProfile("HandlerModel", new("HandlerApp", "Orders")), new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
             ImplementationRequirements = requirements,
             ImplementationContents = requirements.ToImmutableDictionary(requirement => requirement.RequirementId, requirement => bodies is null ? body : bodies[commands.Single(command => command.Handler?.RequirementId == requirement.RequirementId).Name]),

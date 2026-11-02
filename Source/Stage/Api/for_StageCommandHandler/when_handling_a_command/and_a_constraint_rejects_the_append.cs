@@ -25,5 +25,5 @@ public class and_a_constraint_rejects_the_append : given.a_command_handler
     async Task Because() => _error = await Catch.Exception(() => HandlerFor("invoiceId").Handle(ContextFor("{\"invoiceId\":\"33333333-3333-3333-3333-333333333333\"}")).AsTask());
 
     [Fact] void should_fail_with_the_constraint_rejection() => _error.ShouldEqual(_rejection);
-    [Fact] void should_fail_as_a_validation_result() => ((IValidationFailure)_error!).ValidationResult.ReasonDetail.ShouldEqual("UniqueInvoice");
+    [Fact] void should_fail_as_a_validation_result() => ((IValidationFailure)_error).ValidationResult.ReasonDetail.ShouldEqual("UniqueInvoice");
 }

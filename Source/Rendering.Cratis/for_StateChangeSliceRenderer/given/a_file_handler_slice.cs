@@ -28,7 +28,7 @@ public class a_file_handler_slice : Specification
         compiler.Compile(source).Success.ShouldBeTrue();
         var parsed = compiler.Parse(source, SourcePath);
         parsed.Success.ShouldBeTrue();
-        _applicationSet = new([parsed.Value!]);
+        _applicationSet = new([parsed.Value]);
         _slice = _applicationSet.Slices.Single();
         _command = _slice.Slice.Commands.Single();
     }

@@ -26,7 +26,7 @@ public class when_rendering_v34_invocation_expectations(when_rendering_v34_invoc
             if (Environment.GetEnvironmentVariable(expected_conformance_table.WriteActualVariable) is { Length: > 0 } path)
             {
                 var actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>> { [vector.Name] = Actual };
-                File.WriteAllText(path, expected_conformance_table.Render(Expected, canonical_corpus_vectors.CorpusAssembly.GetName().Version!.ToString(3), actual));
+                File.WriteAllText(path, expected_conformance_table.Render(Expected, canonical_corpus_vectors.CorpusAssembly.GetName().Version.ToString(3), actual));
                 File.WriteAllText(Path.ChangeExtension(path, ".details.json"), expected_conformance_table.RenderDetails(actual));
             }
         }

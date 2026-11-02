@@ -32,7 +32,7 @@ public class when_loading_from_disk : Specification
         Directory.Delete(_root, true);
     }
 
-    [Fact] void should_match_the_memory_source() => KitLoader.Load(new DirectoryKitSource(_root), given.kit.Capabilities).Kit!.Digest.ShouldEqual(given.kit.Load(given.kit.Manifest).Kit!.Digest);
+    [Fact] void should_match_the_memory_source() => KitLoader.Load(new DirectoryKitSource(_root), given.kit.Capabilities).Kit.Digest.ShouldEqual(given.kit.Load(given.kit.Manifest).Kit.Digest);
 
     [Theory]
     [InlineData("file")]
@@ -95,6 +95,6 @@ public class when_loading_from_disk : Specification
     void should_refuse_reading_through_a_linked_directory_below_the_root()
     {
         Directory.CreateSymbolicLink(Path.Combine(_root, "link"), Path.Combine(_root, "templates"));
-        (Catch.Exception(() => new DirectoryKitSource(_root).Read("link/main.sbn")) as KitSourceException)!.Code.ShouldEqual(KitCodes.SymbolicLink);
+        (Catch.Exception(() => new DirectoryKitSource(_root).Read("link/main.sbn")) as KitSourceException).Code.ShouldEqual(KitCodes.SymbolicLink);
     }
 }

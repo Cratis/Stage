@@ -28,7 +28,7 @@ public class with_unsupported_occurrence_contexts : given.a_reaction_plan
             new(Action: "given clock \"2027-03-04T10:00:00.123Z\"\nwhen Begin\n  item = \"one\"\n  amount = 1", Authorization: "validate\n  item not empty message \"required\""));
         await Execute();
         _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        _result.Unsupported!.Capability.ShouldEqual(capability);
+        _result.Unsupported.Capability.ShouldEqual(capability);
         _result.Unsupported.Details.ShouldContain("STAGE-ESM-013:");
     }
 

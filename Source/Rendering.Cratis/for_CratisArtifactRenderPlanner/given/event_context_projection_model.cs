@@ -297,11 +297,11 @@ public static class event_context_projection_model
             throw new InvalidOperationException(string.Join(Environment.NewLine, compilation.Diagnostics.Select(_ => $"{_.Code} {_.Severity}: {_.Message}")));
         }
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var options = new CratisRenderingOptions("ContextApp", "Context") { Strict = strict };
 
         // Rendering admission is independent of the reference execution plan's supported context paths.
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), slice is null
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model, []).Plan, CratisRendering.CreateProfile(model.Application.Name, options), slice is null
             ? new(ArtifactRenderScopeKind.Application, model.Application.Id)
             : new(ArtifactRenderScopeKind.Slice, model.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices).Single(candidate => candidate.Name == slice).Id))
         {

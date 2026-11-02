@@ -20,12 +20,12 @@ public class when_indexing_duplicate_identities : a_register_project_render_requ
         // Fault injection: duplicate a compiled event without changing the valid source fixture.
         var @event = _registerProject.Events.Single();
         _duplicateId = @event.Id;
-        typeof(SemanticSlice).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(_registerProject, ImmutableArray.Create(@event, @event));
+        typeof(SemanticSlice).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_registerProject, ImmutableArray.Create(@event, @event));
     }
 
     void Because() => _error = Catch.Exception(() => _ = new SemanticApplicationContext(_request, _options));
 
     [Fact] void should_throw_the_typed_refusal() => _error.ShouldBeOfExactType<UnsupportedSemanticRendering>();
-    [Fact] void should_use_the_existing_semantic_rendering_code() => ((UnsupportedSemanticRendering)_error!).Code.ShouldEqual("STAGE-ESM-012");
-    [Fact] void should_name_the_declaration_kind_and_duplicate_id() => _error!.Message.ShouldContain($"duplicate event identity '{_duplicateId}'");
+    [Fact] void should_use_the_existing_semantic_rendering_code() => ((UnsupportedSemanticRendering)_error).Code.ShouldEqual("STAGE-ESM-012");
+    [Fact] void should_name_the_declaration_kind_and_duplicate_id() => _error.Message.ShouldContain($"duplicate event identity '{_duplicateId}'");
 }

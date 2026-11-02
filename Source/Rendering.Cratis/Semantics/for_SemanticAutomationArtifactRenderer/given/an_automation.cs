@@ -58,7 +58,7 @@ public class an_automation : Specification
     private protected void SetContext(ExecutableSemanticModel model)
     {
         _model = model;
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Reactions", new("Reactions", "Reactions")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Reactions", new("Reactions", "Reactions")), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _context = new(request, new("Reactions", "Reactions"));
         _located = _context.SelectedSlices().Single(slice => slice.Slice.Kind == SemanticSliceKind.Automation);
     }
@@ -70,7 +70,7 @@ public class an_automation : Specification
         var compilation = new SemanticModelCompiler().Compile("Reactions", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 
     private protected void ReplaceAutomation(SemanticSlice slice)
@@ -83,5 +83,5 @@ public class an_automation : Specification
         }));
     }
 
-    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, _context.Request.Scope, new("Reactions", "Reactions"));
+    private protected void Plan() => _plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, _context.Request.Scope, new("Reactions", "Reactions"));
 }

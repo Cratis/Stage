@@ -28,10 +28,10 @@ public class when_admitting_nested_clear_with_a_matching_root_from : Specificati
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("nested-clear"), "nested-clear", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
-        _plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        _plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
     }
 
     [Fact] void should_admit_the_projection() => Assert.True(_plan.Success, string.Join(Environment.NewLine, _plan.Diagnostics));

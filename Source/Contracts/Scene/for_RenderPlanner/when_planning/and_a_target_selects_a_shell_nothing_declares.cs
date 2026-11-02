@@ -19,8 +19,8 @@ public class and_a_target_selects_a_shell_nothing_declares : an_application_targ
 
     void Because() => _result = RenderPlanner.Plan(_application, _catalog);
 
-    [Fact] void should_report_the_shell_as_not_found() => Finding()!.Kind.ShouldEqual(RenderFindingKind.LayoutNotFound);
-    [Fact] void should_name_the_shell_the_target_selected() => Finding()!.Subject.ShouldEqual("MobileShell");
+    [Fact] void should_report_the_shell_as_not_found() => Finding().Kind.ShouldEqual(RenderFindingKind.LayoutNotFound);
+    [Fact] void should_name_the_shell_the_target_selected() => Finding().Subject.ShouldEqual("MobileShell");
     [Fact] void should_resolve_no_shell_name() => _result.Targets[0].LayoutName.ShouldBeNull();
     [Fact] void should_resolve_no_shell_structure() => _result.Targets[0].Layout.ShouldBeNull();
     [Fact] void should_place_no_screen_template_against_a_shell_it_does_not_have() => _result.Targets[0].ScreenTemplates.Placements.ShouldBeEmpty();

@@ -32,6 +32,6 @@ public class an_application_with_specification_examples : a_multi_slice_applicat
                       name = "changed"
             """);
         Assert.True(compilation.Success, string.Join("; ", compilation.Diagnostics));
-        _application = compilation.Value!;
+        _application = compilation.Value;
     }
 }

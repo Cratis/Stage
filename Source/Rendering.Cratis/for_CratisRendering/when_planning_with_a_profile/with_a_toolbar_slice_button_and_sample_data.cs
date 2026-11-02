@@ -45,12 +45,12 @@ public class with_a_toolbar_slice_button_and_sample_data : given.a_profile_sourc
         _composed = Document(SceneCompositionInput.RelativePath);
     }
 
-    JsonObject Document(string path) => JsonNode.Parse(Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan()))!.AsObject();
+    JsonObject Document(string path) => JsonNode.Parse(Encoding.UTF8.GetString(_full.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan())).AsObject();
 
     [Fact] void should_plan_successfully() => _full.Success.ShouldBeTrue();
     [Fact] void should_keep_the_sample_data_in_the_composed_scene_a_designer_edits() => _composed.ContainsKey("sampleDataPacks").ShouldBeTrue();
     [Fact] void should_carry_no_sample_data_packs_in_the_runtime_document() => _runtime.ContainsKey("sampleDataPacks").ShouldBeFalse();
-    [Fact] void should_carry_no_sample_data_selection_in_the_runtime_profile() => _runtime["uiProfiles"]!.AsArray().Single()!.AsObject().ContainsKey("sampleData").ShouldBeFalse();
-    [Fact] void should_carry_the_structure_the_slice_resolves_against() => _runtime["structure"]!["modules"]!.AsArray().Single()!["features"]!.AsArray().Single()!["slices"]!.AsArray().Single()!["id"]!.GetValue<string>().ShouldEqual("RegisterProject");
-    [Fact] void should_carry_the_schema_of_the_command_the_slice_accepts() => _runtime["commandSchemas"]!["RegisterProject"]!.GetValue<string>().ShouldContain("\"properties\"");
+    [Fact] void should_carry_no_sample_data_selection_in_the_runtime_profile() => _runtime["uiProfiles"].AsArray().Single().AsObject().ContainsKey("sampleData").ShouldBeFalse();
+    [Fact] void should_carry_the_structure_the_slice_resolves_against() => _runtime["structure"]["modules"].AsArray().Single()["features"].AsArray().Single()["slices"].AsArray().Single()["id"].GetValue<string>().ShouldEqual("RegisterProject");
+    [Fact] void should_carry_the_schema_of_the_command_the_slice_accepts() => _runtime["commandSchemas"]["RegisterProject"].GetValue<string>().ShouldContain("\"properties\"");
 }

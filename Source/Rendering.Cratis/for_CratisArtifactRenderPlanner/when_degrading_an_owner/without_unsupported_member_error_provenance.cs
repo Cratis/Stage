@@ -24,11 +24,11 @@ public class without_unsupported_member_error_provenance : given.an_unsupported_
         List<ArtifactRenderDiagnostic> diagnostics = [warning, new("STAGE-ESM-004", ArtifactRenderDiagnosticSeverity.Error, "Unrelated whole refusal.", _unsupportedEvent)];
         _refused = ArtifactRenderPlan.Create(_request, [], [.. diagnostics]);
         var planner = typeof(CratisArtifactRenderPlanner);
-        var failure = Activator.CreateInstance(planner.GetNestedType("OwnerOmissionFailure", BindingFlags.NonPublic)!, context, diagnostics, ImmutableArray<ArtifactRemoval>.Empty);
+        var failure = Activator.CreateInstance(planner.GetNestedType("OwnerOmissionFailure", BindingFlags.NonPublic), context, diagnostics, ImmutableArray<ArtifactRemoval>.Empty);
 
         // Any dependency-index construction would dereference this poisoned view and fail the spec.
-        typeof(SemanticApplicationContext).GetField("_slices", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(context, null);
-        _result = (ITuple)planner.GetMethod("RetryOmission", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [_request, _options, failure, _refused])!;
+        typeof(SemanticApplicationContext).GetField("_slices", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(context, null);
+        _result = (ITuple)planner.GetMethod("RetryOmission", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, [_request, _options, failure, _refused]);
     }
 
     [Fact] void should_return_the_original_refusal_without_building_an_index() => Assert.Same(_refused, _result[0]);

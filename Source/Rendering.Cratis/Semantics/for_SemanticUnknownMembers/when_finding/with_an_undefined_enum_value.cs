@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticUnknownMembers.whe
 
 public class with_an_undefined_enum_value : a_populated_model
 {
-    void Establish() => typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Kind))!
+    void Establish() => typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Kind))
         .SetValue(_model.Application.Modules[0].Features[0].Slices[0], (SemanticSliceKind)9876);
 
     void Because() => _unknown = SemanticUnknownMembers.Find(_model, _known);

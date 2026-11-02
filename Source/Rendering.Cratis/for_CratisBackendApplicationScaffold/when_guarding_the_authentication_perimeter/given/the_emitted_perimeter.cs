@@ -25,9 +25,9 @@ public static class the_emitted_perimeter
 
     public static string SelectScheme(HttpContext context) => (string)Perimeter.GetMethod("SelectScheme")!.Invoke(null, [context])!;
 
-    public static void Use(IApplicationBuilder app) => Perimeter.GetMethod("Use")!.Invoke(null, [app, new Uri(PublicOrigin)]);
+    public static void Use(IApplicationBuilder app) => Perimeter.GetMethod("Use").Invoke(null, [app, new Uri(PublicOrigin)]);
 
-    public static object? Read(IConfiguration configuration) => _assembly.Value.GetType("MyApp.GeneratedAuthentication.AuthenticationSettings")!.GetMethod("Read")!.Invoke(null, [configuration]);
+    public static object? Read(IConfiguration configuration) => _assembly.Value.GetType("MyApp.GeneratedAuthentication.AuthenticationSettings").GetMethod("Read").Invoke(null, [configuration]);
 
     static Type Perimeter => _assembly.Value.GetType("MyApp.GeneratedAuthentication.AuthenticationPerimeter")!;
 

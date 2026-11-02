@@ -33,7 +33,7 @@ public class and_roles_are_alternatives : Specification
 
     void Establish()
     {
-        _application = new ScreenplayCompiler().Compile(Source).Value!;
+        _application = new ScreenplayCompiler().Compile(Source).Value;
         _diagnostics = [];
     }
 

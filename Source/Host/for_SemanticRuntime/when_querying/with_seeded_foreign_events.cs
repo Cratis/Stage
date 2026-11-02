@@ -42,7 +42,7 @@ public class with_seeded_foreign_events : Specification
                   query All => Shipment[]
             """;
         var plan = compiled_plan.From(Source);
-        var syntax = new ScreenplayCompiler().Compile($"{Source}\nseed\n  for \"parcel\"\n    Arrived\n      id = \"parcel\"\n      status = \"sent\"\n").Value!;
+        var syntax = new ScreenplayCompiler().Compile($"{Source}\nseed\n  for \"parcel\"\n    Arrived\n      id = \"parcel\"\n      status = \"sent\"\n").Value;
         var seeds = SemanticSeeds.Admit(SemanticSeeds.Create(syntax.Seeds, plan), plan);
         seeds.Diagnostics.ShouldBeEmpty();
         var stored = SemanticSeeds.Stored(plan, seeds.Groups.Single().Facts, 0, DateTimeOffset.UtcNow).ToArray();

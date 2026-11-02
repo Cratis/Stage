@@ -38,7 +38,7 @@ public class the_planned_screen_composition_corpus : Specification
             SemanticDocumentSet.Create([.. sources.Select(document => SemanticSourceDocument.Create(catalog.ResolveDocument(document.StableKey), document.StableKey, document.DisplayPath, document.Text))], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success, string.Join(Environment.NewLine, execution.Issues));
 
@@ -47,12 +47,12 @@ public class the_planned_screen_composition_corpus : Specification
         var profile = CratisRendering.CreateProfile(model.Application.Name, options, carryScene ? scene : null);
         if (carryScene)
         {
-            profile = CratisRendering.WithScreenPartitions(profile, compilation.Value!);
+            profile = CratisRendering.WithScreenPartitions(profile, compilation.Value);
         }
 
         var request = new ArtifactRenderRequest(
             model,
-            execution.Plan!,
+            execution.Plan,
             profile,
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
 
@@ -74,14 +74,14 @@ public class the_planned_screen_composition_corpus : Specification
             foreach (var document in documents)
             {
                 var path = Path.Combine(root, document.DisplayPath.Replace('/', Path.DirectorySeparatorChar));
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. document.Bytes]);
             }
 
             var compilation = new PlayFileCompiler().CompileFolder(root).Result;
             Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
 
-            return new ScreenplaySceneVisitor().Visit(compilation.Value!);
+            return new ScreenplaySceneVisitor().Visit(compilation.Value);
         }
         finally
         {

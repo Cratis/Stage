@@ -24,7 +24,7 @@ public class when_inspecting_syntax_events : Specification
     [Fact]
     void should_reject_both_generations_before_converting_the_old_shape()
     {
-        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value!;
+        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value;
         var failure = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(syntax));
 
         failure.ShouldBeOfExactType<InvalidEventModel>();
@@ -34,7 +34,7 @@ public class when_inspecting_syntax_events : Specification
     [Fact]
     void should_reject_multiple_unmarked_shapes_in_the_direct_converter()
     {
-        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value!;
+        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value;
         var declarations = syntax.Modules.Single().Features.Single().Slices.Single().Events
             .Select(@event => @event with { HasGenerationMarker = false });
         var failure = Catch.Exception(() => EventGenerationAdmission.EnsureSupported(declarations, "Billing.Invoices.RegisterInvoice"));
@@ -46,7 +46,7 @@ public class when_inspecting_syntax_events : Specification
     [Fact]
     void should_reject_a_single_marked_generation_in_the_direct_converter()
     {
-        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value!;
+        var syntax = new ScreenplayCompiler().Parse(Source, "invoice.play").Value;
         var @event = syntax.Modules.Single().Features.Single().Slices.Single().Events.Last();
         var failure = Catch.Exception(() => EventConverter.Convert([@event], [], new SchemaSynthesizer(new Dictionary<string, Cratis.Screenplay.Syntax.ConceptSyntax>()), "Billing.Invoices.RegisterInvoice"));
 

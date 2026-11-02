@@ -20,7 +20,7 @@ public class when_inspecting_the_concept_attributes : given.a_compiled_model_usi
 
     void Because()
     {
-        using var schema = JsonDocument.Parse(_slice.Command!.Schema);
+        using var schema = JsonDocument.Parse(_slice.Command.Schema);
         var properties = schema.RootElement.GetProperty("properties").Clone();
         _email = properties.GetProperty("email");
         _account = properties.GetProperty("account");

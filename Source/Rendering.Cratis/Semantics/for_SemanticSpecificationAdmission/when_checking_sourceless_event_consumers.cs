@@ -106,7 +106,7 @@ public class when_checking_sourceless_event_consumers
     static SemanticSlice Observe(SemanticSlice slice, string observer)
     {
         var projection = slice.Projections.Single();
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
         var fromEvent = scope.From.Single();
         var contract = slice.Events.Single().Id;
         return observer switch
@@ -150,7 +150,7 @@ public class when_checking_sourceless_event_consumers
         var slice = model.Application.Modules.Single().Features.Single().Slices.Single();
         var options = new CratisRenderingOptions("Payments", "Payments");
         var context = new SemanticApplicationContext(
-            new(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)),
+            new(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id)),
             options);
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticSpecificationAdmission.Validate(context, slice, diagnostics);

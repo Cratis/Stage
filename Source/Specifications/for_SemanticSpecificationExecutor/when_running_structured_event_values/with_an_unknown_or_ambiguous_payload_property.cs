@@ -22,7 +22,7 @@ public class with_an_unknown_or_ambiguous_payload_property : given.a_structured_
         var property = contract.Properties[0];
         if (duplicate)
         {
-            typeof(SemanticExecutionPlan).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            typeof(SemanticExecutionPlan).GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
                 .SetValue(_plan, _plan.Events.SetItem(contract.Id, contract with { Properties = [.. contract.Properties, property] }));
         }
         else

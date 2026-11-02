@@ -41,7 +41,7 @@ public class when_rendering_with_metadata_for_an_unrelated_evolved_event : Speci
         _event = _compilation.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "RenameProject").Events.Single();
         _profile = CratisRendering.WithAuthoringMetadata(CratisRendering.CreateProfile("Projects", new("Projects", "Projects")), _compilation);
         AuthoringMetadataInput.TryRead(_profile.Inputs.Single(input => input.Name == AuthoringMetadataInput.Name), _compilation.Model, out var catalog).ShouldBeTrue();
-        _catalog = catalog!;
+        _catalog = catalog;
     }
 
     void Because()
@@ -49,7 +49,7 @@ public class when_rendering_with_metadata_for_an_unrelated_evolved_event : Speci
         var slice = _compilation.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "RegisterProject");
         _plan = new CratisArtifactRenderPlanner().Plan(new(
             _compilation.Model,
-            SemanticExecutionPlan.Compile(_compilation.Model).Plan!,
+            SemanticExecutionPlan.Compile(_compilation.Model).Plan,
             _profile,
             new(ArtifactRenderScopeKind.Slice, slice.Id)));
     }

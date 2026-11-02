@@ -19,7 +19,7 @@ public static class invoice_model
 
     // The portable corpus excludes only a{63}b, while its named group keeps generation proof Unproven.
     public static string UnprovenCodePattern => ((SemanticTextValue)SemanticModelSerializer.Deserialize(GeneratedConceptRulesCorpus.PortableV20.EsmBytes.AsSpan())
-        .Application.Concepts.Single(concept => concept.Name == "InviteCode").Validations.Single().Operand!).Value;
+        .Application.Concepts.Single(concept => concept.Name == "InviteCode").Validations.Single().Operand).Value;
 
     public static string Source(string type, string first, string second) => $$"""
         module Billing
@@ -80,13 +80,13 @@ public static class invoice_model
         }
 
         compilation.Success.ShouldBeTrue();
-        return compilation.Value!.Model;
+        return compilation.Value.Model;
     }
 
     public static ArtifactRenderPlan Plan(ExecutableSemanticModel model, ArtifactRenderScope? scope = null) =>
         CratisRendering.Plan(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             scope ?? new(ArtifactRenderScopeKind.Application, model.Application.Id),
             new("InvoiceApp", "Invoices"));
 

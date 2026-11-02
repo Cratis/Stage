@@ -16,7 +16,7 @@ public class when_creating_an_unverified_gap : given.a_gap
     {
         var gap = _gap with { Origin = ArtifactImplementationGapOrigin.Unverified };
         _plan = ArtifactRenderPlan.Create(_request, _artifacts, [], [gap]);
-        _roundTripped = JsonSerializer.Deserialize<ArtifactImplementationGap>(JsonSerializer.Serialize(gap, StageJson.Options), StageJson.Options)!;
+        _roundTripped = JsonSerializer.Deserialize<ArtifactImplementationGap>(JsonSerializer.Serialize(gap, StageJson.Options), StageJson.Options);
     }
 
     [Fact] void should_accept_the_additive_origin() => _plan.ImplementationGaps[0].Origin.ShouldEqual(ArtifactImplementationGapOrigin.Unverified);

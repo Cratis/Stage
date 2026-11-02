@@ -31,14 +31,14 @@ public class when_validating_scope_existence : given.an_artifact_render_request
                     event ProjectApproved
                       projectId ProjectId
             """);
-        _model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value!.Model;
+        _model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value.Model;
         _module = _model.Application.Modules.Single();
         _nested = _module.Features.Single().Features.Single();
         _nestedSlice = _nested.Slices.Single();
     }
 
     Exception? Create(ArtifactRenderScope scope) =>
-        Catch.Exception(() => ArtifactRenderPlan.Create(new(_model, SemanticExecutionPlan.Compile(_model).Plan!, _request.Profile, scope), [], []));
+        Catch.Exception(() => ArtifactRenderPlan.Create(new(_model, SemanticExecutionPlan.Compile(_model).Plan, _request.Profile, scope), [], []));
 
     [Fact] void should_accept_the_application() => Create(new(ArtifactRenderScopeKind.Application, _model.Application.Id)).ShouldBeNull();
     [Fact] void should_accept_a_module() => Create(new(ArtifactRenderScopeKind.Module, _module.Id)).ShouldBeNull();

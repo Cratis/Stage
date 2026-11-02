@@ -11,5 +11,5 @@ public class with_too_many_occurrences : when_settling_reactions.given.a_reactio
         new(Action: "given clock \"1970-01-01T00:00:00Z\"\nwhen clock \"1970-01-01T02:46:41Z\""));
     Task Because() => Execute();
     [Fact] void should_refuse_like_the_reference() => AssertMatchesReference();
-    [Fact] void should_report_the_shared_occurrence_limit() => _result.Unsupported!.Details.ShouldEqual("Advancing the clock makes more than 10000 occurrences due.");
+    [Fact] void should_report_the_shared_occurrence_limit() => _result.Unsupported.Details.ShouldEqual("Advancing the clock makes more than 10000 occurrences due.");
 }

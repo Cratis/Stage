@@ -16,11 +16,11 @@ public class a_schema : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("records"), "records", "Records.play", source);
         var compilation = new SemanticModelCompiler().Compile("Records", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var application = compilation.Value!.Model.Application;
+        var application = compilation.Value.Model.Application;
         var properties = application.Modules.Single().Features.Single().Slices.Single().Events.Single().Properties;
 
         return SemanticSchemas.Schema(properties, application);
     }
 
-    protected static JsonObject Value(string schema) => JsonNode.Parse(schema)!["properties"]!["value"]!.AsObject();
+    protected static JsonObject Value(string schema) => JsonNode.Parse(schema)["properties"]["value"].AsObject();
 }

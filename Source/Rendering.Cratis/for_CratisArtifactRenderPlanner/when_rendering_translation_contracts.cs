@@ -46,7 +46,7 @@ public class when_rendering_translation_contracts : given.a_translation_applicat
     public void should_support_slice_scoped_translation(string name, string reactor)
     {
         var slice = _model.Application.Modules.Single().Features.Single().Slices.Single(candidate => candidate.Name == name);
-        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan!, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
+        var plan = CratisRendering.Plan(_model, SemanticExecutionPlan.Compile(_model).Plan, new(ArtifactRenderScopeKind.Slice, slice.Id), new("Contracts", "Contracts"));
         plan.Success.ShouldBeTrue();
         plan.Artifacts.ShouldContain(artifact => artifact.RelativePath.EndsWith(reactor, StringComparison.Ordinal));
         plan.Artifacts.ShouldNotContain(artifact => artifact.RelativePath.EndsWith(name == "TrackShipments" ? "OrderShippedPublisher.cs" : "ShipmentTracking.cs", StringComparison.Ordinal));

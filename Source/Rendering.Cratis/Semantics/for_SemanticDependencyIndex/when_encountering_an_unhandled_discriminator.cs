@@ -76,15 +76,15 @@ public class when_encountering_an_unhandled_discriminator : given.a_dependency_i
     [Fact]
     public void should_refuse_unhandled_projection_targets()
     {
-        _projectLookup = _projectLookup with { Projections = [_projectLookup.Projections.Single() with { Target = (SemanticProjectionTargetKind)999 }] };
-        ShouldRefuse();
+        var lookup = _projectLookup with { Projections = [_projectLookup.Projections.Single() with { Target = (SemanticProjectionTargetKind)999 }] };
+        ShouldRefuse(CreateIndex(projectLookup: lookup));
     }
 
     [Fact]
     public void should_refuse_unhandled_context_roles()
     {
-        _request = _request with { TypedContextDescriptors = [new("body", (SemanticImplementationRole)999, 1, _registerProject.Commands.Single().Id, [])] };
-        ShouldRefuse();
+        var request = _request with { TypedContextDescriptors = [new("body", (SemanticImplementationRole)999, 1, _registerProject.Commands.Single().Id, [])] };
+        ShouldRefuse(CreateIndex(request: request));
     }
 
     [Fact] void should_refuse_defined_but_unclassified_enums() => SemanticDependencyVariants.Known(SemanticKind.Property).ShouldBeFalse();
@@ -97,10 +97,10 @@ public class when_encountering_an_unhandled_discriminator : given.a_dependency_i
         Assert.All(unknowns, unknown => SemanticDependencyVariants.Known(unknown).ShouldBeFalse());
     }
 
-    void ShouldRefuse()
+    void ShouldRefuse(SemanticDependencyIndex? index = null)
     {
-        BuildIndex();
-        _index.IsSemanticGraphComplete.ShouldBeFalse();
-        _index.IncompleteReasons.Any(reason => reason.Contains("unknown variant", StringComparison.Ordinal)).ShouldBeTrue();
+        index ??= CreateIndex();
+        index.IsSemanticGraphComplete.ShouldBeFalse();
+        index.IncompleteReasons.Any(reason => reason.Contains("unknown variant", StringComparison.Ordinal)).ShouldBeTrue();
     }
 }

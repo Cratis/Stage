@@ -402,8 +402,8 @@ internal sealed partial class SemanticApplicationContext
                     readModel.Id);
                 diagnostics.Add(warning);
                 Degradations.Add(new(warning, result.OptionalPaths.IsEmpty
-                    ? "Render $eventContext projection mappings once Cratis/Stage#876 lands, or map the value from an event property."
-                    : "Render $eventContext projection mappings once Cratis/Stage#876 lands, map the value from an event property, or make the nested properties unconditional rather than reached through an optional property."));
+                    ? "Map unsupported event-context values from an event property instead."
+                    : "Map unsupported event-context values from an event property, or make the nested properties unconditional rather than reached through an optional property."));
                 OmittedEventContextMappings[readModel.Id] = result.EventContextPaths;
                 OmittedOptionalMappings[readModel.Id] = result.OptionalPaths;
                 projections[index] = degraded;

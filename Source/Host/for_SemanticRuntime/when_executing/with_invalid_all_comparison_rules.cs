@@ -46,8 +46,8 @@ public class with_invalid_all_comparison_rules : Specification
         var application = model.Application with { Modules = [module with { Features = [feature with { Slices = [slice with { Commands = [command] }] }] }] };
 
         // Fault injection bypasses Screenplay's contract checks to exercise Stage's fail-closed boundary.
-        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, application);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        typeof(ExecutableSemanticModel).GetField("<Application>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, application);
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var details = invalidOperand
             ? $"Command 'Check' validation '{kind}' on property 'values' requires a numeric operand."
             : $"Command 'Check' validation '{kind}' on property 'values' requires a collection of numeric primitives or concepts.";

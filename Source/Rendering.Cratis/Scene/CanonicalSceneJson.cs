@@ -142,7 +142,7 @@ public static class CanonicalSceneJson
         switch (node)
         {
             case JsonObject o:
-                if (o.TryGetPropertyValue("kind", out var kind) && kind?.GetValue<string>() == "literal" && !o.ContainsKey("value"))
+                if (o.TryGetPropertyValue("kind", out var kind) && kind is JsonValue kindValue && kindValue.TryGetValue<string>(out var kindName) && kindName == "literal" && !o.ContainsKey("value"))
                 {
                     o["value"] = null;
                 }

@@ -27,8 +27,8 @@ internal static class ProjectionShape
     {
         var result = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["AutoMap"] = Get(definition, "AutoMap")!.ToString()!,
-            ["SubscribesToAllEvents"] = Get(definition, "SubscribesToAllEvents")!.ToString()!
+            ["AutoMap"] = Get(definition, "AutoMap").ToString(),
+            ["SubscribesToAllEvents"] = Get(definition, "SubscribesToAllEvents").ToString()
         };
         ChroniclePart(definition, result, string.Empty);
         return result;
@@ -119,7 +119,7 @@ internal static class ProjectionShape
     static void ChronicleChild(object child, IDictionary<string, string> result, string prefix)
     {
         result[$"{prefix}IdentifiedBy"] = Value(Get(child, "IdentifiedBy"));
-        result[$"{prefix}AutoMap"] = Get(child, "AutoMap")!.ToString()!;
+        result[$"{prefix}AutoMap"] = Get(child, "AutoMap").ToString();
         ChroniclePart(child, result, prefix);
     }
 
@@ -169,7 +169,7 @@ internal static class ProjectionShape
         }
     }
 
-    static object? Get(object instance, string name) => instance.GetType().GetProperty(name)!.GetValue(instance);
+    static object? Get(object instance, string name) => instance.GetType().GetProperty(name).GetValue(instance);
     static string Value(object? value) => value is null ? string.Empty : GetValue(value) ?? value.ToString()!;
     static string? NullableValue(object? value) => value is null ? null : Value(value);
     static string? GetValue(object value) => value.GetType().GetProperty("Value")?.GetValue(value)?.ToString();

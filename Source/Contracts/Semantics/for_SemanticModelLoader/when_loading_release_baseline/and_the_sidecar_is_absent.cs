@@ -12,7 +12,7 @@ public class and_the_sidecar_is_absent : given.a_release_baseline_tree
 {
     void Establish() => File.Delete(Path.Combine(_root, ".screenplay", ReleaseBaselineStore.FileName));
     async Task Because() => _loaded = await SemanticModelLoader.LoadAsync(_root, [], null, "RecordsApp");
-    [Fact] void should_report_absence() => _loaded.Loaded!.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Absent);
+    [Fact] void should_report_absence() => _loaded.Loaded.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Absent);
     [Fact] void should_not_create_a_baseline() => File.Exists(Path.Combine(_root, ".screenplay", ReleaseBaselineStore.FileName)).ShouldBeFalse();
 }
 #endif

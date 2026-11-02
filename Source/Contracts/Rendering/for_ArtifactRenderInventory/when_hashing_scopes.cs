@@ -43,9 +43,9 @@ public class when_hashing_scopes : given.an_inventory
                   event ThirdRegistered
                     projectId ProjectId
             """);
-        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value!.Model;
+        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value.Model;
         _scopes = [.. model.Application.Modules.Single().Features.Single().Slices.Select(slice => new ArtifactRenderScope(ArtifactRenderScopeKind.Slice, slice.Id))];
-        _request = _request with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan!, Scope = _scopes[0] };
+        _request = _request with { Model = model, ExecutionPlan = SemanticExecutionPlan.Compile(model).Plan, Scope = _scopes[0] };
         var pair = new ArtifactRenderVersionPair(model.LanguageVersion, model.SemanticVersion);
         _context = _context with { Input = pair, Support = new([pair]) };
     }
@@ -55,7 +55,7 @@ public class when_hashing_scopes : given.an_inventory
     {
         var first = Scoped(0, 1);
         var expanded = Scoped(0, 1, 2);
-        first.Inventory!.Digest.ShouldEqual(expanded.Inventory!.Digest);
+        first.Inventory.Digest.ShouldEqual(expanded.Inventory.Digest);
         first.Digest.ShouldNotEqual(expanded.Digest);
         var before = ArtifactRenderReports.Create(first, _context);
         var after = ArtifactRenderReports.Create(expanded, _context);

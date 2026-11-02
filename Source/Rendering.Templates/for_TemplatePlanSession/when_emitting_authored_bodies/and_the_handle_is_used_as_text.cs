@@ -15,7 +15,7 @@ public class and_the_handle_is_used_as_text : for_TemplatePreparer.given.a_kit
     {
         foreach (var text in new[] { "{{ (impl.body 'r1') + 'text' }}", "{{ capture x; impl.body 'r1'; end }}", "{{ x = impl.body 'r1'; x.name }}", "{{ (impl.body 'r1') | string.upcase }}", "{{ [impl.body 'r1'] }}" })
         {
-            using var session = TemplatePreparer.Prepare(Kit(text)).Value!.BeginPlan(TemplateBudget.Default);
+            using var session = TemplatePreparer.Prepare(Kit(text)).Value.BeginPlan(TemplateBudget.Default);
             _codes.Add(session.Render("main.scriban", JsonSerializer.SerializeToElement(new { model = new { } })).Refusal?.Code ?? "none");
         }
     }

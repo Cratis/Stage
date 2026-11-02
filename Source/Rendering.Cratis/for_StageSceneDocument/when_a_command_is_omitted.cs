@@ -35,12 +35,12 @@ public class when_a_command_is_omitted : Specification
                     title String
             """);
         var profile = CratisRendering.CreateProfile("Sales", new("Sales", "Sales"));
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, profile, new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, new("Sales", "Sales"));
         const string scene = "{\"toolbar\":{\"slice\":\"Sales.Opportunities.CaptureOpportunity\"},\"screens\":[]}";
-        _schemasWithoutOmission = JsonNode.Parse(StageSceneDocument.Render(scene, context))!["commandSchemas"]!.AsObject();
+        _schemasWithoutOmission = JsonNode.Parse(StageSceneDocument.Render(scene, context))["commandSchemas"].AsObject();
         context.OmittedOwners = [.. context.Commands.Keys];
-        _schemas = JsonNode.Parse(StageSceneDocument.Render(scene, context))!["commandSchemas"]!.AsObject();
+        _schemas = JsonNode.Parse(StageSceneDocument.Render(scene, context))["commandSchemas"].AsObject();
     }
 
     [Fact] void should_describe_the_command_when_nothing_is_omitted() => _schemasWithoutOmission.ContainsKey("CaptureOpportunity").ShouldBeTrue();

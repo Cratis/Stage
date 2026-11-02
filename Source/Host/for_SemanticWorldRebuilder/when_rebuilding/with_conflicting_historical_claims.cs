@@ -33,5 +33,5 @@ public class with_conflicting_historical_claims : a_rebuildable_world
     }
 
     [Fact] void should_refuse_the_historical_claims() => _error.ShouldBeOfExactType<SemanticWorldRebuildRefused>();
-    [Fact] void should_name_the_constraint() => _error!.Message.ShouldContain("UniqueProjectName");
+    [Fact] void should_name_the_constraint() => _error.Message.ShouldContain("UniqueProjectName");
 }

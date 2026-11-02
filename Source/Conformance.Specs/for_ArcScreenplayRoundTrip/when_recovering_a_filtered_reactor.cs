@@ -23,9 +23,9 @@ public class when_recovering_a_filtered_reactor : given.a_rendered_application
     void Because() => Generate();
 
     [Fact] void should_recover_the_source_and_stream_names_and_ids() => AssertSourceAndStreamsRecovered();
-    [Fact] void should_recover_the_observed_source() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.Source.ShouldEqual("Account");
-    [Fact] void should_recover_the_observed_stream() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.Stream.ShouldEqual("Transactions");
-    [Fact] void should_recognize_the_observed_stream_as_declared() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource!.StreamDeclared.ShouldBeTrue();
+    [Fact] void should_recover_the_observed_source() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource.Source.ShouldEqual("Account");
+    [Fact] void should_recover_the_observed_stream() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource.Stream.ShouldEqual("Transactions");
+    [Fact] void should_recognize_the_observed_stream_as_declared() => _result.Model.Slices.SelectMany(slice => slice.Reactors).Single().EventSource.StreamDeclared.ShouldBeTrue();
     [Fact] void should_not_report_source_or_stream_diagnostics() => AssertSourceDiagnosticsAbsent();
 }
 #endif

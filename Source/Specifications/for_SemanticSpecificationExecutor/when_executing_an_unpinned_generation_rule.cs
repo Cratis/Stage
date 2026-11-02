@@ -25,15 +25,15 @@ public class when_executing_an_unpinned_generation_rule : Specification
         {
             Modules = [module with { Features = [feature with { Slices = [slice with
             {
-                Specifications = [specification with { When = specification.When! with { GeneratedValues = [] } }]
+                Specifications = [specification with { When = specification.When with { GeneratedValues = [] } }]
             }] }] }]
         });
-        _plan = SemanticExecutionPlan.Compile(model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(model).Plan;
     }
 
     async Task Because() => _result = (await new SemanticSpecificationExecutor().Run(_plan, new([]), new())).Results.Single();
 
     [Fact] void should_require_a_deterministic_fixture() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_identity_allocation() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);
-    [Fact] void should_keep_the_missing_fixture_message() => _result.Unsupported!.Details.ShouldEqual("Generated command values require deterministic fixtures.");
+    [Fact] void should_report_identity_allocation() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.IdentityAllocation);
+    [Fact] void should_keep_the_missing_fixture_message() => _result.Unsupported.Details.ShouldEqual("Generated command values require deterministic fixtures.");
 }

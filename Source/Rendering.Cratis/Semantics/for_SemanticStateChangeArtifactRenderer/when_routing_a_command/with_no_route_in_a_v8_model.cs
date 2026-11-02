@@ -19,7 +19,7 @@ public class with_no_route_in_a_v8_model : given.a_routed_command
         ReplaceSlice();
         _model = ExecutableSemanticModel.Create(_model.LanguageVersion, _model.SemanticVersion, _model.Application with { Policies = [new("NotGuest", new SemanticNotPolicyCondition(new SemanticRoleCondition("Guest")))] });
         var legacy = ExecutableSemanticModel.Create(LanguageVersion.V7, SemanticVersion.V7, _model.Application with { EventSources = [] });
-        _legacy = CratisRendering.Plan(legacy, SemanticExecutionPlan.Compile(legacy).Plan!, new(ArtifactRenderScopeKind.Application, legacy.Application.Id), new("InvoiceApp", "InvoiceApp"));
+        _legacy = CratisRendering.Plan(legacy, SemanticExecutionPlan.Compile(legacy).Plan, new(ArtifactRenderScopeKind.Application, legacy.Application.Id), new("InvoiceApp", "InvoiceApp"));
     }
     void Because() => Plan();
 

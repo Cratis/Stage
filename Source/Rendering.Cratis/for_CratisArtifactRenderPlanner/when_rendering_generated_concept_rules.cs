@@ -56,7 +56,7 @@ public class when_rendering_generated_concept_rules : Specification
         var plan = Render(model);
         plan.Success.ShouldBeFalse();
         plan.Artifacts.ShouldBeEmpty();
-        var specification = SemanticExecutionPlan.Compile(model).Plan!.Specifications.Values.Single();
+        var specification = SemanticExecutionPlan.Compile(model).Plan.Specifications.Values.Single();
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-ESM-038" && diagnostic.Artifact == specification.Id);
         var module = model.Application.Modules.Single();
         var feature = module.Features.Single();
@@ -80,11 +80,11 @@ public class when_rendering_generated_concept_rules : Specification
     void should_require_a_pin_if_a_rule_is_refuted_after_validation()
     {
         var model = Model(string.Empty);
-        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(model).Plan;
         var concept = model.Application.Concepts.Single();
 
         // Validated models reject refuted rules. Inject one after validation to exercise Stage's fail-closed proof check.
-        typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+        typeof(SemanticConcept).GetField("<Validations>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(concept, ImmutableArray.Create(concept.Validations.Single() with { Operand = new SemanticTextValue("^impossible$") }));
         var plan = CratisRendering.Plan(model, execution, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("RuleApp", "RuleApp"));
         plan.Success.ShouldBeFalse();
@@ -136,6 +136,6 @@ public class when_rendering_generated_concept_rules : Specification
         """);
 
     static ArtifactRenderPlan Plan(string pin) => Render(Model(pin));
-    static ArtifactRenderPlan Render(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("RuleApp", "RuleApp"));
+    static ArtifactRenderPlan Render(ExecutableSemanticModel model) => CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("RuleApp", "RuleApp"));
     static string Text(ArtifactRenderPlan plan, string path) => Encoding.UTF8.GetString(plan.Artifacts.Single(artifact => artifact.RelativePath == path).Bytes.AsSpan());
 }

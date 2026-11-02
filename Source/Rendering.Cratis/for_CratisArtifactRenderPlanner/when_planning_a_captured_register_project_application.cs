@@ -38,14 +38,14 @@ public class when_planning_a_captured_register_project_application : a_register_
             var capturedExecution = SemanticExecutionPlan.Compile(capturedModel);
             _capturedExecutions.Add(capturedExecution);
             var capturedScope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, capturedModel.Application.Id);
-            var capturedPlan = CratisRendering.Plan(capturedModel, capturedExecution.Plan!, capturedScope, _options);
+            var capturedPlan = CratisRendering.Plan(capturedModel, capturedExecution.Plan, capturedScope, _options);
             _capturedPlans.Add(capturedPlan);
 
             // The direct route is only a comparison: neither its model nor its execution plan feeds the captured route.
             var directExecution = SemanticExecutionPlan.Compile(compilation.Model);
             _directExecutions.Add(directExecution);
             var directScope = new ArtifactRenderScope(ArtifactRenderScopeKind.Application, compilation.Model.Application.Id);
-            _directPlans.Add(CratisRendering.Plan(compilation.Model, directExecution.Plan!, directScope, _options));
+            _directPlans.Add(CratisRendering.Plan(compilation.Model, directExecution.Plan, directScope, _options));
         }
 
         _calculatedHashes.AddRange(_capturedPlans.Concat(_directPlans).SelectMany(_ => _.Artifacts)
@@ -61,7 +61,7 @@ public class when_planning_a_captured_register_project_application : a_register_
     [Fact] void should_capture_the_exact_canonical_corpus_bytes() => _captures.TrueForAll(_ => _.SequenceEqual(Corpus.EsmBytes)).ShouldBeTrue();
     [Fact] void should_reserialize_each_capture_byte_for_byte() => _captures.Zip(_reserializedCaptures).All(pair => pair.First.SequenceEqual(pair.Second)).ShouldBeTrue();
     [Fact] void should_admit_both_captured_execution_plans() => _capturedExecutions.TrueForAll(_ => _.Success).ShouldBeTrue();
-    [Fact] void should_derive_execution_only_from_the_deserialized_models() => _capturedExecutions.Zip(_capturedModels).All(pair => ReferenceEquals(pair.First.Plan!.Model, pair.Second)).ShouldBeTrue();
+    [Fact] void should_derive_execution_only_from_the_deserialized_models() => _capturedExecutions.Zip(_capturedModels).All(pair => ReferenceEquals(pair.First.Plan.Model, pair.Second)).ShouldBeTrue();
     [Fact] void should_admit_both_direct_execution_plans() => _directExecutions.TrueForAll(_ => _.Success).ShouldBeTrue();
     [Fact] void should_admit_all_application_render_plans() => _capturedPlans.Concat(_directPlans).All(_ => _.Success).ShouldBeTrue();
     [Fact] void should_plan_nonempty_applications() => _capturedPlans.Concat(_directPlans).All(_ => !_.Artifacts.IsEmpty).ShouldBeTrue();

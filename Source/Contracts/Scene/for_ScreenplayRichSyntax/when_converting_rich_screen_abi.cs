@@ -52,7 +52,7 @@ public class when_converting_rich_screen_abi : Specification
 
         _literalBinding = ScreenplayRichSyntax.Binding(binding);
         _generationMode = ScreenplayRichSyntax.GenerationMode(form);
-        _layout = ScreenplayRichSyntax.Layout(form)!;
+        _layout = ScreenplayRichSyntax.Layout(form);
         _stableId = ScreenplayRichSyntax.StableId(component, "workItems");
         _literalValue = ScreenplayRichSyntax.ComponentPropertyValue(property);
     }
@@ -64,13 +64,13 @@ public class when_converting_rich_screen_abi : Specification
     [Fact] void should_carry_expected_value_type() => _literalBinding.ExpectedValueType.ShouldEqual("boolean");
     [Fact] void should_carry_generation_mode() => _generationMode.ShouldEqual(Cratis.Scene.Model.Forms.FormGenerationMode.Manual);
     [Fact] void should_carry_layout_columns() => _layout.Columns.Count.ShouldEqual(2);
-    [Fact] void should_carry_fractional_column_width() => _layout.Columns[0].Width!.Unit.ShouldEqual(FormWidthUnit.Fraction);
-    [Fact] void should_carry_pixel_minimum_width() => _layout.Columns[0].MinWidth!.Value.ShouldEqual(240d);
-    [Fact] void should_carry_percent_maximum_width() => _layout.Columns[0].MaxWidth!.Unit.ShouldEqual(FormWidthUnit.Percent);
+    [Fact] void should_carry_fractional_column_width() => _layout.Columns[0].Width.Unit.ShouldEqual(FormWidthUnit.Fraction);
+    [Fact] void should_carry_pixel_minimum_width() => _layout.Columns[0].MinWidth.Value.ShouldEqual(240d);
+    [Fact] void should_carry_percent_maximum_width() => _layout.Columns[0].MaxWidth.Unit.ShouldEqual(FormWidthUnit.Percent);
     [Fact] void should_carry_layout_placements() => _layout.Placements.Count.ShouldEqual(2);
     [Fact] void should_carry_field_column_span() => _layout.Placements[1].ColumnSpan.ShouldEqual(1);
-    [Fact] void should_carry_field_width() => _layout.Placements[1].Width!.Value.ShouldEqual(100d);
-    [Fact] void should_carry_layout_gaps() => _layout.ColumnGap!.Value.ShouldEqual(24d);
+    [Fact] void should_carry_field_width() => _layout.Placements[1].Width.Value.ShouldEqual(100d);
+    [Fact] void should_carry_layout_gaps() => _layout.ColumnGap.Value.ShouldEqual(24d);
     [Fact] void should_preserve_exact_stable_id() => _stableId.ShouldEqual("work-items:list");
     [Fact] void should_convert_expression_literal_values() => _literalValue.ShouldEqual(25);
 

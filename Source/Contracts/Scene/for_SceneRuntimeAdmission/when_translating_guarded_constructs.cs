@@ -40,7 +40,7 @@ public class when_translating_guarded_constructs : Specification
             """;
         var compilation = new ScreenplayCompiler().Compile(source);
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        _scene = new ScreenplaySceneVisitor().Visit(compilation.Value!);
+        _scene = new ScreenplaySceneVisitor().Visit(compilation.Value);
     }
 
     [Fact] void should_admit_guarded_actions_the_runtime_evaluates() => _scene.RuntimeIssues.Any(issue => issue.Code == UnsupportedGuardedScreenAction.DiagnosticCode).ShouldBeFalse();

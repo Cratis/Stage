@@ -245,7 +245,8 @@ internal static partial class SemanticSpecificationAdmission
         // The original append has no command action. Apply the command generation safeguard only after lowering.
         if (!WithRenderableGeneratedValues(context, [lowered], diagnostics).Any()) return null;
 
-        return CanRenderSpecification(context, lowered, reactionInvocation: true) ? null : RejectionReason(context, lowered);
+        var foreignInvocationExpectations = AssertsForeignInvocation(context, specification, selected);
+        return CanRenderSpecification(context, lowered, reactionInvocation: true, foreignInvocationExpectations: foreignInvocationExpectations) ? null : RejectionReason(context, lowered);
     }
 
     static bool UsesReactionContext(SemanticReaction reaction, SemanticId source) => reaction.Triggers.Any(trigger => trigger.Source == source &&

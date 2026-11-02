@@ -14,5 +14,5 @@ public class with_identity_only_every : a_universal_projection
 
     [Fact] void should_report_the_expected_outcome() => Assert.True(_result.Outcome == SemanticSpecificationOutcome.Passed, string.Join("; ", _result.Failures));
     [Fact] void should_match_the_reference() => Assert.True(_reference.Passed, string.Join("; ", _reference.Failures));
-    [Fact] void should_trace_the_observed_instances() => _result.Trace!.ReadModels.Count.ShouldEqual(1);
+    [Fact] void should_trace_the_observed_instances() => _result.Trace.ReadModels.Count.ShouldEqual(1);
 }

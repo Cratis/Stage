@@ -50,17 +50,17 @@ public class when_expanding_specification_examples : Specification
         _specification = _slice.Specifications.Single();
     }
 
-    [Fact] void should_resolve_the_command_name() => _specification.When!.Name.ShouldEqual("Record");
-    [Fact] void should_resolve_the_command_identity() => _specification.When!.CommandId.ShouldEqual(_slice.Command!.Id);
-    [Fact] void should_inherit_the_command_identity_value() => Value(_specification.When!.Values, "id").GetString().ShouldEqual("invoice-1");
-    [Fact] void should_apply_the_inline_override() => Value(_specification.When!.Values, "amount").GetInt32().ShouldEqual(20);
+    [Fact] void should_resolve_the_command_name() => _specification.When.Name.ShouldEqual("Record");
+    [Fact] void should_resolve_the_command_identity() => _specification.When.CommandId.ShouldEqual(_slice.Command.Id);
+    [Fact] void should_inherit_the_command_identity_value() => Value(_specification.When.Values, "id").GetString().ShouldEqual("invoice-1");
+    [Fact] void should_apply_the_inline_override() => Value(_specification.When.Values, "amount").GetInt32().ShouldEqual(20);
     [Fact] void should_resolve_given_event_identity() => _specification.Given.Single().EventId.ShouldEqual(_slice.Events.Single().Id);
     [Fact] void should_expand_given_event_values() => Value(_specification.Given.Single().Values, "amount").GetInt32().ShouldEqual(20);
     [Fact] void should_resolve_then_event_identity() => _specification.ThenEvents.Single().EventId.ShouldEqual(_slice.Events.Single().Id);
     [Fact] void should_apply_the_indented_override() => Value(_specification.ThenEvents.Single().Values, "amount").GetInt32().ShouldEqual(20);
-    [Fact] void should_resolve_given_read_model_identity() => _specification.GivenReadModels.Single().ReadModelId.ShouldEqual(_slice.ReadModel!.Id);
+    [Fact] void should_resolve_given_read_model_identity() => _specification.GivenReadModels.Single().ReadModelId.ShouldEqual(_slice.ReadModel.Id);
     [Fact] void should_inherit_given_read_model_values() => Value(_specification.GivenReadModels.Single().Values, "amount").GetInt32().ShouldEqual(10);
-    [Fact] void should_resolve_then_read_model_identity() => _specification.ThenReadModels.Single().ReadModelId.ShouldEqual(_slice.ReadModel!.Id);
+    [Fact] void should_resolve_then_read_model_identity() => _specification.ThenReadModels.Single().ReadModelId.ShouldEqual(_slice.ReadModel.Id);
     [Fact] void should_override_then_read_model_values() => Value(_specification.ThenReadModels.Single().Values, "amount").GetInt32().ShouldEqual(20);
 
     static JsonElement Value(string json, string property)

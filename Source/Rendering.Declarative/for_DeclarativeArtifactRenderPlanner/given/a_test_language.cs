@@ -59,7 +59,7 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
 
     public DeclarativeFileResolution Resolve(string path, ImmutableArray<DeclarativeSegment> segments)
     {
-        var symbols = segments.OfType<DeclarativeSymbolSegment>().Where(_ => _.Value is not null).Select(_ => _.Value!).Distinct().ToArray();
+        var symbols = segments.OfType<DeclarativeSymbolSegment>().Where(_ => _.Value is not null).Select(_ => _.Value).Distinct().ToArray();
         var clash = symbols.GroupBy(_ => _.Name, StringComparer.Ordinal).FirstOrDefault(_ => _.Count() > 1);
         if (clash is not null)
         {
@@ -89,7 +89,7 @@ internal sealed class a_test_language(string version = "1.0.0", string id = "tes
     {
         DeclarativeTextSegment text => new DeclarativeGeneratedPiece(text.Value),
         DeclarativeSymbolSegment { Kind: TemplateSymbolKind.Imports } => new DeclarativeGeneratedPiece(imports),
-        DeclarativeSymbolSegment symbol => new DeclarativeGeneratedPiece(symbol.Value!.Name),
+        DeclarativeSymbolSegment symbol => new DeclarativeGeneratedPiece(symbol.Value.Name),
         DeclarativeAuthoredSegment authored => new DeclarativeAuthoredPiece(authored.Body),
         _ => throw new InvalidOperationException("Unknown segment.")
     };

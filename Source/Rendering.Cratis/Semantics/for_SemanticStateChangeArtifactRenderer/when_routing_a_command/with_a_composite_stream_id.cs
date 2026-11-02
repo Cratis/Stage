@@ -17,10 +17,10 @@ public class with_a_composite_stream_id : given.a_routed_command
         _source = _source with { Streams = [_source.Streams[0] with { StreamIdType = null, StreamIdParts = [new("account", uuid.Type), new("month", month.Type), new("label", SemanticTypeReference.ForPrimitive(SemanticPrimitiveType.Text))] }] };
         _command = _command with
         {
-            Route = _command.Route! with
+            Route = _command.Route with
             {
                 StreamId = null,
-                StreamIdParts = [new("account", SemanticExpression.Property(SemanticExpressionRootKind.Command, uuid.Id)), new("month", _command.Route.StreamId!), new("label", SemanticExpression.FromValue(SemanticValue.Text("a|b%")))]
+                StreamIdParts = [new("account", SemanticExpression.Property(SemanticExpressionRootKind.Command, uuid.Id)), new("month", _command.Route.StreamId), new("label", SemanticExpression.FromValue(SemanticValue.Text("a|b%")))]
             }
         };
     }

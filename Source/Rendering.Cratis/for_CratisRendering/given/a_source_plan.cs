@@ -20,7 +20,7 @@ public class a_source_plan : a_register_project_render_request
     async Task Establish()
     {
         var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
-        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent!;
+        while (!File.Exists(Path.Combine(directory.FullName, "Stage.slnx"))) directory = directory.Parent;
         _root = Path.Combine(directory.FullName, ".ai-work", "210", "source-specs", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_root);
         await File.WriteAllTextAsync(Path.Combine(_root, "projects.play"), Source);
@@ -42,7 +42,7 @@ public class a_source_plan : a_register_project_render_request
         _planOptions = new(_model.Application.Name, _options.ProjectName, _options.RootNamespace);
         var loaded = await SemanticModelLoader.LoadAsync(_root, [], null, _planOptions.ApplicationName);
         Assert.True(loaded.Success, string.Join("; ", loaded.Diagnostics));
-        _loaded = loaded.Loaded!;
+        _loaded = loaded.Loaded;
     }
 
     protected Task<CratisPlanResult> From(params string[] paths) =>

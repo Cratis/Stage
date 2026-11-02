@@ -29,7 +29,7 @@ public class when_running_root_projection_keys : Specification
             var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
             Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed,
                 $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-            result.Trace!.ReadModels.Count.ShouldEqual(constant ? 1 : 2);
+            result.Trace.ReadModels.Count.ShouldEqual(constant ? 1 : 2);
         }
     }
 

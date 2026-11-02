@@ -23,7 +23,7 @@ public class when_running_mixed_production_conditions : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("mixed"), "mixed", "Mixed.play", source);
         var compilation = new SemanticModelCompiler().Compile("Mixed", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join('\n', compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         var specification = plan.Specifications.Values.Single(specification => specification.Name == "SeveralInitialFacts");
         _report = await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new());
     }

@@ -22,8 +22,8 @@ internal static class SemanticEmptyQuerySpecificationRenderer
         var located = context.DeclaringSlice(specification.Id);
         var behavior = SemanticSpecificationClassNames.Queried(specification, query, allowThrough: false);
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
-            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit");
-        context.Docs(specification.Id).Render(builder)
+            .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute");
+        context.Docs(specification.Id).Render(builder, $"Specifies {Identifiers.ToWords(specification.Name)}.")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line($"readonly global::Cratis.Arc.Testing.Queries.QueryScenario<{modelName}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
@@ -81,7 +81,7 @@ internal static class SemanticEmptyQuerySpecificationRenderer
                     ? "[global::Xunit.FactAttribute] void should_return_no_rows() => (_result.Data is global::System.Collections.Generic.IEnumerable<object> rows && !global::System.Linq.Enumerable.Any(rows)).ShouldBeTrue();"
                     : "[global::Xunit.FactAttribute] void should_return_no_data() => _result.Data.ShouldBeNull();");
         }
-        builder.Line("public void Dispose() => _scenario.Dispose();").EndBlock();
+        builder.Line("/// <inheritdoc/>").Line("public void Dispose() => _scenario.Dispose();").EndBlock();
 
         return new(Path.Combine([.. SliceNaming.FolderPath(located.Path), $"{behavior}.cs"]), types.SpecificationContent(builder));
     }

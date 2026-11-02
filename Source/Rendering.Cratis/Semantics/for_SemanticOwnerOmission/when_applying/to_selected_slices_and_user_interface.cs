@@ -20,7 +20,7 @@ public class to_selected_slices_and_user_interface : given.an_omission_context
         BuildContext();
         _firstKept = Identity("first-kept-slice");
         _secondKept = Identity("second-kept-slice");
-        _omission = SemanticOwnerOmission.Compute(_context, _index, Roots(_registerProject.Events.Single().Id))!;
+        _omission = SemanticOwnerOmission.Compute(_context, _index, Roots(_registerProject.Events.Single().Id));
         var all = _context.AllSlices;
         LocatedSemanticSlice Kept(SemanticId id) => all[0] with { Slice = all[0].Slice with { Id = id } };
         _selected = _omission.Apply([Kept(_firstKept), .. all.Take(1), Kept(_secondKept), .. all.Skip(1)]);

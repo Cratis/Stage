@@ -27,7 +27,7 @@ public class when_comparing_seeded_observer_filter_corpus : Specification
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([specification.Id]), new())).Results.Single();
         reference.Execution.Kind.ShouldEqual(SemanticExecutionOutcomeKind.Unsupported);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldContain("STAGE-IMPL-003:");
+        result.Unsupported.Details.ShouldContain("STAGE-IMPL-003:");
     }
 
     static SemanticExecutionPlan Compile(string path)
@@ -93,7 +93,7 @@ public class when_comparing_seeded_observer_filter_corpus : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("seeded-query"), "seeded-query", "seeded-query.play", source);
         var compiled = new SemanticModelCompiler().Compile("SeededReducerQuery", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
         plan.Specifications.Values.Single().ThenQueries.Single().Query.ShouldEqual(plan.Queries.Values.Single().Id);
         return plan;
     }

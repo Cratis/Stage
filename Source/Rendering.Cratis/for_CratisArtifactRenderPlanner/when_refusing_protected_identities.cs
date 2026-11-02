@@ -33,7 +33,7 @@ public class when_refusing_protected_identities
     public void should_refuse_without_partial_artifacts(string use, bool personal)
     {
         var model = invoice_model.Compile(Source(use));
-        var execution = SemanticExecutionPlan.Compile(model).Plan!;
+        var execution = SemanticExecutionPlan.Compile(model).Plan;
         var application = ProtectedUse(model.Application, use, personal);
 
         // Upstream validation rejects these shapes too. A producer bypassing it must still
@@ -49,7 +49,7 @@ public class when_refusing_protected_identities
     }
 
     static void Set(ExecutableSemanticModel model, string property, object value) =>
-        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(model, value);
+        typeof(ExecutableSemanticModel).GetField($"<{property}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(model, value);
 
     static SemanticApplication ProtectedUse(SemanticApplication application, string use, bool personal)
     {
@@ -88,7 +88,7 @@ public class when_refusing_protected_identities
         var contract = application.Modules.Single().Features.Single().Slices.SelectMany(slice => slice.Events).Single();
         var property = contract.Properties.Single(property => property.Name == "health");
         var key = new SemanticProjectionValueKey(new SemanticProjectionEventProperty([property.Id]));
-        var scope = projection.Scope!;
+        var scope = projection.Scope;
 
         return projection with
         {

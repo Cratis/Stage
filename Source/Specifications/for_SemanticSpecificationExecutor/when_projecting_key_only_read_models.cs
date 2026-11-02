@@ -104,7 +104,7 @@ public class when_projecting_key_only_read_models : Specification
         unsupported.Details.ShouldEqual("Projection 'FollowupsProjection' did not establish required read-model property 'id'.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
+        result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
     }
 
     [Fact]
@@ -113,10 +113,10 @@ public class when_projecting_key_only_read_models : Specification
         var plan = Compile(ProjectionCase.RequiredProperty);
         var refusal = SemanticRunAdmission.Check(plan, plan.Specifications.Values.Single());
         refusal.ShouldNotBeNull();
-        refusal!.Details.ShouldContain("At least one from block must establish the required read-model properties.");
+        refusal.Details.ShouldContain("At least one from block must establish the required read-model properties.");
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-        result.Unsupported!.Details.ShouldContain("At least one from block must establish the required read-model properties.");
+        result.Unsupported.Details.ShouldContain("At least one from block must establish the required read-model properties.");
     }
 
     static async Task AssertParity(SemanticExecutionPlan plan, SemanticSpecificationOutcome outcome)

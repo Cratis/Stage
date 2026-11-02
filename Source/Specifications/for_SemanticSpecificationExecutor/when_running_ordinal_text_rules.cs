@@ -38,9 +38,9 @@ public class when_running_ordinal_text_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model"), "model", "Model.play", source);
         var compilation = new SemanticModelCompiler().Compile("TextRules", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         model.SemanticVersion.ShouldEqual(SemanticVersion.V24);
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var report = await new SemanticSpecificationExecutor().Run(plan, new([]), new());
         report.Results.Count.ShouldEqual(2);
         report.Results.ShouldEachConformTo(result => result.Outcome == SemanticSpecificationOutcome.Passed);

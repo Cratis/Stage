@@ -1,6 +1,7 @@
 // Copyright (c) Cratis. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 
 using Cratis.Screenplay.Semantics;
@@ -14,6 +15,12 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.Projections;
 internal static class SemanticScopedProjectionSupport
 {
     static readonly Regex _fluentTextLiteral = new(@"\A[\w ._/:*+-]*\z", RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(1000));
+    static readonly ImmutableDictionary<string, (string Property, ImmutableHashSet<SemanticPrimitiveType> Types)> _eventContextMembers =
+        ImmutableDictionary.Create<string, (string Property, ImmutableHashSet<SemanticPrimitiveType> Types)>(StringComparer.Ordinal)
+            .Add("occurred", ("Occurred", ImmutableHashSet.Create(SemanticPrimitiveType.DateTime)))
+            .Add("correlationId", ("CorrelationId", ImmutableHashSet.Create(SemanticPrimitiveType.Uuid)))
+            .Add("sequenceNumber", ("SequenceNumber", ImmutableHashSet.Create(SemanticPrimitiveType.WholeNumber)))
+            .Add("eventSourceId", ("EventSourceId", ImmutableHashSet.Create(SemanticPrimitiveType.Text)));
 
     static Regex FluentTextLiteral() => _fluentTextLiteral;
 
@@ -37,7 +44,8 @@ internal static class SemanticScopedProjectionSupport
     /// <param name="scope">The scope.</param>
     /// <returns>True when the literals render natively in the every block.</returns>
     public static bool RendersEveryLiteralsNatively(SemanticProjectionScope scope) =>
-        scope.Every is { SubscribesToAllEvents: true } || scope.Joins.Length > 0;
+        scope.Every is { SubscribesToAllEvents: true } || scope.Joins.Length > 0 ||
+        (scope.Every?.Mappings.Any(mapping => mapping.Source is SemanticProjectionEventContextValue) ?? false);
 
     /// <summary>Gets the mappings emitted on the every/all builder, excluding join-free lowered literals.</summary>
     /// <param name="scope">The scope.</param>
@@ -92,11 +100,43 @@ internal static class SemanticScopedProjectionSupport
 
     static bool EveryMappingsSupported(IEnumerable<SemanticProjectionMapping> mappings, IReadOnlyList<SemanticProperty> targets, SemanticApplicationContext context, SemanticId? identity) =>
         mappings.Select(mapping => string.Join('.', mapping.Target)).Distinct().Count() == mappings.Count() &&
-        mappings.All(mapping => Target(mapping.Target, targets, context) is { Type.IsCollection: false } target &&
-            !HasOptionalIntermediate(mapping.Target, targets, context) &&
-            (target.Type.Kind == SemanticTypeReferenceKind.Concept || target.Type.Kind == SemanticTypeReferenceKind.Primitive) &&
-            ((mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
-             EventSourceMappingSupported(mapping, targets, context, identity)));
+        mappings.All(mapping => EveryMappingSupported(mapping, targets, context, identity));
+
+    static bool EveryMappingSupported(SemanticProjectionMapping mapping, IReadOnlyList<SemanticProperty> targets, SemanticApplicationContext context, SemanticId? identity) =>
+        EveryMappingTarget(mapping, targets, context) is { } target && mapping.Source switch
+        {
+            SemanticProjectionLiteral literal => LiteralSupported(literal, target.Type, context),
+            SemanticProjectionEventContextValue value => EventContextMappingSupported(mapping, value, targets, context),
+            SemanticProjectionEventSourceIdentity => EventSourceMappingSupported(mapping, targets, context, identity),
+            _ => false
+        };
+
+    static SemanticProperty? EveryMappingTarget(SemanticProjectionMapping mapping, IReadOnlyList<SemanticProperty> targets, SemanticApplicationContext context) =>
+        Target(mapping.Target, targets, context) is { Type.IsCollection: false } target &&
+        !HasOptionalIntermediate(mapping.Target, targets, context) &&
+        target.Type.Kind is SemanticTypeReferenceKind.Concept or SemanticTypeReferenceKind.Primitive ? target : null;
+
+    internal static string EventContextProperty(SemanticProjectionEventContextValue value) =>
+        _eventContextMembers.TryGetValue(value.Path, out var member) ? member.Property :
+            throw new InvalidOperationException($"Unsupported event-context path '{value.Path}'.");
+
+    internal static bool EventContextMappingSupported(
+        SemanticProjectionMapping mapping,
+        SemanticProjectionEventContextValue value,
+        IReadOnlyList<SemanticProperty> properties,
+        SemanticApplicationContext context) =>
+        mapping.Operation == SemanticProjectionOperation.Set &&
+        !HasOptionalIntermediate(mapping.Target, properties, context) &&
+        Target(mapping.Target, properties, context) is { Type.IsCollection: false } target &&
+        _eventContextMembers.TryGetValue(value.Path, out var member) &&
+        EventContextTypeSupported(target.Type, member.Types, context);
+
+    static bool EventContextTypeSupported(SemanticTypeReference type, ImmutableHashSet<SemanticPrimitiveType> types, SemanticApplicationContext context) => type.Kind switch
+    {
+        SemanticTypeReferenceKind.Primitive => types.Contains(type.Primitive),
+        SemanticTypeReferenceKind.Concept => context.Concepts[type.Target].Values.IsEmpty && types.Contains(context.Concepts[type.Target].Primitive),
+        _ => false
+    };
 
     // The one instance a root block always addresses: Chronicle's UsingConstantKey names it with text, which its expression resolver
     // reads unquoted, so only the characters a fluent text literal can carry are admitted.
@@ -142,6 +182,7 @@ internal static class SemanticScopedProjectionSupport
             SemanticProjectionOperation.Set => (mapping.Source is SemanticProjectionEventSourceIdentity && keyIsEventSource && EventSourceMappingSupported(mapping, targets, context, identity)) ||
                 (mapping.Source is SemanticProjectionEventSourceIdentity && fromBlock && !keyIsEventSource && EventSourceIsProducedAs(@event, target.Type, context)) ||
                 (mapping.Source is SemanticProjectionLiteral literal && LiteralSupported(literal, target.Type, context)) ||
+                (mapping.Source is SemanticProjectionEventContextValue value && EventContextMappingSupported(mapping, value, targets, context)) ||
                 (mapping.Source is SemanticProjectionEventProperty property && PathSupported(property.Path, @event.Properties, context)),
 
             // A product is carried by the event (SemanticProjectionProducts); one that cannot be is refused with its own code and reason
@@ -595,7 +636,7 @@ internal static class SemanticScopedProjectionSupport
 
         bool EveryMappingsUnsupported(SemanticProjectionEvery every) =>
             every.Mappings.Any(mapping => mapping.Operation != SemanticProjectionOperation.Set ||
-                mapping.Source is not SemanticProjectionEventSourceIdentity and not SemanticProjectionLiteral) ||
+                mapping.Source is not SemanticProjectionEventSourceIdentity and not SemanticProjectionLiteral and not SemanticProjectionEventContextValue) ||
             !EveryMappingsSupported(every.Mappings, properties, context, _protectedIdentity);
 
         bool CollidesWithFromMapping(SemanticProjectionMapping literal) =>
@@ -607,7 +648,7 @@ internal static class SemanticScopedProjectionSupport
         {
             if (HasCompositeKey())
             {
-                return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Chronicle#4265 remains open, so Stage cannot look up those instances by their composite key.";
+                return "Composite-key read models need a keyed lookup by composite key that Stage cannot generate yet; Stage#839 and Chronicle#4265 remain open, so Stage cannot look up those instances by their composite key.";
             }
 
             return child && identity is null ? "A child collection needs an identified element." : null;
@@ -659,38 +700,145 @@ internal static class SemanticScopedProjectionSupport
 
         string? FromRejection()
         {
-            if (scope.From.Any(from => !FromSupported(from)))
+            for (var index = 0; index < scope.From.Length; index++)
             {
-                return "A from block has an unsupported key, parent key, event, or mapping.";
+                if (FromBlockRejection(scope.From[index]) is { } reason)
+                {
+                    return $"{FromDescription(scope.From[index], index)} cannot render: {reason}";
+                }
             }
 
-            if (scope.From.Length == 0)
+            // A composite root key establishes every key part itself, so the parts are not left for the mappings.
+            var required = IsCompositeRoot ? [.. properties.Where(property => !property.IsIdentifier)] : properties;
+            var everyLiterals = NativeEveryMappings(scope);
+            var joined = child ? scope.Joins.SelectMany(join => join.Mappings) : [];
+            if (scope.From.Length == 0 || scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals).Concat(joined), required, context, _protectedIdentity)))
             {
                 return null;
             }
 
-            var everyLiterals = EveryLiterals();
-
-            // A composite root key establishes every key part itself, so the parts are not left for the mappings.
-            var required = IsCompositeRoot ? [.. properties.Where(property => !property.IsIdentifier)] : properties;
-            var joined = child ? scope.Joins.SelectMany(join => join.Mappings) : [];
-            return scope.From.Any(from => EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals).Concat(joined), required, context, _protectedIdentity))
-                ? null
-                : "At least one from block must establish the required read-model properties.";
+            var missing = scope.From.Select((from, index) =>
+                $"{FromDescription(from, index)} is missing required mappings for {string.Join(", ", required.Where(property =>
+                    !EstablishesRequiredProperties(from.Mappings.Concat(everyLiterals).Concat(joined), [property], context, _protectedIdentity)).Select(property => $"'{property.Name}'"))}");
+            return $"At least one from block must establish every required read-model property; {string.Join("; ", missing)}.";
         }
 
-        bool FromSupported(SemanticProjectionFrom from) =>
-            context.Events.TryGetValue(from.EventContract, out var @event) &&
-            (KeySupported(from.Key, @event, context) || (IsRoot && ConstantKeySupported(from.Key)) || PartsKeySupported(from.Key, @event)) &&
-            !ParentKeyUnsupported(from.ParentKey, @event) &&
-            MappingsSupported(
-                from.Mappings,
-                properties,
-                @event,
-                context,
-                _protectedIdentity,
-                from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity },
-                fromBlock: true);
+        string FromDescription(SemanticProjectionFrom from, int index) =>
+            $"From block #{index + 1} for event '{(context.Events.TryGetValue(from.EventContract, out var @event) ? @event.Name : from.EventContract.ToString())}'";
+
+        string? FromBlockRejection(SemanticProjectionFrom from)
+        {
+            if (!context.Events.TryGetValue(from.EventContract, out var @event))
+            {
+                return "the event contract cannot be resolved.";
+            }
+
+            if (!KeySupported(from.Key, @event, context) && !(IsRoot && ConstantKeySupported(from.Key)) && !PartsKeySupported(from.Key, @event))
+            {
+                return $"key '{KeyDescription(from.Key, @event)}' cannot render: {KeyReason(from.Key)}.";
+            }
+
+            if (from.ParentKey is { } parent)
+            {
+                if (!child)
+                {
+                    return $"parent key '{KeyDescription(parent, @event)}' cannot render: parent keys are only supported inside children.";
+                }
+
+                if (!KeySupported(parent, @event, context))
+                {
+                    return $"parent key '{KeyDescription(parent, @event)}' cannot render: {KeyReason(parent)}.";
+                }
+            }
+
+            var targets = new HashSet<string>(StringComparer.Ordinal);
+            for (var index = 0; index < from.Mappings.Length; index++)
+            {
+                var mapping = from.Mappings[index];
+                var description = $"mapping #{index + 1} '{PropertyPath(mapping.Target, properties)}' ({mapping.Operation})";
+                if (!targets.Add(string.Join('.', mapping.Target)))
+                {
+                    return $"{description} cannot render: the target is mapped more than once in this from block.";
+                }
+
+                if (!MappingSupported(mapping, properties, @event, context, _protectedIdentity, from.Key is SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity }, fromBlock: true))
+                {
+                    return $"{description} cannot render: {MappingReason(mapping, @event)}.";
+                }
+            }
+
+            return null;
+        }
+
+        string KeyDescription(SemanticProjectionKey key, SemanticEventContract @event) => key switch
+        {
+            SemanticProjectionValueKey { Value: SemanticProjectionEventProperty property } => PropertyPath(property.Path, @event.Properties),
+            SemanticProjectionValueKey { Value: SemanticProjectionEventContextValue value } => $"$context.{value.Path}",
+            SemanticProjectionValueKey { Value: SemanticProjectionEventSourceIdentity } => "$eventSourceId",
+            SemanticProjectionValueKey { Value: SemanticProjectionLiteral literal } => $"literal {literal.Value}",
+            _ => key.Kind.ToString()
+        };
+
+        string KeyReason(SemanticProjectionKey key) => key switch
+        {
+            SemanticProjectionValueKey { Value: SemanticProjectionEventContextValue } => "event-context keys have no admitted Chronicle lowering",
+            SemanticProjectionValueKey { Value: SemanticProjectionEventProperty } => "the event-property path cannot be resolved",
+            SemanticProjectionValueKey { Value: SemanticProjectionLiteral } when IsRoot => "a root constant key requires non-empty text safe in Chronicle's unquoted value expression",
+            _ => "only the event source identity or a resolvable event-property path is supported"
+        };
+
+        string PropertyPath(System.Collections.Immutable.ImmutableArray<SemanticId> path, IReadOnlyList<SemanticProperty> root)
+        {
+            var names = new List<string>();
+            foreach (var id in path)
+            {
+                var property = root.SingleOrDefault(candidate => candidate.Id == id);
+                names.Add(NameOf(property, id));
+                root = property is null ? [] : ChildProperties(property, context);
+            }
+
+            return string.Join('.', names);
+        }
+
+        string NameOf(SemanticProperty? property, SemanticId id) => property?.Name ?? id.ToString();
+
+        string MappingReason(SemanticProjectionMapping mapping, SemanticEventContract @event)
+        {
+            var target = Target(mapping.Target, properties, context);
+            if (target is null)
+            {
+                return "the target property path cannot be resolved";
+            }
+
+            if (HasOptionalIntermediate(mapping.Target, properties, context))
+            {
+                return "the target path traverses an optional composite";
+            }
+
+            if (target.Type.IsCollection)
+            {
+                return "a collection requires Set from one direct event property of exactly the same non-optional collection type";
+            }
+
+            return mapping.Operation switch
+            {
+                SemanticProjectionOperation.Clear => "Clear requires an optional target and no source value",
+                SemanticProjectionOperation.Increment or SemanticProjectionOperation.Decrement => $"{mapping.Operation} requires no source value",
+                SemanticProjectionOperation.Set or SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => SourceReason(mapping, @event),
+                _ => "the mapping operation has no admitted Chronicle equivalent"
+            };
+        }
+
+        string SourceReason(SemanticProjectionMapping mapping, SemanticEventContract @event) => mapping.Source switch
+        {
+            SemanticProjectionEventContextValue value => $"source '$context.{value.Path}' has no admitted Chronicle mapping",
+            SemanticProjectionEventProperty property => $"the source event-property path cannot be resolved: '{PropertyPath(property.Path, @event.Properties)}'",
+            null => $"{mapping.Operation} requires a source value",
+            _ when mapping.Operation is SemanticProjectionOperation.Add or SemanticProjectionOperation.Subtract => $"{mapping.Operation} requires an event-property source or a supported numeric zero identity",
+            SemanticProjectionLiteral => "the text literal is unsafe in Chronicle's unquoted value expression",
+            SemanticProjectionEventSourceIdentity => "the event source identity is incompatible with the target identity/type and the event's produced destination type",
+            _ => $"source kind '{mapping.Source.Kind}' has no admitted Chronicle mapping"
+        };
 
         bool ParentKeyUnsupported(SemanticProjectionKey? parentKey, SemanticEventContract @event) =>
             child ? parentKey is not null && !KeySupported(parentKey, @event, context) : parentKey is not null;

@@ -22,7 +22,7 @@ public class when_rendering_a_composite_with_an_omitted_optional_member : Specif
         var model = invoice_model.Compile("type Details\n  title String\n  display String optional\nmodule Inputs\n  feature Optional\n    slice StateChange Check\n      command Check\n        details Details");
         var details = model.Application.Types.Single();
         var options = new CratisRenderingOptions("Inputs", "Inputs");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile("Inputs", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile("Inputs", options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         _types = new(new SemanticApplicationContext(request, options));
         _type = SemanticTypeReference.ForCompositeType(details.Id);
         _value = SemanticValue.Composite([new(details.Properties.Single(property => property.Name == "title").Id, SemanticValue.Text("Title"))]);

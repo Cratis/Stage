@@ -23,7 +23,7 @@ public class when_an_imported_generated_type_collides_with_a_framework_type
         var declaration = CSharpSyntaxTree.ParseText("namespace Shop.Common; public record Guid;");
         var compilation = CSharpCompilation.Create("GeneratedAlias", [tree, declaration], PureTransitionAdmission.AnalysisReferences(), new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, generalDiagnosticOption: ReportDiagnostic.Error, nullableContextOptions: NullableContextOptions.Enable));
         Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
-        var order = compilation.GetTypeByMetadataName("Shop.Orders.Order")!;
+        var order = compilation.GetTypeByMetadataName("Shop.Orders.Order");
         Assert.True(SymbolEqualityComparer.Default.Equals(((IPropertySymbol)Assert.Single(order.GetMembers("Key"))).Type, compilation.GetTypeByMetadataName("Shop.Common.Guid")));
         Assert.True(SymbolEqualityComparer.Default.Equals(((IPropertySymbol)Assert.Single(order.GetMembers("Id"))).Type, compilation.GetTypeByMetadataName("System.Guid")));
         Assert.True(SymbolEqualityComparer.Default.Equals(((IPropertySymbol)Assert.Single(order.GetMembers("Occurred"))).Type, compilation.GetTypeByMetadataName("System.DateTime")));

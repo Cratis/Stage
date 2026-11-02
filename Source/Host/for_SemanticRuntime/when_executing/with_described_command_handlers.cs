@@ -33,7 +33,7 @@ public class with_described_command_handlers : Specification
 
     void Establish()
     {
-        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(DescribedCommandHandlersCorpus.V23.EsmBytes.AsSpan()), []).Plan!;
+        var plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(DescribedCommandHandlersCorpus.V23.EsmBytes.AsSpan()), []).Plan;
         _command = plan.Commands.Values.Single(command => command.Handler is not null);
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
@@ -54,7 +54,7 @@ public class with_described_command_handlers : Specification
     [Fact] void should_report_the_reached_body() => _body.ExceptionMessages.Single().ShouldContain("Unsupported(ImplementationBody)");
     [Fact] void should_set_the_capability_header() => _http.Response.Headers["Stage-Unsupported-Capability"].ToString().ShouldEqual("ImplementationBody");
     [Fact] void should_set_the_artifact_header() => _http.Response.Headers["Stage-Unsupported-Artifact"].ToString().ShouldEqual(_command.Name);
-    [Fact] void should_preserve_the_reference_body_message_inside_the_capability_envelope() => _body.ExceptionMessages.Single().ShouldEqual($"Unsupported(ImplementationBody) ApplyLateFee: Command 'ApplyLateFee' handler body requires a target (requirement {_command.Handler!.RequirementId}); the reference executor does not run implementation bodies.");
+    [Fact] void should_preserve_the_reference_body_message_inside_the_capability_envelope() => _body.ExceptionMessages.Single().ShouldEqual($"Unsupported(ImplementationBody) ApplyLateFee: Command 'ApplyLateFee' handler body requires a target (requirement {_command.Handler.RequirementId}); the reference executor does not run implementation bodies.");
     [Fact] async Task should_never_append_handler_facts() => await _appender.DidNotReceive().Append(Arg.Any<IReadOnlyList<SemanticFact>>(), Arg.Any<SemanticCommandOccurrence>());
 
     [Fact]

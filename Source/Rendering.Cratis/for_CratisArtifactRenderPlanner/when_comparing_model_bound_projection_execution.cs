@@ -39,7 +39,7 @@ public class when_comparing_model_bound_projection_execution : a_generated_appli
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("model-bound"), "model-bound", "Scopes.play", when_rendering_model_bound_projections.Source);
-        _model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value!.Model;
+        _model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value.Model;
         return plan;
     }
 
@@ -127,7 +127,7 @@ public class when_comparing_model_bound_projection_execution : a_generated_appli
     {
         var referencePlan = SemanticExecutionPlan.Compile(model);
         Assert.True(referencePlan.Success, string.Join(Environment.NewLine, referencePlan.Issues));
-        var compiled = referencePlan.Plan!;
+        var compiled = referencePlan.Plan;
         var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
         return (SemanticExecutionPlan)constructor.Invoke(
         [
@@ -147,7 +147,7 @@ public class when_comparing_model_bound_projection_execution : a_generated_appli
 
     // The execution plan keeps what it did not admit internally; a reference plan assembled for a probe carries the same.
     static object? UnadmittedArtifacts(SemanticExecutionPlan plan) =>
-        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(plan);
+        typeof(SemanticExecutionPlan).GetProperty("UnadmittedArtifacts", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(plan);
 
     static object? Snapshot(SemanticReadModelInstance? instance, SemanticReadModel readModel)
     {

@@ -43,8 +43,8 @@ public class when_planning_concept_date_comparisons : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Dates", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var model = compilation.Value!.Model;
-        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Dates", "Dates"));
+        var model = compilation.Value.Model;
+        _plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model, []).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Dates", "Dates"));
         _code = Encoding.UTF8.GetString(_plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("Windows/Book/Book.cs", StringComparison.Ordinal)).Bytes.AsSpan());
     }
 

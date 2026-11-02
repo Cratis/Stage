@@ -69,7 +69,7 @@ public class with_guest_policy_negation : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("guest-negation"), "guest-negation", "GuestNegation.play", source.ToString());
         var compiled = new SemanticModelCompiler().Compile("GuestNegation", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(Environment.NewLine, compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Location}: {diagnostic.Message}")));
-        _plan = SemanticExecutionPlan.Compile(compiled.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compiled.Value.Model).Plan;
     }
 
     async Task Because()

@@ -1,0 +1,56 @@
+using System.Security.Claims;
+
+namespace __Root__.GeneratedAuthentication;
+
+/// <summary>
+/// Represents a persona of the model: the roles and claims a caller holds when it is that persona.
+/// </summary>
+/// <param name="Name">The name of the persona.</param>
+/// <param name="Roles">The roles of the persona.</param>
+/// <param name="Claims">The claims of the persona.</param>
+/// <param name="Mappable">Whether the policies of the persona reduce to roles and claims. A persona that does not is never matched.</param>
+public sealed record Persona(string Name, string[] Roles, (string Type, string Value)[] Claims, bool Mappable);
+
+/// <summary>
+/// The personas of the model, and how a caller maps onto them. A persona holds policies; the roles and claims here are the smallest
+/// set that satisfies all of them, so a caller who holds them satisfies the policies the persona holds.
+/// </summary>
+public static class Personas
+{
+    /// <summary>
+    /// Gets every persona the model declares.
+    /// </summary>
+    public static IReadOnlyList<Persona> All { get; } =
+    [
+__Personas__
+    ];
+
+    /// <summary>
+    /// Gets whether the model declares a persona by that name.
+    /// </summary>
+    /// <param name="name">The name of the persona.</param>
+    /// <returns>True when it exists; otherwise false.</returns>
+    public static bool Exists(string name) => All.Any(persona => string.Equals(persona.Name, name, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Gets whether a caller is a persona: it holds every role and claim the persona's policies need.
+    /// </summary>
+    /// <param name="principal">The caller.</param>
+    /// <param name="name">The name of the persona.</param>
+    /// <returns>True when the caller is that persona; otherwise false.</returns>
+    public static bool Holds(ClaimsPrincipal principal, string name) =>
+        principal.Identity?.IsAuthenticated == true &&
+        All.FirstOrDefault(persona => string.Equals(persona.Name, name, StringComparison.Ordinal)) is { Mappable: true } persona &&
+        persona.Roles.All(principal.IsInRole) &&
+        persona.Claims.All(claim => principal.HasClaim(claim.Type, claim.Value));
+
+    /// <summary>
+    /// Gets the claims a member who was granted the personas carries.
+    /// </summary>
+    /// <param name="personas">The names of the personas.</param>
+    /// <returns>The role claims and claims of the personas.</returns>
+    public static IEnumerable<Claim> ClaimsFor(IEnumerable<string> personas) =>
+        All.Where(persona => persona.Mappable && personas.Contains(persona.Name, StringComparer.Ordinal))
+            .SelectMany(persona => persona.Roles.Select(role => new Claim(ClaimTypes.Role, role))
+                .Concat(persona.Claims.Select(claim => new Claim(claim.Type, claim.Value))));
+}

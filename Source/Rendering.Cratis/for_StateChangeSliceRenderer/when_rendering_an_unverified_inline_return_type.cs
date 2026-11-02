@@ -16,7 +16,7 @@ public class when_rendering_an_unverified_inline_return_type : state_change_slic
     void Establish()
     {
         var command = _processBatch.Slice.Commands.Single();
-        command = command with { Handler = command.Handler! with { Code = command.Handler.Code! with { Code = "return new EventBatch();" } } };
+        command = command with { Handler = command.Handler with { Code = command.Handler.Code with { Code = "return new EventBatch();" } } };
         _processBatch = _processBatch with { Slice = _processBatch.Slice with { Commands = [command] } };
     }
 

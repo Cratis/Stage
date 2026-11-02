@@ -13,7 +13,7 @@ public class and_the_sidecar_is_unreadable : given.a_release_baseline_tree
     void Establish() => File.WriteAllText(Path.Combine(_root, ".screenplay", ReleaseBaselineStore.FileName), "not json");
     async Task Because() => _loaded = await SemanticModelLoader.LoadAsync(_root, [], ".screenplay/identities.json", "RecordsApp");
     [Fact] void should_still_load_the_model() => _loaded.Success.ShouldBeTrue();
-    [Fact] void should_report_unreadable() => _loaded.Loaded!.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Unreadable);
+    [Fact] void should_report_unreadable() => _loaded.Loaded.ReleaseBaseline.Status.ShouldEqual(ReleaseBaselineAssessmentStatus.Unreadable);
     [Fact] void should_not_repair_the_sidecar() => File.ReadAllText(Path.Combine(_root, ".screenplay", ReleaseBaselineStore.FileName)).ShouldEqual("not json");
 }
 #endif

@@ -29,7 +29,7 @@ public class with_a_produced_scoped_removal : a_generated_application
         _failure = await Catch.Exception(() => Run("removed-test.log", "test", "-c", "Debug", "--no-build"));
     }
 
-    [Fact] void should_fail_the_removed_read_model_expectation() => _failure!.Message.ShouldContain("should_project_name");
+    [Fact] void should_fail_the_removed_read_model_expectation() => _failure.Message.ShouldContain("should_project_name");
     [Fact] void should_replay_the_removal() => ReadGeneratedFile("Projects/Registration/RegisterProject/when_registering_a_project_is_projected.cs").ShouldContain("Events(new ProjectRemoved(");
 }
 #endif

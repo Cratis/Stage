@@ -60,14 +60,14 @@ public class when_inline_bare_names_keep_their_original_binding : Specification
     void should_keep_the_generated_field_bound_to_the_model()
     {
         var field = _tree.GetRoot().DescendantNodes().OfType<FieldDeclarationSyntax>().Single();
-        var symbol = (IFieldSymbol)_compilation.GetSemanticModel(_tree).GetDeclaredSymbol(field.Declaration.Variables.Single())!;
+        var symbol = (IFieldSymbol)_compilation.GetSemanticModel(_tree).GetDeclaredSymbol(field.Declaration.Variables.Single());
         Assert.True(SymbolEqualityComparer.Default.Equals(symbol.Type.OriginalDefinition, _compilation.GetTypeByMetadataName("Shop.Models.Subject`1")));
     }
 
     static void AssertFrameworkBinding(CSharpCompilation compilation, SyntaxTree tree)
     {
         var creation = tree.GetRoot().DescendantNodes().OfType<ObjectCreationExpressionSyntax>().Single();
-        var symbol = compilation.GetSemanticModel(tree).GetTypeInfo(creation).Type!;
+        var symbol = compilation.GetSemanticModel(tree).GetTypeInfo(creation).Type;
         Assert.True(SymbolEqualityComparer.Default.Equals(symbol.OriginalDefinition, compilation.GetTypeByMetadataName("System.Reactive.Subjects.Subject`1")));
     }
 }

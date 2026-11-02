@@ -60,7 +60,7 @@ public class when_projecting_redelivery_cascades : Specification
                   id = "one"
                 then readmodel Marker
                   id = "one"
-        """)).Plan!;
+        """)).Plan;
 
     async Task Because()
     {
@@ -71,6 +71,6 @@ public class when_projecting_redelivery_cascades : Specification
 
     [Fact] void should_materialize_the_reference_cascade() => _reference.Passed.ShouldBeTrue();
     [Fact] void should_admit_and_materialize_the_executor_cascade() => _stage.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_include_the_downstream_projection_in_the_trace() => _stage.Trace!.ReadModels.Count.ShouldEqual(1);
+    [Fact] void should_include_the_downstream_projection_in_the_trace() => _stage.Trace.ReadModels.Count.ShouldEqual(1);
 }
 #endif

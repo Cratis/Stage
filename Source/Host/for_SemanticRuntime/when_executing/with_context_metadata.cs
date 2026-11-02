@@ -40,7 +40,7 @@ public class with_context_metadata : a_semantic_runtime
     [Fact] void should_accept_the_command() => _result.ShouldBeOfExactType<SemanticAccepted>();
     [Fact] void should_append_the_same_occurrence_time() => _appendedOccurrence.Occurred.ShouldEqual(_occurred);
     [Fact] void should_append_the_same_caller() => _appendedOccurrence.Subject.ShouldEqual("caller");
-    [Fact] void should_project_occurred_from_the_appended_occurrence() => DateTimeOffset.Parse(Value("registeredAt")!).ShouldEqual(_appendedOccurrence.Occurred);
+    [Fact] void should_project_occurred_from_the_appended_occurrence() => DateTimeOffset.Parse(Value("registeredAt")).ShouldEqual(_appendedOccurrence.Occurred);
     [Fact] void should_project_caused_by_from_the_appended_occurrence() => Value("registeredBy").ShouldEqual(_appendedOccurrence.Subject);
 
     string? Value(string name)

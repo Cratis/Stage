@@ -16,7 +16,7 @@ public class when_running_source_keyed_captures : Specification
     [InlineData("3fa85f64-5717-4562-b3fc-2c963f66afa6")]
     public async Task should_match_the_pinned_reference_for_inferred_and_explicit_sources(string? source)
     {
-        var plan = Plan(specification => specification with { WhenAppended = specification.WhenAppended! with { EventSource = Source(source) } });
+        var plan = Plan(specification => specification with { WhenAppended = specification.WhenAppended with { EventSource = Source(source) } });
         var expected = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         expected.Passed.ShouldBeTrue();
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
@@ -29,14 +29,14 @@ public class when_running_source_keyed_captures : Specification
     public async Task should_reject_a_mismatched_source_in_history_or_the_action(bool history)
     {
         var plan = Plan(specification => history
-            ? specification with { GivenEvents = [new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values) { EventSource = Source("wrong") }] }
-            : specification with { WhenAppended = specification.WhenAppended! with { EventSource = Source("wrong") } });
+            ? specification with { GivenEvents = [new(specification.WhenAppended.EventContract, specification.WhenAppended.Values) { EventSource = Source("wrong") }] }
+            : specification with { WhenAppended = specification.WhenAppended with { EventSource = Source("wrong") } });
         var expected = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         var rejection = Assert.IsType<SemanticRejected>(expected.Execution);
         rejection.Category.ShouldEqual(SemanticRejectionCategory.Contract);
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Failed);
-        result.Trace!.Rejection.ShouldEqual(rejection.Details);
+        result.Trace.Rejection.ShouldEqual(rejection.Details);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class when_running_source_keyed_captures : Specification
         {
             GivenEvents =
             [
-                new(specification.WhenAppended!.EventContract, specification.WhenAppended.Values),
+                new(specification.WhenAppended.EventContract, specification.WhenAppended.Values),
                 new(specification.WhenAppended.EventContract, [new(specification.WhenAppended.Values.Single().TargetProperty, SemanticValue.Text("9fa85f64-5717-4562-b3fc-2c963f66afa9"))])
             ],
             ThenEvents = [],
@@ -63,7 +63,7 @@ public class when_running_source_keyed_captures : Specification
     public void should_preserve_missing_and_null_key_contract_rejections(bool missing)
     {
         var plan = Plan(specification => specification);
-        var appended = plan.Specifications.Values.Single().WhenAppended!;
+        var appended = plan.Specifications.Values.Single().WhenAppended;
         var fact = new SemanticSpecificationEvent(appended.EventContract, missing ? [] : [new(appended.Values.Single().TargetProperty, SemanticValue.Null)]);
         var foreign = new SemanticFact(fact.EventContract, SemanticValue.Text("source"), fact.Values);
         var expected = Assert.Throws<InvalidSemanticContract>(() => new SemanticReactionSettlement(new SemanticEvaluator()).Settle(plan, SemanticWorld.Create([foreign], []), [foreign], null));
@@ -74,7 +74,7 @@ public class when_running_source_keyed_captures : Specification
     [Fact]
     public async Task should_execute_the_unchanged_v33_vector()
     {
-        var plan = SemanticExecutionPlan.Compile(Model()).Plan!;
+        var plan = SemanticExecutionPlan.Compile(Model()).Plan;
         new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single()).Passed.ShouldBeTrue();
         var result = Assert.Single((await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results);
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Unsupported?.Details} {string.Join(';', result.Failures)}");

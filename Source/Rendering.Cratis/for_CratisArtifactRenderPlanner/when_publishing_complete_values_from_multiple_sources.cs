@@ -15,9 +15,9 @@ public class when_publishing_complete_values_from_multiple_sources : given.a_mul
     {
         Projections = [.. slice.Projections.Select(projection => projection with
         {
-            Scope = projection.Scope! with
+            Scope = projection.Scope with
             {
-                From = [.. projection.Scope!.From.Select(source => Complete(source, slice.Events.Single()))]
+                From = [.. projection.Scope.From.Select(source => Complete(source, slice.Events.Single()))]
             }
         })]
     });

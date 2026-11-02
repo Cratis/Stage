@@ -80,7 +80,7 @@ public class when_building_beneath_conflicting_parent_msbuild_files(when_buildin
             foreach (var input in new CratisBackendApplicationScaffold().Create(CratisBackendApplicationScaffoldRequest.Create("SmokeApp")))
             {
                 var path = Path.Combine(_application.FullName, input.Name["cratis-scaffold:text:".Length..]);
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllBytes(path, [.. input.Bytes]);
             }
 

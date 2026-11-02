@@ -22,7 +22,7 @@ public class when_refusing_v10_corpora : Specification
             _ => EventRoutesCorpus.ProductionRoutesV10
         };
         var model = SemanticModelSerializer.Deserialize(vector.EsmBytes.AsSpan());
-        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
+        var plan = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("V10", "V10"));
         model.SemanticVersion.Major.ShouldEqual(10u);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldContain(code);
         plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-016");

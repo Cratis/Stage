@@ -42,7 +42,7 @@ static class QualifiedFileRewrite
             RequiredImports = root.Usings.Where(@using => @using.Alias is null && @using.StaticKeyword.IsKind(SyntaxKind.None)).Select(@using => @using.NamespaceOrType.ToString()),
             ScopeTypeNames = scope.TypeNames,
             ScopeValueNames = scope.ValueNames,
-            PinnedNames = scope.PinnedNames.Concat(aliases.Select(@using => @using.Alias!.Name.Identifier.ValueText)),
+            PinnedNames = scope.PinnedNames.Concat(aliases.Select(@using => @using.Alias.Name.Identifier.ValueText)),
             MemberAccessNames = scope.MemberAccessNames,
             HasUnknownScope = scope.IsUnknown || namespaces.Length > 1 ||
                 aliases.Any(@using => model.GetDeclaredSymbol(@using)?.Target is not INamespaceSymbol) ||
@@ -77,7 +77,7 @@ static class QualifiedFileRewrite
             changes.Add(new(TextSpan.FromBounds(start, end), text));
             changes.AddRange(existing.Skip(1).Select(@using => new TextChange(@using.FullSpan, string.Empty)));
         }
-        return ([.. changes.Where(change => change.Span.Length > 0 || change.NewText!.Length > 0).OrderBy(change => change.Span.Start)], spelledShort);
+        return ([.. changes.Where(change => change.Span.Length > 0 || change.NewText.Length > 0).OrderBy(change => change.Span.Start)], spelledShort);
     }
 
     static QualifiedReference? Reference(SemanticModel model, AliasQualifiedNameSyntax name)
@@ -91,7 +91,7 @@ static class QualifiedFileRewrite
             {
                 QualifiedNameSyntax qualified when qualified.Left == node => qualified,
                 MemberAccessExpressionSyntax access when access.Expression == node => access,
-                _ => null!
+                _ => null
             };
             if (node is null) return null;
         }

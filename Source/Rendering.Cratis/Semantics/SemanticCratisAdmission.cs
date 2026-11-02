@@ -255,6 +255,7 @@ internal static partial class SemanticCratisAdmission
         Collect(() => analysedBodies = ValidateReducers(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
         Collect(() => ValidateSliceKind(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
         Collect(() => ValidateCallerFixtures(located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
+        Collect(() => SemanticSpecificationAdmission.ValidateInvocations(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);
         if (located.Slice.Kind != SemanticSliceKind.Translate)
         {
             Collect(() => SemanticSpecificationAdmission.Validate(context, located.Slice, diagnostics), located.Slice.Id, diagnostics, context);

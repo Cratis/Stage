@@ -25,5 +25,5 @@ public class with_a_denied_caller : a_projected_specification
     [Fact] void should_match_the_expected_denial() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference_execution() => _result.ExecutionKind.ShouldEqual(_reference.Execution.Kind.ToString());
     [Fact] void should_match_the_reference_expectations() => _reference.Passed.ShouldBeTrue();
-    [Fact] void should_expose_no_query_data() => _result.Trace!.Queries.ShouldBeEmpty();
+    [Fact] void should_expose_no_query_data() => _result.Trace.Queries.ShouldBeEmpty();
 }

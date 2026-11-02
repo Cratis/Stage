@@ -45,7 +45,7 @@ public class when_planning_same_named_commands_in_distinct_slices : a_register_p
         var execution = SemanticExecutionPlan.Compile(_model);
         execution.Success.ShouldBeTrue();
         execution.Plan.ShouldNotBeNull();
-        _executionPlan = execution.Plan!;
+        _executionPlan = execution.Plan;
 
         var feature = _model.Application.Modules.Single().Features.Single();
         var originalSlice = feature.Slices.Single(_ => _.Name == "RegisterProject");

@@ -14,8 +14,8 @@ public class when_refusing_screen_ownership : given.a_partitioned_screen_plan
 {
     void Because()
     {
-        var node = JsonNode.Parse(Partitions.Bytes.AsSpan())!;
-        node["Entries"]![0]!["Owner"] = Slice("ProjectLookup").Id.ToString();
+        var node = JsonNode.Parse(Partitions.Bytes.AsSpan());
+        node["Entries"][0]["Owner"] = Slice("ProjectLookup").Id.ToString();
         var input = ArtifactRenderInput.Create(ScreenPartitionsInput.Name, Partitions.Version, [.. Encoding.UTF8.GetBytes(CanonicalSceneJson.Write(node))]);
         _result = CratisRendering.PlanFrom(_loaded, new([PlanSelectionEntry.Feature("Projects", "Registration")]), _options with { Profile = WithInput(input) });
     }

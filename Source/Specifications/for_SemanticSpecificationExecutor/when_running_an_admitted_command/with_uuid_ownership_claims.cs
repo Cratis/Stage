@@ -20,7 +20,7 @@ public class with_uuid_ownership_claims : a_command_only_plan
 
     async Task Because()
     {
-        var original = _plan.Commands[_specification.When!.Command];
+        var original = _plan.Commands[_specification.When.Command];
         var identifier = original.Properties.Single(property => property.IsIdentifier);
         var subject = ((SemanticTextValue)_specification.When.Values.Single(value => value.TargetProperty == identifier.Id).Value).Value;
         Guid.TryParse(subject, out var uuid).ShouldBeTrue();

@@ -64,7 +64,7 @@ public class when_compiling_capture_members : given.a_translation_application
         var compilation = CSharpCompilation.Create("Identifier", [tree], [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)], new(OutputKind.DynamicallyLinkedLibrary));
         Assert.Empty(compilation.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
         var symbol = compilation.GetSemanticModel(tree).GetDeclaredSymbol(tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single());
-        Assert.Equal(identity, symbol!.Name);
+        Assert.Equal(identity, symbol.Name);
         Assert.True(SemanticCaptureIdentifier.TryDecode(spelling, out var decoded));
         Assert.Equal(symbol.Name, decoded);
     }
@@ -158,7 +158,7 @@ public class when_compiling_capture_members : given.a_translation_application
             var methods = assembly.GetTypes().Single(type => type.Name == plan.TypeName).GetMethods().Where(method => method.Name == plan.Handler(probe.First)).ToArray();
             Assert.Equal(2, methods.Length);
             Assert.NotEqual(methods[0].GetParameters()[0].ParameterType, methods[1].GetParameters()[0].ParameterType);
-            mappings.Add([plan.Handler(probe.First), plan.Handler(probe.Second), .. methods.Select(method => method.GetParameters()[0].ParameterType.FullName!).Order(StringComparer.Ordinal)]);
+            mappings.Add([plan.Handler(probe.First), plan.Handler(probe.Second), .. methods.Select(method => method.GetParameters()[0].ParameterType.FullName).Order(StringComparer.Ordinal)]);
         }
         Assert.Equal(mappings[0], mappings[1]);
     }

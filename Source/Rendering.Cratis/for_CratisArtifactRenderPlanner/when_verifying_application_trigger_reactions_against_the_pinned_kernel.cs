@@ -16,10 +16,8 @@ public class when_verifying_application_trigger_reactions_against_the_pinned_ker
     const string InnerTest = "Reactions.KernelProbe.ApplicationTriggerProbe.should_append_once_per_namespace_and_skip_a_receipted_redelivery";
     protected override bool DeferPlan => true;
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     public async Task should_append_once_per_namespace_and_skip_a_receipted_redelivery_when_configured()
-#pragma warning restore CRSPEC0004
     {
         try
         {
@@ -58,9 +56,9 @@ public class when_verifying_application_trigger_reactions_against_the_pinned_ker
     {
         XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
         var document = XDocument.Parse(trx);
-        var result = Assert.Single(document.Descendants(ns + "UnitTestResult"));
-        Assert.Equal(InnerTest, (string?)result.Attribute("testName"));
-        Assert.Equal("Passed", (string?)result.Attribute("outcome"));
+        var result = Assert.Single(GeneratedTestResults.Read(document));
+        Assert.True(result.Matches(fullName: InnerTest));
+        Assert.Equal("Passed", result.Outcome);
         var counters = Assert.Single(document.Descendants(ns + "Counters"));
         Assert.Equal("1", (string?)counters.Attribute("total"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));

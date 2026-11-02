@@ -30,7 +30,7 @@ public class and_the_slice_declares_the_event_it_names : Specification
             .ShouldEqual("[property: Unique(\"UniqueInvoiceNumber\")]");
 
     [Fact] void should_target_the_property_rather_than_the_positional_parameter() =>
-        ConstraintRenderer.ForProperty([_onProperty], "InvoiceRegistered", "invoiceNumber")!
+        ConstraintRenderer.ForProperty([_onProperty], "InvoiceRegistered", "invoiceNumber")
             .StartsWith("[property:", StringComparison.Ordinal).ShouldBeTrue();
 
     [Fact] void should_leave_a_property_the_constraint_does_not_name_alone() =>

@@ -47,7 +47,7 @@ internal static class optional_validated_composite_concept_cases
             source);
         var compilation = new SemanticModelCompiler().Compile("OptionalComposites", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         return WithSlices(model, Slices(model).Select(slice => WithOptionalValues(model, slice)));
     }
 
@@ -75,7 +75,7 @@ internal static class optional_validated_composite_concept_cases
         var model = Compile();
         var slice = Slices(model).Single(slice => string.Equals(slice.Name, "OptionalDetailsInput", StringComparison.Ordinal));
         var specification = slice.Specifications.Single(specification => specification.Name.EndsWith("Invalid", StringComparison.Ordinal));
-        var when = specification.When!;
+        var when = specification.When;
         var reordered = specification with
         {
             When = when with { Values = [.. when.Values.Select(ReverseMembers)] },
@@ -168,7 +168,7 @@ internal static class optional_validated_composite_concept_cases
     static SemanticSpecification OptionalSpecification(
         ExecutableSemanticModel model, SemanticCommand command, SemanticSpecification specification)
     {
-        var when = specification.When!;
+        var when = specification.When;
         var input = command.Properties.Single(property => string.Equals(property.Name, "value", StringComparison.Ordinal));
         return specification with
         {

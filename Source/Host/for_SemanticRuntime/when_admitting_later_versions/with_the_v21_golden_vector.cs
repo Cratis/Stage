@@ -15,11 +15,11 @@ public class with_the_v21_golden_vector : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticRuntimeAdmission _admission = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(21).Bytes.AsSpan()), []).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(EsmGoldenVectors.Get(21).Bytes.AsSpan()), []).Plan;
     void Because() => _admission = new(_plan);
 
     [Fact] void should_read_the_full_v21_vector() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V21);
-    [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
-    [Fact] void should_not_refuse_the_unused_rule_concept() => _admission.Blocking.ShouldNotContain(entry => entry.Kind == "concept" && entry.Details!.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal));
-    [Fact] void should_admit_checksum_validation() => _admission.Blocking.Any(entry => entry.Details!.StartsWith("STAGE-ESM-042:", StringComparison.Ordinal)).ShouldBeFalse();
+    [Fact] void should_not_refuse_the_audited_version() => _admission.Blocking.Any(entry => entry.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal)).ShouldBeFalse();
+    [Fact] void should_not_refuse_the_unused_rule_concept() => _admission.Blocking.ShouldNotContain(entry => entry.Kind == "concept" && entry.Details.StartsWith("STAGE-ESM-028:", StringComparison.Ordinal));
+    [Fact] void should_admit_checksum_validation() => _admission.Blocking.Any(entry => entry.Details.StartsWith("STAGE-ESM-042:", StringComparison.Ordinal)).ShouldBeFalse();
 }

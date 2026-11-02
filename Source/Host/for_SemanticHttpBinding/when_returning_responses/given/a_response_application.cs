@@ -24,7 +24,7 @@ public class a_response_application : a_routed_model
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("responses"), "responses", "Responses.play", Source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Issues));
         var appender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         ((ISemanticFactTail)appender).Tail().Returns(ulong.MaxValue);
@@ -33,7 +33,7 @@ public class a_response_application : a_routed_model
             _facts.AddRange(call.Arg<IReadOnlyList<SemanticFact>>());
             return Task.CompletedTask;
         });
-        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan!, appender);
+        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan, appender);
     }
 
     protected async Task Post(string slice, string command, string payload)

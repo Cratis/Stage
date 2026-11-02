@@ -34,7 +34,7 @@ public class when_an_authored_action_has_no_command_metadata : given.a_scene_mod
     }
 
     [Fact] void should_mark_the_metadata_as_missing() => ActionProperties["metadataStatus"].ShouldEqual("missing");
-    [Fact] void should_explain_that_stage_will_not_submit_an_empty_payload() => ((string)ActionProperties["metadataError"]!).ShouldContain("will not submit an empty payload");
+    [Fact] void should_explain_that_stage_will_not_submit_an_empty_payload() => ((string)ActionProperties["metadataError"]).ShouldContain("will not submit an empty payload");
     [Fact] void should_not_claim_a_schema_exists() => ActionProperties.ContainsKey(SceneSynthesizer.SchemaProperty).ShouldBeFalse();
     [Fact] void should_not_claim_fields_exist() => ActionProperties.ContainsKey("fields").ShouldBeFalse();
 

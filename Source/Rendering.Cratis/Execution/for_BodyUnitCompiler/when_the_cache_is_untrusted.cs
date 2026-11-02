@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.Execution.for_BodyUnitCompiler;
 
+[PerFactSpecificationLifecycle]
 public class when_the_cache_is_untrusted : Specification
 {
     string _directory = null!;

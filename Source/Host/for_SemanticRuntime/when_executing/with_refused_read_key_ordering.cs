@@ -57,7 +57,7 @@ public class with_refused_read_key_ordering : Specification
         var log = new a_semantic_fact_log();
         using var runtime = log.Runtime(plan, SemanticWorld.Empty);
         var principal = new ClaimsPrincipal(new ClaimsIdentity([], authenticated ? "spec" : null));
-        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(JsonSerializer.Serialize(new { id, sourceId = "*", approved = false }))!;
+        var payload = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(JsonSerializer.Serialize(new { id, sourceId = "*", approved = false }));
         foreach (var validateOnly in new[] { false, true })
         {
             var rejected = Assert.IsType<SemanticRejected>(await runtime.Execute(plan.Commands.Values.Single(), payload, principal, new(DateTimeOffset.UnixEpoch, "owner", "Owner", "owner"), validateOnly));

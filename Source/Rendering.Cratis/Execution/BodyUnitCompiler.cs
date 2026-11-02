@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Collections.Immutable;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -78,8 +77,7 @@ public static partial class BodyUnitCompiler
     static MetadataReference[] References()
     {
         // Only emission gets Chronicle metadata; BodyUnitAdmission still uses the renderer's unchanged analysis references.
-        var chronicle = Assembly.Load("Cratis.Chronicle");
-        return [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, MetadataReference.CreateFromFile(chronicle.Location)];
+        return [.. PureTransitionAdmission.AnalysisReferences(), SemanticGenerationBodyAdmission.FundamentalsReference, SemanticGenerationBodyAdmission.ChronicleReference];
     }
 
     static BodyUnitEntry Build(UnitScope scope, UnitBuild build)

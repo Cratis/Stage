@@ -38,7 +38,7 @@ public class when_inspecting_translation_directions : given.a_range_model
     void SetDirection(SemanticTranslationDirection direction)
     {
         var slice = _context.AllSlices.Single(located => !located.Slice.Captures.IsDefaultOrEmpty).Slice;
-        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Direction))!.SetValue(slice, direction);
+        typeof(SemanticSlice).GetProperty(nameof(SemanticSlice.Direction)).SetValue(slice, direction);
         Versions(32, 1, 32, 1);
     }
 }

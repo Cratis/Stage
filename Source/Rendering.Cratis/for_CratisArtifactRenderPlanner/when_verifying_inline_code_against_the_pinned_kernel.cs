@@ -4,6 +4,7 @@
 #if DEBUG
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Contracts.Semantics;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
@@ -11,6 +12,8 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+// Each fact installs and compiles a different application, so it requires an independent workspace and artifact hashes.
+[PerFactSpecificationLifecycle]
 public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_application
 {
     protected override bool DeferPlan => true;
@@ -21,13 +24,11 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
     [Fact]
     public Task should_compile_min_a3_http_probe_without_a_connection() => Compile("min-a3", "Billing");
 
-#pragma warning disable CRSPEC0004 // MongoFact derives from FactAttribute and is discovered by xUnit.
     [MongoFact]
     public Task should_verify_demo_when_configured() => Execute("demo", "Billing");
 
     [MongoFact]
     public Task should_verify_min_a3_when_configured() => Execute("min-a3", "Billing");
-#pragma warning restore CRSPEC0004
 
     async Task Compile(string sample, string project)
     {
@@ -115,9 +116,9 @@ public class when_verifying_inline_code_against_the_pinned_kernel : a_generated_
     {
         var document = XDocument.Load(Path.Combine(_evidence.FullName, "inline-probe.trx"));
         XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-        var result = Assert.Single(document.Descendants(ns + "UnitTestResult"));
-        Assert.Equal(name, (string?)result.Attribute("testName"));
-        Assert.Equal("Passed", (string?)result.Attribute("outcome"));
+        var result = Assert.Single(GeneratedTestResults.Read(document));
+        Assert.True(result.Matches(fullName: name));
+        Assert.Equal("Passed", result.Outcome);
         var counters = Assert.Single(document.Descendants(ns + "Counters"));
         Assert.Equal("1", (string?)counters.Attribute("executed"));
         Assert.Equal("1", (string?)counters.Attribute("passed"));

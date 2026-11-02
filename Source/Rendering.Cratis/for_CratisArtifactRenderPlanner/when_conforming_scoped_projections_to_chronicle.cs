@@ -33,10 +33,10 @@ public class when_conforming_scoped_projections_to_chronicle
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("scope-oracle"), "scope-oracle", "Scopes.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var execution = SemanticExecutionPlan.Compile(model);
         Assert.True(execution.Success);
-        var plan = CratisRendering.Plan(model, execution.Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
+        var plan = CratisRendering.Plan(model, execution.Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("Projects", "Projects"));
         Assert.True(plan.Success, string.Join(Environment.NewLine, plan.Diagnostics));
         var files = plan.Artifacts.Where(_ => _.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && _.RelativePath != "Program.cs")
             .Select(_ => new RenderedFile(_.RelativePath, System.Text.Encoding.UTF8.GetString(_.Bytes.AsSpan())));
@@ -52,13 +52,13 @@ public class when_conforming_scoped_projections_to_chronicle
         }
 
         var builderType = typeof(ProjectionBuilderFor<>).MakeGenericType(readModel);
-        var builder = Activator.CreateInstance(builderType, new ProjectionId("scoped-conformance"), projection, new CamelCaseNamingPolicy(), eventTypes, new JsonSerializerOptions())!;
-        projection.GetMethod("Define")!.Invoke(Activator.CreateInstance(projection), [builder]);
-        var generated = builderType.GetMethod("Build", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(builder, null)!;
+        var builder = Activator.CreateInstance(builderType, new ProjectionId("scoped-conformance"), projection, new CamelCaseNamingPolicy(), eventTypes, new JsonSerializerOptions());
+        projection.GetMethod("Define").Invoke(Activator.CreateInstance(projection), [builder]);
+        var generated = builderType.GetMethod("Build", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(builder, null);
 
         var syntax = new ScreenplayCompiler().Compile(source);
         Assert.True(syntax.Success, string.Join(Environment.NewLine, syntax.Diagnostics));
-        var expectedSyntax = syntax.Value!.Modules.Single().Features.Single().Slices.Single(_ => _.Name == "ProjectLookup")
+        var expectedSyntax = syntax.Value.Modules.Single().Features.Single().Slices.Single(_ => _.Name == "ProjectLookup")
             .Projections.Single(_ => _.Name == "ProjectSummaryProjection");
         var expected = ChronicleProjectionOracle.Visit(expectedSyntax);
         var expectedBlocks = ProjectionBlocks(expected);
@@ -103,7 +103,7 @@ public class when_conforming_scoped_projections_to_chronicle
         var slices = application.Modules.SelectMany(_ => _.Features).SelectMany(_ => _.Slices).ToArray();
         var events = slices.SelectMany(_ => _.Events).ToDictionary(_ => _.Id);
         var readModel = slices.SelectMany(_ => _.ReadModels).Single(_ => _.Name == "ProjectSummary");
-        var scope = slices.SelectMany(_ => _.Projections).Single(_ => _.Name == "ProjectSummaryProjection").Scope!;
+        var scope = slices.SelectMany(_ => _.Projections).Single(_ => _.Name == "ProjectSummaryProjection").Scope;
         Expand(scope, readModel.Properties, string.Empty);
 
         void Expand(SemanticProjectionScope level, IReadOnlyList<SemanticProperty> properties, string prefix)
@@ -116,7 +116,7 @@ public class when_conforming_scoped_projections_to_chronicle
                     _.Source is SemanticProjectionEventProperty { Path.Length: 1 }))
                 {
                     var target = properties.Single(_ => _.Id == mapping.Target[0]).Name;
-                    shape[$"{prefix}From.{@event.Name}+1.{target}"] = eventProperties[((SemanticProjectionEventProperty)mapping.Source!).Path[0]].Name;
+                    shape[$"{prefix}From.{@event.Name}+1.{target}"] = eventProperties[((SemanticProjectionEventProperty)mapping.Source).Path[0]].Name;
                 }
             }
 
@@ -147,12 +147,12 @@ public class when_conforming_scoped_projections_to_chronicle
     {
         foreach (var kind in new[] { "From", "Join" })
         {
-            foreach (DictionaryEntry entry in (IDictionary)Property(scope, kind)!)
+            foreach (DictionaryEntry entry in (IDictionary)Property(scope, kind))
             {
                 var id = entry.Key.GetType().GetProperty("Id")?.GetValue(entry.Key);
                 var generation = entry.Key.GetType().GetProperty("Generation")?.GetValue(entry.Key);
-                var eventName = id is string ? $"{id}+{generation}" : entry.Key.ToString()!;
-                var definition = entry.Value!;
+                var eventName = id is string ? $"{id}+{generation}" : entry.Key.ToString();
+                var definition = entry.Value;
                 var path = $"{prefix}{kind}.{eventName}";
                 shape[$"{path}.Key"] = Property(definition, "Key")?.ToString() ?? string.Empty;
                 if (kind == "From")
@@ -161,35 +161,35 @@ public class when_conforming_scoped_projections_to_chronicle
                 }
                 else
                 {
-                    shape[$"{path}.On"] = Property(definition, "On")!.ToString()!;
+                    shape[$"{path}.On"] = Property(definition, "On").ToString();
                 }
 
-                foreach (DictionaryEntry mapping in (IDictionary)Property(definition, "Properties")!)
+                foreach (DictionaryEntry mapping in (IDictionary)Property(definition, "Properties"))
                 {
-                    shape[$"{path}.{mapping.Key}"] = mapping.Value!.ToString()!;
+                    shape[$"{path}.{mapping.Key}"] = mapping.Value.ToString();
                 }
             }
         }
 
         var every = Property(scope, "All") ?? Property(scope, "FromEvery");
-        shape[$"{prefix}Every.IncludeChildren"] = Property(every!, "IncludeChildren")!.ToString()!;
-        foreach (DictionaryEntry mapping in (IDictionary)Property(every!, "Properties")!)
+        shape[$"{prefix}Every.IncludeChildren"] = Property(every, "IncludeChildren").ToString();
+        foreach (DictionaryEntry mapping in (IDictionary)Property(every, "Properties"))
         {
-            shape[$"{prefix}Every.{mapping.Key}"] = mapping.Value!.ToString()!;
+            shape[$"{prefix}Every.{mapping.Key}"] = mapping.Value.ToString();
         }
 
         foreach (var kind in new[] { "RemovedWith", "RemovedWithJoin" })
         {
-            foreach (DictionaryEntry entry in (IDictionary)Property(scope, kind)!)
+            foreach (DictionaryEntry entry in (IDictionary)Property(scope, kind))
             {
                 var id = entry.Key.GetType().GetProperty("Id")?.GetValue(entry.Key);
                 var generation = entry.Key.GetType().GetProperty("Generation")?.GetValue(entry.Key);
-                var eventName = id is string ? $"{id}+{generation}" : entry.Key.ToString()!;
+                var eventName = id is string ? $"{id}+{generation}" : entry.Key.ToString();
                 var path = $"{prefix}{kind}.{eventName}";
-                shape[$"{path}.Key"] = Property(entry.Value!, "Key")?.ToString() ?? string.Empty;
+                shape[$"{path}.Key"] = Property(entry.Value, "Key")?.ToString() ?? string.Empty;
                 if (kind == "RemovedWith")
                 {
-                    shape[$"{path}.ParentKey"] = Property(entry.Value!, "ParentKey")?.ToString() ?? string.Empty;
+                    shape[$"{path}.ParentKey"] = Property(entry.Value, "ParentKey")?.ToString() ?? string.Empty;
                 }
             }
         }
@@ -205,8 +205,8 @@ public class when_conforming_scoped_projections_to_chronicle
             foreach (DictionaryEntry entry in definitions)
             {
                 var path = $"{prefix}{kind}.{entry.Key}.";
-                shape[$"{path}IdentifiedBy"] = Property(entry.Value!, "IdentifiedBy")!.ToString()!;
-                ReadScope(entry.Value!, path, shape);
+                shape[$"{path}IdentifiedBy"] = Property(entry.Value, "IdentifiedBy").ToString();
+                ReadScope(entry.Value, path, shape);
             }
         }
     }

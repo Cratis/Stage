@@ -29,7 +29,7 @@ public class with_the_rendered_handler_invoked
         var (loaded, assembly) = Render(reaction_body_model.Body, file);
         var reaction = loaded.Model.Application.Modules.Single().Features.Single().Slices.Single().Reactions.Single();
         var type = assembly.GetTypes().Single(candidate => candidate.Name == "Notifier");
-        Assert.Equal(reaction.Id.ToString(), type.GetCustomAttribute<ReactorAttribute>()!.Id.ToString());
+        Assert.Equal(reaction.Id.ToString(), type.GetCustomAttribute<ReactorAttribute>().Id.ToString());
         Assert.NotNull(type.GetCustomAttribute<OnceOnlyAttribute>());
     }
 
@@ -111,10 +111,10 @@ public class with_the_rendered_handler_invoked
         var type = EventType(assembly);
         var @event = Activator.CreateInstance(type, arguments);
         var reactorType = assembly.GetTypes().Single(candidate => candidate.Name == "Notifier");
-        await using var reactor = new ActivatedArtifact(Activator.CreateInstance(reactorType)!, reactorType, NullLogger<ActivatedArtifact>.Instance);
+        await using var reactor = new ActivatedArtifact(Activator.CreateInstance(reactorType), reactorType, NullLogger<ActivatedArtifact>.Instance);
         var eventTypes = Substitute.For<IEventTypes>();
         eventTypes.AllClrTypes.Returns(ImmutableList.Create(type));
-        var eventType = type.GetCustomAttribute<EventTypeAttribute>()!;
+        var eventType = type.GetCustomAttribute<EventTypeAttribute>();
         eventTypes.GetEventTypeFor(type).Returns(new EventType(eventType.Id, eventType.Generation));
         var effects = new CapturedSideEffects();
         var invoker = new ReactorInvoker(
@@ -126,7 +126,7 @@ public class with_the_rendered_handler_invoked
             effects,
             Substitute.For<IEventStore>());
         var context = EventContext.Empty with { EventSourceId = "one", SequenceNumber = 42UL };
-        var invocation = await invoker.Invoke(@event!, context);
+        var invocation = await invoker.Invoke(@event, context);
         return (invocation, effects.ReturnValue);
     }
 

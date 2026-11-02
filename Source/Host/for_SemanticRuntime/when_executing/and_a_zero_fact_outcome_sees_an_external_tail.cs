@@ -35,7 +35,7 @@ public class and_a_zero_fact_outcome_sees_an_external_tail : a_semantic_runtime
             StringComparison.Ordinal);
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("project-model"), "project-model", "RegisterProject.play", source);
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _emptyAppender = Substitute.For<IAppendSemanticFacts, ISemanticFactTail>();
         var reads = 0;
         ((ISemanticFactTail)_emptyAppender).Tail().Returns(_ => ++reads == 1 ? ulong.MaxValue : 0UL);

@@ -62,7 +62,7 @@ public class a_translated_application : Specification
         Assert.True(compiled.Success, string.Join("; ", compiled.Diagnostics.Select(diagnostic => $"{diagnostic.Code} {diagnostic.Message}")));
         _diagnostics = [.. compiled.Diagnostics];
         _visitor = new ScreenplaySceneVisitor();
-        _application = _visitor.Visit(compiled.Value!);
+        _application = _visitor.Visit(compiled.Value);
     }
 
     /// <summary>

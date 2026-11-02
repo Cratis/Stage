@@ -20,7 +20,7 @@ public class with_a_non_scalar_given_contract : a_command_only_plan
         var contract = plan.Events[given.GivenEvents[0].EventContract];
         var modified = contract with { Properties = [contract.Properties[0] with { Type = contract.Properties[0].Type with { IsCollection = true } }, .. contract.Properties.Skip(1)] };
         typeof(Cratis.Screenplay.Semantics.Execution.SemanticExecutionPlan)
-            .GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetField("<Events>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(plan, plan.Events.SetItem(contract.Id, modified));
         _report = await new SemanticSpecificationExecutor().Run(plan, new([given.Id]), new());
     }

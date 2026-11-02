@@ -15,7 +15,7 @@ public class with_an_authorized_claim : a_command_only_plan
 
     async Task Because()
     {
-        var command = _plan.Commands[_specification.When!.Command] with { Authorization = new SemanticPolicyReference("MayRegister") };
+        var command = _plan.Commands[_specification.When.Command] with { Authorization = new SemanticPolicyReference("MayRegister") };
         var policy = new SemanticPolicy("MayRegister", new SemanticClaimCondition("department", SemanticClaimTargetKind.Literal, "Finance"));
         var specification = _specification with { GivenCaller = new SemanticCaller(true, [], [new("Department", "Finance")]) };
         var plan = WithBehavior(specification, command, policy: policy);

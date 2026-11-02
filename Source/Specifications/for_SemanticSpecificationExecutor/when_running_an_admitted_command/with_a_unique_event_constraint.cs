@@ -24,6 +24,6 @@ public class with_a_unique_event_constraint : a_command_only_plan
     }
 
     [Fact] void should_match_the_reference_constraint_rejection() => Assert.True(_reference.Passed && _report.Results.Single().Outcome == SemanticSpecificationOutcome.Passed && _report.Results.Single().Trace?.Rejection == ((SemanticRejected)_reference.Execution).Details, $"Reference: {_reference.Execution.Kind} {string.Join(',', _reference.Failures)}; Stage: {_report.Results.Single().Outcome} {_report.Results.Single().Unsupported?.Details} {string.Join(',', _report.Results.Single().Failures)}");
-    [Fact] void should_report_the_constraint_name_as_code() => _report.Results.Single().Trace!.RejectionCode.ShouldEqual("OnlyOnce");
-    [Fact] void should_append_no_new_fact() => _report.Results.Single().Trace!.Facts.Count.ShouldEqual(0);
+    [Fact] void should_report_the_constraint_name_as_code() => _report.Results.Single().Trace.RejectionCode.ShouldEqual("OnlyOnce");
+    [Fact] void should_append_no_new_fact() => _report.Results.Single().Trace.Facts.Count.ShouldEqual(0);
 }

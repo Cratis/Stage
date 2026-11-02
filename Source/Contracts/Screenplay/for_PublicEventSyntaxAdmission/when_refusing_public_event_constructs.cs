@@ -22,7 +22,7 @@ public class when_refusing_public_event_constructs : Specification
         var source = "module Integration\n  feature Exchange\n    slice Translate Publish\n      " + construct;
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(Environment.NewLine, parsed.Diagnostics));
-        var application = parsed.Value!;
+        var application = parsed.Value;
         var error = Catch.Exception(() => new PublicEventSyntaxAdmission().VisitApplication(application));
         AssertCode(error, code);
         var visitorError = Catch.Exception(() => new ScreenplayEventModelVisitor().Visit(application));

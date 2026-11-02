@@ -31,10 +31,10 @@ public class a_persona_bound_query : for_StageEndpointMapper.given.a_routed_mode
         var compilation = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog));
         compilation.Diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model);
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model);
         plan.Success.ShouldBeTrue();
-        _persona = SandboxPersona.Create(new ScreenplayCompiler().Compile(Source).Value!, NullLogger.Instance)!;
-        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan!, Substitute.For<IAppendSemanticFacts>());
+        _persona = SandboxPersona.Create(new ScreenplayCompiler().Compile(Source).Value, NullLogger.Instance);
+        MapSemanticModel(EventModelLoader.LoadFromSource(Source), plan.Plan, Substitute.For<IAppendSemanticFacts>());
     }
 
     protected override void ConfigureHostServices(IServiceCollection services)

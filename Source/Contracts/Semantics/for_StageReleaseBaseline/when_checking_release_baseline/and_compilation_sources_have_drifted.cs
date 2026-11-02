@@ -12,7 +12,7 @@ public class and_compilation_sources_have_drifted : given.a_release_baseline
 {
     void Because()
     {
-        var compilation = _workspace.Compilation.Value!;
+        var compilation = _workspace.Compilation.Value;
         var documents = SemanticDocumentSet.Create([.. compilation.Documents.Documents.Select(document => SemanticSourceDocument.Create(document.Id, document.StableKey, document.DisplayPath, document.Text.Replace("value String", "value Bool", StringComparison.Ordinal)))], compilation.Documents.IdentityCatalog);
         _assessment = StageReleaseBaseline.Check(SemanticCompilation.Create(compilation.Model, documents, SemanticSourceMap.Create([], documents.Documents)), _baseline);
     }

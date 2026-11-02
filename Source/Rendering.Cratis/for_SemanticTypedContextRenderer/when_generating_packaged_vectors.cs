@@ -82,7 +82,7 @@ public class when_generating_packaged_vectors
         Assert.Equal(Vector("typed-contexts-v1.json"), SemanticTypedContextSerializer.Serialize(compilation.TypedContextDescriptors));
         var descriptors = vector.RootElement.GetProperty("descriptors").EnumerateArray().ToArray();
         Assert.Equal(descriptors.Length, compilation.TypedContextDescriptors.Length);
-        var context = Context(compilation.Value!.Model);
+        var context = Context(compilation.Value.Model);
         for (var index = 0; index < descriptors.Length; index++)
         {
             var descriptor = compilation.TypedContextDescriptors[index];
@@ -121,7 +121,7 @@ public class when_generating_packaged_vectors
     public void should_compile_all_vector_wrappers_against_generated_model_types()
     {
         var compilation = Bind(Source);
-        var context = Context(compilation.Value!.Model);
+        var context = Context(compilation.Value.Model);
         var wrappers = compilation.TypedContextDescriptors.Select(descriptor => SemanticTypedContextRenderer.Render(descriptor, context));
         var declarations = new RenderedFile("Model.cs", """
             namespace Projects.Common { public record Code(string Value); }
@@ -155,7 +155,7 @@ public class when_generating_packaged_vectors
         Assert.True(compilation.Success);
         var descriptor = compilation.TypedContextDescriptors.Single(item => item.Role == SemanticImplementationRole.RulePredicate);
         string source;
-        using (QualifiedSpelling.Begin()) source = SemanticTypedContextRenderer.Render(descriptor, Context(compilation.Value!.Model)).Content;
+        using (QualifiedSpelling.Begin()) source = SemanticTypedContextRenderer.Render(descriptor, Context(compilation.Value.Model)).Content;
         Assert.Contains("string? Value", source, StringComparison.Ordinal);
         Assert.Contains(".Deposit Artifact", source, StringComparison.Ordinal);
         Assert.DoesNotContain(".Deposit? Artifact", source, StringComparison.Ordinal);
@@ -166,7 +166,7 @@ public class when_generating_packaged_vectors
     {
         var compilation = Bind(Source);
         var descriptor = compilation.TypedContextDescriptors[0];
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var context = Context(model);
         var member = descriptor.Members[0];
         var unknownToken = descriptor with
@@ -184,7 +184,7 @@ public class when_generating_packaged_vectors
             descriptor with { Members = descriptor.Members.SetItem(0, member with { Source = member.Source with { Kind = "unknown" } }) },
             context));
 
-        var plan = SemanticExecutionPlan.Compile(model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(model).Plan;
         var request = new ArtifactRenderRequest(
             model,
             plan,
@@ -228,7 +228,7 @@ public class when_generating_packaged_vectors
         Assert.False(failed.Success);
         Assert.Contains(failed.TypedContextDescriptors, descriptor => !descriptor.IsWrapperReady && descriptor.Role == SemanticImplementationRole.CommandHandler);
         var valid = Bind(Source);
-        var model = valid.Value!.Model;
+        var model = valid.Value.Model;
         Assert.Contains(Plan(model, failed.ImplementationRequirements, failed.TypedContextDescriptors).Diagnostics,
             diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
@@ -237,7 +237,7 @@ public class when_generating_packaged_vectors
     public void should_refuse_a_descriptor_from_a_different_model_revision()
     {
         var compilation = Bind(Source);
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var changed = ExecutableSemanticModel.Create(
             model.LanguageVersion,
             model.SemanticVersion,
@@ -257,7 +257,7 @@ public class when_generating_packaged_vectors
         var changed = changeRole
             ? descriptor with { Role = SemanticImplementationRole.PolicyPredicate }
             : descriptor with { ContextVersion = 2 };
-        Assert.Contains(Plan(compilation.Value!.Model, compilation.ImplementationRequirements, [changed]).Diagnostics,
+        Assert.Contains(Plan(compilation.Value.Model, compilation.ImplementationRequirements, [changed]).Diagnostics,
             diagnostic => diagnostic.Code == "STAGE-ESM-021");
     }
 
@@ -265,7 +265,7 @@ public class when_generating_packaged_vectors
     public void should_refuse_missing_arrays_and_duplicate_type_ids_or_query_shapes()
     {
         var compilation = Bind(Source);
-        var model = compilation.Value!.Model;
+        var model = compilation.Value.Model;
         var descriptor = compilation.TypedContextDescriptors[0];
         var malformed = new[]
         {
@@ -311,7 +311,7 @@ public class when_generating_packaged_vectors
         model = ExecutableSemanticModel.Create(LanguageVersion.V3, SemanticVersion.V3, model.Application with { Modules = [.. modules] });
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile(model.Application.Name, new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id))
         {
@@ -332,7 +332,7 @@ public class when_generating_packaged_vectors
     static byte[] Vector(string name)
     {
         using var stream = typeof(when_generating_packaged_vectors).Assembly.GetManifestResourceStream(
-            $"Cratis.Stage.Rendering.Cratis.for_SemanticTypedContextRenderer.Vectors.{name}")!;
+            $"Cratis.Stage.Rendering.Cratis.for_SemanticTypedContextRenderer.Vectors.{name}");
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return buffer.ToArray();
@@ -344,14 +344,14 @@ public class when_generating_packaged_vectors
         const string key = "application-document";
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument(key), key, "application.play", source);
         return new SemanticModelBinder().Bind(
-            "Projects", new ScreenplayCompiler().Parse(source).Value!, SemanticDocumentSet.Create([document], catalog));
+            "Projects", new ScreenplayCompiler().Parse(source).Value, SemanticDocumentSet.Create([document], catalog));
     }
 
     static SemanticApplicationContext Context(ExecutableSemanticModel model)
     {
         var request = new ArtifactRenderRequest(
             model,
-            SemanticExecutionPlan.Compile(model).Plan!,
+            SemanticExecutionPlan.Compile(model).Plan,
             CratisRendering.CreateProfile("Projects", new("Projects", "Projects")),
             new(ArtifactRenderScopeKind.Application, model.Application.Id));
         return new(request, new("Projects", "Projects"));

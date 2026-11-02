@@ -16,5 +16,5 @@ public class without_a_declared_source_identifier : given.a_routed_event
 
     void Because() => _world = SemanticWorldRebuilder.Create(_plan, [_event], 0);
 
-    [Fact] void should_fall_back_to_the_unambiguous_producer_type() => _world.Facts.Single().Context!.EventSource.Type.ShouldEqual(_plan.Commands.Values.Single().Properties.Single(property => property.IsIdentifier).Type);
+    [Fact] void should_fall_back_to_the_unambiguous_producer_type() => _world.Facts.Single().Context.EventSource.Type.ShouldEqual(_plan.Commands.Values.Single().Properties.Single(property => property.IsIdentifier).Type);
 }

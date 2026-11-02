@@ -33,10 +33,10 @@ public abstract class a_generated_tenant_reducer : Specification
         var files = _plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal) && artifact.RelativePath != "Program.cs")
             .Select(artifact => new RenderedFile(artifact.RelativePath, System.Text.Encoding.UTF8.GetString(artifact.Bytes.AsSpan())));
         _assembly = RenderedOutput.Load(files);
-        _event = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "OrderPlaced"), _key, 7m)!;
+        _event = Activator.CreateInstance(_assembly.GetTypes().Single(type => type.Name == "OrderPlaced"), _key, 7m);
         var reducer = _assembly.GetTypes().Single(type => type.Name == "Fold");
-        _reducer = Activator.CreateInstance(reducer)!;
-        _on = reducer.GetMethod("On")!;
+        _reducer = Activator.CreateInstance(reducer);
+        _on = reducer.GetMethod("On");
     }
 
     protected decimal Apply(string tenant)

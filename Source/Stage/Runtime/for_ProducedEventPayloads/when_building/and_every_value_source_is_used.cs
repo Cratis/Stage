@@ -59,5 +59,5 @@ public class and_every_value_source_is_used : given.a_command_payload
 
     [Fact] void should_write_an_empty_value_for_an_unset_environment_variable() => Value("unsetVariable").ShouldEqual(string.Empty);
 
-    string? Value(string property) => _events[0].Content[property]!.GetValue<string>();
+    string? Value(string property) => _events[0].Content[property].GetValue<string>();
 }

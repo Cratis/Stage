@@ -21,7 +21,7 @@ public class when_running_event_concepts_with_unevaluable_rules : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("facts"), "facts", "Facts.play", Source);
         var compilation = new SemanticModelCompiler().Compile("HistoricalFacts", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     async Task Because()

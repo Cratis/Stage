@@ -33,8 +33,8 @@ public class and_the_template_scopes_application_and_fits_no_slot : Specificatio
         Scopes = scopes
     };
 
-    [Fact] void should_take_the_root_role() => _shell.Metadata!.Role.ShouldEqual(TemplateRole.Root);
-    [Fact] void should_keep_the_scope() => _shell.Metadata!.Scopes!.ShouldContainOnly([TemplateScope.Application]);
-    [Fact] void should_not_give_a_page_template_the_root_role() => _page.Metadata!.Role.ShouldBeNull();
-    [Fact] void should_not_give_a_template_that_fits_a_slot_the_root_role() => _slotted.Metadata!.Role.ShouldBeNull();
+    [Fact] void should_take_the_root_role() => _shell.Metadata.Role.ShouldEqual(TemplateRole.Root);
+    [Fact] void should_keep_the_scope() => _shell.Metadata.Scopes.ShouldContainOnly([TemplateScope.Application]);
+    [Fact] void should_not_give_a_page_template_the_root_role() => _page.Metadata.Role.ShouldBeNull();
+    [Fact] void should_not_give_a_template_that_fits_a_slot_the_root_role() => _slotted.Metadata.Role.ShouldBeNull();
 }

@@ -84,7 +84,7 @@ public class an_invoicing_application : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("invoicing"), "invoicing", "Invoicing.play", source);
         var compilation = new SemanticModelCompiler().Compile("Invoicing", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        _plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
     }
 
     protected async Task Run(string name)

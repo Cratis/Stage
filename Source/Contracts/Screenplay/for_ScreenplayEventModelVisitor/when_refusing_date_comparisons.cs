@@ -31,10 +31,10 @@ public class when_refusing_date_comparisons : Specification
             """;
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!));
+        var error = Assert.Throws<InvalidEventModel>(() => ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value));
         error.Message.ShouldContain("STAGE-ESM-046");
         error.Message.ShouldContain("'at'");
-        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value!));
+        Assert.Throws<InvalidEventModel>(() => new ScreenplayEventModelVisitor().Visit(parsed.Value));
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public class when_refusing_date_comparisons : Specification
         const string source = "module Scheduling\n  feature Windows\n    slice StateChange Keep\n      command Keep\n        dueDate Date\n        validate\n          dueDate > today";
         var parsed = new ScreenplayCompiler().Parse(source);
         Assert.True(parsed.Success, string.Join(';', parsed.Diagnostics));
-        ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value!);
+        ScreenplayEventModelVisitor.EnsureBehaviorSupported(parsed.Value);
     }
 }

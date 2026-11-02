@@ -16,7 +16,7 @@ public class when_verifying_billing_mongo_deletion : a_generated_application
         when_rendering_a_pure_reducer.Plan(when_rendering_the_billing_payment_reducer.LoadBilling(deleteOnNegative: true));
 
     [MongoFact]
-    async Task mongo_container_matches_model_bound_read_model_query_when_configured()
+    async Task should_match_model_bound_read_model_query_in_mongo_container_when_configured()
     {
         try
         {

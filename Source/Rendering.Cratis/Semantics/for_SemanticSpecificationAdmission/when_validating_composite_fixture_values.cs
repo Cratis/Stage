@@ -88,7 +88,7 @@ public class when_validating_composite_fixture_values : Specification
             var feature = module.Features.Single();
             var slice = feature.Slices.Single();
             var specification = slice.Specifications.Single();
-            var when = specification.When!;
+            var when = specification.When;
             var changed = specification with
             {
                 When = when with { Values = [.. when.Values.Select(property => property.Value is SemanticCompositeValue or SemanticArrayValue
@@ -101,7 +101,7 @@ public class when_validating_composite_fixture_values : Specification
         }
 
         var options = new CratisRenderingOptions("Inputs", "Inputs");
-        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan!, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
+        var request = new ArtifactRenderRequest(model, SemanticExecutionPlan.Compile(model).Plan, CratisRendering.CreateProfile(model.Application.Name, options), new(ArtifactRenderScopeKind.Application, model.Application.Id));
         var context = new SemanticApplicationContext(request, options);
         var diagnostics = new List<ArtifactRenderDiagnostic>();
         SemanticSpecificationAdmission.Validate(context, context.SelectedSlices().Single().Slice, diagnostics);

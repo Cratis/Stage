@@ -11,7 +11,7 @@ public class when_inspecting_the_command_requirements : given.a_compiled_model_u
 {
     IReadOnlyList<Requirement> _requirements = [];
 
-    void Because() => _requirements = _slice.Command!.Requirements;
+    void Because() => _requirements = _slice.Command.Requirements;
 
     [Fact] void should_carry_every_declared_requirement() => _requirements.Count.ShouldEqual(2);
     [Fact] void should_carry_the_declared_message() => _requirements[0].Message.ShouldEqual("Already started");

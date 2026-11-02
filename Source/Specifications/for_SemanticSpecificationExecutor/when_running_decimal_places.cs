@@ -66,8 +66,8 @@ public class when_running_decimal_places : Specification
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Shop"));
         var compilation = new SemanticModelCompiler().Compile("Shop", SemanticDocumentSet.Create([SemanticSourceDocument.Create(catalog.ResolveDocument("shop"), "shop", "Shop.play", Source)], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        compilation.Value!.Model.SemanticVersion.ShouldEqual(SemanticVersion.V29);
-        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan!;
+        compilation.Value.Model.SemanticVersion.ShouldEqual(SemanticVersion.V29);
+        _plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
     }
 

@@ -35,7 +35,7 @@ public class with_a_wrong_unordered_event_stream : a_generated_application
         _failure = await Catch.Exception(() => Run("swapped-test.log", "test", "-c", "Debug", "--no-build"));
     }
 
-    [Fact] void should_fail_in_the_generated_multiset_matcher() => _failure!.Message.ShouldContain("should_append_the_expected_event_multiset");
-    [Fact] void should_report_the_unmatched_stream() => _failure!.Message.ShouldContain("Failed");
+    [Fact] void should_fail_in_the_generated_multiset_matcher() => _failure.Message.ShouldContain("should_append_the_expected_event_multiset");
+    [Fact] void should_report_the_unmatched_stream() => _failure.Message.ShouldContain("Failed");
 }
 #endif

@@ -71,7 +71,7 @@ public class a_body_reach_plan : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var compilation = new SemanticModelCompiler().Compile("BodyReach", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compilation.Success, string.Join(';', compilation.Diagnostics));
-        var application = compilation.Value!.Model.Application;
+        var application = compilation.Value.Model.Application;
         var module = application.Modules.Single();
         var feature = module.Features.Single();
         application = application with
@@ -85,6 +85,6 @@ public class a_body_reach_plan : Specification
                 Commands = [.. slice.Commands.Select(command => command.Name == "Validate" ? command with { CodeValidations = [new("command-body")] } : command)]
             })] }] }]
         };
-        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(compilation.Value.Model.LanguageVersion, compilation.Value.Model.SemanticVersion, application)).Plan!;
+        _plan = SemanticExecutionPlan.Compile(ExecutableSemanticModel.Create(compilation.Value.Model.LanguageVersion, compilation.Value.Model.SemanticVersion, application)).Plan;
     }
 }

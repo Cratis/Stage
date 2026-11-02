@@ -24,7 +24,7 @@ public class when_two_framework_namespaces_share_a_type_name
         var tree = CSharpSyntaxTree.ParseText(SemanticBodyCompilation.ImplicitUsings + source);
         var compilation = SemanticBodyCompilation.Create("TimerAliases", tree);
         Assert.Empty(compilation.GetDiagnostics().Where(SemanticBodyCompilation.IsFailure));
-        var order = compilation.GetTypeByMetadataName("Shop.Orders.Order")!;
+        var order = compilation.GetTypeByMetadataName("Shop.Orders.Order");
         var first = (IPropertySymbol)Assert.Single(order.GetMembers("First"));
         var second = (IPropertySymbol)Assert.Single(order.GetMembers("Second"));
         Assert.True(SymbolEqualityComparer.Default.Equals(first.Type, compilation.GetTypeByMetadataName("System.Threading.Timer")));

@@ -26,8 +26,8 @@ public class when_refusing_an_unknown_additional_scope : given.an_artifact_rende
                   event ProjectRegistered
                     projectId ProjectId
             """);
-        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value!.Model;
-        _request = new(model, SemanticExecutionPlan.Compile(model).Plan!, _request.Profile, new(ArtifactRenderScopeKind.Module, model.Application.Modules.Single().Id));
+        var model = new SemanticModelCompiler().Compile("Projects", SemanticDocumentSet.Create([document], catalog)).Value.Model;
+        _request = new(model, SemanticExecutionPlan.Compile(model).Plan, _request.Profile, new(ArtifactRenderScopeKind.Module, model.Application.Modules.Single().Id));
     }
     void Because() => _error = Catch.Exception(() => ArtifactRenderPlan.Create(_request with { AdditionalScopes = [new(ArtifactRenderScopeKind.Slice, _request.Model.Application.Id)] }, [], []));
     [Fact] void should_validate_every_scope_against_the_model() => _error.ShouldBeOfExactType<InvalidArtifactRenderContract>();

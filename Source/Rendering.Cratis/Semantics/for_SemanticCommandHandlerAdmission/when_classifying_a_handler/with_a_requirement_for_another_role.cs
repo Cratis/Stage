@@ -14,5 +14,5 @@ public class with_a_requirement_for_another_role : given.a_described_handler
     void Because() => _classification = Classify(_command, _request);
 
     [Fact] void should_classify_as_invalid() => _classification.Kind.ShouldEqual(HandlerKind.Invalid);
-    [Fact] void should_explain_the_wrong_role() => _classification.Reason!.ShouldContain("role");
+    [Fact] void should_explain_the_wrong_role() => _classification.Reason.ShouldContain("role");
 }

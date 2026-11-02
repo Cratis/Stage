@@ -5,6 +5,7 @@
 using Cratis.Screenplay.CanonicalCorpus;
 using Cratis.Screenplay.Semantics;
 using Cratis.Screenplay.Semantics.Serialization;
+using Cratis.Specifications;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.given;
 using Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticSpecificationAdmission;
@@ -12,6 +13,7 @@ using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner;
 
+[PerFactSpecificationLifecycle]
 public class when_executing_unobservable_event_source_specifications : a_generated_application
 {
     protected override bool DeferPlan => true;

@@ -21,13 +21,13 @@ public class with_repeated_execution : a_command_only_plan
     {
         var executor = new SemanticSpecificationExecutor();
         var cache = (ConcurrentDictionary<SemanticRevision, SemanticRuntimeTypes>)typeof(SemanticSpecificationExecutor)
-            .GetField("_types", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            .GetField("_types", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
         var selection = new SemanticSpecificationSelection([_specification.Id]);
         await executor.Run(_plan, selection, new());
-        _first = cache[_plan.Revision].ForCommand(_plan.Commands[_specification.When!.Command]);
-        var equivalentPlan = SemanticExecutionPlan.Compile(_plan.Model).Plan!;
+        _first = cache[_plan.Revision].ForCommand(_plan.Commands[_specification.When.Command]);
+        var equivalentPlan = SemanticExecutionPlan.Compile(_plan.Model).Plan;
         _report = await executor.Run(equivalentPlan, selection, new());
-        _second = cache[equivalentPlan.Revision].ForCommand(equivalentPlan.Commands[_specification.When!.Command]);
+        _second = cache[equivalentPlan.Revision].ForCommand(equivalentPlan.Commands[_specification.When.Command]);
     }
 
     [Fact] void should_reuse_the_command_runtime_type() => Xunit.Assert.Same(_first, _second);

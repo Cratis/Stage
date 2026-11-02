@@ -112,6 +112,13 @@ internal static partial class PureTransitionAdmission
         ["exceptions"] = "Only explicit InvalidOperationException(string) and ArgumentException(string) throws."
     };
 
+    /// <summary>The simple names an authored body may bind to the audited framework surface; a generated declaration with one of these names would rebind it.</summary>
+    internal static readonly IReadOnlyList<string> AuditedNames =
+    [
+        "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo",
+        "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues"
+    ];
+
     // These are the 10.0.12 package's assemblies embedded in the renderer, independent of
     // the installed SDK or host runtime. Never fall back to another installed SDK pack.
     internal static readonly Lazy<MetadataReference[]> _references = new(LoadEmbeddedReferences);
@@ -414,8 +421,7 @@ internal static partial class PureTransitionAdmission
     internal static bool IsGeneratedConceptConversion(ISymbol symbol, IReadOnlyDictionary<INamedTypeSymbol, ITypeSymbol> trusted) =>
         GeneratedConceptConversions.Matches(symbol, trusted);
 
-    internal static bool ShadowsAuditedName(string name) =>
-        NameIs(name, "Math", "String", "Enumerable", "ImmutableArray", "DateTimeOffset", "TimeSpan", "StringComparison", "MidpointRounding", "CultureInfo", "ArgumentException", "InvalidOperationException", "IEnumerable", "IFormatProvider", "Guid", "DateOnly", "EventContext", "ReducerContextValues");
+    internal static bool ShadowsAuditedName(string name) => AuditedNames.Contains(name, StringComparer.Ordinal);
 
     internal static HashSet<(string Name, string? Namespace)> MethodTypeReferences(SyntaxTree tree, SemanticModel model, string methodName)
     {

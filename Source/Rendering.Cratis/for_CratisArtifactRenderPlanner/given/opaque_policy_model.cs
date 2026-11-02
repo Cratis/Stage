@@ -27,12 +27,12 @@ public static class opaque_policy_model
 {
     public static readonly DateTimeOffset Receipt = new(2027, 3, 4, 10, 0, 0, TimeSpan.Zero);
 
-    public static string Source(string body, string commandAuthorization = "Custom", string queryAuthorization = "Custom")
+    public static string Source(string body, string commandAuthorization = "Custom", string queryAuthorization = "Custom", string policyName = "Custom")
     {
         var indented = string.Join('\n', body.Split('\n').Select(line => $"  {line}"));
         return $$"""
             concept InvoiceId : String
-            policy Custom
+            policy {{policyName}}
               ```csharp
             {{indented}}
               ```

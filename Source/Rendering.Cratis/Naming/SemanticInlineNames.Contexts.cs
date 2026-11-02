@@ -39,6 +39,7 @@ internal sealed partial class SemanticInlineNames
             .Select(Identifiers.ToPascalCase)
             .Concat(SemanticCratisAdmission.NamingReservations(context, context.AllSlices).Select(type => type.Name))
             .Concat(TypedContextTypes.Fixed)
+            .Concat(PureTransitionAdmission.AuditedNames)
             .Distinct(StringComparer.Ordinal);
         return new(sites, modeled.Select(name => new SemanticInlineNameReservation(ContextScope, name)));
     }

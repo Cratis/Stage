@@ -23,7 +23,8 @@ public class with_the_default_composition : a_register_project_render_request
     // Recomputed for npm @cratis/scene 4.86.0: the frontend scaffold now emits the matching Scene package pins.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Recomputed for Screenplay 5.0.0: the scaffold emits the 5.0.0 matcher pin.
-    const string Before = "57ad9ae5a3d7687bef0357618679a4c897297d5305e45e1a6fb7889441273a9a";
+    // Recomputed for Screenplay 5.1.0: the scaffold emits the 5.1.0 matcher pin.
+    const string Before = "b362d19975346e552c00a2c04b5397f493ef73e1fbf107269a4497291dcb2f84";
 
     ArtifactRenderPlan _plan = null!;
 

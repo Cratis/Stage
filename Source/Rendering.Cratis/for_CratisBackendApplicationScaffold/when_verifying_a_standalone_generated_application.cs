@@ -41,6 +41,8 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
     {
         readonly List<string> _timings = [];
         DirectoryInfo _application = null!;
+        GeneratedApplicationContainer? _container;
+        EventHandler? _exitHandler;
         internal ProcessResult DebugBuild { get; private set; } = null!;
         internal ProcessResult DebugTest { get; private set; } = null!;
         internal ProcessResult ReleaseBuild { get; private set; } = null!;
@@ -153,9 +155,19 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
         {
             try
             {
-                if (DockerAvailable)
+                try
                 {
-                    await Run("docker", "rm", "--force", "--volumes", DockerContainerName());
+                    if (_container is not null)
+                    {
+                        await _container.Remove();
+                    }
+                }
+                finally
+                {
+                    if (_exitHandler is not null)
+                    {
+                        AppDomain.CurrentDomain.ProcessExit -= _exitHandler;
+                    }
                 }
             }
             finally
@@ -204,50 +216,82 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
 
         async Task<string> VerifyHealth()
         {
-            var containerName = DockerContainerName();
-            var image = $"cratis/chronicle:{CratisRendering.Dependencies.ChronicleImageVersion}-development";
-            var start = await Run(
-                "docker",
-                "run",
-                "--detach",
-                "--name",
-                containerName,
-                "--publish",
-                "127.0.0.1::27017",
-                "--publish",
-                "127.0.0.1::35000",
-                image);
-            if (start.ExitCode != 0)
+            var container = CreateContainer();
+            _container = container;
+            _exitHandler = (_, _) => container.RemoveWhenExiting();
+            AppDomain.CurrentDomain.ProcessExit += _exitHandler;
+            WriteReaping(await Timed("docker-reap", () => container.ReapStale()));
+            var started = await container.Create();
+            if (started.Succeeded)
             {
-                await Run("docker", "rm", "--force", "--volumes", containerName);
-                return $"Docker is available, but the pinned Chronicle image failed to pull or start: {start.Output}";
+                started = await container.Start();
+            }
+
+            if (!started.Succeeded)
+            {
+                await container.Remove();
+                return $"Docker is available, but the pinned Chronicle image failed to pull or start: {started.Detail}";
             }
 
             var evidence = string.Empty;
-            ProcessResult removal;
+            ContainerRemovalResult removal;
             try
             {
-                evidence = await VerifyChronicleContainer(containerName);
+                evidence = await VerifyChronicleContainer(container);
             }
             finally
             {
-                removal = await Run("docker", "rm", "--force", "--volumes", containerName);
+                removal = await container.Remove();
             }
 
-            return removal.ExitCode == 0
+            return removal.Succeeded
                 ? evidence
-                : $"The pinned Chronicle container could not be removed: {removal.Output}";
+                : $"The pinned Chronicle container could not be removed: {removal.Outcome}: {removal.Detail}";
         }
 
-        async Task<string> VerifyChronicleContainer(string containerName)
+        GeneratedApplicationContainer CreateContainer()
         {
-            var mongoDBPort = await MappedPort(containerName, "27017/tcp");
+            var clock = TimeProvider.System;
+            var owner = GeneratedApplicationContainerOwner.ForCurrentProcess(clock);
+            return new(
+                new DockerCommands(),
+                new OwnerProcesses(),
+                clock,
+                owner,
+                new(
+                    $"stage-generated-{_application.Name[^12..]}-{owner.RunToken[..8]}",
+                    $"cratis/chronicle:{CratisRendering.Dependencies.ChronicleImageVersion}-development",
+                    Path.Combine(_application.FullName, ".stage-container.cid")));
+        }
+
+        void WriteReaping(ContainerReapReport report)
+        {
+            var directory = Environment.GetEnvironmentVariable("AI_WORK_KEEP");
+            if (string.IsNullOrEmpty(directory))
+            {
+                return;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(directory);
+                File.WriteAllLines(Path.Combine(directory, "standalone-container-reaping.txt"), [$"host\t{Environment.MachineName}\tremoved\t{report.Removed}", .. report.Lines]);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // The reaping report is diagnostics only; an unwritable evidence directory must not fail the verification.
+            }
+        }
+
+        async Task<string> VerifyChronicleContainer(GeneratedApplicationContainer container)
+        {
+            var mongoDBPort = await MappedPort(container, "27017/tcp");
             if (mongoDBPort.Port == 0)
             {
                 return mongoDBPort.Failure;
             }
 
-            var chroniclePort = await MappedPort(containerName, "35000/tcp");
+            var chroniclePort = await MappedPort(container, "35000/tcp");
             if (chroniclePort.Port == 0)
             {
                 return chroniclePort.Failure;
@@ -255,7 +299,7 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
 
             if (!await WaitForInfrastructure(mongoDBPort.Port, chroniclePort.Port))
             {
-                var logs = await Run("docker", "logs", containerName);
+                var logs = await container.Logs();
                 return $"The pinned Chronicle container did not expose ready MongoDB and Chronicle endpoints. {logs.Output}";
             }
 
@@ -334,15 +378,15 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
             }
         }
 
-        async Task<(int Port, string Failure)> MappedPort(string containerName, string containerPort)
+        static async Task<(int Port, string Failure)> MappedPort(GeneratedApplicationContainer container, string containerPort)
         {
-            var result = await Run("docker", "port", containerName, containerPort);
+            var result = await container.Port(containerPort);
             if (result.ExitCode != 0)
             {
                 return (0, $"Docker could not query the mapped host port for container port {containerPort}: {result.Output}");
             }
 
-            var endpoints = result.Output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var endpoints = result.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var separator = endpoints.Length == 1 ? endpoints[0].LastIndexOf(':') : -1;
             if (separator < 0 || !int.TryParse(endpoints[0][(separator + 1)..], out var port))
             {
@@ -435,8 +479,6 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
 
             return startInfo;
         }
-
-        string DockerContainerName() => $"stage-generated-{_application.Name[^12..]}";
 
         internal static string FailureOutput(ProcessResult result) =>
             result.ExitCode == 0 &&

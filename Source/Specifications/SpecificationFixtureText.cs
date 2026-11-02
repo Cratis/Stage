@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
-using System.Text.RegularExpressions;
 using Cratis.Screenplay.Printing;
 using Cratis.Screenplay.Syntax;
 
@@ -14,18 +13,18 @@ namespace Cratis.Stage.Specifications;
 /// </summary>
 /// <remarks>
 /// Screenplay has no JSON. A structured value is an indented block in source; on one diagnostic line it reads in the
-/// words of that block: <c>(member = value, ...)</c> for an object, <c>(item value, ...)</c> for a list and <c>none</c>
-/// for an empty list - the same display the event model board uses.
+/// words of that block: <c language="screenplay">(member = value, ...)</c> for an object, <c language="screenplay">(item value, ...)</c> for a list, <c language="screenplay">none</c>
+/// for an empty list and <c language="screenplay">empty</c> for an object without members - the same display the event model board uses.
 /// </remarks>
-internal static partial class SpecificationFixtureText
+internal static class SpecificationFixtureText
 {
-
     internal static string Expression(ExpressionSyntax expression) => expression switch
     {
         LiteralExpressionSyntax literal => Literal(literal.Value),
         PathExpressionSyntax path => path.Path,
         ListExpressionSyntax list when !list.Items.Any() => "none",
         ListExpressionSyntax list => $"({string.Join(", ", list.Items.Select(item => $"item {Expression(item)}"))})",
+        ObjectExpressionSyntax obj when !obj.Members.Any() => "empty",
         ObjectExpressionSyntax obj => $"({string.Join(", ", obj.Members.Select(member => $"{MemberName(member.Name)} = {Expression(member.Value)}"))})",
         _ => $"<{expression.GetType().Name}>"
     };
@@ -33,7 +32,8 @@ internal static partial class SpecificationFixtureText
     static string MemberName(string name)
     {
         if (name == "item") return "@item";
-        return IdentifierRegex().IsMatch(name) ? name : Literal(name);
+        var identifier = name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && name.All(character => char.IsLetterOrDigit(character) || character == '_');
+        return identifier ? name : Literal(name);
     }
 
     static string Literal(object? value) => value switch
@@ -71,7 +71,4 @@ internal static partial class SpecificationFixtureText
 
         return negative ? "-" + expanded : expanded;
     }
-
-    [GeneratedRegex(@"^[\p{L}_][\p{L}\p{N}_]*$", RegexOptions.NonBacktracking)]
-    private static partial Regex IdentifierRegex();
 }

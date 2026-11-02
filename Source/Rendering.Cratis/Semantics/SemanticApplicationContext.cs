@@ -23,6 +23,8 @@ internal sealed partial class SemanticApplicationContext
     readonly Lazy<IReadOnlyList<GeneratedTypeName>> _generatedTypes;
     readonly Lazy<IReadOnlyDictionary<SemanticId, string>> _responseTypes;
     readonly Lazy<SemanticInlineNames> _inlineNames;
+    readonly Lazy<SemanticInlineNames> _contextNames;
+    readonly Lazy<IReadOnlySet<string>> _typedContextTypes;
     readonly Dictionary<(SemanticSlice Slice, SemanticId? Reducer), SemanticReducerBindingEnvironment> _reducerBindings = [];
     Lazy<IReadOnlyList<GeneratedTypeName>>? _admittedGeneratedTypes;
 
@@ -76,6 +78,8 @@ internal sealed partial class SemanticApplicationContext
         ]);
         _responseTypes = new(ResolveResponseTypes);
         _inlineNames = new(() => SemanticInlineNames.Create(this));
+        _contextNames = new(() => SemanticInlineNames.CreateContexts(this));
+        _typedContextTypes = new(() => TypedContextTypes.Names(this));
         _generatedTypes = new(() =>
         [
             .. _generatedTypeSeed.Value,
@@ -176,6 +180,12 @@ internal sealed partial class SemanticApplicationContext
 
     /// <summary>Gets whole-application inline names, independent of the requested render scope.</summary>
     internal SemanticInlineNames InlineNames => _inlineNames.Value;
+
+    /// <summary>Gets the typed-context wrapper and helper names, allocated without reading the generated type inventory they feed.</summary>
+    internal SemanticInlineNames ContextNames => _contextNames.Value;
+
+    /// <summary>Gets the full names of exactly the allocated typed-context wrappers and local query shapes.</summary>
+    internal IReadOnlySet<string> TypedContextTypeNames => _typedContextTypes.Value;
 
     internal List<ArtifactRenderDiagnostic> InlineDiagnostics { get; } = [];
 

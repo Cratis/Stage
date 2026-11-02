@@ -16,15 +16,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class PureTransitionAdmission
 {
-    internal static Verdict Walk(
-        SemanticModel model,
-        BlockSyntax body,
-        SemanticTypedContextDescriptor descriptor,
-        string? rootNamespace = null)
-    {
-        rootNamespace ??= model.GetDeclaredSymbol((MethodDeclarationSyntax)body.Parent!)!.Parameters[0].Type.ContainingNamespace.ContainingNamespace.ToDisplayString();
-        return Walk(model, body, new PureTransitionAnalysisContext(descriptor, rootNamespace, ImmutableDictionary<INamedTypeSymbol, ITypeSymbol>.Empty));
-    }
+    internal static Verdict Walk(SemanticModel model, BlockSyntax body, SemanticTypedContextDescriptor descriptor, SemanticApplicationContext context) =>
+        Walk(model, body, new PureTransitionAnalysisContext { Descriptor = descriptor, RootNamespace = context.RootNamespace, GeneratedConcepts = ImmutableDictionary<INamedTypeSymbol, ITypeSymbol>.Empty, ContextTypes = context.TypedContextTypeNames });
 
     static Verdict Walk(SemanticModel model, BlockSyntax body, PureTransitionAnalysisContext analysis)
     {
@@ -74,15 +67,15 @@ internal static partial class PureTransitionAdmission
         call.TargetMethod.ContainingType.ToDisplayString() == "System.Collections.Immutable.ImmutableArray" &&
         call.Arguments.Any(argument => HasDeferredLinqSource(argument.Value, root));
 
-    static bool IsSafeLocalType(ITypeSymbol type, Compilation compilation) =>
-        SafeDataType(type, compilation) ||
+    static bool IsSafeLocalType(ITypeSymbol type, TrustScope scope) =>
+        SafeDataType(type, scope) ||
         (type is INamedTypeSymbol named &&
             named.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>" &&
-            SafeDataType(named.TypeArguments[0], compilation));
+            SafeDataType(named.TypeArguments[0], scope));
 
-    static bool IsUnsafeCompound(ICompoundAssignmentOperation compound, Compilation compilation) =>
+    static bool IsUnsafeCompound(ICompoundAssignmentOperation compound, TrustScope scope) =>
         !(compound.Type?.SpecialType == SpecialType.System_String && StringOrChar(compound.Value)) &&
-        !SafeValue(compound.Value.Type, compilation);
+        !SafeValue(compound.Value.Type, scope);
 
     static bool IsNonStringCompound(ICompoundAssignmentOperation compound) =>
         compound.Type?.SpecialType == SpecialType.System_String &&
@@ -177,11 +170,13 @@ internal static partial class PureTransitionAdmission
     {
         readonly ImmutableHashSet<string>.Builder _reads = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
         readonly ImmutableHashSet<string>.Builder _used = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-        readonly Lazy<string> _wrapper = new(() => $"TypedContext_{SemanticTypedContextRenderer.Suffix(analysis.Descriptor)}");
+        readonly Lazy<string> _wrapper = new(() => root.Syntax.Parent is MethodDeclarationSyntax declaration ? model.GetDeclaredSymbol(declaration)?.Parameters.FirstOrDefault()?.Type.Name ?? string.Empty : string.Empty);
 
         string Wrapper => _wrapper.Value;
 
         Compilation Compilation => model.Compilation;
+
+        TrustScope Scope => analysis.Scope(model.Compilation);
 
         bool IsValidation => analysis.Descriptor.Role is SemanticImplementationRole.RulePredicate or SemanticImplementationRole.CommandValidation or SemanticImplementationRole.ConceptValidation;
 
@@ -304,7 +299,7 @@ internal static partial class PureTransitionAdmission
 
         Verdict? LinqRejection(IOperation operation) => operation switch
         {
-            IAnonymousFunctionOperation lambda when InvalidLambda(lambda) =>
+            IAnonymousFunctionOperation lambda when InvalidLambda(lambda, analysis.ContextTypes) =>
                 Forbid("LINQ lambda must be a pure expression over its parameters and typed context (no writes, deferred captures, nested LINQ or evaluation-dependent throws)."),
             IInvocationOperation linq when IsRejectedLinq(linq, root) =>
                 Forbid("LINQ count shortcuts and deferred LINQ composition are outside the pure subset."),
@@ -317,20 +312,20 @@ internal static partial class PureTransitionAdmission
         {
             ISimpleAssignmentOperation { Target: ILocalReferenceOperation assigned } when EnumerableType(assigned.Local.Type) =>
                 Forbid($"Enumerable local '{assigned.Local.Name}' must be single-assignment."),
-            ILiteralOperation { Type: { } literalType } when !SafeDataType(literalType, Compilation) =>
+            ILiteralOperation { Type: { } literalType } when !SafeDataType(literalType, Scope) =>
                 Forbid($"Literal of '{literalType}' is outside the pure allowlist."),
-            IVariableDeclaratorOperation declarator when !IsSafeLocalType(declarator.Symbol.Type, Compilation) =>
+            IVariableDeclaratorOperation declarator when !IsSafeLocalType(declarator.Symbol.Type, Scope) =>
                 Forbid($"Local '{declarator.Symbol.Name}' has a type outside the pure allowlist."),
             _ => null
         };
 
         Verdict? OperatorRejection(IOperation operation) => operation switch
         {
-            IBinaryOperation binary when !SafeBinary(binary, Compilation) =>
+            IBinaryOperation binary when !SafeBinary(binary, Scope) =>
                 Forbid($"Binary operation '{binary.OperatorKind}' on '{binary.LeftOperand.Type}' is outside the pure allowlist.{DateTimeAlternative(binary.OperatorMethod?.ContainingType)}"),
-            IUnaryOperation unary when !SafeValue(unary.Operand.Type, Compilation) =>
+            IUnaryOperation unary when !SafeValue(unary.Operand.Type, Scope) =>
                 Forbid($"Unary operation on '{unary.Operand.Type}' is outside the pure allowlist."),
-            ICompoundAssignmentOperation compound when IsUnsafeCompound(compound, Compilation) =>
+            ICompoundAssignmentOperation compound when IsUnsafeCompound(compound, Scope) =>
                 Forbid($"Compound assignment on '{compound.Value.Type}' is outside the pure allowlist."),
             IIncrementOrDecrementOperation increment when !Number(increment.Target.Type) =>
                 Forbid($"Increment on '{increment.Target.Type}' is outside the pure allowlist."),
@@ -350,7 +345,7 @@ internal static partial class PureTransitionAdmission
         };
 
         bool IsUnsafePropertyType(IPropertyReferenceOperation value) =>
-            !SafeDataType(value.Type, Compilation) && !(value.Property.Name == "InvariantCulture" && IsInvariantProvider(value));
+            !SafeDataType(value.Type, Scope) && !(value.Property.Name == "InvariantCulture" && IsInvariantProvider(value));
 
         Verdict? ConversionRejection(IOperation operation) => operation switch
         {
@@ -359,18 +354,18 @@ internal static partial class PureTransitionAdmission
                 PureValidationAdmission.ValueTarget(read.Type!, test.TypeOperand, typeTest: true, concept: IsConceptValue) => null,
             IConversionOperation conversion when IsUnsafeConversion(conversion, analysis.GeneratedConcepts) =>
                 Forbid($"Conversion to '{conversion.Type?.ToDisplayString()}' is outside the pure allowlist."),
-            IIsPatternOperation pattern when !ValidationPattern(pattern) && !SafePattern(pattern.Pattern, Compilation) =>
+            IIsPatternOperation pattern when !ValidationPattern(pattern) && !SafePattern(pattern.Pattern, Scope) =>
                 Forbid($"Pattern '{pattern.Pattern.Syntax}' is outside the pure allowlist."),
-            IDefaultValueOperation defaultValue when !Generated(defaultValue.Type, Compilation) =>
+            IDefaultValueOperation defaultValue when !Generated(defaultValue.Type, Scope) =>
                 Forbid($"Default of '{defaultValue.Type?.ToDisplayString()}' is outside the pure allowlist."),
             _ => null
         };
 
         Verdict? ConstructionRejection(IOperation operation) => operation switch
         {
-            IArrayCreationOperation { Type: IArrayTypeSymbol arrayType } when !SafeValue(arrayType.ElementType, Compilation) =>
+            IArrayCreationOperation { Type: IArrayTypeSymbol arrayType } when !SafeValue(arrayType.ElementType, Scope) =>
                 Forbid($"Array element type '{arrayType.ElementType}' is outside the pure allowlist."),
-            IWithOperation withOperation when !Generated(withOperation.Type, Compilation) =>
+            IWithOperation withOperation when !Generated(withOperation.Type, Scope) =>
                 Forbid($"With on '{withOperation.Type?.ToDisplayString()}' is outside the pure allowlist."),
             IArrayElementReferenceOperation element when IsMutatedElement(element) =>
                 Forbid("Array element mutation is outside the pure allowlist."),

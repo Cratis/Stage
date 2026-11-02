@@ -146,7 +146,7 @@ represented in closed analysis without allowing query or reactive-service calls 
 pure transitions. `Reduce` as a
 model, property, or query name, the replay-hook query names `BeginReplay`, `EndReplay`,
 `BeginReplayPartition`, `EndReplayPartition`, and collisions with generated
-`Transition_<suffix>` members refuse with `STAGE-ESM-019`. Rename the conflicting
+generated transition helper names (`<Event>Transition`, qualified by the reducer name when two reducers share an event) refuse with `STAGE-ESM-019`. Rename the conflicting
 member; Stage never silently switches a self model back to classic.
 Existing purity and typed-context refusals still apply.
 

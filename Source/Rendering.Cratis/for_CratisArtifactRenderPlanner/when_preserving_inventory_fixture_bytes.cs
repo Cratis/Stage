@@ -56,10 +56,13 @@ public class when_preserving_inventory_fixture_bytes
     [MemberData(nameof(Fixtures))]
     public void should_preserve_the_rendered_csharp(string name)
     {
-        var (_, request, _) = inventory_fixtures.All().Single(fixture => fixture.Name == name);
+        var (_, request, options) = inventory_fixtures.All().Single(fixture => fixture.Name == name);
         var plan = new CratisArtifactRenderPlanner().Plan(request);
         Assert.True(plan.Success, string.Join('\n', plan.Diagnostics));
-        var lines = plan.Artifacts.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
+
+        // Cratis/Stage#850 made typed-context names readable; restoring the hashed spelling proves the names were the only change.
+        var restored = HashedHelperNames.Restore(plan.Artifacts, new Semantics.SemanticApplicationContext(request, options));
+        var lines = restored.Where(artifact => artifact.RelativePath.EndsWith(".cs", StringComparison.Ordinal))
             .OrderBy(artifact => artifact.RelativePath, StringComparer.Ordinal)
             .Select(artifact => $"{artifact.RelativePath} {artifact.Sha256}");
         var digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', lines))));

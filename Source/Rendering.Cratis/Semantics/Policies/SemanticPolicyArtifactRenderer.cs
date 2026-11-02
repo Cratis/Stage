@@ -181,7 +181,7 @@ internal static class SemanticPolicyArtifactRenderer
             }
 
             return (Descriptor: Descriptor(context, site.RequirementId, site.Operation), Body: body!);
-        }).OrderBy(_ => SemanticPolicyContextRuntime.Body(_.Descriptor), StringComparer.Ordinal).ToArray();
+        }).OrderBy(_ => SemanticPolicyContextRuntime.Body(context, _.Descriptor), StringComparer.Ordinal).ToArray();
         if (bodies.Length == 0)
         {
             return [];
@@ -196,7 +196,7 @@ internal static class SemanticPolicyArtifactRenderer
             SemanticPolicyContextRuntime.RenderWrapper(context, site.Descriptor) with { Sources = [site.Descriptor.OperationId!.Value] },
             SemanticPolicyContextRuntime.RenderBodies(context, [site], evaluators: true) with
             {
-                RelativePath = Path.Combine(context.PoliciesFolder, $"PolicyBodies_{SemanticTypedContextRenderer.Suffix(site.Descriptor)}.cs"),
+                RelativePath = Path.Combine(context.PoliciesFolder, context.ContextNames.ContextPolicyFile(site.Descriptor)),
                 Sources = [site.Descriptor.OperationId!.Value]
             }
         }));
@@ -276,7 +276,7 @@ internal static class SemanticPolicyArtifactRenderer
 
         var bodies = context.Domain.Count == 0 ? "PolicyBodies" : $"global::{context.PoliciesNamespace}.PolicyBodies";
 
-        return $"{bodies}.{SemanticPolicyContextRuntime.Evaluate(descriptor)}(ref unavailable, context, {text})";
+        return $"{bodies}.{SemanticPolicyContextRuntime.Evaluate(context, descriptor)}(ref unavailable, context, {text})";
     }
 
     static string Condition(SemanticPolicyCondition condition, SemanticApplicationContext context, IReadOnlyList<SemanticProperty> properties, bool command, string argument, string subject) => condition switch

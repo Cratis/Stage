@@ -71,9 +71,9 @@ internal static partial class PureValidationAdmission
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
             var model = compilation.GetSemanticModel(tree);
             var method = tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
-            var rejection = AmbientRejection(method, model) ?? TargetRejection(method, model, descriptor) ?? ShadowRejection(tree, model) ?? CompilationRejection(compilation, method, body);
+            var rejection = AmbientRejection(method, model) ?? TargetRejection(method, model, descriptor, context.TypedContextTypeNames) ?? ShadowRejection(tree, model) ?? CompilationRejection(compilation, method, body);
             if (rejection is not null) return rejection;
-            var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context.RootNamespace);
+            var verdict = PureTransitionAdmission.Walk(model, method.Body!, descriptor, context);
             if (!RequiresRenderedVerification(verdict, mode)) return verdict;
             return VerifyRenderedBody(compilation, tree, body) ?? verdict;
         }
@@ -85,14 +85,14 @@ internal static partial class PureValidationAdmission
         {
             var ambient = method.Body!.DescendantNodes().OfType<SimpleNameSyntax>()
                 .Select(access => model.GetSymbolInfo(access).Symbol).OfType<IPropertySymbol>()
-                .FirstOrDefault(property => property.ContainingType.Name == SemanticValidationContextRuntime.Wrapper(descriptor) &&
+                .FirstOrDefault(property => property.ContainingType.Name == SemanticValidationContextRuntime.Wrapper(context, descriptor) &&
                     SemanticValidationContextRuntime.RefusedMembers.Contains(property.Name, StringComparer.Ordinal));
             return ambient is null ? null : Reject("STAGE-ESM-015", $"The validation body reads context.{ambient.Name}; dependency-free validators have no constructor-free ambient source for RuleContext.{ambient.Name} (Tenant and CausedBy remain refused).");
         }
 
         PureTransitionAdmission.Verdict? ShadowRejection(SyntaxTree tree, SemanticModel model)
         {
-            var references = PureTransitionAdmission.MethodTypeReferences(tree, model, SemanticValidationContextRuntime.Method(descriptor));
+            var references = PureTransitionAdmission.MethodTypeReferences(tree, model, SemanticValidationContextRuntime.Method(context, descriptor));
             var peers = context.Application.Concepts.Select(concept => Naming.Identifiers.ToPascalCase(concept.Name))
                 .Concat(context.Application.Types.Select(type => Naming.Identifiers.ToPascalCase(type.Name)));
             var shadow = peers.FirstOrDefault(name => references.Any(reference => reference.Name == name && PureTransitionAdmission.ShadowsAuditedName(name)));

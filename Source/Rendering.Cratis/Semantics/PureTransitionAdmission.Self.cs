@@ -28,8 +28,9 @@ internal static partial class PureTransitionAdmission
         SemanticReducerArtifactRenderer.RenderTransitions(builder, reducer, context, descriptor.RequirementId, body);
         builder.EndBlock();
         var root = CSharpSyntaxTree.ParseText(builder.ToString()).GetRoot();
+        var helpers = reducer.Transitions.Select(transition => context.InlineNames.ReducerTransition(transition.RequirementId)).ToHashSet(StringComparer.Ordinal);
         var queriesSyntax = root.DescendantNodes().OfType<MethodDeclarationSyntax>().Where(method =>
-            !IsTransitionMethod(method, "Transition_") && method.Identifier.Text != "Reduce").ToArray();
+            !helpers.Any(helper => IsTransitionMethod(method, helper)) && method.Identifier.Text != "Reduce").ToArray();
         root = root.ReplaceNodes(queriesSyntax, (original, _) => original
             .WithModifiers(SyntaxFactory.TokenList(original.Modifiers.Where(token => !token.IsKind(SyntaxKind.AsyncKeyword))))
             .WithExpressionBody(null).WithSemicolonToken(default)

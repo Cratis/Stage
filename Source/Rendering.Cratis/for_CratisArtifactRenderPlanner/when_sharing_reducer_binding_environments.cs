@@ -132,8 +132,9 @@ public class when_sharing_reducer_binding_environments
         var file = plan.Artifacts.Single(artifact => artifact.RelativePath.EndsWith("/Fold.cs", StringComparison.Ordinal));
         var content = Encoding.UTF8.GetString(file.Bytes.AsSpan());
         var descriptor = loaded.TypedContextDescriptors.Single(candidate => candidate.OperationId == loaded.Model.Application.Modules.Single().Features.Single().Slices.Single(slice => slice.Name == "Totals").ReadModels.Single(model => model.Name == "Total").Id);
-        var suffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(descriptor.RequirementId)))[..8];
-        var wrapper = SemanticTypedContextRenderer.Suffix(descriptor);
+        var names = when_rendering_a_pure_reducer.Context(loaded);
+        var helper = names.InlineNames.ReducerTransition(descriptor.RequirementId);
+        var wrapper = names.ContextNames.ContextWrapper(descriptor);
         const string modelType = "Total";
 
         // The reducer wrappers are in the generated type inventory and use the typed-context import.
@@ -149,7 +150,7 @@ public class when_sharing_reducer_binding_environments
                 public {{modelType}}? On(OrderPlaced @event, {{modelType}}? current, EventContext eventContext)
                 {
                     var originalSourceId = eventContext.EventSourceId.Value;
-                    var result = Transition_{{suffix}}(new TypedContext_{{wrapper}}(current, @event, originalSourceId, TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
+                    var result = {{helper}}(new {{wrapper}}(current, @event, originalSourceId, TenantId.NotSet, eventContext.Occurred, checked((long)eventContext.SequenceNumber.Value)));
                     if (result is not null && (!string.Equals(result.Id.ToString(), originalSourceId, StringComparison.Ordinal)))
                     {
                         throw new InvalidOperationException("Reducer returned a read model with an identifier different from the event source.");
@@ -157,7 +158,7 @@ public class when_sharing_reducer_binding_environments
                     return result;
                 }
 
-                static {{modelType}}? Transition_{{suffix}}(TypedContext_{{wrapper}} context)
+                static {{modelType}}? {{helper}}({{wrapper}} context)
                 {
                     {{Body}}
                 }
@@ -195,7 +196,7 @@ public class when_sharing_reducer_binding_environments
             {
                 var descriptor = loaded.TypedContextDescriptors.Single(candidate => candidate.OperationId == reducer.ReadModel && candidate.RequirementId == transition.RequirementId);
                 var synthetic = PureTransitionAdmission.Analyze(loaded.ImplementationContents[transition.RequirementId], context, context.ReadModels[reducer.ReadModel], context.Events[transition.EventContract], descriptor, loaded.ImplementationRequirements.Single(requirement => requirement.RequirementId == transition.RequirementId));
-                var real = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor);
+                var real = PureTransitionAdmission.AnalyzeRendered(compilation, path, descriptor, context);
                 Assert.True(synthetic.Accepted && real.Accepted, $"{synthetic.Code}: {synthetic.Reason}; {real.Code}: {real.Reason}");
                 Assert.Equal(synthetic.BoundSymbols.ToArray(), real.BoundSymbols.ToArray());
                 Assert.Equal(synthetic.ContextReads, real.ContextReads);

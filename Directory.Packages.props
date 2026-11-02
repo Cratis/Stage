@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageVersionOverrideEnabled>false</CentralPackageVersionOverrideEnabled>
-    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">4.259.0</CratisScreenplayVersion>
+    <CratisScreenplayVersion Condition="'$(CratisScreenplayVersion)' == ''">5.1.0</CratisScreenplayVersion>
     <PureTransitionReferencePackVersion>10.0.12</PureTransitionReferencePackVersion>
     <!-- Cratis.Ante.Contracts requires this Chronicle client or later. Only an application rendered with onboarding pins it; every other render stays on the Chronicle pin below. -->
     <AnteContractsChronicleVersion>19.115.2</AnteContractsChronicleVersion>
@@ -52,7 +52,7 @@
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: freezes the released RegisterProject conformance corpus consumed by the Cratis renderer's planner fixtures. -->
-    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="4.247.3" />
+    <PackageVersion Include="Cratis.Screenplay.CanonicalCorpus" Version="5.1.0" />
     <PackageVersion Include="Cratis.Templates" Version="1.8.1" />
     <PackageVersion Include="Scriban" Version="[7.5.3]" />
     <!-- Microsoft -->

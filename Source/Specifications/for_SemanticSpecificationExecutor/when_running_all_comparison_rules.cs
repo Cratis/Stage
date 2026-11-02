@@ -32,17 +32,17 @@ public class when_running_all_comparison_rules : Specification
                     returns answer
                   specification Accepted
                     when Check
-                      values = {{accepted}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("values", accepted, 22))}}
                       answer = true
                     then returns true
                   specification Rejected
                     when Check
-                      values = {{rejected}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("values", rejected, 22))}}
                       answer = true
                     then error "All values must meet the bound"
                   specification Empty
                     when Check
-                      values = []
+                      values none
                       answer = true
                     then returns true
             """;

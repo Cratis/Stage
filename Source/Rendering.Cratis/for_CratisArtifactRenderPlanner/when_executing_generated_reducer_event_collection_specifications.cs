@@ -72,7 +72,9 @@ public class when_executing_generated_reducer_event_collection_specifications : 
             $"      specification {name}",
             "        when PlaceOrder",
             $"          id = \"{id}\"",
-            "          amounts = [20, 40]",
+            "          amounts",
+            "            item 20",
+            "            item 40",
             "          amount = 40"
         };
         if (unordered)

@@ -119,7 +119,7 @@ internal static class optional_validated_composite_concept_cases
               specification {{shape.Name}}{{name}}
                 when Check{{shape.Name}}
                   id = "one"
-                  value = {{value}}
+                  {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("value", value, 18))}}
                 {{(string.Equals(name, "Invalid", StringComparison.Ordinal) ? "then error \"Count minimum\"" : "then returns \"one\"")}}
         """;
 

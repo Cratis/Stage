@@ -36,7 +36,9 @@ public class when_compiling_optional_collection_specifications : Specification
                   specification Checking
                     when Check
                       id = "one"
-                      values = [{{literal}}, {{literal}}]
+                      values
+                        item {{literal}}
+                        item {{literal}}
                       scalar = {{literal}}
                       otherScalar = {{literal}}
                     then returns "one"

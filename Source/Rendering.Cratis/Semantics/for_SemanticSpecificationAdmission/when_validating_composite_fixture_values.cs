@@ -79,7 +79,7 @@ public class when_validating_composite_fixture_values : Specification
                   specification Checking
                     when Check
                       id = "one"
-                      value = {{value}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("value", value, 22))}}
                     {{(rejection ? "then error \"Rejected\"" : "then returns \"one\"")}}
             """);
         if (explicitNullMembers)

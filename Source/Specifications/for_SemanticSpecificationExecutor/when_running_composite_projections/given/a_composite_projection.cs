@@ -14,7 +14,7 @@ public class a_composite_projection : Specification
 
     protected async Task Run(string addressType = "type Address\n  street String\n  city String", string address = "{\"street\":\"Main 1\",\"city\":\"Oslo\"}", string expectedCity = "Oslo", string lineType = "type Line\n  sku String\n  quantity Int", bool decimalPath = false, string lines = "[{\"sku\":\"A-1\",\"quantity\":2},{\"sku\":\"B-2\",\"quantity\":1}]", string? expectedLines = null, string? expectedLat = null, string? exactGiven = null, string? exactExpected = null)
     {
-        var expectation = (expectedLines is null ? "" : $"\n                      lines = {expectedLines}") + (expectedLat is null ? "" : $"\n                      lat = {expectedLat}");
+        var expectation = (expectedLines is null ? "" : "\n                      " + global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("lines", expectedLines, 22)) + (expectedLat is null ? "" : $"\n                      lat = {expectedLat}");
         var source = $$"""
             {{addressType}}
             {{lineType}}
@@ -46,8 +46,8 @@ public class a_composite_projection : Specification
                   specification Checking
                     given Placed
                       for "one"
-                      address = {{address}}
-                      lines = {{lines}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("address", address, 22))}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("lines", lines, 22))}}
                     then readmodel Order
                       id = "one"
                       city = "{{expectedCity}}"{{expectation}}

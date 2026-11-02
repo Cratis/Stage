@@ -52,7 +52,7 @@ public class a_composite_input : Specification
                   specification CheckingInput
                     when CheckInput
                       id = "one"
-                      value = {{value}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("value", value, 22))}}
                     {{(error is null ? "then returns \"one\"" : $"then error \"{error}\"")}}
             """;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("CompositeInputs"));

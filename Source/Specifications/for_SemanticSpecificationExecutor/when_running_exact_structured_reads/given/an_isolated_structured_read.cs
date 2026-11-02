@@ -43,7 +43,8 @@ public class an_isolated_structured_read : Specification
                   specification Checking
                     given Placed
                       for "one"
-                      detail = {"amount":{{value}}}
+                      detail
+                        amount = {{value}}
                     then readmodel Order
                       id = "one"{{expectation}}
             """;

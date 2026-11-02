@@ -196,7 +196,7 @@ public class when_running_child_projections : Specification
                     then readmodel Current
                       id = "parent"
                       name = "parent name"
-                      entries = {{expected}}
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("entries", expected, 22))}}
             """;
         if (action == "root-join")
         {

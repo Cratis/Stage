@@ -12,8 +12,8 @@ namespace Cratis.Stage.Specifications.for_SemanticSpecificationExecutor;
 public class when_projecting_structured_event_members : Specification
 {
     [Theory]
-    [InlineData("""address = {"street":"1 Way","city":"Oslo"}""", "Oslo", true)]
-    [InlineData("""address = {"street":"1 Way","city":"Oslo"}""", "Bergen", false)]
+    [InlineData("""{"street":"1 Way","city":"Oslo"}""", "Oslo", true)]
+    [InlineData("""{"street":"1 Way","city":"Oslo"}""", "Bergen", false)]
     public async Task should_agree_with_the_reference_for_whole_and_nested_members(string whole, string city, bool passes)
     {
         var plan = Compile(whole, city);
@@ -60,16 +60,27 @@ public class when_projecting_structured_event_members : Specification
                   specification Projecting
                     when Place
                       id = "one"
-                      {{whole}}
-                      lines = [{"street":"2 Way","city":"Trondheim"}]
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("address", whole, 22))}}
+                      lines
+                        item
+                          street = "2 Way"
+                          city = "Trondheim"
                     then Placed
                       for "one"
-                      {{whole}}
-                      lines = [{"street":"2 Way","city":"Trondheim"}]
+                      {{(global::Cratis.Stage.Contracts.Screenplay.StructuredBlocks.Assign("address", whole, 22))}}
+                      lines
+                        item
+                          street = "2 Way"
+                          city = "Trondheim"
                     then readmodel Order
                       id      = "one"
-                      address = {"street":"1 Way","city":"Oslo"}
-                      lines   = [{"street":"2 Way","city":"Trondheim"}]
+                      address
+                        street = "1 Way"
+                        city = "Oslo"
+                      lines
+                        item
+                          street = "2 Way"
+                          city = "Trondheim"
                       city    = "{{city}}"
             """;
         var syntax = new ScreenplayCompiler().Parse(source);

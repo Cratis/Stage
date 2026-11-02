@@ -445,6 +445,9 @@ jobs:
                   if reader.is_alive():
                       raise RuntimeError("Runtime output did not close within the cleanup budget.")
                   if process.returncode != 0:
+                      # Show the failing assertion in the job log; the full log stays in the uploaded results.
+                      tail = (evidence / "runtime.log").read_text(errors="replace").splitlines()[-200:]
+                      print("\n".join(tail), flush=True)
                       raise RuntimeError(f"Stage 342 dotnet test exited {process.returncode}; see bounded runtime.log.")
               check_disk()
               require_runtime_results(evidence / "stage342-runtime.trx")

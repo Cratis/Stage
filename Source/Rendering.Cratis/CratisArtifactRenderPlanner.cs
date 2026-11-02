@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Cratis.Screenplay.Semantics;
+using Cratis.Stage.Contracts.Lifecycles;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
@@ -11,6 +12,7 @@ using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 using Cratis.Stage.Rendering.Cratis.Semantics.Constraints;
+using Cratis.Stage.Rendering.Cratis.Semantics.Lifecycles;
 using Cratis.Stage.Rendering.Cratis.Semantics.Policies;
 using Cratis.Stage.Rendering.Cratis.Semantics.Validation;
 
@@ -133,6 +135,8 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         context.OmittedOwners = omission.Closure;
         slices = omission.Apply(context.SelectedSlices());
         SemanticCratisAdmission.Evaluate(context, slices, diagnostics);
+        var lifecycleRefusals = SemanticLifecycleAdmission.Check(context);
+        diagnostics.AddRange(lifecycleRefusals.Select(refusal => Error(refusal.Code, refusal.Message, context.Application.Id)));
         var removals = SemanticCratisAdmission.AdmitReducerMigration(context, diagnostics);
         var selectedReducers = omission.Apply(SemanticReducerTypedContexts.Selected(context, slices))
             .Select(descriptor => (descriptor.RequirementId, descriptor.OperationId!.Value)).ToHashSet();
@@ -242,6 +246,16 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             artifacts.AddRange(renderer.Render(located, context).Select(Artifact));
         }
 
+        if (lifecycleRefusals.IsEmpty && request.Scope.Kind == ArtifactRenderScopeKind.Application)
+        {
+            artifacts.AddRange(SemanticLifecycleArtifactRenderer.Render(context).Select(Artifact));
+            diagnostics.AddRange(context.Application.StateMachines.Select(machine => new ArtifactRenderDiagnostic(
+                LifecycleCodes.RestartState,
+                ArtifactRenderDiagnosticSeverity.Warning,
+                $"State machine '{machine.Name}' resumes in its initial state after its grain is reactivated: Cratis.Orleans resolves the state of an event-sourced machine from the followed read model alone, and '{machine.Name}' declares no read model member that records its state.",
+                context.Application.Id)));
+        }
+
         artifacts.AddRange(SemanticCratisAdmission.SelectedConstraints(context, slices)
             .Select(_ => Artifact(SemanticConstraintArtifactRenderer.Render(_.Slice, _.Constraint, context))));
         diagnostics.AddRange(context.InlineDiagnostics);
@@ -306,7 +320,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name));
+        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name, SemanticLifecycleArtifactRenderer.HasEventTriggers(context)));
     }
 
     // The application's shared UI: the Scene composition, the module binding it to the generated Arc proxies, and the

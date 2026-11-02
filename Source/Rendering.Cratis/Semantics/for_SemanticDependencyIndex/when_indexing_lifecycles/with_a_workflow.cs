@@ -9,12 +9,11 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics.for_SemanticDependencyIndex.wh
 
 public class with_a_workflow : given.a_dependency_index
 {
-    void Establish() => _application = _application with { Workflows = [new("Onboarding", Identity("lifecycle-read-model"), [new("Start", SemanticWorkflowNodeKind.Trigger) { TriggerKind = SemanticWorkflowTriggerKind.Manual }], [])] };
+    void Establish() => _application = _application with { Workflows = [new("Onboarding", _projectLookup.ReadModels.Single().Id, [new("Start", SemanticWorkflowNodeKind.Trigger) { TriggerKind = SemanticWorkflowTriggerKind.Manual }], [])] };
 
     void Because() => BuildIndex();
 
-    [Fact] void should_be_incomplete() => _index.IsSemanticGraphComplete.ShouldBeFalse();
-    [Fact] void should_record_the_refused_member() => _index.Incompleteness.Any(gap => gap.Kind == SemanticDependencyIncompletenessKind.RefusedMember && gap.Member == "SemanticApplication.Workflows").ShouldBeTrue();
+    [Fact] void should_be_complete() => Assert.True(_index.IsSemanticGraphComplete, string.Join(" / ", _index.IncompleteReasons));
+    [Fact] void should_not_refuse_the_lifecycle() => _index.Incompleteness.Any(gap => gap.Kind == SemanticDependencyIncompletenessKind.RefusedMember).ShouldBeFalse();
     [Fact] void should_not_record_unclassified_members() => _index.Incompleteness.Any(gap => gap.Kind == SemanticDependencyIncompletenessKind.UnclassifiedMember).ShouldBeFalse();
-    [Fact] void should_not_walk_the_lifecycle() => _index.Edges.Any(edge => edge.Member.StartsWith("SemanticState", StringComparison.Ordinal) || edge.Member.StartsWith("SemanticWorkflow", StringComparison.Ordinal)).ShouldBeFalse();
 }

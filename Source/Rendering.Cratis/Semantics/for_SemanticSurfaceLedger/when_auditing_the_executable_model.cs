@@ -65,7 +65,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
     [InlineData("SemanticApplication.StateMachines")]
     [InlineData("SemanticApplication.Workflows")]
     [InlineData("SemanticWorkflowNode.Kind")]
-    public void should_gate_lifecycle_members(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-016"));
+    public void should_render_lifecycle_members(string member) => _ledger[member].ShouldEqual(new(SemanticSurfaceDispositionKind.Rendered));
 
     [Fact] void should_keep_expression_capture_guards_refused() => _ledger["SemanticCaptureConditionKind.Expression"].ShouldEqual(new(SemanticSurfaceDispositionKind.Rejected, "STAGE-ESM-024"));
 
@@ -169,6 +169,7 @@ public class when_auditing_the_executable_model : given.the_executable_surface
 
     static bool IsDiagnosticCode(string code) =>
         ((code.StartsWith("STAGE-ESM-", StringComparison.Ordinal) && code.Length == 13) ||
-         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14)) &&
+         (code.StartsWith("STAGE-IMPL-", StringComparison.Ordinal) && code.Length == 14) ||
+         (code.StartsWith("STAGE-LIFECYCLE-", StringComparison.Ordinal) && code.Length == 19)) &&
         code.AsSpan(code.Length - 3).ToString().All(char.IsAsciiDigit);
 }

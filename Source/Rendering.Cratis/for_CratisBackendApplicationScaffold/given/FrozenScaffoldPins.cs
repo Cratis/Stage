@@ -36,6 +36,7 @@ internal static class FrozenScaffoldPins
                 ("Microsoft.NET.Test.Sdk", profile.MicrosoftNetTestSdkPackageVersion, "18.10.1"),
                 ("NSubstitute", profile.NSubstitutePackageVersion, "6.2.0"),
                 ("System.Security.Cryptography.Pkcs", ScaffoldPackageVersions.CryptographyPkcs, "10.0.13"),
+                ("System.Security.Cryptography.Xml", ScaffoldPackageVersions.CryptographyXml, "10.0.14"),
                 ("xunit", profile.XunitPackageVersion, "2.9.3"),
                 ("xunit.runner.visualstudio", profile.XunitRunnerVisualStudioPackageVersion, "4.0.0")
             ];

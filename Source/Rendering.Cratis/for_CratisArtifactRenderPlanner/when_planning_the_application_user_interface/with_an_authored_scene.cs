@@ -27,7 +27,8 @@ public class with_an_authored_scene : a_screen_composition_render
     // Recomputed for merged Screenplay 4.258.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    const string Before = "cf583cab13b07762115de4ae2b9463ebef4f41fd2b963d176b9d4d947d62c9a2";
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
+    const string Before = "912b9f27341b04a07fddc996c21845bbc5ae977f53c472fca9fa4247ba7b3f59";
 
     ArtifactRenderPlan _plan = null!;
 

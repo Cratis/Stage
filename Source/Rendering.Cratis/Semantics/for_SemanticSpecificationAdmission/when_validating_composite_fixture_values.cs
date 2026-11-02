@@ -79,7 +79,7 @@ public class when_validating_composite_fixture_values : Specification
                   specification Checking
                     when Check
                       id = "one"
-                      value = {{value}}
+                      {{Structured("value", value, 10)}}
                     {{(rejection ? "then error \"Rejected\"" : "then returns \"one\"")}}
             """);
         if (explicitNullMembers)
@@ -116,4 +116,6 @@ public class when_validating_composite_fixture_values : Specification
         SemanticArrayValue array => SemanticValue.Array([.. array.Values.Select(WithNullMembers)]),
         _ => SemanticValue.Null
     };
+
+    static string Structured(string property, string value, int indent) => Cratis.Stage.Rendering.Cratis.given.StructuredValueText.Assignment(property, value, indent);
 }

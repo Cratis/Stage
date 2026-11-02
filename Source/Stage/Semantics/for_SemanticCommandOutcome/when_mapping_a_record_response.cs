@@ -23,6 +23,6 @@ public class when_mapping_a_record_response : Specification
         null,
         "command");
 
-    [Fact] void should_use_camel_case_field_names() => ((Dictionary<string, object?>)((CommandResult<object?>)_result).Response!).Keys.ShouldContainOnly("projectId", "count");
-    [Fact] void should_carry_field_values() => ((Dictionary<string, object?>)((CommandResult<object?>)_result).Response!)["projectId"].ShouldEqual("hello");
+    [Fact] void should_use_camel_case_field_names() => ((Dictionary<string, object?>)((CommandResult<object?>)_result).Response).Keys.ShouldContainOnly("projectId", "count");
+    [Fact] void should_carry_field_values() => ((Dictionary<string, object?>)((CommandResult<object?>)_result).Response)["projectId"].ShouldEqual("hello");
 }

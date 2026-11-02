@@ -38,14 +38,14 @@ public class MemberPersonaClaims(IChronicleClient client, IHttpContextAccessor a
     /// </summary>
     /// <param name="principal">The signed-in caller.</param>
     /// <param name="tenant">The selected tenant, if any.</param>
-    /// <param name="personas">The names of the personas granted in that tenant.</param>
+    /// <param name="personas">The names of the personas granted in that tenant. Only personas a caller can be matched to are kept.</param>
     /// <returns>A principal whose persona roles and claims belong only to the selected tenant.</returns>
     public static ClaimsPrincipal Scope(ClaimsPrincipal principal, string? tenant, IEnumerable<string> personas)
     {
         var transformed = new ClaimsPrincipal(principal.Identities
             .Where(identity => identity.AuthenticationType != AuthenticationType)
             .Select(WithoutPersonaClaims));
-        var granted = personas.ToArray();
+        var granted = personas.Where(IsMappable).ToArray();
         if (!string.IsNullOrEmpty(tenant) && granted.Length > 0)
         {
             transformed.AddIdentity(new ClaimsIdentity(
@@ -91,6 +91,9 @@ public class MemberPersonaClaims(IChronicleClient client, IHttpContextAccessor a
 
         return Scope(principal, tenant, personas);
     }
+
+    static bool IsMappable(string name) =>
+        Personas.All.Any(persona => persona.Mappable && string.Equals(persona.Name, name, StringComparison.Ordinal));
 
     static ClaimsIdentity WithoutPersonaClaims(ClaimsIdentity identity)
     {

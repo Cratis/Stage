@@ -42,6 +42,6 @@ public partial class when_inviting_members_through_the_generated_command_pipelin
 
     [Fact] void should_scope_personas_to_the_tenant_and_authorize_invitations() => Assert.True(_tests.ExitCode == 0 && PassingProbeSummary.IsMatch(_tests.Output), $"{_tests.Output}\n{_guards}");
 
-    [GeneratedRegex(@"Total tests:\s+14\s+Passed:\s+14\s", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"Total tests:\s+15\s+Passed:\s+15\s", RegexOptions.None, 1000)]
     private static partial Regex PassingProbeSummary { get; }
 }

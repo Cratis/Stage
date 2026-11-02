@@ -59,6 +59,15 @@ public static class TenantPersonaScopeProbe
             }
 
             [Fact]
+            public void should_keep_only_personas_a_caller_can_be_matched_to()
+            {
+                var principal = MemberPersonaClaims.Scope(Incoming(), Tenant, ["Unmatched", "Member"]);
+                Assert.False(MemberPersonaClaims.Holds(principal, Tenant, "Unmatched"));
+                Assert.True(MemberPersonaClaims.Holds(principal, Tenant, "Member"));
+                Assert.DoesNotContain(MemberPersonaClaims.Scope(Incoming(), Tenant, ["Unmatched"]).Identities, identity => identity.AuthenticationType == MemberPersonaClaims.AuthenticationType);
+            }
+
+            [Fact]
             public void should_remove_forwarded_tenant_and_persona_claims_from_every_identity()
             {
                 var incoming = Incoming();

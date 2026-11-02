@@ -90,7 +90,13 @@ internal sealed record FileScope(
 
     static bool Inherit(TypeDeclarationSyntax type, IReadOnlyCollection<GeneratedTypeName> generated, HashSet<string> declared, GeneratedProjects project, HashSet<string> values, HashSet<string> types)
     {
-        if (type is InterfaceDeclarationSyntax) return type.BaseList is null;
+        if (type is InterfaceDeclarationSyntax)
+        {
+            // An interface adds no members to the file's scope; it only needs every base to be one the catalog knows.
+            return type.BaseList is null || type.BaseList.Types.All(baseType => Qualified(baseType.Type) is var (@namespace, name, arity) &&
+                FrameworkNameCatalog.Current.TypesNamed(@namespace, name, arity, project).Count(candidate => candidate.Kind == "interface") == 1);
+        }
+
         if (type is StructDeclarationSyntax || (type is RecordDeclarationSyntax record && record.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword)))
         {
             return Cataloged("System.ValueType", project, values, types);

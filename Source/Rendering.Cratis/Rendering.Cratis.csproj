@@ -78,6 +78,11 @@
         <PackageReference Include="Cratis.Chronicle" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <!-- The specs compile the state machines and workflows Stage renders against the real Cratis.Orleans assemblies. -->
+        <PackageReference Include="Cratis.Orleans" ExcludeAssets="analyzers" PrivateAssets="all" />
+        <PackageReference Include="Cratis.Orleans.Chronicle" ExcludeAssets="analyzers" PrivateAssets="all" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
         <!-- Frozen Screenplay v4.41.0 typed-context vectors: every member and nullable type is checked by specs. -->
         <EmbeddedResource Include="for_SemanticTypedContextRenderer/Vectors/*.json" />
         <!-- Screenplay v4.114.0 portable stream-id codec vectors. -->

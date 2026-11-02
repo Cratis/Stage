@@ -30,7 +30,7 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
         {
             var model = SemanticModelSerializer.Deserialize(ProtectedCommandReadRaceVectors.Model.EsmBytes.AsSpan());
 
-            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan!, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedCommandReadRaces", "ProtectedCommandReadRaces"));
+            return CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("ProtectedCommandReadRaces", "ProtectedCommandReadRaces"));
         }
 
         async Task Because()
@@ -42,13 +42,13 @@ public class when_comparing_protected_read_race_invocations(when_comparing_prote
 
             BuildWarnings(await Run("race-debug-build.log", "build", "ProtectedCommandReadRaces.csproj", "-c", "Debug", "-warnaserror", "--nologo", "-m:3")).ShouldEqual(string.Empty);
             await Run("race-debug-test.log", "test", "ProtectedCommandReadRaces.csproj", "-c", "Debug", "--no-build", "--no-restore", "--nologo", "--logger", "trx;LogFileName=races.trx", "--results-directory", _evidence.FullName);
-            XNamespace ns = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010";
-            var results = XDocument.Load(Path.Combine(_evidence.FullName, "races.trx")).Descendants(ns + "UnitTestResult").ToArray();
+            var run = XDocument.Load(Path.Combine(_evidence.FullName, "races.trx"));
+            var results = GeneratedTestResults.Read(run);
             foreach (var name in protected_read_race_probes.InvocationVectors)
             {
-                var facts = results.Where(result => result.Attribute("testName")!.Value.Contains($".when_{name.Replace('-', '_')}.", StringComparison.Ordinal)).ToArray();
+                var facts = results.Where(result => result.Matches(className: $"when_{name.Replace('-', '_')}")).ToArray();
                 facts.ShouldNotBeEmpty();
-                facts.ShouldEachConformTo(fact => fact.Attribute("outcome")!.Value == "Passed");
+                facts.ShouldEachConformTo(fact => fact.Outcome == "Passed");
                 Executed++;
             }
         }

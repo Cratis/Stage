@@ -38,6 +38,12 @@ public record SceneApplication(
     public IReadOnlyList<SceneExposure.ExposureDeclaration> Exposures { get; init; } = [];
 
     /// <summary>
+    /// Gets the typed command-response and destination metadata consumed by Scene's form validator.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public System.Text.Json.Nodes.JsonObject? ResponseContracts { get; init; }
+
+    /// <summary>
     /// Gets the values instances store for what was exposed, in declaration order.
     /// </summary>
     public IReadOnlyList<SceneExposure.InstanceContribution> InstanceContributions { get; init; } = [];

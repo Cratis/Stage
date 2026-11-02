@@ -18,7 +18,7 @@ public sealed class EventRouteSyntaxAdmission : ScreenplaySyntaxWalker
     /// <returns>Whether the node requires routed event execution.</returns>
     public static bool IsRouted(SyntaxNode node) => node switch
     {
-        EventSourceSyntax or EventStreamSyntax or CommandStreamSyntax or SpecificationStreamSyntax or SpecificationNoStreamSyntax => true,
+        EventSourceSyntax or EventStreamSyntax or CommandStreamSyntax or SpecificationStreamSyntax or SpecificationNoStreamSyntax or PossibleEventSyntax { Stream: not null } => true,
         CommandSyntax command => command.Stream is not null || command.StreamCandidates.Any(),
         SpecificationExampleSyntax example => example.Stream is not null || example.NoStream is not null,
         SpecificationRedeliverySyntax redelivery => redelivery.Stream is not null || redelivery.NoStream is not null,

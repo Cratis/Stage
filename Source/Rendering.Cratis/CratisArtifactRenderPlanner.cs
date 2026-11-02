@@ -6,6 +6,7 @@ using Cratis.Screenplay.Semantics;
 using Cratis.Stage.Contracts.Rendering;
 using Cratis.Stage.Rendering.Cratis.CodeGeneration;
 using Cratis.Stage.Rendering.Cratis.Naming;
+using Cratis.Stage.Rendering.Cratis.Realization;
 using Cratis.Stage.Rendering.Cratis.Scaffolding;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
@@ -198,6 +199,10 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         }
 
         AddScaffold(request, context, artifacts);
+        if (request.Scope.Kind == ArtifactRenderScopeKind.Application && ApplicationRealizationInput.From(request.Profile) is { } realization)
+        {
+            diagnostics.AddRange(RealizationDiagnostics.For(realization, context.Application.Id));
+        }
 
         if (partitions is not null)
         {
@@ -254,7 +259,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
         var standing = SemanticVersionFeatures.Supports(request.Model)
             ? EsmVersionStanding.Audited
             : CratisEsmSupport.Descriptor.Classify(request.Model.LanguageVersion, request.Model.SemanticVersion);
-        return standing == EsmVersionStanding.NewerWithinRange
+        return standing == EsmVersionStanding.NewerWithinRange || CratisEsmRangeAdmission.ScansAuditedMembers(request.Model, standing)
             ? CratisEsmRangeAdmission.Evaluate(request, new SemanticApplicationContext(request, options))
             : CratisEsmRangeAdmission.FromFindings(request, new(standing, []));
     }
@@ -301,7 +306,7 @@ public sealed class CratisArtifactRenderPlanner : IArtifactRenderPlanner
             return;
         }
 
-        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id]));
+        artifacts.AddRange(CratisScaffoldArtifacts.Render(request.Profile, context.RootNamespace, [context.Application.Id], request.Model.Application.Name));
     }
 
     // The application's shared UI: the Scene composition, the module binding it to the generated Arc proxies, and the

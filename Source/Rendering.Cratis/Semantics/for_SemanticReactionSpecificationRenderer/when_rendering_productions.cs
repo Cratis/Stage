@@ -19,8 +19,8 @@ public class when_rendering_productions : given.a_reaction_specification
     [Fact]
     public void should_render_multiset_assignment_for_any_order()
     {
-        _specification = _specification with { ThenEventsInAnyOrder = true };
-        Render();
-        _source.ShouldContain("Assign(expectation, new bool[actual.Length]).ShouldBeTrue()");
+        var specification = _specification with { ThenEventsInAnyOrder = true };
+        var source = SemanticReactionSpecificationRenderer.Render(specification, _context).Content;
+        source.ShouldContain("Assign(expectation, new bool[actual.Length]).ShouldBeTrue()");
     }
 }

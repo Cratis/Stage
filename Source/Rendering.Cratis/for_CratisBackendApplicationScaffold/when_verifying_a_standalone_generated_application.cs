@@ -174,12 +174,11 @@ public class when_verifying_a_standalone_generated_application(when_verifying_a_
 
         internal void AssertLongMatchPassed(string fileName)
         {
-            var results = System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName));
-            foreach (var name in new[] { "when_accepting_a_long_match.should_return_the_expected_response", "when_rejecting_a_long_match.should_report_the_expected_first_error" })
+            var results = GeneratedTestResults.Read(System.Xml.Linq.XDocument.Load(Path.Combine(_application.FullName, fileName)));
+            foreach (var (className, methodName) in new[] { ("when_accepting_a_long_match", "should_return_the_expected_response"), ("when_rejecting_a_long_match", "should_report_the_expected_first_error") })
             {
-                var result = results.Descendants().Single(element => element.Name.LocalName == "UnitTestResult" &&
-                    element.Attribute("testName")!.Value.EndsWith($".{name}", StringComparison.Ordinal));
-                result.Attribute("outcome")!.Value.ShouldEqual("Passed");
+                var result = results.Single(result => result.Matches(className: className, methodName: methodName));
+                result.Outcome.ShouldEqual("Passed");
             }
         }
 

@@ -2,28 +2,35 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #if DEBUG
+using Cratis.Arc.Commands;
 using Cratis.Screenplay.CanonicalCorpus;
-using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Syntax;
 using Cratis.Specifications;
 using Xunit;
 
 namespace Cratis.Stage.Rendering.Cratis.for_ArcScreenplayRoundTrip;
 
-// Arc 22.112.0 recovers the reads, but its recovered source does not compile back to an executable model yet
-// (performer query, handler intents): Cratis/Stage#515.
 public class when_recovering_protected_command_reads : given.a_rendered_application
 {
-    const string Pending = "Cratis/Stage#515";
-
     protected override string Source => ProtectedCommandReadsCorpus.V25.SourceForms.Single(form => form.Name == "single").Documents.Single().Text;
-    void Because() => Generate();
+    void Because() => GenerateAuthoring();
 
-    [Fact(Skip = Pending)] void should_recover_the_protected_read_mode() => _recovered.Application.CommandReadMode.ShouldEqual(SemanticCommandReadMode.Protected);
-    [Fact(Skip = Pending)] void should_recover_the_read_and_its_key() => Recovered("Consume").Reads.Select(read => read.Name).ShouldEqual(["Current"]);
-    [Fact(Skip = Pending)] void should_recover_the_read_backed_requirement() => Recovered("Consume").Requirements.Select(requirement => requirement.Message).ShouldEqual(["The stored value must not be empty."]);
-    [Fact(Skip = Pending)] void should_recover_the_read_path_mapping() => Recovered("Consume").Produces.Single().Mappings.Single().Source.ShouldBeOfExactType<SemanticReadPathExpression>();
+    [Fact]
+    void should_carry_project_read_protection_into_the_compilation()
+    {
+        var attribute = Assert.Single(_compilation.Assembly.GetAttributes(), attribute => attribute.AttributeClass?.ToDisplayString() == "Cratis.Arc.Commands.ReadProtectionAttribute");
+        Assert.Single(attribute.ConstructorArguments).Value.ShouldEqual((int)ReadProtectionMode.On);
+    }
 
-    SemanticCommand Recovered(string name) => _recovered.Application.Modules.SelectMany(module => module.Features).SelectMany(feature => feature.Slices)
+    [Fact] void should_recover_the_protected_read_mode() => _recoveredAuthoring.CommandReadMode.ShouldEqual(CommandReadMode.Protected);
+    [Fact] void should_recover_the_read_and_its_key() => Recovered("Consume").Reads.Select(read => (read.ReadModel, read.By)).ShouldEqual([("Current", "sourceId")]);
+    [Fact] void should_recover_the_read_backed_requirement() => Recovered("Consume").Validations.OfType<DeclarativeValidateSyntax>().SelectMany(validation => validation.Requirements!).Select(requirement => requirement.Message).ShouldEqual(["The stored value must not be empty."]);
+    [Fact] void should_recover_the_read_path_mapping() => ((PathExpressionSyntax)Recovered("Consume").Produces.Single().Mappings.Single().Source).Path.ShouldEqual("Current.value");
+
+    static IEnumerable<SliceSyntax> Slices(IEnumerable<FeatureSyntax> features) =>
+        features.SelectMany(feature => feature.Slices.Concat(Slices(feature.Features)));
+
+    CommandSyntax Recovered(string name) => _recoveredAuthoring.Modules.SelectMany(module => Slices(module.Features))
         .SelectMany(slice => slice.Commands).Single(command => command.Name == name);
 }
 #endif

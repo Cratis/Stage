@@ -9,15 +9,18 @@ namespace Cratis.Stage.Rendering.Cratis.for_CratisArtifactRenderPlanner.when_red
 
 public class and_the_foreign_record_changes : given.a_captured_delivery
 {
-    void Because() => Render();
-
-    [Fact]
-    public async Task should_key_each_effect_and_each_new_delivery_separately()
+    async Task Because()
     {
+        Render();
         var first = Fact(0);
         await Deliver(first);
         _history.Add(first);
         await Deliver(Fact(1, status: "delivered"));
+    }
+
+    [Fact]
+    public void should_key_each_effect_and_each_new_delivery_separately()
+    {
         _log.Committed.Count().ShouldEqual(4);
         _log.Committed.Select(effect => effect.IdempotencyKey).Distinct().Count().ShouldEqual(4);
         _log.Committed.ShouldEachConformTo(effect => effect.EventSourceId.Value == "parcel" && effect.Tags.Contains("captured"));

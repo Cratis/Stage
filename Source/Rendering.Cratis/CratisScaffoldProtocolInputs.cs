@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Stage.Contracts.Rendering;
+using Cratis.Stage.Rendering.Cratis.Realization;
 using Cratis.Stage.Rendering.Cratis.Scene;
 using Cratis.Stage.Rendering.Cratis.Semantics;
 
@@ -12,6 +13,7 @@ internal static class CratisScaffoldProtocolInputs
     static readonly HashSet<string> _names = new(StringComparer.Ordinal)
     {
         StringsCatalogInput.Name,
+        ApplicationRealizationInput.Name,
         AuthoringMetadataInput.Name,
         DomainPlacementInput.Name,
         ScreenPartitionsInput.Name,

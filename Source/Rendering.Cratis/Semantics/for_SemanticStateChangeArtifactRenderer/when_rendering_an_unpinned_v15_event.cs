@@ -20,7 +20,7 @@ public class when_rendering_an_unpinned_v15_event : Specification
     void Because()
     {
         var options = new CratisRenderingOptions("GenerationApp", "GenerationApp");
-        var context = new SemanticApplicationContext(new(_model, SemanticExecutionPlan.Compile(_model).Plan!, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
+        var context = new SemanticApplicationContext(new(_model, SemanticExecutionPlan.Compile(_model).Plan, CratisRendering.CreateProfile(_model.Application.Name, options), new(ArtifactRenderScopeKind.Application, _model.Application.Id)), options);
         var located = context.SelectedSlices().Single(slice => slice.Slice.Name == "Prior");
         var builder = new CSharpCodeBuilder();
         SemanticStateChangeArtifactRenderer.RenderMembers(builder, located with { Slice = located.Slice with { Commands = [] } }, context);
@@ -30,7 +30,7 @@ public class when_rendering_an_unpinned_v15_event : Specification
     [Fact] void should_use_the_v15_model() => _model.SemanticVersion.ShouldEqual(SemanticVersion.V15);
     [Fact] void should_preserve_the_previous_event_bytes() => _code.ShouldEqual("""
         /// <summary>
-        /// The event that occurs when unrelated.
+        /// Records that unrelated.
         /// </summary>
         [global::Cratis.Chronicle.Events.EventTypeAttribute]
         public record Unrelated();

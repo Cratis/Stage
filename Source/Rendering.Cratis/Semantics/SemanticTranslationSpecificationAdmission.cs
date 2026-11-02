@@ -14,9 +14,9 @@ internal static partial class SemanticTranslationSpecificationAdmission
     {
         if (specification.WhenAppended is not { } append || specification.When is not null || specification.WhenRedelivered is not null)
         {
-            return "a direct Translate scenario requires one 'when append' input; given-only cascades and redelivery are not supported.";
+            return GivenOnlyProjectionRejection(context, slice, specification);
         }
-        if (UnsupportedFixtures(specification))
+        if (UnsupportedTranslationFixtures(specification))
         {
             return "direct Translate scenarios support ordered event outcomes, not caller, generated, capture, clock, read, return, denial, refusal or unordered outcomes.";
         }
@@ -66,6 +66,13 @@ internal static partial class SemanticTranslationSpecificationAdmission
 
     internal static SemanticProjection? Publication(SemanticSlice slice, SemanticSpecificationAppend append) =>
         slice.Projections.SingleOrDefault(projection => projection.Scope?.From.Any(from => from.EventContract == append.EventContract) == true);
+
+    static string? GivenOnlyProjectionRejection(SemanticApplicationContext context, SemanticSlice slice, SemanticSpecification specification) =>
+        SemanticSpecificationAdmission.CanRenderGivenOnlyTranslationProjection(context, slice, specification) ? null :
+            "a Translate scenario requires one direct 'when append' input or one read-model expectation over sourced private local Given events; general cascades and redelivery are not supported.";
+
+    static bool UnsupportedTranslationFixtures(SemanticSpecification specification) =>
+        !specification.ThenInvocations.IsEmpty || UnsupportedFixtures(specification);
 
     static bool UnsupportedFixtures(SemanticSpecification specification) =>
         specification.GivenCaller is not null || !specification.GivenGenerated.IsDefaultOrEmpty || !specification.GivenCaptures.IsDefaultOrEmpty ||

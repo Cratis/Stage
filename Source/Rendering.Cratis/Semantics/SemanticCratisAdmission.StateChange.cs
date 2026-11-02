@@ -12,6 +12,8 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticCratisAdmission
 {
+    const string UnallocatedDestination = "STAGE-ESM-053";
+
     static void ValidateStateChange(
         SemanticApplicationContext context,
         SemanticSlice slice,
@@ -83,17 +85,41 @@ internal static partial class SemanticCratisAdmission
             return;
         }
 
-        if (command.Produces.Any(produced =>
-            !context.Events.TryGetValue(produced.EventContract, out var @event) || produced.Condition is not null ||
-            !HasRenderableProductionCondition(produced, command, context) ||
-            @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() != @event.Tags.Length + produced.Tags.Length ||
-            !IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) ||
-            @event.Properties.Any(_ => !TypeExists(context, _.Type, @event.Id) || _.Type.IsOptional) ||
-            InvalidPayloadMappings(command, produced, @event)))
+        ValidateCommandProductions(context, command, diagnostics);
+    }
+
+    static void ValidateCommandProductions(SemanticApplicationContext context, SemanticCommand command, List<ArtifactRenderDiagnostic> diagnostics)
+    {
+        foreach (var produced in command.Produces.Where(produced => HasUnallocatedDestination(context, command, produced)))
+        {
+            var eventName = context.Events.TryGetValue(produced.EventContract, out var @event) ? @event.Name : produced.EventContract.ToString();
+            diagnostics.Add(Error(UnallocatedDestination, $"Produced event '{eventName}' of command '{command.Name}' has no destination: the model names no event source, and Stage does not yet render event-source identity allocation (Stage#629).", command.Id));
+        }
+
+        if (command.Produces.Any(produced => !HasUnallocatedDestination(context, command, produced) && !HasRenderableProductionShape(produced, command, context)))
         {
             diagnostics.Add(Error("STAGE-ESM-006", $"Produced event of command '{command.Name}' cannot be rendered without changing its destination or mappings.", command.Id));
         }
     }
+
+    static bool HasUnallocatedDestination(SemanticApplicationContext context, SemanticCommand command, SemanticProducedEvent produced) =>
+        !HandlerOwnsProduction(context, command) && SemanticDestinations.Of(command, produced) is null;
+
+    // Only a handler refused with STAGE-IMPL-002 (pending, or resolved in a language other than C#) owns the production; that refusal replaces these checks.
+    // A resolved C# handler returns payloads only, so its destination and mappings are validated like any other production.
+    static bool HandlerOwnsProduction(SemanticApplicationContext context, SemanticCommand command) =>
+        SemanticCommandHandlerAdmission.Classify(command, context.Request).Kind is SemanticCommandHandlerAdmission.HandlerKind.Pending or SemanticCommandHandlerAdmission.HandlerKind.Foreign;
+
+    static bool HasRenderableProductionShape(SemanticProducedEvent produced, SemanticCommand command, SemanticApplicationContext context) =>
+        context.Events.TryGetValue(produced.EventContract, out var @event) && produced.Condition is null &&
+        HasRenderableProductionCondition(produced, command, context) &&
+        @event.Tags.Concat(produced.Tags).Distinct(StringComparer.Ordinal).Count() == @event.Tags.Length + produced.Tags.Length &&
+        @event.Properties.All(property => TypeExists(context, property.Type, @event.Id) && !property.Type.IsOptional) &&
+        (HandlerOwnsProduction(context, command) || HasRenderableDestinationAndMappings(produced, command, @event));
+
+    static bool HasRenderableDestinationAndMappings(SemanticProducedEvent produced, SemanticCommand command, SemanticEventContract @event) =>
+        IsProperty(SemanticDestinations.Of(command, produced), SemanticExpressionRootKind.Command, EventSourceProperties(command)) &&
+        !InvalidPayloadMappings(command, produced, @event);
 
     // ESM v30 lets a production address any required, non-collection scalar command property as its event source, not only the identifier.
     static IEnumerable<SemanticId> EventSourceProperties(SemanticCommand command) =>

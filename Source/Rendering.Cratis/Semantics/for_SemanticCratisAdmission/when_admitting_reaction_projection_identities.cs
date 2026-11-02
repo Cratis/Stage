@@ -85,9 +85,9 @@ public class when_admitting_reaction_projection_identities : for_SemanticAutomat
     {
         SetContext(Compile(ProjectionSource));
         var lookup = _context.SelectedSlices().Single(slice => slice.Slice.Name == "Lookup");
-        _plan = CratisRendering.Plan(_model, _context.Request.ExecutionPlan, new(ArtifactRenderScopeKind.Slice, lookup.Slice.Id), new("Reactions", "Reactions"));
-        _plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-009");
-        _plan.Artifacts.ShouldNotBeEmpty();
+        var plan = CratisRendering.Plan(_model, _context.Request.ExecutionPlan, new(ArtifactRenderScopeKind.Slice, lookup.Slice.Id), new("Reactions", "Reactions"));
+        plan.Diagnostics.Select(diagnostic => diagnostic.Code).ShouldNotContain("STAGE-ESM-009");
+        plan.Artifacts.ShouldNotBeEmpty();
     }
 
     static string WithDestination(string destination)

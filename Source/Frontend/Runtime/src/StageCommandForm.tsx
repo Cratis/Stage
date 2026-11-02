@@ -121,12 +121,17 @@ export function StageCommandForm({ element, cancellable }: StageCommandFormProps
                 onValidationFailure={validation => setMessages(unboundValidationMessages(fields, validation))}
                 onException={exceptionMessages => setMessages(exceptionMessages)}
                 onFailed={result => setMessages(commandOutcome(form.command, result).messages)}
-                onSuccess={response => {
+                onSuccess={async response => {
                     data.refreshAfterCommand();
-                    continuation.complete(response, (findings, navigated) => {
+                    const completed = (findings: string[], navigated: boolean) => {
                         setMessages(findings);
                         if (!findings.length) leaveAfterSubmit(element, navigated, closeDialog);
-                    });
+                    };
+                    try {
+                        await continuation.complete(response, completed);
+                    } catch (error) {
+                        completed([error instanceof Error ? error.message : String(error)], false);
+                    }
                 }}>
                 {unsupportedGeometryMessages.map(message => <p key={message} role='alert' className='stage-form-error'>{message}</p>)}
                 {renderedFields}

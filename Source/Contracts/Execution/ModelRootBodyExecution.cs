@@ -47,6 +47,10 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
         {
             await _gate.WaitAsync().ConfigureAwait(false);
             try { await Refresh(CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // A failed warmup must not fault the shared task for every later caller: CreateAsync refreshes again under the gate.
+            }
             finally { _gate.Release(); }
         });
     }
@@ -116,7 +120,9 @@ public sealed partial class ModelRootBodyExecution : ISemanticBodyExecutionProvi
             _current = null;
             _slots.RemoveAll(slot => slot.IsDisposed);
             _failure = Diagnostic(exception.Message);
-            _revision = revision;
+
+            // Only a deterministic refusal is pinned to this revision; a worker timeout or crash is retried on the next call.
+            if (exception is InvalidSemanticModel) _revision = revision;
         }
     }
 

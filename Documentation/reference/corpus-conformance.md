@@ -75,6 +75,14 @@ Another artifact, vector, surface, code, or kind reports `unauthorized-by-design
 
 When an exempt artifact no longer appears, its record becomes stale and must be removed.
 
+## Invocation expectations
+
+The Cratis specification renderer compares authored `then invokes` expectations against the command objects returned by the reactor scenario. It checks the exact count, ordered command types and only the stated property values; omitted values remain unspecified. Screenplay does not allow `then invokes` alongside a rejection outcome; rejection specifications remain separate from invocation expectations. Existing event and outcome assertions remain separate. A foreign command contributes an invocation decision, not its foreign slice's facts.
+
+Support is bounded to one fired declarative, invoke-only reaction entered by a direct append or a lowerable command cascade. The cascade keeps invocation expectations on its reaction half, not its trigger half. Scalar and concept values, nulls and scalar collections are comparable; absent or empty expectations keep the existing output path.
+
+Other shapes remain explicit `STAGE-ESM-016` refusals on the original specification: Translate, capture and trigger entry points, redelivery, native bodies, fan-out, mixed production/invocation, refusal branches, context mappings, deeper effects and non-comparable expected values. Admitting the V34 version pair does not imply blanket support for V34 invocation scenarios.
+
 ## Update the table
 
 1. Run the Debug specs. Failure messages name the vector, surface, and affected fingerprint or outcome.

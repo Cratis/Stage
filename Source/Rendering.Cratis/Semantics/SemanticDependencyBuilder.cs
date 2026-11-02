@@ -58,6 +58,7 @@ internal sealed class SemanticDependencyBuilder(SemanticApplicationContext conte
         SemanticTypeReference { Kind: SemanticTypeReferenceKind.Primitive } => property.Name == "Target",
         SemanticReactionTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown or SemanticReactionTriggerKind.Interval or SemanticReactionTriggerKind.Schedule, Source.IsSet: false } => property.Name == "Source",
         SemanticSpecificationTrigger { Kind: SemanticReactionTriggerKind.Startup or SemanticReactionTriggerKind.Shutdown, Trigger.IsSet: false } => property.Name == "Trigger",
+
         // A lifecycle node, entry or expectation carries only the references its kind uses; the others are left unset.
         SemanticWorkflowNode or SemanticStateEntry or SemanticLifecycleExpectation => property.GetValue(node) is SemanticId { IsSet: false },
         _ => false

@@ -6,6 +6,20 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>Reviewed reference-bearing ESM members. New identity-bearing members require a classification here.</summary>
 internal static class SemanticDependencyReferences
 {
+    const string LifecycleRefusal = "ESM v36 lifecycle (state machine/workflow) member: Stage does not index or render lifecycles yet (Cratis/Stage#927); a populated value leaves the graph incomplete.";
+
+    const string Refused = """
+        SemanticApplication:StateMachines Workflows
+        SemanticStateMachine:ReadModel States Transitions Specifications
+        SemanticWorkflow:Subject Nodes Specifications
+        SemanticState:Entering
+        SemanticStateEntry:Command
+        SemanticStateTransition:Event Guard
+        SemanticWorkflowNode:Event Command Condition Items
+        SemanticLifecycleSpecification:Given WhenAppended WhenStarted Then
+        SemanticLifecycleExpectation:Command
+        """;
+
     static readonly IReadOnlyDictionary<SemanticDependencyKind, string> _groups = new Dictionary<SemanticDependencyKind, string>
     {
         [SemanticDependencyKind.Declaration] = """
@@ -167,6 +181,13 @@ internal static class SemanticDependencyReferences
                 foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", new(group.Key));
             }
         }
+
+        foreach (var line in Refused.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = line.Split(':');
+            foreach (var member in parts[1].Split(' ')) entries.Add($"{parts[0]}.{member}", new(null, null, LifecycleRefusal));
+        }
+
         return entries;
     }
 }

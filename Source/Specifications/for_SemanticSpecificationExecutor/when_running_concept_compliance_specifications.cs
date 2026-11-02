@@ -14,7 +14,7 @@ public class when_running_concept_compliance_specifications : Specification
     SemanticExecutionPlan _plan = null!;
     SemanticSpecificationRunReport _report = null!;
 
-    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ConceptComplianceCorpus.V13.EsmBytes.AsSpan())).Plan!;
+    void Establish() => _plan = SemanticExecutionPlan.Compile(SemanticModelSerializer.Deserialize(ConceptComplianceCorpus.V13.EsmBytes.AsSpan())).Plan;
     async Task Because() => _report = await new SemanticSpecificationExecutor().Run(_plan, new([]), new());
 
     [Fact] void should_admit_v13() => _plan.Model.SemanticVersion.ShouldEqual(SemanticVersion.V13);

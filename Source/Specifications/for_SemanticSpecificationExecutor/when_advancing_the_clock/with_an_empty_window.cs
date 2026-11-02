@@ -11,5 +11,5 @@ public class with_an_empty_window : when_settling_reactions.given.a_reaction_pla
         new(Action: "given clock \"2026-10-05T07:30:00Z\"\nwhen clock \"2026-10-05T07:30:01Z\""));
     Task Because() => Execute();
     [Fact] void should_not_repeat_the_exclusive_start_like_the_reference() => AssertMatchesReference();
-    [Fact] void should_append_nothing() => _result.Trace!.Facts.ShouldBeEmpty();
+    [Fact] void should_append_nothing() => _result.Trace.Facts.ShouldBeEmpty();
 }

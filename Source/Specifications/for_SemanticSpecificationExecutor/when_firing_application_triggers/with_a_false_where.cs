@@ -11,5 +11,5 @@ public class with_a_false_where : when_settling_reactions.given.a_reaction_plan
         new(Action: "when trigger Arrived\n  item = \"one\"\n  amount = 1", Policy: "trigger Arrived\n  item String\n  amount Decimal"));
     Task Because() => Execute();
     [Fact] void should_match_the_reference() => AssertMatchesReference();
-    [Fact] void should_append_nothing() => _result.Trace!.Facts.ShouldBeEmpty();
+    [Fact] void should_append_nothing() => _result.Trace.Facts.ShouldBeEmpty();
 }

@@ -33,7 +33,7 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
             return;
         }
         Assert.True(result.Outcome == SemanticSpecificationOutcome.Passed, $"{result.Outcome}: {result.Unsupported?.Details} {string.Join(';', result.Failures)}");
-        result.Trace!.Rejection.ShouldEqual(rejection.Details);
+        result.Trace.Rejection.ShouldEqual(rejection.Details);
         result.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -45,7 +45,7 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
         ((SemanticRejected)reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Unauthorized);
         var result = (await new SemanticSpecificationExecutor().Run(plan, new([]), new())).Results.Single();
         result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-        result.Trace!.Rejection.ShouldEqual("Caller is not authorized.");
+        result.Trace.Rejection.ShouldEqual("Caller is not authorized.");
         result.Trace.Facts.ShouldBeEmpty();
     }
 
@@ -78,12 +78,12 @@ public class when_rejecting_offsetless_datetime_inputs : Specification
             """;
 
         // Bind directly like Screenplay's ExactSpelling vector: source preflight rejects intentionally wrong then-values.
-        var syntax = new ScreenplayCompiler().Parse(source).Value!;
+        var syntax = new ScreenplayCompiler().Parse(source).Value;
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("OrdinalDates"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var bound = new SemanticModelBinder().Bind("OrdinalDates", syntax, SemanticDocumentSet.Create([document], catalog));
         Assert.True(bound.Success, string.Join(';', bound.Diagnostics));
-        var plan = SemanticExecutionPlan.Compile(bound.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(bound.Value.Model).Plan;
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         reference.Passed.ShouldBeFalse();
         reference.Execution.ShouldBeOfExactType<SemanticAccepted>();

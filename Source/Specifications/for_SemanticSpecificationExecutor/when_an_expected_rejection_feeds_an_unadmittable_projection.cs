@@ -18,7 +18,7 @@ public class when_an_expected_rejection_feeds_an_unadmittable_projection : given
         _result.Outcome.ShouldEqual(rejectedByRule ? SemanticSpecificationOutcome.Passed : SemanticSpecificationOutcome.Failed);
         _result.Unsupported.ShouldBeNull();
         _result.Failures.ShouldContainOnly(_reference.Failures);
-        _result.Trace!.ReadModels.ShouldBeEmpty();
+        _result.Trace.ReadModels.ShouldBeEmpty();
         if (rejectedByRule)
         {
             _result.Failures.ShouldBeEmpty();

@@ -29,12 +29,12 @@ public class when_guarding_generated_freshness : Specification
         if (kind == SemanticExecutionOutcomeKind.Rejected)
         {
             ((SemanticRejected)reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Concurrency);
-            stage.Trace!.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
+            stage.Trace.Rejection.ShouldEqual(((SemanticRejected)reference.Execution).Details);
             stage.Trace.Facts.ShouldBeEmpty();
         }
         else
         {
-            stage.Trace!.Facts.Count.ShouldEqual(2);
+            stage.Trace.Facts.Count.ShouldEqual(2);
         }
     }
 }

@@ -20,6 +20,6 @@ public class when_refusing_a_future_major : a_plan_at_an_esm_pair
     }
 
     [Fact] void should_refuse_instead_of_executing() => _reports.ShouldEachConformTo(report => report.Results.Single().Outcome == SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_the_stage_version_gate() => _reports.ShouldEachConformTo(report => report.Results.Single().Unsupported!.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
-    [Fact] void should_name_the_range() => _reports.ShouldEachConformTo(report => report.Results.Single().Unsupported!.Details.Contains(">=32.0 <33", StringComparison.Ordinal));
+    [Fact] void should_report_the_stage_version_gate() => _reports.ShouldEachConformTo(report => report.Results.Single().Unsupported.Details.StartsWith("STAGE-ESM-016:", StringComparison.Ordinal));
+    [Fact] void should_name_the_range() => _reports.ShouldEachConformTo(report => report.Results.Single().Unsupported.Details.Contains(">=32.0 <33", StringComparison.Ordinal));
 }

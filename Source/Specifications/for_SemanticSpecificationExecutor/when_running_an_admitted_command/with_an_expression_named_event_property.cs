@@ -100,8 +100,8 @@ public class with_an_expression_named_event_property
             model.SemanticVersion,
             model.Application with { Modules = [module with { Features = [changed] }] }));
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var reference = new SemanticSpecificationRunner().Run(compiled.Plan!, specification.Id);
-        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan!, new([specification.Id]), new())).Results);
+        var reference = new SemanticSpecificationRunner().Run(compiled.Plan, specification.Id);
+        var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new())).Results);
 
         Assert.False(reference.Passed);
         Assert.True(stage.Outcome == SemanticSpecificationOutcome.Unsupported,
@@ -144,7 +144,7 @@ public class with_an_expression_named_event_property
             model.Application with { Modules = [module with { Features = [changed] }] });
         var compiled = SemanticExecutionPlan.Compile(updated);
         Assert.True(compiled.Success, string.Join("; ", compiled.Issues));
-        var specification = compiled.Plan!.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
+        var specification = compiled.Plan.Specifications.Values.Single(value => value.Name == "RegisteringAProject");
         var stage = Assert.Single((await new SemanticSpecificationExecutor().Run(compiled.Plan, new([specification.Id]), new())).Results);
 
         Assert.Equal(SemanticSpecificationOutcome.Unsupported, stage.Outcome);

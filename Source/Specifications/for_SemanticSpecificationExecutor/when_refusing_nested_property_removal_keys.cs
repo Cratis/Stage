@@ -20,6 +20,6 @@ public class when_refusing_nested_property_removal_keys : Specification
     }
 
     [Fact] void should_refuse_the_valid_but_unsupported_key_path() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-    [Fact] void should_report_the_projection_capability() => _result.Unsupported!.Capability.ShouldEqual(StageExecutionCapability.Projection);
-    [Fact] void should_report_the_removal_key_limit() => _result.Unsupported!.Details.ShouldEqual("A per-run removal key must be the event source or one required scalar event property with the identifier's value type.");
+    [Fact] void should_report_the_projection_capability() => _result.Unsupported.Capability.ShouldEqual(StageExecutionCapability.Projection);
+    [Fact] void should_report_the_removal_key_limit() => _result.Unsupported.Details.ShouldEqual("A per-run removal key must be the event source or one required scalar event property with the identifier's value type.");
 }

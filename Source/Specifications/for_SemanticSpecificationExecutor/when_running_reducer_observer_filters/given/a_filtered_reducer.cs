@@ -99,6 +99,6 @@ public class a_filtered_reducer : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("app"), "app", "app.play", source);
         var compiled = new SemanticModelCompiler().Compile("Filters", SemanticDocumentSet.Create([document], catalog));
         Assert.True(compiled.Success, string.Join(';', compiled.Diagnostics));
-        return compiled.Value!.Model;
+        return compiled.Value.Model;
     }
 }

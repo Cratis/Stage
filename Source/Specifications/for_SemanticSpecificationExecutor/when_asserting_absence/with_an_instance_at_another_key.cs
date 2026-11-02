@@ -20,5 +20,5 @@ public class with_an_instance_at_another_key : a_projected_specification
 
     [Fact] void should_check_only_the_asserted_key() => _result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_match_the_reference() => _reference.Passed.ShouldBeTrue();
-    [Fact] void should_materialize_the_other_instance() => _result.Trace!.ReadModels.Count.ShouldEqual(1);
+    [Fact] void should_materialize_the_other_instance() => _result.Trace.ReadModels.Count.ShouldEqual(1);
 }

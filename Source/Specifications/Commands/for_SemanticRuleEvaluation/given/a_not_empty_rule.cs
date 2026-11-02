@@ -31,7 +31,7 @@ public class a_not_empty_rule : Specification
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("names"), "names", "Names.play", source);
         var compilation = new SemanticModelCompiler().Compile("Names", SemanticDocumentSet.Create([document], catalog));
         compilation.Success.ShouldBeTrue();
-        var plan = SemanticExecutionPlan.Compile(compilation.Value!.Model).Plan!;
+        var plan = SemanticExecutionPlan.Compile(compilation.Value.Model).Plan;
         _command = plan.Commands.Values.Single();
         _specification = plan.Specifications.Values.Single();
         _application = plan.Model.Application;

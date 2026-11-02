@@ -19,7 +19,7 @@ public class when_scoping_unaudited_members_to_the_specifications_slice : a_plan
         var feature = module.Features.Single();
         var slice = feature.Slices.Single(candidate => candidate.Specifications.Any(specification => specification.Id == _specification.Id));
         var specification = _specification with { Id = selected ? _specification.Id : SemanticId.Parse($"sem1:{1:x64}") };
-        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations))!.SetValue(specification, ImmutableArray.Create(new SemanticSpecificationInvocation(_specification.When!.Command, [])));
+        typeof(SemanticSpecification).GetProperty(nameof(SemanticSpecification.ThenInvocations)).SetValue(specification, ImmutableArray.Create(new SemanticSpecificationInvocation(_specification.When.Command, [])));
         var other = slice with { Id = SemanticId.Parse($"sem1:{2:x64}"), Specifications = [specification], Commands = [], Events = [], ReadModels = [], Projections = [] };
         var slices = selected ? new[] { slice with { Specifications = [specification] } } : [slice, other];
         var plan = WithApplication(application => application with { Modules = [module with { Features = [feature with { Slices = [.. slices] }] }] }, 32, 1);
@@ -28,7 +28,7 @@ public class when_scoping_unaudited_members_to_the_specifications_slice : a_plan
         if (selected)
         {
             result.Outcome.ShouldEqual(SemanticSpecificationOutcome.Unsupported);
-            result.Unsupported!.Construct.ShouldEqual(slice.Id.ToString());
+            result.Unsupported.Construct.ShouldEqual(slice.Id.ToString());
             result.Unsupported.Details.Contains("SemanticSpecification.ThenInvocations", StringComparison.Ordinal).ShouldBeTrue();
         }
         else

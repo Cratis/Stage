@@ -14,7 +14,7 @@ public class with_an_unformattable_route : a_routed_plan
         var period = _command.Properties.Single(property => property.Name == "period");
         var specification = _specification with
         {
-            When = _specification.When! with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Text(string.Empty) } : value)] },
+            When = _specification.When with { Values = [.. _specification.When.Values.Select(value => value.TargetProperty == period.Id ? value with { Value = SemanticValue.Text(string.Empty) } : value)] },
             ThenEvents = [],
             ThenErrors = [new(null, SemanticStreamIdFormatter.FailureMessage(StreamIdFormatFailure.Empty))]
         };
@@ -22,6 +22,6 @@ public class with_an_unformattable_route : a_routed_plan
     }
 
     [Fact] void should_match_the_reference_contract_rejection() => AssertParity(true);
-    [Fact] void should_reject_before_appending_any_fact() => _result.Trace!.Facts.ShouldBeEmpty();
+    [Fact] void should_reject_before_appending_any_fact() => _result.Trace.Facts.ShouldBeEmpty();
     [Fact] void should_have_a_contract_rejection_in_the_reference() => ((SemanticRejected)_reference.Execution).Category.ShouldEqual(SemanticRejectionCategory.Contract);
 }

@@ -18,6 +18,6 @@ public class with_a_source_filter : given.a_reaction_plan
         Compile($"reaction Worker\n  from {filter}\n  when Started\n    item\n    produces Followed\n      item = item", matches ? "then Followed\n  item = \"one\"\n  no stream" : "", new() { Action = "when append Started\n  for \"one\"\n  item = \"one\"\n  amount = 1" + stream, EventSources = "eventsource Account\n  identifier String\n  stream Notes\n    streamId String\n  stream Archive\neventsource Other\n  identifier String\n  stream Archive" });
         await Execute();
         AssertMatchesReference();
-        _result.Trace!.Facts.Count.ShouldEqual(matches ? 2 : 1);
+        _result.Trace.Facts.Count.ShouldEqual(matches ? 2 : 1);
     }
 }

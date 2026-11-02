@@ -30,9 +30,16 @@ public static class GeneratedApplicationBuilds
     /// Waits for a free slot before a build or test process starts.
     /// </summary>
     /// <returns>The slot, released when disposed.</returns>
-    public static async Task<IDisposable> Enter()
+    public static Task<IDisposable> Enter() => Enter(CancellationToken.None);
+
+    /// <summary>
+    /// Waits for a free slot before a build or test process starts, giving up when cancelled.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the wait; a cancelled wait never takes a slot.</param>
+    /// <returns>The slot, released when disposed.</returns>
+    public static async Task<IDisposable> Enter(CancellationToken cancellationToken)
     {
-        await _slots.WaitAsync();
+        await _slots.WaitAsync(cancellationToken);
         return new Slot(_slots);
     }
 

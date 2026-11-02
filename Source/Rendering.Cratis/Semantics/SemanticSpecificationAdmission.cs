@@ -128,21 +128,17 @@ internal static partial class SemanticSpecificationAdmission
         }
     }
 
-    static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false) =>
+    static bool CanRenderSpecification(SemanticApplicationContext context, SemanticSpecification specification, bool reactionInvocation = false, bool foreignInvocationExpectations = false) =>
         HasRenderableQueryExpectations(context, specification) && (CanRenderQueryOnly(context, specification) ||
                 (HasRenderableCallerAndCommand(context, specification, out var command, reactionInvocation) &&
                     HasRenderableGivenEvents(context, specification) && GivenKeysMatchProjectedProperties(context, specification) &&
                     !AssertsUncontrolledOccurrence(context.Application, specification, command!) &&
                     !GivenEventsViolateConstraints(context, specification) && CanSeedProjectedAbsence(context, specification) &&
                     CommandValuesMatch(context, specification, command!) &&
-                    HasOneOutcome(specification) && HasSupportedCounts(specification) &&
-                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty || specification.ThenEvents.Length == SemanticProductionSelection.Taken(context.Application, command!, specification).Length) &&
+                    HasOneOutcome(specification, reactionInvocation) && HasSupportedCounts(specification) &&
+                    HasMatchingProductionCount(context, specification, command!, foreignInvocationExpectations) &&
                     specification.ThenEvents.All(expected => EventMatches(context, expected)) &&
-                    (specification.ThenNoEvents || specification.ThenDenied || !specification.ThenErrors.IsEmpty ||
-                        (specification.ThenEventsInAnyOrder
-                            ? specification.ThenEvents.GroupBy(_ => _.EventContract).All(group =>
-                                SemanticProductionSelection.Taken(context.Application, command!, specification).Count(_ => _.EventContract == group.Key) == group.Count())
-                            : specification.ThenEvents.Select(_ => _.EventContract).SequenceEqual(SemanticProductionSelection.Taken(context.Application, command!, specification).Select(_ => _.EventContract)))) &&
+                    HasMatchingProductionContracts(context, specification, command!, foreignInvocationExpectations) &&
                     specification.ThenReadModels.All(expected => ReadModelMatches(context, expected) &&
                         HasExpectedProjectionEvent(context, specification, expected) &&
                         ReducerRejectionReason(context, expected.ReadModel) is null) &&

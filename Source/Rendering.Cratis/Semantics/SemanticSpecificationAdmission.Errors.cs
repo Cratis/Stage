@@ -10,7 +10,7 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// </summary>
 internal static partial class SemanticSpecificationAdmission
 {
-    static bool HasOneOutcome(SemanticSpecification specification)
+    static bool HasOneOutcome(SemanticSpecification specification, bool reactionInvocation)
     {
         var rejects = !specification.ThenErrors.IsEmpty || specification.ThenDenied;
         if (specification.ThenDenied && !specification.ThenErrors.IsEmpty)
@@ -19,6 +19,7 @@ internal static partial class SemanticSpecificationAdmission
         }
         var succeeds = specification.ThenNoEvents || specification.ThenReturns is not null || !specification.ThenEvents.IsEmpty || !specification.ThenReadModels.IsEmpty || !specification.ThenQueries.IsEmpty;
         succeeds |= !rejects && !specification.ThenAbsentReadModels.IsEmpty;
+        succeeds |= HasInvocationOutcome(specification, reactionInvocation);
         return rejects != succeeds;
     }
 

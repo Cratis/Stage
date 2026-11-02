@@ -57,6 +57,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         {
             builder.Line($"[global::Xunit.FactAttribute] void should_invoke_with_{Identifiers.ToSnakeCase(property.Name)}() => (_reactor.Produced.Single() is {scope.CommandName} command && {ValuePredicate(property, value, values)}).ShouldBeTrue();");
         }
+        RenderInvocationExpectations(scope);
         builder.BlankLine();
     }
 

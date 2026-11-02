@@ -47,7 +47,7 @@ public class when_building_state_machines_and_workflows(when_building_state_mach
 
                     [Fact] void should_hold_a_structurally_valid_collect_graph() => WorkflowGraphStructure.Check(_collect!.Graph).ShouldBeEmpty();
                     [Fact] void should_hold_a_structurally_valid_nudge_graph() => WorkflowGraphStructure.Check(_nudge!.Graph).ShouldBeEmpty();
-                    [Fact] void should_not_serve_a_workflow_it_does_not_own() => _other.ShouldBeNull();
+                    [Fact] void should_not_serve_a_workflow_it_does_not_own() => Assert.Null(_other);
                     [Fact] void should_render_a_state_per_declared_state() => typeof(InvoiceLifecycle).GetNestedTypes().Select(type => type.Name).ShouldContainOnly("Draft", "Sent", "Overdue", "Paid");
                 }
                 #endif

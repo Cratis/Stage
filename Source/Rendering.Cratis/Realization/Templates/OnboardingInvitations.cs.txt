@@ -20,11 +20,12 @@ public static class OnboardingPolicies
 /// <summary>
 /// Allows a caller who is one of the personas the model lets invite a member.
 /// </summary>
-public sealed class InviteMemberPolicy : IAuthorizationPolicy
+/// <param name="tenants">Gives the tenant the caller is inviting into.</param>
+public sealed class InviteMemberPolicy(ITenantIdAccessor tenants) : IAuthorizationPolicy
 {
     /// <inheritdoc/>
     public ValueTask<bool> IsAuthorized(AuthorizationPolicyContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(OnboardingRules.MemberInviters.Any(persona => Personas.Holds(context.Principal, persona)));
+        ValueTask.FromResult(OnboardingRules.MemberInviters.Any(persona => MemberPersonaClaims.Holds(context.Principal, tenants.Current.Value, persona)));
 }
 
 /// <summary>

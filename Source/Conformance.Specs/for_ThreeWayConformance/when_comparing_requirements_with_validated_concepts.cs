@@ -57,7 +57,9 @@ public class when_comparing_requirements_with_validated_concepts(when_comparing_
                             var valueConstructor = parameter.ParameterType.GetConstructors().Single(candidate => candidate.GetParameters().Length == 1);
                             return valueConstructor.Invoke([Convert.ChangeType(input, valueConstructor.GetParameters()[0].ParameterType, CultureInfo.InvariantCulture)]);
                         }).ToArray();
-                        using var scenario = new CommandScenario<object>();
+                        #pragma warning disable CS0618
+                        using var scenario = new CommandScenario<object>().UseDecisionReads();
+                        #pragma warning restore CS0618
                         var result = await scenario.Execute(constructor.Invoke(arguments));
                         Assert.False(result.HasExceptions, string.Join("; ", result.ExceptionMessages));
                         var expected = JsonSerializer.Deserialize<string[][]>({{JsonSerializer.Serialize(JsonSerializer.Serialize(failures))}})!;

@@ -70,7 +70,9 @@ internal static class protected_read_race_probes
 
             public class when_{{vector["name"]!.GetValue<string>().Replace('-', '_')}} : Specification, IDisposable
             {
-                readonly CommandScenario<{{command}}> _scenario = new CommandScenario<{{command}}>();
+                #pragma warning disable CS0618
+                readonly CommandScenario<{{command}}> _scenario = new CommandScenario<{{command}}>().UseDecisionReads();
+                #pragma warning restore CS0618
                 CommandResult _result = null!;
 
                 void Establish()

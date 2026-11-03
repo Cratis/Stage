@@ -17,7 +17,7 @@ public class when_checking_enumeration_numbers : Specification
     [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1,0]")]
     [InlineData("\"enumeration\":[\"open\",\"closed\",\"cancelled\"],\"enumerationNumbers\":[-1,4,90]")]
     [InlineData("\"enumeration\":[\"open\",\"closed\"]")]
-    public void should_admit_valid_or_absent_numbers(string metadata) => SceneGuards.CanEvaluate((object)Comparison(metadata)).ShouldBeTrue();
+    public void should_admit_valid_or_absent_numbers(string metadata) => SceneGuards.CanEvaluate(Comparison(metadata)).ShouldBeTrue();
 
     [Theory]
     [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1,1]")]
@@ -33,7 +33,7 @@ public class when_checking_enumeration_numbers : Specification
     public void should_refuse_malformed_metadata_everywhere(string metadata)
     {
         var comparison = Comparison(metadata);
-        SceneGuards.CanEvaluate((object)comparison).ShouldBeFalse();
+        SceneGuards.CanEvaluate(comparison).ShouldBeFalse();
         SceneGuards.CanRunAction(new JsonObject
         {
             ["alternatives"] = new JsonArray(new JsonObject { ["command"] = "Close", ["condition"] = comparison.DeepClone() }),
@@ -47,7 +47,7 @@ public class when_checking_enumeration_numbers : Specification
                 ["value"] = new JsonObject { ["kind"] = kind, ["index"] = 0, ["alternatives"] = new JsonArray(comparison.DeepClone()) }
             }).ShouldBeFalse();
         }
-        SceneGuards.CanEvaluate((object)new JsonObject
+        SceneGuards.CanEvaluate(new JsonObject
         {
             ["kind"] = "logical", ["operator"] = "Or", ["left"] = comparison.DeepClone(),
             ["right"] = Comparison("\"enumeration\":[\"open\",\"closed\"]")

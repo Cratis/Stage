@@ -24,8 +24,8 @@ public class and_a_guarded_action_uses_explicit_enumeration_numbers : Specificat
             EnumerationNumbers = new Dictionary<string, IReadOnlyDictionary<string, IReadOnlyList<int>>> { ["Row"] = new Dictionary<string, IReadOnlyList<int>>(StringComparer.OrdinalIgnoreCase) { ["status"] = [1, 0] } }
         };
         var at = SourceLocation.Start;
-        var action = new ScreenGuardedActionSyntax("Close", [new ScreenActionAlternativeSyntax(
-            new ComparisonConditionSyntax("item.status", ComparisonOperator.Equal, new LiteralExpressionSyntax("open", at), at), "Close", at)], at);
+        var condition = new ComparisonConditionSyntax("item.status", ComparisonOperator.Equal, new LiteralExpressionSyntax("open", at), at);
+        var action = new ScreenGuardedActionSyntax("Close", [new ScreenActionAlternativeSyntax(condition, "Close", at)], at);
         _result = (ExternalComponent)ScreenDirectiveConverter.Convert([action], "Rows", scope)[0];
         var alternative = ((List<Dictionary<string, object?>>)_result.Properties["alternatives"]!)[0];
         _condition = System.Text.Json.JsonSerializer.SerializeToNode(alternative["condition"])!.AsObject();

@@ -19,13 +19,12 @@ public class and_a_guarded_binding_uses_explicit_enumeration_numbers : Specifica
     void Establish()
     {
         var at = SourceLocation.Start;
-        _syntax = new("CloseRow", [], [new InteractionBindingSyntax(new BuiltInInteractionTriggerSyntax(InteractionTriggerKind.Click, at), null, [], at)
-        {
-            Alternatives = [new InteractionAlternativeSyntax(
-                new ComparisonConditionSyntax("item.status", ComparisonOperator.Equal, new LiteralExpressionSyntax("open", at), at),
-                [new ExecuteCommandActionSyntax("Close", at)], at)],
-            Otherwise = new InteractionOtherwiseSyntax([new ExecuteCommandActionSyntax("Reopen", at)], at)
-        }], at);
+        var trigger = new BuiltInInteractionTriggerSyntax(InteractionTriggerKind.Click, at);
+        var open = new ComparisonConditionSyntax("item.status", ComparisonOperator.Equal, new LiteralExpressionSyntax("open", at), at);
+        var alternative = new InteractionAlternativeSyntax(open, [new ExecuteCommandActionSyntax("Close", at)], at);
+        var otherwise = new InteractionOtherwiseSyntax([new ExecuteCommandActionSyntax("Reopen", at)], at);
+        var binding = new InteractionBindingSyntax(trigger, null, [], at) { Alternatives = [alternative], Otherwise = otherwise };
+        _syntax = new("CloseRow", [], [binding], at);
     }
 
     void Because()

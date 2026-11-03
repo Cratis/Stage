@@ -25,12 +25,12 @@ public class when_rendering_numbered_enumeration_guards : Specification
             .Replace("  draft\n  issued", "  draft = 1\n  issued = 0", StringComparison.Ordinal) + "\n" + """
                 slice StateView List
                   readmodel InvoiceRow
-                    id InvoiceId
+                    invoiceId InvoiceId
                     status Status
                   query Invoices => InvoiceRow[]
                   projection InvoiceRows => InvoiceRow
                     from InvoiceIssued key $eventSourceId
-                      id = $eventSourceId
+                      invoiceId = $eventSourceId
                       status = status
                   screen Invoices
                     data InvoiceRow[] via query Invoices

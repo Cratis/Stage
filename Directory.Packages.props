@@ -47,8 +47,8 @@
     <PackageVersion Include="Cratis.Ante.Contracts" Version="1.6.0" />
     <PackageVersion Include="Cratis.Showrunner.BoxOffice" Version="1.13.0" />
     <PackageVersion Include="Cratis.Showrunner.Herald" Version="1.10.0" />
-    <PackageVersion Include="Cratis.Scene.Engine" Version="4.86.0" />
-    <PackageVersion Include="Cratis.Scene.Model" Version="4.86.0" />
+    <PackageVersion Include="Cratis.Scene.Engine" Version="4.87.0" />
+    <PackageVersion Include="Cratis.Scene.Model" Version="4.87.0" />
     <PackageVersion Include="Cratis.Screenplay" Version="$(CratisScreenplayVersion)" />
     <PackageVersion Include="Cratis.Screenplay.Matching" Version="$(CratisScreenplayVersion)" />
     <!-- Spec-only: the released conformance corpus consumed by the Cratis renderer's planner fixtures, at the Screenplay version the renderer compiles with. -->

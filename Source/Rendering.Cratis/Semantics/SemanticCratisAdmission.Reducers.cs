@@ -16,20 +16,26 @@ internal static partial class SemanticCratisAdmission
         var analysed = 0;
         foreach (var reducer in slice.Reducers)
         {
-            if (slice.Kind is not (SemanticSliceKind.StateView or SemanticSliceKind.Automation))
+            var eventTarget = reducer.Target == SemanticProjectionTargetKind.Event;
+            if (EventTargetReducerDiagnostic(reducer, slice, context) is { } eventTargetDiagnostic)
+            {
+                diagnostics.Add(eventTargetDiagnostic);
+                continue;
+            }
+            if (!eventTarget && slice.Kind is not (SemanticSliceKind.StateView or SemanticSliceKind.Automation))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' must be declared in a StateView or Automation slice.", slice.Id));
                 continue;
             }
 
-            if (!slice.ReadModels.Any(_ => _.Id == reducer.ReadModel))
+            if (!eventTarget && !slice.ReadModels.Any(_ => _.Id == reducer.ReadModel))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' needs its read model in the same slice.", slice.Id));
                 continue;
             }
 
             var reducerName = Identifiers.ToPascalCase(reducer.Name);
-            if (!context.SelfReduces(reducer.ReadModel) && (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
+            if ((eventTarget || !context.SelfReduces(reducer.ReadModel)) && (slice.ReadModels.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Events.Any(_ => Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 slice.Projections.Any(_ => _.Scope is not null && Identifiers.ToPascalCase(_.Name) == reducerName) ||
                 SliceNaming.FileName(slice.Name) == $"{reducerName}.cs"))
@@ -39,16 +45,18 @@ internal static partial class SemanticCratisAdmission
             }
 
             var projections = context.Projections.Values.Count(_ => _.ReadModel == reducer.ReadModel);
-            if (!context.ReadModels.TryGetValue(reducer.ReadModel, out var model) || projections != 0 ||
+            context.ReadModels.TryGetValue(reducer.ReadModel, out var readModel);
+            if (!eventTarget && (readModel is null || projections != 0 ||
                 context.Reducers.Count(_ => _.ReadModel == reducer.ReadModel) != 1 || reducer.Transitions.IsEmpty ||
                 reducer.Transitions.Select(_ => _.EventContract).Distinct().Count() != reducer.Transitions.Length ||
-                reducer.Key != SemanticReducerKey.EventSourceId || reducer.Result != SemanticReducerResult.StateOrDelete)
+                reducer.Key != SemanticReducerKey.EventSourceId || reducer.Result != SemanticReducerResult.StateOrDelete))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' needs one exclusive, resolvable read model and distinct event transitions.", slice.Id));
                 continue;
             }
 
-            if (context.SelfReduces(reducer.ReadModel) && SelfReducerCollision(model, reducer, slice) is { } collision)
+            var model = ReducerState(reducer, context);
+            if (!eventTarget && context.SelfReduces(reducer.ReadModel) && SelfReducerCollision(readModel!, reducer, slice) is { } collision)
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Self-reducing read model '{model.Name}' collides with reserved member '{collision}'. Rename the model, property or query; classic rendering remains available for existing applications.", model.Id));
                 continue;
@@ -58,10 +66,10 @@ internal static partial class SemanticCratisAdmission
             // by its body. Only identities whose canonical wire representation we can compare
             // at every public On boundary are safe for keyed model lookups.
             var identifiers = model.Properties.Where(_ => _.IsIdentifier).ToArray();
-            if (identifiers.Length != 1 || !new SemanticTypeSystem(context).SupportsReducerIdentifier(identifiers[0].Type) ||
+            if (!eventTarget && (identifiers.Length != 1 || !new SemanticTypeSystem(context).SupportsReducerIdentifier(identifiers[0].Type) ||
                 !slice.Queries.Any(query => query.ReadModel == model.Id && query.KeyProperty == identifiers[0].Id &&
                     query.Argument is not null && query.Argument.Type == identifiers[0].Type && query.Cardinality == SemanticQueryCardinality.ZeroOrOne &&
-                    query.Delivery == SemanticQueryDelivery.Snapshot))
+                    query.Delivery == SemanticQueryDelivery.Snapshot)))
             {
                 diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' needs a required Guid/Text identifier (or identifier concept) and a matching keyed query.", reducer.ReadModel));
                 continue;
@@ -125,7 +133,7 @@ internal static partial class SemanticCratisAdmission
                     pair.First.Name == pair.Second.Name && pair.First.Source?.Kind == pair.Second.Kind &&
                     pair.First.Source.SemanticId == pair.Second.Id && pair.First.Source.Path == pair.Second.Path &&
                     pair.First.Source.EventRevision == pair.Second.Revision && pair.First.Source.ConstantValue is null &&
-                    pair.First.IsDerived == pair.Second.Derived && MatchesReducerMemberType(pair.First, model, @event)))
+                    pair.First.IsDerived == pair.Second.Derived && MatchesReducerMemberType(pair.First, model.Id, model.Properties, @event)))
                 {
                     diagnostics.Add(Error("STAGE-ESM-021", $"Reducer '{reducer.Name}' has an unexpected typed context member or source (State, Event, Key, Tenant, Occurred, SequenceNumber, IsFirst).", reducer.ReadModel));
                     continue;
@@ -133,7 +141,7 @@ internal static partial class SemanticCratisAdmission
 
                 // StateView artifacts emit read models and reducers, not event declarations,
                 // including when the event is declared in a different StateView slice.
-                if (context.DeclaringSlice(@event.Id).Slice.Kind is not (SemanticSliceKind.StateChange or SemanticSliceKind.Automation))
+                if (!SupportsReducerSource(@event.Id, eventTarget, context))
                 {
                     diagnostics.Add(Error("STAGE-ESM-019", $"Reducer '{reducer.Name}' observes an event declared in a StateView slice, which cannot render an event contract.", reducer.ReadModel));
                     continue;
@@ -159,6 +167,17 @@ internal static partial class SemanticCratisAdmission
         return analysed;
     }
 
+    static (SemanticId Id, string Name, ImmutableArray<SemanticProperty> Properties) ReducerState(SemanticReducer reducer, SemanticApplicationContext context) =>
+        reducer.Target == SemanticProjectionTargetKind.Event
+            ? (context.Events[reducer.ReadModel].Id, context.Events[reducer.ReadModel].Name, context.Events[reducer.ReadModel].Properties)
+            : (context.ReadModels[reducer.ReadModel].Id, context.ReadModels[reducer.ReadModel].Name, context.ReadModels[reducer.ReadModel].Properties);
+
+    static bool SupportsReducerSource(SemanticId source, bool eventTarget, SemanticApplicationContext context)
+    {
+        var kind = context.DeclaringSlice(source).Slice.Kind;
+        return kind != SemanticSliceKind.StateView && (eventTarget || kind is SemanticSliceKind.StateChange or SemanticSliceKind.Automation);
+    }
+
     static string? SelfReducerCollision(SemanticReadModel model, SemanticReducer reducer, SemanticSlice slice)
     {
         var type = Identifiers.ToPascalCase(model.Name);
@@ -169,14 +188,14 @@ internal static partial class SemanticCratisAdmission
             queries.FirstOrDefault(name => new[] { "Reduce", "BeginReplay", "EndReplay", "BeginReplayPartition", "EndReplayPartition" }.Contains(name, StringComparer.Ordinal));
     }
 
-    static bool MatchesReducerMemberType(SemanticTypedContextMember member, SemanticReadModel model, SemanticEventContract @event)
+    static bool MatchesReducerMemberType(SemanticTypedContextMember member, SemanticId state, ImmutableArray<SemanticProperty> stateProperties, SemanticEventContract @event)
     {
         var type = member.Type;
         if (type is null) return false;
         if (member.Name == "State" || member.Name == "Event")
         {
-            var shape = member.Name == "State" ? model.Id : @event.Id;
-            var properties = member.Name == "State" ? model.Properties : @event.Properties;
+            var shape = member.Name == "State" ? state : @event.Id;
+            var properties = member.Name == "State" ? stateProperties : @event.Properties;
             return type.Kind == SemanticContextTypeKinds.Shape && type.Shape == shape && type.ModelType is null &&
                 type.RuntimeToken is null && !type.Properties.IsDefault && type.Properties.Length == properties.Length &&
                 type.Properties.Zip(properties).All(pair => pair.First.Id == pair.Second.Id &&

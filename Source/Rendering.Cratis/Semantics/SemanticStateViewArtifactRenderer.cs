@@ -80,7 +80,7 @@ internal static class SemanticStateViewArtifactRenderer
     internal static void RenderDeclaredEvents(CSharpCodeBuilder builder, LocatedSemanticSlice located, SemanticApplicationContext context)
     {
         var types = new SemanticTypeSystem(context);
-        foreach (var declaredEvent in located.Slice.Events)
+        foreach (var declaredEvent in located.Slice.Events.Where(declared => !context.EventContracts.ContainsEvent(declared.Id)))
         {
             builder.BlankLine();
             SemanticStateChangeArtifactRenderer.RenderEvent(builder, declaredEvent, types, context);

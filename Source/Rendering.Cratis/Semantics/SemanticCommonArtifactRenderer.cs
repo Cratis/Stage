@@ -22,12 +22,22 @@ internal static class SemanticCommonArtifactRenderer
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="qualified">Whether specifications request the pre-short-name spelling oracle.</param>
     /// <param name="declarationOnly">Whether to omit compliance annotations, factory implementations and the companion validator for body analysis.</param>
+    /// <param name="placement">Which project the rendered source belongs to when the concept is part of an event contract.</param>
     /// <returns>The generated source artifact.</returns>
-    public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context, bool qualified = false, bool declarationOnly = false)
+    public static RenderedFile Render(SemanticConcept concept, SemanticApplicationContext context, bool qualified = false, bool declarationOnly = false, ConceptPlacement placement = ConceptPlacement.Application)
     {
         qualified |= QualifiedSpelling.IsActive;
         var name = Identifiers.ToPascalCase(concept.Name);
-        var builder = Builder(context, qualified);
+        var builder = Builder(context, qualified || placement == ConceptPlacement.Contracts);
+        if (placement == ConceptPlacement.Validator)
+        {
+            builder.Pin(name, $"{name}Validator");
+            builder.Scope([], ["Value", "NotSet", "New", "context", "_", "value", "pattern"]);
+            builder.Access("Value", "Empty", "MinValue", "RuleFor", "Must", "WithMessage", "WithState", "WithSeverity", "IsMatch", "FromSeconds");
+            RenderValidator(builder, concept, name, context);
+            return new(Path.Combine(context.CommonFolder, $"{name}Validator.cs"), builder.ToString()) { Sources = [concept.Id] };
+        }
+
         builder.Pin(name, $"{name}Validator");
         builder.Scope([], ["Value", "NotSet", "New", "context", "_", "value", "pattern"]);
         builder.Access("Value", "Empty", "MinValue", "RuleFor", "Must", "WithMessage", "WithState", "WithSeverity", "IsMatch", "FromSeconds");
@@ -37,10 +47,10 @@ internal static class SemanticCommonArtifactRenderer
         }
         else
         {
-            RenderConcept(builder, concept, name, context, qualified, declarationOnly);
+            RenderConcept(builder, concept, name, context, qualified, declarationOnly, placement == ConceptPlacement.Application);
         }
 
-        return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
+        return new(Path.Combine(ContractsPrefix(context, placement), context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [concept.Id] };
     }
 
     /// <summary>
@@ -49,11 +59,12 @@ internal static class SemanticCommonArtifactRenderer
     /// <param name="type">The semantic composite type.</param>
     /// <param name="context">The indexed semantic application.</param>
     /// <param name="qualified">Whether specifications request the pre-short-name spelling oracle.</param>
+    /// <param name="placement">Which project the rendered source belongs to when the type is part of an event contract.</param>
     /// <returns>The generated source artifact.</returns>
-    public static RenderedFile Render(SemanticCompositeType type, SemanticApplicationContext context, bool qualified = false)
+    public static RenderedFile Render(SemanticCompositeType type, SemanticApplicationContext context, bool qualified = false, ConceptPlacement placement = ConceptPlacement.Application)
     {
         qualified |= QualifiedSpelling.IsActive;
-        var builder = Builder(context, qualified);
+        var builder = Builder(context, qualified || placement == ConceptPlacement.Contracts);
         var types = new SemanticTypeSystem(context, builder);
         var name = Identifiers.ToPascalCase(type.Name);
         builder.Pin(name);
@@ -62,12 +73,15 @@ internal static class SemanticCommonArtifactRenderer
         context.Docs(type.Id).Render(builder, $"Represents {Identifiers.ToWords(type.Name)}.")
             .Parameters(type.Properties)
             .Line($"public record {name}({parameters});");
-        return new(Path.Combine(context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
+        return new(Path.Combine(ContractsPrefix(context, placement), context.CommonFolder, $"{name}.cs"), builder.ToString()) { Sources = [type.Id] };
     }
 
     internal static bool IsGeneratable(SemanticConcept concept, SemanticApplicationContext context) =>
         NeedsFactory(concept, context) && (context.Request.Model.SemanticVersion.IsAtLeast(SemanticVersion.V15)
             ? SemanticGenerationShapes.Supported(concept) : concept.Primitive == SemanticPrimitiveType.Uuid);
+
+    static string ContractsPrefix(SemanticApplicationContext context, ConceptPlacement placement) =>
+        placement == ConceptPlacement.Contracts ? context.ContractsFolder : string.Empty;
 
     static CSharpCodeBuilder Builder(SemanticApplicationContext context, bool qualified) =>
         (qualified ? new CSharpCodeBuilder() : context.CodeBuilder())
@@ -84,7 +98,7 @@ internal static class SemanticCommonArtifactRenderer
         builder.EndBlock();
     }
 
-    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context, bool qualified, bool declarationOnly)
+    static void RenderConcept(CSharpCodeBuilder builder, SemanticConcept concept, string name, SemanticApplicationContext context, bool qualified, bool declarationOnly, bool withValidator)
     {
         var types = new SemanticTypeSystem(context, builder);
         var isIdentifier = context.IdentifierConcepts.Contains(concept.Id);
@@ -130,7 +144,7 @@ internal static class SemanticCommonArtifactRenderer
         }
 
         builder.EndBlock();
-        if (!declarationOnly) RenderValidator(builder, concept, name, context);
+        if (!declarationOnly && withValidator) RenderValidator(builder, concept, name, context);
     }
 
     static bool NeedsFactory(SemanticConcept concept, SemanticApplicationContext context) =>

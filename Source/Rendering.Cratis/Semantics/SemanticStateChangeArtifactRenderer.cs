@@ -43,7 +43,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             builder.Using("Cratis.Chronicle.EventSequences");
         }
-        if (located.Slice.Commands.SelectMany(command => command.Properties).Concat(located.Slice.Events.SelectMany(_ => _.Properties))
+        if (located.Slice.Commands.SelectMany(command => command.Properties).Concat(located.Slice.Events.Where(_ => !context.EventContracts.ContainsEvent(_.Id)).SelectMany(_ => _.Properties))
             .Any(_ => SemanticTypeSystem.DeclarationNeedsCommon(_.Type)))
         {
             builder.Using(context.CommonNamespace);
@@ -70,13 +70,10 @@ internal static class SemanticStateChangeArtifactRenderer
                 ? $"global::Cratis.Chronicle.Events.EventTypeAttribute({CSharpCodeBuilder.StringLiteral(stored)})"
                 : "global::Cratis.Chronicle.Events.EventTypeAttribute");
 
+        // An own public event carries no attribute: it lives in the contracts project, whose assembly names the event store.
         if (@event.Origin is { } origin)
         {
             builder.Attribute($"global::Cratis.Chronicle.Events.EventStoreAttribute({CSharpCodeBuilder.StringLiteral(origin)})");
-        }
-        else if (@event.Visibility == SemanticEventVisibility.Public)
-        {
-            builder.Attribute("global::Cratis.Chronicle.Events.PublicAttribute");
         }
 
         // A product a projection adds (ESM v29) is a member the event carries: Chronicle's Add takes one event property.
@@ -106,7 +103,7 @@ internal static class SemanticStateChangeArtifactRenderer
         {
             RenderCommand(builder, command, context, types);
         }
-        foreach (var declaredEvent in located.Slice.Events)
+        foreach (var declaredEvent in located.Slice.Events.Where(declared => !context.EventContracts.ContainsEvent(declared.Id)))
         {
             RenderEvent(builder, declaredEvent, types, context);
         }

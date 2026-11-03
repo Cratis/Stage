@@ -735,6 +735,7 @@ jobs:
           name: debug-build-output
 
       - name: Extract Debug build output
+        id: extract
         run: tar -xzf build-output.tar.gz
 
       - name: Restore packages without an exact cache hit
@@ -771,6 +772,39 @@ jobs:
           if len(results) != 13 or any(result.get("outcome") != "Passed" for result in results):
               raise SystemExit(f"Expected 13 passing standalone application assertions, got {[(r.get('testName'), r.get('outcome')) for r in results]}.")
           print(f"{len(results)} standalone application assertions passed")
+          PY
+
+      # Builds a rendered application and the event contracts project it references, once in Debug and once in
+      # Release. The facts skip unless enabled, so the count check below is what makes this a gate, not discovery.
+      # spec-shards.py excludes the class from every shard.
+      - name: Build rendered event contracts in Debug and Release
+        if: ${{ !cancelled() && steps.extract.outcome == 'success' }}
+        timeout-minutes: 10
+        env:
+          STAGE_EVENT_CONTRACTS_BUILD: "1"
+          STAGE_EVENT_CONTRACTS_PROOF_ROOT: ${{ runner.temp }}/event-contracts-proof
+        run: |
+          mkdir -p "$STAGE_EVENT_CONTRACTS_PROOF_ROOT"
+          dotnet test Source/Rendering.Cratis/Rendering.Cratis.csproj --configuration Debug --no-build \
+            --filter "FullyQualifiedName~when_building_rendered_event_contracts" \
+            --logger "trx;LogFileName=event-contracts.trx" --results-directory ./TestResults/standalone-generated-application/event-contracts
+
+      - name: Require both event contracts builds to execute and pass
+        if: ${{ !cancelled() && steps.extract.outcome == 'success' }}
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          root = ET.parse("TestResults/standalone-generated-application/event-contracts/event-contracts.trx").getroot()
+          counters = root.find("t:ResultSummary/t:Counters", ns)
+          results = root.findall("t:Results/t:UnitTestResult", ns)
+          executed = int(counters.get("executed", "0")) if counters is not None else 0
+          # VSTest leaves the notExecuted counter at zero for an xUnit skip; the per-test outcome records it.
+          skipped = sum(result.get("outcome") == "NotExecuted" for result in results)
+          if executed != 2 or skipped != 0 or len(results) != 2 or any(result.get("outcome") != "Passed" for result in results):
+              raise SystemExit(f"Expected 2 executed and passed event contracts builds and none skipped, got executed={executed}, skipped={skipped}, "
+                               f"{[(r.get('testName'), r.get('outcome')) for r in results]}.")
+          print(f"{executed} event contracts builds executed and passed, {skipped} skipped")
           PY
 
       - name: Upload spec results

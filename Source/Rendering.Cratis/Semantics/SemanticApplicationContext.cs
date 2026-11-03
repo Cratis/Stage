@@ -41,6 +41,7 @@ internal sealed partial class SemanticApplicationContext
         PerformedQueries = performed.Performed;
         PerformedQueryRejections = performed.Rejections;
         RootNamespace = options.RootNamespace;
+        ContractsFolder = $"{options.ProjectName}.Events.Contracts";
         Domain = DomainPlacementInput.From(request.Profile);
         Strings = StringsCatalogInput.From(request.Profile);
         ReducerConventionInput.TryRead(request.Profile, Application.Name, out var reducerConvention);
@@ -172,6 +173,16 @@ internal sealed partial class SemanticApplicationContext
     internal IReadOnlySet<SemanticId> PerformedQueries { get; }
 
     /// <summary>
+    /// Gets the folder and project name that carry the application's own public events.
+    /// </summary>
+    internal string ContractsFolder { get; }
+
+    /// <summary>
+    /// Gets the own public events and the declarations they need, which render into the contracts project.
+    /// </summary>
+    internal SemanticEventContracts EventContracts => field ??= SemanticEventContracts.From(this);
+
+    /// <summary>
     /// Gets why a performed query cannot render, by the identity of the read model it returns.
     /// </summary>
     internal IReadOnlyDictionary<SemanticId, string> PerformedQueryRejections { get; }
@@ -272,6 +283,12 @@ internal sealed partial class SemanticApplicationContext
     /// </summary>
     /// <returns>The builder.</returns>
     internal CSharpCodeBuilder CodeBuilder() => new(GeneratedProjects.Application, GeneratedTypes, Request.Scope.Kind == ArtifactRenderScopeKind.Application) { SourceLines = SourceLines };
+
+    /// <summary>
+    /// Creates a builder for a file of the contracts project, which has no scaffold global usings.
+    /// </summary>
+    /// <returns>The builder.</returns>
+    internal CSharpCodeBuilder ContractsBuilder() => new();
 
     /// <summary>
     /// Creates a builder for a generated specification file.

@@ -21,6 +21,10 @@ public class when_checking_enumeration_numbers : Specification
         ["enumerationNumbers"] = numbers
     };
 
+    static JsonObject WithMetadata(string metadata) => JsonNode.Parse("""
+        {"kind":"comparison","left":{"subject":"item.status"},"operator":"Equal","right":"open",
+        """ + metadata + "}")!.AsObject();
+
     static bool CanEvaluate(JsonObject condition) => GuardConditions.CanEvaluate(JsonSerializer.SerializeToElement(condition));
     static bool? Evaluate(JsonObject condition, int status) => GuardConditions.Evaluate(JsonSerializer.SerializeToElement(condition), JsonSerializer.SerializeToElement(new { status }));
 
@@ -93,5 +97,54 @@ public class when_checking_enumeration_numbers : Specification
             ["right"] = Comparison(new JsonArray(1, 0))
         };
         CanEvaluate(logical).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1,0]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\",\"cancelled\"],\"enumerationNumbers\":[-1,4,90]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"]")]
+    public void should_admit_valid_or_absent_numbers(string metadata)
+    {
+        var comparison = WithMetadata(metadata);
+        CanEvaluate(comparison).ShouldBeTrue();
+        SceneGuards.CanEvaluate(comparison).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1,1]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1.5,0]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[\"1\",0]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":null")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":1")]
+    [InlineData("\"enumerationNumbers\":[1,0]")]
+    [InlineData("\"enumeration\":[\"open\",0],\"enumerationNumbers\":[1,0]")]
+    [InlineData("\"enumeration\":null,\"enumerationNumbers\":[1,0]")]
+    [InlineData("\"enumeration\":[\"open\",\"closed\"],\"enumerationNumbers\":[1e400,0]")]
+    public void should_refuse_malformed_metadata_everywhere(string metadata)
+    {
+        var comparison = WithMetadata(metadata);
+        CanEvaluate(comparison).ShouldBeFalse();
+        SceneGuards.CanEvaluate(comparison).ShouldBeFalse();
+        SceneGuards.CanRunAction(new JsonObject
+        {
+            ["alternatives"] = new JsonArray(new JsonObject { ["command"] = "Close", ["condition"] = comparison.DeepClone() }),
+            ["otherwise"] = new JsonObject { ["outcome"] = "Execute", ["command"] = "Reopen" }
+        }).ShouldBeFalse();
+        foreach (var kind in new[] { "firstMatch", "otherwise" })
+        {
+            SceneGuards.CanRunBinding(new JsonObject
+            {
+                ["path"] = "$guard",
+                ["value"] = new JsonObject { ["kind"] = kind, ["index"] = 0, ["alternatives"] = new JsonArray(comparison.DeepClone()) }
+            }).ShouldBeFalse();
+        }
+        SceneGuards.CanEvaluate(new JsonObject
+        {
+            ["kind"] = "logical",
+            ["operator"] = "Or",
+            ["left"] = comparison.DeepClone(),
+            ["right"] = WithMetadata("\"enumeration\":[\"open\",\"closed\"]")
+        }).ShouldBeFalse();
     }
 }

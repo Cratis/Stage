@@ -23,8 +23,10 @@ public class when_inspecting_where_a_produced_event_lands : given.a_compiled_mod
     // landing on the command's own event source names the command's identifier rather than leaving it unstated.
     [Fact] void should_name_the_commands_own_identifier_for_an_event_landing_on_its_own_source() => _own.For.Expression.ShouldEqual("invoiceId");
     [Fact] void should_carry_the_declared_event_source() => _elsewhere.For.ShouldNotBeNull();
-    [Fact] void should_resolve_the_event_source_from_a_command_property() =>
+    [Fact]
+    void should_resolve_the_event_source_from_a_command_property() =>
         _elsewhere.For.Kind.ShouldEqual(ProducedValueKind.CommandProperty);
-    [Fact] void should_name_the_property_the_event_source_comes_from() =>
+    [Fact]
+    void should_name_the_property_the_event_source_comes_from() =>
         _elsewhere.For.Expression.ShouldEqual("contractId");
 }

@@ -28,7 +28,8 @@ public class when_rendering_pattern_and_random_generation : Specification
     [Fact] void should_preserve_the_full_admitted_int64_range() => File("Ticket").ShouldContain("GenerateValue.Integer(-9223372036854775808L, 9223372036854775807L)");
     [Fact] void should_not_narrow_v21_whole_numbers_to_int32() => File("Ticket").ShouldContain("Ticket(long Value)");
     [Fact] void should_never_read_the_render_time_clock() => File("DatedReference").ShouldNotContain("UtcNow");
-    [Fact] void should_render_identical_bytes_on_repeated_planning()
+    [Fact]
+    void should_render_identical_bytes_on_repeated_planning()
     {
         var model = a_pattern_random_model.Model();
         var repeated = CratisRendering.Plan(model, SemanticExecutionPlan.Compile(model).Plan, new(ArtifactRenderScopeKind.Application, model.Application.Id), new("PatternRandom", "PatternRandom"));

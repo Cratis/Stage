@@ -81,7 +81,8 @@ internal static class ProjectionShape
                 child.RemovedWith,
                 child.RemovedWithJoin,
                 [],
-                child.AutoMap) { Nested = child.Nested },
+                child.AutoMap)
+            { Nested = child.Nested },
             result,
             prefix);
     }

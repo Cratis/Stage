@@ -16,13 +16,16 @@ public class with_the_same_fingerprint_on_another_vector : Specification
 
     void Establish()
     {
-        _previous = new() { Vectors = new Dictionary<string, IReadOnlyDictionary<conformance_surface, expected_conformance_cell>>
+        _previous = new()
         {
-            ["V2"] = new Dictionary<conformance_surface, expected_conformance_cell>
+            Vectors = new Dictionary<string, IReadOnlyDictionary<conformance_surface, expected_conformance_cell>>
             {
-                [conformance_surface.Renderer] = new("refused", [new(new("STAGE-ESM-010", null, "sem1:one"), 501, null)])
+                ["V2"] = new Dictionary<conformance_surface, expected_conformance_cell>
+                {
+                    [conformance_surface.Renderer] = new("refused", [new(new("STAGE-ESM-010", null, "sem1:one"), 501, null)])
+                }
             }
-        } };
+        };
         _actual = new Dictionary<string, IReadOnlyDictionary<conformance_surface, conformance_observation>>
         {
             ["V1"] = new Dictionary<conformance_surface, conformance_observation>

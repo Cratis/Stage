@@ -25,7 +25,8 @@ public class when_remapping_command_destinations : Specification
         GeneratedSceneMemberNames.Fields(_document["fields"], new Dictionary<string, string>(StringComparer.Ordinal) { ["text"] = "text_" });
     }
 
-    [Fact] void should_not_invent_a_source_alias_for_a_renamed_destination()
+    [Fact]
+    void should_not_invent_a_source_alias_for_a_renamed_destination()
     {
         _document["fields"][0]["name"].GetValue<string>().ShouldEqual("text_");
         Assert.Null(_document["fields"][0]["sourceProperty"]);

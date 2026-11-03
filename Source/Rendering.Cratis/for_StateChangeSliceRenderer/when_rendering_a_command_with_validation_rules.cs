@@ -18,8 +18,10 @@ public class when_rendering_a_command_with_validation_rules : state_change_slice
 
     void Because() => _file = _renderer.Render(_registerInvoice, _applicationSet, "CratisApp");
 
-    [Fact] void should_declare_a_paired_validator() =>
+    [Fact]
+    void should_declare_a_paired_validator() =>
         _file.Content.ShouldContain("public class RegisterInvoiceValidator : CommandValidator<RegisterInvoice>");
-    [Fact] void should_emit_the_rule_against_the_pascal_case_property() =>
+    [Fact]
+    void should_emit_the_rule_against_the_pascal_case_property() =>
         _file.Content.ShouldContain("RuleFor(_ => _.Name).NotEmpty().WithMessage(\"Name is required\");");
 }

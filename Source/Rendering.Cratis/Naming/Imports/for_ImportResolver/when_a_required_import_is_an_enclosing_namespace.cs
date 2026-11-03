@@ -18,6 +18,7 @@ public class when_a_required_import_is_an_enclosing_namespace : given.a_framewor
 
     [Fact] void should_spell_the_type_short() => _result.Spell(_placeOrder).ShouldEqual("PlaceOrder");
     [Fact] void should_spell_the_enclosing_namespace_type_short() => _result.Spell(_order).ShouldEqual("Order");
-    [Fact] void should_preserve_explicit_imports_for_referenced_types_to_keep_existing_header_bytes() =>
+    [Fact]
+    void should_preserve_explicit_imports_for_referenced_types_to_keep_existing_header_bytes() =>
         string.Join(' ', _result.Usings.Concat(_result.TopLevelUsings).Order(StringComparer.Ordinal)).ShouldEqual("Shop.Orders Shop.Orders.Placing");
 }

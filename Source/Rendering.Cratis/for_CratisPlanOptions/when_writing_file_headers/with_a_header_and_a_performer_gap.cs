@@ -41,7 +41,8 @@ public class with_a_header_and_a_performer_gap : for_CratisRendering.given.a_sou
         _again = ArtifactRenderPlan.Create(request, _headed.Artifacts, _headed.Diagnostics, _headed.ImplementationGaps, _headed.Refusals, _headed.RequiredRemovals);
     }
 
-    [Fact] void should_have_a_real_performer_gap()
+    [Fact]
+    void should_have_a_real_performer_gap()
     {
         _headed.Outcome.ShouldEqual(ArtifactRenderOutcome.Partial);
         _headed.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == "STAGE-IMPL-006");

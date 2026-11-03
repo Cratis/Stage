@@ -36,7 +36,8 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_plan_without_errors() => _plan.Diagnostics.ShouldBeEmpty();
     [Fact] void should_emit_the_binding_module() => Artifact(SceneBindingsRenderer.RelativePath).ShouldNotBeNull();
     [Fact] void should_keep_the_command_form() => _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").GetProperty("properties").GetProperty("command").GetString().ShouldEqual("RegisterProject");
-    [Fact] void should_match_the_emitted_command_members_and_native_proxy_descriptors()
+    [Fact]
+    void should_match_the_emitted_command_members_and_native_proxy_descriptors()
     {
         var command = _elements.Single(_ => _.GetProperty("componentName").GetString() == "Cratis.Components:commandForm").GetProperty("properties");
         command.GetProperty("submitLabel").GetString().ShouldEqual("Submit");
@@ -67,12 +68,15 @@ public class when_planning_an_application_without_screens : a_register_project_r
     [Fact] void should_leave_layouts_empty_for_the_default_blueprint() => _scene.GetProperty("layouts").GetArrayLength().ShouldEqual(0);
     [Fact] void should_not_pin_the_generated_screen_to_an_unrenderable_application_shell() => _scene.GetProperty("screens")[0].GetProperty("layout").GetString().ShouldEqual(string.Empty);
 
-    [Fact] void should_spell_alignment_as_the_scene_model_does() =>
+    [Fact]
+    void should_spell_alignment_as_the_scene_model_does() =>
         _elements.All(element => element.GetProperty("horizontalAlignment").GetString() == "Stretch" && element.GetProperty("verticalAlignment").GetString() == "Stretch").ShouldBeTrue();
-    [Fact] void should_spell_visibility_as_the_scene_model_does() =>
+    [Fact]
+    void should_spell_visibility_as_the_scene_model_does() =>
         _elements.All(element => element.GetProperty("visibility").GetString() == "Visible").ShouldBeTrue();
 
-    [Fact] void should_declare_no_interactions_on_a_composed_element() =>
+    [Fact]
+    void should_declare_no_interactions_on_a_composed_element() =>
         _elements.All(element => element.GetProperty("behaviors").GetArrayLength() == 0).ShouldBeTrue();
     [Fact] void should_freeze_the_complete_binding_module_bytes() => Artifact(SceneBindingsRenderer.RelativePath).Sha256.ShouldEqual("14aff8a41489a0bcfa0154b95f6be88376eb2f10a11edbecc63db74f5222ffb1");
     [Fact] void should_repeat_the_exact_scene_bytes() => _planner.Plan(_request).Artifacts.Single(_ => _.RelativePath == SceneCompositionInput.RelativePath).Bytes.SequenceEqual(Artifact(SceneCompositionInput.RelativePath).Bytes).ShouldBeTrue();

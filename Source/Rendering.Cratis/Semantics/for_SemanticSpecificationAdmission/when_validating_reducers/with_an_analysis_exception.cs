@@ -22,7 +22,8 @@ public class with_an_analysis_exception : given.a_reducer_specification
         }
     }
 
-    [Fact] void should_preserve_the_analysis_failure()
+    [Fact]
+    void should_preserve_the_analysis_failure()
     {
         var reason = Refusal();
         reason.ShouldContain("Reducer analysis failed: InvalidOperationException:");

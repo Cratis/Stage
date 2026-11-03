@@ -25,6 +25,7 @@ public class when_writing_a_failure_marker : Specification
 
     [Fact] void should_create_the_marker() => _written.ShouldBeTrue();
     [Fact] void should_use_the_deterministic_path() => File.Exists(Path.Combine(_target.FullName, RenderFailureMarker.RelativePath)).ShouldBeTrue();
-    [Fact] void should_state_that_the_marker_does_not_make_stale_output_safe() =>
+    [Fact]
+    void should_state_that_the_marker_does_not_make_stale_output_safe() =>
         File.ReadAllText(Path.Combine(_target.FullName, RenderFailureMarker.RelativePath)).ShouldEqual(RenderFailureMarker.Content);
 }

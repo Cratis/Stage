@@ -50,7 +50,8 @@ public class with_non_event_reaction_sources : Specification
             model,
             execution,
             CratisRendering.CreateProfile(model.Application.Name, new("Reactions", "Reactions")),
-            new(ArtifactRenderScopeKind.Application, model.Application.Id)) { ImplementationRequirements = default };
+            new(ArtifactRenderScopeKind.Application, model.Application.Id))
+        { ImplementationRequirements = default };
         var plan = new CratisArtifactRenderPlanner().Plan(request);
 
         plan.Diagnostics.ShouldContain(diagnostic => diagnostic.Code == code && diagnostic.Artifact == reaction.Id);

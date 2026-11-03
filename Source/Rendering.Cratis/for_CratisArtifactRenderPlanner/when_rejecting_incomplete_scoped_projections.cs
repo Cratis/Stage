@@ -47,10 +47,13 @@ public class when_rejecting_incomplete_scoped_projections
             "every-overwrites-identity" => scope with { Every = scope.Every with { Mappings = [new([rootIdentity], SemanticProjectionOperation.Set, SemanticProjectionValue.EventSourceIdentity)] } },
             "overwritten-root-identity" => scope with { From = [scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }, .. scope.From.Skip(1)] },
             "overwritten-child-identity" => scope with { Children = [child with { Scope = child.Scope with { From = [child.Scope.From[0] with { Key = new SemanticProjectionValueKey(new SemanticProjectionEventSourceIdentity()) }] } }] },
-            "event-source-into-other-concept" => scope with { From = [.. scope.From.Select(subscription => subscription with
+            "event-source-into-other-concept" => scope with
+            {
+                From = [.. scope.From.Select(subscription => subscription with
             {
                 Mappings = [.. subscription.Mappings.Select(mapping => mapping.Target.Contains(name) ? mapping with { Source = SemanticProjectionValue.EventSourceIdentity } : mapping)]
-            })] },
+            })]
+            },
             _ => throw new UnknownVariant(variant)
         };
         var changed = view with { Projections = [.. view.Projections.Select(candidate => candidate.Id == projection.Id ? candidate with { Scope = scope } : candidate)] };

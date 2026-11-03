@@ -49,7 +49,8 @@ public class when_building_compliance_details : a_generated_application
         var renderer = new CratisRenderer(
             new a_stub_scaffolder(),
             new Dictionary<SliceType, ISliceRenderer> { [SliceType.StateChange] = new StateChangeSliceRenderer() },
-            codeOutput) { ComplianceDetails = true };
+            codeOutput)
+        { ComplianceDetails = true };
         await using var output = new StringWriter();
         await using var error = new StringWriter();
         await renderer.Render([application], new DirectoryInfo(Path.Combine(Path.GetTempPath(), "compliance")), output, error);

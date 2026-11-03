@@ -46,7 +46,7 @@ public static class ExpressionRenderer
         SourceItemExpressionSyntax sourceItem => RenderPath(sourceItem.Path),
         ContextExpressionSyntax contextExpression => context.Render(contextExpression),
         EnvironmentExpressionSyntax environment => $"Environment.GetEnvironmentVariable({CSharpCodeBuilder.StringLiteral(environment.Name)})",
-        StringsExpressionSyntax strings =>$"{CSharpCodeBuilder.StringLiteral(strings.Key)} /* TODO: resolve localized string */",
+        StringsExpressionSyntax strings => $"{CSharpCodeBuilder.StringLiteral(strings.Key)} /* TODO: resolve localized string */",
         RawExpressionSyntax raw => raw.Text,
         EventSourceIdExpressionSyntax => context.RenderEventSourceId(),
         EventContextExpressionSyntax eventContext => context.Render(eventContext),

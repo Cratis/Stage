@@ -37,17 +37,23 @@ public class when_rendering_an_application_with_unsupported_query_authorization 
     }
 
     [Fact] void should_fail_the_render_operation() => _exception.ShouldBeOfExactType<RenderingFailed>();
-    [Fact] void should_preserve_the_query_authorization_failure() =>
+    [Fact]
+    void should_preserve_the_query_authorization_failure() =>
         ((RenderingFailed)_exception).Failures.ShouldContain(failure => failure is UnsupportedAuthorization);
-    [Fact] void should_report_the_specific_query_method() =>
+    [Fact]
+    void should_report_the_specific_query_method() =>
         _error.ToString().ShouldContain("STAGE-AUTH-001: Query 'All' declares a conjunction");
-    [Fact] void should_not_emit_a_new_state_view_artifact() =>
+    [Fact]
+    void should_not_emit_a_new_state_view_artifact() =>
         _codeOutput.Files.ShouldNotContain(file => file.Content.Contains("public record InvoiceSummary", StringComparison.Ordinal));
-    [Fact] void should_continue_rendering_independent_artifacts() =>
+    [Fact]
+    void should_continue_rendering_independent_artifacts() =>
         _codeOutput.Files.ShouldContain(file => file.Content.Contains("record RegisterInvoice", StringComparison.Ordinal));
-    [Fact] void should_leave_the_prior_artifact_physically_present() =>
+    [Fact]
+    void should_leave_the_prior_artifact_physically_present() =>
         _codeOutput.Files.ShouldContain(file => file.Content == StaleContent);
-    [Fact] void should_mark_the_target_unsafe_without_claiming_to_remove_the_stale_artifact() =>
+    [Fact]
+    void should_mark_the_target_unsafe_without_claiming_to_remove_the_stale_artifact() =>
         _codeOutput.FailureMarkerWasWritten.ShouldBeTrue();
 }
 #endif

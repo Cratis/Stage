@@ -21,13 +21,16 @@ public class with_opaque_bodies : a_command_only_plan
     {
         var command = _plan.Commands.Values.Single();
         _code = Check(slice => slice with { Commands = [command with { CodeValidations = [new("code-body")] }] });
-        _predicate = Check(slice => slice with { Commands = [command with
+        _predicate = Check(slice => slice with
+        {
+            Commands = [command with
         {
             Validations = [new(command.Properties[0].Id, SemanticValidationRuleKind.RulePredicate, null, null)
             {
                 Name = "CheckProject", RequirementId = "predicate-body"
             }]
-        }] });
+        }]
+        });
         var concept = _plan.Model.Application.Concepts[0];
         _concept = Check(slice => slice, application => application with
         {

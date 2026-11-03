@@ -90,7 +90,8 @@ public class when_running_uuid_read_path_comparisons : Specification
 
     [Fact] void should_accept_the_granted_member() => _accepted.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
     [Fact] void should_reject_another_member() => _rejected.Outcome.ShouldEqual(SemanticSpecificationOutcome.Passed);
-    [Fact] void should_match_the_reference_runner() => _plan.Specifications.Values.ShouldEachConformTo(specification =>
+    [Fact]
+    void should_match_the_reference_runner() => _plan.Specifications.Values.ShouldEachConformTo(specification =>
     {
         var reference = new SemanticSpecificationRunner().Run(_plan, specification.Id);
         var result = _report.Results.Single(result => result.SpecificationId == specification.Id.ToString());

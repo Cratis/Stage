@@ -13,7 +13,8 @@ public class when_isolating_locally_unadmitted_projections : given.a_locally_una
 
     void Because() => _replay = SemanticProjectionAdmission.ForReplay(_plan);
 
-    [Fact] void should_remove_only_the_refused_projection() => Assert.Equal(
+    [Fact]
+    void should_remove_only_the_refused_projection() => Assert.Equal(
         _plan.Projections.Values.Where(projection => projection.Name != "RefusedProjection").Select(projection => projection.Id).OrderBy(id => id.ToString()),
         _replay.Projections.Keys.OrderBy(id => id.ToString()));
     [Fact] void should_keep_all_event_contracts() => Assert.True(_plan.Events.Keys.ToHashSet().SetEquals(_replay.Events.Keys));

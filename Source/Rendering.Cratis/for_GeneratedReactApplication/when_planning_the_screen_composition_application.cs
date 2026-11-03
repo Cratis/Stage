@@ -58,7 +58,8 @@ public class when_planning_the_screen_composition_application : a_screen_composi
     [Fact] void should_not_guess_any_route() => Text(_first, "src/stage-scene.json").ShouldNotContain("/api/");
     [Fact] void should_carry_the_guarded_close_action() => GuardedActions().Select(_ => _.GetProperty("properties").GetProperty("label").GetString()).ShouldContainOnly("Close");
     [Fact] void should_carry_the_close_guard() => GuardedActions().Single().GetProperty("properties").GetProperty("alternatives")[0].GetProperty("condition").GetProperty("right").GetString().ShouldEqual("open");
-    [Fact] void should_give_the_close_guard_a_single_item_to_evaluate() => Elements(Screens().Single(_ => _.GetProperty("name").GetString() == "WorkItemDetails"))
+    [Fact]
+    void should_give_the_close_guard_a_single_item_to_evaluate() => Elements(Screens().Single(_ => _.GetProperty("name").GetString() == "WorkItemDetails"))
         .Any(_ => _.GetProperty("componentName").GetString() == "core:data" && !_.GetProperty("properties").GetProperty("isCollection").GetBoolean()).ShouldBeTrue();
     [Fact] void should_carry_the_guarded_double_click_as_its_branches() => Text(_first, "src/stage-scene.json").ShouldContain("\"subject\":\"item.status\"");
     [Fact] void should_not_carry_a_timestamp() => HasTimestamp(_allText).ShouldBeFalse();

@@ -14,8 +14,10 @@ public class when_rendering_nested_records : a_projection_with_nested_blocks
 
     void Because() => _file = new StateViewSliceRenderer().Render(_detailsSlice, _applicationSet, "AcmeBilling");
 
-    [Fact] void should_inventory_every_emitted_declaration() =>
+    [Fact]
+    void should_inventory_every_emitted_declaration() =>
         InventoryAssertions.Missing([_file], _applicationSet, "AcmeBilling").ShouldBeEmpty();
-    [Fact] void should_inventory_the_deeply_nested_record() =>
+    [Fact]
+    void should_inventory_the_deeply_nested_record() =>
         LegacyGeneratedTypes.For(_applicationSet, "AcmeBilling").Any(type => type.Name == "InvoiceDetailsShippingCarrier").ShouldBeTrue();
 }

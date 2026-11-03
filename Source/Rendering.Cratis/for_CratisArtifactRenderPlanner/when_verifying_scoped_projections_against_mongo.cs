@@ -258,7 +258,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
 
     [Fact] void should_admit_identity_only_all() => when_rejecting_unsupported_scoped_projections.VerifyFromAllAdmission();
 
-    [Fact] void should_report_both_mongo_shapes_when_configured()
+    [Fact]
+    void should_report_both_mongo_shapes_when_configured()
     {
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STAGE_CHRONICLE_MONGO_CONNECTION")))
         {
@@ -269,7 +270,8 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         Assert.Contains("ALL_SOURCE=6fa85f64-5717-4562-b3fc-2c963f66afa9; MEMORY=6fa85f64-5717-4562-b3fc-2c963f66afa9; MONGO=6fa85f64-5717-4562-b3fc-2c963f66afa9", _output, StringComparison.Ordinal);
     }
 
-    [Fact] void should_confirm_screenplay_reference_for_both_sequences()
+    [Fact]
+    void should_confirm_screenplay_reference_for_both_sequences()
     {
         var catalog = SemanticIdentityCatalog.Empty(ApplicationIdentity.Create("Projects"));
         var document = SemanticSourceDocument.Create(catalog.ResolveDocument("reference"), "reference", "Scopes.play", when_rendering_scoped_projections.ScopedSource);
@@ -345,17 +347,22 @@ public class when_verifying_scoped_projections_against_mongo : a_generated_appli
         {
             "projectId" => fact.Project, "noteId" => fact.Note, "name" => fact.Label,
             _ => throw new UnknownReferenceProperty(property.Name)
-        })))]) { EventSource = new(identity, new SemanticTextValue(fact.Stream)) }).ToArray();
+        })))])
+        { EventSource = new(identity, new SemanticTextValue(fact.Stream)) }).ToArray();
         var marker = events["ProjectRegistered"];
         const string third = "7fa85f64-5717-4562-b3fc-2c963f66afaa";
         var specification = original with
         {
-            GivenEvents = [.. givens], When = null,
+            GivenEvents = [.. givens],
+            When = null,
             WhenAppended = new SemanticSpecificationAppend(marker.Id,
                 [.. marker.Properties.Select(property => new SemanticPropertyValue(property.Id,
                     new SemanticTextValue(property.Name == "projectId" ? third : "Unused")))])
             { EventSource = new(identity, new SemanticTextValue(third)) },
-            ThenEvents = [], ThenReadModels = [], ThenQueries = [], ThenErrors = []
+            ThenEvents = [],
+            ThenReadModels = [],
+            ThenQueries = [],
+            ThenErrors = []
         };
         var constructor = typeof(SemanticExecutionPlan).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
         var plan = execution.Plan;

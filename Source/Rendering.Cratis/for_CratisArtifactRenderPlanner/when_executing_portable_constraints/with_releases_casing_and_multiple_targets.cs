@@ -114,17 +114,23 @@ public class with_releases_casing_and_multiple_targets(context fixture) : IClass
             var issue = feature.Slices.Single(slice => slice.Name == "Issue");
             var identifier = issue.Commands.Single().Properties.Single(property => property.IsIdentifier).Type;
             var givenSource = new SemanticEventSourceIdentity(identifier, new SemanticTextValue("invoice-one"));
-            var changed = issue with { Specifications = [.. issue.Specifications.Select(specification => specification with
+            var changed = issue with
+            {
+                Specifications = [.. issue.Specifications.Select(specification => specification with
             {
                 GivenEvents = [.. specification.GivenEvents.Select(given => given.EventSource is null ? given with { EventSource = givenSource } : given)]
-            })] };
+            })]
+            };
             var model = ExecutableSemanticModel.Create(
                 original.LanguageVersion,
                 original.SemanticVersion,
-                original.Application with { Modules = [module with { Features = [feature with
+                original.Application with
+                {
+                    Modules = [module with { Features = [feature with
                 {
                     Slices = [.. feature.Slices.Select(slice => slice.Id == issue.Id ? changed : slice)]
-                }] }] });
+                }] }]
+                });
             return invoice_model.Plan(model);
         }
 

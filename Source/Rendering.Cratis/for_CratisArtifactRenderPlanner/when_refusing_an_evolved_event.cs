@@ -20,7 +20,8 @@ public class when_refusing_an_evolved_event : a_v4_reducer
     [Fact] void should_refuse_without_migration_rendering() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-026").Artifact.ShouldEqual(_event.Id);
     [Fact] void should_also_report_transition_analysis() => _plan.Diagnostics.Single(diagnostic => diagnostic.Code == "STAGE-ESM-023" && diagnostic.Artifact == _request.Model.Application.Id).Severity.ShouldEqual(ArtifactRenderDiagnosticSeverity.Information);
     [Fact] void should_emit_no_event_or_reducer_artifacts() => _plan.Artifacts.ShouldBeEmpty();
-    [Fact] void should_refuse_the_reducer_dependency_outside_the_selected_slice()
+    [Fact]
+    void should_refuse_the_reducer_dependency_outside_the_selected_slice()
     {
         var context = new SemanticApplicationContext(_request, new("Projects", "Projects"));
         var reducer = context.SelectedSlices().Single(located => !located.Slice.Reducers.IsEmpty);

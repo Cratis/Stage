@@ -138,7 +138,7 @@ public static class SpecificationValues
         if (type.Kind == ResolvedTypeKind.Concept && applicationSet.Concepts.TryGetValue(declared.Name, out var concept))
         {
             return TypeResolver.Resolve(new TypeRefSyntax(concept.Type, false, false, concept.Location), applicationSet) is
-                { Kind: ResolvedTypeKind.Primitive } resolved ? resolved.ClrTypeName : null;
+            { Kind: ResolvedTypeKind.Primitive } resolved ? resolved.ClrTypeName : null;
         }
 
         return null;

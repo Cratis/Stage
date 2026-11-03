@@ -91,8 +91,11 @@ public class when_validating_composite_fixture_values : Specification
             var when = specification.When;
             var changed = specification with
             {
-                When = when with { Values = [.. when.Values.Select(property => property.Value is SemanticCompositeValue or SemanticArrayValue
-                    ? property with { Value = WithNullMembers(property.Value) } : property)] }
+                When = when with
+                {
+                    Values = [.. when.Values.Select(property => property.Value is SemanticCompositeValue or SemanticArrayValue
+                    ? property with { Value = WithNullMembers(property.Value) } : property)]
+                }
             };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, model.Application with
             {

@@ -87,11 +87,14 @@ public class a_projection_reachability_plan : Specification
             var property = slice.ReadModels.Single().Properties.Single(candidate => candidate.Name == "count");
             var key = new SemanticResolvedExpression(SemanticExpressionRootKind.Event, SemanticExpressionSourceKind.Property, @event.Properties.Single().Id);
             var transition = new SemanticProjectionTransition(@event.Id, new(AffectedInstanceCardinality.One, key), [new(property.Id, new SemanticValueExpression(SemanticValue.Number(3)))]);
-            var application = model.Application with { Modules = [module with { Features = [feature with
+            var application = model.Application with
+            {
+                Modules = [module with { Features = [feature with
             {
                 Slices = [.. feature.Slices.Select(candidate => candidate.Id != slice.Id ? candidate : slice with
                 { Projections = [projection with { Scope = null, Transitions = [transition] }] })]
-            }] }] };
+            }] }]
+            };
             model = ExecutableSemanticModel.Create(model.LanguageVersion, model.SemanticVersion, application);
         }
         return SemanticExecutionPlan.Compile(model).Plan!;

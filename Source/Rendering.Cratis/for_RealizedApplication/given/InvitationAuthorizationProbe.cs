@@ -28,6 +28,7 @@ public static class InvitationAuthorizationProbe
         using Cratis.Chronicle;
         using Cratis.Chronicle.Events;
         using Cratis.Chronicle.EventSequences;
+        using Cratis.Showrunner.BoxOffice.Gating;
         using Lending.GeneratedAuthentication;
         using Lending.GeneratedOnboarding;
         using Microsoft.AspNetCore.Http;
@@ -97,6 +98,11 @@ public static class InvitationAuthorizationProbe
                 Assert.Equal(Tenant, tenants.Current.Value);
                 scenario.Services.AddSingleton<ITenantIdAccessor>(tenants);
                 scenario.Services.AddArcAuthorizationPolicy<InviteMemberPolicy>(OnboardingPolicies.InviteMember);
+
+                // The model's offering puts Box Office's module gate in the pipeline; entitlements are not under test here.
+                var gate = Substitute.For<IModuleGate>();
+                gate.Admits(Arg.Any<object>()).Returns(true);
+                scenario.Services.AddSingleton(gate);
 
                 // Only the Chronicle transport is substituted: provisioning reads the real scenario logs.
                 var store = Substitute.For<IEventStore>();

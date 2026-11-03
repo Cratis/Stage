@@ -13,6 +13,9 @@ describe('Scene native guards over explicitly numbered enumerations', () => {
     });
     const reordered = ['open', 'closed'];
     const sparse = ['draft', 'issued', 'cancelled'];
+    const numberedComparison = (right: unknown = 'open', operator = 'Equal') => ({
+        ...comparison(reordered, [1, 0]), right, operator,
+    });
 
     it.each([
         [comparison(reordered, [1, 0]), 1, true],
@@ -28,7 +31,7 @@ describe('Scene native guards over explicitly numbered enumerations', () => {
         expect(evaluateGuard(condition, { status })).toBe(expected);
     });
 
-    it.each([[1, 1], [1], [1.5, 0], ['1', 0], null, 1, [Infinity, 0]].map(numbers => ({ numbers })))('refuses malformed numbers $numbers', ({ numbers }) => {
+    it.each([[1, 1], [1], [1.5, 0], ['1', 0], null, 1, [Infinity, 0], [NaN, 0]].map(numbers => ({ numbers })))('refuses malformed numbers $numbers', ({ numbers }) => {
         const condition = comparison(reordered, numbers);
         expect(canEvaluateGuard(condition)).toBe(false);
         expect(evaluateGuard(condition, { status: 1 })).toBeUndefined();
@@ -36,8 +39,22 @@ describe('Scene native guards over explicitly numbered enumerations', () => {
         expect(canEvaluateGuard({ kind: 'logical', operator: 'Or', left: condition, right: comparison(reordered, [1, 0]) })).toBe(false);
     });
 
-    it('refuses numbers without member names', () => {
-        expect(canEvaluateGuard({ ...comparison(reordered, [1, 0]), enumeration: undefined })).toBe(false);
+    it.each(['Equal', 'NotEqual'])('refuses unknown member identities for %s', operator => {
+        expect(evaluateGuard(numberedComparison(90, operator), { status: 'open' })).toBe(false);
+        expect(evaluateGuard(numberedComparison('missing', operator), { status: 1 })).toBe(false);
+    });
+
+    it('combines numbered conditions and selects the first match', () => {
+        const conditions = [numberedComparison(), numberedComparison('closed')];
+        expect(evaluateGuard({ kind: 'logical', operator: 'And', left: conditions[0], right: numberedComparison('closed', 'NotEqual') }, { status: 1 })).toBe(true);
+        expect(selectGuardedInteraction(conditions.map(condition => ({ condition })), { status: 0 }, true)).toEqual({ kind: 'alternative', index: 1 });
+    });
+
+    it.each([undefined, null, ['open', 0]])('refuses invalid member names %j', enumeration => {
+        const condition = { ...numberedComparison(), enumeration };
+        expect(canEvaluateGuard(condition)).toBe(false);
+        expect(evaluateGuard(condition, { status: 1 })).toBeUndefined();
+        expect(selectGuardedInteraction([{ condition }], { status: 1 }, true).kind).toBe('unevaluable');
     });
 });
 

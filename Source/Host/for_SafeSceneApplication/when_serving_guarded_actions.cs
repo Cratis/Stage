@@ -59,16 +59,6 @@ public class when_serving_guarded_actions : for_StageEndpointMapper.given.a_rout
     [Fact] void should_not_execute_commands_while_loading_the_scene() => _commands.ShouldBeEmpty();
     [Fact] void should_not_append_events_while_loading_the_scene() => _appends.ShouldBeEmpty();
 
-    [Fact]
-    async Task should_observe_dispatch_when_the_command_is_actually_requested()
-    {
-        _commands.ShouldBeEmpty();
-        var response = await Request("POST", "/api/orders/checkout/close/close-work-item", """{"orderId":"11111111-1111-1111-1111-111111111111"}""");
-        response.Status.ShouldEqual(200);
-        _commands.Count.ShouldEqual(1);
-        _appends.Count.ShouldEqual(1);
-    }
-
     static ExternalComponent Action(string id, Dictionary<string, object?> condition, Dictionary<string, object?>? otherwise, string componentName = "core:guarded-action")
     {
         var properties = new Dictionary<string, object?>

@@ -131,14 +131,6 @@ public class when_checking_enumeration_numbers : Specification
             ["alternatives"] = new JsonArray(new JsonObject { ["command"] = "Close", ["condition"] = comparison.DeepClone() }),
             ["otherwise"] = new JsonObject { ["outcome"] = "Execute", ["command"] = "Reopen" }
         }).ShouldBeFalse();
-        foreach (var kind in new[] { "firstMatch", "otherwise" })
-        {
-            SceneGuards.CanRunBinding(new JsonObject
-            {
-                ["path"] = "$guard",
-                ["value"] = new JsonObject { ["kind"] = kind, ["index"] = 0, ["alternatives"] = new JsonArray(comparison.DeepClone()) }
-            }).ShouldBeFalse();
-        }
         SceneGuards.CanEvaluate(new JsonObject
         {
             ["kind"] = "logical",

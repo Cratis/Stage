@@ -53,7 +53,8 @@ internal sealed partial class SemanticInlineNames
         {
             foreach (var reducer in located.Slice.Reducers)
             {
-                var model = context.ReadModels[reducer.ReadModel];
+                // An event-target reducer reduces its event contract, not a read model.
+                var model = SemanticReducerArtifactRenderer.State(context, reducer);
                 var reducerName = Identifiers.ToPascalCase(reducer.Name);
                 var scope = $"reducer:{located.Slice.Id}:{reducer.Name}";
                 var typeScope = $"reducer-types:{located.Slice.Id}:{reducer.Name}";

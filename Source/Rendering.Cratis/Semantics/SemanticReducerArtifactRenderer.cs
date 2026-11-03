@@ -122,7 +122,13 @@ internal static class SemanticReducerArtifactRenderer
         return IdentityCheck(identifier.Type, Identifiers.ToPascalCase(identifier.Name), context);
     }
 
-    static (SemanticId Id, string Name, System.Collections.Immutable.ImmutableArray<SemanticProperty> Properties) State(SemanticApplicationContext context, SemanticReducer reducer) =>
+    /// <summary>
+    /// Resolves the state a reducer builds: the event contract of an event-target reducer, otherwise its read model.
+    /// </summary>
+    /// <param name="context">The application context.</param>
+    /// <param name="reducer">The reducer.</param>
+    /// <returns>The identifier, name and properties of the reduced state.</returns>
+    internal static (SemanticId Id, string Name, System.Collections.Immutable.ImmutableArray<SemanticProperty> Properties) State(SemanticApplicationContext context, SemanticReducer reducer) =>
         reducer.Target == SemanticProjectionTargetKind.Event
             ? (context.Events[reducer.ReadModel].Id, context.Events[reducer.ReadModel].Name, context.Events[reducer.ReadModel].Properties)
             : (context.ReadModels[reducer.ReadModel].Id, context.ReadModels[reducer.ReadModel].Name, context.ReadModels[reducer.ReadModel].Properties);

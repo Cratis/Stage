@@ -62,7 +62,12 @@ for _ in $(seq 1 90); do
     kill -0 "$host_pid" 2>/dev/null || break
     sleep 2
 done
-[ "$ready" = 1 ] || could_not_run "the generated host did not become healthy; see $result.host.log"
+if [ "$ready" != 1 ]; then
+    # Print the end of the host's log so the reason is in the job output, not only in the uploaded artifact.
+    echo "--- last 80 lines of $result.host.log ---"
+    tail -n 80 "$result.host.log" 2>/dev/null || echo "(no host log was written)"
+    could_not_run "the generated host did not become healthy; see $result.host.log"
+fi
 
 # The fresh screens app must expose actual Arc observable queries before browser fixtures seed it.
 if [ -z "${STAGE_GENERATED_REACT_SCENARIO:-}" ]; then

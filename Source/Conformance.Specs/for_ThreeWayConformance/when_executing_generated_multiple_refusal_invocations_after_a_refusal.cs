@@ -15,10 +15,9 @@ namespace Cratis.Stage.Conformance.Specs.for_ThreeWayConformance;
 
 public class when_executing_generated_multiple_refusal_invocations_after_a_refusal(when_executing_generated_multiple_refusal_invocations_after_a_refusal.context fixture, ITestOutputHelper output) : IClassFixture<when_executing_generated_multiple_refusal_invocations_after_a_refusal.context>
 {
-    [Fact] void should_enable_decision_reads_immediately_on_the_untyped_scenario() => fixture.GeneratedSpecification.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>().UseDecisionReads();");
+    [Fact] void should_leave_decision_reads_to_the_scenario_on_the_untyped_scenario() => fixture.GeneratedSpecification.ShouldContain("CommandScenario<object> _scenario = new CommandScenario<object>();");
+    [Fact] void should_not_call_the_obsolete_decision_reads_switch() => fixture.GeneratedSpecification.ShouldNotContain("UseDecisionReads");
     [Fact] void should_import_the_decision_reads_extension_namespace() => fixture.GeneratedSpecification.ShouldContain("using Cratis.Arc.Chronicle.Testing.Commands;");
-    [Fact] void should_enable_decision_reads_before_appending_the_trigger() => ShouldPrecede(".UseDecisionReads()", "_scenario.EventLog");
-    [Fact] void should_enable_decision_reads_before_executing_commands() => ShouldPrecede(".UseDecisionReads()", "_scenario.Execute");
     [Fact] void should_capture_the_initial_count_after_appending_the_trigger() => ShouldPrecede("@event)).IsSuccess.ShouldBeTrue();", "var initial = before.Count;");
     [Fact] void should_capture_the_initial_count_before_executing_the_reaction() => ShouldPrecede("var initial = before.Count;", "var result = await executor.Execute(");
     [Fact] void should_exclude_the_trigger_from_appended_facts() => fixture.GeneratedSpecification.ShouldContain("_facts = [.. persisted.Skip(initial)];");

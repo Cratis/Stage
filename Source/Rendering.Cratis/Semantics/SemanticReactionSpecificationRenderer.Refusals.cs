@@ -16,7 +16,7 @@ internal static partial class SemanticReactionSpecificationRenderer
         var types = new SemanticTypeSystem(context) { SpecificationValues = new(context, specification) };
         var invoked = prelude.Selection.Trigger.Invokes.Select(invocation => context.Commands[invocation.Command]).ToArray();
 
-        // One invoked command runs in a scenario typed by it: Arc derives the decision mode from that command's assembly. Several run in an untyped scenario that enables decision reads up front, before any seeding or execution.
+        // One invoked command runs in a scenario typed by it: Arc derives the decision mode from that command's assembly. Several run in an untyped scenario, which selects decision reads from the declarations of the commands it executes.
         var typed = invoked.Length == 1 ? CommandType(invoked[0], types) : null;
         var decision = invoked.Length == 1 && !invoked[0].Reads.IsDefaultOrEmpty;
         var builder = context.SpecificationBuilder().Namespace($"{SliceNaming.Namespace(context.RootNamespace, located.Path)}.{behavior}")
@@ -24,7 +24,7 @@ internal static partial class SemanticReactionSpecificationRenderer
             .Using("Cratis.Specifications").Using("Microsoft.Extensions.DependencyInjection").Using("NSubstitute").Using("Xunit")
             .OpenBlock($"public class {behavior} : global::Cratis.Specifications.Specification, global::System.IDisposable")
             .Line(typed is null
-                ? "readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>().UseDecisionReads();"
+                ? "readonly global::Cratis.Arc.Testing.Commands.CommandScenario<object> _scenario = new global::Cratis.Arc.Testing.Commands.CommandScenario<object>();"
                 : $"readonly global::Cratis.Arc.Testing.Commands.CommandScenario<{typed}> _scenario = new();")
             .Line(SemanticSpecificationValuesRenderer.Declarations)
             .Line("global::Cratis.Chronicle.Events.AppendedEvent[] _facts = [];")

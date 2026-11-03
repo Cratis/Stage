@@ -365,7 +365,11 @@ class RoutingTests(unittest.TestCase):
             self.assertNotIn("specs", JOBS[job].split("runs-on:")[0].replace("spec shards", ""), job)
         # Coverage is unchanged: the aggregates still require the spec shards and every routed lane.
         self.assertIn("specs", JOBS["build"].splitlines()[0])
-        self.assertIn("NEEDS_JSON: ${{ toJson(needs) }}", JOBS["build"])
+        # The build aggregate passes a reduced needs object: the full context exceeds the environment limit.
+        self.assertNotIn("toJson(needs)", JOBS["build"])
+        for job in ("preflight", "dotnet-build", "specs", "standalone-generated-application"):
+            self.assertIn(f'"{job}": {{"result": "${{{{ needs.{job}.result }}}}"}}', JOBS["build"])
+        self.assertIn('"routing": ${{ toJson(needs.routing) }}}', JOBS["build"])
         self.assertIn("run: python3 .github/ci-routing.py check-build", JOBS["build"])
         self.assertTrue(JOBS["routed-checks"].startswith("    needs: [routing, reducer-mongo, generated-name-matrix, live-custom-packages, generated-react, generated-react-blueprint-templates]\n"))
         self.assertTrue(JOBS["generated-react"].startswith(gate + "\n      && needs.routing.outputs.generated-react == 'true'\n    runs-on:"), "generated-react")

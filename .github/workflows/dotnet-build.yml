@@ -284,8 +284,15 @@ jobs:
         run: test "$PREFLIGHT_RESULT" = success && test "$BUILD_RESULT" = success && test "$SPECS_RESULT" = success && test "$STANDALONE_RESULT" = success
 
       - name: Validate routing and any expected standalone skip
+        # Pass only what check-build reads: the full needs context includes the spec matrix output,
+        # which exceeds the per-variable environment limit ("Argument list too long").
         env:
-          NEEDS_JSON: ${{ toJson(needs) }}
+          NEEDS_JSON: >-
+            {"preflight": {"result": "${{ needs.preflight.result }}"},
+            "dotnet-build": {"result": "${{ needs.dotnet-build.result }}"},
+            "specs": {"result": "${{ needs.specs.result }}"},
+            "standalone-generated-application": {"result": "${{ needs.standalone-generated-application.result }}"},
+            "routing": ${{ toJson(needs.routing) }}}
         run: python3 .github/ci-routing.py check-build
 
   # Live persistence is a separate gate: the ordinary Debug suite skips live execution of these probes

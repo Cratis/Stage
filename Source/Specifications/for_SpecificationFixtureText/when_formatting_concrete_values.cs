@@ -34,13 +34,16 @@ public class when_formatting_concrete_values : Specification
     void Because() => _formatted = [.. _values.Select(SpecificationFixtureText.Expression)];
 
     [Fact]
-    void should_match_screenplays_fixture_printer()
+    void should_match_screenplays_fixture_printer_for_scalars()
     {
         var printer = new ScreenplayPrinter();
-        for (var index = 0; index < _values.Length; index++)
+        for (var index = 0; index < _values.Length - 2; index++)
         {
             var specification = new SpecificationSyntax("Fixture", [], new("Record", [new("value", _values[index], SourceLocation.Start)], SourceLocation.Start), [], [], SourceLocation.Start);
             printer.Print(specification).ShouldContain($"value = {_formatted[index]}\n");
         }
     }
+
+    [Fact] void should_show_a_list_in_the_words_of_its_block() => _formatted[^2].ShouldEqual("(item \"æ \\\"\\n\", item 2)");
+    [Fact] void should_show_an_object_in_the_words_of_its_block() => _formatted[^1].ShouldEqual("(\"a\\\"key\" = (item false))");
 }

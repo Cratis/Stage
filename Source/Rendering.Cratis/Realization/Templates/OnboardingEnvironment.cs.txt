@@ -1,0 +1,47 @@
+namespace __Root__.GeneratedOnboarding;
+
+/// <summary>
+/// The exception that is thrown when the environment lacks values onboarding needs.
+/// </summary>
+/// <param name="environmentName">The name of the environment.</param>
+/// <param name="keys">The keys that are missing.</param>
+public class OnboardingEnvironmentIncomplete(string environmentName, IEnumerable<string> keys)
+    : Exception($"Environment '{environmentName}' is missing {string.Join(", ", keys.Select(key => $"'{key}'"))}. Set them in the Cratis environment.");
+
+/// <summary>
+/// The exception that is thrown when an invitation link cannot be built because the public address of the application is unknown.
+/// </summary>
+public class PublicBaseUrlNotConfigured()
+    : Exception("The public address of the application is not configured. Set Cratis:Application:PublicBaseUrl to the origin AuthProxy serves.");
+
+/// <summary>
+/// Reads the values of the Cratis environment the application runs in. A value is a file in the secrets directory named by its key, or
+/// a configuration value under <c>Cratis:Environment</c>.
+/// </summary>
+/// <param name="configuration">The application configuration.</param>
+public class EnvironmentValues(IConfiguration configuration)
+{
+    /// <summary>
+    /// Gets the name of the environment.
+    /// </summary>
+    public string Name => Environment.GetEnvironmentVariable("CRATIS_ENVIRONMENT") is { Length: > 0 } name ? name : "development";
+
+    /// <summary>
+    /// Gets a value by its key.
+    /// </summary>
+    /// <param name="key">The key, for example <c>onboarding.email.sender</c>.</param>
+    /// <returns>The value, or an empty string when the environment has none.</returns>
+    public string Get(string key)
+    {
+        if (Environment.GetEnvironmentVariable("CRATIS_SECRETS_DIRECTORY") is { Length: > 0 } directory)
+        {
+            var file = Path.Combine(directory, key);
+            if (File.Exists(file))
+            {
+                return File.ReadAllText(file).TrimEnd('\r', '\n');
+            }
+        }
+
+        return configuration[$"Cratis:Environment:{key}"] ?? string.Empty;
+    }
+}

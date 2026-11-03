@@ -68,7 +68,10 @@ public class when_running_datetime_child_projection_values : Specification
                     then readmodel Current
                       id = "parent"
                       name = "parent name"
-                      entries = [{"code":"one","at":"{{at}}"}]
+                      entries
+                        item
+                          code = "one"
+                          at = "{{at}}"
             """);
         var reference = new SemanticSpecificationRunner().Run(plan, plan.Specifications.Keys.Single());
         Assert.True(reference.Passed, string.Join(';', reference.Failures));

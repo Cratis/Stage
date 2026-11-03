@@ -19,7 +19,9 @@ public class when_lowering_seed_blocks : a_seeded_model
               name = "Stoneware mug"
               price = 12.5
               featured = true
-              tags = ["kitchen", "gift"]
+              tags
+                item "kitchen"
+                item "gift"
             ProductListed
               name = "Stoneware mug (large)"
               price = 16

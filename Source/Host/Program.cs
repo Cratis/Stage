@@ -103,6 +103,7 @@ builder.Configuration.AddJsonFile(
 var routeOptions = StageHttpRouteOptions.FromConfiguration(builder.Configuration);
 var httpSurface = model is null ? null : StageHttpSurface.Create(model, routeOptions);
 builder.AddStageCratis(eventStore, programIdentifier: $"Cratis Stage ({eventStore})", routeOptions: routeOptions);
+builder.AddStageOrleans();
 
 if (model is not null)
 {

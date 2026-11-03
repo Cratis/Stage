@@ -1,8 +1,9 @@
 {
-  "corpusVersion": "4.247.3",
-  "minimumVectorCount": 79,
+  "corpusVersion": "5.1.0",
+  "minimumVectorCount": 80,
   "excludedTypes": {
     "ClockScheduleVectors": "Raw schedule bytes only; the package carries no model for it.",
+    "EsmConformanceVectors": "Unknown-preserving reader fixtures under the reserved conformance version; not executable semantic models.",
     "ScreenCompositionCorpus": "Scene and screen-composition vectors, not executable semantic models; for_ScreenCompositionCorpus covers them.",
     "TextRulesCorpus": "Source forms only; the package carries no vector with an application name or ESM bytes."
   },
@@ -2212,6 +2213,18 @@
         { "code": "STAGE-ESM-016", "kind": "application", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] },
       "renderer": { "outcome": "refused", "refusals": [
         { "code": "STAGE-ESM-016", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "issue": 15 } ] }
+    },
+    "EsmGoldenVectors.V36": {
+      "loader": { "outcome": "supported" },
+      "executor": { "outcome": "supported" },
+      "host": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-LIFECYCLE-001", "kind": "stateMachine", "artifact": "InvoiceLifecycle", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
+        { "code": "STAGE-LIFECYCLE-001", "kind": "workflow", "artifact": "Collect", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" } ] },
+      "renderer": { "outcome": "refused", "refusals": [
+        { "code": "STAGE-LIFECYCLE-001", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
+        { "code": "STAGE-LIFECYCLE-005", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
+        { "code": "STAGE-LIFECYCLE-007", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" },
+        { "code": "STAGE-LIFECYCLE-010", "artifact": "sem1:0d66f7db76b825fd33d71ddbc8e7ff0cffe609aaf15192b8ad0351d43bdd9bb6", "byDesign": "Stage runs a state machine or workflow only for the single-trigger, paired-join, event-triggered shapes it renders; this golden vector exercises the shapes it refuses by design" } ] }
     },
     "EsmGoldenVectors.V4": {
       "loader": { "outcome": "supported" },

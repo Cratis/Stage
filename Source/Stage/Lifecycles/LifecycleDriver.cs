@@ -1,0 +1,157 @@
+// Copyright (c) Cratis. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+using System.Collections.Immutable;
+using Cratis.Screenplay.Semantics;
+using Cratis.Screenplay.Semantics.Execution;
+using Cratis.Stage.Semantics;
+using Microsoft.Extensions.Logging;
+
+namespace Cratis.Stage.Lifecycles;
+
+/// <summary>
+/// Drives the state machines and workflows of a model from the facts the semantic world commits.
+/// </summary>
+/// <remarks>
+/// A state machine is derived from the facts with the reference evaluator, so the runtime takes exactly the transitions the
+/// specifications pin. When a fact moves an instance into a state, the entering actions run: a command is sent, a workflow is
+/// started. Workflows start on the event their trigger names or on the state their trigger waits to see entered, and a fact that a
+/// wait node waits for resumes the runs holding it. Only facts committed after the driver started act; history is never replayed
+/// into side effects.
+/// </remarks>
+/// <param name="plan">The execution plan of the loaded model.</param>
+/// <param name="runtime">The runtime whose committed facts drive the lifecycles.</param>
+/// <param name="facts">Reads the committed facts.</param>
+/// <param name="effects">Performs what entering a state or a fact asks for.</param>
+/// <param name="executableWorkflows">The names of the workflows the runtime drives.</param>
+/// <param name="logger">The logger.</param>
+public sealed class LifecycleDriver(SemanticExecutionPlan plan, ISemanticRuntime runtime, ISemanticWorldFacts facts, ILifecycleEffects effects, IReadOnlySet<string> executableWorkflows, ILogger logger) : IDisposable
+{
+    readonly SemaphoreSlim _pumping = new(1, 1);
+    IDisposable? _subscription;
+    int _processed;
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+        _pumping.Dispose();
+    }
+
+    /// <summary>
+    /// Starts acting on the facts committed from now on.
+    /// </summary>
+    /// <returns>A task that completes when the driver is listening.</returns>
+    public async Task Start()
+    {
+        _processed = (await facts.Facts()).Length;
+        if (runtime is ISemanticWorldChanges changes)
+        {
+            _subscription = changes.Subscribe(() => _ = Task.Run(Pump));
+        }
+    }
+
+    /// <summary>
+    /// Acts on every fact committed since the last pass.
+    /// </summary>
+    /// <returns>A task that completes when the facts were acted on.</returns>
+    public async Task Pump()
+    {
+        await _pumping.WaitAsync();
+        try
+        {
+            var committed = await facts.Facts();
+            for (; _processed < committed.Length; _processed++)
+            {
+                try
+                {
+                    await Act(committed, _processed);
+                }
+                catch (Exception exception)
+                {
+                    LifecycleLog.FactFailed(logger, exception, _processed);
+                }
+            }
+        }
+        finally
+        {
+            _pumping.Release();
+        }
+    }
+
+    /// <summary>
+    /// Gets where every instance of a state machine is, derived from the committed facts.
+    /// </summary>
+    /// <param name="machine">The state machine.</param>
+    /// <returns>The key and state of each instance.</returns>
+    public async Task<ImmutableArray<(SemanticValue Key, string State)>> States(SemanticStateMachine machine)
+    {
+        var committed = await facts.Facts();
+        var keys = new List<SemanticValue>();
+        foreach (var fact in committed.Where(fact => machine.Transitions.Any(transition => transition.Event == fact.EventContract)))
+        {
+            if (!keys.Exists(key => Equals(key, fact.Destination))) keys.Add(fact.Destination);
+        }
+
+        return [.. keys.Select(key => (key, SemanticLifecycleRunner.Derive(plan, machine, committed, key).State))];
+    }
+
+    async Task Act(ImmutableArray<SemanticFact> committed, int index)
+    {
+        var fact = committed[index];
+        var before = committed[..index];
+        var after = committed[..(index + 1)];
+        var application = plan.Model.Application;
+        var entered = new List<(SemanticStateMachine Machine, string State, ImmutableArray<SemanticStateEntry> Effects)>();
+        foreach (var machine in application.StateMachines.Where(machine => machine.Transitions.Any(transition => transition.Event == fact.EventContract)))
+        {
+            var previous = SemanticLifecycleRunner.Derive(plan, machine, before, fact.Destination).State;
+            var (state, entering) = SemanticLifecycleRunner.Derive(plan, machine, after, fact.Destination);
+            if (state != previous) entered.Add((machine, state, entering));
+        }
+
+        var subjects = new Dictionary<SemanticId, ImmutableArray<SemanticPropertyValue>>();
+        async Task<ImmutableArray<SemanticPropertyValue>> Subject(SemanticId readModel)
+        {
+            if (subjects.TryGetValue(readModel, out var known)) return known;
+            var instances = await runtime.ReadModels(readModel);
+            var instance = instances.FirstOrDefault(candidate => Equals(candidate.Key, fact.Destination));
+            return subjects[readModel] = instance?.Values ?? [];
+        }
+
+        foreach (var (machine, state, entering) in entered)
+        {
+            foreach (var effect in entering)
+            {
+                if (effect.Kind == SemanticStateEntryKind.SendCommand)
+                {
+                    await effects.Send(plan.Commands[effect.Command], fact.Destination, await Subject(machine.ReadModel));
+                }
+                else if (application.Workflows.FirstOrDefault(workflow => workflow.Name == effect.Workflow) is { } started && executableWorkflows.Contains(started.Name))
+                {
+                    await effects.Start(started, fact.Destination, $"entered:{machine.Name}:{state}:{index}", await Subject(started.Subject));
+                }
+            }
+        }
+
+        foreach (var workflow in application.Workflows.Where(workflow => executableWorkflows.Contains(workflow.Name)))
+        {
+            foreach (var node in workflow.Nodes)
+            {
+                var starts = node.Kind == SemanticWorkflowNodeKind.Trigger &&
+                    ((node.TriggerKind == SemanticWorkflowTriggerKind.Event && node.Event == fact.EventContract) ||
+                     (node.TriggerKind == SemanticWorkflowTriggerKind.StateEntered && entered.Exists(item => item.Machine.Name == node.StateMachine && item.State == node.State)));
+                if (starts)
+                {
+                    // A state entered by a machine that also starts this workflow shares the dedup key, so the run starts once.
+                    var enteredBy = node.TriggerKind == SemanticWorkflowTriggerKind.StateEntered ? $"entered:{node.StateMachine}:{node.State}:{index}" : $"event:{index}";
+                    await effects.Start(workflow, fact.Destination, enteredBy, await Subject(workflow.Subject));
+                }
+                else if (node.Kind == SemanticWorkflowNodeKind.Wait && node.Event == fact.EventContract)
+                {
+                    await effects.Resume(workflow, node.Name, fact.Destination);
+                }
+            }
+        }
+    }
+}

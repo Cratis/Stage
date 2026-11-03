@@ -133,6 +133,8 @@ public class when_creating_the_current_scaffold : a_current_scaffold
             $"Cratis.Chronicle={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.AspNetCore={_profile.CratisChroniclePackageVersion}",
             $"Cratis.Chronicle.Testing={_profile.CratisChroniclePackageVersion}",
+            $"Cratis.Orleans={Scaffolding.ScaffoldPackageVersions.Orleans}",
+            $"Cratis.Orleans.Chronicle={Scaffolding.ScaffoldPackageVersions.OrleansChronicle}",
             $"Cratis.Screenplay.Matching={Scaffolding.ScaffoldPackageVersions.ScreenplayMatching}",
             $"Cratis.Specifications={_profile.CratisSpecificationsPackageVersion}",
             $"Cratis.Specifications.XUnit={_profile.CratisSpecificationsXUnitPackageVersion}",

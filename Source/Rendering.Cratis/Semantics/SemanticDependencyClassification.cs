@@ -6,4 +6,5 @@ namespace Cratis.Stage.Rendering.Cratis.Semantics;
 /// <summary>A reference classification or an explained absence of an owner reference.</summary>
 /// <param name="Kind">The edge category, including reference-carrying containers.</param>
 /// <param name="NonReferenceReason">Why no owner reference can occur in this member.</param>
-internal sealed record SemanticDependencyClassification(SemanticDependencyKind? Kind, string? NonReferenceReason = null);
+/// <param name="RefusalReason">Why a populated member is refused: the index records it as incomplete and does not traverse it.</param>
+internal sealed record SemanticDependencyClassification(SemanticDependencyKind? Kind, string? NonReferenceReason = null, string? RefusalReason = null);

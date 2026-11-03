@@ -89,6 +89,18 @@ internal sealed class SemanticRuntimeAdmission
                 : new(specification.Id.ToString(), "specification", refusal is null ? "supported" : "unsupported", refusal?.Capability.ToString(), refusal?.Details));
         }
 
+        // A state machine or workflow the runtime cannot drive is named with its STAGE-LIFECYCLE diagnostic; it never blocks the rest of the model.
+        var lifecycleRefusals = Cratis.Stage.Contracts.Lifecycles.LifecycleAdmission.ForRuntime(plan);
+        foreach (var machine in plan.Model.Application.StateMachines)
+        {
+            entries.Add(LifecycleEntry(machine.Name, "stateMachine", lifecycleRefusals));
+        }
+
+        foreach (var workflow in plan.Model.Application.Workflows)
+        {
+            entries.Add(LifecycleEntry(workflow.Name, "workflow", lifecycleRefusals));
+        }
+
         Entries = entries;
         Blocking = [.. entries.Where(entry => entry.Kind == "event" && entry.Status == "unsupported"), .. blocking];
     }
@@ -96,6 +108,14 @@ internal sealed class SemanticRuntimeAdmission
     internal IReadOnlyList<SemanticAdmissionEntry> Entries { get; }
 
     internal IReadOnlyList<SemanticAdmissionEntry> Blocking { get; }
+
+    static SemanticAdmissionEntry LifecycleEntry(string name, string kind, IEnumerable<Cratis.Stage.Contracts.Lifecycles.LifecycleRefusal> refusals)
+    {
+        var own = refusals.Where(refusal => refusal.Owner == name).ToArray();
+        return own.Length == 0
+            ? new(name, kind, "supported", null, null)
+            : new(name, kind, "unsupported", "Lifecycle", string.Join(' ', own.Select(refusal => $"{refusal.Code}: {refusal.Message}")));
+    }
 
     static (SemanticAdmissionEntry Entry, bool BlocksModel) CommandEntry(SemanticExecutionPlan plan, SemanticCommand command, Func<string, string?>? ruleName, SemanticBodyExecution? bodies)
     {

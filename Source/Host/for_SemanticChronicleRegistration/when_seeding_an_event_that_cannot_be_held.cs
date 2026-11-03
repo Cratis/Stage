@@ -19,7 +19,7 @@ public class when_seeding_an_event_that_cannot_be_held : a_seeding_store
               name = "Organic cotton tee"
               price = 24
               featured = false
-              tags = []
+              tags none
         """);
 
     async Task Because() => await SemanticChronicleRegistration.Register(_client, Store, _plan, _seeds);

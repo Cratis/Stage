@@ -29,7 +29,10 @@ public class with_composite_command_values : Specification
               specification CheckingInput
                 when CheckInput
                   id = "one"
-                  value = {"count":7,"next":{"count":8}}
+                  value
+                    count = 7
+                    next
+                      count = 8
                 then returns "one"
         """));
 

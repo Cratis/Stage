@@ -27,8 +27,8 @@ public class with_authored_screen_partitions : a_partitioned_screen_plan
     // Recomputed for merged Screenplay 4.258.0, Arc 22.146.0 and npm @cratis/scene 4.86.0.
     // Recomputed for Screenplay 4.259.0: the scaffold now emits the published matcher pin.
     // Re-frozen for Cratis/Stage#120 merged with train 10: authentication artifacts and host wiring on top of the train 10 output.
-    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props gains the Xml pin and aligns Pkcs to 10.0.14.
-    const string Before = "708e231b984482668e98bdb6a9756fce4672bc87a5af0c84ae3f44894d506991";
+    // Re-frozen for Cratis/Stage#937: only Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    const string Before = "828695d84d4b262c00cc203868b75001c7e75a815011054d87c75c6d2b1eae26";
 
     void Because() => _application = AppPlan(_profile);
 

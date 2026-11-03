@@ -57,9 +57,10 @@ public sealed partial class CratisBackendApplicationScaffold
             <PackageVersion Include="Microsoft.Identity.Web" Version="{{ScaffoldPackageVersions.IdentityWeb}}" />
             <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="{{profile.MicrosoftNetTestSdkPackageVersion}}" />
             <PackageVersion Include="NSubstitute" Version="{{profile.NSubstitutePackageVersion}}" />
-            <!-- Transitive security pin for Microsoft.Identity.Web.TokenCache; referenced by no project. -->
+            <!-- Pkcs is pinned transitively for Microsoft.Identity.Web.TokenCache; referenced by no project.
+                 System.Security.Cryptography.Xml is part of the ASP.NET Core shared framework, so it is pruned
+                 and serviced by the ASP.NET Core 10.0.x runtime. -->
             <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="{{ScaffoldPackageVersions.CryptographyPkcs}}" />
-            <PackageVersion Include="System.Security.Cryptography.Xml" Version="{{ScaffoldPackageVersions.CryptographyXml}}" />
             <PackageVersion Include="xunit" Version="{{profile.XunitPackageVersion}}" />
             <PackageVersion Include="xunit.runner.visualstudio" Version="{{profile.XunitRunnerVisualStudioPackageVersion}}" />
           </ItemGroup>

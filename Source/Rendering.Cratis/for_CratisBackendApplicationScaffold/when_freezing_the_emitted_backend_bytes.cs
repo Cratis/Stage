@@ -20,29 +20,29 @@ public class when_freezing_the_emitted_backend_bytes : a_current_scaffold
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
     // Re-frozen when Debug specifications gained the Chronicle.Testing telemetry dependency.
     // Re-frozen for #120: authentication inputs, host wiring, sign-in instructions and Identity.Web references.
-    // Re-frozen for #937: Directory.Packages.props also pins System.Security.Cryptography.Xml.
-    const string FrozenDigest = "ee69dc6c87f1a5b5e3c831e10edd891788d205e094ca76f47c8c369340a973a6";
+    // Re-frozen for #937: Directory.Packages.props pins Pkcs to 10.0.14 and documents Xml runtime servicing.
+    const string FrozenDigest = "a0c18f3a937ddaa13749460d42c8c034d928d1fbe6c24e83abca19acf2ad3c34";
 
     // Frozen when the license header became the caller's choice: generated C# carries none by default.
-    const string SeparateSpecificationsDigest = "29daee8f5ff32fe8fad65eeac95e911d51bd4dc8989767736d14737e16add96e";
+    const string SeparateSpecificationsDigest = "290b2c3bd918876af5689a0787796876fbd02840f445df0af7384922f5a941a8";
 
     // Frozen for #437: only the Matching package pin and host reference are added.
-    const string PreviousFrozenDigest = "cf4021b37570f5a86d531a98529ac89afdcaf40e27341fb8a0037938c4192219";
+    const string PreviousFrozenDigest = "52cdac6a266e2ebc27d08cb27c2ef742beaa56c156e16a2c2b9a062f3e890dd0";
 
     // Re-frozen for #424: the scaffold places using directives outside the namespace.
     // Re-frozen for #660: only Directory.Build.props gains CratisReadProtection On.
-    const string FrozenRepositoryRootDigest = "dd1606d871bc40d941425935fa36f292186b01457b38b5d633a04962d973bd88";
+    const string FrozenRepositoryRootDigest = "183b9dbf2784ba79a902196c276d2ea221defe1076a85e6d4519b48878b9ebba";
 
     string _digest = null!;
 
     void Because() => _digest = Digest(_first);
 
-    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("552016bedf93ab1d51b735a15ecd6b1efe9fabc2624277717212fa7bb17d4cff");
+    [Fact] void should_change_only_using_placement_from_the_previous_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), beforePlacement: true).ShouldEqual("29126d21f8d01bb5651e03d33baf2ba664f8cd9ef55d03b61b49fd87e9be9a6d");
     [Fact] void should_emit_the_frozen_backend_bytes() => _digest.ShouldEqual(FrozenDigest);
     [Fact] void should_change_only_the_specifications_layout_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyPlacement: true).ShouldEqual(SeparateSpecificationsDigest);
     [Fact] void should_change_only_the_license_header_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), legacyHeader: true, legacyPlacement: true).ShouldEqual(PreviousFrozenDigest);
     [Fact] void should_emit_the_frozen_repository_root_bytes() => Digest(new Scaffolding.CratisBackendApplicationScaffold().Create(_request.WithRepositoryRoot())).ShouldEqual(FrozenRepositoryRootDigest);
-    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("1c3c45c3bfdb82a9634f079a44218be7ed8544e1f142e25f97411ff164eb41c0");
+    [Fact] void should_change_only_the_runtime_pins_from_the_previous_frozen_backend() => Digest(SeparateSpecificationsLayout.Restore(_first, "MyApp"), previousPins: true).ShouldEqual("aa143a02a8881679305cd371c2f2da70109fd633b3736dbb45a8bca3828a4485");
 
     static string Digest(ImmutableArray<ArtifactRenderInput> inputs, bool previousPins = false, bool beforePlacement = false, bool legacyHeader = false, bool legacyPlacement = false)
     {
